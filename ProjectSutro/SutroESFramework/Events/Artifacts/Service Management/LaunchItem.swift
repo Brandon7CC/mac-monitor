@@ -79,13 +79,13 @@ public struct LaunchItem: Identifiable, Codable, Hashable {
             item_type_string = "ES_BTM_ITEM_TYPE_AGENT"
             
             if let plistPath = plistPath {
-                plist_contents = ProcessHelpers.getPropertyListContents(at: plistPath)
+                plist_contents = ProcessHelpers.getFileContents(at: plistPath)
             }
         case ES_BTM_ITEM_TYPE_DAEMON:
             item_type_string = "ES_BTM_ITEM_TYPE_DAEMON"
             
             if let plistPath = plistPath {
-                plist_contents = ProcessHelpers.getPropertyListContents(at: plistPath)
+                plist_contents = ProcessHelpers.getFileContents(at: plistPath)
             }
         case ES_BTM_ITEM_TYPE_USER_ITEM:
             item_type_string = "ES_BTM_ITEM_TYPE_USER_ITEM"
