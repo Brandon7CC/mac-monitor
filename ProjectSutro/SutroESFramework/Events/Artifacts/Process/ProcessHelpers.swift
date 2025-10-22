@@ -84,11 +84,11 @@ public class ProcessHelpers {
     
     public static func eventToPrettyJSON(value: Encodable) -> String {
         let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
 
         do {
             let encodedData = try encoder.encode(value)
-            return String(data: encodedData, encoding: .utf8)?.replacingOccurrences(of: "\\", with: "") ?? "{}"
+            return String(data: encodedData, encoding: .utf8) ?? ""
         } catch {
             return "{}"
         }
@@ -213,13 +213,9 @@ public class ProcessHelpers {
         return chain
     }
     
-    
     // TODO: Comment / clenaup and add support for Apple binary property lists
-    public static func getPropertyListContents(at path: String) -> String? {
+    public static func getFileContents(at path: String) -> String? {
         let modPath = String(path.trimmingPrefix("file://"))
-        
-        os_log("Requesting plist for: \(modPath)")
-        // Get the URL to the property list file
         let fileURL = URL(fileURLWithPath: modPath)
         
         // Check if the file exists

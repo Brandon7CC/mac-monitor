@@ -455,6 +455,7 @@
         <attribute name="rootless" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="ruid" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="ruid_human" optional="YES" attributeType="String"/>
+        <attribute name="script_content" optional="YES" attributeType="String"/>
         <attribute name="signing_id" optional="YES" attributeType="String"/>
         <attribute name="skip_lv" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="start_time" optional="YES" attributeType="String"/>

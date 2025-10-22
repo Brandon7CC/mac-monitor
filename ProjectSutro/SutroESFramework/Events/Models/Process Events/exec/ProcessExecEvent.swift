@@ -26,6 +26,7 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
     /// Mac Monitor enrichment
     public var certificate_chain: [X509Cert] = []
     public var command_line: String?
+    public var script_content: String?
     
     // MARK: - Protocol conformance
     public func hash(into hasher: inout Hasher) {
@@ -66,6 +67,11 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
         /// Script being executed by interpreter (e.g. `./foo.sh` not `/bin/sh ./foo.sh`).
         if version >= 2, let script = execEvent.script {
             self.script = File(from: script.pointee)
+            /// Pull the script content from the file path
+            if let path = self.script?.path {
+                self.script_content = ProcessHelpers
+                    .getFileContents(at: path)
+            }
         }
 
         // Current working directory at exec time.
