@@ -20,7 +20,7 @@ class ThrottleManager {
     private let heavyFlowRate: Double = 1000
     private let throttleFactor: Double = 0.001
     private let minSaveInterval: Double = 0.1
-    private let maxSaveInterval: Double = 2.5
+    private let maxSaveInterval: Double = 1.5
     private let deThrottleRate: Double = 0.1
     
     private var _saveInterval: Double = 0.1

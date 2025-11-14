@@ -30,6 +30,7 @@ extension ESProcessExecEvent {
     @NSManaged public var image_cputype: Int64
     @NSManaged public var image_cpusubtype: Int64
     @NSManaged public var script_content: String?
+    @NSManaged public var resolved_script_path: String?
 }
 
 extension ESProcessExecEvent : Identifiable {

@@ -19,10 +19,7 @@ public struct File: Identifiable, Codable, Equatable, Hashable {
     
     ///Mac Monitor Enrichment
     public var name: String {
-        if let url = URL(string: path) {
-            return url.lastPathComponent
-        }
-        return ""
+        (path as NSString).lastPathComponent
     }
     
     public init(from file: es_file_t) {

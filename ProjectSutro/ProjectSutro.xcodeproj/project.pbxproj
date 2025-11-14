@@ -225,7 +225,7 @@
 		28CEF0DD2977634C003057D2 /* ESMountEvent+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0DB2977634C003057D2 /* ESMountEvent+CoreDataProperties.swift */; };
 		28CEF0DF29776B51003057D2 /* SystemTargetExecProcMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0DE29776B51003057D2 /* SystemTargetExecProcMetadataView.swift */; };
 		28CEF0E129776BA4003057D2 /* SystemProcessEntitlementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0E029776BA4003057D2 /* SystemProcessEntitlementsView.swift */; };
-		28CEF0E329776BC7003057D2 /* PropertyListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0E229776BC7003057D2 /* PropertyListView.swift */; };
+		28CEF0E329776BC7003057D2 /* FileContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0E229776BC7003057D2 /* FileContentView.swift */; };
 		28CEF0E529776BE0003057D2 /* SystemEventJSONView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0E429776BE0003057D2 /* SystemEventJSONView.swift */; };
 		28CEF0E729776C05003057D2 /* SystemInitatingProcessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0E629776C05003057D2 /* SystemInitatingProcessView.swift */; };
 		28CEF0E929776C40003057D2 /* AuditTokenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0E829776C40003057D2 /* AuditTokenView.swift */; };
@@ -661,7 +661,7 @@
 		28CEF0DB2977634C003057D2 /* ESMountEvent+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESMountEvent+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		28CEF0DE29776B51003057D2 /* SystemTargetExecProcMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemTargetExecProcMetadataView.swift; sourceTree = "<group>"; };
 		28CEF0E029776BA4003057D2 /* SystemProcessEntitlementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemProcessEntitlementsView.swift; sourceTree = "<group>"; };
-		28CEF0E229776BC7003057D2 /* PropertyListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyListView.swift; sourceTree = "<group>"; };
+		28CEF0E229776BC7003057D2 /* FileContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileContentView.swift; sourceTree = "<group>"; };
 		28CEF0E429776BE0003057D2 /* SystemEventJSONView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventJSONView.swift; sourceTree = "<group>"; };
 		28CEF0E629776C05003057D2 /* SystemInitatingProcessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemInitatingProcessView.swift; sourceTree = "<group>"; };
 		28CEF0E829776C40003057D2 /* AuditTokenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditTokenView.swift; sourceTree = "<group>"; };
@@ -1452,7 +1452,7 @@
 				28CEF0E829776C40003057D2 /* AuditTokenView.swift */,
 				28C8F23D297BCB3C00013B46 /* UniqueIDView.swift */,
 				28CEF0E429776BE0003057D2 /* SystemEventJSONView.swift */,
-				28CEF0E229776BC7003057D2 /* PropertyListView.swift */,
+				28CEF0E229776BC7003057D2 /* FileContentView.swift */,
 				28CEF0E029776BA4003057D2 /* SystemProcessEntitlementsView.swift */,
 				28EC62F929280F8A00EAC8AD /* SystemEnrichedEventView.swift */,
 				28CEF0E629776C05003057D2 /* SystemInitatingProcessView.swift */,
@@ -3452,7 +3452,7 @@
 				28A169CD2DA206E600CA630B /* EventViewProvider.swift in Sources */,
 				28CEF0F329776CCD003057D2 /* SystemXattrMetadataView.swift in Sources */,
 				28CEF11129777C4F003057D2 /* SystemLoginLoginMetadataView.swift in Sources */,
-				28CEF0E329776BC7003057D2 /* PropertyListView.swift in Sources */,
+				28CEF0E329776BC7003057D2 /* FileContentView.swift in Sources */,
 				28EC62E82925966D00EAC8AD /* EventChartViews.swift in Sources */,
 				28B9A93B29DC8B3A006619FF /* SystemProcessSignalMetadataView.swift in Sources */,
 				28CEF11F2978D2F7003057D2 /* SystemLWUnlockMetadataView.swift in Sources */,
@@ -3772,7 +3772,7 @@
 					"$(SDKROOT)/usr/lib/system",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent;
 				PRODUCT_NAME = "Mac Monitor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -3818,7 +3818,7 @@
 					"$(SDKROOT)/usr/lib/system",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent;
 				PRODUCT_NAME = "Mac Monitor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -3858,7 +3858,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.securityextension;
 				PRODUCT_NAME = "$(inherited)";
 				PROVISIONING_PROFILE_SPECIFIER = "RC Release SE w/Ent";
@@ -3898,7 +3898,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.securityextension;
 				PRODUCT_NAME = "$(inherited)";
 				PROVISIONING_PROFILE_SPECIFIER = "RC Release SE w/Ent";

@@ -6,7 +6,7 @@
 //
 
 import Foundation
-
+import OSLog
 
 // MARK: - Process Execution event https://developer.apple.com/documentation/endpointsecurity/es_event_exec_t
 public struct ProcessExecEvent: Identifiable, Codable, Hashable {
@@ -27,6 +27,7 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
     public var certificate_chain: [X509Cert] = []
     public var command_line: String?
     public var script_content: String?
+    public var resolved_script_path: String?
     
     // MARK: - Protocol conformance
     public func hash(into hasher: inout Hasher) {
@@ -56,6 +57,8 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
         // Arguments and command line
         self.argc = Int(es_exec_arg_count(&execEvent))
         self.args = ProcessHelpers.parseExecArgs(execEvent: &execEvent)
+        
+        /// @note Mac Monitor enrichment
         self.command_line = ProcessHelpers.parseCommandLine(execEvent: &execEvent)
         
         // Environment variables
@@ -73,10 +76,35 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
                     .getFileContents(at: path)
             }
         }
-
+        
         // Current working directory at exec time.
         if version >= 3 {
             self.cwd = File(from: execEvent.cwd.pointee)
+            
+            /// If the process executed is a supported interpreter -- attempt to pull the script
+            if let exeName: String = self.target.executable?.name {
+                let isScripting: Bool = ProcessHelpers.supportedInterpreters.contains { exeName.hasPrefix($0) }
+                if isScripting {
+                    if self.script_content == nil {
+                        if let cwd = self.cwd,
+                           let resolved_script_path = ProcessHelpers
+                            .parseScriptFromArgs(
+                                args: self.args,
+                                workingDirectory: cwd.path
+                            ){
+                            self.resolved_script_path = resolved_script_path
+                            self.script_content = ProcessHelpers
+                                .getFileContents(at: resolved_script_path)
+                        }
+                    }
+                }
+            }
+        }
+        
+        /// Populate `resolved_script_path` if ES recognizes the scripting interpreter
+        if self.resolved_script_path == nil,
+           let script = self.script {
+            self.resolved_script_path = script.path
         }
         
         // Highest open file descriptor after the exec completed
