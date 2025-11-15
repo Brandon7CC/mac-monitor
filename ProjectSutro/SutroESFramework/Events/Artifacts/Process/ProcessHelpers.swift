@@ -43,8 +43,6 @@ public class ProcessHelpers {
         return args
     }
     
-    /// TODO: Code path needs to be speed up
-    /// Maybe look for scripting interpreters only?
     static func parseScriptFromArgs(args: [String], workingDirectory: String) -> String? {
         guard args.count > 1 else { return nil }
         

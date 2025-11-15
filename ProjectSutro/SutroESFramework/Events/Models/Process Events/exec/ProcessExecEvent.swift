@@ -81,6 +81,7 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
         if version >= 3 {
             self.cwd = File(from: execEvent.cwd.pointee)
             
+            /// @note Mac Monitor enrichment -- script content
             /// If the process executed is a supported interpreter -- attempt to pull the script
             if let exeName: String = self.target.executable?.name {
                 let isScripting: Bool = ProcessHelpers.supportedInterpreters.contains { exeName.hasPrefix($0) }
