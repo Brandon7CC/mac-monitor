@@ -18,6 +18,7 @@ struct SystemChartEventView: View {
         "FORK",
         "EXIT",
         "MMAP",
+        "MPROTECT",
         "CREATE",
         "DELETEEXTATTR",
         "SETEXTATTR",
@@ -72,6 +73,7 @@ struct SystemChartEventView: View {
             if message.event.fork != nil { counts["FORK", default: 0] += 1 }
             if message.event.exit != nil { counts["EXIT", default: 0] += 1 }
             if message.event.mmap != nil { counts["MMAP", default: 0] += 1 }
+            if message.event.mprotect != nil { counts["MPROTECT", default: 0] += 1 }
             if message.event.create != nil { counts["CREATE", default: 0] += 1 }
             if message.event.deleteextattr != nil {
                 counts["DELETEEXTATTR", default: 0] += 1

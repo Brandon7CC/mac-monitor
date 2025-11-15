@@ -24,6 +24,7 @@ extension ESEventType {
     @NSManaged public var proc_check: ESProcessCheckEvent?
     
     @NSManaged public var mmap: ESMMapEvent?
+    @NSManaged public var mprotect: ESMProtectEvent?
     
     @NSManaged public var create: ESFileCreateEvent?
     @NSManaged public var unlink: ESFileDeleteEvent?

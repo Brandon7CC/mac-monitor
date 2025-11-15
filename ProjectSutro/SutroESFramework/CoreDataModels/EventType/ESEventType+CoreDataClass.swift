@@ -30,6 +30,7 @@ public class ESEventType: NSManagedObject {
         
         /// Memory mapping events
         case mmap
+        case mprotect
         
         /// File system events
         case create
@@ -176,6 +177,11 @@ public class ESEventType: NSManagedObject {
             // MARK: Memory mapping events
         case .mmap(_):
             self.mmap = ESMMapEvent(
+                from: message,
+                insertIntoManagedObjectContext: context
+            )
+        case .mprotect(_):
+            self.mprotect = ESMProtectEvent(
                 from: message,
                 insertIntoManagedObjectContext: context
             )
@@ -451,6 +457,7 @@ extension ESEventType: Encodable {
         
         // MARK: Memory mapping events
         try container.encodeIfPresent(mmap, forKey: .mmap)
+        try container.encodeIfPresent(mprotect, forKey: .mprotect)
         
         // MARK: File System events
         try container.encodeIfPresent(create, forKey: .create)

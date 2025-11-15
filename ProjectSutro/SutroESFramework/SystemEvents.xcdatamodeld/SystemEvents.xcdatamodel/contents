@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A362" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25B78" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="ESActionResult" representedClassName="ESActionResult" syncable="YES">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="result_type" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
@@ -70,6 +70,7 @@
         <relationship name="lw_session_unlock" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESLWUnlockEvent"/>
         <relationship name="mmap" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESMMapEvent"/>
         <relationship name="mount" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESMountEvent"/>
+        <relationship name="mprotect" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESMProtectEvent"/>
         <relationship name="od_attribute_value_add" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESODAttributeValueAddEvent"/>
         <relationship name="od_create_group" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESODCreateGroupEvent"/>
         <relationship name="od_create_user" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESODCreateUserEvent"/>
@@ -278,6 +279,12 @@
         <attribute name="disposition_string" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="statfsData" optional="YES" attributeType="Binary"/>
+    </entity>
+    <entity name="ESMProtectEvent" representedClassName="ESMProtectEvent" syncable="YES">
+        <attribute name="address" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="protection" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="size" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
     <entity name="ESNewPath" representedClassName="ESNewPath" syncable="YES">
         <attribute name="filename" optional="YES" attributeType="String"/>

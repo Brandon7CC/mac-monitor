@@ -26,6 +26,7 @@ public enum EventType: Hashable, Codable {
     
     // MARK: Memory mapping events
     case mmap(MMapEvent)
+    case mprotect(MProtectEvent)
     
     // MARK: File System events
     case create(FileCreateEvent)

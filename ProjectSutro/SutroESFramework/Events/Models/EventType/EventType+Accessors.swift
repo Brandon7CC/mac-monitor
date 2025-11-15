@@ -65,6 +65,11 @@ extension EventType {
         return nil
     }
     
+    var mprotect: MProtectEvent? {
+        if case .mprotect(let e) = self { return e }
+        return nil
+    }
+    
     
     // MARK: File System events
     var create: FileCreateEvent? {

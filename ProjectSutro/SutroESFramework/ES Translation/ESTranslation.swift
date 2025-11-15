@@ -96,6 +96,8 @@ public func eventStringToImage(from eventString: String) -> String {
         return "delete.backward.fill"
     case "ES_EVENT_TYPE_NOTIFY_MMAP":
         return "memorychip"
+    case "ES_EVENT_TYPE_NOTIFY_MPROTECT":
+        return "staroflife.shield"
     case "ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD":
         return "lock.doc"
     case "ES_EVENT_TYPE_NOTIFY_DUP":
