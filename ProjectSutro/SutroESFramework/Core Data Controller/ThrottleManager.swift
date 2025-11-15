@@ -55,7 +55,7 @@ class ThrottleManager {
             let dynamicThrottleRate = throttleFactor * (eventRate - heavyFlowRate)
             _saveInterval = min(_saveInterval + dynamicThrottleRate, maxSaveInterval)
         } else if _saveInterval > minSaveInterval {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
                 guard let self = self else { return }
                 self.queue.async(flags: .barrier) {
                     self._saveInterval = max(self._saveInterval - self.deThrottleRate, self.minSaveInterval)
