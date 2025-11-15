@@ -60,7 +60,7 @@ struct SystemEventFactsView : View {
     var selectedMessage: ESMessage
     
     private enum EventTabs: Hashable {
-        case metadata, telemetry, enrichment, initiating, plist
+        case metadata, telemetry, enrichment, initiating, plist, script
     }
     
     /// Process groups:
@@ -92,12 +92,27 @@ struct SystemEventFactsView : View {
             .tabItem{ Text("Metadata") }
             .tag(EventTabs.metadata)
             
-            // MARK: Display full property list for BTM events
+            // MARK: Script Tab
+            if let exec = selectedMessage.event.exec,
+               let content = exec.script_content,
+               let path = exec.resolved_script_path,
+               !content.isEmpty {
+                VStack(alignment: .leading) {
+                    FileContentView(path: path, content: content)
+                }
+                .tabItem{ Text("Script") }
+                .tag(EventTabs.script)
+            }
+            
+            // MARK: PLIST Tab
             if let event = selectedMessage.event.btm_launch_item_add,
                let plist = event.item.plist_contents {
                 if !plist.isEmpty {
                     VStack(alignment: .leading) {
-                        PropertyListView(selectedRCEvent: selectedMessage)
+                        FileContentView(
+                            path: event.item.item_path,
+                            content: plist
+                        )
                     }
                     .tabItem{ Text("PLIST") }
                     .tag(EventTabs.plist)
@@ -242,44 +257,3 @@ struct AppWrapperForFacts: View {
         _allFilters = allFilters
     }
 }
-
-
-
-//struct TreeView: View {
-//    @Environment(\.openWindow) private var openEventJSON
-//
-//    var selectedRCEvent: ESEvent
-//    var procTree: [ESEvent]
-//
-//    var body: some View {
-//        if procTree.count > 0 {
-//            Divider()
-//            Section {
-//                Text("**Jumpable tree**")
-//                ScrollView(.horizontal) {
-//                    VStack {
-//                        HStack {
-//                            GroupBox {
-//                                Button("**`\(RCProcessHelpers.getTargetProcessName(event: selectedRCEvent))`**") { }
-//                            }
-//                            Image(systemName: "arrow.backward")
-//
-//
-//                            ForEach(procTree) { event in
-//                                GroupBox {
-//                                    Button("**`\(RCProcessHelpers.getTargetProcessName(event: event))`**") {
-//                                        openEventJSON(value: event.id)
-//                                    }
-//                                }
-//                                if event.id != procTree.last!.id {
-//                                    Image(systemName: "arrow.backward")
-//                                }
-//                            }
-//                        }.padding(.all)
-//                    }
-//
-//                }
-//            }
-//        }
-//    }
-//}

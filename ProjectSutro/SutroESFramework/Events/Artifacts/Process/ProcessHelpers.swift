@@ -9,10 +9,20 @@ import Foundation
 import OSLog
 import Compression
 import CryptoKit
-//import SwiftCSBlobs
 
 
 public class ProcessHelpers {
+    static let supportedInterpreters: Set<String> = [
+        "bash",
+        "osascript",
+        "ruby",
+        "perl",
+        "python",
+        "node",
+        "swift"
+    ]
+    
+    
     // MARK: - Parsing the command line of exec events
     static func parseCommandLine(execEvent: inout es_event_exec_t) -> String {
         var command_line_builder: String = ""
@@ -31,6 +41,26 @@ public class ProcessHelpers {
             args.append(arg)
         }
         return args
+    }
+    
+    static func parseScriptFromArgs(args: [String], workingDirectory: String) -> String? {
+        guard args.count > 1 else { return nil }
+        
+        for arg in args.dropFirst() {
+            guard !arg.hasPrefix("-") else { continue }
+            let pathToCheck: String
+            if arg.hasPrefix("/") {
+                pathToCheck = arg
+            } else {
+                pathToCheck = (workingDirectory as NSString).appendingPathComponent(arg)
+            }
+            
+            if fileIsNonBinary(at: pathToCheck) {
+                return pathToCheck
+            }
+        }
+        
+        return nil
     }
     
     // MARK: - Parsing the evnvironment variables of exec events
@@ -73,7 +103,7 @@ public class ProcessHelpers {
     public static func eventToJSON(value: Encodable) -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.withoutEscapingSlashes, .sortedKeys]
-
+        
         do {
             let encodedData = try encoder.encode(value)
             return String(data: encodedData, encoding: .utf8) ?? ""
@@ -85,7 +115,7 @@ public class ProcessHelpers {
     public static func eventToPrettyJSON(value: Encodable) -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-
+        
         do {
             let encodedData = try encoder.encode(value)
             return String(data: encodedData, encoding: .utf8) ?? ""
@@ -98,12 +128,12 @@ public class ProcessHelpers {
     public static func getTargetProcessName(message: ESMessage) -> String {
         let event = message.event
         if let exec = event.exec,
-            let exe = exec.target.executable {
+           let exe = exec.target.executable {
             return exe.name
         } else if let fork = event.fork {
             return fork.child.executable?.name ?? ""
         } else if let _ = event.exit,
-           let exe = message.process.executable {
+                  let exe = message.process.executable {
             return exe.name
         }
         
@@ -200,7 +230,7 @@ public class ProcessHelpers {
         guard let certificateChain = infoDict[certificateChainKey] as? [SecCertificate] else {
             return []
         }
-                
+        
         var chain: [X509Cert] = []
         for (index, certificate) in certificateChain.enumerated() {
             if let summary = SecCertificateCopySubjectSummary(certificate) as String? {
@@ -213,23 +243,41 @@ public class ProcessHelpers {
         return chain
     }
     
-    // TODO: Comment / clenaup and add support for Apple binary property lists
+    static func fileExists(at path: String) -> Bool {
+        FileManager.default.fileExists(atPath: path)
+    }
+    
+    static func fileIsNonBinary(at path: String) -> Bool {
+        let modPath = String(path.trimmingPrefix("file://"))
+        let fileURL = URL(fileURLWithPath: modPath)
+        
+        guard fileExists(at: fileURL.path) else {
+            return false
+        }
+        
+        guard let fileHandle = try? FileHandle(forReadingFrom: fileURL),
+              let data = try? fileHandle.read(upToCount: 512) else {
+            return false
+        }
+        
+        try? fileHandle.close()
+        
+        return String(data: data, encoding: .utf8) != nil
+    }
+    
     public static func getFileContents(at path: String) -> String? {
         let modPath = String(path.trimmingPrefix("file://"))
         let fileURL = URL(fileURLWithPath: modPath)
         
         // Check if the file exists
-        guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            // Return nil if the file does not exist
+        guard fileExists(at: fileURL.path) else {
             return nil
         }
         
-        // Read the contents of the file
         do {
-            let fileContents = try String(contentsOf: fileURL)
+            let fileContents = try String(contentsOf: fileURL, encoding: .utf8)
             return fileContents
         } catch {
-            // Handle error
             return nil
         }
     }
@@ -309,20 +357,20 @@ public class ProcessHelpers {
     public static let forcedQuarantineSigningIDs: [String] = {
         var signingIDs: [String] = []
         let filePath = "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/Exceptions.plist"
-
+        
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: filePath)),
               let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
               let dict = plist as? [String: Any],
               let entries = dict["Additions"] as? [String: Any] else {
             return signingIDs
         }
-
+        
         for (key, value) in entries {
             if let data = value as? [String: Any], data["LSFileQuarantineEnabled"] != nil {
                 signingIDs.append(key)
             }
         }
-
+        
         return signingIDs
     }()
     

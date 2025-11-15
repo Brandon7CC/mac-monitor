@@ -452,6 +452,7 @@
         <attribute name="pid" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="process_name" optional="YES" attributeType="String"/>
         <attribute name="process_path" optional="YES" attributeType="String"/>
+        <attribute name="resolved_script_path" optional="YES" attributeType="String"/>
         <attribute name="rootless" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="ruid" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="ruid_human" optional="YES" attributeType="String"/>

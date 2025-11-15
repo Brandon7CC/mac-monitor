@@ -169,11 +169,11 @@ struct SystemTargetExecProcMetadataView: View {
                     }
                     
                     // MARK: Script
-                    if let script = event.script,
-                       let scriptPath = script.path {
+                    if let script = event.resolved_script_path {
                         Text("\u{2022} **Script:**")
                         GroupBox {
-                            Text("`\(scriptPath)`")
+                            Text(script)
+                                .monospaced()
                         }
                     }
                     
