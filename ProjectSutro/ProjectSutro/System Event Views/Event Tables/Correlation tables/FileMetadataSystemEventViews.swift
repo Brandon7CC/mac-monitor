@@ -24,7 +24,7 @@ struct SystemXattrTableView: View {
                 Text(message.event.deleteextattr!.extattr)
             }
             TableColumn("File path") { message in
-                Text(message.event.deleteextattr!.target.path ?? "")
+                Text(message.event.deleteextattr!.target.path)
             }
         } rows: {
             ForEach(xattrEvents) { message in

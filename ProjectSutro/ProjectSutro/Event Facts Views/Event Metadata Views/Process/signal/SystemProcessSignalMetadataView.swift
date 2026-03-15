@@ -22,7 +22,7 @@ struct SystemProcessSignalMetadataView: View {
     }
     
     private var targetProcessPath: String {
-        event.target.executable!.path!
+        event.target.executable!.path
     }
     
     private var targetSigningId: String? {

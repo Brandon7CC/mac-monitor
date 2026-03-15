@@ -38,7 +38,8 @@ struct TableExecEventContextMenu: View {
         // MARK: Filter target_path
         if userPrefs.contextExecTargetPathFilter {
             if let exe = message.event.exec!.target.executable,
-               let procPath = exe.path {
+               !exe.path.isEmpty {
+                let procPath = exe.path
                 // MARK: Secodary click "Filter target process globally"
                 Button(action: {
                     allFilters.targetPaths.append(procPath)
@@ -52,10 +53,10 @@ struct TableExecEventContextMenu: View {
         
         // MARK: Filter ES event
         Button(action: {
-            allFilters.events.append(message.es_event_type!)
+            allFilters.events.append(message.es_event_type)
         }) {
             HStack {
-                Text("Filter event: \"`\(message.es_event_type!)`\"")
+                Text("Filter event: \"`\(message.es_event_type)`\"")
             }
         }
         
@@ -75,7 +76,8 @@ struct TableExecEventContextMenu: View {
         // MARK: Filter initiating_process_path
         if userPrefs.contextExecInitiatingPathFilter {
             if let exe = message.process.executable,
-            let procPath = exe.path {
+            !exe.path.isEmpty {
+                let procPath = exe.path
                 Button(action: {
                     os_log("Filtering from view: \(message.id) --> \(procPath)")
                     //Filter this path from view
@@ -203,12 +205,12 @@ action: {
         // MARK: Unsubscribe from event
         if userPrefs.contextExecEventUnsubscribe {
             Button(action: {
-                os_log("Requesting ES unsubscribe from: \(message.es_event_type!)")
+                os_log("Requesting ES unsubscribe from: \(message.es_event_type)")
                 // Mute the binaries initiating process path globally (for all events)
-                systemExtensionManager.puntEventToUnsubscribe(eventString: message.es_event_type!)
+                systemExtensionManager.puntEventToUnsubscribe(eventString: message.es_event_type)
             }) {
                 HStack {
-                    Text("Unsubscribe: \"`\(message.es_event_type!)`\"")
+                    Text("Unsubscribe: \"`\(message.es_event_type)`\"")
                 }
             }
         }

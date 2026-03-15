@@ -42,7 +42,7 @@ struct AuthProcsView: View {
                         Text("\u{2022} Instigator process path:")
                             .bold()
                         GroupBox {
-                            Text(instigatorExe.path ?? "")
+                            Text(instigatorExe.path)
                                 .monospaced()
                                 .font(.title3).frame(maxWidth: .infinity, alignment: .leading)
                                 .lineLimit(30)
@@ -72,7 +72,7 @@ struct AuthProcsView: View {
                         Text("\u{2022} Petitioner process path:")
                             .bold()
                         GroupBox {
-                            Text(petitionerExe.path ?? "")
+                            Text(petitionerExe.path)
                                 .monospaced()
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .lineLimit(30)
@@ -106,7 +106,7 @@ struct AuthProcsView: View {
                     Text("\u{2022} Process path:")
                         .bold()
                     GroupBox {
-                        Text(instigatorExe.path ?? "")
+                        Text(instigatorExe.path)
                             .monospaced()
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)

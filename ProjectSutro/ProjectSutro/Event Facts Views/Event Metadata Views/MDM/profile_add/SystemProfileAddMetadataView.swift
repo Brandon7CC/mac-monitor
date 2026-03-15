@@ -25,59 +25,57 @@ struct SystemProfileAddMetadataView: View {
             GroupBox {
                 VStack(alignment: .leading) {
                     
-                    if let profile = event.profile {
-                        VStack(alignment: .leading) {
-                            Text("\u{2022} Profile display name:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(profile.display_name)
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        VStack(alignment: .leading) {
-                            Text("\u{2022} Profile identifer:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(profile.identifier)
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        VStack(alignment: .leading) {
-                            Text("\u{2022} Organization:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(profile.organization)
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        HStack {
-                            Text("\u{2022} Source type:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text("\(profile.installSourceShortName) (\(profile.install_source))")
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            Text("\u{2022} Is update:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text("\(event.is_update ? "Yes" : "No")")
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    VStack(alignment: .leading) {
+                        Text("\u{2022} Profile display name:")
+                            .bold()
+                            .padding([.leading], 5.0)
+                        GroupBox {
+                            Text(event.profile.display_name)
+                                .monospaced()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+
+                    VStack(alignment: .leading) {
+                        Text("\u{2022} Profile identifer:")
+                            .bold()
+                            .padding([.leading], 5.0)
+                        GroupBox {
+                            Text(event.profile.identifier)
+                                .monospaced()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+
+                    VStack(alignment: .leading) {
+                        Text("\u{2022} Organization:")
+                            .bold()
+                            .padding([.leading], 5.0)
+                        GroupBox {
+                            Text(event.profile.organization)
+                                .monospaced()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+
+                    HStack {
+                        Text("\u{2022} Source type:")
+                            .bold()
+                            .padding([.leading], 5.0)
+                        GroupBox {
+                            Text("\(event.profile.installSourceShortName) (\(event.profile.install_source))")
+                                .monospaced()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        Text("\u{2022} Is update:")
+                            .bold()
+                            .padding([.leading], 5.0)
+                        GroupBox {
+                            Text("\(event.is_update ? "Yes" : "No")")
+                                .monospaced()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
                     
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }

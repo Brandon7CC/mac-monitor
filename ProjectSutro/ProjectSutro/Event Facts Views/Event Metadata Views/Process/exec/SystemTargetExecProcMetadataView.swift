@@ -57,18 +57,18 @@ struct SystemTargetExecProcMetadataView: View {
     }
     
     private var start_time: String {
-        event.target.start_time
+        event.target.start_time.humanFormat()
     }
-    
+
     private var codesigning_type: String {
         if selectedMessage.version >= 10 && event.target.cs_validation_category != 10 {
             if let cs_validation_string = event.target.cs_validation_category_string {
                 let stringSuffix = cs_validation_string.trimmingPrefix("ES_CS_VALIDATION_CATEGORY_")
-                return "\(stringSuffix) (\(event.target.cs_validation_category))"
+                return "\(stringSuffix) (\(event.target.cs_validation_category ?? 0))"
             }
         }
-        
-        return event.target.codesigning_type
+
+        return event.target.codesigning_type.rawValue
     }
     
     private var hasXPCServiceName: Bool {
@@ -95,9 +95,9 @@ struct SystemTargetExecProcMetadataView: View {
                                 }
                                 
                                 // MARK: File Quarantine
-                                if event.target.file_quarantine_type != "DISABLED" {
+                                if event.target.file_quarantine_type != .disabled {
                                     FileQuarantineLabelView(
-                                        type: event.target.file_quarantine_type
+                                        type: event.target.file_quarantine_type.rawValue
                                     )
                                 }
                             }
@@ -179,8 +179,8 @@ struct SystemTargetExecProcMetadataView: View {
                     
                     // MARK: CWD
                     if let cwd = event.cwd,
-                       let cwdPath = cwd.path,
-                       cwdPath.count > 1 {
+                       cwd.path.count > 1 {
+                        let cwdPath = cwd.path
                         Text("\u{2022} **CWD:**")
                         GroupBox {
                             Text("`\(cwdPath)`")

@@ -11,13 +11,13 @@ import SutroESFramework
 
 /// Resolves and caches process lineage relationships for efficient filtering of Endpoint Security events.
 ///
-/// This resolver builds an in-memory graph of process relationships from ES events, enabling
+/// This resolver builds an in-memory graph of process relationships from index entries, enabling
 /// fast lookups of process trees. It tracks parent-child relationships through exec and fork events,
 /// handling the nuance that exec events with the same PID represent process replacement rather than
 /// new child processes.
 ///
 /// ## Performance
-/// - Initialization: O(n) where n is the number of events
+/// - Initialization: O(n) where n is the number of index entries
 /// - Lineage computation: O(m) where m is the size of the resulting tree
 /// - Filtering checks: O(1) after pre-computing lineage sets
 ///
@@ -29,49 +29,45 @@ import SutroESFramework
 public final class ProcessLineageResolver {
     private struct ProcessNode {
         let parentAuditToken: String
-        let executablePath: String
+        let executablePathHash: UInt64
     }
     
     private var tokenToNodeCache: [String: ProcessNode] = [:]
     private var childrenCache: [String: Set<String>] = [:] // parent -> children
     
-    public init(events: [ESMessage]) {
-        for event in events {
+    public init(indexEntries: [EventIndexEntry], pathLookup: (UInt64) -> String?) {
+        for entry in indexEntries {
             addToCache(
-                token: event.process.audit_token_string,
-                parent: event.process.parent_audit_token_string,
-                path: event.process.executable?.path
+                token: entry.auditTokenString,
+                parent: entry.parentAuditTokenString,
+                pathHash: entry.executablePathHash
             )
             
-            if let execEvent = event.event.exec,
-               let targetPath = execEvent.target.executable?.path {
-                let targetToken = execEvent.target.audit_token_string
-                let isSamePidExec = (execEvent.target.audit_token?.pid == event.process.audit_token?.pid)
+            if let targetToken = entry.targetAuditTokenString {
+                let isSamePidExec = isSamePidExec(entry: entry)
                 let parentToken = isSamePidExec ?
-                    event.process.parent_audit_token_string :
-                    event.process.audit_token_string
+                    entry.parentAuditTokenString :
+                    entry.auditTokenString
                 
-                addToCache(token: targetToken, parent: parentToken, path: targetPath)
-            }
-            
-            if let forkEvent = event.event.fork,
-               let childPath = forkEvent.child.executable?.path {
                 addToCache(
-                    token: forkEvent.child.audit_token_string,
-                    parent: event.process.audit_token_string,
-                    path: childPath
+                    token: targetToken,
+                    parent: parentToken,
+                    pathHash: entry.executablePathHash
                 )
             }
         }
     }
     
-    private func addToCache(token: String, parent: String, path: String?) {
-        guard let path = path else { return }
-        
+    private func isSamePidExec(entry: EventIndexEntry) -> Bool {
+        guard entry.esEventType == "ES_EVENT_TYPE_NOTIFY_EXEC" else { return false }
+        return true
+    }
+    
+    private func addToCache(token: String, parent: String, pathHash: UInt64) {
         if tokenToNodeCache[token] == nil {
             tokenToNodeCache[token] = ProcessNode(
                 parentAuditToken: parent,
-                executablePath: path
+                executablePathHash: pathHash
             )
             childrenCache[parent, default: []].insert(token)
         }
@@ -80,13 +76,17 @@ public final class ProcessLineageResolver {
     /// Pre-compute tokens in the lineage tree of a path
     /// - Parameters:
     ///   - includedPath: The executable path to match
+    ///   - pathLookup: Function to resolve path hash to string
     ///   - includeAncestors: If true, includes parent processes (default: true)
     /// - Returns: Set of audit token strings that match the lineage criteria
-    public func computeLineageSet(includedPath: String, includeAncestors: Bool = true) -> Set<String> {
+    public func computeLineageSet(includedPath: String, pathLookup: (UInt64) -> String?, includeAncestors: Bool = true) -> Set<String> {
         var result = Set<String>()
         
-        // Find all direct matches
-        let matchingTokens = tokenToNodeCache.filter { $0.value.executablePath == includedPath }.map { $0.key }
+        // Find all direct matches by path hash
+        let matchingTokens = tokenToNodeCache.filter { node in
+            guard let path = pathLookup(node.value.executablePathHash) else { return false }
+            return path == includedPath
+        }.map { $0.key }
         
         for token in matchingTokens {
             result.insert(token)

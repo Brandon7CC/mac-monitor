@@ -83,11 +83,11 @@ struct SystemOpenDirectoryAttrAddMetadataView: View {
                         }
                     }
                     
-                    if event.record_type != nil && !event.record_type!.isEmpty {
+                    if !event.record_type.isEmpty {
                         HStack {
-                            Text("\u{2022} **\(event.record_type!) record name:**")
+                            Text("\u{2022} **\(event.record_type) record name:**")
                             GroupBox {
-                                Text("`\(event.record_name!)`")
+                                Text("`\(event.record_name ?? "")`")
                             }
                         }
                     }

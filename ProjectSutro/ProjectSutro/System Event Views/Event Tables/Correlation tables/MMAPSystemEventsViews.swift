@@ -46,7 +46,8 @@ struct SystemMMAPEventTableView: View {
     private var mmapEventsTable: some View {
         Table(of: ESMessage.self, selection: $eventSelection) {
             TableColumn("Mapping path") { message in
-                if let mmap = message.event.mmap, let path = mmap.source.path {
+                if let mmap = message.event.mmap, !mmap.source.path.isEmpty {
+                    let path = mmap.source.path
                     if pathIsOSAComponent(filePath: path) {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")

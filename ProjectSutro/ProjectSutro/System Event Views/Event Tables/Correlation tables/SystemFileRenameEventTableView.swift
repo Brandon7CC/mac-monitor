@@ -36,7 +36,7 @@ struct SystemFileRenameEventTableView: View {
                 
                 TableColumn("Destination path", value: \.event.rename!.destination_path)
                 
-                TableColumn("Source path", value: \.event.rename!.source.path!)
+                TableColumn("Source path", value: \.event.rename!.source.path)
                 
 //                TableColumn("Is quarantined", value: \.file_rename_event!.is_quarantined.description)
                 TableColumn("Is quarantined") { message in

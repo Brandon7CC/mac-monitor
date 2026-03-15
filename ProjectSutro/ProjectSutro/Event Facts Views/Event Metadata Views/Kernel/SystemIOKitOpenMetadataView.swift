@@ -18,7 +18,7 @@ struct SystemIOKitOpenMetadataView: View {
     }
     
     private var eventType: String {
-        esSystemEvent.es_event_type!
+        esSystemEvent.es_event_type
     }
     
     var body: some View {

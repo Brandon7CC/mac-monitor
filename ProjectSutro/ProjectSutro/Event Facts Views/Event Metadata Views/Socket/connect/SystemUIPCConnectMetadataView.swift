@@ -51,12 +51,12 @@ struct SystemUIPCConnectMetadataView: View {
                         }
                     }
                     
-                    if let path = event.file.path {
+                    if !event.file.path.isEmpty {
                         HStack {
                             Text("\u{2022} File path:")
                                 .bold()
                             GroupBox {
-                                Text(path)
+                                Text(event.file.path)
                                     .monospaced()
                             }
                         }

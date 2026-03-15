@@ -51,15 +51,23 @@ struct SystemFileCreateMetadataView: View {
     }
     
     var createdFileName: String {
-        create?.fileName ?? ""
+        guard let create = create else { return "" }
+        switch create.destination {
+        case .new_path(let np): return np.filename
+        case .existing_file(let f): return URL(fileURLWithPath: f.path).lastPathComponent
+        }
     }
-    
+
     var destinationPath: String {
-        create?.targetPath ?? ""
+        guard let create = create else { return "" }
+        switch create.destination {
+        case .new_path(let np): return "\(np.dir.path)/\(np.filename)"
+        case .existing_file(let f): return f.path
+        }
     }
-    
+
     var fileQuarantineEnabled: Bool {
-        esSystemEvent.process.file_quarantine_type != "DISABLED"
+        esSystemEvent.process.file_quarantine_type != .disabled
     }
     
     var fileQuarantineType: Int {
@@ -146,11 +154,11 @@ struct SystemFileCreateMetadataView: View {
                         }
                     }
                     
-                    if let newPath = create?.destination.new_path {
+                    if let dest = create?.destination, case .new_path(let newPath) = dest {
                         HStack {
                             Text("\u{2022} **Mode:**")
                             GroupBox {
-                                Text("`\(newPath.mode)`")
+                                Text("`\(newPath.mode ?? 0)`")
                             }
                         }
                     }

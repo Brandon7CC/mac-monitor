@@ -34,13 +34,13 @@ struct SystemFDDuplicateMetadataView: View {
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     
-                    if let path = event.target.path {
+                    if !event.target.path.isEmpty {
                         VStack(alignment: .leading) {
                             Text("\u{2022} File path:")
                                 .bold()
                                 .padding([.leading], 5.0)
                             GroupBox {
-                                Text(path)
+                                Text(event.target.path)
                                     .monospaced()
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }

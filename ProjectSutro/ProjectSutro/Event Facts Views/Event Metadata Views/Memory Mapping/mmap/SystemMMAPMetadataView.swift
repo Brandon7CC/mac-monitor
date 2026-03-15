@@ -17,7 +17,7 @@ struct SystemMMAPMetadataView: View {
     }
     
     private var sourcePath: String {
-        event.source.path ?? "Unknown"
+        event.source.path
     }
     
     private var protection: Int32 {
@@ -32,7 +32,7 @@ struct SystemMMAPMetadataView: View {
         event.flags
     }
     
-    private var filePos: Int64 {
+    private var filePos: Int {
         event.file_pos
     }
     

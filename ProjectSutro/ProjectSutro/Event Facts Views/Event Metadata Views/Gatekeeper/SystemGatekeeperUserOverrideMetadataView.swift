@@ -19,13 +19,12 @@ struct SystemGatekeeperUserOverrideMetadataView: View {
     }
     
     private var overridePath: String {
-        if let path = event.file?.path {
+        switch event.file {
+        case .file_path(let path):
             return path
-        } else if let filePath = event.file_path {
-            return filePath
+        case .file(let file):
+            return file.path
         }
-        
-        return ""
     }
     
     var body: some View {
@@ -56,7 +55,7 @@ struct SystemGatekeeperUserOverrideMetadataView: View {
                     HStack {
                         Text("\u{2022} **SHA256**")
                         GroupBox {
-                            Text(event.sha256)
+                            Text(event.sha256 ?? "")
                                 .monospaced()
                         }
                     }

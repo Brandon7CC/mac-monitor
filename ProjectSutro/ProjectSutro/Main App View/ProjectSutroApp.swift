@@ -90,7 +90,6 @@ struct ProjectSutroApp: App {
                 )
                 .environmentObject(systemExtensionManager)
                 .environmentObject(userPrefs)
-                .environment(\.managedObjectContext, systemExtensionManager.coreDataContainer.container.viewContext)
                 .padding(.bottom)
                 .frame(minWidth: 1200, minHeight: 750)
             }
@@ -208,19 +207,27 @@ struct ProjectSutroApp: App {
                 }
             }
             
+            #if DEBUG
+            CommandMenu("Debug") {
+                Button("Capture Event Fixture...") {
+                    FixtureCapture.captureWithSavePanel()
+                }
+            }
+            #endif
+            
             CommandMenu("Export telemetry") {
                 Section("JSON (pretty)") {
                     Button("Full system trace") {
                         recordingEvents = false
                         systemExtensionManager.stopRecordingEvents()
-                        systemExtensionManager.coreDataContainer.exportFullTrace()
+                        systemExtensionManager.eventStore.exportFullTrace()
                     }
                     
                     Button("Selected events \(eventSelection.count > 0 ? ": \(eventSelection.count)" : "")") {
                         recordingEvents = false
                         systemExtensionManager.stopRecordingEvents()
                         
-                        systemExtensionManager.coreDataContainer
+                        systemExtensionManager.eventStore
                             .exportSelectedEvents(
                                 eventIDs: Array(eventSelection)
                             )
@@ -235,14 +242,14 @@ struct ProjectSutroApp: App {
                     Button("Full system trace") {
                         recordingEvents = false
                         systemExtensionManager.stopRecordingEvents()
-                        systemExtensionManager.coreDataContainer.exportFullTrace(jsonl: true)
+                        systemExtensionManager.eventStore.exportFullTrace(jsonl: true)
                     }
                     .keyboardShortcut("s", modifiers: .command)
                     
                     Button("Selected events \(eventSelection.count > 0 ? ": \(eventSelection.count)" : "")") {
                         recordingEvents = false
                         systemExtensionManager.stopRecordingEvents()
-                        systemExtensionManager.coreDataContainer.exportSelectedEvents(eventIDs: Array(eventSelection), jsonl: true)
+                        systemExtensionManager.eventStore.exportSelectedEvents(eventIDs: Array(eventSelection), jsonl: true)
                     }
                     .keyboardShortcut("s", modifiers: [.command, .shift])
                     .disabled(eventSelection.isEmpty)
@@ -262,7 +269,6 @@ struct ProjectSutroApp: App {
                 AppWrapperForFacts(id: id, allFilters: $allFilters)
                     .environmentObject(systemExtensionManager)
                     .environmentObject(userPrefs)
-                    .environment(\.managedObjectContext, systemExtensionManager.coreDataContainer.container.viewContext)
                     .frame(minWidth: 700, minHeight: 400)
                 
             }

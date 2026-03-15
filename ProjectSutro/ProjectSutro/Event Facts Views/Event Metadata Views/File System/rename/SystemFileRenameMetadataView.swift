@@ -67,7 +67,7 @@ struct SystemFileRenameMetadataView: View {
                             .padding([.leading], 5.0)
                         
                         GroupBox {
-                            Text(event.destination_file_name)
+                            Text(URL(fileURLWithPath: event.destination_path).lastPathComponent)
                                 .monospaced()
                         }
                         
@@ -92,10 +92,10 @@ struct SystemFileRenameMetadataView: View {
                         }
                     }
                     
-                    if let sourcePath = event.source.path {
+                    if !event.source.path.isEmpty {
                         HStack {
                             if FileManager.default
-                                .fileExists(atPath: sourcePath) {
+                                .fileExists(atPath: event.source.path) {
                                 Label("**Source path:**", systemImage: "checkmark.circle")
                                     .labelStyle(.titleAndIcon)
                                     .help("This file exists.")
@@ -105,7 +105,7 @@ struct SystemFileRenameMetadataView: View {
                                     .help("This file no longer exists.")
                             }
                             GroupBox {
-                                Text(sourcePath)
+                                Text(event.source.path)
                                     .monospaced()
                                     .lineLimit(10)
                             }

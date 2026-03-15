@@ -35,7 +35,7 @@ struct ExecEventLabelView: View {
             }
             
             // MARK: File Quarantine-aware
-            if event.target.file_quarantine_type != "DISABLED" {
+            if event.target.file_quarantine_type != .disabled {
                 Image(systemName: "lock.icloud").symbolRenderingMode(.multicolor)
                     .padding([.leading], 2.0)
                     .help("Target is File Quarantine-aware.")
@@ -44,14 +44,14 @@ struct ExecEventLabelView: View {
             // MARK: ADHOC
             if event.target.is_adhoc_signed {
                 Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow)
-                Label("**`\(message.es_event_type!)`**", systemImage: "xmark.seal").symbolRenderingMode(.palette).foregroundStyle(.orange)
+                Label("**`\(message.es_event_type)`**", systemImage: "xmark.seal").symbolRenderingMode(.palette).foregroundStyle(.orange)
             } else if event.target.signing_id != nil && event.target.signing_id! != "Unknown" {
                 // MARK: Signed
-                Label("**`\(message.es_event_type!)`**", systemImage: "checkmark.seal")
+                Label("**`\(message.es_event_type)`**", systemImage: "checkmark.seal")
             } else {
                 // MARK: Unsigned
                 Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .red)
-                Label("**`\(message.es_event_type!)`**", systemImage: "xmark.seal").symbolRenderingMode(.palette).foregroundStyle(.red)
+                Label("**`\(message.es_event_type)`**", systemImage: "xmark.seal").symbolRenderingMode(.palette).foregroundStyle(.red)
             }
         }.frame(alignment: .leading)
     }
@@ -62,12 +62,10 @@ struct ForkEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        if let eventType: String = message.es_event_type {
-            Label(
-                "**`\(eventType)`**",
-                systemImage: "point.topleft.down.curvedto.point.bottomright.up"
-            )
-        }
+        Label(
+            "**`\(message.es_event_type)`**",
+            systemImage: "point.topleft.down.curvedto.point.bottomright.up"
+        )
     }
 }
 
@@ -79,23 +77,26 @@ struct FileCreateEventLabelView: View {
     }
     
     var body: some View {
-        if let eventType: String = message.es_event_type {
-            HStack {
-                if (message.process.file_quarantine_type != "DISABLED" || (message.process.executable?.name == "ArchiveService" && !event.targetPath.hasPrefix("/private/var/folders/"))) && event.is_quarantined == 0 {
-                    // MARK: Unquarantiened file
-                    Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow).help("Unquarantined file created")
-                    Label("**`\(eventType)`**", systemImage: "doc.plaintext").symbolRenderingMode(.palette).foregroundStyle(.red)
-                } else if event.is_quarantined == 1 {
-                    // MARK: Quarantined file
-                    Image(systemName: "lock.shield").help("File is quarantined")
-                    Label("**`\(eventType)`**", systemImage: "doc.plaintext")
-                }
-                else {
-                    Label("**`\(eventType)`**", systemImage: "doc.plaintext")
-                }
-            }.frame(alignment: .leading)
-        }
-        
+        let destinationPath: String = {
+            switch event.destination {
+            case .new_path(let np): return "\(np.dir.path)/\(np.filename)"
+            case .existing_file(let f): return f.path
+            }
+        }()
+        HStack {
+            if (message.process.file_quarantine_type != .disabled || (message.process.executable?.name == "ArchiveService" && !destinationPath.hasPrefix("/private/var/folders/"))) && event.is_quarantined == 0 {
+                // MARK: Unquarantiened file
+                Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow).help("Unquarantined file created")
+                Label("**`\(message.es_event_type)`**", systemImage: "doc.plaintext").symbolRenderingMode(.palette).foregroundStyle(.red)
+            } else if event.is_quarantined == 1 {
+                // MARK: Quarantined file
+                Image(systemName: "lock.shield").help("File is quarantined")
+                Label("**`\(message.es_event_type)`**", systemImage: "doc.plaintext")
+            }
+            else {
+                Label("**`\(message.es_event_type)`**", systemImage: "doc.plaintext")
+            }
+        }.frame(alignment: .leading)
     }
 }
 
@@ -107,19 +108,16 @@ struct MMAPEventLabelView: View {
     }
     
     var body: some View {
-        if let eventType: String = message.es_event_type {
-            let filePath: String = event.source.path!
-            // MARK: MMAP OSA
-            if pathIsOSAComponent(filePath: filePath) {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow).help("This file is an OSA (Open Scripting Architecture) component")
-                    Label("**`\(eventType)`**", systemImage: "memorychip").foregroundStyle(.orange)
-                }
-            } else {
-                Label("**`\(eventType)`**", systemImage: "memorychip")
+        let filePath: String = event.source.path
+        // MARK: MMAP OSA
+        if pathIsOSAComponent(filePath: filePath) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow).help("This file is an OSA (Open Scripting Architecture) component")
+                Label("**`\(message.es_event_type)`**", systemImage: "memorychip").foregroundStyle(.orange)
             }
+        } else {
+            Label("**`\(message.es_event_type)`**", systemImage: "memorychip")
         }
-        
     }
 }
 
@@ -136,7 +134,7 @@ struct ExitEventLabelView: View {
             if event.stat != 0 {
                 Image(systemName: "info.square").symbolRenderingMode(.palette).help("Non-zero exit code")
             }
-            Label("**`\(message.es_event_type!)`**", systemImage: "eject.fill")
+            Label("**`\(message.es_event_type)`**", systemImage: "eject.fill")
         }
     }
 }
@@ -154,10 +152,10 @@ struct DeleteXattrEventLabelView: View {
         if xattr.hasSuffix("apple.quarantine") {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow).help("Quarantine extended attribute deleted")
-                Label("**`\(message.es_event_type!)`**", systemImage: "lock.slash").symbolRenderingMode(.palette).foregroundStyle(.red)
+                Label("**`\(message.es_event_type)`**", systemImage: "lock.slash").symbolRenderingMode(.palette).foregroundStyle(.red)
             }
         } else {
-            Label("**`\(message.es_event_type!)`**", systemImage: eventStringToImage(from: message.es_event_type!)).foregroundStyle(.orange)
+            Label("**`\(message.es_event_type)`**", systemImage: eventStringToImage(from: message.es_event_type)).foregroundStyle(.orange)
         }
     }
 }
@@ -172,7 +170,7 @@ struct BTMLaunchItemAddEventLabelView: View {
     var body: some View {
         HStack {
             Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow).help("These events indicate a background task was added")
-            Label("**`\(message.es_event_type!)`**", systemImage: "lock.doc").symbolRenderingMode(.palette).foregroundStyle(.orange)
+            Label("**`\(message.es_event_type)`**", systemImage: "lock.doc").symbolRenderingMode(.palette).foregroundStyle(.orange)
         }.frame(alignment: .leading)
     }
 }
@@ -188,7 +186,7 @@ struct BTMLaunchItemRemoveEventLabelView: View {
     var body: some View {
         HStack {
             Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow).help("These events indicate a background task was removed")
-            Label("**`\(message.es_event_type!)`**", systemImage: "lock.doc").symbolRenderingMode(.palette).foregroundStyle(.orange)
+            Label("**`\(message.es_event_type)`**", systemImage: "lock.doc").symbolRenderingMode(.palette).foregroundStyle(.orange)
         }.frame(alignment: .leading)
     }
 }
@@ -199,7 +197,7 @@ struct OpenSSHLabelView: View {
     
     var body: some View {
         HStack {
-            Label("**`\(message.es_event_type!)`**", systemImage: "network").symbolRenderingMode(.palette).foregroundStyle(.blue)
+            Label("**`\(message.es_event_type)`**", systemImage: "network").symbolRenderingMode(.palette).foregroundStyle(.blue)
         }.frame(alignment: .leading)
     }
 }
@@ -211,7 +209,7 @@ struct XProtectMalwareDetectedEventLabelView: View {
     var body: some View {
         HStack {
             Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .purple)
-            Label("**`\(message.es_event_type!)`**", systemImage: "bolt.shield").symbolRenderingMode(.palette).foregroundStyle(.purple)
+            Label("**`\(message.es_event_type)`**", systemImage: "bolt.shield").symbolRenderingMode(.palette).foregroundStyle(.purple)
         }.frame(alignment: .leading)
     }
 }
@@ -223,7 +221,7 @@ struct XProtectMalwareRemediatedEventLabelView: View {
     var body: some View {
         HStack {
             Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .purple)
-            Label("**`\(message.es_event_type!)`**", systemImage: "checkmark.shield").symbolRenderingMode(.palette).foregroundStyle(.purple)
+            Label("**`\(message.es_event_type)`**", systemImage: "checkmark.shield").symbolRenderingMode(.palette).foregroundStyle(.purple)
         }.frame(alignment: .leading)
     }
 }
@@ -232,7 +230,7 @@ struct MountEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: "mount")
+        Label("**`\(message.es_event_type)`**", systemImage: "mount")
     }
 }
 
@@ -240,7 +238,7 @@ struct LoginLoginEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: "person.fill.checkmark").foregroundStyle(.blue)
+        Label("**`\(message.es_event_type)`**", systemImage: "person.fill.checkmark").foregroundStyle(.blue)
     }
 }
 
@@ -248,7 +246,7 @@ struct LoginWindowLoginEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: "macwindow.badge.plus").foregroundStyle(.blue)
+        Label("**`\(message.es_event_type)`**", systemImage: "macwindow.badge.plus").foregroundStyle(.blue)
     }
 }
 
@@ -256,7 +254,7 @@ struct LoginWindowUnlockEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: "macwindow.badge.plus").foregroundStyle(.blue)
+        Label("**`\(message.es_event_type)`**", systemImage: "macwindow.badge.plus").foregroundStyle(.blue)
     }
 }
 
@@ -264,7 +262,7 @@ struct FDDuplicateEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: "folder.badge.plus")
+        Label("**`\(message.es_event_type)`**", systemImage: "folder.badge.plus")
     }
 }
 
@@ -273,7 +271,7 @@ struct FileRenameEventLabelView: View {
     private var event: ESFileRenameEvent { message.event.rename! }
     
     var body: some View {
-        guard let eventType = message.es_event_type else { return AnyView(EmptyView()) }
+        let eventType = message.es_event_type
         let config = configuration(for: event)
         
         return AnyView(
@@ -311,7 +309,7 @@ struct FileDeleteEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: eventStringToImage(from: message.es_event_type!))
+        Label("**`\(message.es_event_type)`**", systemImage: eventStringToImage(from: message.es_event_type))
     }
 }
 
@@ -319,7 +317,7 @@ struct FileOpenEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: eventStringToImage(from: message.es_event_type!))
+        Label("**`\(message.es_event_type)`**", systemImage: eventStringToImage(from: message.es_event_type))
     }
 }
 
@@ -332,13 +330,12 @@ struct FileWriteEventLabelView: View {
     }
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
         HStack {
-            if let path = event.target.path,
-               path.contains("backgroundtaskmanagementd") {
+            if event.target.path.contains("backgroundtaskmanagementd") {
                 // MARK: Login Item
                 Image(systemName: "exclamationmark.triangle.fill")
                     .symbolRenderingMode(.palette)
@@ -358,7 +355,7 @@ struct FileLinkEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -370,7 +367,7 @@ struct FileCloseEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -387,7 +384,7 @@ struct IOKitOpenEventLabelView: View {
     }
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -408,7 +405,7 @@ struct RemoteThreadCreateEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -423,7 +420,7 @@ struct CodeSignatureInvalidatedEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -443,7 +440,7 @@ struct SetXattrEventLabelView: View {
     }
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -460,7 +457,7 @@ struct ProcessSocketEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -473,7 +470,7 @@ struct ProcessTraceEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -488,7 +485,7 @@ struct GetTaskEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -503,7 +500,7 @@ struct ProcessCheckEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -515,7 +512,7 @@ struct ProcessSignalEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -527,7 +524,7 @@ struct ProfileAddEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -539,7 +536,7 @@ struct OpenDirectoryCreateUserEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -553,7 +550,7 @@ struct OpenDirectoryModifyPasswordEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -568,7 +565,7 @@ struct OrangeEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type
     }
     
     var body: some View {
@@ -584,7 +581,7 @@ struct IntelligentEventLabelView: View {
     var criticality: EventCriticality?
     
     private var eventType: String {
-        message.es_event_type ?? "UNKNOWN"
+        message.es_event_type
     }
     
     var body: some View {

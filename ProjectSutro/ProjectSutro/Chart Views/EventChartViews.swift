@@ -11,7 +11,8 @@ import SutroESFramework
 
 struct SystemChartEventView: View {
     @State private var chartPropertiesShow: Bool = false
-    var systemEventsInScope: [ESMessage]
+    var systemEventsInScope: [ESMessage] = []
+    var eventTypeCounts: [String: Int]? = nil
 
     let orderedEventTypes: [String] = [
         "EXEC",
@@ -214,10 +215,10 @@ struct SystemChartEventView: View {
     }
 
     var body: some View {
-        let counts = eventCounts()
+        let counts = eventTypeCounts ?? eventCounts()
         let eventFrequency = esEventFrequency(for: counts)
         VStack {
-            if !systemEventsInScope.isEmpty {
+            if !eventFrequency.isEmpty {
                 Chart {
                     ForEach(eventFrequency, id: \.eventType) { esEvent in
                         BarMark(

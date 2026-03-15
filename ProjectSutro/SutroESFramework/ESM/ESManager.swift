@@ -21,94 +21,86 @@ import CryptoKit
 ///
 ///
 public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtensionRequestDelegate, EventProtocol {
-    let decoder = JSONDecoder()
-    
+    /// Binary decoder for XPC event transport (replaces JSON decoding)
+    private let binaryDecoder = PropertyListDecoder()
+    /// Binary encoder for XPC event transport (replaces JSON encoding)
+    private let binaryEncoder: PropertyListEncoder = {
+        let e = PropertyListEncoder()
+        e.outputFormat = .binary
+        return e
+    }()
+
     // MARK: ES client properties: client and event subscriptions
     /// The Endpoint Security client we'll leverage for tracing system events
     public var esClient: OpaquePointer?
-    
+
     /// The events we're subscribed to.
     ///
     /// These are defined by the `coreEventSubscriptions` in `ESTranslation.swift`. Core event subscriptions are a subset of the total supported
     /// subscriptions.
     @Published public var monitoredEvents: [es_event_type_t] = defaultEventSubscriptions
     @Published public var monitoredEventStrings: Set<String> = []
-    
+
     /// When Project Sutro connects let's grab the current time so we can filter long running processes
     @Published public var clientConnectDT: Date = Date()
-    
+
     // MARK: Muting Enging properties
     @Published public var emittedRCEventsByProcess: [Message: [Message]] = [:]
     @Published public var globallyMutedPaths: Set<String> = []
     @Published public var appleMuteSet = Set<String>()
-    
+
     // MARK: Install properties
     @Published public var seIsInstalled: Bool = false
     @Published public var connectionResult: NewClientResult = .waiting
-    
-    /// Reference to the shared Core Data Controller
-    public var coreDataContainer = CoreDataController.shared
+
+    /// Reference to the shared EventStore (replaces CoreDataController)
+    public var eventStore = EventStore.shared
     /// Should we stop tracing system events?
     private var stopSendingEvents: Bool = true
     /// Should we drop platform binaries?
     private var dropPlatformBinaries: Bool = false
-    
+
     // MARK: - Batching Properties
-    /// A temporary, thread-safe buffer for incoming events before they are sent to Core Data.
+    /// A temporary, thread-safe buffer for incoming events before they are sent to the EventStore.
     private var eventBuffer: [Message] = []
     /// A dedicated serial queue to ensure thread-safe access to the eventBuffer.
     private let eventBufferQueue = DispatchQueue(label: "com.swiftlydetecting.agent.eventBufferQueue")
     /// A high-performance GCD timer to periodically flush the event buffer.
     private var flushTimer: DispatchSourceTimer?
-    
-    // MARK: - Dynamic Throttling Properties
-    /// Dynamic throttle manager that adjusts based on event rate
-    private let throttleManager = ThrottleManager()
-    /// Calculate dynamic batch size based on current throttle state
-    private var currentBatchSize: Int {
-        let eventRate = throttleManager.eventRate
-        if eventRate > 2000 {
-            return 4000
-        } else if eventRate > 1000 {
-            return 3000
-        } else {
-            return 2000
-        }
-    }
-    
+    /// Fixed interval for fast ingestion
+    private let flushInterval: TimeInterval = 0.05 // 50ms (20 FPS)
+    /// Max batch size to force a flush
+    private let maxBatchSize: Int = 1000
+
     public override init() {
         super.init()
         setupFlushTimer()
     }
-    
+
     /// Should we be dropping platform binaries?
     ///
     /// Utilizing the concept of "critical" eventing events see:  ``isEventCritical(message:)`` in `EventStreamControl.swift`.
     public func togglePlatformBinaries() {
         self.dropPlatformBinaries.toggle()
     }
-    
+
     // MARK: - Incoming events
-    
+
     /// Handle the incoming Endpoint Security event (`Message`) from the Security Extension by batching them for efficient processing.
     ///
     /// This function is the entry point for all events from the XPC service.
-    /// Its job is to quickly decode the incoming JSON and add the resulting `Message` object to a buffer.
-    /// A separate, timer-based process flushes this buffer to Core Data, preventing the UI from being blocked by high event volume.
+    /// The payload is binary-encoded (PropertyList) `Message` data — no more JSON round-tripping.
+    /// A separate, timer-based process flushes this buffer to the EventStore, preventing the UI from being blocked by high event volume.
     ///
     /// - Parameters:
-    ///   - jsonEvent: The JSON string serialization of the `Message`
-    public func surfaceEvent(jsonEvent event: String) {
+    ///   - data: The binary-encoded `Message` (PropertyList format)
+    public func surfaceEvent(eventData data: Data) {
         if !self.stopSendingEvents {
-            // Quickly decode the JSON.
-            guard let json = event.data(using: .utf8),
-                  let message = try? decoder.decode(Message.self, from: json) else {
+            // Decode binary payload (much faster than JSON)
+            guard let message = try? binaryDecoder.decode(Message.self, from: data) else {
                 return
             }
-            
-            // Track event rate for dynamic throttling
-            throttleManager.registerEvent()
-            
+
             let shouldInsert: Bool
             if self.dropPlatformBinaries {
                 if !message.process.is_platform_binary || isEventCritical(message: message) {
@@ -123,56 +115,42 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
             } else {
                 shouldInsert = true
             }
-            
+
             if shouldInsert {
                 eventBufferQueue.async {
                     self.eventBuffer.append(message)
-                    
-                    let hardBufferLimit = 5000
-                    if self.eventBuffer.count >= hardBufferLimit {
+
+                    if self.eventBuffer.count >= self.maxBatchSize {
                         // Force flush at hard limit
                         self.flushEvents()
-                        self.updateFlushTimer()
-                    } else if self.eventBuffer.count >= self.currentBatchSize {
-                        // Normal dynamic batching
-                        self.flushEvents()
-                        self.updateFlushTimer()
                     }
                 }
             }
 
         }
     }
-    
+
     /// Configures and starts a GCD timer to periodically flush the event buffer.
     /// This runs on a background queue to avoid impacting the main thread.
     private func setupFlushTimer() {
         flushTimer = DispatchSource.makeTimerSource(queue: eventBufferQueue)
-        let initialInterval = throttleManager.saveInterval
-        flushTimer?.schedule(deadline: .now() + initialInterval, repeating: initialInterval)
+        flushTimer?.schedule(deadline: .now() + flushInterval, repeating: flushInterval)
         flushTimer?.setEventHandler { [weak self] in
             self?.flushEvents()
-            self?.updateFlushTimer()
         }
         flushTimer?.resume()
     }
-    
-    /// Updates the flush timer interval based on current throttle settings
-    private func updateFlushTimer() {
-        let newInterval = throttleManager.saveInterval
-        flushTimer?.schedule(deadline: .now() + newInterval, repeating: newInterval)
-    }
-    
-    /// Takes the current batch of events from the buffer and sends them to the CoreDataController.
+
+    /// Takes the current batch of events from the buffer and sends them to the EventStore.
     /// This function is always called on the `eventBufferQueue`.
     private func flushEvents() {
         guard !self.eventBuffer.isEmpty else { return }
-        
+
         let batchToProcess = self.eventBuffer
         self.eventBuffer.removeAll(keepingCapacity: true) // Clear buffer for next batch
-        
-        // Pass the entire batch to Core Data for processing.
-        self.coreDataContainer.insertSystemEvents(messages: batchToProcess)
+
+        // Pass the entire batch to the EventStore (replaces Core Data insertion)
+        self.eventStore.insertEvents(batchToProcess)
     }
     
     // MARK: - XPC Entry
@@ -194,15 +172,18 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         }
     }
     
-    /// For a given ES message serialize it into a `Message` JSON string
+    /// For a given ES message serialize it into binary-encoded `Data`.
+    ///
+    /// Uses PropertyList binary encoding instead of JSON for much faster serialization
+    /// and smaller payloads over XPC.
     ///
     /// - Parameters:
-    ///   - rawMessage: The `es_message_t` we want to model into an `Message`
+    ///   - rawMessage: The `es_message_t` we want to model into a `Message`
     ///   - sensorID: The computed sensor ID of the Security Extension.
     ///
-    public func getEventJSON(rawMessage: UnsafePointer<es_message_t>, sensorID: String) -> String {
-        let notifyEvent: Message = Message(from: rawMessage, sensorID: sensorID, forcedQuarantineSigningIDs: ProcessHelpers.forcedQuarantineSigningIDs)
-        return ProcessHelpers.eventToJSON(value: notifyEvent)
+    public func getEventData(rawMessage: UnsafePointer<es_message_t>, sensorID: String) -> Data {
+        let notifyEvent = Message(from: rawMessage, sensorID: sensorID, forcedQuarantineSigningIDs: ProcessHelpers.forcedQuarantineSigningIDs)
+        return (try? binaryEncoder.encode(notifyEvent)) ?? Data()
     }
     
     private var appleBaselineMutedPaths = Set<String>()
@@ -226,15 +207,15 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// 5) Returns the newly created ES client and the result
     ///
     /// - Parameters:
-    ///   - completion: A callback that takes a String as input (our JSON event serialization)
+    ///   - completion: A callback that takes binary-encoded `Data` (the event payload for XPC transport)
     /// - Returns: A new `es_new_client` and a `NewClientResult`
     ///
-    public func kickstartClient(completion: @escaping (_: String) -> Void)
+    public func kickstartClient(completion: @escaping (_: Data) -> Void)
     -> (OpaquePointer?, NewClientResult) {
         var client: OpaquePointer?
-        
+
         let result = es_new_client(&client) { [self] _, message in
-            completion(getEventJSON(rawMessage: message, sensorID: self.sensorID))
+            completion(getEventData(rawMessage: message, sensorID: self.sensorID))
         }
         let tempConnResult = validateClient(result: result)
         guard let client else { return (nil, tempConnResult) }

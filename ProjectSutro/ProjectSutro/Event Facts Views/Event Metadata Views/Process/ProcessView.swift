@@ -36,11 +36,11 @@ struct ProcessView: View {
         if message.version >= 10 {
             if let cs_validation_category_string = process.cs_validation_category_string {
                 let csSuffix = cs_validation_category_string.trimmingPrefix("ES_CS_VALIDATION_CATEGORY_")
-                return "\(csSuffix) (\(process.cs_validation_category))"
+                return "\(csSuffix) (\(process.cs_validation_category ?? 0))"
             }
         }
         
-        return process.codesigning_type
+        return process.codesigning_type.rawValue
     }
     
     var body: some View {
@@ -50,13 +50,13 @@ struct ProcessView: View {
                     // MARK: Start time
                     Label("**Start time:**", systemImage: "clock")
                     GroupBox {
-                        Text("`\(process.start_time)`")
+                        Text("`\(process.start_time.humanFormat())`")
                     }
-                    
+
                     // MARK: File Quarantine
-                    if process.file_quarantine_type != "DISABLED" {
+                    if process.file_quarantine_type != .disabled {
                         FileQuarantineLabelView(
-                            type: process.file_quarantine_type
+                            type: process.file_quarantine_type.rawValue
                         )
                     }
                     

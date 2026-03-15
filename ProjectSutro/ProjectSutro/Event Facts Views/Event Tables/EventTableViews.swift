@@ -20,7 +20,7 @@ struct XattrTableView: View {
             }
 
             TableColumn("File path") { (message: ESMessage) in
-                Text(message.event.deleteextattr!.target.path ?? "—")
+                Text(message.event.deleteextattr!.target.path)
             }
 
             TableColumn("xattr") { (message: ESMessage) in
@@ -129,11 +129,25 @@ struct FileTableView: View {
             .width(min: 80, ideal: 100, max: 200)
 
             TableColumn("Destination path") { (message: ESMessage) in
-                Text(message.event.create?.targetPath ?? "—")
+                let path: String = {
+                    guard let create = message.event.create else { return "—" }
+                    switch create.destination {
+                    case .new_path(let np): return "\(np.dir.path)/\(np.filename)"
+                    case .existing_file(let f): return f.path
+                    }
+                }()
+                Text(path)
             }
 
             TableColumn("File name") { (message: ESMessage) in
-                Text(message.event.create?.fileName ?? "-")
+                let name: String = {
+                    guard let create = message.event.create else { return "—" }
+                    switch create.destination {
+                    case .new_path(let np): return np.filename
+                    case .existing_file(let f): return URL(fileURLWithPath: f.path).lastPathComponent
+                    }
+                }()
+                Text(name)
             }
             .width(min: 80, ideal: 100, max: 200)
         }

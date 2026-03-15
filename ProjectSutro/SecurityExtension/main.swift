@@ -9,7 +9,6 @@ import Foundation
 import EndpointSecurity
 import OSLog
 import SutroESFramework
-import CoreData
 
 
 autoreleasepool {

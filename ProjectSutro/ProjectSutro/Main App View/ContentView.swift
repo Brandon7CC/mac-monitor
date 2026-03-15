@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import CoreData
 import SystemExtensions
 import SutroESFramework
 import OSLog
@@ -60,14 +59,11 @@ struct EventView: View {
     
     
     
-    /// Query Core Data for our System Events
+    /// Events from the EventStore (replaces Core Data @FetchRequest).
     ///
-    /// Events  (``ESMessage``) are inserted one-by-one in the order dispatched by Endpoint Security.
-    /// Our fetch request gets events in decending order by the ``mach_time`` entity key
-    @Environment(\.managedObjectContext) var moc
-    @FetchRequest(sortDescriptors: [
-        NSSortDescriptor(key: "mach_time", ascending: false)
-    ]) var coreDataEvents: FetchedResults<ESMessage>
+    /// The EventStore publishes events as they arrive from the Security Extension.
+    /// We observe the store directly — no more Core Data managed object context.
+    @ObservedObject private var eventStore = EventStore.shared
     
     
     
@@ -120,9 +116,45 @@ struct EventView: View {
     
     /// Should we filter out *most* events initiated by a platform binary?
     @State private var filterPlatform: Bool = false
-    
+
     /// Should events be displayed in ascending order?
     @State private var ascending: Bool = false
+
+    /// Filtered event indices for display — updated directly by background filter task.
+    /// Total count of filtered events (uncapped). Used for status bar display.
+    /// Unlike the previous `filteredIndices: [Int]` array, this avoids O(n) array
+    /// allocation every update cycle (was ~1.2MB at 150K events).
+    @State private var totalFilteredCount: Int = 0
+    @State private var filteredEventIndices: [Int] = []
+    /// Pre-filtered exec events — computed on background queue to avoid O(n) filter in view body.
+    @State private var filteredExecEventIndices: [Int] = []
+    /// Event-type counts for the mini-chart (lightweight, avoids decoded retention).
+    @State private var chartEventTypeCounts: [String: Int] = [:]
+    @State private var filterWorkItem: DispatchWorkItem?
+    @State private var filterUpdateGeneration: UInt64 = 0
+    
+    /// Incremental filtering: track last processed index to avoid re-filtering all events
+    @State private var lastProcessedIndex: Int = 0
+    
+    /// Flag to force full recompute when filters change (vs incremental for new events)
+    @State private var needsFullRecompute: Bool = true
+    
+    /// Throttle state for UI updates (~5 FPS under load).
+    ///
+    /// ProcMon updates at 10-30 Hz for its lightweight virtual list. SwiftUI Table
+    /// is much heavier per update, so we use a longer interval to avoid stacking
+    /// layout passes on the main thread.
+    @State private var lastFilterTime: Date = .distantPast
+    @State private var hasPendingFilterUpdate: Bool = false
+    
+    /// Maximum events passed to the table.
+    ///
+    /// This app is an analysis tool and must retain full scrollback visibility,
+    /// so we do not cap display rows.
+    private static let tableDisplayLimit: Int = .max
+    
+    /// Cached lineage resolver (only rebuild on full recompute)
+    @State private var cachedLineageResolver: ProcessLineageResolver?
     
     /// This more *rare* alert will be displayed when the the user launches the app.
     ///
@@ -130,71 +162,314 @@ struct EventView: View {
     @State private var tccAlert: Bool = false
     
     
-    /// Returns the filtered collection of Endpoint Security events for display in the application UI.
+    /// Throttles filter updates to ~5 FPS for UI responsiveness.
     ///
-    /// This computed property performs a multi-stage filtering operation on Core Data events,
-    /// applying both inclusion filters (process tree selection) and exclusion filters (event types,
-    /// user IDs, paths, etc.). The filtering is optimized for performance through pre-computation
-    /// of process lineage sets and lazy evaluation.
-    ///
-    /// 1. **Lineage Pre-computation**: If subtree filtering is enabled, computes the complete set
-    ///    of audit tokens in the selected process trees (O(m) where m is tree size)
-    /// 2. **Inclusion Filtering**: Events must match the selected process trees if specified
-    /// 3. **Exclusion Filtering**: Events matching blocked event types, paths, or users are removed
-    /// 4. **Text Filtering**: Events must contain the filter text in their context
-    ///
-    /// ## Performance
-    /// - Pre-computation: O(n + m) where n is total events, m is tree size
-    /// - Per-event filtering: O(1) for lineage checks (set lookup), O(k) for other filters
-    /// - Lazy evaluation: Only materializes filtered results when accessed
-    ///
-    /// ## Triggers
-    /// This property recomputes whenever any of its dependencies change:
-    /// - `coreDataEvents` (new events arrive)
-    /// - `allFilters` (user changes filter settings)
-    /// - `filterText` (user types in search)
-    /// - `filteringLongRunningProcs` (toggle changes)
-    ///
-    private var filteredCoreDataEvents: [ESMessage] {
-        let lineageResolver = ProcessLineageResolver(events: Array(coreDataEvents))
-        let lineageSubTreesIncludeAnsestors: Bool = true
-        
-        // Pre-compute lineage sets once
-        let initiatingLineageSet = allFilters.rootIncludedInitiatingProcessPath.flatMap { path in
-            allFilters.shouldIncludeProcessSubTrees ?
-                lineageResolver.computeLineageSet(includedPath: path, includeAncestors: lineageSubTreesIncludeAnsestors) : nil
+    /// Full recomputes (filter changes) bypass the throttle for immediate response.
+    /// Incremental updates (new events) are gated to reduce SwiftUI diff frequency,
+    /// matching ProcMon's timer-coalesced update approach (~10-30 Hz).
+    private func scheduleFilterUpdate() {
+        // Full recomputes bypass throttle — filter changes need immediate response
+        if needsFullRecompute {
+            hasPendingFilterUpdate = false
+            lastFilterTime = Date()
+            executeFilterUpdate()
+            return
         }
         
-        let targetLineageSet = allFilters.rootIncludedTargetProcessPath.flatMap { path in
-            allFilters.shouldIncludeProcessSubTrees ?
-                lineageResolver.computeLineageSet(includedPath: path, includeAncestors: lineageSubTreesIncludeAnsestors) : nil
-        }
+        let now = Date()
+        let elapsed = now.timeIntervalSince(lastFilterTime)
         
-        return coreDataEvents.lazy.filter { event in
-            return isEventFiltered(
-                event: event,
-                filteringLongRunningProcs: filteringLongRunningProcs,
-                filterText: filterText.lowercased(),
-                allFilters: allFilters,
-                systemExtensionManager: systemExtensionManager,
-                initiatingLineageSet: initiatingLineageSet,
-                targetLineageSet: targetLineageSet
-            )
+        if elapsed >= 0.20 {
+            // Enough time has passed — run immediately
+            hasPendingFilterUpdate = false
+            lastFilterTime = now
+            executeFilterUpdate()
+        } else if !hasPendingFilterUpdate {
+            // Schedule a deferred run at the next throttle boundary
+            hasPendingFilterUpdate = true
+            let delay = 0.20 - elapsed
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                self.hasPendingFilterUpdate = false
+                self.lastFilterTime = Date()
+                self.executeFilterUpdate()
+            }
         }
+        // If hasPendingFilterUpdate is already true, a deferred run is already scheduled
     }
     
+    /// Executes the background filter pass (index-only + optional context decode).
+    ///
+    /// Output is maintained as index arrays (oldest first) for efficient
+    /// incremental appends without retaining full decoded event payloads.
+    ///
+    /// Two-pass filtering:
+    /// 1. Index-only filter (fast, no decode)
+    /// 2. Context filter with substring/regex support (requires decode)
+    ///
+    /// Performance strategy:
+    /// - `totalFilteredCount` is a scalar tracking the full match count for the status bar.
+    ///   This replaces the previous `filteredIndices: [Int]` array which caused O(n) allocations.
+    /// - Display arrays are not capped; users must be able to scroll complete history.
+    /// - Background filter updates are generation-guarded to prevent stale async writes.
+    private func executeFilterUpdate() {
+        filterWorkItem?.cancel()
+        filterUpdateGeneration &+= 1
+
+        let fullRecompute = needsFullRecompute
+        let startIndex = fullRecompute ? 0 : lastProcessedIndex
+        let generation = filterUpdateGeneration
+
+        // Capture current values for the background closure.
+        // Avoid snapshotting the entire index each update to keep memory bounded.
+        let indexCount = eventStore.getIndexCount()
+        let filters = allFilters
+        let searchText = filterText.lowercased()
+        let filterLongRunning = filteringLongRunningProcs
+        let showMiniChart = viewMiniChart
+        let showExecTable = processExecSelected
+        let esm = systemExtensionManager
+        let existingCount = totalFilteredCount
+
+        // Build regex pattern for context filter if needed
+        let contextPattern = buildContextPattern(from: searchText)
+
+        var work: DispatchWorkItem!
+        work = DispatchWorkItem {
+            if work.isCancelled { return }
+
+            let needsLineageResolver = filters.shouldIncludeProcessSubTrees &&
+                (filters.rootIncludedInitiatingProcessPath != nil || filters.rootIncludedTargetProcessPath != nil)
+
+            // Build or reuse lineage resolver only when lineage subtree filters are active.
+            // This avoids retaining a large process graph when lineage filtering is not in use.
+            let lineageResolver: ProcessLineageResolver?
+            if needsLineageResolver {
+                if fullRecompute || cachedLineageResolver == nil {
+                    let lineageEntries = eventStore.getIndexEntries(range: 0..<indexCount)
+                    let resolver = ProcessLineageResolver(indexEntries: lineageEntries) { hash in
+                        eventStore.getPath(forHash: hash)
+                    }
+                    lineageResolver = resolver
+                    DispatchQueue.main.async {
+                        guard self.filterUpdateGeneration == generation else { return }
+                        self.cachedLineageResolver = resolver
+                    }
+                } else {
+                    lineageResolver = cachedLineageResolver
+                }
+            } else {
+                lineageResolver = nil
+                DispatchQueue.main.async {
+                    guard self.filterUpdateGeneration == generation else { return }
+                    self.cachedLineageResolver = nil
+                }
+            }
+
+            if work.isCancelled { return }
+
+            let initiatingLineageSet = filters.rootIncludedInitiatingProcessPath.flatMap { path in
+                filters.shouldIncludeProcessSubTrees ?
+                    lineageResolver?.computeLineageSet(includedPath: path, pathLookup: { eventStore.getPath(forHash: $0) }, includeAncestors: true) : nil
+            }
+
+            let targetLineageSet = filters.rootIncludedTargetProcessPath.flatMap { path in
+                filters.shouldIncludeProcessSubTrees ?
+                    lineageResolver?.computeLineageSet(includedPath: path, pathLookup: { eventStore.getPath(forHash: $0) }, includeAncestors: true) : nil
+            }
+
+            // PASS 1: Index-only filter (fast)
+            var candidateIndices: [Int] = []
+            let scanEnd = indexCount
+            var scannedEntries: [EventIndexEntry] = []
+            if startIndex < scanEnd {
+                scannedEntries = eventStore.getIndexEntries(range: startIndex..<scanEnd)
+                candidateIndices.reserveCapacity(scannedEntries.count)
+            }
+
+            for (offset, entry) in scannedEntries.enumerated() {
+                if work.isCancelled { return }
+                let i = startIndex + offset
+                if isIndexEntryFiltered(
+                    entry: entry,
+                    filteringLongRunningProcs: filterLongRunning,
+                    allFilters: filters,
+                    systemExtensionManager: esm,
+                    initiatingLineageSet: initiatingLineageSet,
+                    targetLineageSet: targetLineageSet
+                ) {
+                    candidateIndices.append(i)
+                }
+            }
+
+            // SHORT-CIRCUIT: If incremental update found no new matches, skip
+            // the main-thread @State assignment entirely. This avoids pushing an
+            // identical array into SwiftUI and triggering a redundant O(n) diff.
+            // Full recomputes always proceed (filters changed, need fresh state).
+            if !fullRecompute && candidateIndices.isEmpty {
+                DispatchQueue.main.async {
+                    guard self.filterUpdateGeneration == generation else { return }
+                    self.lastProcessedIndex = indexCount
+                }
+                return
+            }
+
+            // PASS 2: Context filter (requires decode).
+            var matchedIndices: [Int] = []
+            var matchedExecIndices: [Int] = []
+            var fullRecomputeChartCounts: [String: Int] = [:]
+            var incrementalChartCounts: [String: Int] = [:]
+
+            matchedIndices.reserveCapacity(candidateIndices.count)
+            if showExecTable {
+                matchedExecIndices.reserveCapacity(candidateIndices.count / 4)
+            }
+
+            if contextPattern != nil && !searchText.isEmpty {
+                // Context filter: must decode all candidates to test context match.
+                for idx in candidateIndices {
+                    if work.isCancelled { return }
+                    let offset = idx - startIndex
+                    guard offset >= 0, offset < scannedEntries.count else { continue }
+                    let entry = scannedEntries[offset]
+                    guard let event = eventStore.getEvent(at: idx) else { continue }
+                    if matchesContextFilter(event: event, pattern: contextPattern, searchText: searchText) {
+                        matchedIndices.append(idx)
+                        if showExecTable && entry.hasExec {
+                            matchedExecIndices.append(idx)
+                        }
+                        if showMiniChart {
+                            let key = chartKey(for: entry.esEventType)
+                            if fullRecompute {
+                                fullRecomputeChartCounts[key, default: 0] += 1
+                            } else {
+                                incrementalChartCounts[key, default: 0] += 1
+                            }
+                        }
+                    }
+                }
+            } else {
+                // No context filter: index-only matching.
+                for idx in candidateIndices {
+                    let offset = idx - startIndex
+                    guard offset >= 0, offset < scannedEntries.count else { continue }
+                    let entry = scannedEntries[offset]
+                    matchedIndices.append(idx)
+                    if showExecTable && entry.hasExec {
+                        matchedExecIndices.append(idx)
+                    }
+                    if showMiniChart {
+                        let key = chartKey(for: entry.esEventType)
+                        if fullRecompute {
+                            fullRecomputeChartCounts[key, default: 0] += 1
+                        } else {
+                            incrementalChartCounts[key, default: 0] += 1
+                        }
+                    }
+                }
+            }
+
+            if work.isCancelled { return }
+
+            let newFilteredCount = fullRecompute ? matchedIndices.count : existingCount + matchedIndices.count
+
+            DispatchQueue.main.async {
+                guard self.filterUpdateGeneration == generation else { return }
+                self.totalFilteredCount = newFilteredCount
+                if fullRecompute {
+                    self.filteredEventIndices = matchedIndices
+                    self.filteredExecEventIndices = showExecTable ? matchedExecIndices : []
+                    self.chartEventTypeCounts = showMiniChart ? fullRecomputeChartCounts : [:]
+                } else {
+                    if !matchedIndices.isEmpty {
+                        self.filteredEventIndices.append(contentsOf: matchedIndices)
+                    }
+                    if showExecTable && !matchedExecIndices.isEmpty {
+                        self.filteredExecEventIndices.append(contentsOf: matchedExecIndices)
+                    } else if !showExecTable {
+                        self.filteredExecEventIndices = []
+                    }
+                    if showMiniChart {
+                        if !incrementalChartCounts.isEmpty {
+                            for (key, value) in incrementalChartCounts {
+                                self.chartEventTypeCounts[key, default: 0] += value
+                            }
+                        }
+                    } else {
+                        self.chartEventTypeCounts = [:]
+                    }
+                }
+                self.lastProcessedIndex = indexCount
+                self.needsFullRecompute = false
+            }
+        }
+        filterWorkItem = work
+        DispatchQueue.global(qos: .userInteractive).async(execute: work)
+    }
+
+    /// Builds a regex pattern from the search text.
+    /// Supports: plain text (substring), regex syntax if text starts with '/'
+    private func buildContextPattern(from text: String) -> Regex<AnyRegexOutput>? {
+        guard !text.isEmpty else { return nil }
+
+        // If text starts with '/', treat as regex
+        if text.hasPrefix("/") && text.count > 1 {
+            let patternString = String(text.dropFirst())
+            return try? Regex(patternString)
+        }
+
+        // Otherwise, substring match (case-insensitive)
+        // Escape special regex characters for literal substring matching
+        let escaped = text.replacingOccurrences(of: "[\\[\\]{}()*+?.\\\\^$|]", with: "\\\\$0", options: .regularExpression)
+        return try? Regex("(?i)\(escaped)")
+    }
+
+    /// Checks if an event matches the context filter.
+    private func matchesContextFilter(event: Message, pattern: Regex<AnyRegexOutput>?, searchText: String) -> Bool {
+        guard let pattern = pattern else { return true }
+        guard let context = event.context else { return false }
+        return context.contains(pattern)
+    }
+
+    private func chartKey(for esEventType: String) -> String {
+        var key = esEventType
+        if key.hasPrefix("ES_EVENT_TYPE_NOTIFY_") {
+            key = String(key.dropFirst("ES_EVENT_TYPE_NOTIFY_".count))
+        } else if key.hasPrefix("ES_EVENT_TYPE_AUTH_") {
+            key = String(key.dropFirst("ES_EVENT_TYPE_AUTH_".count))
+        } else if key.hasPrefix("ES_EVENT_TYPE_") {
+            key = String(key.dropFirst("ES_EVENT_TYPE_".count))
+        }
+
+        switch key {
+        case "BTM_LAUNCH_ITEM_ADD":
+            return "LAUNCH_ITEM_ADD"
+        case "BTM_LAUNCH_ITEM_REMOVE":
+            return "LAUNCH_ITEM_REMOVE"
+        case "LW_SESSION_UNLOCK":
+            return "LW_UNLOCK"
+        case "LW_SESSION_LOGIN":
+            return "LW_LOGIN"
+        case "AUTHORIZATION_PETITION":
+            return "AUTH_PETITION"
+        case "AUTHORIZATION_JUDGEMENT":
+            return "AUTH_JUDGEMENT"
+        default:
+            return key
+        }
+    }
+
     /// The string displaying the number of System Events collected over the course of the trace
     private var eventCountString: AttributedString {
         let hasActiveFilters = allFilters.totalFilters() + (filteringLongRunningProcs ? 1 : 0) > 0
-        
+
         if !hasActiveFilters {
-            return try! AttributedString(markdown: "**Events** `\(coreDataEvents.count)`")
+            return try! AttributedString(markdown: "**Events** `\(eventStore.eventCount)`")
         }
-        
-        let totalCount = coreDataEvents.count
-        let filteredCount = filteredCoreDataEvents.count
+
+        let totalCount = eventStore.eventCount
+        let filteredCount = totalFilteredCount
         let percentage = totalCount > 0 ? Double(filteredCount) / Double(totalCount) * 100.0 : 0.0
-        
+
         return try! AttributedString(
             markdown: "**Events** `\(filteredCount)` (`\(String(format: "%.2f", percentage))%`)"
         )
@@ -211,7 +486,18 @@ struct EventView: View {
         
         systemExtensionManager.cleanup()
         systemExtensionManager.stopRecordingEvents()
-        systemExtensionManager.coreDataContainer.clearSystemEvents()
+        systemExtensionManager.eventStore.clearEvents()
+        
+        // Reset filter state
+        totalFilteredCount = 0
+        filteredEventIndices = []
+        filteredExecEventIndices = []
+        chartEventTypeCounts = [:]
+        lastProcessedIndex = 0
+        needsFullRecompute = true
+        cachedLineageResolver = nil
+        lastFilterTime = .distantPast
+        hasPendingFilterUpdate = false
         
         if sentinel {
             recordingEvents = true
@@ -220,20 +506,25 @@ struct EventView: View {
         }
     }
     
+    private var eventsTable: some View {
+        SystemEventsNSTableContainerView(
+            messageIndicesInScope: filteredEventIndices,
+            execMessageIndicesInScope: filteredExecEventIndices,
+            chartEventTypeCounts: chartEventTypeCounts,
+            unifiedViewSelected: $unifiedViewSelected,
+            viewExec: $processExecSelected,
+            viewMiniChart: $viewMiniChart,
+            ascending: $ascending,
+            allFilters: $allFilters,
+            messageSelections: $eventSelection
+        )
+        .environmentObject(systemExtensionManager)
+        .environmentObject(userPrefs)
+    }
+    
     var body: some View {
         VStack(alignment: .leading) {
-            // MARK: Core Data System Events (replaces legacy Swift Array of events)
-            SystemEventsTableView(
-                messagesInScope: filteredCoreDataEvents,
-                unifiedViewSelected: $unifiedViewSelected,
-                viewExec: $processExecSelected,
-                viewMiniChart: $viewMiniChart,
-                ascending: $ascending,
-                allFilters: $allFilters,
-                messageSelections: $eventSelection
-            )
-            .environmentObject(systemExtensionManager)
-            .environmentObject(userPrefs)
+            eventsTable
         }
         .toolbar {
             ToolbarItemGroup(placement: .principal) {
@@ -277,9 +568,7 @@ struct EventView: View {
                         .labelStyle(.titleAndIcon)
                         .padding([.leading, .trailing], 5)
                 }
-                .disabled(coreDataEvents.isEmpty)
-                
-                
+                .disabled(eventStore.eventCount == 0)
             }
             
             ToolbarItem(placement: .principal) {
@@ -327,9 +616,44 @@ struct EventView: View {
             }
         }
         .searchable(text: $filterText, prompt: "Filter by context")
-//        .onSubmit(of: .search) {
-//            submitedQuery = filterText
-//        }
+        .onChange(of: eventStore.eventCount) { newCount in
+            // Detect programmatic store clear (count decreased → reset incremental state)
+            if newCount < lastProcessedIndex {
+                lastProcessedIndex = 0
+                needsFullRecompute = true
+                totalFilteredCount = 0
+                filteredEventIndices = []
+                filteredExecEventIndices = []
+                chartEventTypeCounts = [:]
+                cachedLineageResolver = nil
+            }
+            scheduleFilterUpdate()
+        }
+        .onChange(of: allFilters) { _ in
+            needsFullRecompute = true
+            lastProcessedIndex = 0
+            cachedLineageResolver = nil
+            scheduleFilterUpdate()
+        }
+        .onChange(of: filterText) { _ in
+            needsFullRecompute = true
+            lastProcessedIndex = 0
+            scheduleFilterUpdate()
+        }
+        .onChange(of: viewMiniChart) { _ in
+            needsFullRecompute = true
+            scheduleFilterUpdate()
+        }
+        .onChange(of: processExecSelected) { _ in
+            needsFullRecompute = true
+            scheduleFilterUpdate()
+        }
+        .onChange(of: filteringLongRunningProcs) { _ in
+            needsFullRecompute = true
+            lastProcessedIndex = 0
+            cachedLineageResolver = nil
+            scheduleFilterUpdate()
+        }
         .onAppear {
             if !CommandLine.arguments.contains("--deactive-security-extension") {
                 systemExtensionManager.activateSystemExtension()
@@ -368,6 +692,23 @@ struct EventView: View {
             
             // We're not recording events at app launch
             recordingEvents = false
+            
+            // Populate initial filtered events (onChange doesn't fire for initial values)
+            scheduleFilterUpdate()
+            
+            #if DEBUG
+            // Launch automated stress test if configured via command-line arguments.
+            // The XCUITest runner sets these arguments before launching the app.
+            if let config = StressTestConfig.fromCommandLine() {
+                // Wait for the UI to settle before starting injection.
+                // This ensures SwiftUI has completed its initial layout pass
+                // and the main thread monitor captures realistic latencies.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    let runner = StressTestRunner(config: config)
+                    runner.run()
+                }
+            }
+            #endif
         }
         .alert("The Security Extension does not have full disk access!", isPresented: $tccAlert) {
             Button("Open System Settings") {
@@ -378,3 +719,88 @@ struct EventView: View {
     }
 }
 
+/// Filters an index entry without decoding the full event.
+/// Context filtering is handled separately in a second pass after decode.
+private func isIndexEntryFiltered(
+    entry: EventIndexEntry,
+    filteringLongRunningProcs: Bool,
+    allFilters: Filters,
+    systemExtensionManager: EndpointSecurityManager,
+    initiatingLineageSet: Set<String>?,
+    targetLineageSet: Set<String>?
+) -> Bool {
+    // Lineage inclusion filter
+    let inclusionFilterActive = allFilters.rootIncludedInitiatingProcessPath != nil ||
+                                allFilters.rootIncludedTargetProcessPath != nil
+    
+    if inclusionFilterActive {
+        var matchesAnInclusionFilter = false
+        
+        let initiatingToken = entry.auditTokenString
+        
+        // Check initiating process
+        if let _ = allFilters.rootIncludedInitiatingProcessPath {
+            if allFilters.shouldIncludeProcessSubTrees {
+                if initiatingLineageSet?.contains(initiatingToken) == true {
+                    matchesAnInclusionFilter = true
+                }
+            } else if let path = systemExtensionManager.eventStore.getPath(forHash: entry.executablePathHash),
+                      path == allFilters.rootIncludedInitiatingProcessPath {
+                matchesAnInclusionFilter = true
+            }
+        }
+        
+        if !matchesAnInclusionFilter, let _ = allFilters.rootIncludedTargetProcessPath {
+            if allFilters.shouldIncludeProcessSubTrees {
+                if initiatingLineageSet?.contains(initiatingToken) == true {
+                    matchesAnInclusionFilter = true
+                }
+            } else if let path = systemExtensionManager.eventStore.getPath(forHash: entry.executablePathHash),
+                      path == allFilters.rootIncludedTargetProcessPath {
+                matchesAnInclusionFilter = true
+            }
+        }
+        
+        // Check exec target
+        if !matchesAnInclusionFilter, let targetToken = entry.targetAuditTokenString {
+            if let _ = allFilters.rootIncludedInitiatingProcessPath {
+                if allFilters.shouldIncludeProcessSubTrees {
+                    if initiatingLineageSet?.contains(targetToken) == true {
+                        matchesAnInclusionFilter = true
+                    }
+                }
+            }
+            
+            if !matchesAnInclusionFilter, let _ = allFilters.rootIncludedTargetProcessPath {
+                if allFilters.shouldIncludeProcessSubTrees {
+                    if targetLineageSet?.contains(targetToken) == true {
+                        matchesAnInclusionFilter = true
+                    }
+                }
+            }
+        }
+        
+        if !matchesAnInclusionFilter { return false }
+    }
+    
+    // MARK: Non-lineage filters:
+    if filteringLongRunningProcs,
+       entry.darwinTime.timeIntervalSince1970 < systemExtensionManager.clientConnectDT.timeIntervalSince1970 {
+        return false
+    }
+    
+    if allFilters.events.contains(entry.esEventType) { return false }
+    if let user = entry.euidHuman, allFilters.userIDs.contains(user) { return false }
+    if let path = systemExtensionManager.eventStore.getPath(forHash: entry.executablePathHash),
+       allFilters.initiatingPaths.contains(path) { return false }
+    
+    if let targetHash = entry.targetPathHash,
+       let targetPath = systemExtensionManager.eventStore.getPath(forHash: targetHash) {
+        if allFilters.targetPaths.contains(targetPath) ||
+           !allFilters.targetPaths.filter({ targetPath.contains($0) }).isEmpty {
+            return false
+        }
+    }
+    
+    return true
+}

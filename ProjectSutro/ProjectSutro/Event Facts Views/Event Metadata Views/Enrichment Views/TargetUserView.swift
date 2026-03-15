@@ -22,12 +22,12 @@ struct TargetUserView: View {
     
     private var ruid: Int {
         if let exec = exec {
-            return Int(exec.target.ruid)
+            return exec.target.ruid ?? 0
         } else if let fork = fork {
-            return Int(fork.child.ruid)
+            return fork.child.ruid ?? 0
         }
-        
-        return Int(selectedMessage.process.ruid)
+
+        return selectedMessage.process.ruid ?? 0
     }
     
     private var ruid_human: String {
@@ -42,12 +42,12 @@ struct TargetUserView: View {
     
     private var euid: Int {
         if let exec = exec {
-            return Int(exec.target.euid)
+            return exec.target.euid ?? 0
         } else if let fork = fork {
-            return Int(fork.child.euid)
+            return fork.child.euid ?? 0
         }
-        
-        return Int(selectedMessage.process.euid)
+
+        return selectedMessage.process.euid ?? 0
     }
     
     private var euid_human: String {

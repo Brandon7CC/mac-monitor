@@ -28,7 +28,7 @@ struct SystemLWUnlockMetadataView: View {
                         Label("**Username:**", systemImage: "person.fill")
                             .padding([.leading], 5.0)
                         GroupBox {
-                            Text("`\(event.username!)`")
+                            Text("`\(event.username)`")
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     

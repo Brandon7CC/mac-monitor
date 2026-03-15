@@ -31,7 +31,7 @@ struct VenturaStartButton: View {
         
         systemExtensionManager.cleanup()
         systemExtensionManager.stopRecordingEvents()
-        systemExtensionManager.coreDataContainer.clearSystemEvents()
+        systemExtensionManager.eventStore.clearEvents()
         
         if sentinel {
             recordingEvents = true

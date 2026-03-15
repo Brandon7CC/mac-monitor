@@ -48,7 +48,7 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 - **Path muting at the API level** -- Apple's Endpoint Security team has put a lot of work recently into enabling advanced path muting / inversion capabilities. Here, we cover the majority of the API features: `es_mute_path` and `es_mute_path_events` along with the types of `ES_MUTE_PATH_TYPE_PREFIX`, `ES_MUTE_PATH_TYPE_LITERAL`, `ES_MUTE_PATH_TYPE_TARGET_PREFIX`, and `ES_MUTE_PATH_TYPE_TARGET_LITERAL`. Right now we do not support inversion. **I'd love it if the ES team added inversion on a per-event basis instead of per-client**.
 ![Path muting and event subscriptions](./Resources/v1.9.0/muting-and-subscriptions-v1.9.png)
 
-- **Detailed event facts**. **Right click on any event** in a table row to access event metadata, filtering, muting, and unsubscribe options. Core to the user experience is the ability to drill down into any given event or set of events. To enable this functionality we’ve developed “Event facts” windows which contain metadata / additional enrichment about any given event. Each event has a curated set metadata that is displayed. For example, process execution events will generally contain code signing information, environment variables, correlated events, etc. Below you see examples of file creation and BTM launch item added event facts.
+- **Detailed event facts**. **Right click on any event** in a table row to access event metadata, filtering, muting, and unsubscribe options. Core to the user experience is the ability to drill down into any given event or set of events. To enable this functionality we've developed "Event facts" windows which contain metadata / additional enrichment about any given event. Each event has a curated set metadata that is displayed. For example, process execution events will generally contain code signing information, environment variables, correlated events, etc. Below you see examples of file creation and BTM launch item added event facts.
 ![Event facts overview](./Resources/v1.9.0/event-metadata-overview-v1.9.png)
 
 - **Event correlation** is an *exceptionally* important component in any analyst's tool belt. The ability to see which events are "related" to one-another enables you to manipulate the telemetry in a way that makes sense (other than simply dumping to JSON or representing an individual event). We perform event correlation at the process level -- this means that for any given event (which have an initiating and/or target process) we can deeply link events that any given process instigated. 
@@ -59,13 +59,35 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 ![Artifact filtering overview](./Resources/v1.9.0/lossless-filtering-v1.9.png)
 
 - **Telemetry export**. Right now we support pretty JSON and JSONL (one JSON object per-line) for the full or partial system trace (keyboard shortcuts too). You can access these options in the menu bar under "Export Telemetry".
-- **Process subtree generation**. When viewing the event facts window for any given event we’ll attempt to generate a process lineage subtree in the left hand sidebar. This tree is intractable – click on any process and you’ll be taken to its event facts. **Similarly, you can right click on any process in the tree to pop out the facts for that event**.
+- **Process subtree generation**. When viewing the event facts window for any given event we'll attempt to generate a process lineage subtree in the left hand sidebar. This tree is intractable – click on any process and you'll be taken to its event facts. **Similarly, you can right click on any process in the tree to pop out the facts for that event**.
 - **Dynamic event distribution chart**. This is a fun one enabled by the SwiftUI team. The graph shows the distribution of events you're subscribed to, currently in-scope (i.e. not filtered), and have a count of more than nothing. This enables you to *very* quickly identify noisy events. The chart auto-shows/hides itself, but you can bring it back with the: "Mini-chart" button in the toolbar.
 
 ![Event distribution chart](./Resources/v1.9.0/DistributionChart-v1.9.png)
 
 
 ## Some other features
-- Another very important feature of any dynamic analysis tool is to not let an event limiter or memory inefficient implementation get in the way of the user experience. To address this (the best we currently can) we’ve implemented an asynchronous parent / child-like **Core Data stack** which stores our events as “entities” in-memory. This enables us to store virtually unlimited events with Mac Monitor. Although, the time of insertions does become more taxing as the event limit gets very large.  
+- Another very important feature of any dynamic analysis tool is to not let an event limiter or memory inefficient implementation get in the way of the user experience. To address this, we've implemented a **memory-mapped event store** with a lightweight in-memory index. This enables constant RAM usage regardless of event count, with full events stored in a memory-mapped binary log that the OS pages in/out automatically. See [ARCHITECTURE.md](./ARCHITECTURE.md) for details.
 - Since Mac Monitor is based on a Security Extension which is always running in the background (like an EDR sensor) we baked in functionality such that it **does not process events when a system trace is not occurring**. This means that the Security Extension (`com.swiftlydetecting.agent.securityextension`) will not needlessly utilize resources / battery power when a trace is not occurring. 
-- Distribution package: **The install process is often overlooked**. However, if users do not have a good understanding of what’s being installed or if it’s too complex to install the barrier to entry might be just high enough to dissuade people from using it. This is why we ship Mac Monitor as a notarized distribution package.
+- Distribution package: **The install process is often overlooked**. However, if users do not have a good understanding of what's being installed or if it's too complex to install the barrier to entry might be just high enough to dissuade people from using it. This is why we ship Mac Monitor as a notarized distribution package.
+
+## Performance testing
+
+Mac Monitor includes a fixture-driven UI stress harness so performance work can be iterated quickly and repeatedly.
+
+- Harness components:
+  - `ProjectSutro/ProjectSutro/Debug/StressTestRunner.swift`
+  - `ProjectSutro/ProjectSutro/Debug/MainThreadMonitor.swift`
+  - `ProjectSutro/ProjectSutroUITests/StressTestUITests.swift`
+- Results include ingest throughput + main-thread latency percentiles + dropped-frame proxies.
+- Threshold model:
+  - **Guardrails**: CI-enforced to catch severe regressions.
+  - **Targets**: stricter optimization goals reported in logs while tuning.
+
+Common commands:
+
+- Fast smoke:
+  - `xcodebuild -project ProjectSutro/ProjectSutro.xcodeproj -scheme ProjectSutro -destination 'platform=macOS' -only-testing:'ProjectSutroUITests/StressTestUITests/testSmokeStress1000' test`
+- Baseline:
+  - `xcodebuild -project ProjectSutro/ProjectSutro.xcodeproj -scheme ProjectSutro -destination 'platform=macOS' -only-testing:'ProjectSutroUITests/StressTestUITests/testBaselineStress5000' test`
+- Full stress suite (includes long-running scenarios):
+  - `STRESS_FULL_SUITE=1 xcodebuild -project ProjectSutro/ProjectSutro.xcodeproj -scheme ProjectSutro -destination 'platform=macOS' -only-testing:'ProjectSutroUITests/StressTestUITests' test`

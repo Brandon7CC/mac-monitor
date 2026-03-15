@@ -49,19 +49,19 @@ struct AuthJudgeProcsView: View {
                         }
                     }
                     
-                    if let path = instigatorExe.path {
+                    if !instigatorExe.path.isEmpty {
                         VStack(alignment: .leading) {
                             Text("\u{2022} Instigator process path:")
                                 .bold()
                             GroupBox {
-                                Text(path)
+                                Text(instigatorExe.path)
                                     .monospaced()
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .lineLimit(30)
                             }
                         }
                     }
-                    
+
                     HStack {
                         Text("\u{2022} Instigator process signing ID:")
                             .bold()
@@ -82,12 +82,12 @@ struct AuthJudgeProcsView: View {
                         }
                     }
                     
-                    if let path = petitionerExe.path {
+                    if !petitionerExe.path.isEmpty {
                         VStack(alignment: .leading) {
                             Text("\u{2022} Petitioner process path:")
                                 .bold()
                             GroupBox {
-                                Text(path)
+                                Text(petitionerExe.path)
                                     .monospaced()
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .lineLimit(30)
@@ -119,12 +119,12 @@ struct AuthJudgeProcsView: View {
                         }
                     }
                     
-                    if let path = instigatorExe.path {
+                    if !instigatorExe.path.isEmpty {
                         VStack(alignment: .leading) {
                             Text("\u{2022} Process path:")
                                 .bold()
                             GroupBox {
-                                Text(path)
+                                Text(instigatorExe.path)
                                     .monospaced()
                                     .lineLimit(nil)
                                     .fixedSize(horizontal: false, vertical: true)

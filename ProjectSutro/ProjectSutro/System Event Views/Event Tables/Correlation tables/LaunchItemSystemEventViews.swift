@@ -30,7 +30,7 @@ struct SystemLaunchItemEventTableView: View {
                 TableColumn("Launch item name") { (
                     message: ESMessage
                 ) in
-                    Text("`\(message.event.btm_launch_item_add!.itemName ?? "")`")
+                    Text("`\(URL(fileURLWithPath: message.event.btm_launch_item_add!.item.item_path).lastPathComponent)`")
                 }
                 TableColumn("Launch item path") { (
                     message: ESMessage

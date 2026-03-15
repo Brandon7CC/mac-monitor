@@ -10,7 +10,7 @@ import SutroESFramework
 import OSLog
 
 
-public struct Filters {
+public struct Filters: Equatable {
     public var initiatingPaths: [String] = []
     public var targetPaths: [String] = []
     public var events: [String] = []
@@ -102,12 +102,11 @@ public func isEventFiltered(
     
     // MARK: Non-lineage filters:
     if filteringLongRunningProcs,
-       let messageTime = event.message_darwin_time,
-       messageTime.timeIntervalSince1970 < systemExtensionManager.clientConnectDT.timeIntervalSince1970 {
+       event.message_darwin_time.timeIntervalSince1970 < systemExtensionManager.clientConnectDT.timeIntervalSince1970 {
         return false
     }
     
-    if allFilters.events.contains(event.es_event_type ?? "") { return false }
+    if allFilters.events.contains(event.es_event_type) { return false }
     if allFilters.userIDs.contains(event.process.euid_human ?? "") { return false }
     if allFilters.initiatingPaths.contains(event.process.executable?.path ?? "") { return false }
     

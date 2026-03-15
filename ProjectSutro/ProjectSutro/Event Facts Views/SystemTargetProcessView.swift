@@ -127,9 +127,9 @@ struct ParentProcessMetadata: View {
                     }
                 }
                 
-                if selectedMessage.process.file_quarantine_type != "DISABLED" {
+                if selectedMessage.process.file_quarantine_type != .disabled {
                     FileQuarantineLabelView(
-                        type: selectedMessage.process.file_quarantine_type
+                        type: selectedMessage.process.file_quarantine_type.rawValue
                     )
                 }
                 
@@ -176,7 +176,7 @@ struct SystemTargetProcessView: View {
                 HStack {
                     Label("**Message timestamp:**", systemImage: "clock")
                     GroupBox {
-                        Text("`\(selectedMessage.time ?? "Unknown")`")
+                        Text("`\(selectedMessage.time)`")
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 
@@ -215,10 +215,10 @@ struct SystemTargetProcessView: View {
                         if selectedMessage.version >= 10 && selectedMessage.process.cs_validation_category != 10 {
                             if let cs_validation_string = selectedMessage.process.cs_validation_category_string {
                                 let suffix = cs_validation_string.trimmingPrefix("ES_CS_VALIDATION_CATEGORY_")
-                                Text("\u{2022} **Code signing type:** `\(suffix) (\(selectedMessage.process.cs_validation_category))`")
+                                Text("\u{2022} **Code signing type:** `\(String(suffix)) (\(selectedMessage.process.cs_validation_category ?? 0))`")
                             }
                         } else {
-                            Text("\u{2022} **Code signing type:** `\(selectedMessage.process.codesigning_type)`")
+                            Text("\u{2022} **Code signing type:** `\(selectedMessage.process.codesigning_type.rawValue)`")
                         }
                         
                         HStack {

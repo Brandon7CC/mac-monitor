@@ -129,7 +129,7 @@ struct SystemTCCModifyMetadataView: View {
                             HStack {
                                 Text("\u{2022} **Instigator path:**")
                                 GroupBox {
-                                    Text("`\(executable.path ?? "")`")
+                                    Text("`\(executable.path)`")
                                         .lineLimit(10)
                                 }
                             }.frame(maxWidth: .infinity, alignment: .leading)
@@ -166,7 +166,7 @@ struct SystemTCCModifyMetadataView: View {
                             HStack {
                                 Text("\u{2022} **Responsible path:**")
                                 GroupBox {
-                                    Text("`\(executable.path ?? "")`")
+                                    Text("`\(executable.path)`")
                                         .lineLimit(10)
                                 }
                             }.frame(maxWidth: .infinity, alignment: .leading)

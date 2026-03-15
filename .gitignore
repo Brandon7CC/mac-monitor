@@ -18,3 +18,9 @@ xcuserdata/
 ProjectSutro/build_output.txt
 
 ProjectSutro/build_output_retry.txt
+
+# Local agent workspace files
+.claude/
+
+# Local stress fixture (may contain personal data)
+ProjectSutro/TestFixtures/stress-fixture.plist

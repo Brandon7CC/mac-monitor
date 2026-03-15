@@ -17,8 +17,8 @@ struct SystemProcessGroupTableView: View {
     
     var selectedMessage: ESMessage
     
-    private var procGroup: [ESMessage] {
-        systemExtensionManager.coreDataContainer.getProcGroup(message: selectedMessage)
+    private var procGroup: [Message] {
+        systemExtensionManager.eventStore.getProcGroup(for: selectedMessage)
     }
     
     private var processName: String {

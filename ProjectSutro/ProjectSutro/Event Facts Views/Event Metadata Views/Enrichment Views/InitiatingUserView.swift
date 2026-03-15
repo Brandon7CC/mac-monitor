@@ -20,24 +20,24 @@ struct InitiatingUserView: View {
                     Text("**Effective:**")
                     GroupBox {
                         Text(
-                            "`\(selectedMessage.process.euid_human!) (\(selectedMessage.process.euid))`"
+                            "`\(selectedMessage.process.euid_human ?? "") (\(selectedMessage.process.euid ?? 0))`"
                         )
                     }
                     Image(systemName: "arrow.right")
                     Text("\u{2022} **Real:**")
                     GroupBox {
                         Text(
-                            "`\(selectedMessage.process.ruid_human!) (\(selectedMessage.process.ruid))`"
+                            "`\(selectedMessage.process.ruid_human ?? "") (\(selectedMessage.process.ruid ?? 0))`"
                         )
                     }
                 }.frame(alignment: .leading)
             }.frame(alignment: .leading)
-            
+
         } else {
             HStack {
                 GroupBox {
                     Text(
-                        "`\(selectedMessage.process.euid_human!) (\(selectedMessage.process.euid))`"
+                        "`\(selectedMessage.process.euid_human ?? "") (\(selectedMessage.process.euid ?? 0))`"
                     )
                 }
             }.frame(alignment: .leading)

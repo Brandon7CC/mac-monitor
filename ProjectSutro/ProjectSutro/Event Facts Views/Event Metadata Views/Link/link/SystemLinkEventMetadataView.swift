@@ -17,14 +17,11 @@ struct SystemLinkEventMetadataView: View {
     }
     
     private var tgtPath: String? {
-        if let path = event.target_dir.path {
-            return URL(
-                fileURLWithPath: path
-            )
-            .appendingPathComponent(event.target_filename)
-            .path()
+        if !event.target_dir.path.isEmpty {
+            return URL(fileURLWithPath: event.target_dir.path)
+                .appendingPathComponent(event.target_filename)
+                .path()
         }
-        
         return nil
     }
     
@@ -36,7 +33,8 @@ struct SystemLinkEventMetadataView: View {
             
             GroupBox {
                 VStack(alignment: .leading) {
-                    if let srcPath = event.source.path {
+                    if !event.source.path.isEmpty {
+                        let srcPath = event.source.path
                         VStack(alignment: .leading) {
                             Text("\u{2022} Source file path:")
                                 .bold()

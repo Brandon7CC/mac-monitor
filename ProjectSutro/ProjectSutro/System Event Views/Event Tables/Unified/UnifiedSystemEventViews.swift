@@ -12,14 +12,14 @@ import OSLog
 
 // MARK: – Sortable proxies
 extension ESMessage {
-    var sortableTimestamp: TimeInterval { message_darwin_time?.timeIntervalSince1970 ?? 0 }
+    var sortableTimestamp: TimeInterval { message_darwin_time.timeIntervalSince1970 }
     var sortEffectiveUser: String       { process.euid_human       ?? "" }
     var sortSourceProcess: String       { process.executable?.name ?? "" }
     var sortSourceSigningID: String     { process.signing_id       ?? "" }
     var sortSourceProcessPath: String { process.executable?.path ?? "" }
     
     var sortEventType: String {
-        es_event_type ?? ""
+        es_event_type
     }
 
     var sortContext: String {
@@ -48,7 +48,20 @@ struct CustomizableUnifiedSystemEventsTableView: View {
         .init(\ESMessage.sortableTimestamp, order: .reverse)
     ]
 
-    private var rows: [ESMessage] { messagesInScope.sorted(using: sortOrder) }
+    /// Whether the user has explicitly changed the sort order from the default.
+    /// When false, input data is already pre-sorted (reverse-chronological) and
+    /// we skip the O(n log n) sort entirely — matching ProcMon's no-sort approach.
+    @State private var needsExplicitSort: Bool = false
+
+    private var rows: [ESMessage] {
+        if !needsExplicitSort { return messagesInScope }
+        return messagesInScope.sorted(using: sortOrder)
+    }
+
+    private var displayedRows: [ESMessage] {
+        if needsExplicitSort { return rows }
+        return Array(rows.reversed())
+    }
 
     var body: some View {
         Table(of: ESMessage.self,
@@ -128,7 +141,7 @@ struct CustomizableUnifiedSystemEventsTableView: View {
             .width(min: 80, ideal: 100, max: 200)
             .customizationID("Source Signing ID")
         } rows: {
-            ForEach(rows) { msg in
+            ForEach(displayedRows) { msg in
                 TableRow(msg)
                     .contextMenu {
                         if msg.event.exec != nil {
@@ -140,6 +153,9 @@ struct CustomizableUnifiedSystemEventsTableView: View {
                         }
                     }
             }
+        }
+        .onChange(of: sortOrder) { _ in
+            needsExplicitSort = true
         }
     }
 }
@@ -162,7 +178,20 @@ struct UnifiedSystemEventsTableView: View {
         .init(\ESMessage.sortableTimestamp, order: .reverse)
     ]
 
-    private var rows: [ESMessage] { messagesInScope.sorted(using: sortOrder) }
+    /// Whether the user has explicitly changed the sort order from the default.
+    /// When false, input data is already pre-sorted (reverse-chronological) and
+    /// we skip the O(n log n) sort entirely — matching ProcMon's no-sort approach.
+    @State private var needsExplicitSort: Bool = false
+
+    private var rows: [ESMessage] {
+        if !needsExplicitSort { return messagesInScope }
+        return messagesInScope.sorted(using: sortOrder)
+    }
+
+    private var displayedRows: [ESMessage] {
+        if needsExplicitSort { return rows }
+        return Array(rows.reversed())
+    }
 
     var body: some View {
         Table(of: ESMessage.self,
@@ -201,7 +230,7 @@ struct UnifiedSystemEventsTableView: View {
                 Text("`\(event.process.signing_id ?? "")`")
             }.width(min: 80, ideal: 100, max: 200)
         } rows: {
-            ForEach(rows) { msg in
+            ForEach(displayedRows) { msg in
                 TableRow(msg)
                     .contextMenu {
                         if msg.event.exec != nil {
@@ -213,10 +242,13 @@ struct UnifiedSystemEventsTableView: View {
                             TableNonExecContextMenus(allFilters: $allFilters,
                                                      message: msg)
                                 .environmentObject(systemExtensionManager)
-                                .environmentObject(userPrefs)
+                                 .environmentObject(userPrefs)
                         }
                     }
             }
+        }
+        .onChange(of: sortOrder) { _ in
+            needsExplicitSort = true
         }
     }
 }

@@ -43,7 +43,8 @@ struct SystemSetXattrMetadataView: View {
                         }
                     }
                     
-                    if let path = event.target.path {
+                    if !event.target.path.isEmpty {
+                        let path = event.target.path
                         VStack(alignment: .leading) {
                             Text("\u{2022} File path:")
                             GroupBox {

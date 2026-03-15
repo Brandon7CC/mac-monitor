@@ -18,7 +18,7 @@ struct SystemInitiatingProcessView: View {
     private var eventTimeStamp: String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'"
-        return dateFormatter.string(from: selectedMessage.message_darwin_time!)
+        return dateFormatter.string(from: selectedMessage.message_darwin_time)
     }
     
     var body: some View {
@@ -31,7 +31,7 @@ struct SystemInitiatingProcessView: View {
                     HStack {
                         Label("**Message timestamp:**", systemImage: "clock")
                         GroupBox {
-                            Text("`\(selectedMessage.time ?? "Unknown")`")
+                            Text("`\(selectedMessage.time)`")
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     

@@ -29,6 +29,16 @@ struct ProcessExecEventNameView: View {
         return ""
     }
     
+    /// Cached DYLD injection check — avoids calling env.joined().lowercased().contains()
+    /// up to 3 times in the view body. This is O(total env string length) and was
+    /// previously the most expensive per-row operation in the process exec table.
+    private var hasDyldInjection: Bool {
+        exec.env
+            .joined()
+            .lowercased()
+            .contains("dyld_insert_libraries")
+    }
+    
     var body: some View {
         HStack {
             if exec.target.is_adhoc_signed {
@@ -41,14 +51,11 @@ struct ProcessExecEventNameView: View {
                         Image(systemName: "key.radiowaves.forward.fill").symbolRenderingMode(.multicolor).padding([.leading], 2.0).help("Process elevated to root!")
                     }
                     
-                    if exec.env
-                        .joined()
-                        .lowercased()
-                        .contains("dyld_insert_libraries") {
+                    if hasDyldInjection {
                         Image(systemName: "bookmark.slash").help("Dyld injection attempt.").symbolRenderingMode(.palette).foregroundStyle(.red)
                     }
                     
-                    if exec.target.file_quarantine_type != "DISABLED" {
+                    if exec.target.file_quarantine_type != .disabled {
                         // The process is File Quarantine-aware `LSFileQuarantineEnabled` in `Info.plist`
                         Image(systemName: "lock.icloud").symbolRenderingMode(.multicolor).padding([.leading], 2.0).help("Process is File Quarantine-aware.")
                     }
@@ -64,14 +71,11 @@ struct ProcessExecEventNameView: View {
                         Image(systemName: "key.radiowaves.forward.fill").symbolRenderingMode(.multicolor).padding([.leading], 2.0).help("Process elevated to root!")
                     }
                     
-                    if exec.env
-                        .joined()
-                        .lowercased()
-                        .contains("dyld_insert_libraries") {
+                    if hasDyldInjection {
                         Image(systemName: "bookmark.slash").help("Dyld injection attempt.").symbolRenderingMode(.palette).foregroundStyle(.red)
                     }
                     
-                    if exec.target.file_quarantine_type != "DISABLED" {
+                    if exec.target.file_quarantine_type != .disabled {
                         // The process is File Quarantine-aware `LSFileQuarantineEnabled` in `Info.plist`
                         Image(systemName: "lock.icloud").symbolRenderingMode(.multicolor).padding([.leading], 2.0).help("Process is File Quarantine-aware.")
                     }
@@ -86,14 +90,11 @@ struct ProcessExecEventNameView: View {
                     Image(systemName: "key.radiowaves.forward.fill").symbolRenderingMode(.multicolor).padding([.leading], 2.0).help("Process elevated to root!")
                 }
                 
-                if exec.env
-                    .joined()
-                    .lowercased()
-                    .contains("dyld_insert_libraries") {
+                if hasDyldInjection {
                     Image(systemName: "bookmark.slash").help("Dyld injection attempt.").symbolRenderingMode(.palette).foregroundStyle(.red)
                 }
                 
-                if exec.target.file_quarantine_type != "DISABLED" {
+                if exec.target.file_quarantine_type != .disabled {
                     // The process is File Quarantine-aware `LSFileQuarantineEnabled` in `Info.plist`
                     Image(systemName: "lock.icloud").symbolRenderingMode(.multicolor).padding([.leading], 2.0).help("Process is File Quarantine-aware.")
                 }
@@ -129,18 +130,32 @@ struct SystemProcessExecTableView: View {
         .init(\ESMessage.sortableTimestamp, order: .reverse)
     ]
 
-    private var rows: [ESMessage] { messages.sorted(using: sortOrder) }
+    /// Whether the user has explicitly changed the sort order from the default.
+    /// When false, input data is already pre-sorted (reverse-chronological) and
+    /// we skip the O(n log n) sort entirely — matching ProcMon's no-sort approach.
+    @State private var needsExplicitSort: Bool = false
+
+    private var rows: [ESMessage] {
+        if !needsExplicitSort { return messages }
+        return messages.sorted(using: sortOrder)
+    }
+
+    private var displayedRows: [ESMessage] {
+        if needsExplicitSort { return rows }
+        return Array(rows.reversed())
+    }
 
     var body: some View {
         Group {
             if simple {
                 simpleTable
             } else {
-                Section(header: Label("Process", systemImage: "cpu").font(.title2)) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("**Execution**")
-                        simpleTable
-                    }
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Process", systemImage: "cpu")
+                        .font(.title2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("**Execution**")
+                    simpleTable
                 }
             }
         }
@@ -181,7 +196,7 @@ struct SystemProcessExecTableView: View {
                     .textSelection(.enabled)
             }.width(min: 200, ideal: 600, max: .infinity)
         } rows: {
-            ForEach(rows) { msg in
+            ForEach(displayedRows) { msg in
                 TableRow(msg).contextMenu {
                     if msg.event.exec != nil {
                         TableExecEventContextMenu(allFilters: $allFilters, message: msg)
@@ -194,6 +209,9 @@ struct SystemProcessExecTableView: View {
                     }
                 }
             }
+        }
+        .onChange(of: sortOrder) { _ in
+            needsExplicitSort = true
         }
     }
 }
@@ -219,18 +237,32 @@ struct CustomizableSystemProcessExecTableView: View {
         .init(\ESMessage.sortableTimestamp, order: .reverse)
     ]
 
-    private var rows: [ESMessage] { messages.sorted(using: sortOrder) }
+    /// Whether the user has explicitly changed the sort order from the default.
+    /// When false, input data is already pre-sorted (reverse-chronological) and
+    /// we skip the O(n log n) sort entirely — matching ProcMon's no-sort approach.
+    @State private var needsExplicitSort: Bool = false
+
+    private var rows: [ESMessage] {
+        if !needsExplicitSort { return messages }
+        return messages.sorted(using: sortOrder)
+    }
+
+    private var displayedRows: [ESMessage] {
+        if needsExplicitSort { return rows }
+        return Array(rows.reversed())
+    }
 
     var body: some View {
         Group {
             if simple {
                 simpleTable
             } else {
-                Section(header: Label("Process", systemImage: "cpu").font(.title2)) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("**Execution**")
-                        simpleTable
-                    }
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Process", systemImage: "cpu")
+                        .font(.title2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("**Execution**")
+                    simpleTable
                 }
             }
         }
@@ -284,7 +316,7 @@ struct CustomizableSystemProcessExecTableView: View {
             .customizationID("Command line")
             .disabledCustomizationBehavior(.visibility)
         } rows: {
-            ForEach(rows) { msg in
+            ForEach(displayedRows) { msg in
                 TableRow(msg).contextMenu {
                     if msg.event.exec != nil {
                         TableExecEventContextMenu(allFilters: $allFilters, message: msg)
@@ -297,6 +329,9 @@ struct CustomizableSystemProcessExecTableView: View {
                     }
                 }
             }
+        }
+        .onChange(of: sortOrder) { _ in
+            needsExplicitSort = true
         }
     }
 }

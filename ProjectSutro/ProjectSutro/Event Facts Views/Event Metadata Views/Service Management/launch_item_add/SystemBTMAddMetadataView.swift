@@ -54,7 +54,8 @@ struct SystemBTMAddMetadataView: View {
                             }
                         }
 
-                        if let itemName = event.itemName {
+                        let itemName = URL(fileURLWithPath: event.item.item_path).lastPathComponent
+                        if !itemName.isEmpty {
                             HStack {
                                 Text("\u{2022} **Item name:**")
                                 GroupBox {

@@ -28,10 +28,10 @@ struct SystemLoginLoginMetadataView: View {
                         Label("**Username:**", systemImage: "person.fill")
                             .padding([.leading], 5.0)
                         GroupBox {
-                            if let uid = event.uid {
-                                Text("`\(event.username!) (\(uid))`")
+                            if event.has_uid {
+                                Text("`\(event.username) (\(event.uid))`")
                             } else {
-                                Text("`\(event.username!)`")
+                                Text("`\(event.username)`")
                             }
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
@@ -39,7 +39,7 @@ struct SystemLoginLoginMetadataView: View {
                     HStack {
                         Text("\u{2022} **Success:**")
                         GroupBox {
-                            Text("`\(event.success ? "Yes" : "No")`")
+                            Text("`\(event.succcess ? "Yes" : "No")`")
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     

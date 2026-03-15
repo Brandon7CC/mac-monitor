@@ -141,9 +141,10 @@ struct SystemRCCorrelatedEventsView: View {
     }
     private var childProcs: [ESMessage] {
         forkEvents
-            .filter(
-                { !$0.correlated_array.filter({ $0.event.exec != nil }).isEmpty
-                })
+            .filter({ forkMsg in
+                !systemExtensionManager.eventStore.getCorrelatedEvents(for: forkMsg)
+                    .filter({ $0.event.exec != nil }).isEmpty
+            })
     }
     private var fileEvents: [ESMessage] {
         correlatedEvents.filter({ $0.event.create != nil })
@@ -278,7 +279,7 @@ struct SystemRCCorrelatedEventsView: View {
             Divider()
             Section {
                 HStack {
-                    if memoryEvents.first(where: { pathIsOSAComponent(filePath: $0.event.mmap!.source.path!) }) != nil {
+                    if memoryEvents.first(where: { pathIsOSAComponent(filePath: $0.event.mmap!.source.path) }) != nil {
                         Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .orange).help("Process mapped an OSA (Open Scripting Architecture) component into memory")
                     }
                     
@@ -363,13 +364,14 @@ struct SystemRCCorrelatedEventsView: View {
 
 struct SystemEnrichedEventView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    
+
     @EnvironmentObject var userPrefs: UserPrefs
-    
-    
+
+
     @Binding var allFilters: Filters
-    
+
     var selectedMessage: ESMessage
+    var correlatedEvents: [Message]
     @State private var hideUnifiedEnrichments: Bool = false
     
     private var event: ESProcessExecEvent {
@@ -381,7 +383,7 @@ struct SystemEnrichedEventView: View {
             VStack(alignment: .leading) {
                 Section {
                     HStack {
-                        Text("**Unified correlated events (\(selectedMessage.correlated_array.count))**")
+                        Text("**Unified correlated events (\(correlatedEvents.count))**")
                         Spacer()
                         Button(hideUnifiedEnrichments ? "Show" : "Hide") {
                             withAnimation {
@@ -402,14 +404,14 @@ struct SystemEnrichedEventView: View {
                     if !hideUnifiedEnrichments {
                         if #available(macOS 14, *) {
                             CustomizableSystemEnrichedTableView(
-                                eventsInScope: selectedMessage.correlated_array,
+                                eventsInScope: correlatedEvents,
                                 allFilters: $allFilters
                             )
                             .environmentObject(systemExtensionManager)
                             .environmentObject(userPrefs)
                         } else {
                             SystemEnrichedTableView(
-                                eventsInScope: selectedMessage.correlated_array,
+                                eventsInScope: correlatedEvents,
                                 allFilters: $allFilters
                             )
                             .environmentObject(systemExtensionManager)
@@ -419,7 +421,7 @@ struct SystemEnrichedEventView: View {
                 }
                 
                 SystemRCCorrelatedEventsView(
-                    correlatedEvents: selectedMessage.correlated_array,
+                    correlatedEvents: correlatedEvents,
                      allFilters: $allFilters
                 )
                 .environmentObject(systemExtensionManager)

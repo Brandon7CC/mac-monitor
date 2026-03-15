@@ -37,9 +37,6 @@ struct SystemEventDetailsView: View {
     var selectedMessage: ESMessage
     @State private var targetMetadataExpanded: Bool = true
     
-    var potentialParent: ESMessage? { systemExtensionManager.coreDataContainer.findParentProc(message: selectedMessage) }
-    var procTree: [ESMessage] { systemExtensionManager.coreDataContainer.getProcTree(targetEvent: selectedMessage) }
-    
     var body: some View {
         List {
             SystemTargetProcessView(selectedMessage: selectedMessage).environmentObject(systemExtensionManager)
@@ -63,21 +60,16 @@ struct SystemEventFactsView : View {
         case metadata, telemetry, enrichment, initiating, plist, script
     }
     
-    /// Process groups:
-    /// - `gid`
-    /// - `session_id`
-    private var procGroup: [ESMessage] {
-        systemExtensionManager.coreDataContainer.getProcGroup(message: selectedMessage)
-    }
-    private var procSessionGroup: [ESMessage] {
-        systemExtensionManager.coreDataContainer
-            .getProcSessionGroup(message: selectedMessage)
-    }
+    /// Process groups loaded async
+    @State private var procGroup: [Message] = []
+    @State private var procSessionGroup: [Message] = []
+    @State private var correlatedEvents: [Message] = []
+    @State private var isLoadingDerivedData: Bool = true
     
     private var groupsEventCount: Int {
         procGroup.count + procSessionGroup.count
     }
-    
+
     private var groupToShow: Groups {
         !procGroup.isEmpty ? Groups.process : Groups.session
     }
@@ -120,25 +112,37 @@ struct SystemEventFactsView : View {
             }
             
             // MARK: Enrichment view
-            if selectedMessage.correlated_array.count > 1 {
+            if !isLoadingDerivedData && correlatedEvents.count > 1 {
                 VStack(alignment: .leading) {
-                    SystemEnrichedEventView(allFilters: $allFilters, selectedMessage: selectedMessage)
-                        .environmentObject(systemExtensionManager)
-                        .environmentObject(userPrefs)
+                    SystemEnrichedEventView(
+                        allFilters: $allFilters,
+                        selectedMessage: selectedMessage,
+                        correlatedEvents: correlatedEvents
+                    )
+                    .environmentObject(systemExtensionManager)
+                    .environmentObject(userPrefs)
                 }
                 .tabItem{ Text("Correlation") }
                 .tag(EventTabs.enrichment)
             }
             
             // MARK: Process Groups
-            if !procSessionGroup.isEmpty || !procGroup.isEmpty {
+            if isLoadingDerivedData || !procSessionGroup.isEmpty || !procGroup.isEmpty {
                 VStack(alignment: .leading) {
-                    SystemEventGroupTableViews(
-                        allFilters: $allFilters,
-                        selectedMessage: selectedMessage,
-                        processGroup: procGroup,
-                        sessionGroup: procSessionGroup
-                    )
+                    if isLoadingDerivedData {
+                        HStack {
+                            ProgressView()
+                            Text("Loading process groups...")
+                        }
+                        .padding()
+                    } else {
+                        SystemEventGroupTableViews(
+                            allFilters: $allFilters,
+                            selectedMessage: selectedMessage,
+                            processGroup: procGroup,
+                            sessionGroup: procSessionGroup
+                        )
+                    }
                 }
                 .tabItem{ Text("Groups") }
                 .tag(EventTabs.enrichment)
@@ -158,7 +162,29 @@ struct SystemEventFactsView : View {
             }
             .tabItem{ Text("JSON") }
             .tag(EventTabs.telemetry)
-        }.padding(.all)
+        }
+        .padding(.all)
+        .onAppear {
+            loadDerivedDataAsync()
+        }
+    }
+    
+    private func loadDerivedDataAsync() {
+        isLoadingDerivedData = true
+        Task {
+            async let group = systemExtensionManager.eventStore.getProcGroupAsync(for: selectedMessage)
+            async let session = systemExtensionManager.eventStore.getProcSessionGroupAsync(for: selectedMessage)
+            async let correlated = systemExtensionManager.eventStore.getCorrelatedEventsAsync(for: selectedMessage)
+            
+            let (loadedGroup, loadedSession, loadedCorrelated) = await (group, session, correlated)
+            
+            await MainActor.run {
+                self.procGroup = loadedGroup
+                self.procSessionGroup = loadedSession
+                self.correlatedEvents = loadedCorrelated
+                self.isLoadingDerivedData = false
+            }
+        }
     }
 }
 
@@ -167,60 +193,73 @@ struct AppWrapperForFacts: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @EnvironmentObject var userPrefs: UserPrefs
     @Environment(\.openWindow) private var openEventFacts
-    @Environment(\.managedObjectContext) var moc
-    @FetchRequest var coreDataEvents: FetchedResults<ESMessage>
-    
-    
+
+    /// The event to display, looked up from EventStore by ID (replaces @FetchRequest)
+    private let eventID: UUID
+    @ObservedObject private var eventStore = EventStore.shared
+
     @Binding var allFilters: Filters
-    
-    @State private var selectedEventTree: ESMessage?
+
+    @State private var selectedEventTree: Message?
     @State private var visibility: NavigationSplitViewVisibility = .all
     
-    var procTree: [ESMessage] {
-        if selectedEventTree != nil {
-            return systemExtensionManager.coreDataContainer.getProcTree(targetEvent: selectedEventTree!).filter({
-                /// Forks as parent
-                if userPrefs.forksAsParent {
-                    true
-                } else {
-                    $0.es_event_type != "ES_EVENT_TYPE_NOTIFY_FORK"
-                }
-            })
-        }
-        return []
+    /// Process tree loaded async to avoid blocking UI
+    @State private var procTree: [Message] = []
+    @State private var isLoadingTree: Bool = true
+
+    /// The primary event for this window
+    private var primaryEvent: Message? {
+        eventStore.getEventByID(eventID)
     }
-    
+
+    /// Filtered process tree (applies fork filter to cached tree)
+    var filteredProcTree: [Message] {
+        procTree.filter {
+            userPrefs.forksAsParent || $0.es_event_type != "ES_EVENT_TYPE_NOTIFY_FORK"
+        }
+    }
+
     var body: some View {
         NavigationSplitView(columnVisibility: $visibility) {
             if selectedEventTree != nil {
                 // MARK: Process tree
                 List(selection: $selectedEventTree) {
-                    Text("Subtree: `\(procTree.count + 1)`")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                    Divider()
-                    ForEach(
-                        procTree.reversed(),
-                        id: \.self
-                    ) { message in
-                        if message.id != procTree.last!.id {
-                            Label("**`\(ProcessHelpers.getTargetProcessName(message: message))`**", systemImage: "arrow.turn.down.right").contextMenu {
-                                Button("Open in new window") {
-                                    openEventFacts(value: message.id)
-                                }
-                            }
-                            .foregroundStyle(.secondary)
-                        } else {
-                            Text("**`\(ProcessHelpers.getTargetProcessName(message: message))`**").contextMenu {
-                                Button("Open in new window") {
-                                    openEventFacts(value: message.id)
-                                }
-                            }
-                            .foregroundStyle(.secondary)
+                    if isLoadingTree {
+                        HStack {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                            Text("Loading tree...")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
                         }
+                    } else {
+                        Text("Subtree: `\(filteredProcTree.count + 1)`")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                        Divider()
+                        ForEach(
+                            filteredProcTree.reversed(),
+                            id: \.self
+                        ) { message in
+                            if message.id != filteredProcTree.last?.id {
+                                Label("**`\(ProcessHelpers.getTargetProcessName(message: message))`**", systemImage: "arrow.turn.down.right").contextMenu {
+                                    Button("Open in new window") {
+                                        openEventFacts(value: message.id)
+                                    }
+                                }
+                                .foregroundStyle(.secondary)
+                            } else {
+                                Text("**`\(ProcessHelpers.getTargetProcessName(message: message))`**").contextMenu {
+                                    Button("Open in new window") {
+                                        openEventFacts(value: message.id)
+                                    }
+                                }
+                                .foregroundStyle(.secondary)
+                            }
+                        }
+                        Label("**`\(ProcessHelpers.getTargetProcessName(message: selectedEventTree!))`**", systemImage: "scope").disabled(true)
+                            .foregroundStyle(.secondary)
                     }
-                    Label("**`\(ProcessHelpers.getTargetProcessName(message: selectedEventTree!))`**", systemImage: "scope").disabled(true)
-                        .foregroundStyle(.secondary)
                 }
             }
         } detail: {
@@ -233,12 +272,18 @@ struct AppWrapperForFacts: View {
             }
         }
         .onAppear {
-            self.selectedEventTree = coreDataEvents.first
+            self.selectedEventTree = primaryEvent
             if selectedEventTree == nil {
                 _ = NSApplication.shared.windows.filter({ $0.title.contains("Event Facts")}).map({ $0.close() })
+            } else {
+                loadProcTreeAsync()
             }
-        }.toolbar {
-            if let firstMessage = coreDataEvents.first,
+        }
+        .onChange(of: selectedEventTree?.id) { _ in
+            loadProcTreeAsync()
+        }
+        .toolbar {
+            if let firstMessage = primaryEvent,
                let tree = selectedEventTree {
                 Button(action: {
                     self.selectedEventTree = firstMessage
@@ -251,9 +296,20 @@ struct AppWrapperForFacts: View {
         .preferredColorScheme(userPrefs.forcedDarkMode ? .dark : nil)
     }
     
-    
+    private func loadProcTreeAsync() {
+        guard let event = selectedEventTree else { return }
+        isLoadingTree = true
+        Task {
+            let tree = await systemExtensionManager.eventStore.getProcTreeAsync(for: event)
+            await MainActor.run {
+                self.procTree = tree
+                self.isLoadingTree = false
+            }
+        }
+    }
+
     init(id: UUID, allFilters: Binding<Filters>) {
-        _coreDataEvents = FetchRequest<ESMessage>(sortDescriptors: [], predicate: NSPredicate(format: "id == %@", id as CVarArg))
+        self.eventID = id
         _allFilters = allFilters
     }
 }

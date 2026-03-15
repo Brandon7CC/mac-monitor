@@ -32,12 +32,12 @@ struct SystemSetModeMetadataView: View {
                         }
                     }
                     
-                    if let path = event.target.path {
+                    if !event.target.path.isEmpty {
                         HStack {
                             Text("\u{2022} File path:")
                                 .bold()
                             GroupBox {
-                                Text(path)
+                                Text(event.target.path)
                                     .monospaced()
                             }
                         }

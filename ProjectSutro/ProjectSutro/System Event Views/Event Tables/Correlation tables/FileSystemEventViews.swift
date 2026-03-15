@@ -30,15 +30,26 @@ struct SystemFileEventTableView: View {
                             if create.is_quarantined == 0 {
                                 Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .orange).help("This file is potentially not quarantined (generally, this is not a problem on its own)")
                             }
-                            Text(create.fileName)
+                            Text({
+                                switch create.destination {
+                                case .new_path(let np): return np.filename
+                                case .existing_file(let f): return URL(fileURLWithPath: f.path).lastPathComponent
+                                }
+                            }())
                         }
                     }
                     
                 }.width(min: 100, ideal: 150, max: 400)
-                TableColumn(
-                    "File path",
-                    value: \.event.create!.targetPath
-                )
+                TableColumn("File path") { (message: ESMessage) in
+                    let path: String = {
+                        guard let create = message.event.create else { return "" }
+                        switch create.destination {
+                        case .new_path(let np): return "\(np.dir.path)/\(np.filename)"
+                        case .existing_file(let f): return f.path
+                        }
+                    }()
+                    Text(path)
+                }
                 TableColumn("Is quarantined") { message in
                     if let create = message.event.create {
                         HStack {

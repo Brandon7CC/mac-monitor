@@ -24,8 +24,8 @@ struct SystemLoginEventTableView: View {
     var body: some View {
         Section(header: Label("Login events", systemImage: "ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN").font(.title2)) {
             Table(of: ESMessage.self, selection: $eventSelection) {
-                TableColumn("Type", value: \.es_event_type!)
-                TableColumn("Target", value: \.context!)
+                TableColumn("Type", value: \.es_event_type)
+                TableColumn("Target") { Text($0.context ?? "") }
             } rows: {
                 ForEach(loginEvents) { (message: ESMessage) in
                     TableRow(message).contextMenu {

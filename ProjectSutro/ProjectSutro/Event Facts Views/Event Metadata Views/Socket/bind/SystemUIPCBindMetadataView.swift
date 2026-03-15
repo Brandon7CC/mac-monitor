@@ -27,8 +27,8 @@ struct SystemUIPCBindMetadataView: View {
             
             GroupBox {
                 VStack(alignment: .leading) {
-                    if let dir = event.dir.path {
-                        let path = URL(fileURLWithPath: dir).appendingPathComponent(
+                    if !event.dir.path.isEmpty {
+                        let path = URL(fileURLWithPath: event.dir.path).appendingPathComponent(
                             event.filename
                         ).path()
                         
