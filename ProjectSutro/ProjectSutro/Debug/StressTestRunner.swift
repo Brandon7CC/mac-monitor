@@ -168,7 +168,14 @@ final class StressTestRunner {
         }
 
         if templateEvents.isEmpty {
-            Self.logger.error("No template events available for stress test. Provide a fixture file with --stress-fixture or start a recording first.")
+            // Fall back to synthetic events so the test can run without a fixture
+            // or a live recording session.
+            Self.logger.warning("No real events available — generating synthetic template events for stress test")
+            templateEvents = Self.makeSyntheticTemplateEvents(count: 100)
+        }
+
+        if templateEvents.isEmpty {
+            Self.logger.error("Failed to generate synthetic template events. Cannot run stress test.")
             writeEmptyResults(error: "No template events available")
             Self.activeRunner = nil
             return
@@ -410,6 +417,136 @@ final class StressTestRunner {
         } catch {
             Self.logger.error("Failed to write error results: \(error)")
         }
+    }
+
+    // MARK: - Synthetic Event Generation
+
+    /// Generates synthetic `Message` values via JSON decoding for use when no
+    /// fixture file or live recording is available.
+    ///
+    /// The events are structurally valid and exercise the full pipeline
+    /// (MMAP append → index → filter → SwiftUI diff), but they use fabricated
+    /// process metadata rather than real Endpoint Security events.
+    ///
+    /// - Parameter count: Number of distinct template events to generate.
+    /// - Returns: An array of decoded `Message` values, or an empty array if decoding fails.
+    static func makeSyntheticTemplateEvents(count: Int) -> [Message] {
+        let now = Date()
+        let decoder = JSONDecoder()
+        // Message.message_darwin_time is a plain Date with synthesized Codable;
+        // .secondsSince1970 matches what JSONDecoder reads from a Double value.
+        decoder.dateDecodingStrategy = .secondsSince1970
+
+        var events: [Message] = []
+        events.reserveCapacity(count)
+
+        let processNames = [
+            "/usr/bin/xpcproxy", "/usr/libexec/xpcproxy", "/usr/bin/swift",
+            "/usr/lib/dyld", "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder",
+            "/usr/bin/mdworker_shared", "/usr/libexec/configd", "/usr/sbin/cfprefsd",
+            "/usr/libexec/nsurlsessiond", "/System/Library/PrivateFrameworks/CoreTelephony.framework/Versions/A/Resources/coretelephonyd"
+        ]
+        let signingIDs = [
+            "com.apple.xpcproxy", "com.apple.swift", "com.apple.finder",
+            "com.apple.mdworker_shared", "com.apple.configd"
+        ]
+
+        for i in 0..<count {
+            let pid = Int32(100 + i)
+            let processName = processNames[i % processNames.count]
+            let signingID = signingIDs[i % signingIDs.count]
+            let ts = Int(now.timeIntervalSince1970)
+            let tsSec = now.timeIntervalSince1970
+            let timeString = ISO8601DateFormatter().string(from: now)
+
+            let json = """
+            {
+                "id": "\(UUID().uuidString)",
+                "version": 6,
+                "schema_version": 1,
+                "time": "\(timeString)",
+                "mach_time": \(Int64(now.timeIntervalSince1970 * 1_000_000_000)),
+                "message_darwin_time": \(tsSec),
+                "macOS": "15.0",
+                "sensor_id": "SYNTHETIC",
+                "process": {
+                    "id": "\(UUID().uuidString)",
+                    "start_time": { "id": "\(UUID().uuidString)", "tv_sec": \(ts), "tv_usec": 0 },
+                    "pid": \(pid),
+                    "ppid": 1,
+                    "original_ppid": 1,
+                    "group_id": \(pid),
+                    "session_id": 1,
+                    "codesigning_flags": 570522369,
+                    "signing_id": "\(signingID)",
+                    "audit_token_string": "pid:\(pid), euid:0, ruid:0, rgid:0, egid:0, asid:100, auid:0, pidversion:1",
+                    "responsible_audit_token_string": "pid:\(pid), euid:0, ruid:0, rgid:0, egid:0, asid:100, auid:0, pidversion:1",
+                    "parent_audit_token_string": "pid:1, euid:0, ruid:0, rgid:0, egid:0, asid:100, auid:0, pidversion:1",
+                    "executable": {
+                        "id": "\(UUID().uuidString)",
+                        "path": "\(processName)",
+                        "path_truncated": false,
+                        "stat": {
+                            "id": "\(UUID().uuidString)",
+                            "st_ino": \(Int64(1000 + i)),
+                            "st_dev": 16777233,
+                            "st_size": 65536,
+                            "st_blocks": 128,
+                            "st_blksize": 4096,
+                            "st_flags": 0,
+                            "st_gen": 0,
+                            "st_mode": 33261,
+                            "st_nlink": 1,
+                            "st_uid": 0,
+                            "st_gid": 0,
+                            "st_rdev": 0,
+                            "st_atimespec": { "id": "\(UUID().uuidString)", "tv_sec": \(ts), "tv_nsec": 0 },
+                            "st_mtimespec": { "id": "\(UUID().uuidString)", "tv_sec": \(ts), "tv_nsec": 0 },
+                            "st_ctimespec": { "id": "\(UUID().uuidString)", "tv_sec": \(ts), "tv_nsec": 0 },
+                            "st_birthtimespec": { "id": "\(UUID().uuidString)", "tv_sec": \(ts), "tv_nsec": 0 }
+                        }
+                    },
+                    "is_platform_binary": true,
+                    "is_es_client": false,
+                    "euid": 0,
+                    "ruid": 0,
+                    "euid_human": "root",
+                    "ruid_human": "root",
+                    "codesigning_type": "PLATFORM",
+                    "file_quarantine_type": "DISABLED",
+                    "is_adhoc_signed": false,
+                    "get_task_allow": false,
+                    "allow_jit": false,
+                    "rootless": false,
+                    "skip_lv": false
+                },
+                "thread": {
+                    "id": "\(UUID().uuidString)",
+                    "thread_id": \(Int64(i + 1))
+                },
+                "event": {
+                    "exit": {
+                        "id": "\(UUID().uuidString)",
+                        "stat": 0
+                    }
+                },
+                "event_type": 23,
+                "es_event_type": "ES_EVENT_TYPE_NOTIFY_EXIT",
+                "action_type": 1,
+                "action_type_string": "ES_ACTION_TYPE_NOTIFY",
+                "action": {}
+            }
+            """
+
+            guard let data = json.data(using: .utf8),
+                  let message = try? decoder.decode(Message.self, from: data) else {
+                Self.logger.warning("Failed to decode synthetic event \(i)")
+                continue
+            }
+            events.append(message)
+        }
+
+        return events
     }
 }
 

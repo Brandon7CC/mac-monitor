@@ -58,13 +58,6 @@ public final class MMapEventLog {
     /// Serial queue for thread-safe writes
     private let writeQueue = DispatchQueue(label: "com.swiftlydetecting.mmapeventlog.write")
 
-    /// Encoder for serializing events
-    private let encoder: PropertyListEncoder = {
-        let e = PropertyListEncoder()
-        e.outputFormat = .binary
-        return e
-    }()
-
     /// Decoder for reading events back
     private let decoder = PropertyListDecoder()
 
@@ -127,6 +120,8 @@ public final class MMapEventLog {
     /// - Returns: The byte offset where this event was written (for indexing).
     @discardableResult
     public func appendEvent(_ message: Message) throws -> Int {
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .binary
         let data = try encoder.encode(message)
         return try writeQueue.sync {
             let offset = try appendRaw(data)
@@ -141,6 +136,10 @@ public final class MMapEventLog {
     /// - Returns: Array of (offset, message) tuples.
     @discardableResult
     public func appendEvents(_ messages: [Message]) throws -> [(offset: Int, message: Message)] {
+        // Create a fresh encoder per batch to avoid CFPropertyList caching leaks
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .binary
+        
         // Pre-encode all messages
         let encoded: [(Data, Message)] = try messages.map { msg in
             (try encoder.encode(msg), msg)

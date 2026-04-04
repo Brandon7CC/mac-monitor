@@ -172,8 +172,7 @@
 		28CEF1212978D45E003057D2 /* SystemLWLoginMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF1202978D45E003057D2 /* SystemLWLoginMetadataView.swift */; };
 		28E2E1402D61701E00EF4145 /* ESExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E2E13F2D61701E00EF4145 /* ESExtensions.swift */; };
 		28EBAA8C2A1C3B6F00AE80F9 /* ContextTargetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EBAA8B2A1C3B6F00AE80F9 /* ContextTargetResolver.swift */; };
-		28EC62E12925922000EAC8AD /* UnifiedSystemEventViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E02925922000EAC8AD /* UnifiedSystemEventViews.swift */; };
-		28EC62E32925933000EAC8AD /* SystemEventsTableViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E22925933000EAC8AD /* SystemEventsTableViews.swift */; };
+		A1B2C3D4E5F601234567890A /* ProjectSutro/System Event Views/NSTableViews/ProcessExecEventNameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F601234567891A /* ProjectSutro/System Event Views/NSTableViews/ProcessExecEventNameView.swift */; };
 		28EC62E5292595C100EAC8AD /* EventLabelViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E4292595C100EAC8AD /* EventLabelViews.swift */; };
 		28EC62E82925966D00EAC8AD /* EventChartViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E72925966D00EAC8AD /* EventChartViews.swift */; };
 		28EC62EA29259BB900EAC8AD /* ProcessSystemEventsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E929259BB900EAC8AD /* ProcessSystemEventsViews.swift */; };
@@ -502,8 +501,7 @@
 		28CEF1202978D45E003057D2 /* SystemLWLoginMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemLWLoginMetadataView.swift; sourceTree = "<group>"; };
 		28E2E13F2D61701E00EF4145 /* ESExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESExtensions.swift; sourceTree = "<group>"; };
 		28EBAA8B2A1C3B6F00AE80F9 /* ContextTargetResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextTargetResolver.swift; sourceTree = "<group>"; };
-		28EC62E02925922000EAC8AD /* UnifiedSystemEventViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedSystemEventViews.swift; sourceTree = "<group>"; };
-		28EC62E22925933000EAC8AD /* SystemEventsTableViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventsTableViews.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F601234567891A /* ProcessExecEventNameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessExecEventNameView.swift; sourceTree = "<group>"; };
 		28EC62E4292595C100EAC8AD /* EventLabelViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventLabelViews.swift; sourceTree = "<group>"; };
 		28EC62E72925966D00EAC8AD /* EventChartViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventChartViews.swift; sourceTree = "<group>"; };
 		28EC62E929259BB900EAC8AD /* ProcessSystemEventsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessSystemEventsViews.swift; sourceTree = "<group>"; };
@@ -519,15 +517,15 @@
 		28FFA9B5290F0D0000977D3F /* AgentSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSettingsView.swift; sourceTree = "<group>"; };
 		6F53E0EF1B4425C045728C7F /* MMapEventLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MMapEventLog.swift; sourceTree = "<group>"; };
 		7D4236E5845671F6FB6A4090 /* EventStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventStore.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F6012345678911 /* ProjectSutro/System Event Views/NSTableViews/SystemEventsNSTableContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectSutro/System Event Views/NSTableViews/SystemEventsNSTableContainerView.swift"; sourceTree = SOURCE_ROOT; };
-		A1B2C3D4E5F6012345678912 /* ProjectSutro/System Event Views/NSTableViews/SystemEventsNSTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectSutro/System Event Views/NSTableViews/SystemEventsNSTableView.swift"; sourceTree = SOURCE_ROOT; };
-		A1B2C3D4E5F6012345678913 /* ProjectSutro/System Event Views/NSTableViews/SystemEventsTableController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectSutro/System Event Views/NSTableViews/SystemEventsTableController.swift"; sourceTree = SOURCE_ROOT; };
-		A1B2C3D4E5F6012345678914 /* ProjectSutro/System Event Views/NSTableViews/MessageTableCellViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectSutro/System Event Views/NSTableViews/MessageTableCellViews.swift"; sourceTree = SOURCE_ROOT; };
-		A1B2C3D4E5F6012345678915 /* ProjectSutro/System Event Views/NSTableViews/MessageTableColumn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectSutro/System Event Views/NSTableViews/MessageTableColumn.swift"; sourceTree = SOURCE_ROOT; };
-		A1B2C3D4E5F6012345678916 /* ProjectSutro/System Event Views/NSTableViews/UnifiedSystemEventsTableController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectSutro/System Event Views/NSTableViews/UnifiedSystemEventsTableController.swift"; sourceTree = SOURCE_ROOT; };
-		A1B2C3D4E5F6012345678917 /* ProjectSutro/System Event Views/NSTableViews/CustomizableUnifiedSystemEventsTableController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectSutro/System Event Views/NSTableViews/CustomizableUnifiedSystemEventsTableController.swift"; sourceTree = SOURCE_ROOT; };
-		A1B2C3D4E5F6012345678918 /* ProjectSutro/System Event Views/NSTableViews/SystemProcessExecTableController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectSutro/System Event Views/NSTableViews/SystemProcessExecTableController.swift"; sourceTree = SOURCE_ROOT; };
-		A1B2C3D4E5F6012345678919 /* ProjectSutro/System Event Views/NSTableViews/CustomizableSystemProcessExecTableController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectSutro/System Event Views/NSTableViews/CustomizableSystemProcessExecTableController.swift"; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F6012345678911 /* SystemEventsNSTableContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventsNSTableContainerView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6012345678912 /* SystemEventsNSTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventsNSTableView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6012345678913 /* SystemEventsTableController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventsTableController.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6012345678914 /* MessageTableCellViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageTableCellViews.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6012345678915 /* MessageTableColumn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageTableColumn.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6012345678916 /* UnifiedSystemEventsTableController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedSystemEventsTableController.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6012345678917 /* CustomizableUnifiedSystemEventsTableController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomizableUnifiedSystemEventsTableController.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6012345678918 /* SystemProcessExecTableController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemProcessExecTableController.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6012345678919 /* CustomizableSystemProcessExecTableController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomizableSystemProcessExecTableController.swift; sourceTree = "<group>"; };
 		AA00000100000000000D0001 /* MainThreadMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainThreadMonitor.swift; sourceTree = "<group>"; };
 		AA00000100000000000D0002 /* StressTestRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StressTestRunner.swift; sourceTree = "<group>"; };
 		AA00000100000000000D0003 /* FixtureCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureCapture.swift; sourceTree = "<group>"; };
@@ -623,20 +621,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		280070D12F66A47F0066DCCA /* Recovered References */ = {
+		280070D12F66A47F0066DCCA /* NSTableViews */ = {
 			isa = PBXGroup;
 			children = (
-				A1B2C3D4E5F6012345678911 /* ProjectSutro/System Event Views/NSTableViews/SystemEventsNSTableContainerView.swift */,
-				A1B2C3D4E5F6012345678912 /* ProjectSutro/System Event Views/NSTableViews/SystemEventsNSTableView.swift */,
-				A1B2C3D4E5F6012345678913 /* ProjectSutro/System Event Views/NSTableViews/SystemEventsTableController.swift */,
-				A1B2C3D4E5F6012345678914 /* ProjectSutro/System Event Views/NSTableViews/MessageTableCellViews.swift */,
-				A1B2C3D4E5F6012345678915 /* ProjectSutro/System Event Views/NSTableViews/MessageTableColumn.swift */,
-				A1B2C3D4E5F6012345678916 /* ProjectSutro/System Event Views/NSTableViews/UnifiedSystemEventsTableController.swift */,
-				A1B2C3D4E5F6012345678917 /* ProjectSutro/System Event Views/NSTableViews/CustomizableUnifiedSystemEventsTableController.swift */,
-				A1B2C3D4E5F6012345678918 /* ProjectSutro/System Event Views/NSTableViews/SystemProcessExecTableController.swift */,
-				A1B2C3D4E5F6012345678919 /* ProjectSutro/System Event Views/NSTableViews/CustomizableSystemProcessExecTableController.swift */,
+				A1B2C3D4E5F6012345678911 /* SystemEventsNSTableContainerView.swift */,
+				A1B2C3D4E5F6012345678912 /* SystemEventsNSTableView.swift */,
+				A1B2C3D4E5F6012345678913 /* SystemEventsTableController.swift */,
+				A1B2C3D4E5F6012345678914 /* MessageTableCellViews.swift */,
+				A1B2C3D4E5F6012345678915 /* MessageTableColumn.swift */,
+				A1B2C3D4E5F6012345678916 /* UnifiedSystemEventsTableController.swift */,
+				A1B2C3D4E5F6012345678917 /* CustomizableUnifiedSystemEventsTableController.swift */,
+				A1B2C3D4E5F6012345678918 /* SystemProcessExecTableController.swift */,
+				A1B2C3D4E5F6012345678919 /* CustomizableSystemProcessExecTableController.swift */,
+				A1B2C3D4E5F601234567891A /* ProcessExecEventNameView.swift */,
 			);
-			name = "Recovered References";
+			path = NSTableViews;
 			sourceTree = "<group>";
 		};
 		280C78CD2E8DE20C00B172E5 /* Socket */ = {
@@ -1727,7 +1726,6 @@
 				280070B52F666F910066DCCA /* ProjectSutroUITests */,
 				BA97AFE828754ABF0099C035 /* Frameworks */,
 				BA97AFCD2875471D0099C035 /* Products */,
-				280070D12F66A47F0066DCCA /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -1844,6 +1842,7 @@
 		CA4CE63B2E58FC5F00C057EB /* Event Tables */ = {
 			isa = PBXGroup;
 			children = (
+				280070D12F66A47F0066DCCA /* NSTableViews */,
 				CA4CE63C2E58FC8C00C057EB /* Unified */,
 				CA4CE63D2E58FC9200C057EB /* Process */,
 				CA4CE63E2E58FD2400C057EB /* Correlation tables */,
@@ -1854,8 +1853,6 @@
 		CA4CE63C2E58FC8C00C057EB /* Unified */ = {
 			isa = PBXGroup;
 			children = (
-				28EC62E22925933000EAC8AD /* SystemEventsTableViews.swift */,
-				28EC62E02925922000EAC8AD /* UnifiedSystemEventViews.swift */,
 			);
 			path = Unified;
 			sourceTree = "<group>";
@@ -2614,7 +2611,7 @@
 				28A2501F29A35D5F007B0753 /* SystemFDDuplicateMetadataView.swift in Sources */,
 				28B865C72A2FF5EF00F06441 /* SystemProfileAddMetadataView.swift in Sources */,
 				2854A54B2E6DE836004149AF /* SystemSessionGroupTableView.swift in Sources */,
-				28EC62E32925933000EAC8AD /* SystemEventsTableViews.swift in Sources */,
+				A1B2C3D4E5F601234567890A /* ProjectSutro/System Event Views/NSTableViews/ProcessExecEventNameView.swift in Sources */,
 				28CEF10529776D9A003057D2 /* InitiatingUserView.swift in Sources */,
 				28B9A94329DC9A74006619FF /* SystemProcessSocketMetadataView.swift in Sources */,
 				28B9A93D29DC8EC4006619FF /* SystemRemoteThreadCreateMetadataView.swift in Sources */,
@@ -2643,7 +2640,6 @@
 				28EC62E82925966D00EAC8AD /* EventChartViews.swift in Sources */,
 				28B9A93B29DC8B3A006619FF /* SystemProcessSignalMetadataView.swift in Sources */,
 				28CEF11F2978D2F7003057D2 /* SystemLWUnlockMetadataView.swift in Sources */,
-				28EC62E12925922000EAC8AD /* UnifiedSystemEventViews.swift in Sources */,
 				28CEF10929776E86003057D2 /* SystemMountMetadataView.swift in Sources */,
 				28823F3E2ECC2A3D000B7F5C /* SystemSetExtattrMetadataView.swift in Sources */,
 				28EC62FA29280F8A00EAC8AD /* SystemEnrichedEventView.swift in Sources */,
