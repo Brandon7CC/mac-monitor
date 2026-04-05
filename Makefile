@@ -9,7 +9,9 @@ XCODEBUILD := xcodebuild -project "$(PROJECT)" -scheme "$(SCHEME)"
 APP_PATH = $(shell \
 	$(XCODEBUILD) -configuration $(CONFIGURATION) \
 		-showBuildSettings 2>/dev/null \
-	| awk '/BUILT_PRODUCTS_DIR/{print $$3}' \
+	| grep '^ *BUILT_PRODUCTS_DIR = ' \
+	| head -1 \
+	| awk '{print $$3}' \
 )/$(APP_NAME).app
 
 .PHONY: build release run clean test open
