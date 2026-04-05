@@ -48,11 +48,14 @@ public final class ProcessLineageResolver {
                 let parentToken = isSamePidExec ?
                     entry.parentAuditTokenString :
                     entry.auditTokenString
-                
+
+                // Use 0 (unknown) for the child's path hash — the parent's hash is wrong for the
+                // child. The child's own events will supply the correct hash via the update path
+                // in addToCache.
                 addToCache(
                     token: targetToken,
                     parent: parentToken,
-                    pathHash: entry.executablePathHash
+                    pathHash: 0
                 )
             }
         }
@@ -64,7 +67,16 @@ public final class ProcessLineageResolver {
     }
     
     private func addToCache(token: String, parent: String, pathHash: UInt64) {
-        if tokenToNodeCache[token] == nil {
+        if let existing = tokenToNodeCache[token] {
+            // A fork/exec event pre-inserts a child token with pathHash = 0 (unknown at that point).
+            // When the child's own events arrive, update the hash to the correct value.
+            if existing.executablePathHash == 0 && pathHash != 0 {
+                tokenToNodeCache[token] = ProcessNode(
+                    parentAuditToken: existing.parentAuditToken,
+                    executablePathHash: pathHash
+                )
+            }
+        } else {
             tokenToNodeCache[token] = ProcessNode(
                 parentAuditToken: parent,
                 executablePathHash: pathHash
