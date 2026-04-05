@@ -8,6 +8,7 @@ DerivedData/
 *.dSYM.zip
 *.dSYM
 *.xcbuilddata
+*.backup
 
 # Xcode user data
 xcuserdata/

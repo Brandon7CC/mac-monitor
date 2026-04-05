@@ -76,7 +76,7 @@ public final class MMapEventLog {
         )
 
         // Open or create the file
-        fileDescriptor = Darwin.open(url.path, O_RDWR | O_CREAT, 0o644)
+        fileDescriptor = Darwin.open(url.path, O_RDWR | O_CREAT, 0o600)
         guard fileDescriptor >= 0 else {
             throw MMapError.fileOpenFailed(errno: errno)
         }
