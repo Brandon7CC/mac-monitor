@@ -154,18 +154,18 @@ extension CustomizableUnifiedSystemEventsTableController {
         
         menu.addItem(NSMenuItem.separator())
         
-        if let userPrefs = userPrefs, userPrefs.contextExecTargetPathFilter {
-            if let exe = message.event.exec?.target.executable, !exe.path.isEmpty {
+        if let userPrefs = userPrefs, userPrefs.contextInitiatingPathFilter {
+            if let path = message.process.executable?.path, !path.isEmpty {
                 let filterItem = NSMenuItem(
-                    title: "Filter target path: \"\(exe.path)\"",
-                    action: #selector(filterTargetPath(_:)),
+                    title: "Filter initiating path: \"\(message.process.executable?.name ?? path)\"",
+                    action: #selector(filterInitiatingPath(_:)),
                     keyEquivalent: ""
                 )
-                filterItem.representedObject = exe.path
+                filterItem.representedObject = path
                 menu.addItem(filterItem)
             }
         }
-        
+
         let filterEventItem = NSMenuItem(
             title: "Filter event: \"\(message.es_event_type)\"",
             action: #selector(filterEvent(_:)),
@@ -173,8 +173,8 @@ extension CustomizableUnifiedSystemEventsTableController {
         )
         filterEventItem.representedObject = message.es_event_type
         menu.addItem(filterEventItem)
-        
-        if let userPrefs = userPrefs, userPrefs.contextExecInitiatingEUIDFilter {
+
+        if let userPrefs = userPrefs, userPrefs.contextInitiatingEUIDFilter {
             if let euid = message.process.euid_human {
                 let filterUserItem = NSMenuItem(
                     title: "Filter euid: \"\(euid)\"",
@@ -186,41 +186,28 @@ extension CustomizableUnifiedSystemEventsTableController {
             }
         }
         
-        if let userPrefs = userPrefs, userPrefs.contextExecInitiatingPathFilter {
-            if let exe = message.process.executable, !exe.path.isEmpty {
-                let filterItem = NSMenuItem(
-                    title: "Filter initiating path: \"\(exe.path)\"",
-                    action: #selector(filterInitiatingPath(_:)),
-                    keyEquivalent: ""
-                )
-                filterItem.representedObject = exe.path
-                menu.addItem(filterItem)
-            }
-        }
-        
         menu.addItem(NSMenuItem.separator())
         
         let selectHeader = NSMenuItem(title: "Select", action: nil, keyEquivalent: "")
         selectHeader.isEnabled = false
         menu.addItem(selectHeader)
         
-        if let exec = message.event.exec,
-           let tgtProcName = exec.target.executable?.name,
-           let tgtProcPath = exec.target.executable?.path {
+        if let procName = message.process.executable?.name,
+           let procPath = message.process.executable?.path {
             let onlyItem = NSMenuItem(
-                title: "→ Only: \"\(tgtProcName)\" events",
+                title: "→ Only: \"\(procName)\" events",
                 action: #selector(selectOnlyProcess(_:)),
                 keyEquivalent: ""
             )
-            onlyItem.representedObject = ["path": tgtProcPath, "subtree": false]
+            onlyItem.representedObject = ["path": procPath, "subtree": false]
             menu.addItem(onlyItem)
-            
+
             let treeItem = NSMenuItem(
-                title: "↕ Full tree: \"\(tgtProcName)\" events",
+                title: "↕ Full tree: \"\(procName)\" events",
                 action: #selector(selectProcessTree(_:)),
                 keyEquivalent: ""
             )
-            treeItem.representedObject = ["path": tgtProcPath, "subtree": true]
+            treeItem.representedObject = ["path": procPath, "subtree": true]
             menu.addItem(treeItem)
         }
         
@@ -230,20 +217,24 @@ extension CustomizableUnifiedSystemEventsTableController {
         advancedHeader.isEnabled = false
         menu.addItem(advancedHeader)
         
-        if let userPrefs = userPrefs, userPrefs.contextExecTargetPathMute {
-            if let procPath = message.event.exec?.target.executable?.path {
-                let procName = URL(fileURLWithPath: procPath).lastPathComponent
-                let muteItem = NSMenuItem(
-                    title: "Mute target path: \"\(procName)\"",
-                    action: #selector(muteTargetPath(_:)),
-                    keyEquivalent: ""
-                )
-                muteItem.representedObject = procPath
-                menu.addItem(muteItem)
+        if let userPrefs = userPrefs, userPrefs.contextTargetPathFilter,
+           let targetPath = message.target_path, !targetPath.isEmpty {
+            let displayPath: String
+            if IntelligentEventTargeting.targetShouldBeParentDir(esEventType: message.es_event_type) {
+                displayPath = URL(fileURLWithPath: targetPath).deletingLastPathComponent().path
+            } else {
+                displayPath = targetPath
             }
+            let filterTargetItem = NSMenuItem(
+                title: "Filter target path: \"\(displayPath)/\"",
+                action: #selector(filterTargetPath(_:)),
+                keyEquivalent: ""
+            )
+            filterTargetItem.representedObject = displayPath
+            menu.addItem(filterTargetItem)
         }
-        
-        if let userPrefs = userPrefs, userPrefs.contextExecInitiatingPathMute {
+
+        if let userPrefs = userPrefs, userPrefs.contextInitiatingPathMute {
             if let path = message.process.executable?.path {
                 let muteItem = NSMenuItem(
                     title: "Mute initiating path: \"\(message.process.executable?.name ?? path)\"",
@@ -254,8 +245,28 @@ extension CustomizableUnifiedSystemEventsTableController {
                 menu.addItem(muteItem)
             }
         }
-        
-        if let userPrefs = userPrefs, userPrefs.contextExecEventUnsubscribe {
+
+        if let userPrefs = userPrefs, userPrefs.contextTargetPathMute,
+           let targetPath = message.target_path, !targetPath.isEmpty {
+            let muteCase: es_mute_path_type_t
+            let displayPath: String
+            if IntelligentEventTargeting.targetShouldBeParentDir(esEventType: message.es_event_type) {
+                displayPath = URL(fileURLWithPath: targetPath).deletingLastPathComponent().path
+                muteCase = ES_MUTE_PATH_TYPE_TARGET_PREFIX
+            } else {
+                displayPath = targetPath
+                muteCase = ES_MUTE_PATH_TYPE_TARGET_LITERAL
+            }
+            let muteTargetItem = NSMenuItem(
+                title: "Mute target path event: \"\(displayPath)/\"",
+                action: #selector(muteTargetPath(_:)),
+                keyEquivalent: ""
+            )
+            muteTargetItem.representedObject = ["path": displayPath, "muteCase": muteCase.rawValue, "eventType": message.es_event_type]
+            menu.addItem(muteTargetItem)
+        }
+
+        if let userPrefs = userPrefs, userPrefs.contextEventUnsubscribe {
             let unsubItem = NSMenuItem(
                 title: "Unsubscribe: \"\(message.es_event_type)\"",
                 action: #selector(unsubscribeEvent(_:)),
@@ -278,50 +289,54 @@ extension CustomizableUnifiedSystemEventsTableController {
         guard let path = sender.representedObject as? String else { return }
         allFilters.wrappedValue.targetPaths.append(path)
     }
-    
+
     @objc private func filterInitiatingPath(_ sender: NSMenuItem) {
         guard let path = sender.representedObject as? String else { return }
         allFilters.wrappedValue.initiatingPaths.append(path)
     }
-    
+
     @objc private func filterEvent(_ sender: NSMenuItem) {
         guard let eventType = sender.representedObject as? String else { return }
         allFilters.wrappedValue.events.append(eventType)
     }
-    
+
     @objc private func filterUser(_ sender: NSMenuItem) {
         guard let euid = sender.representedObject as? String else { return }
         allFilters.wrappedValue.userIDs.append(euid)
     }
-    
+
     @objc private func selectOnlyProcess(_ sender: NSMenuItem) {
         guard let dict = sender.representedObject as? [String: Any],
               let path = dict["path"] as? String else { return }
-        allFilters.wrappedValue.rootIncludedTargetProcessPath = path
+        allFilters.wrappedValue.rootIncludedInitiatingProcessPath = path
         allFilters.wrappedValue.shouldIncludeProcessSubTrees = false
     }
-    
+
     @objc private func selectProcessTree(_ sender: NSMenuItem) {
         guard let dict = sender.representedObject as? [String: Any],
               let path = dict["path"] as? String else { return }
-        allFilters.wrappedValue.rootIncludedTargetProcessPath = path
+        allFilters.wrappedValue.rootIncludedInitiatingProcessPath = path
         allFilters.wrappedValue.shouldIncludeProcessSubTrees = true
     }
-    
+
     @objc private func muteTargetPath(_ sender: NSMenuItem) {
-        guard let path = sender.representedObject as? String,
+        guard let dict = sender.representedObject as? [String: Any],
+              let path = dict["path"] as? String,
+              let muteCaseRaw = dict["muteCase"] as? UInt32,
+              let eventType = dict["eventType"] as? String,
               let esm = systemExtensionManager else { return }
-        esm.puntPathToMute(pathToMute: path, muteCase: ES_MUTE_PATH_TYPE_TARGET_LITERAL, pathEvents: [])
+        let muteCase = es_mute_path_type_t(muteCaseRaw)
+        esm.puntPathToMute(pathToMute: path, muteCase: muteCase, pathEvents: [eventType])
         esm.requestMutedPaths()
     }
-    
+
     @objc private func muteInitiatingPath(_ sender: NSMenuItem) {
         guard let path = sender.representedObject as? String,
               let esm = systemExtensionManager else { return }
         esm.puntPathToMute(pathToMute: path, muteCase: ES_MUTE_PATH_TYPE_LITERAL, pathEvents: [])
         esm.requestMutedPaths()
     }
-    
+
     @objc private func unsubscribeEvent(_ sender: NSMenuItem) {
         guard let eventType = sender.representedObject as? String,
               let esm = systemExtensionManager else { return }
