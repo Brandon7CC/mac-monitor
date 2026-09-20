@@ -84,7 +84,13 @@ extension RCXPCConnection: NSXPCListenerDelegate {
     public func listener(_ listener: NSXPCListener, shouldAcceptNewConnection newConnection: NSXPCConnection) -> Bool {
         let shouldAcceptLogger: Logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "RCXPCConnection.shouldAcceptNewConnection")
         
+#if COMMUNITY_BUILD
+        /// Community builds are ad-hoc signed (see `Community.xcconfig`), so there is no certificate chain or
+        /// team ID to pin against. Only the signing identifier is enforced. Never ship a build with this branch.
+        let requirementString: String = "identifier \"com.swiftlydetecting.agent\""
+#else
         let requirementString: String = "anchor apple generic and identifier \"com.swiftlydetecting.agent\" and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and certificate leaf[subject.OU] = \"4HMJQ7V3SX\""
+#endif
         newConnection.setCodeSigningRequirement(requirementString)
         shouldAcceptLogger.log("🔒 Validating XPC connection with CS requirements!")
         
