@@ -1,0 +1,41 @@
+//
+//  Community.xcconfig
+//  Mac Monitor
+//
+//  Build settings overlay for contributors who do not hold Swiftly Detecting's
+//  signing certificates or provisioning profiles.
+//
+//  Author: Brandon Dalton
+//  Co-author: Claude
+//
+//  Usage (command line):
+//    xcodebuild -project ProjectSutro.xcodeproj -scheme ProjectSutro \
+//        -configuration Debug -xcconfig Community.xcconfig build
+//
+//  Xcode refuses to ad-hoc sign a target whose entitlements include restricted
+//  keys (com.apple.developer.endpoint-security.client,
+//  com.apple.developer.system-extension.install) unless a provisioning profile
+//  is present. So we turn Xcode's signing off entirely and re-sign ad-hoc with
+//  the real entitlements in Scripts/community-sign.sh after the build.
+//
+
+// Disable Xcode's code signing step. The linker still emits an ad-hoc
+// signature, and Scripts/community-sign.sh replaces it with one that carries
+// the entitlements and bundle identifiers the OS expects.
+CODE_SIGNING_ALLOWED = NO
+CODE_SIGNING_REQUIRED = NO
+CODE_SIGN_IDENTITY =
+CODE_SIGN_IDENTITY[sdk=macosx*] =
+CODE_SIGN_STYLE = Manual
+DEVELOPMENT_TEAM =
+DEVELOPMENT_TEAM[sdk=macosx*] =
+PROVISIONING_PROFILE_SPECIFIER =
+PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*] =
+
+// Hardened Runtime is meaningless for an ad-hoc signature and would break
+// debugging in the VM.
+ENABLE_HARDENED_RUNTIME = NO
+
+// Switches the Security Extension's XPC code-signing requirement to one that an
+// ad-hoc signed client can satisfy (identifier only). See RCXPC.swift.
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) COMMUNITY_BUILD
