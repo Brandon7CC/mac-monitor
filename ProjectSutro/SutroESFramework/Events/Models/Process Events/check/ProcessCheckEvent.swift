@@ -22,7 +22,7 @@ public struct ProcessCheckEvent: Identifiable, Codable, Hashable {
     public var id: UUID = UUID()
     public var target: Process?
     public var type: Int32
-    public var type_string: String
+    public var type_string = ""
     public var flavor: Int
     
     public func hash(into hasher: inout Hasher) {
@@ -44,7 +44,16 @@ public struct ProcessCheckEvent: Identifiable, Codable, Hashable {
         
         self.type = Int32(procCheckEvent.type.rawValue)
         
-        switch(procCheckEvent.type) {
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension ProcessCheckEvent: ESEnrichable {
+    /// Derive the check type's name.
+    public mutating func enrich() {
+        switch es_proc_check_type_t(rawValue: UInt32(truncatingIfNeeded: type)) {
         case ES_PROC_CHECK_TYPE_PIDINFO:
             self.type_string = "ES_PROC_CHECK_TYPE_PIDINFO"
         case ES_PROC_CHECK_TYPE_LISTPIDS:

@@ -68,12 +68,76 @@ enum ESLogger {
     /// - Parameters:
     ///   - time: The message's `time`.
     ///   - darwinTime: The message's `message_darwin_time`.
-    /// - Returns: `time` in eslogger's format.
+    /// - Returns: `time` in eslogger's format, or `time` as it is if `darwinTime` is too far from 1970 to be a time.
     static func time(_ time: String, darwinTime: Date) -> String {
         guard time.utf8.count != timeLength else { return time }
         let since1970 = darwinTime.timeIntervalSince1970
-        var seconds = Int(since1970.rounded(.down)), nanoseconds = Int(((since1970 - Double(seconds)) * 1e9).rounded())
+        guard var seconds = Int(exactly: since1970.rounded(.down)) else { return time }
+        var nanoseconds = Int(((since1970 - Double(seconds)) * 1e9).rounded())
         if nanoseconds >= 1_000_000_000 { seconds += 1; nanoseconds -= 1_000_000_000 }
         return Self.time(timespec(tv_sec: seconds, tv_nsec: nanoseconds))
+    }
+    
+    // MARK: Reading times back
+    /// The length of a `time` written by Mac Monitor up to 2.1.0, for example `2026-10-03T17:01:59.285Z`.
+    private static let legacyTimeLength = 24
+    
+    /// When an event happened, from its `time` as eslogger or any version of Mac Monitor wrote it.
+    ///
+    /// eslogger's `time` (and Mac Monitor's since 2.2.0) is UTC to the nanosecond, and is read exactly. Up to 2.1.0 Mac
+    /// Monitor wrote the recording Mac's local time to the millisecond with a literal `Z`; that's read in this Mac's time
+    /// zone with the formatter that wrote it, so it's exact to the millisecond when both Macs share a time zone.
+    ///
+    /// - Parameters:
+    ///   - time: An event's `time`.
+    ///   - legacy: Could the event come from Mac Monitor 2.1.0 or older (it's Mac Monitor's, not eslogger's)? Only then
+    ///     is a `time` of that length local time; anywhere else it's UTC.
+    /// - Returns: The time, or `nil` if `time` isn't one.
+    static func date(fromTime time: String, legacy: Bool) -> Date? {
+        if legacy, time.utf8.count == legacyTimeLength { return legacyFormatter.date(from: time) }
+        return utcTimespec(from: time).map { ProcessHelpers.timespecToTimestamp(timespec: $0) }
+    }
+    
+    /// A UTC time as eslogger writes `time`, or as ``TimeSpec/humanFormat()`` and ``TimeVal/humanFormat()`` write
+    /// theirs: `2026-10-04T00:01:54.394127173Z`, with up to nine fractional digits (or none).
+    ///
+    /// Plain arithmetic rather than `timegm`, which takes a process-wide time zone lock on every call.
+    ///
+    /// - Parameter text: The string to read.
+    /// - Returns: The time since 1970, or `nil` if `text` isn't one.
+    static func utcTimespec(from text: String) -> timespec? {
+        var text = text
+        return text.withUTF8 { utf8 -> timespec? in
+            guard (20...30).contains(utf8.count), utf8.count != 21, utf8[utf8.count - 1] == UInt8(ascii: "Z"),
+                  utf8[10] == UInt8(ascii: "T"), utf8.count == 20 || utf8[19] == UInt8(ascii: ".") else { return nil }
+            func number(_ range: Range<Int>) -> Int? {
+                var result = 0
+                for byte in utf8[range] {
+                    guard (UInt8(ascii: "0")...UInt8(ascii: "9")).contains(byte) else { return nil }
+                    result = result * 10 + Int(byte - UInt8(ascii: "0"))
+                }
+                return result
+            }
+            guard let year = number(0..<4), let month = number(5..<7), let day = number(8..<10), let hour = number(11..<13),
+                  let minute = number(14..<16), let second = number(17..<19), (1...12).contains(month),
+                  let fraction = utf8.count == 20 ? 0 : number(20..<utf8.count - 1) else { return nil }
+            /// Days since 1970-01-01 in the proleptic Gregorian calendar (Howard Hinnant's `days_from_civil`).
+            let y = month <= 2 ? year - 1 : year, era = y / 400, yearOfEra = y - era * 400
+            let dayOfYear = (153 * (month > 2 ? month - 3 : month + 9) + 2) / 5 + day - 1
+            let days = era * 146_097 + yearOfEra * 365 + yearOfEra / 4 - yearOfEra / 100 + dayOfYear - 719_468
+            var nanoseconds = fraction
+            for _ in 0..<max(0, 9 - (utf8.count - 21)) { nanoseconds *= 10 }
+            return timespec(tv_sec: days * 86_400 + hour * 3_600 + minute * 60 + second, tv_nsec: nanoseconds)
+        }
+    }
+    
+    /// ``ProcessHelpers/timestampFormatter``, which wrote `time` up to 2.1.0, one per thread: a `DateFormatter`
+    /// serializes its callers, which held parallel decoding to the speed of one thread.
+    private static var legacyFormatter: DateFormatter {
+        let key = "com.swiftlydetecting.agent.ESLogger.legacyFormatter"
+        if let formatter = Foundation.Thread.current.threadDictionary[key] as? DateFormatter { return formatter }
+        let formatter = ProcessHelpers.timestampFormatter.copy() as! DateFormatter
+        Foundation.Thread.current.threadDictionary[key] = formatter
+        return formatter
     }
 }

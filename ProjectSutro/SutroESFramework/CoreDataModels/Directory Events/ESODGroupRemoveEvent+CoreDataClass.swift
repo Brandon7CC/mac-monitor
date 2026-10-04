@@ -26,7 +26,7 @@ public class ESODGroupRemoveEvent: NSManagedObject {
         self.instigator_process_audit_token = odRemoveGroupEvent.instigator_process_audit_token
         self.instigator_process_signing_id = odRemoveGroupEvent.instigator_process_signing_id
         
-        self.error_code = Int32(odRemoveGroupEvent.error_code)
+        self.error_code = Int32(truncatingIfNeeded: odRemoveGroupEvent.error_code)
         self.group_name = odRemoveGroupEvent.group_name
         self.member = odRemoveGroupEvent.member
         self.node_name = odRemoveGroupEvent.node_name

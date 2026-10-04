@@ -68,7 +68,6 @@ public struct OpenDirectoryCreateGroupEvent: Identifiable, Codable, Hashable {
             .toString()
         
         self.error_code = Int(odGroupCreatedEvent.error_code)
-        self.error_code_human = decodeODErrorCode(self.error_code)
     
         self.group_name = ""
         if odGroupCreatedEvent.group_name.length > 0 {
@@ -84,5 +83,15 @@ public struct OpenDirectoryCreateGroupEvent: Identifiable, Codable, Hashable {
         if odGroupCreatedEvent.db_path.length > 0 {
             self.db_path = String(cString: odGroupCreatedEvent.db_path.data)
         }
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension OpenDirectoryCreateGroupEvent: ESEnrichable {
+    /// Derive the error code's description.
+    public mutating func enrich() {
+        error_code_human = decodeODErrorCode(error_code)
     }
 }

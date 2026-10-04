@@ -30,7 +30,7 @@ public class ESNewPath: NSManagedObject {
         attach(ESFile.row(for: newPath.dir, in: context), to: #keyPath(ESNewPath.dir))
         self.filename = newPath.filename
         if let mode = newPath.mode {
-            self.mode = Int32(mode)
+            self.mode = Int32(truncatingIfNeeded: mode)
         }
     }
 }

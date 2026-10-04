@@ -21,7 +21,7 @@ public struct Profile: Identifiable, Codable, Equatable, Hashable {
     
     /// ``es_profile_source_t``
     public var install_source: Int16
-    public var install_source_string: String
+    public var install_source_string = ""
     
     // Ignore id from being decoded
     enum CodingKeys: String, CodingKey {
@@ -50,7 +50,16 @@ public struct Profile: Identifiable, Codable, Equatable, Hashable {
         self.scope = profile.scope.toString() ?? ""
         
         self.install_source = Int16(profile.install_source.rawValue)
-        switch profile.install_source {
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension Profile: ESEnrichable {
+    /// Derive the install source's name.
+    public mutating func enrich() {
+        switch es_profile_source_t(rawValue: UInt32(truncatingIfNeeded: install_source)) {
         case ES_PROFILE_SOURCE_MANAGED:
             self.install_source_string = "ES_PROFILE_SOURCE_MANAGED"
         case ES_PROFILE_SOURCE_INSTALL:

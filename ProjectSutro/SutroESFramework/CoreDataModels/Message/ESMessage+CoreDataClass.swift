@@ -95,8 +95,8 @@ public class ESMessage: NSManagedObject {
         self.id = message.id
         
         /// Version and sequence
-        self.version = Int32(message.version)
-        self.schema_version = Int32(message.schema_version)
+        self.version = Int32(truncatingIfNeeded: message.version)
+        self.schema_version = Int32(truncatingIfNeeded: message.schema_version)
         if let seq_num = message.seq_num {
             self.seq_num = Int64(seq_num)
         }
@@ -132,12 +132,12 @@ public class ESMessage: NSManagedObject {
             from: message,
             insertIntoManagedObjectContext: context
         )
-        self.event_type = Int32(message.event_type)
+        self.event_type = Int32(truncatingIfNeeded: message.event_type)
         /// @note Mac Monitor enrichment
         self.es_event_type = message.es_event_type
         
         /// Action
-        self.action_type = Int32(message.action_type)
+        self.action_type = Int32(truncatingIfNeeded: message.action_type)
         /// `ES_ACTION_TYPE_AUTH` vs. `ES_ACTION_TYPE_NOTIFY`
         self.action_type_string = message.action_type_string
         self.action = message.action

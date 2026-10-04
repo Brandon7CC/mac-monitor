@@ -9,681 +9,266 @@ import Foundation
 
 
 extension EventType {
-    static func from(rawMessage: UnsafePointer<es_message_t>,
-                     forcedQuarantineSigningIDs: [String]) -> (event: EventType, eventType: String, context: String?, targetPath: String?) {
+    /// Model a raw Endpoint Security message's event.
+    ///
+    /// - Parameters:
+    ///   - rawMessage: The message.
+    ///   - forcedQuarantineSigningIDs: Signing IDs Apple forces into File Quarantine, for `EXEC` events.
+    /// - Returns: The event, or ``unknown`` for a type Mac Monitor doesn't model.
+    static func from(rawMessage: UnsafePointer<es_message_t>, forcedQuarantineSigningIDs: [String]) -> EventType {
         switch rawMessage.pointee.event_type {
-            // MARK: - Process events
-        case ES_EVENT_TYPE_NOTIFY_EXEC:
-            let event = ProcessExecEvent(from: rawMessage, forcedQuarantineSigningIDs: forcedQuarantineSigningIDs)
-            return (
-                .exec(event),
-                "ES_EVENT_TYPE_NOTIFY_EXEC",
-                String(event.command_line?.prefix(200) ?? ""),
-                event.target.executable?.path
-            )
-        case ES_EVENT_TYPE_NOTIFY_FORK:
-            let event = ProcessForkEvent(from: rawMessage)
-            return (
-                .fork(event),
-                "ES_EVENT_TYPE_NOTIFY_FORK",
-                event.child.executable?.name,
-                event.child.executable?.path
-            )
-        case ES_EVENT_TYPE_NOTIFY_EXIT:
-            let event = ProcessExitEvent(from: rawMessage)
-            let pathPointer = rawMessage.pointee.process.pointee.executable.pointee.path
-            let initiatingProcPath: String = pathPointer.length > 0 ? String(
-                cString: pathPointer.data
-            ) : ""
-            let initiatingProcName: String = URL(
-                string: initiatingProcPath
-            )?.lastPathComponent ?? ""
-            
-            return (
-                .exit(event),
-                "ES_EVENT_TYPE_NOTIFY_EXIT",
-                initiatingProcName,
-                initiatingProcPath
-            )
-        case ES_EVENT_TYPE_NOTIFY_SIGNAL:
-            let event = ProcessSignalEvent(from: rawMessage)
+        // MARK: Process events
+        case ES_EVENT_TYPE_NOTIFY_EXEC: .exec(ProcessExecEvent(from: rawMessage, forcedQuarantineSigningIDs: forcedQuarantineSigningIDs))
+        case ES_EVENT_TYPE_NOTIFY_FORK: .fork(ProcessForkEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_EXIT: .exit(ProcessExitEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_SIGNAL: .signal(ProcessSignalEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_PROC_SUSPEND_RESUME: .proc_suspend_resume(ProcessSocketEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_PROC_CHECK: .proc_check(ProcessCheckEvent(from: rawMessage))
+        // MARK: Interprocess events
+        case ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE: .remote_thread_create(RemoteThreadCreateEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_TRACE: .trace(ProcessTraceEvent(from: rawMessage))
+        // MARK: Code Signing events
+        case ES_EVENT_TYPE_NOTIFY_CS_INVALIDATED: .cs_invalidated(CodeSignatureInvalidatedEvent(from: rawMessage))
+        // MARK: Memory mapping events
+        case ES_EVENT_TYPE_NOTIFY_MMAP: .mmap(MMapEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_MPROTECT: .mprotect(MProtectEvent(from: rawMessage))
+        // MARK: File System events
+        case ES_EVENT_TYPE_NOTIFY_CREATE: .create(FileCreateEvent(from: rawMessage, shouldCheckQuarantine: true))
+        case ES_EVENT_TYPE_NOTIFY_RENAME: .rename(FileRenameEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_OPEN: .open(FileOpenEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_WRITE: .write(FileWriteEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_CLOSE: .close(FileCloseEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_UNLINK: .unlink(FileDeleteEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_DUP: .dup(FDDuplicateEvent(from: rawMessage))
+        // MARK: Symbolic Link events
+        case ES_EVENT_TYPE_NOTIFY_LINK: .link(LinkEvent(from: rawMessage))
+        // MARK: File Metadata events
+        case ES_EVENT_TYPE_NOTIFY_SETEXTATTR: .setextattr(XattrSetEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_GETEXTATTR: .getextattr(XattrGetEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_LISTEXTATTR: .listextattr(XattrListEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR: .deleteextattr(XattrDeleteEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_SETMODE: .setmode(SetModeEvent(from: rawMessage))
+        // MARK: Pseudoterminal events
+        case ES_EVENT_TYPE_NOTIFY_PTY_GRANT: .pty_grant(PTYGrantEvent(from: rawMessage))
+        // MARK: Service Management events
+        case ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD: .btm_launch_item_add(LaunchItemAddEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_REMOVE: .btm_launch_item_remove(LaunchItemRemoveEvent(from: rawMessage))
+        // MARK: OpenSSH events
+        case ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGIN: .openssh_login(SSHLoginEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGOUT: .openssh_logout(SSHLogoutEvent(from: rawMessage))
+        // MARK: XProtect events
+        case ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED: .xp_malware_detected(XProtectDetectEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED: .xp_malware_remediated(XProtecRemediateEvent(from: rawMessage))
+        // MARK: File System Mounting events
+        case ES_EVENT_TYPE_NOTIFY_MOUNT: .mount(MountEvent(from: rawMessage))
+        // MARK: Login events
+        case ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN: .login_login(LoginLoginEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN: .lw_session_login(LWLoginEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK: .lw_session_unlock(LWUnlockEvent(from: rawMessage))
+        // MARK: Kernel events
+        case ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN: .iokit_open(IOKitOpenEvent(from: rawMessage))
+        // MARK: Task Port events
+        case ES_EVENT_TYPE_NOTIFY_GET_TASK: .get_task(GetTaskEvent(from: rawMessage))
+        // MARK: MDM events
+        case ES_EVENT_TYPE_NOTIFY_PROFILE_ADD: .profile_add(ProfileAddEvent(from: rawMessage))
+        // MARK: Security Authorization events
+        case ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_JUDGEMENT: .authorization_judgement(AuthorizationJudgementEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_PETITION: .authorization_petition(AuthorizationPetitionEvent(from: rawMessage))
+        // MARK: XPC events
+        case ES_EVENT_TYPE_NOTIFY_XPC_CONNECT: .xpc_connect(XPCConnectEvent(from: rawMessage))
+        // MARK: Open Directory events
+        case ES_EVENT_TYPE_NOTIFY_OD_CREATE_USER: .od_create_user(OpenDirectoryCreateUserEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_OD_MODIFY_PASSWORD: .od_modify_password(OpenDirectoryModifyPasswordEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD: .od_group_add(OpenDirectoryGroupAddEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_OD_GROUP_REMOVE: .od_group_remove(OpenDirectoryGroupRemoveEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_OD_CREATE_GROUP: .od_create_group(OpenDirectoryCreateGroupEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_VALUE_ADD: .od_attribute_value_add(OpenDirectoryAttributeValueAddEvent(from: rawMessage))
+        // MARK: Socket events
+        case ES_EVENT_TYPE_NOTIFY_UIPC_CONNECT: .uipc_connect(UIPCConnectEvent(from: rawMessage))
+        case ES_EVENT_TYPE_NOTIFY_UIPC_BIND: .uipc_bind(UIPCBindEvent(from: rawMessage))
+        // MARK: TCC events
+        case ES_EVENT_TYPE_NOTIFY_TCC_MODIFY: .tcc_modify(TCCModifyEvent(from: rawMessage))
+        // MARK: Gatekeeper events
+        case ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE: .gatekeeper_user_override(GatekeeperUserOverrideEvent(from: rawMessage))
+        default: .unknown
+        }
+    }
+    
+    /// What the event tables show of the event besides its type: its context, and the path it targets.
+    ///
+    /// A function of the event and the process that caused it, so an event read back from a trace (``TraceImporter``)
+    /// gets the same as one recorded live.
+    ///
+    /// - Parameter initiatingPath: The path of the process that caused the event (`es_message_t.process`).
+    /// - Returns: The event's context and target path; `nil` where they don't make sense for the event type.
+    func summary(initiatingPath: String) -> (context: String?, targetPath: String?) {
+        switch self {
+        // MARK: Process events
+        case .exec(let event):
+            return (String(event.command_line?.prefix(200) ?? ""), event.target.executable?.path)
+        case .fork(let event):
+            return (event.child.executable?.name, event.child.executable?.path)
+        case .exit:
+            return (URL(string: initiatingPath)?.lastPathComponent ?? "", initiatingPath)
+        case .signal(let event):
             let targetPath = event.target.executable?.path
-            let context = "[\(event.signal_name)] \(targetPath ?? "")"
-            return (
-                .signal(event),
-                "ES_EVENT_TYPE_NOTIFY_SIGNAL",
-                context,
-                targetPath
-            )
-        case ES_EVENT_TYPE_NOTIFY_PROC_SUSPEND_RESUME:
-            let event = ProcessSocketEvent(from: rawMessage)
-            let type: String = event.type_string.replacing("ES_PROC_SUSPEND_RESUME_TYPE_", with: "")
-            let procName: String = event.target?.executable?.name ?? ""
-            let context = "[\(type)] \(procName)"
-            let target_path = event.target?.executable?.path ?? ""
-            return (
-                .proc_suspend_resume(event),
-                "ES_EVENT_TYPE_NOTIFY_PROC_SUSPEND_RESUME",
-                context,
-                target_path
-            )
-        case ES_EVENT_TYPE_NOTIFY_PROC_CHECK:
-            let event = ProcessCheckEvent(from: rawMessage)
-            let targetProcPath: String = event.target?.executable?.path ?? ""
-            _ = event.type_string.replacing("ES_PROC_CHECK_TYPE_", with: "")
-            let context = "[\(event.type_string)] \(targetProcPath)"
-            return (
-                .proc_check(event),
-                "ES_EVENT_TYPE_NOTIFY_PROC_CHECK",
-                context,
-                targetProcPath
-            )
-            
-            
-            // MARK: - Interprocess events
-        case ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE:
-            let event = RemoteThreadCreateEvent(from: rawMessage)
+            return ("[\(event.signal_name)] \(targetPath ?? "")", targetPath)
+        case .proc_suspend_resume(let event):
+            let type = event.type_string.replacing("ES_PROC_SUSPEND_RESUME_TYPE_", with: "")
+            return ("[\(type)] \(event.target?.executable?.name ?? "")", event.target?.executable?.path ?? "")
+        case .proc_check(let event):
+            let targetPath = event.target?.executable?.path ?? ""
+            return ("[\(event.type_string)] \(targetPath)", targetPath)
+        // MARK: Interprocess events
+        case .remote_thread_create(let event):
             let targetPath = event.target.executable?.path ?? "Unknown"
-            var context = ""
-            if let state = event.thread_state {
-                context = "[\(state)] \(targetPath)"
-            } else {
-                context = targetPath
+            return (event.thread_state.map { "[\($0)] \(targetPath)" } ?? targetPath, targetPath)
+        case .trace(let event):
+            return (event.target.executable?.name ?? "Unknown", event.target.executable?.path ?? "Unknown")
+        // MARK: Code Signing events
+        case .cs_invalidated:
+            return (initiatingPath, nil)
+        // MARK: Memory mapping events
+        case .mmap(let event):
+            return (event.source.path, event.source.path)
+        case .mprotect(let event):
+            let flags = event.flags.joined(separator: "|").replacingOccurrences(of: "VM_PROT_", with: "")
+            return ("(\(flags))(\(event.kb_size) kb) → \(initiatingPath)", nil)
+        // MARK: File System events
+        case .create(let event):
+            let targetPath = Self.destinationPath(event.destination)
+            return (targetPath, targetPath)
+        case .rename(let event):
+            let targetPath = Self.destinationPath(event.destination)
+            let targetFileName = switch event.destination {
+            case .existing_file: URL(string: targetPath)?.lastPathComponent ?? ""
+            case .new_path(let path): path.filename
             }
-            
-            return (
-                .remote_thread_create(event),
-                "ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE",
-                context,
-                targetPath
-            )
-        case ES_EVENT_TYPE_NOTIFY_TRACE:
-            let event = ProcessTraceEvent(from: rawMessage)
-            let context: String = event.target.executable?.name ?? "Unknown"
-            let targetPath: String = event.target.executable?.path ?? "Unknown"
-            return (
-                .trace(event),
-                "ES_EVENT_TYPE_NOTIFY_TRACE",
-                context,
-                targetPath
-            )
-            
-            
-            // MARK: - Code Signing events
-        case ES_EVENT_TYPE_NOTIFY_CS_INVALIDATED:
-            let event = CodeSignatureInvalidatedEvent(from: rawMessage)
-            let pathPointer = rawMessage.pointee.process.pointee.executable.pointee.path
-            let initiatingProcPath: String = pathPointer.length > 0 ? String(
-                cString: pathPointer.data
-            ) : ""
-            return (
-                .cs_invalidated(event),
-                "ES_EVENT_TYPE_NOTIFY_CS_INVALIDATED",
-                initiatingProcPath,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-            
-            // MARK: - Memory mapping events
-        case ES_EVENT_TYPE_NOTIFY_MMAP:
-            let event = MMapEvent(from: rawMessage)
-            let context = event.source.path
-            return (
-                .mmap(event),
-                "ES_EVENT_TYPE_NOTIFY_MMAP",
-                context,
-                context // Target path
-            )
-        case ES_EVENT_TYPE_NOTIFY_MPROTECT:
-            let event = MProtectEvent(from: rawMessage)
-            let pathPointer = rawMessage.pointee.process.pointee.executable.pointee.path
-            let initPath: String = pathPointer.length > 0 ? String(
-                cString: pathPointer.data
-            ) : ""
-            let flagsString = event.flags.joined(separator: "|").replacingOccurrences(
-                of: "VM_PROT_",
-                with: ""
-            )
-            let context = "(\(flagsString))(\(event.kb_size) kb) → \(initPath)"
-            return (
-                .mprotect(event),
-                "ES_EVENT_TYPE_NOTIFY_MPROTECT",
-                context,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-            
-            // MARK: - File System events
-        case ES_EVENT_TYPE_NOTIFY_CREATE:
-            let event = FileCreateEvent(from: rawMessage, shouldCheckQuarantine: true)
-            var targetPath: String = ""
-            switch(event.destination_type) {
-            case Int(ES_DESTINATION_TYPE_EXISTING_FILE.rawValue):
-                targetPath = event.destination.existing_file!.path
-            case Int(ES_DESTINATION_TYPE_NEW_PATH.rawValue):
-                let dir: String = event.destination.new_path!.dir.path
-                let fileName: String = event.destination.new_path!.filename
-                targetPath = "\(dir)\\/\(fileName)"
-            default:
-                break
-            }
-            
-            return (
-                .create(event),
-                "ES_EVENT_TYPE_NOTIFY_CREATE",
-                targetPath, // Context
-                targetPath  // Target path
-            )
-        case ES_EVENT_TYPE_NOTIFY_RENAME:
-            let event = FileRenameEvent(from: rawMessage)
-            
-            var targetPath: String = ""
-            var targetFileName: String = ""
-            var context: String = ""
-            
-            switch(event.destination_type) {
-            case Int(ES_DESTINATION_TYPE_EXISTING_FILE.rawValue):
-                targetPath = event.destination.existing_file!.path
-                targetFileName = URL(string: targetPath)?.lastPathComponent ?? ""
-            case Int(ES_DESTINATION_TYPE_NEW_PATH.rawValue):
-                let dir: String = event.destination.new_path!.dir.path
-                targetFileName = event.destination.new_path!.filename
-                targetPath = "\(dir)\\/\(targetFileName)"
-            default:
-                break
-            }
-            
-            context = "\(URL(fileURLWithPath: event.source.path).lastPathComponent) → \(targetFileName)"
-            
-            return (
-                .rename(event),
-                "ES_EVENT_TYPE_NOTIFY_RENAME",
-                context,        // Context
-                targetPath      // Target path
-            )
-        case ES_EVENT_TYPE_NOTIFY_OPEN:
-            let event = FileOpenEvent(from: rawMessage)
-            return (
-                .open(event),
-                "ES_EVENT_TYPE_NOTIFY_OPEN",
-                event.file.path,
-                event.file.path
-            )
-            
-        case ES_EVENT_TYPE_NOTIFY_WRITE:
-            let event = FileWriteEvent(from: rawMessage)
-            let tgtPath: String = event.target.path
-            return (
-                .write(event),
-                "ES_EVENT_TYPE_NOTIFY_WRITE",
-                tgtPath,       // Context
-                tgtPath        // Target path
-            )
-        case ES_EVENT_TYPE_NOTIFY_CLOSE:
-            let event = FileCloseEvent(from: rawMessage)
-            let tgtPath: String = event.target.path
-            return (
-                .close(event),
-                "ES_EVENT_TYPE_NOTIFY_CLOSE",
-                tgtPath,       // Context
-                tgtPath        // Target path
-            )
-        case ES_EVENT_TYPE_NOTIFY_UNLINK:
-            let event = FileDeleteEvent(from: rawMessage)
-            let tgtPath: String = event.target.path
-            return (
-                .unlink(event),
-                "ES_EVENT_TYPE_NOTIFY_UNLINK",
-                tgtPath,       // Context
-                tgtPath        // Target path
-            )
-        case ES_EVENT_TYPE_NOTIFY_DUP:
-            let event = FDDuplicateEvent(from: rawMessage)
-            let tgtPath: String = event.target.path
-            return (
-                .dup(event),
-                "ES_EVENT_TYPE_NOTIFY_DUP",
-                tgtPath,       // Context
-                tgtPath        // Target path
-            )
-            
-            
-            // MARK: - Symbolic Link events
-        case ES_EVENT_TYPE_NOTIFY_LINK:
-            let event = LinkEvent(from: rawMessage)
-            let tgtPath = URL(
-                fileURLWithPath: event.target_dir.path
-            )
-                .appendingPathComponent(event.target_filename)
-                .path()
-            return (
-                .link(event),
-                "ES_EVENT_TYPE_NOTIFY_LINK",
-                tgtPath,    // Context
-                tgtPath     // Target path
-            )
-            
-            
-            // MARK: - File Metadata events
-        case ES_EVENT_TYPE_NOTIFY_SETEXTATTR:
-            let event = XattrSetEvent(from: rawMessage)
-            let tgtPath: String = event.target.path
-            let context = "[\(event.extattr)] \(tgtPath)"
-            return (
-                .setextattr(event),
-                "ES_EVENT_TYPE_NOTIFY_SETEXTATTR",
-                context,
-                tgtPath
-            )
-        case ES_EVENT_TYPE_NOTIFY_GETEXTATTR:
-            let event = XattrGetEvent(from: rawMessage)
-            let tgtPath: String = event.target.path
-            let context = "[\(event.extattr)] \(tgtPath)"
-            return (
-                .getextattr(event),
-                "ES_EVENT_TYPE_NOTIFY_GETEXTATTR",
-                context,
-                tgtPath
-            )
-        case ES_EVENT_TYPE_NOTIFY_LISTEXTATTR:
-            let event = XattrListEvent(from: rawMessage)
-            let tgtPath: String = event.target.path
-            let context = tgtPath
-            return (
-                .listextattr(event),
-                "ES_EVENT_TYPE_NOTIFY_LISTEXTATTR",
-                context,
-                tgtPath
-            )
-        case ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR:
-            let event = XattrDeleteEvent(from: rawMessage)
-            let tgtPath: String = event.target.path
-            let context = "[\(event.extattr)] \(tgtPath)"
-            return (
-                .deleteextattr(event),
-                "ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR",
-                context,
-                tgtPath
-            )
-        case ES_EVENT_TYPE_NOTIFY_SETMODE:
-            let event = SetModeEvent(from: rawMessage)
-            let tgtPath: String = event.target.path
-            let mode: Int32 = event.mode
-            let context = "(\(mode)) → \(tgtPath)"
-            
-            return (
-                .setmode(event),
-                "ES_EVENT_TYPE_NOTIFY_SETMODE",
-                context, // Context
-                tgtPath  // Target path
-            )
-            
-            
-            // MARK: - Pseudoterminal events
-        case ES_EVENT_TYPE_NOTIFY_PTY_GRANT:
-            let event = PTYGrantEvent(from: rawMessage)
-            let tgtPath: String = rawMessage.pointee.process.pointee.executable.pointee.path.toString() ?? ""
-            
-            let context = "(\(String(event.dev))) → \(tgtPath)"
-            return (
-                .pty_grant(event),
-                "ES_EVENT_TYPE_NOTIFY_PTY_GRANT",
-                context,    // Context
-                tgtPath     // Target path
-            )
-            
-            
-            // MARK: - Service Management events
-        case ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD:
-            let event = LaunchItemAddEvent(from: rawMessage)
-            return (
-                .btm_launch_item_add(event),
-                "ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD",
-                event.item.item_path, // Context
-                nil // @note: `target_path` does not make sense in this context.
-            )
-        case ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_REMOVE:
-            let event = LaunchItemRemoveEvent(from: rawMessage)
-            return (
-                .btm_launch_item_remove(event),
-                "ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_REMOVE",
-                event.item.item_path, // Context
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-            
-            // MARK: OpenSSH events
-        case ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGIN:
-            let event = SSHLoginEvent(from: rawMessage)
-            let context = "[\(event.success ? "Success" : "Fail")] \(event.source_address) → \(event.username)"
-            return (
-                .openssh_login(event),
-                "ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGIN",
-                context,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-        case ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGOUT:
-            let event = SSHLogoutEvent(from: rawMessage)
-            return (
-                .openssh_logout(event),
-                "ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGOUT",
-                event.source_address,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-            
-            // MARK: - XProtect events
-        case ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED:
-            let event = XProtectDetectEvent(from: rawMessage)
-            return (
-                .xp_malware_detected(event),
-                "ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED",
-                event.detected_path,
-                event.detected_path
-            )
-        case ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED:
-            let event = XProtecRemediateEvent(from: rawMessage)
-            return (
-                .xp_malware_remediated(event),
-                "ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED",
-                event.remediated_path,
-                event.remediated_path
-            )
-            
-            
-            // MARK: - File System Mounting events
-        case ES_EVENT_TYPE_NOTIFY_MOUNT:
-            let event = MountEvent(from: rawMessage)
-            let tgtPath: String = event.statfs.f_mntonname
-            let context: String = "[\(event.disposition_string.replacingOccurrences(of: "ES_MOUNT_DISPOSITION_", with: ""))] \(tgtPath)"
-            return (
-                .mount(event),
-                "ES_EVENT_TYPE_NOTIFY_MOUNT",
-                context,
-                tgtPath
-            )
-            
-            
-            // MARK: Login events
-        case ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN:
-            let event = LoginLoginEvent(from: rawMessage)
-            return (
-                .login_login(event),
-                "ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN",
-                event.username,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-        case ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN:
-            let event = LWLoginEvent(from: rawMessage)
-            return (
-                .lw_session_login(event),
-                "ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN",
-                event.username,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-        case ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK:
-            let event = LWUnlockEvent(from: rawMessage)
-            return (
-                .lw_session_unlock(event),
-                "ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK",
-                event.username,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-            
-            // MARK: Kernel events
-        case ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN:
-            let event = IOKitOpenEvent(from: rawMessage)
-            return (
-                .iokit_open(event),
-                "ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN",
-                event.user_client_class,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-            
-            // MARK: - Task Port events
-        case ES_EVENT_TYPE_NOTIFY_GET_TASK:
-            let event = GetTaskEvent(from: rawMessage)
-            var tgtPath: String = ""
-            var context: String = ""
-            
-            if let exe = event.target.executable {
-                tgtPath = exe.path
-                let typeString: String = event.type_string.replacingOccurrences(
-                    of: "ES_GET_TASK_TYPE_",
-                    with: ""
-                )
-                context = "[\(typeString)] \(exe.path)"
-            }
-            
-            return (
-                .get_task(event),
-                "ES_EVENT_TYPE_NOTIFY_GET_TASK",
-                context,
-                tgtPath
-            )
-            
-            
-            // MARK: MDM events
-        case ES_EVENT_TYPE_NOTIFY_PROFILE_ADD:
-            let event = ProfileAddEvent(from: rawMessage)
-            let context: String = event.profile.toString()
-            return (
-                .profile_add(event),
-                "ES_EVENT_TYPE_NOTIFY_PROFILE_ADD",
-                context,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-            
-            // MARK: - Security Authorization events
-        case ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_JUDGEMENT:
-            let event = AuthorizationJudgementEvent(from: rawMessage)
-            let tgtPath: String = event.instigator?.executable?.path ?? ""
-            let petitionerName: String = event.petitioner?.executable?.name ?? ""
-            let instigatorName: String = event.instigator?.executable?.name ?? ""
-            let result: String = event.results.map({ $0.description }).joined(separator: "|")
-            let context = "\(result): \(petitionerName) → \(instigatorName)"
-            return (
-                .authorization_judgement(event),
-                "ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_JUDGEMENT",
-                context,
-                tgtPath
-            )
-        case ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_PETITION:
-            let event = AuthorizationPetitionEvent(from: rawMessage)
-            let tgtPath: String = event.petitioner?.executable?.path ?? ""
-            let petitionerName: String = event.petitioner?.executable?.name ?? ""
-            let instigatorName: String = event.instigator?.executable?.name ?? ""
-            let rights: String = event.rights.joined(separator: ",")
-            let context = "[\(rights)] \(petitionerName) → \(instigatorName)"
-            return (
-                .authorization_petition(event),
-                "ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_PETITION",
-                context,
-                tgtPath
-            )
-            
-            
-            // MARK: - XPC events
-        case ES_EVENT_TYPE_NOTIFY_XPC_CONNECT:
-            let event = XPCConnectEvent(from: rawMessage)
-            let requestorPath: String = String(
-                cString: rawMessage.pointee.process.pointee.executable.pointee.path.data
-            )
-            let requestorName = URL(fileURLWithPath: requestorPath).lastPathComponent
-            let serviceLabel: String = event.service_name
-            let serviceDomain: String = event.service_domain_type_string
-            
-            let context = "\(requestorName) → \(serviceLabel) in \(serviceDomain)"
-            return (
-                .xpc_connect(event),
-                "ES_EVENT_TYPE_NOTIFY_XPC_CONNECT",
-                context,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-            
-            // MARK: - Open Directory events
-        case ES_EVENT_TYPE_NOTIFY_OD_CREATE_USER:
-            let event = OpenDirectoryCreateUserEvent(from: rawMessage)
-            let node: String = event.node_name ?? ""
-            let username: String = event.user_name ?? ""
-            let errorCode: String = event.error_code_human ?? ""
-            
-            let context = "[\(errorCode)] \(username) in \(node)"
-            return (
-                .od_create_user(event),
-                "ES_EVENT_TYPE_NOTIFY_OD_CREATE_USER",
-                context,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-        case ES_EVENT_TYPE_NOTIFY_OD_MODIFY_PASSWORD:
-            let event = OpenDirectoryModifyPasswordEvent(from: rawMessage)
-            let node: String = event.node_name ?? ""
-            let accountName: String = event.account_name ?? ""
-            let errorCode: String = event.error_code_human ?? ""
-            
-            let context = "[\(errorCode)] \(accountName) in \(node)"
-            return (
-                .od_modify_password(event),
-                "ES_EVENT_TYPE_NOTIFY_OD_MODIFY_PASSWORD",
-                context,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-        case ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD:
-            let event = OpenDirectoryGroupAddEvent(from: rawMessage)
-            let node: String = event.node_name ?? ""
-            let member: String = event.member ?? ""
-            let groupName: String = event.group_name ?? ""
-            let errorCode: String = event.error_code_human ?? ""
-            
-            let context = "[\(errorCode)] Added \(member) to \(groupName) in \(node)"
-            return (
-                .od_group_add(event),
-                "ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD",
-                context,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-        case ES_EVENT_TYPE_NOTIFY_OD_GROUP_REMOVE:
-            let event = OpenDirectoryGroupRemoveEvent(from: rawMessage)
-            let node: String = event.node_name ?? ""
-            let member: String = event.member ?? ""
-            let groupName: String = event.group_name ?? ""
-            let errorCode: String = event.error_code_human ?? ""
-            
-            let context = "[\(errorCode)] Removed \(member) from \(groupName) in \(node)"
-            return (
-                .od_group_remove(event),
-                "ES_EVENT_TYPE_NOTIFY_OD_GROUP_REMOVE",
-                context,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-        case ES_EVENT_TYPE_NOTIFY_OD_CREATE_GROUP:
-            let event = OpenDirectoryCreateGroupEvent(from: rawMessage)
-            let node: String = event.node_name ?? ""
-            let groupName: String = event.group_name ?? ""
-            let errorCode: String = event.error_code_human ?? ""
-            
-            let context = "[\(errorCode)] \(groupName) in \(node)"
-            return (
-                .od_create_group(event),
-                "ES_EVENT_TYPE_NOTIFY_OD_CREATE_GROUP",
-                context,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-        case ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_VALUE_ADD:
-            let event = OpenDirectoryAttributeValueAddEvent(from: rawMessage)
-            let errorCode: String = event.error_code_human ?? ""
-            let node: String = event.node_name ?? ""
-            let attributeName: String = event.attribute_name ?? ""
-            let attributeValue: String = event.attribute_value ?? ""
-            
-            let context = "[\(errorCode)] \(attributeName) → \(attributeValue) in \(node)"
-            return (
-                .od_attribute_value_add(event),
-                "ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_VALUE_ADD",
-                context,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-            // MARK: - Socket events
-        case ES_EVENT_TYPE_NOTIFY_UIPC_CONNECT:
-            let event = UIPCConnectEvent(from: rawMessage)
-            let tgtPath = event.file.path
-            var metadata: String {
-                if event.protocol != 0 {
-                    return "\(event.protocol_string), \(event.type_string), \(event.domain_string)"
-                }
-                return "[\(event.type_string)]"
-            }
-            let context = "\(metadata) → \(event.file.path)"
-            return (
-                .uipc_connect(event),
-                "ES_EVENT_TYPE_NOTIFY_UIPC_CONNECT",
-                context,
-                tgtPath
-            )
-        case ES_EVENT_TYPE_NOTIFY_UIPC_BIND:
-            let event = UIPCBindEvent(from: rawMessage)
-            let tgtPath = URL(
-                fileURLWithPath: event.dir.path
-            )
-                .appendingPathComponent(event.filename)
-                .path()
-            
-            return (
-                .uipc_bind(event),
-                "ES_EVENT_TYPE_NOTIFY_UIPC_BIND",
-                tgtPath,
-                tgtPath
-            )
-            
-            // MARK: - TCC events
-        case ES_EVENT_TYPE_NOTIFY_TCC_MODIFY:
-            let event = TCCModifyEvent(from: rawMessage)
-            
-            // Identity is the type of the action (bundle Id, policy Id, exe path, domain Id)
-            let identity = event.identity
-            // Service is the TCC right
-            let service = event.service
-            // Reason is "why" the TCC right was modified
-            let reasonString = event.reason_string.replacingOccurrences(of: "ES_TCC_AUTHORIZATION_REASON_", with: "")
-            let context = "[\(reasonString)] \(service) → \(identity)"
-            return (
-                .tcc_modify(event),
-                "ES_EVENT_TYPE_NOTIFY_TCC_MODIFY",
-                context,
-                nil // @note: `target_path` does not make sense in this context.
-            )
-            
-            // MARK: - Gatekeeper events
-        case ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE:
-            let event = GatekeeperUserOverrideEvent(from: rawMessage)
-            var context = ""
-            if let overridePath = event.file.file_path {
-                context = overridePath
-            } else if let file = event.file.file {
-                context = file.path
-            }
-            
-            
-            return (
-                .gatekeeper_user_override(event),
-                "ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE",
-                context,
-                context // Override path is the target path
-            )
-            
-            
-        default:
-            return (.unknown, "NOT MAPPED", nil, nil)
+            return ("\(URL(fileURLWithPath: event.source.path).lastPathComponent) → \(targetFileName)", targetPath)
+        case .open(let event):
+            return (event.file.path, event.file.path)
+        case .write(let event):
+            return (event.target.path, event.target.path)
+        case .close(let event):
+            return (event.target.path, event.target.path)
+        case .unlink(let event):
+            return (event.target.path, event.target.path)
+        case .dup(let event):
+            return (event.target.path, event.target.path)
+        // MARK: Symbolic Link events
+        case .link(let event):
+            let targetPath = URL(fileURLWithPath: event.target_dir.path).appendingPathComponent(event.target_filename).path()
+            return (targetPath, targetPath)
+        // MARK: File Metadata events
+        case .setextattr(let event):
+            return ("[\(event.extattr)] \(event.target.path)", event.target.path)
+        case .getextattr(let event):
+            return ("[\(event.extattr)] \(event.target.path)", event.target.path)
+        case .listextattr(let event):
+            return (event.target.path, event.target.path)
+        case .deleteextattr(let event):
+            return ("[\(event.extattr)] \(event.target.path)", event.target.path)
+        case .setmode(let event):
+            return ("(\(event.mode)) → \(event.target.path)", event.target.path)
+        // MARK: Pseudoterminal events
+        case .pty_grant(let event):
+            return ("(\(String(event.dev))) → \(initiatingPath)", initiatingPath)
+        // MARK: Service Management events
+        case .btm_launch_item_add(let event):
+            return (event.item.item_path, nil)
+        case .btm_launch_item_remove(let event):
+            return (event.item.item_path, nil)
+        // MARK: OpenSSH events
+        case .openssh_login(let event):
+            return ("[\(event.success ? "Success" : "Fail")] \(event.source_address) → \(event.username)", nil)
+        case .openssh_logout(let event):
+            return (event.source_address, nil)
+        // MARK: XProtect events
+        case .xp_malware_detected(let event):
+            return (event.detected_path, event.detected_path)
+        case .xp_malware_remediated(let event):
+            return (event.remediated_path, event.remediated_path)
+        // MARK: File System Mounting events
+        case .mount(let event):
+            let targetPath = event.statfs.f_mntonname
+            return ("[\(event.disposition_string.replacingOccurrences(of: "ES_MOUNT_DISPOSITION_", with: ""))] \(targetPath)", targetPath)
+        // MARK: Login events
+        case .login_login(let event):
+            return (event.username, nil)
+        case .lw_session_login(let event):
+            return (event.username, nil)
+        case .lw_session_unlock(let event):
+            return (event.username, nil)
+        // MARK: Kernel events
+        case .iokit_open(let event):
+            return (event.user_client_class, nil)
+        // MARK: Task Port events
+        case .get_task(let event):
+            guard let exe = event.target.executable else { return ("", "") }
+            return ("[\(event.type_string.replacingOccurrences(of: "ES_GET_TASK_TYPE_", with: ""))] \(exe.path)", exe.path)
+        // MARK: MDM events
+        case .profile_add(let event):
+            return (event.profile.toString(), nil)
+        // MARK: Security Authorization events
+        case .authorization_judgement(let event):
+            let result = event.results.map({ $0.description }).joined(separator: "|")
+            let names = "\(event.petitioner?.executable?.name ?? "") → \(event.instigator?.executable?.name ?? "")"
+            return ("\(result): \(names)", event.instigator?.executable?.path ?? "")
+        case .authorization_petition(let event):
+            let names = "\(event.petitioner?.executable?.name ?? "") → \(event.instigator?.executable?.name ?? "")"
+            return ("[\(event.rights.joined(separator: ","))] \(names)", event.petitioner?.executable?.path ?? "")
+        // MARK: XPC events
+        case .xpc_connect(let event):
+            let requestorName = URL(fileURLWithPath: initiatingPath).lastPathComponent
+            return ("\(requestorName) → \(event.service_name) in \(event.service_domain_type_string)", nil)
+        // MARK: Open Directory events
+        case .od_create_user(let event):
+            return ("[\(event.error_code_human ?? "")] \(event.user_name ?? "") in \(event.node_name ?? "")", nil)
+        case .od_modify_password(let event):
+            return ("[\(event.error_code_human ?? "")] \(event.account_name ?? "") in \(event.node_name ?? "")", nil)
+        case .od_group_add(let event):
+            let change = "Added \(event.member ?? "") to \(event.group_name ?? "")"
+            return ("[\(event.error_code_human ?? "")] \(change) in \(event.node_name ?? "")", nil)
+        case .od_group_remove(let event):
+            let change = "Removed \(event.member ?? "") from \(event.group_name ?? "")"
+            return ("[\(event.error_code_human ?? "")] \(change) in \(event.node_name ?? "")", nil)
+        case .od_create_group(let event):
+            return ("[\(event.error_code_human ?? "")] \(event.group_name ?? "") in \(event.node_name ?? "")", nil)
+        case .od_attribute_value_add(let event):
+            let attribute = "\(event.attribute_name ?? "") → \(event.attribute_value ?? "")"
+            return ("[\(event.error_code_human ?? "")] \(attribute) in \(event.node_name ?? "")", nil)
+        // MARK: Socket events
+        case .uipc_connect(let event):
+            let metadata = event.protocol != 0
+                ? "\(event.protocol_string), \(event.type_string), \(event.domain_string)"
+                : "[\(event.type_string)]"
+            return ("\(metadata) → \(event.file.path)", event.file.path)
+        case .uipc_bind(let event):
+            let targetPath = URL(fileURLWithPath: event.dir.path).appendingPathComponent(event.filename).path()
+            return (targetPath, targetPath)
+        // MARK: TCC events
+        case .tcc_modify(let event):
+            let reason = event.reason_string.replacingOccurrences(of: "ES_TCC_AUTHORIZATION_REASON_", with: "")
+            return ("[\(reason)] \(event.service) → \(event.identity)", nil)
+        // MARK: Gatekeeper events
+        case .gatekeeper_user_override(let event):
+            let path = event.file.file_path ?? event.file.file?.path ?? ""
+            return (path, path)
+        case .unknown:
+            return (nil, nil)
+        }
+    }
+    
+    /// The full path of a create or rename event's destination, as the event's target path.
+    ///
+    /// Read from the destination itself rather than its `destination_type`, which a trace file may contradict.
+    ///
+    /// - Parameter destination: The event's destination.
+    /// - Returns: The existing file's path, or the new path's directory and file name joined by "\/".
+    private static func destinationPath(_ destination: FileDestination) -> String {
+        switch destination {
+        case .existing_file(let file): file.path
+        case .new_path(let path): "\(path.dir.path)\\/\(path.filename)"
         }
     }
 }

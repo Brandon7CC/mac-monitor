@@ -175,9 +175,7 @@ struct SystemTargetProcessView: View {
             GroupBox {
                 HStack {
                     Label("**Message timestamp:**", systemImage: "clock")
-                    GroupBox {
-                        Text("`\(selectedMessage.time ?? "Unknown")`")
-                    }
+                    EventTimeView(message: selectedMessage)
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 
                 HStack {

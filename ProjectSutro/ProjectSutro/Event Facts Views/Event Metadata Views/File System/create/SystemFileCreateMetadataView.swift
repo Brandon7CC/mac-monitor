@@ -121,16 +121,7 @@ struct SystemFileCreateMetadataView: View {
                     }
                     
                     HStack {
-                        if FileManager.default
-                            .fileExists(atPath: destinationPath) {
-                            Label("**File path:**", systemImage: "checkmark.circle")
-                                .labelStyle(.titleAndIcon)
-                                .help("This file exists.")
-                        } else {
-                            Label("**File path:**", systemImage: "xmark.circle")
-                                .labelStyle(.titleAndIcon)
-                                .help("This file no longer exists.")
-                        }
+                        FileExistsLabel(title: "**File path:**", path: destinationPath)
                         GroupBox {
                             Text("`\(destinationPath)`")
                                 .lineLimit(10)

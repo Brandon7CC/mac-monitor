@@ -25,7 +25,7 @@ public class ESProcessSignalEvent: NSManagedObject {
         let description = NSEntityDescription.entity(forEntityName: "ESProcessSignalEvent", in: context)!
         self.init(entity: description, insertInto: context)
         self.id = signalEvent.id
-        self.sig = Int32(signalEvent.sig)
+        self.sig = Int32(truncatingIfNeeded: signalEvent.sig)
         self.signal_name = signalEvent.signal_name
         
         /// Process structures

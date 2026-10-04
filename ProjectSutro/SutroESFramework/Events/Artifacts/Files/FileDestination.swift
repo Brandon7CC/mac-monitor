@@ -50,6 +50,18 @@ public enum FileDestination: Hashable, Codable {
 
 /// Accessors
 extension FileDestination {
+    /// The name of an `es_destination_type_t`.
+    ///
+    /// - Parameter type: The destination type's raw value.
+    /// - Returns: Its name, or `NOT_MAPPED`.
+    static func typeName(_ type: Int) -> String {
+        switch es_destination_type_t(rawValue: UInt32(truncatingIfNeeded: type)) {
+        case ES_DESTINATION_TYPE_EXISTING_FILE: "ES_DESTINATION_TYPE_EXISTING_FILE"
+        case ES_DESTINATION_TYPE_NEW_PATH: "ES_DESTINATION_TYPE_NEW_PATH"
+        default: "NOT_MAPPED"
+        }
+    }
+    
     // MARK: Process events
     var existing_file: File? {
         if case .existing_file(let e) = self { return e }

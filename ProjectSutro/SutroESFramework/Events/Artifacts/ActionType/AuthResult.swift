@@ -24,20 +24,28 @@ public struct AuthResult: Identifiable, Codable, Equatable, Hashable {
     // When the action result type is `AUTH`
     init(from authResult: es_auth_result_t) {
         self.auth = Int(authResult.rawValue)
-        
-        switch authResult {
+        enrich()
+    }
+    
+    // When the action result type is `FLAGS`
+    init(from flags: UInt32) {
+        self.flags = Int64(flags)
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension AuthResult: ESEnrichable {
+    /// Derive the auth result's name.
+    public mutating func enrich() {
+        guard let auth else { return }
+        switch es_auth_result_t(rawValue: UInt32(truncatingIfNeeded: auth)) {
         case ES_AUTH_RESULT_ALLOW:
             self.auth_human = "ES_AUTH_RESULT_ALLOW"
         case ES_AUTH_RESULT_DENY:
             self.auth_human = "ES_AUTH_RESULT_DENY"
         default:
             self.auth_human = "UNKNOWN_RESULT"
-            break
         }
-    }
-    
-    // When the action result type is `FLAGS`
-    init(from flags: UInt32) {
-        self.flags = Int64(flags)
     }
 }

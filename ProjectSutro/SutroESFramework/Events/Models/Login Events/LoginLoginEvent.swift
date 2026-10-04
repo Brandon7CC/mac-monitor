@@ -15,7 +15,8 @@ public struct LoginLoginEvent: Identifiable, Codable, Hashable {
     public var id: UUID = UUID()
     
     public var succcess, has_uid: Bool
-    public var username, uid_human: String
+    public var username: String
+    public var uid_human = ""
     public var failure_message: String?
     public var uid: Int64
     
@@ -37,12 +38,21 @@ public struct LoginLoginEvent: Identifiable, Codable, Hashable {
         
         self.username = String(cString: loginLoginEvent.username.data)
         self.has_uid = loginLoginEvent.has_uid
+        self.uid = loginLoginEvent.has_uid ? Int64(loginLoginEvent.uid.uid) : -1
+        enrich()
         if loginLoginEvent.has_uid {
-            self.uid = Int64(loginLoginEvent.uid.uid)
             self.uid_human = String(cString: getpwuid(uid_t(loginLoginEvent.uid.uid))!.pointee.pw_name)
-        } else {
-            self.uid = -1
-            self.uid_human = "Unknown"
         }
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension LoginLoginEvent: ESEnrichable {
+    /// Derive the user's name if it's a system account, or "Unknown" without a user ID.
+    ///
+    /// Not derived: the names of other users (read from this Mac).
+    public mutating func enrich() {
+        uid_human = has_uid ? Process.userName(Int(uid), systemAccountsOnly: true) ?? uid_human : "Unknown"
     }
 }

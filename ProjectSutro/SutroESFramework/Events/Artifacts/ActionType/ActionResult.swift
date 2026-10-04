@@ -37,16 +37,28 @@ public struct ActionResult: Identifiable, Codable, Equatable, Hashable {
             /// Switch on the result type: `es_result_type_t`
             switch message.action.notify.result_type {
             case ES_RESULT_TYPE_AUTH:
-                self.result_type_human = "ES_RESULT_TYPE_AUTH"
                 self.result = AuthResult(from: message.action.notify.result.auth)
             case ES_RESULT_TYPE_FLAGS:
-                self.result_type_human = "ES_RESULT_TYPE_FLAGS"
                 self.result = AuthResult(from: message.action.notify.result.flags)
             default:
                 break
             }
+            enrich()
         default:
             break
+        }
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension ActionResult: ESEnrichable {
+    /// Derive the result type's name.
+    public mutating func enrich() {
+        switch result_type.map({ es_result_type_t(rawValue: UInt32(truncatingIfNeeded: $0)) }) {
+        case ES_RESULT_TYPE_AUTH: result_type_human = "ES_RESULT_TYPE_AUTH"
+        case ES_RESULT_TYPE_FLAGS: result_type_human = "ES_RESULT_TYPE_FLAGS"
+        default: break
         }
     }
 }

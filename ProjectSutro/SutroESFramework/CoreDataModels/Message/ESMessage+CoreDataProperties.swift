@@ -51,6 +51,9 @@ extension ESMessage {
     /// The save this event was stored in (see ``CoreDataController/eventsInserted``). Lets a reader that refetches while
     /// events stream in tell which events its fetch already covers.
     @NSManaged public var insert_batch: Int64
+    /// The event's place in the order events reached the store: the order they arrived from the Security Extension, or a
+    /// trace's file order. A save numbers its objects in no particular order, so the store keeps this instead.
+    @NSManaged public var insert_order: Int64
     
     /// Time
     @NSManaged public var time: String?

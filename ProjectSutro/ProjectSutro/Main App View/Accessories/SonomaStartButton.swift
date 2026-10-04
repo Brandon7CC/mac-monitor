@@ -14,6 +14,8 @@ struct SonomaStartButton: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @EnvironmentObject var agentTerminate: AgentCloseController
     @EnvironmentObject var userPrefs: UserPrefs
+    /// Start closes an open trace.
+    @EnvironmentObject var traceSession: TraceSession
     
     @Binding var recordingEvents: Bool
     @Binding var confirmClear: Bool
@@ -43,6 +45,8 @@ struct SonomaStartButton: View {
     
     var body: some View {
         Button(action: {
+            /// Recording replaces an open trace (its file is still on disk).
+            if !traceSession.isLive { systemExtensionManager.coreDataContainer.clearSystemEvents() }
             recordingEvents = true
             systemExtensionManager.startRecordingEvents()
         }) {

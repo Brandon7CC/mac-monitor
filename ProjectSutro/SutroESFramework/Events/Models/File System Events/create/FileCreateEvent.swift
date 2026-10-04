@@ -13,7 +13,7 @@ public struct FileCreateEvent: Identifiable, Codable, Hashable {
     public var id: UUID = UUID()
     
     public var destination_type: Int
-    public var destination_type_string: String
+    public var destination_type_string = ""
     
     public var destination: FileDestination
     
@@ -39,19 +39,18 @@ public struct FileCreateEvent: Identifiable, Codable, Hashable {
          */
         self.destination_type = Int(create.destination_type.rawValue)
         self.destination = FileDestination.from(create: create)
+        enrich()
         switch(create.destination_type) {
         case ES_DESTINATION_TYPE_EXISTING_FILE:
-            self.destination_type_string = "ES_DESTINATION_TYPE_EXISTING_FILE"
             self.is_quarantined = Int16(ProcessHelpers.isFileQuarantined(filePath: destination.existing_file!.path))
         case ES_DESTINATION_TYPE_NEW_PATH:
-            self.destination_type_string = "ES_DESTINATION_TYPE_NEW_PATH"
             if let new_path = destination.new_path {
                 let dir: String = new_path.dir.path
                 let path: String = "\(dir)\\/\(new_path.filename)"
                 self.is_quarantined = Int16(ProcessHelpers.isFileQuarantined(filePath: path))
             }
         default:
-            self.destination_type_string = "NOT_MAPPED"
+            break
         }
         
         if messageVersion >= 2 {
@@ -59,6 +58,17 @@ public struct FileCreateEvent: Identifiable, Codable, Hashable {
                 self.acl = aclObj.toString()
             }
         }
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension FileCreateEvent: ESEnrichable {
+    /// Derive the destination type's name.
+    ///
+    /// Not derived: `is_quarantined`, which is read from the file.
+    public mutating func enrich() {
+        destination_type_string = FileDestination.typeName(destination_type)
     }
 }
 

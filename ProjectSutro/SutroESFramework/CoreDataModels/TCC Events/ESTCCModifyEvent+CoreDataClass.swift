@@ -40,9 +40,9 @@ public class ESTCCModifyEvent: NSManagedObject {
         
         self.service = tccModifyEvent.service
         self.identity = tccModifyEvent.identity
-        self.identity_type = Int32(tccModifyEvent.identity_type)
+        self.identity_type = Int32(truncatingIfNeeded: tccModifyEvent.identity_type)
         self.identity_type_string = tccModifyEvent.identity_type_string
-        self.update_type = Int32(tccModifyEvent.update_type)
+        self.update_type = Int32(truncatingIfNeeded: tccModifyEvent.update_type)
         self.update_type_string = tccModifyEvent.update_type_string
         
         self.instigator_token = ESAuditToken(
@@ -70,9 +70,9 @@ public class ESTCCModifyEvent: NSManagedObject {
             )
         }
         
-        self.right = Int32(tccModifyEvent.right)
+        self.right = Int32(truncatingIfNeeded: tccModifyEvent.right)
         self.right_string = tccModifyEvent.right_string
-        self.reason = Int32(tccModifyEvent.reason)
+        self.reason = Int32(truncatingIfNeeded: tccModifyEvent.reason)
         self.reason_string = tccModifyEvent.reason_string
     }
 }

@@ -42,4 +42,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return .terminateNow
         }
     }
+    
+    /// Files opened from Finder's Open With or `open -a` after the first, which SwiftUI hands to a main window's
+    /// `onOpenURL` (see `EventView`). Mac Monitor shows one trace at a time, so the rest are ignored.
+    ///
+    /// - Parameters:
+    ///   - application: Mac Monitor.
+    ///   - urls: The files no window took.
+    func application(_ application: NSApplication, open urls: [URL]) {}
 }

@@ -16,7 +16,7 @@ public struct GatekeeperUserOverrideEvent: Identifiable, Codable, Hashable {
     
     /// `es_gatekeeper_user_override_file_type_t`
     public var file_type: Int32
-    public var file_type_string: String
+    public var file_type_string = ""
     
     /// File union
     public var file: FilePathUnion
@@ -36,14 +36,6 @@ public struct GatekeeperUserOverrideEvent: Identifiable, Codable, Hashable {
         let gatekeeperOverrideEvent: es_event_gatekeeper_user_override_t = rawMessage.pointee.event.gatekeeper_user_override.pointee
         
         file_type = Int32(gatekeeperOverrideEvent.file_type.rawValue)
-        switch(gatekeeperOverrideEvent.file_type) {
-        case ES_GATEKEEPER_USER_OVERRIDE_FILE_TYPE_PATH:
-            file_type_string = "ES_GATEKEEPER_USER_OVERRIDE_FILE_TYPE_PATH"
-        case ES_GATEKEEPER_USER_OVERRIDE_FILE_TYPE_FILE:
-            file_type_string = "ES_GATEKEEPER_USER_OVERRIDE_FILE_TYPE_FILE"
-        default:
-            file_type_string = "Unknown"
-        }
         
         file = FilePathUnion.from(override: gatekeeperOverrideEvent)
         if let sha256 = gatekeeperOverrideEvent.sha256 {
@@ -52,6 +44,23 @@ public struct GatekeeperUserOverrideEvent: Identifiable, Codable, Hashable {
         
         if let signingInfo = gatekeeperOverrideEvent.signing_info {
             signing_info = SignedFileInfo(from: signingInfo.pointee)
+        }
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension GatekeeperUserOverrideEvent: ESEnrichable {
+    /// Derive the file type's name.
+    public mutating func enrich() {
+        switch es_gatekeeper_user_override_file_type_t(rawValue: UInt32(truncatingIfNeeded: file_type)) {
+        case ES_GATEKEEPER_USER_OVERRIDE_FILE_TYPE_PATH:
+            file_type_string = "ES_GATEKEEPER_USER_OVERRIDE_FILE_TYPE_PATH"
+        case ES_GATEKEEPER_USER_OVERRIDE_FILE_TYPE_FILE:
+            file_type_string = "ES_GATEKEEPER_USER_OVERRIDE_FILE_TYPE_FILE"
+        default:
+            file_type_string = "Unknown"
         }
     }
 }

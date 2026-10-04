@@ -27,7 +27,7 @@ public class ESODGroupAddEvent: NSManagedObject {
         self.instigator_process_audit_token = odAddGroupEvent.instigator_process_audit_token
         self.instigator_process_signing_id = odAddGroupEvent.instigator_process_signing_id
         
-        self.error_code = Int32(odAddGroupEvent.error_code)
+        self.error_code = Int32(truncatingIfNeeded: odAddGroupEvent.error_code)
         self.group_name = odAddGroupEvent.group_name
         self.member = odAddGroupEvent.member
         self.node_name = odAddGroupEvent.node_name

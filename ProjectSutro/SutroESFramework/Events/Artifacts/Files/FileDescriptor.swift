@@ -12,7 +12,7 @@ public struct FileDescriptor: Identifiable, Codable, Equatable, Hashable {
     public var id = UUID()
     
     public var fdtype, fd: Int
-    public var type: String
+    public var type = ""
     public var pipe: FDPipe?
     
     // Ignore id from being decoded
@@ -24,10 +24,21 @@ public struct FileDescriptor: Identifiable, Codable, Equatable, Hashable {
         self.fdtype = Int(fd.fdtype)
         self.fd = Int(fd.fd)
         
-        switch Int32(fd.fdtype) {
+        if Int32(fd.fdtype) == PROX_FDTYPE_PIPE {
+            self.pipe = FDPipe(from: fd)
+        }
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension FileDescriptor: ESEnrichable {
+    /// Derive the descriptor type's name.
+    public mutating func enrich() {
+        switch Int32(truncatingIfNeeded: fdtype) {
         case PROX_FDTYPE_PIPE:
             self.type = "PROX_FDTYPE_PIPE"
-            self.pipe = FDPipe(from: fd)
         case PROX_FDTYPE_SOCKET:
             self.type = "PROX_FDTYPE_SOCKET"
         case PROX_FDTYPE_PSEM:

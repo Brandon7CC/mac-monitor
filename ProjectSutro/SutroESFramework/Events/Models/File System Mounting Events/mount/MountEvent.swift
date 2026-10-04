@@ -19,7 +19,7 @@ public struct MountEvent: Identifiable, Codable, Hashable {
     
     public var statfs: StatFS
     public var disposition: Int16
-    public var disposition_string: String
+    public var disposition_string = ""
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -35,7 +35,16 @@ public struct MountEvent: Identifiable, Codable, Hashable {
         statfs = StatFS(from: event.statfs.pointee)
         
         disposition = Int16(event.disposition.rawValue)
-        switch event.disposition {
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension MountEvent: ESEnrichable {
+    /// Derive the mount disposition's name.
+    public mutating func enrich() {
+        switch es_mount_disposition_t(rawValue: UInt32(truncatingIfNeeded: disposition)) {
         case ES_MOUNT_DISPOSITION_NULLFS:
             disposition_string = "ES_MOUNT_DISPOSITION_NULLFS"
         case ES_MOUNT_DISPOSITION_NETWORK:

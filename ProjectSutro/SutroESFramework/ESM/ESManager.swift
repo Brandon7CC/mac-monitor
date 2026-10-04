@@ -161,7 +161,7 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     ///
     /// Batches are accepted even after recording stops: the Security Extension stops serializing at the source, so anything
     /// still arriving was recorded before Stop and belongs in the trace. (A Clear discards older events by time instead;
-    /// see ``CoreDataController/clearSystemEvents()``.)
+    /// see ``CoreDataController/clearSystemEvents(source:)``.)
     ///
     /// - Parameters:
     ///   - events: JSON serializations of `Message`, oldest first.

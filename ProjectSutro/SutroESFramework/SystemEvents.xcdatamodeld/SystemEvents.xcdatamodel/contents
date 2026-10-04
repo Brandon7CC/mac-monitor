@@ -256,6 +256,7 @@
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="initiating_euid_human" optional="YES" attributeType="String"/>
         <attribute name="insert_batch" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="insert_order" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="initiating_name" optional="YES" attributeType="String"/>
         <attribute name="initiating_path" optional="YES" attributeType="String"/>
         <attribute name="initiating_pid" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>

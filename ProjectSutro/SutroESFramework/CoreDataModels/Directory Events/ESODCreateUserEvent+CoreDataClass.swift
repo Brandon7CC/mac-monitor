@@ -32,7 +32,7 @@ public class ESODCreateUserEvent: NSManagedObject {
         self.instigator_process_audit_token = odCreateUserEvent.instigator_process_audit_token
         self.instigator_process_signing_id = odCreateUserEvent.instigator_process_signing_id
         
-        self.error_code = Int32(odCreateUserEvent.error_code)
+        self.error_code = Int32(truncatingIfNeeded: odCreateUserEvent.error_code)
         self.user_name = odCreateUserEvent.user_name
         self.node_name = odCreateUserEvent.node_name
         self.db_path = odCreateUserEvent.db_path

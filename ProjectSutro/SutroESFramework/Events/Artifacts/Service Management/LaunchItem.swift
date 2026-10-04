@@ -14,9 +14,9 @@ public struct LaunchItem: Identifiable, Codable, Hashable {
     // Type of launch item.
     public var item_type: Int16
     
-    public var item_type_string: String
+    public var item_type_string = ""
     public var item_url: String
-    public var item_path: String // enrichment
+    public var item_path = "" // enrichment
     
     // Optional.  URL for app the item is attributed to.
     public var app_url: String?
@@ -43,62 +43,61 @@ public struct LaunchItem: Identifiable, Codable, Hashable {
         managed = launchItem.managed
         
         // MARK: - App
-        if let appURLString = launchItem.app_url.toString(),
-        let appURL = URL(string: appURLString) {
+        if let appURLString = launchItem.app_url.toString(), URL(string: appURLString) != nil {
             app_url = appURLString
-            app_path = appURL.path
         }
         
         // MARK: - Item
         item_url = launchItem.item_url.toString() ?? ""
-        var itemPath: String
-        if let itemURL = URL(string: item_url) {
-            item_path = itemURL.path
-            itemPath = itemURL.path
-        } else {
-            item_path = ""
-            itemPath = ""
+        item_type = Int16(launchItem.item_type.rawValue)
+        
+        // MARK: - UID
+        uid = Int64(launchItem.uid)
+        
+        enrich()
+        if let rpw = getpwuid(launchItem.uid) {
+            self.uid_human = String(cString: rpw.pointee.pw_name)
         }
         
         // MARK: Plist
+        guard launchItem.item_type == ES_BTM_ITEM_TYPE_AGENT || launchItem.item_type == ES_BTM_ITEM_TYPE_DAEMON else { return }
         var plistPath: String?
         if legacy {
-            plistPath = itemPath
+            plistPath = item_path
         } else if let app_path = app_path {
             /// We need to resolve the relative plist path
-            plistPath = URL(fileURLWithPath: app_path).appendingPathComponent(itemPath).path
+            plistPath = URL(fileURLWithPath: app_path).appendingPathComponent(item_path).path
         }
-        
-        item_type = Int16(launchItem.item_type.rawValue)
-        switch launchItem.item_type {
+        if let plistPath = plistPath {
+            plist_contents = ProcessHelpers.getFileContents(at: plistPath)
+        }
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension LaunchItem: ESEnrichable {
+    /// Derive the item type's name, the item's and the app's paths from their URLs, and the user's name if it's a
+    /// system account.
+    ///
+    /// Not derived: the names of other users, and the plist's contents (read from this Mac).
+    public mutating func enrich() {
+        app_path = app_url.flatMap(URL.init(string:))?.path
+        item_path = URL(string: item_url)?.path ?? ""
+        uid_human = Process.userName(Int(uid), systemAccountsOnly: true) ?? uid_human
+        switch es_btm_item_type_t(rawValue: UInt32(truncatingIfNeeded: item_type)) {
         case ES_BTM_ITEM_TYPE_USER_ITEM:
             item_type_string = "ES_BTM_ITEM_TYPE_USER_ITEM"
         case ES_BTM_ITEM_TYPE_APP:
             item_type_string = "ES_BTM_ITEM_TYPE_APP"
         case ES_BTM_ITEM_TYPE_AGENT:
             item_type_string = "ES_BTM_ITEM_TYPE_AGENT"
-            
-            if let plistPath = plistPath {
-                plist_contents = ProcessHelpers.getFileContents(at: plistPath)
-            }
         case ES_BTM_ITEM_TYPE_DAEMON:
             item_type_string = "ES_BTM_ITEM_TYPE_DAEMON"
-            
-            if let plistPath = plistPath {
-                plist_contents = ProcessHelpers.getFileContents(at: plistPath)
-            }
-        case ES_BTM_ITEM_TYPE_USER_ITEM:
-            item_type_string = "ES_BTM_ITEM_TYPE_USER_ITEM"
         case ES_BTM_ITEM_TYPE_LOGIN_ITEM:
             item_type_string = "ES_BTM_ITEM_TYPE_LOGIN_ITEM"
         default:
             item_type_string = "UNKNOWN"
-        }
-    
-        // MARK: - UID
-        uid = Int64(launchItem.uid)
-        if let rpw = getpwuid(launchItem.uid) {
-            self.uid_human = String(cString: rpw.pointee.pw_name)
         }
     }
 }

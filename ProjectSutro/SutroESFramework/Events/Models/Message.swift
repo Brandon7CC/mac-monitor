@@ -45,12 +45,12 @@ public struct Message: Identifiable, Codable, Hashable {
     public var event: EventType
     public var event_type: Int
     /// @note Mac Monitor enrichment
-    public var es_event_type: String
+    public var es_event_type: String = ""
     
     /// Action
     public var action_type: Int
     /// `ES_ACTION_TYPE_AUTH` vs. `ES_ACTION_TYPE_NOTIFY`
-    public var action_type_string: String
+    public var action_type_string: String = ""
     public var action: ActionResultWrapper
     
     /// "context" will be a context item independent of `target_path`
@@ -127,43 +127,44 @@ public struct Message: Identifiable, Codable, Hashable {
         
         /// Event
         /// A process execution event. Corresponds to `ES_EVENT_TYPE_NOTIFY_EXEC`
-        let (event, eventType, context, targetPath) = EventType.from(
-            rawMessage: rawMessage,
-            forcedQuarantineSigningIDs: forcedQuarantineSigningIDs
-        )
-
-        self.event = event
+        self.event = EventType.from(rawMessage: rawMessage, forcedQuarantineSigningIDs: forcedQuarantineSigningIDs)
         self.event_type = Int(message.event_type.rawValue)
-        self.es_event_type = eventType
-        
         
         /// Action
         self.action_type = Int(message.action_type.rawValue)
         self.action = ActionResultWrapper(from: message)
-        /// `ES_ACTION_TYPE_AUTH` vs. `ES_ACTION_TYPE_NOTIFY`
-        switch message.action_type {
-        /// The result is an auth result
-        case ES_ACTION_TYPE_AUTH:
-            self.action_type_string = "ES_ACTION_TYPE_AUTH"
-        /// The result is a flags result
-        case ES_ACTION_TYPE_NOTIFY:
-            self.action_type_string = "ES_ACTION_TYPE_NOTIFY"
-        default:
-            self.action_type_string = "UNKNOWN_ACTION"
-            break
+        
+        /// Mac Monitor enrichment: `es_event_type`, `action_type_string`, `context` and `target_path`.
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+/// A model whose Mac Monitor enrichment is a function of its Endpoint Security fields.
+///
+/// The Security Extension derives it as it models each event. A trace that doesn't carry it (eslogger's) gets it
+/// derived the same way when it's read back (``TraceImporter``), for every conforming value in the event.
+public protocol ESEnrichable {
+    /// Derive Mac Monitor's fields from the Endpoint Security ones.
+    mutating func enrich()
+}
+
+extension Message: ESEnrichable {
+    /// Derive the event's name, the action type's name, and the event's context and target path (the "context" is a
+    /// context item independent of `target_path`, the path "targeted" by the event: see ``EventType/summary(initiatingPath:)``).
+    public mutating func enrich() {
+        if case .unknown = event {
+            es_event_type = "NOT MAPPED"
+        } else {
+            es_event_type = eventTypeToString(from: es_event_type_t(rawValue: UInt32(truncatingIfNeeded: event_type)))
         }
-        
-        /// "context" will be a context item independent of `target_path`
-        /// /// @note Mac Monitor enrichment
-        self.context = context
-        
-        
-        /// `target_path` represents a path "targeted" by some ES event. For example,
-        /// * ``MMapEvent`` events will have the `target_path` field set for their `path`
-        /// * ``ProcessExecEvent`` events will have the `target_path` field set for their `process_path`
-        /// * Similarly, for events like ``FileWriteEvent`` the `target_path` will be set for the file's destination path.
-        /// > Not all events will have this populated. For example, it doesn't make sense for ``IOKitOpenEvent`` events to have a target path.
-        /// /// @note Mac Monitor enrichment
-        self.target_path = targetPath
+        /// `ES_ACTION_TYPE_AUTH` vs. `ES_ACTION_TYPE_NOTIFY`
+        action_type_string = switch es_action_type_t(rawValue: UInt32(truncatingIfNeeded: action_type)) {
+        case ES_ACTION_TYPE_AUTH: "ES_ACTION_TYPE_AUTH"
+        case ES_ACTION_TYPE_NOTIFY: "ES_ACTION_TYPE_NOTIFY"
+        default: "UNKNOWN_ACTION"
+        }
+        (context, target_path) = event.summary(initiatingPath: process.executable?.path ?? "")
     }
 }

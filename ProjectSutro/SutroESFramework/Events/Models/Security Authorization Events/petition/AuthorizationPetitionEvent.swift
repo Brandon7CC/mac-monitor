@@ -99,6 +99,15 @@ public struct AuthorizationPetitionEvent: Identifiable, Codable, Hashable {
             }
         }
         self.rights = tempRights
-        self.flags_array = translateFlags(event.flags)
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension AuthorizationPetitionEvent: ESEnrichable {
+    /// Derive the flags' names.
+    public mutating func enrich() {
+        flags_array = translateFlags(UInt32(truncatingIfNeeded: flags))
     }
 }

@@ -70,27 +70,13 @@ public struct OpenDirectoryGroupRemoveEvent: Identifiable, Codable, Hashable {
             .toString()
         
         self.error_code = Int(odGroupRemoveEvent.error_code)
-        self.error_code_human = decodeODErrorCode(self.error_code)
     
         self.group_name = ""
         if odGroupRemoveEvent.group_name.length > 0 {
             self.group_name = String(cString: odGroupRemoveEvent.group_name.data)
         }
         
-        self.member = ""
-        switch odGroupRemoveEvent.member.pointee.member_type {
-        case ES_OD_MEMBER_TYPE_USER_NAME:
-            self.member = "ES_OD_MEMBER_TYPE_USER_NAME"
-            break
-        case ES_OD_MEMBER_TYPE_USER_UUID:
-            self.member = "ES_OD_MEMBER_TYPE_USER_UUID"
-            break
-        case ES_OD_MEMBER_TYPE_GROUP_UUID:
-            self.member = "ES_OD_MEMBER_TYPE_GROUP_UUID"
-            break
-        default:
-            self.member = "UNKNOWN"
-        }
+        self.member = odMemberTypeName(odGroupRemoveEvent.member.pointee.member_type)
         
         self.node_name = ""
         if odGroupRemoveEvent.node_name.length > 0 {
@@ -101,5 +87,15 @@ public struct OpenDirectoryGroupRemoveEvent: Identifiable, Codable, Hashable {
         if odGroupRemoveEvent.db_path.length > 0 {
             self.db_path = String(cString: odGroupRemoveEvent.db_path.data)
         }
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension OpenDirectoryGroupRemoveEvent: ESEnrichable {
+    /// Derive the error code's description.
+    public mutating func enrich() {
+        error_code_human = decodeODErrorCode(error_code)
     }
 }

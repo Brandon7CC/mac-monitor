@@ -102,12 +102,6 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
             }
         }
         
-        /// Populate `resolved_script_path` if ES recognizes the scripting interpreter
-        if self.resolved_script_path == nil,
-           let script = self.script {
-            self.resolved_script_path = script.path
-        }
-        
         // Highest open file descriptor after the exec completed
         if version >= 4 {
             self.last_fd = Int(execEvent.last_fd)
@@ -136,6 +130,26 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
             }
         }
         
+        enrich()
         es_release_message(rawMessage)
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension ProcessExecEvent: ESEnrichable {
+    /// Derive `argc`, the command line (the arguments joined by spaces), and `resolved_script_path` when ES recognizes
+    /// the scripting interpreter (`script`).
+    ///
+    /// Not derived: the certificate chain and the script's content, which are read from the executable and the script.
+    public mutating func enrich() {
+        argc = args.count
+        if command_line == nil {
+            command_line = args.joined(separator: " ").trimmingCharacters(in: .whitespaces)
+        }
+        /// Populate `resolved_script_path` if ES recognizes the scripting interpreter
+        if resolved_script_path == nil, let script {
+            resolved_script_path = script.path
+        }
     }
 }

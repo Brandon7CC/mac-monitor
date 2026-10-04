@@ -21,11 +21,16 @@ struct ProjectSutroApp: App {
     /// This way we can give users the option to confirm before quitting
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
-    /// Open a new "Event metadata" window
+    /// Open a new "Event metadata" window, or a main window
     @Environment(\.openWindow) private var openEventJSON
+    
+    /// The main window's identifier, to open one for a trace when none is open.
+    private static let mainWindow = "main"
     
     /// Track everything going on with System Events and the Security Extension
     @StateObject var systemExtensionManager: EndpointSecurityManager = EndpointSecurityManager()
+    /// What the windows show: a live recording, or a trace opened with File > Open Trace… (#38).
+    @StateObject private var traceSession = TraceSession()
     /// Track all filters offered by Mac Monitor
     @State private var allFilters: Filters = Filters()
     /// Load user preferences from ``UserDefaults``
@@ -75,7 +80,7 @@ struct ProjectSutroApp: App {
     }
     
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: Self.mainWindow) {
             VStack(alignment: .leading) {
                 EventView(
                     recordingEvents: $recordingEvents,
@@ -90,6 +95,7 @@ struct ProjectSutroApp: App {
                 )
                 .environmentObject(systemExtensionManager)
                 .environmentObject(userPrefs)
+                .environmentObject(traceSession)
                 .padding(.bottom)
                 .frame(minWidth: 1200, minHeight: 750)
             }
@@ -110,6 +116,9 @@ struct ProjectSutroApp: App {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding()
+            /// A trace opened from Finder's Open With or `open -a` goes to a window that's already open (see
+            /// `EventView`'s `onOpenURL`) rather than a new one. With no window open, SwiftUI opens one for it.
+            .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
             .sheet(item: $updateToShow) { details in
                 UpdateAvailableSheet(updateDetails: details)
                     .environmentObject(systemExtensionManager)
@@ -121,6 +130,24 @@ struct ProjectSutroApp: App {
             }
         }
         .commands {
+            CommandGroup(after: .newItem) {
+                Button("Open Trace…") {
+                    traceSession.chooseTrace(recording: $recordingEvents, esm: systemExtensionManager, showWindow: showMainWindow)
+                }
+                .keyboardShortcut("o")
+                
+                Menu("Open Recent") {
+                    ForEach(traceSession.recents, id: \.self) { url in
+                        Button(url.lastPathComponent) {
+                            traceSession.open(url, recording: $recordingEvents, esm: systemExtensionManager, showWindow: showMainWindow)
+                        }
+                    }
+                    Divider()
+                    Button("Clear Menu") { traceSession.clearRecents() }
+                }
+                .disabled(traceSession.recents.isEmpty)
+            }
+            
             CommandGroup(replacing: .appInfo) {
                 Button("About Mac Monitor") {
                     NSApplication.shared.orderFrontStandardAboutPanel(
@@ -215,6 +242,7 @@ struct ProjectSutroApp: App {
                         systemExtensionManager.stopRecordingEvents()
                         systemExtensionManager.coreDataContainer.exportFullTrace()
                     }
+                    .disabled(traceSession.isOpening)
                     
                     Button("Selected events \(eventSelection.count > 0 ? ": \(eventSelection.count)" : "")") {
                         recordingEvents = false
@@ -226,7 +254,7 @@ struct ProjectSutroApp: App {
                             )
                         
                         
-                    }.disabled(eventSelection.isEmpty)
+                    }.disabled(eventSelection.isEmpty || traceSession.isOpening)
                 }
                 
                 Divider()
@@ -238,6 +266,7 @@ struct ProjectSutroApp: App {
                         systemExtensionManager.coreDataContainer.exportFullTrace(jsonl: true)
                     }
                     .keyboardShortcut("s", modifiers: .command)
+                    .disabled(traceSession.isOpening)
                     
                     Button("Selected events \(eventSelection.count > 0 ? ": \(eventSelection.count)" : "")") {
                         recordingEvents = false
@@ -245,7 +274,7 @@ struct ProjectSutroApp: App {
                         systemExtensionManager.coreDataContainer.exportSelectedEvents(eventIDs: Array(eventSelection), jsonl: true)
                     }
                     .keyboardShortcut("s", modifiers: [.command, .shift])
-                    .disabled(eventSelection.isEmpty)
+                    .disabled(eventSelection.isEmpty || traceSession.isOpening)
                 }
             }
         }
@@ -268,5 +297,12 @@ struct ProjectSutroApp: App {
             }
         }
         .defaultPosition(.topLeading).defaultSize(width: 1000, height: 900)
+        /// Never the window a trace opens in.
+        .handlesExternalEvents(matching: [])
+    }
+    
+    /// Open a main window, for a trace opened from the File menu while none is open (the app stays open without one).
+    private func showMainWindow() {
+        openEventJSON(id: Self.mainWindow)
     }
 }

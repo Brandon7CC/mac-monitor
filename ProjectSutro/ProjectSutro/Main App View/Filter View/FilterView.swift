@@ -34,6 +34,8 @@ public struct Filters: Equatable {
 
 struct FilterView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
+    /// "Drop platform binaries" only applies while recording, not to an open trace.
+    @EnvironmentObject var traceSession: TraceSession
     
     @Binding var allFilters: Filters
     @Binding var filteredTelemetryShown: Bool
@@ -94,7 +96,9 @@ struct FilterView: View {
                                     }) {
                                         Text(!filterPlatform ? "**Enable**" : "Disable")
                                     }.buttonStyle(.borderedProminent).tint(filterPlatform ? .pink : .green).opacity(0.8).padding(.trailing)
+                                        .disabled(!traceSession.isLive)
                                 }
+                                .help(traceSession.isLive ? "" : "Applies while recording")
                             }
                         }
                     }

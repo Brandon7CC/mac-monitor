@@ -111,7 +111,7 @@ func signalName(from signalNumber: Int32) -> String {
 public struct ProcessSignalEvent: Identifiable, Codable, Hashable {
     public var id: UUID = UUID()
     public var sig: Int
-    public var signal_name: String
+    public var signal_name = ""
     
     public var instigator: Process?
     public var target: Process
@@ -129,12 +129,21 @@ public struct ProcessSignalEvent: Identifiable, Codable, Hashable {
         let signalEvent: es_event_signal_t = rawMessage.pointee.event.signal
         
         self.sig = Int(signalEvent.sig)
-        self.signal_name = signalName(from: signalEvent.sig)
         
         if let instigator = signalEvent.instigator {
             self.instigator = Process(from: instigator.pointee, version: Int(rawMessage.pointee.version))
         }
         
         self.target = Process(from: signalEvent.target.pointee, version: Int(rawMessage.pointee.version))
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension ProcessSignalEvent: ESEnrichable {
+    /// Derive the signal's name.
+    public mutating func enrich() {
+        signal_name = signalName(from: Int32(truncatingIfNeeded: sig))
     }
 }

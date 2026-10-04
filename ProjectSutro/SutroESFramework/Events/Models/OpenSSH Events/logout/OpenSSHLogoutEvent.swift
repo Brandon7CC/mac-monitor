@@ -13,7 +13,7 @@ public struct SSHLogoutEvent: Identifiable, Codable, Hashable {
     public var id: UUID = UUID()
     
     public var source_address_type: Int32
-    public var source_address_type_string: String
+    public var source_address_type_string = ""
     
     public var source_address: String
     public var username: String
@@ -36,7 +36,16 @@ public struct SSHLogoutEvent: Identifiable, Codable, Hashable {
         uid = Int32(event.uid)
         
         source_address_type = Int32(event.source_address_type.rawValue)
-        switch(event.source_address_type) {
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension SSHLogoutEvent: ESEnrichable {
+    /// Derive the source address type's name.
+    public mutating func enrich() {
+        switch es_address_type_t(rawValue: UInt32(truncatingIfNeeded: source_address_type)) {
         case ES_ADDRESS_TYPE_NONE:
             source_address_type_string = "ES_ADDRESS_TYPE_NONE"
             break

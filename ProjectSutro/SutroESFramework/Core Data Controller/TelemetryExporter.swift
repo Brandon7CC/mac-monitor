@@ -94,10 +94,8 @@ final class TelemetryExporter {
     }
     
     // MARK: Choosing events
-    /// Every event saved by `batch`, in the order they were stored, which is the order the old export's unsorted
-    /// fetch returned.
-    ///
-    /// The sort matters: without one SQLite answers an ID-only fetch from an index, in another order.
+    /// Every event saved by `batch`, in the order they reached the store (``ESMessage/insert_order``): the order they
+    /// were recorded in, or a trace's file order.
     ///
     /// - Parameter batch: The last ``ESMessage/insert_batch`` to include.
     /// - Returns: The events' object IDs.
@@ -105,7 +103,7 @@ final class TelemetryExporter {
         let request = NSFetchRequest<NSManagedObjectID>(entityName: "ESMessage")
         request.resultType = .managedObjectIDResultType
         request.predicate = NSPredicate(format: "insert_batch <= %lld", batch)
-        request.sortDescriptors = [NSSortDescriptor(key: "objectID", ascending: true)]
+        request.sortDescriptors = [NSSortDescriptor(key: "insert_order", ascending: true)]
         return try context.fetch(request)
     }
     

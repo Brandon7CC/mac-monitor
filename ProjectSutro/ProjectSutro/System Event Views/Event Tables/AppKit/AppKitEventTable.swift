@@ -11,88 +11,6 @@ import CoreData
 import SutroESFramework
 
 
-// MARK: - Columns
-/// A column of an AppKit event table.
-struct EventTableColumn {
-    /// What a cell shows.
-    enum Content {
-        /// Monospaced text.
-        case text((ESMessage) -> String, truncation: NSLineBreakMode = .byTruncatingTail, lines: Int = 1, selectable: Bool = false)
-        /// One of the SwiftUI label views (event type, process name), hosted as is.
-        case view((ESMessage) -> AnyView)
-    }
-    
-    let title: String
-    let width: (min: CGFloat, ideal: CGFloat, max: CGFloat)
-    /// The `ESMessage` attribute the column sorts by.
-    let sortKey: String
-    /// Compare with `localizedStandardCompare:` (strings), like `TableColumn(_:value:)` does by default.
-    var sortsAsText = true
-    /// Can the column be hidden from the header's menu?
-    var hideable = true
-    var hiddenByDefault = false
-    let content: Content
-    
-    /// - Parameter message: The event to show.
-    /// - Returns: The text of a ``Content/text(_:truncation:lines:selectable:)`` cell.
-    static func timestamp(_ message: ESMessage) -> String { eventTimeStamp(for: message) }
-}
-
-extension EventTableColumn {
-    /// Offer the extra columns (hidden at first)? The SwiftUI tables of v2.1 and earlier only had them from macOS 14.
-    private static var customizable: Bool {
-        if #available(macOS 14, *) { return true } else { return false }
-    }
-    
-    /// The "System Security Unified" table's columns: six on macOS 13 (where a missing user reads "Unknown"), nine from
-    /// macOS 14.
-    static var unified: [EventTableColumn] {
-        var columns = [
-            EventTableColumn(title: "Timestamp", width: (100, 100, 100), sortKey: "message_darwin_time", sortsAsText: false,
-                             content: .text(timestamp)),
-            EventTableColumn(title: "Event type", width: (150, 200, 400), sortKey: "es_event_type", hideable: false,
-                             content: .view { AnyView(SystemEventTypeLabel(message: $0).truncationMode(.middle)) }),
-            EventTableColumn(title: "Context", width: (100, 150, 2_000), sortKey: "context", hideable: false,
-                             content: .text({ $0.context ?? "" }, truncation: .byTruncatingMiddle)),
-            EventTableColumn(title: "Effective user", width: (80, 90, 120), sortKey: "initiating_euid_human",
-                             content: .text({ $0.initiating_euid_human ?? (customizable ? "" : "Unknown") })),
-            EventTableColumn(title: "Source process", width: (80, 100, 200), sortKey: "initiating_name",
-                             content: .text({ $0.initiating_name ?? "" })),
-        ]
-        if customizable {
-            columns += [
-                EventTableColumn(title: "Initiating pid", width: (30, 50, 80), sortKey: "initiating_pid", sortsAsText: false,
-                                 hiddenByDefault: true, content: .text({ String($0.initiating_pid) })),
-                EventTableColumn(title: "ppid", width: (20, 30, 50), sortKey: "initiating_ppid", sortsAsText: false,
-                                 hiddenByDefault: true, content: .text({ String($0.initiating_ppid) })),
-                EventTableColumn(title: "Source process path", width: (50, 200, 500), sortKey: "initiating_path",
-                                 hiddenByDefault: true, content: .text({ $0.initiating_path ?? "" }, truncation: .byTruncatingMiddle)),
-            ]
-        }
-        columns.append(EventTableColumn(title: "Source Signing ID", width: (80, 100, 200), sortKey: "initiating_signing_id",
-                                        content: .text({ $0.initiating_signing_id ?? "" })))
-        return columns
-    }
-    
-    /// The "Process Execution" table's columns. The timestamp starts hidden on macOS 14, like
-    /// `CustomizableSystemProcessExecTableView`.
-    static var exec: [EventTableColumn] {
-        [
-            EventTableColumn(title: "Timestamp", width: (100, 100, 100), sortKey: "message_darwin_time", sortsAsText: false,
-                             hiddenByDefault: customizable, content: .text(timestamp)),
-            EventTableColumn(title: "Process name", width: (80, 100, 400), sortKey: "created_name", hideable: false,
-                             content: .view { AnyView(ProcessExecEventNameView(message: $0)) }),
-            EventTableColumn(title: "Signing ID", width: (80, 100, 200), sortKey: "created_signing_id",
-                             content: .text({ $0.created_signing_id ?? "" })),
-            EventTableColumn(title: "Process path", width: (50, 60, 300), sortKey: "created_path",
-                             content: .text({ $0.created_path ?? "" }, truncation: .byTruncatingMiddle, selectable: true)),
-            EventTableColumn(title: "Command line", width: (200, 600, .infinity), sortKey: "exec_command_line", hideable: false,
-                             content: .text({ $0.exec_command_line ?? "" }, lines: 8, selectable: true)),
-        ]
-    }
-}
-
-
 // MARK: - Table
 /// An `NSTableView` of events. SwiftUI's `Table` can't keep up with millions of rows (#84).
 ///
@@ -103,6 +21,9 @@ extension EventTableColumn {
 /// Clicking a column header sorts by it (the model refetches). Right-clicking the header shows or hides columns, and
 /// right-clicking (or Control-clicking) a row shows the event's menu (``EventRowMenu``). The
 /// columns' layout survives SwiftUI rebuilding the table (e.g. the mini-chart toggle).
+///
+/// A file dropped on the table is opened as a trace (`openFile`). The table takes the drop itself rather than leave it
+/// to the window's SwiftUI `onDrop`, which a drop on an AppKit view inside it may never reach.
 ///
 /// **Selection:** `selection` (event IDs) is shared with the other table and the "Export" menu. A
 /// change made in this table is written to it, and a change made elsewhere is mapped back onto this table's rows (off
@@ -121,6 +42,8 @@ struct AppKitEventTable: NSViewRepresentable {
     let openWindow: OpenWindowAction
     /// The columns' layout as saved in the scene (see ``ColumnLayout``), restored when the window is.
     let savedLayout: Binding<String>
+    /// Opens a file dropped on the table as a trace.
+    let openFile: (URL) -> Void
     
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     
@@ -175,6 +98,7 @@ struct AppKitEventTable: NSViewRepresentable {
         tableView.menu = rowMenu
         tableView.target = context.coordinator
         tableView.doubleAction = #selector(Coordinator.openEventFacts(_:))
+        tableView.registerForDraggedTypes([.fileURL])
         
         /// Before the data source is set, so restoring the sort doesn't trigger a refetch.
         tableView.sortDescriptors = query.sortDescriptors
@@ -360,6 +284,45 @@ struct AppKitEventTable: NSViewRepresentable {
             saveLayout(of: tableColumn.tableView)
         }
         
+        // MARK: Dropping a trace
+        /// Take a dropped file, highlighting the whole table rather than a row.
+        ///
+        /// - Parameters:
+        ///   - tableView: The table.
+        ///   - info: The drag.
+        ///   - row: The row the drop would go before or on, which doesn't matter here.
+        ///   - dropOperation: Before or on the row.
+        /// - Returns: `.copy` for a file, nothing for anything else.
+        func tableView(_ tableView: NSTableView, validateDrop info: NSDraggingInfo, proposedRow row: Int,
+                       proposedDropOperation dropOperation: NSTableView.DropOperation) -> NSDragOperation {
+            guard Self.droppedFile(info) != nil else { return [] }
+            tableView.setDropRow(-1, dropOperation: .on)
+            return .copy
+        }
+        
+        /// Open a dropped file as a trace, once the drag has ended (opening may ask first).
+        ///
+        /// - Parameters:
+        ///   - tableView: The table.
+        ///   - info: The drag.
+        ///   - row: Where the drop landed, which doesn't matter here.
+        ///   - dropOperation: Before or on the row.
+        /// - Returns: Whether the drop held a file.
+        func tableView(_ tableView: NSTableView, acceptDrop info: NSDraggingInfo, row: Int,
+                       dropOperation: NSTableView.DropOperation) -> Bool {
+            guard let url = Self.droppedFile(info) else { return false }
+            let openFile = parent.openFile
+            DispatchQueue.main.async { openFile(url) }
+            return true
+        }
+        
+        /// - Parameter info: A drag.
+        /// - Returns: The first file it carries, if any.
+        private static func droppedFile(_ info: NSDraggingInfo) -> URL? {
+            let urls = info.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true])
+            return (urls as? [URL])?.first
+        }
+        
         // MARK: Column layout
         /// Remember the columns' order, widths, and visibility on the query, so the table SwiftUI builds next (it builds
         /// the new one before taking this one down) looks the same.
@@ -380,200 +343,6 @@ struct AppKitEventTable: NSViewRepresentable {
         
         func tableViewColumnDidResize(_ notification: Notification) {
             saveLayout(of: notification.object as? NSTableView)
-        }
-    }
-}
-
-
-// MARK: - Table view
-/// The event tables' `NSTableView`, which takes right-clicks, Control-clicks, and double-clicks anywhere on a row itself.
-///
-/// Otherwise the cell under the pointer gets them first, and a text field there decides: a selectable one (Process path,
-/// Command line) can show its own text menu, or no menu at all, and selects a word on a double-click. Sending them to the
-/// table always opens the row's menu, or its Event Facts, with `clickedRow` set, wherever on the row the click lands.
-final class EventTableView: NSTableView {
-    /// - Parameter point: A point in the superview's coordinates.
-    /// - Returns: The table itself for a click that opens a context menu or Event Facts, otherwise the usual hit view.
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        let hit = super.hitTest(point)
-        guard hit != nil, let event = NSApp.currentEvent else { return hit }
-        switch event.type {
-        case .rightMouseDown:
-            return self
-        case .leftMouseDown where event.modifierFlags.contains(.control) || event.clickCount == 2:
-            return self
-        default:
-            return hit
-        }
-    }
-}
-
-
-// MARK: - Cells
-/// A plain text cell, monospaced.
-///
-/// The label is the cell's `textField`, so AppKit turns it white on a selected row.
-final class EventTextCell: NSTableCellView {
-    /// - Parameters:
-    ///   - identifier: The column's identifier, for reuse.
-    ///   - truncation: How a single line truncates.
-    ///   - lines: Wrap onto at most this many lines, truncating the last.
-    ///   - selectable: Can the text be selected (and copied)?
-    init(identifier: NSUserInterfaceItemIdentifier, truncation: NSLineBreakMode, lines: Int, selectable: Bool) {
-        super.init(frame: .zero)
-        self.identifier = identifier
-        
-        let label = lines > 1 ? NSTextField(wrappingLabelWithString: "") : NSTextField(labelWithString: "")
-        label.font = .monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
-        label.textColor = .labelColor
-        label.lineBreakMode = lines > 1 ? .byWordWrapping : truncation
-        label.maximumNumberOfLines = lines
-        label.cell?.truncatesLastVisibleLine = true
-        label.isSelectable = selectable
-        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        addSubview(label)
-        textField = label
-        pin(label)
-    }
-    
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-}
-
-/// A cell hosting one of the SwiftUI label views.
-final class EventHostingCell: NSTableCellView {
-    private let host = NSHostingView(rootView: AnyView(EmptyView()))
-    private var content = AnyView(EmptyView())
-    
-    /// The row's selection look, which the hosted view needs to pick its text colors.
-    override var backgroundStyle: NSView.BackgroundStyle {
-        didSet { if backgroundStyle != oldValue { render() } }
-    }
-    
-    /// - Parameter identifier: The column's identifier, for reuse.
-    init(identifier: NSUserInterfaceItemIdentifier) {
-        super.init(frame: .zero)
-        self.identifier = identifier
-        host.sizingOptions = [.intrinsicContentSize]
-        host.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        addSubview(host)
-        pin(host)
-    }
-    
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    
-    /// - Parameter view: The label to show.
-    func show(_ view: AnyView) {
-        content = AnyView(view.lineLimit(1).frame(maxWidth: .infinity, alignment: .leading))
-        render()
-    }
-    
-    /// Show the label, telling it whether its row is selected (`backgroundProminence`) so its colors match the
-    /// SwiftUI table's selected rows.
-    private func render() {
-        if #available(macOS 14, *) {
-            host.rootView = AnyView(content.environment(\.backgroundProminence, backgroundStyle == .emphasized ? .increased : .standard))
-        } else {
-            host.rootView = content
-        }
-    }
-}
-
-private extension NSTableCellView {
-    /// Fill the cell's width and center `view` vertically with 4 points above and below, the inset of SwiftUI's table
-    /// cells. With automatic row heights this makes a single-line row 24 points tall.
-    ///
-    /// - Parameter view: The cell's content.
-    func pin(_ view: NSView) {
-        view.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            view.leadingAnchor.constraint(equalTo: leadingAnchor),
-            view.trailingAnchor.constraint(equalTo: trailingAnchor),
-            view.centerYAnchor.constraint(equalTo: centerYAnchor),
-            view.topAnchor.constraint(greaterThanOrEqualTo: topAnchor, constant: 4),
-        ])
-    }
-}
-
-
-// MARK: - Tables view
-/// The main window's event tables: "System Security Unified" (with the mini-chart beside it) above "Process Execution",
-/// each an ``AppKitEventTable`` fed by an ``EventQueryModel``.
-struct AppKitEventTablesView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @EnvironmentObject var userPrefs: UserPrefs
-    @Environment(\.openWindow) private var openWindow
-    
-    @ObservedObject var model: EventQueryModel
-    /// Track all filters set by the user
-    @Binding var allFilters: Filters
-    /// The currently selected events (i.e. table rows)
-    @Binding var messageSelections: Set<ESMessage.ID>
-    
-    /// Should we display the "System Security Unified" table?
-    @Binding var unifiedViewSelected: Bool
-    /// Should we display the "Process Execution" table view?
-    @Binding var viewExec: Bool
-    /// Should we display the mini-chart?
-    @Binding var viewMiniChart: Bool
-    
-    /// Each table's column layout (see ``ColumnLayout``), kept with the window.
-    @SceneStorage("UnifiedSystemTableColumns.v2") private var unifiedColumns: String = ""
-    @SceneStorage("ProcessExecTableColumns.v2") private var execColumns: String = ""
-    
-    private var unifiedTable: some View {
-        table(model.unified, columns: EventTableColumn.unified, layout: $unifiedColumns)
-    }
-    
-    /// - Parameters:
-    ///   - query: The table's rows.
-    ///   - columns: The table's columns.
-    ///   - layout: Where the table's column layout is saved.
-    /// - Returns: An AppKit event table sharing the selection and filters.
-    private func table(_ query: EventTableQuery, columns: [EventTableColumn], layout: Binding<String>) -> AppKitEventTable {
-        AppKitEventTable(model: model, query: query, columns: columns, selection: $messageSelections, filters: $allFilters,
-                         manager: systemExtensionManager, prefs: userPrefs, openWindow: openWindow, savedLayout: layout)
-    }
-    
-    /// The shortest either table's pane can be dragged to.
-    private static let minimumPaneHeight: CGFloat = 120
-    
-    /// The tables are stacked in a split view, so the divider between them can be dragged. Where it was dragged isn't
-    /// saved: every launch starts from the default layout.
-    var body: some View {
-        let hasEvents = model.filteredCount > 0
-        VSplitView {
-            if unifiedViewSelected {
-                Form {
-                    Section(header: Label("System Security Unified", systemImage: "apple.logo").font(.title2)) {
-                        if viewMiniChart {
-                            GeometryReader { geo in
-                                HStack {
-                                    unifiedTable
-                                        .frame(width: geo.size.width * (hasEvents ? 0.80 : 1.0), height: geo.size.height)
-                                    SystemChartEventView(counts: model.chartCounts)
-                                        .frame(width: geo.size.width * (hasEvents ? 0.20 : 0.0), height: geo.size.height)
-                                }
-                            }
-                        } else {
-                            unifiedTable
-                        }
-                    }
-                }
-                .frame(minHeight: Self.minimumPaneHeight, maxHeight: .infinity)
-            }
-            
-            // MARK: Process Execute events will be displayed here (if enabled)
-            if viewExec {
-                Form {
-                    Section(header: Label("Process", systemImage: "cpu").font(.title2)) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("**Execution**")
-                            table(model.exec, columns: EventTableColumn.exec, layout: $execColumns)
-                        }
-                    }
-                }
-                .frame(minHeight: Self.minimumPaneHeight, maxHeight: .infinity)
-            }
         }
     }
 }

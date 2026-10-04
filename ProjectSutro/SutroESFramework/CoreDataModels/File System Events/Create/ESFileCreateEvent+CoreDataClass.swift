@@ -26,7 +26,7 @@ public class ESFileCreateEvent: NSManagedObject {
         let description = NSEntityDescription.entity(forEntityName: "ESFileCreateEvent", in: context)!
         self.init(entity: description, insertInto: context)
         
-        self.destination_type = Int16(create.destination_type)
+        self.destination_type = Int16(truncatingIfNeeded: create.destination_type)
         self.destination_type_string = create.destination_type_string
         self.destination = ESFileDestination(from: create.destination, insertIntoManagedObjectContext: context)
         self.acl = create.acl

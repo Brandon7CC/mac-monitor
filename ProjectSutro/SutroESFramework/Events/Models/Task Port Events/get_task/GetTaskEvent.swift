@@ -17,7 +17,7 @@ public struct GetTaskEvent: Identifiable, Codable, Hashable {
     
     /* field available only if message version >= 5 */
     public var type: Int16
-    public var type_string: String
+    public var type_string = ""
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -34,7 +34,16 @@ public struct GetTaskEvent: Identifiable, Codable, Hashable {
         target = Process(from: event.target.pointee, version: version)
         type = Int16(event.type.rawValue)
         
-        switch(event.type) {
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension GetTaskEvent: ESEnrichable {
+    /// Derive the task port type's name.
+    public mutating func enrich() {
+        switch es_get_task_type_t(rawValue: UInt32(truncatingIfNeeded: type)) {
         case ES_GET_TASK_TYPE_EXPOSE_TASK:
             type_string = "ES_GET_TASK_TYPE_EXPOSE_TASK"
         case ES_GET_TASK_TYPE_IDENTITY_TOKEN:
@@ -44,6 +53,5 @@ public struct GetTaskEvent: Identifiable, Codable, Hashable {
         default:
             type_string = "UNKNOWN"
         }
-       
     }
 }

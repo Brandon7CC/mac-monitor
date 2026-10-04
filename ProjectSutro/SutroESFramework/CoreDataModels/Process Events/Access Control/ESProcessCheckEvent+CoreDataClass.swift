@@ -29,7 +29,7 @@ public class ESProcessCheckEvent: NSManagedObject {
         
         self.type = procCheckEvent.type
         self.type_string = procCheckEvent.type_string
-        self.flavor = Int32(procCheckEvent.flavor)
+        self.flavor = Int32(truncatingIfNeeded: procCheckEvent.flavor)
         
         if let target = procCheckEvent.target {
             self.target = ESProcess(from: target, version: message.version, insertIntoManagedObjectContext: context)

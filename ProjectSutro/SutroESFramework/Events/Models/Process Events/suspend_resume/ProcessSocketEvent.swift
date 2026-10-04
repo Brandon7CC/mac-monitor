@@ -25,7 +25,7 @@ public struct ProcessSocketEvent: Identifiable, Codable, Hashable {
     
     public var target: Process?
     public var type: Int32
-    public var type_string: String
+    public var type_string = ""
     
     
     public func hash(into hasher: inout Hasher) {
@@ -46,7 +46,16 @@ public struct ProcessSocketEvent: Identifiable, Codable, Hashable {
         
         self.type = Int32(socketEvent.type.rawValue)
         
-        switch(socketEvent.type) {
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension ProcessSocketEvent: ESEnrichable {
+    /// Derive the type's name.
+    public mutating func enrich() {
+        switch es_proc_suspend_resume_type_t(rawValue: UInt32(truncatingIfNeeded: type)) {
         case ES_PROC_SUSPEND_RESUME_TYPE_RESUME:
             self.type_string = "ES_PROC_SUSPEND_RESUME_TYPE_RESUME"
         case ES_PROC_SUSPEND_RESUME_TYPE_SUSPEND:

@@ -22,7 +22,7 @@ public class ESProcessExitEvent: NSManagedObject {
         let description = NSEntityDescription.entity(forEntityName: "ESProcessExitEvent", in: context)!
         self.init(entity: description, insertInto: context)
         self.id = exitEvent.id
-        self.stat = Int32(exitEvent.stat)
+        self.stat = Int32(truncatingIfNeeded: exitEvent.stat)
     }
 }
 

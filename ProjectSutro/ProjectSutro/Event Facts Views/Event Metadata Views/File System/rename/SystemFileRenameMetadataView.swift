@@ -75,16 +75,7 @@ struct SystemFileRenameMetadataView: View {
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     
                     HStack {
-                        if FileManager.default
-                            .fileExists(atPath: event.destination_path) {
-                            Label("**Destination Path:**", systemImage: "checkmark.circle")
-                                .labelStyle(.titleAndIcon)
-                                .help("This file exists.")
-                        } else {
-                            Label("**Destination Path:**", systemImage: "xmark.circle")
-                                .labelStyle(.titleAndIcon)
-                                .help("This file no longer exists.")
-                        }
+                        FileExistsLabel(title: "**Destination Path:**", path: event.destination_path)
                         GroupBox {
                             Text(event.destination_path)
                                 .monospaced()
@@ -94,16 +85,7 @@ struct SystemFileRenameMetadataView: View {
                     
                     if let sourcePath = event.source.path {
                         HStack {
-                            if FileManager.default
-                                .fileExists(atPath: sourcePath) {
-                                Label("**Source path:**", systemImage: "checkmark.circle")
-                                    .labelStyle(.titleAndIcon)
-                                    .help("This file exists.")
-                            } else {
-                                Label("**Source path:**", systemImage: "xmark.circle")
-                                    .labelStyle(.titleAndIcon)
-                                    .help("This file no longer exists.")
-                            }
+                            FileExistsLabel(title: "**Source path:**", path: sourcePath)
                             GroupBox {
                                 Text(sourcePath)
                                     .monospaced()

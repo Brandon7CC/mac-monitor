@@ -66,7 +66,6 @@ public struct OpenDirectoryCreateUserEvent: Identifiable, Codable, Hashable {
         
         // MARK: Open Directory User Created Specifics
         self.error_code = Int(odUserCreatedEvent.error_code)
-        self.error_code_human = decodeODErrorCode(self.error_code)
     
         self.user_name = ""
         if odUserCreatedEvent.user_name.length > 0 {
@@ -82,5 +81,15 @@ public struct OpenDirectoryCreateUserEvent: Identifiable, Codable, Hashable {
         if odUserCreatedEvent.db_path.length > 0 {
             self.db_path = String(cString: odUserCreatedEvent.db_path.data)
         }
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension OpenDirectoryCreateUserEvent: ESEnrichable {
+    /// Derive the error code's description.
+    public mutating func enrich() {
+        error_code_human = decodeODErrorCode(error_code)
     }
 }

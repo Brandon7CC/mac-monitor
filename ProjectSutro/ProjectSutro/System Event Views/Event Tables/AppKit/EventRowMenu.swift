@@ -21,6 +21,9 @@ import SutroESFramework
 ///
 /// Everything an item needs is read when the menu is built. An item never touches the event again, which may have been
 /// cleared by the time the item is chosen.
+///
+/// While a trace is open the items that change what the Security Extension records (mute and unsubscribe) are left out,
+/// and so is "Advanced" if that leaves it empty.
 struct EventRowMenu {
     /// The right-clicked event.
     let message: ESMessage
@@ -29,6 +32,10 @@ struct EventRowMenu {
     let manager: EndpointSecurityManager
     /// Opens the "Event Facts" window for an event.
     let openWindow: OpenWindowAction
+    
+    /// Was the event recorded on this Mac (rather than read from a trace)? Only then can its path be muted, or its type
+    /// unsubscribed from.
+    private var isRecorded: Bool { !manager.coreDataContainer.isShowingTrace }
     
     /// - Returns: The menu's items: the process execution menu for `EXEC` events, the general one for everything else.
     func items() -> [NSMenuItem] {
@@ -67,37 +74,37 @@ struct EventRowMenu {
             })
         }
         
-        items += [.separator(), Self.header("Advanced")]
+        var advanced: [NSMenuItem] = []
         /// File and `MMAP` events filter and mute the directory they target rather than the file.
         let byDirectory = !targetPath.isEmpty && IntelligentEventTargeting.targetShouldBeParentDir(esEventType: eventType)
         let directory = URL(fileURLWithPath: targetPath).deletingLastPathComponent().path
         if prefs.contextTargetPathFilter && !targetPath.isEmpty {
             let filtered = byDirectory ? directory : targetPath
-            items.append(Self.item("Filter target path: \"\(filtered)/\"") { filters.wrappedValue.targetPaths.append(filtered) })
+            advanced.append(Self.item("Filter target path: \"\(filtered)/\"") { filters.wrappedValue.targetPaths.append(filtered) })
         }
-        if prefs.contextInitiatingPathMute {
-            items.append(Self.item("Mute initiating path: \"\(path ?? "")\"") {
+        if isRecorded && prefs.contextInitiatingPathMute {
+            advanced.append(Self.item("Mute initiating path: \"\(path ?? "")\"") {
                 manager.puntPathToMute(pathToMute: path ?? "", muteCase: ES_MUTE_PATH_TYPE_LITERAL, pathEvents: [])
                 manager.requestMutedPaths()
             })
         }
-        if prefs.contextTargetPathMute && !targetPath.isEmpty {
+        if isRecorded && prefs.contextTargetPathMute && !targetPath.isEmpty {
             if byDirectory {
-                items.append(Self.item("Mute target path event: \"\(directory)/\"") {
+                advanced.append(Self.item("Mute target path event: \"\(directory)/\"") {
                     manager.puntPathToMute(pathToMute: directory, muteCase: ES_MUTE_PATH_TYPE_TARGET_PREFIX, pathEvents: [eventType])
                     manager.requestMutedPaths()
                 })
             } else {
-                items.append(Self.item("Mute target path event: \"\(targetPath)/\"") {
+                advanced.append(Self.item("Mute target path event: \"\(targetPath)/\"") {
                     manager.puntPathToMute(pathToMute: targetPath, muteCase: ES_MUTE_PATH_TYPE_TARGET_LITERAL, pathEvents: [eventType])
                     manager.requestMutedPaths()
                 })
             }
         }
-        if prefs.contextEventUnsubscribe {
-            items.append(unsubscribe(eventType))
+        if isRecorded && prefs.contextEventUnsubscribe {
+            advanced.append(unsubscribe(eventType))
         }
-        return items
+        return items + advancedSection(advanced)
     }
     
     // MARK: Exec
@@ -144,28 +151,36 @@ struct EventRowMenu {
             })
         }
         
-        items += [.separator(), Self.header("Advanced")]
-        if prefs.contextExecTargetPathMute {
-            items.append(Self.item("Mute target path: \"\(targetFileName)\"") {
+        var advanced: [NSMenuItem] = []
+        if isRecorded && prefs.contextExecTargetPathMute {
+            advanced.append(Self.item("Mute target path: \"\(targetFileName)\"") {
                 os_log("Requesting ES mute the target process path for: \(id)\n \(targetFileName)")
                 manager.puntPathToMute(pathToMute: targetPath ?? "", muteCase: ES_MUTE_PATH_TYPE_TARGET_LITERAL, pathEvents: [])
                 manager.requestMutedPaths()
             })
         }
-        if prefs.contextExecInitiatingPathMute {
-            items.append(Self.item("Mute initiating path: \"\(name ?? "")\"") {
+        if isRecorded && prefs.contextExecInitiatingPathMute {
+            advanced.append(Self.item("Mute initiating path: \"\(name ?? "")\"") {
                 os_log("Requesting ES mute the initiating process path for: \(id)\n \(name ?? "")")
                 manager.puntPathToMute(pathToMute: path ?? "", muteCase: ES_MUTE_PATH_TYPE_LITERAL, pathEvents: [])
                 manager.requestMutedPaths()
             })
         }
-        if prefs.contextExecEventUnsubscribe {
-            items.append(unsubscribe(eventType))
+        if isRecorded && prefs.contextExecEventUnsubscribe {
+            advanced.append(unsubscribe(eventType))
         }
-        return items
+        return items + advancedSection(advanced)
     }
     
     // MARK: Shared items
+    /// The "Advanced" section, as the SwiftUI menus show it: always while recording, and only if it has items for a trace.
+    ///
+    /// - Parameter items: The section's items.
+    /// - Returns: A separator, the "Advanced" header, and the items; or nothing.
+    private func advancedSection(_ items: [NSMenuItem]) -> [NSMenuItem] {
+        (isRecorded || !items.isEmpty) ? [.separator(), Self.header("Advanced")] + items : []
+    }
+    
     /// "Event metadata": open the event in an "Event Facts" window.
     ///
     /// - Returns: The menu item.

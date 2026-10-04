@@ -26,7 +26,7 @@ public class ESODModifyPasswordEvent: NSManagedObject {
         self.instigator_process_audit_token = odModifyPasswordEvent.instigator_process_audit_token
         self.instigator_process_signing_id = odModifyPasswordEvent.instigator_process_signing_id
         
-        self.error_code = Int32(odModifyPasswordEvent.error_code)
+        self.error_code = Int32(truncatingIfNeeded: odModifyPasswordEvent.error_code)
         self.account_type = odModifyPasswordEvent.account_type
         self.account_name = odModifyPasswordEvent.account_name
         self.node_name = odModifyPasswordEvent.node_name

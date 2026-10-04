@@ -34,8 +34,8 @@ public struct MProtectEvent: Identifiable, Codable, Hashable {
     public var address, size: Int64
     
     /// @note Mac Monitor enrichment
-    public var hex_address: String
-    public var kb_size: Int64
+    public var hex_address = ""
+    public var kb_size: Int64 = 0
     public var flags: [String] = []
     
     public func hash(into hasher: inout Hasher) {
@@ -53,10 +53,19 @@ public struct MProtectEvent: Identifiable, Codable, Hashable {
         self.address = Int64(event.address)
         self.size = Int64(event.size)
         
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension MProtectEvent: ESEnrichable {
+    /// Derive the address in hex, the size in KB, and the protection's flags.
+    public mutating func enrich() {
         self.hex_address = ProcessHelpers
-            .toHex(target: String(event.address))
+            .toHex(target: String(UInt64(bitPattern: address)))
         self.kb_size = Int64(ProcessHelpers
-            .sizeFromHexNormalized(size: Double(event.size)))
-        self.flags = decodeProtectionFlags(event.protection)
+            .sizeFromHexNormalized(size: Double(UInt64(bitPattern: size))))
+        self.flags = decodeProtectionFlags(protection)
     }
 }

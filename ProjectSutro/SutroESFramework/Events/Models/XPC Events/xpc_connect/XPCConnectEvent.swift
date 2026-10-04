@@ -31,7 +31,7 @@ public struct XPCConnectEvent: Identifiable, Codable, Hashable {
     public var id: UUID = UUID()
     public var service_name: String
     public var service_domain_type: Int32
-    public var service_domain_type_string: String
+    public var service_domain_type_string = ""
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -50,7 +50,16 @@ public struct XPCConnectEvent: Identifiable, Codable, Hashable {
         }
         
         self.service_domain_type = Int32(xpcConnectEvent.service_domain_type.rawValue)
-        switch(xpcConnectEvent.service_domain_type){
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension XPCConnectEvent: ESEnrichable {
+    /// Derive the service domain type's name.
+    public mutating func enrich() {
+        switch es_xpc_domain_type_t(rawValue: UInt32(truncatingIfNeeded: service_domain_type)) {
         case ES_XPC_DOMAIN_TYPE_GUI:
             self.service_domain_type_string = "GUI"
             break

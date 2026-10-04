@@ -52,7 +52,6 @@ public struct OpenDirectoryModifyPasswordEvent: Identifiable, Codable, Hashable 
             .toString()
         
         self.error_code = Int(odModifyPasswordEvent.error_code)
-        self.error_code_human = decodeODErrorCode(self.error_code)
         
         switch odModifyPasswordEvent.account_type.rawValue {
         case ES_OD_ACCOUNT_TYPE_USER.rawValue:
@@ -77,5 +76,15 @@ public struct OpenDirectoryModifyPasswordEvent: Identifiable, Codable, Hashable 
         if odModifyPasswordEvent.db_path.length > 0 {
             self.db_path = String(cString: odModifyPasswordEvent.db_path.data)
         }
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension OpenDirectoryModifyPasswordEvent: ESEnrichable {
+    /// Derive the error code's description.
+    public mutating func enrich() {
+        error_code_human = decodeODErrorCode(error_code)
     }
 }

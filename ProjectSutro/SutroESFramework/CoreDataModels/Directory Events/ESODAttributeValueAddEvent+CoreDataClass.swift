@@ -27,7 +27,7 @@ public class ESODAttributeValueAddEvent: NSManagedObject {
         self.instigator_process_audit_token = attributeValueAddEvent.instigator_process_audit_token
         self.instigator_process_signing_id = attributeValueAddEvent.instigator_process_signing_id
         
-        self.error_code = Int32(attributeValueAddEvent.error_code)
+        self.error_code = Int32(truncatingIfNeeded: attributeValueAddEvent.error_code)
         self.record_type = attributeValueAddEvent.record_type
         self.record_name = attributeValueAddEvent.record_name
         self.attribute_name = attributeValueAddEvent.attribute_name

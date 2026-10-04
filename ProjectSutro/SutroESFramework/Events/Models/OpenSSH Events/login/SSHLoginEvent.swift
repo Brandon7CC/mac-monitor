@@ -16,10 +16,10 @@ public struct SSHLoginEvent: Identifiable, Codable, Hashable {
     
     public var success: Bool
     public var result_type: Int32
-    public var result_type_string: String
+    public var result_type_string = ""
     
     public var source_address_type: Int32
-    public var source_address_type_string: String
+    public var source_address_type_string = ""
     public var source_address: String
     
     public var username: String
@@ -41,7 +41,27 @@ public struct SSHLoginEvent: Identifiable, Codable, Hashable {
         success = event.success
         result_type = Int32(event.result_type.rawValue)
         
-        switch(event.result_type) {
+        
+        source_address_type = Int32(event.source_address_type.rawValue)
+        
+        source_address = event.source_address.toString() ?? ""
+        
+        username = event.username.toString() ?? ""
+        
+        has_uid = event.has_uid
+        if event.has_uid {
+            uid = Int32(event.uid.uid)
+        }
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension SSHLoginEvent: ESEnrichable {
+    /// Derive the names of the result type and the source address type.
+    public mutating func enrich() {
+        switch es_openssh_login_result_type_t(rawValue: UInt32(truncatingIfNeeded: result_type)) {
         case ES_OPENSSH_AUTH_SUCCESS:
             result_type_string = "ES_OPENSSH_AUTH_SUCCESS"
             break
@@ -76,9 +96,7 @@ public struct SSHLoginEvent: Identifiable, Codable, Hashable {
             result_type_string = "UNKNOWN"
             break
         }
-        
-        source_address_type = Int32(event.source_address_type.rawValue)
-        switch(event.source_address_type) {
+        switch es_address_type_t(rawValue: UInt32(truncatingIfNeeded: source_address_type)) {
         case ES_ADDRESS_TYPE_NONE:
             source_address_type_string = "ES_ADDRESS_TYPE_NONE"
             break
@@ -94,15 +112,6 @@ public struct SSHLoginEvent: Identifiable, Codable, Hashable {
         default:
             source_address_type_string = "UNKNOWN"
             break
-        }
-        
-        source_address = event.source_address.toString() ?? ""
-        
-        username = event.username.toString() ?? ""
-        
-        has_uid = event.has_uid
-        if event.has_uid {
-            uid = Int32(event.uid.uid)
         }
     }
 }

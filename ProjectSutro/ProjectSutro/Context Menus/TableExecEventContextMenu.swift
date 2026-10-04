@@ -12,6 +12,8 @@ import OSLog
 
 // MARK: Process execution event context menu
 // @discussion: This context menu is *only* safe to use on `ES_EVENT_TYPE_NOTIFY_EXEC`
+/// The right-click menu of an `EXEC` event in the SwiftUI tables. "Advanced" (mute and unsubscribe) changes what the
+/// Security Extension records, so it's left out while a trace is open.
 struct TableExecEventContextMenu: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @Environment(\.openWindow) private var openEventJSON
@@ -121,12 +123,14 @@ struct TableExecEventContextMenu: View {
         }
         
         
-        Divider()
-        
-        // MARK: Advanced context menu
-        Text("**Advanced**")
-        AdvancedExecEventContextMenu(allFilters: $allFilters, message: message)
-            .environmentObject(userPrefs)
+        if !systemExtensionManager.coreDataContainer.isShowingTrace {
+            Divider()
+            
+            // MARK: Advanced context menu
+            Text("**Advanced**")
+            AdvancedExecEventContextMenu(allFilters: $allFilters, message: message)
+                .environmentObject(userPrefs)
+        }
     }
 }
 

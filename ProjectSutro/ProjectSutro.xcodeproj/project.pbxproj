@@ -10,7 +10,12 @@
 		D15C00000000000000000066 /* EventSpool.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000065 /* EventSpool.swift */; };
 		D15C00000000000000000072 /* EventFilterSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000071 /* EventFilterSpec.swift */; };
 		D15C00000000000000000074 /* EventQueryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000073 /* EventQueryModel.swift */; };
+		D15C00000000000000000123 /* EventTableQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000122 /* EventTableQuery.swift */; };
+		D15C00000000000000000121 /* EventQueryModel+Worker.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000120 /* EventQueryModel+Worker.swift */; };
 		D15C00000000000000000076 /* AppKitEventTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000075 /* AppKitEventTable.swift */; };
+		D15C00000000000000000129 /* EventTableColumn.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000128 /* EventTableColumn.swift */; };
+		D15C00000000000000000127 /* EventTableCells.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000126 /* EventTableCells.swift */; };
+		D15C00000000000000000125 /* AppKitEventTablesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000124 /* AppKitEventTablesView.swift */; };
 		D15C00000000000000000078 /* EventRowMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000077 /* EventRowMenu.swift */; };
 		D15C0000000000000000000A /* UpdateInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000009 /* UpdateInstaller.swift */; };
 		D15C00000000000000000007 /* SensorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000006 /* SensorService.swift */; };
@@ -62,8 +67,19 @@
 		28320C9F29940F0600CB9D81 /* SECoreDataController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28320C9E29940F0600CB9D81 /* SECoreDataController.swift */; };
 		283C4D3929DF525F009FF6D3 /* DangerousEntitlements.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D3829DF525F009FF6D3 /* DangerousEntitlements.swift */; };
 		283C4D3D29E0983A009FF6D3 /* CoreDataController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D3C29E0983A009FF6D3 /* CoreDataController.swift */; };
+		D15C00000000000000000139 /* CoreDataController+Lookups.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000138 /* CoreDataController+Lookups.swift */; };
+		D15C00000000000000000137 /* CoreDataController+Export.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000136 /* CoreDataController+Export.swift */; };
+		D15C00000000000000000135 /* EventStoreFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000134 /* EventStoreFile.swift */; };
 		D15C0000000000000000007A /* TelemetryExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000079 /* TelemetryExporter.swift */; };
 		D15C00000000000000000102 /* RowCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000101 /* RowCache.swift */; };
+		D15C00000000000000000104 /* TraceImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000103 /* TraceImporter.swift */; };
+		D15C00000000000000000108 /* TraceImporter+Summary.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000107 /* TraceImporter+Summary.swift */; };
+		D15C0000000000000000010A /* TraceRecordReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000109 /* TraceRecordReader.swift */; };
+		D15C0000000000000000010C /* TraceImport+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000010B /* TraceImport+Extensions.swift */; };
+		D15C0000000000000000010E /* TraceDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000010D /* TraceDecoder.swift */; };
+		D15C00000000000000000110 /* TraceDecoderContainers.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000010F /* TraceDecoderContainers.swift */; };
+		D15C00000000000000000106 /* TraceSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000105 /* TraceSession.swift */; };
+		D15C0000000000000000012B /* TraceSessionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000012A /* TraceSessionViews.swift */; };
 		283C4D3F29E09D89009FF6D3 /* MutingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D3E29E09D89009FF6D3 /* MutingEngine.swift */; };
 		283C4D4329E0B633009FF6D3 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D4229E0B633009FF6D3 /* Helpers.swift */; };
 		283C4D4629E0B761009FF6D3 /* EventStreamControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D4529E0B761009FF6D3 /* EventStreamControl.swift */; };
@@ -292,6 +308,10 @@
 		28EC62DC29245CC300EAC8AD /* SystemEvents.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 28AF164C2922C66C00AA75A5 /* SystemEvents.xcdatamodeld */; };
 		28EC62DE29245D1A00EAC8AD /* SystemEvents.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 28AF164C2922C66C00AA75A5 /* SystemEvents.xcdatamodeld */; };
 		28EC62E5292595C100EAC8AD /* EventLabelViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E4292595C100EAC8AD /* EventLabelViews.swift */; };
+		D15C00000000000000000133 /* ProcessEventLabelViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000132 /* ProcessEventLabelViews.swift */; };
+		D15C00000000000000000131 /* FileEventLabelViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000130 /* FileEventLabelViews.swift */; };
+		D15C0000000000000000012F /* SystemEventLabelViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000012E /* SystemEventLabelViews.swift */; };
+		D15C0000000000000000012D /* EventFactsLabels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000012C /* EventFactsLabels.swift */; };
 		28EC62E82925966D00EAC8AD /* EventChartViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E72925966D00EAC8AD /* EventChartViews.swift */; };
 		28EC62EA29259BB900EAC8AD /* ProcessSystemEventsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E929259BB900EAC8AD /* ProcessSystemEventsViews.swift */; };
 		28EC62ED2925A0B400EAC8AD /* EntitlementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62EC2925A0B400EAC8AD /* EntitlementsView.swift */; };
@@ -459,7 +479,12 @@
 		D15C00000000000000000065 /* EventSpool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSpool.swift; sourceTree = "<group>"; };
 		D15C00000000000000000071 /* EventFilterSpec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventFilterSpec.swift; sourceTree = "<group>"; };
 		D15C00000000000000000073 /* EventQueryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventQueryModel.swift; sourceTree = "<group>"; };
+		D15C00000000000000000122 /* EventTableQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTableQuery.swift; sourceTree = "<group>"; };
+		D15C00000000000000000120 /* EventQueryModel+Worker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventQueryModel+Worker.swift"; sourceTree = "<group>"; };
 		D15C00000000000000000075 /* AppKitEventTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitEventTable.swift; sourceTree = "<group>"; };
+		D15C00000000000000000128 /* EventTableColumn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTableColumn.swift; sourceTree = "<group>"; };
+		D15C00000000000000000126 /* EventTableCells.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTableCells.swift; sourceTree = "<group>"; };
+		D15C00000000000000000124 /* AppKitEventTablesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitEventTablesView.swift; sourceTree = "<group>"; };
 		D15C00000000000000000077 /* EventRowMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventRowMenu.swift; sourceTree = "<group>"; };
 		D15C00000000000000000009 /* UpdateInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstaller.swift; sourceTree = "<group>"; };
 		D15C00000000000000000006 /* SensorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorService.swift; sourceTree = "<group>"; };
@@ -513,8 +538,19 @@
 		28320C9E29940F0600CB9D81 /* SECoreDataController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SECoreDataController.swift; sourceTree = "<group>"; };
 		283C4D3829DF525F009FF6D3 /* DangerousEntitlements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DangerousEntitlements.swift; sourceTree = "<group>"; };
 		283C4D3C29E0983A009FF6D3 /* CoreDataController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataController.swift; sourceTree = "<group>"; };
+		D15C00000000000000000138 /* CoreDataController+Lookups.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoreDataController+Lookups.swift"; sourceTree = "<group>"; };
+		D15C00000000000000000136 /* CoreDataController+Export.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoreDataController+Export.swift"; sourceTree = "<group>"; };
+		D15C00000000000000000134 /* EventStoreFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventStoreFile.swift; sourceTree = "<group>"; };
 		D15C00000000000000000079 /* TelemetryExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryExporter.swift; sourceTree = "<group>"; };
 		D15C00000000000000000101 /* RowCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RowCache.swift; sourceTree = "<group>"; };
+		D15C00000000000000000103 /* TraceImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceImporter.swift; sourceTree = "<group>"; };
+		D15C00000000000000000107 /* TraceImporter+Summary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TraceImporter+Summary.swift"; sourceTree = "<group>"; };
+		D15C00000000000000000109 /* TraceRecordReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceRecordReader.swift; sourceTree = "<group>"; };
+		D15C0000000000000000010B /* TraceImport+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TraceImport+Extensions.swift"; sourceTree = "<group>"; };
+		D15C0000000000000000010D /* TraceDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceDecoder.swift; sourceTree = "<group>"; };
+		D15C0000000000000000010F /* TraceDecoderContainers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceDecoderContainers.swift; sourceTree = "<group>"; };
+		D15C00000000000000000105 /* TraceSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceSession.swift; sourceTree = "<group>"; };
+		D15C0000000000000000012A /* TraceSessionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceSessionViews.swift; sourceTree = "<group>"; };
 		283C4D3E29E09D89009FF6D3 /* MutingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutingEngine.swift; sourceTree = "<group>"; };
 		283C4D4229E0B633009FF6D3 /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 		283C4D4529E0B761009FF6D3 /* EventStreamControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventStreamControl.swift; sourceTree = "<group>"; };
@@ -741,6 +777,10 @@
 		28EC62D5292446B700EAC8AD /* ESLaunchItemAddEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLaunchItemAddEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28EC62D6292446B700EAC8AD /* ESLaunchItemAddEvent+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLaunchItemAddEvent+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		28EC62E4292595C100EAC8AD /* EventLabelViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventLabelViews.swift; sourceTree = "<group>"; };
+		D15C00000000000000000132 /* ProcessEventLabelViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessEventLabelViews.swift; sourceTree = "<group>"; };
+		D15C00000000000000000130 /* FileEventLabelViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileEventLabelViews.swift; sourceTree = "<group>"; };
+		D15C0000000000000000012E /* SystemEventLabelViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventLabelViews.swift; sourceTree = "<group>"; };
+		D15C0000000000000000012C /* EventFactsLabels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventFactsLabels.swift; sourceTree = "<group>"; };
 		28EC62E72925966D00EAC8AD /* EventChartViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventChartViews.swift; sourceTree = "<group>"; };
 		28EC62E929259BB900EAC8AD /* ProcessSystemEventsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessSystemEventsViews.swift; sourceTree = "<group>"; };
 		28EC62EC2925A0B400EAC8AD /* EntitlementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementsView.swift; sourceTree = "<group>"; };
@@ -1557,13 +1597,30 @@
 			path = "Event Grouping";
 			sourceTree = "<group>";
 		};
+		D15C00000000000000000111 /* Trace Import */ = {
+			isa = PBXGroup;
+			children = (
+				D15C00000000000000000103 /* TraceImporter.swift */,
+				D15C00000000000000000107 /* TraceImporter+Summary.swift */,
+				D15C00000000000000000109 /* TraceRecordReader.swift */,
+				D15C0000000000000000010B /* TraceImport+Extensions.swift */,
+				D15C0000000000000000010D /* TraceDecoder.swift */,
+				D15C0000000000000000010F /* TraceDecoderContainers.swift */,
+			);
+			path = "Trace Import";
+			sourceTree = "<group>";
+		};
 		286A108A2A3257DA00D9FFB3 /* Core Data Controller */ = {
 			isa = PBXGroup;
 			children = (
 				283C4D3C29E0983A009FF6D3 /* CoreDataController.swift */,
+				D15C00000000000000000138 /* CoreDataController+Lookups.swift */,
+				D15C00000000000000000136 /* CoreDataController+Export.swift */,
+				D15C00000000000000000134 /* EventStoreFile.swift */,
 				D15C00000000000000000101 /* RowCache.swift */,
 				D15C00000000000000000079 /* TelemetryExporter.swift */,
 				282902B82A463D96003211A2 /* ThrottleManager.swift */,
+				D15C00000000000000000111 /* Trace Import */,
 			);
 			path = "Core Data Controller";
 			sourceTree = "<group>";
@@ -2396,6 +2453,8 @@
 			children = (
 				BA97AFCF2875471D0099C035 /* ProjectSutroApp.swift */,
 				BA97AFD12875471D0099C035 /* ContentView.swift */,
+				D15C00000000000000000105 /* TraceSession.swift */,
+				D15C0000000000000000012A /* TraceSessionViews.swift */,
 				28B865D32A31142300F06441 /* Delegates */,
 				28B865D22A31141300F06441 /* Accessories */,
 				2829D4192E7B472800B7E977 /* Filter View */,
@@ -2638,6 +2697,10 @@
 			children = (
 				CA4CE63F2E58FD8300C057EB /* EventCriticality.swift */,
 				28EC62E4292595C100EAC8AD /* EventLabelViews.swift */,
+				D15C00000000000000000132 /* ProcessEventLabelViews.swift */,
+				D15C00000000000000000130 /* FileEventLabelViews.swift */,
+				D15C0000000000000000012E /* SystemEventLabelViews.swift */,
+				D15C0000000000000000012C /* EventFactsLabels.swift */,
 			);
 			path = Labels;
 			sourceTree = "<group>";
@@ -2657,7 +2720,12 @@
 			children = (
 				D15C00000000000000000071 /* EventFilterSpec.swift */,
 				D15C00000000000000000073 /* EventQueryModel.swift */,
+				D15C00000000000000000122 /* EventTableQuery.swift */,
+				D15C00000000000000000120 /* EventQueryModel+Worker.swift */,
 				D15C00000000000000000075 /* AppKitEventTable.swift */,
+				D15C00000000000000000128 /* EventTableColumn.swift */,
+				D15C00000000000000000126 /* EventTableCells.swift */,
+				D15C00000000000000000124 /* AppKitEventTablesView.swift */,
 				D15C00000000000000000077 /* EventRowMenu.swift */,
 			);
 			path = AppKit;
@@ -3544,8 +3612,17 @@
 				28A25013299EFC47007B0753 /* ESFDDuplicateEvent+CoreDataProperties.swift in Sources */,
 				281BBE812A397C41009B94F8 /* ESODGroupRemoveEvent+CoreDataClass.swift in Sources */,
 				283C4D3D29E0983A009FF6D3 /* CoreDataController.swift in Sources */,
+				D15C00000000000000000139 /* CoreDataController+Lookups.swift in Sources */,
+				D15C00000000000000000137 /* CoreDataController+Export.swift in Sources */,
+				D15C00000000000000000135 /* EventStoreFile.swift in Sources */,
 				D15C0000000000000000007A /* TelemetryExporter.swift in Sources */,
 				D15C00000000000000000102 /* RowCache.swift in Sources */,
+				D15C00000000000000000104 /* TraceImporter.swift in Sources */,
+				D15C00000000000000000108 /* TraceImporter+Summary.swift in Sources */,
+				D15C0000000000000000010A /* TraceRecordReader.swift in Sources */,
+				D15C0000000000000000010C /* TraceImport+Extensions.swift in Sources */,
+				D15C0000000000000000010E /* TraceDecoder.swift in Sources */,
+				D15C00000000000000000110 /* TraceDecoderContainers.swift in Sources */,
 				284F85602E736A00001542E3 /* MuteSet.swift in Sources */,
 				28A169D72DADF09700CA630B /* ActionResult.swift in Sources */,
 				2852BB9029D8CAAC00AA833C /* ESFileWriteEvent+CoreDataClass.swift in Sources */,
@@ -3611,6 +3688,8 @@
 				28CEF0DF29776B51003057D2 /* SystemTargetExecProcMetadataView.swift in Sources */,
 				28EC62EF2925A1B100EAC8AD /* MMAPSystemEventsViews.swift in Sources */,
 				BA97AFD22875471D0099C035 /* ContentView.swift in Sources */,
+				D15C00000000000000000106 /* TraceSession.swift in Sources */,
+				D15C0000000000000000012B /* TraceSessionViews.swift in Sources */,
 				284CFE1B2A16F03200D0038B /* PathMutingSettingsView.swift in Sources */,
 				CA7D0EE82E42A07B0024243F /* UpdateAvailableSheet.swift in Sources */,
 				28823F5D2ED14D5F000B7F5C /* SystemListExtattrMetadataView.swift in Sources */,
@@ -3631,7 +3710,12 @@
 				2854A54B2E6DE836004149AF /* SystemSessionGroupTableView.swift in Sources */,
 				D15C00000000000000000072 /* EventFilterSpec.swift in Sources */,
 				D15C00000000000000000074 /* EventQueryModel.swift in Sources */,
+				D15C00000000000000000123 /* EventTableQuery.swift in Sources */,
+				D15C00000000000000000121 /* EventQueryModel+Worker.swift in Sources */,
 				D15C00000000000000000076 /* AppKitEventTable.swift in Sources */,
+				D15C00000000000000000129 /* EventTableColumn.swift in Sources */,
+				D15C00000000000000000127 /* EventTableCells.swift in Sources */,
+				D15C00000000000000000125 /* AppKitEventTablesView.swift in Sources */,
 				D15C00000000000000000078 /* EventRowMenu.swift in Sources */,
 				28CEF10529776D9A003057D2 /* InitiatingUserView.swift in Sources */,
 				28B9A94329DC9A74006619FF /* SystemProcessSocketMetadataView.swift in Sources */,
@@ -3652,6 +3736,10 @@
 				CA59364B2E8B06EC008A115D /* SystemSetModeMetadataView.swift in Sources */,
 				28EC62ED2925A0B400EAC8AD /* EntitlementsView.swift in Sources */,
 				28EC62E5292595C100EAC8AD /* EventLabelViews.swift in Sources */,
+				D15C00000000000000000133 /* ProcessEventLabelViews.swift in Sources */,
+				D15C00000000000000000131 /* FileEventLabelViews.swift in Sources */,
+				D15C0000000000000000012F /* SystemEventLabelViews.swift in Sources */,
+				D15C0000000000000000012D /* EventFactsLabels.swift in Sources */,
 				28EBAA8C2A1C3B6F00AE80F9 /* ContextTargetResolver.swift in Sources */,
 				28CEF10729776E46003057D2 /* SystemTargetProcessView.swift in Sources */,
 				28A169CD2DA206E600CA630B /* EventViewProvider.swift in Sources */,

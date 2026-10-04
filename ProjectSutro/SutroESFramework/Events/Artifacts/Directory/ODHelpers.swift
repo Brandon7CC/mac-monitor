@@ -9,8 +9,13 @@ import Foundation
 //import SwiftODConstants
 
 
+/// The name and meaning of an Open Directory error code, from `odconstants.h`.
+///
+/// - Parameter errorCode: An Open Directory event's `error_code`.
+/// - Returns: The error's name and description, or `Unknown` for a code `odconstants.h` doesn't define.
 public func decodeODErrorCode(_ errorCode: Int) -> String {
-    switch ODFrameworkErrors(UInt32(errorCode)) {
+    guard let code = UInt32(exactly: errorCode) else { return "Unknown" }
+    switch ODFrameworkErrors(code) {
     case kODErrorSuccess:
         return "`kODErrorSuccess`: The operation was successful."
     case kODErrorSessionLocalOnlyDaemonInUse:
@@ -139,5 +144,16 @@ public func decodeODErrorCode(_ errorCode: Int) -> String {
 }
 
 
-
-
+/// The name of an Open Directory group member's type, as the Security Extension records an `od_group_add` or
+/// `od_group_remove` event's `member`.
+///
+/// - Parameter type: The member's `es_od_member_type_t`.
+/// - Returns: The type's name, or `UNKNOWN`.
+func odMemberTypeName(_ type: es_od_member_type_t) -> String {
+    switch type {
+    case ES_OD_MEMBER_TYPE_USER_NAME: "ES_OD_MEMBER_TYPE_USER_NAME"
+    case ES_OD_MEMBER_TYPE_USER_UUID: "ES_OD_MEMBER_TYPE_USER_UUID"
+    case ES_OD_MEMBER_TYPE_GROUP_UUID: "ES_OD_MEMBER_TYPE_GROUP_UUID"
+    default: "UNKNOWN"
+    }
+}

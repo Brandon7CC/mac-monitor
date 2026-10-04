@@ -70,27 +70,13 @@ public struct OpenDirectoryGroupAddEvent: Identifiable, Codable, Hashable {
             .toString()
         
         self.error_code = Int(odGroupAddEvent.error_code)
-        self.error_code_human = decodeODErrorCode(self.error_code)
     
         self.group_name = ""
         if odGroupAddEvent.group_name.length > 0 {
             self.group_name = String(cString: odGroupAddEvent.group_name.data)
         }
         
-        self.member = ""
-        switch odGroupAddEvent.member.pointee.member_type {
-        case ES_OD_MEMBER_TYPE_USER_NAME:
-            self.member = "ES_OD_MEMBER_TYPE_USER_NAME"
-            break
-        case ES_OD_MEMBER_TYPE_USER_UUID:
-            self.member = "ES_OD_MEMBER_TYPE_USER_UUID"
-            break
-        case ES_OD_MEMBER_TYPE_GROUP_UUID:
-            self.member = "ES_OD_MEMBER_TYPE_GROUP_UUID"
-            break
-        default:
-            self.member = "UNKNOWN"
-        }
+        self.member = odMemberTypeName(odGroupAddEvent.member.pointee.member_type)
         
         self.node_name = ""
         if odGroupAddEvent.node_name.length > 0 {
@@ -101,5 +87,15 @@ public struct OpenDirectoryGroupAddEvent: Identifiable, Codable, Hashable {
         if odGroupAddEvent.db_path.length > 0 {
             self.db_path = String(cString: odGroupAddEvent.db_path.data)
         }
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension OpenDirectoryGroupAddEvent: ESEnrichable {
+    /// Derive the error code's description.
+    public mutating func enrich() {
+        error_code_human = decodeODErrorCode(error_code)
     }
 }

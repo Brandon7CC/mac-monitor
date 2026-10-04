@@ -11,6 +11,7 @@ import SystemExtensions
 import SutroESFramework
 import OSLog
 import AppKit
+import UniformTypeIdentifiers
 
 
 /// Handles requesting app reboots and showing a TCC access alert.
@@ -51,6 +52,9 @@ struct EventView: View {
     
     /// Load user preferences from ``UserDefaults``
     @EnvironmentObject var userPrefs: UserPrefs
+    
+    /// A live recording, or an opened trace (File > Open Trace…).
+    @EnvironmentObject var traceSession: TraceSession
     
     
     
@@ -117,7 +121,8 @@ struct EventView: View {
             filters: allFilters,
             searchText: filterText,
             filteringLongRunningProcs: filteringLongRunningProcs,
-            clientConnectDT: systemExtensionManager.clientConnectDT
+            /// Every event in a trace is older than this launch: the filter means nothing there.
+            clientConnectDT: traceSession.isLive ? systemExtensionManager.clientConnectDT : .distantPast
         )
     }
     
@@ -161,6 +166,13 @@ struct EventView: View {
         }
     }
     
+    /// Open a trace (File > Open Trace…), replacing the events on screen.
+    ///
+    /// - Parameter url: The trace, from Finder's Open With, `open -a`, or a drop on the window.
+    private func openTrace(_ url: URL) {
+        traceSession.open(url, recording: $recordingEvents, esm: systemExtensionManager)
+    }
+    
     var body: some View {
         VStack(alignment: .leading) {
             AppKitEventTablesView(
@@ -169,7 +181,8 @@ struct EventView: View {
                 messageSelections: $eventSelection,
                 unifiedViewSelected: $unifiedViewSelected,
                 viewExec: $processExecSelected,
-                viewMiniChart: $viewMiniChart
+                viewMiniChart: $viewMiniChart,
+                openFile: openTrace
             )
             .environmentObject(systemExtensionManager)
             .environmentObject(userPrefs)
@@ -185,11 +198,13 @@ struct EventView: View {
                         .environmentObject(systemExtensionManager)
                         .environmentObject(agentTerminate)
                         .environmentObject(userPrefs)
+                        .environmentObject(traceSession)
                 } else {
                     SonomaStartButton(recordingEvents: $recordingEvents, confirmClear: $confirmClear)
                         .environmentObject(systemExtensionManager)
                         .environmentObject(agentTerminate)
                         .environmentObject(userPrefs)
+                        .environmentObject(traceSession)
                 }
                 
                 // MARK: - Stop recording events
@@ -210,7 +225,8 @@ struct EventView: View {
             // MARK: - Clear System Events
             ToolbarItem(placement: .principal) {
                 Button(action: {
-                    if userPrefs.lifecycleWarnBeforeClear {
+                    /// Closing a trace loses nothing: the file is still on disk.
+                    if userPrefs.lifecycleWarnBeforeClear && traceSession.isLive {
                         confirmClear.toggle()
                     } else {
                         clearSystemEventsUI()
@@ -220,7 +236,8 @@ struct EventView: View {
                         .labelStyle(.titleAndIcon)
                         .padding([.leading, .trailing], 5)
                 }
-                .disabled(totalEventCount == 0)
+                .disabled(totalEventCount == 0 && traceSession.isLive)
+                .help(traceSession.isLive ? "" : "Close the trace")
                 
                 
             }
@@ -241,6 +258,7 @@ struct EventView: View {
                         filterPlatform: $filterPlatform
                     )
                     .environmentObject(systemExtensionManager)
+                    .environmentObject(traceSession)
                 })
             }
             
@@ -257,6 +275,8 @@ struct EventView: View {
                 Text(eventCountString)
                     .padding([.trailing])
                 
+                TraceStatusView(session: traceSession)
+                
                 Circle()
                     .fill(recordingEvents ? Color.green : Color.red)
                     .shadow(color: Color.green, radius: 0.5)
@@ -270,6 +290,22 @@ struct EventView: View {
             }
         }
         .searchable(text: $filterText, prompt: "Filter by context")
+        .navigationTitle(traceSession.title)
+        .navigationSubtitle(traceSession.subtitle)
+        .background { TraceDocument(url: traceSession.url) }
+        /// Finder's Open With and `open -a`: SwiftUI hands the first file to this window (see `AppDelegate` for the
+        /// rest).
+        .onOpenURL { url in
+            guard url.isFileURL else { return }
+            openTrace(url)
+        }
+        /// Drops outside the event tables (which take file drops themselves, see ``AppKitEventTable``).
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            traceSession.open(dropped: providers, recording: $recordingEvents, esm: systemExtensionManager)
+        }
+        /// Counted so a trace opened from the File menu with no main window open gets one.
+        .onAppear { traceSession.mainWindows += 1 }
+        .onDisappear { traceSession.mainWindows -= 1 }
         .onAppear {
             if !CommandLine.arguments.contains("--deactivate-security-extension") {
                 systemExtensionManager.activateSystemExtension()

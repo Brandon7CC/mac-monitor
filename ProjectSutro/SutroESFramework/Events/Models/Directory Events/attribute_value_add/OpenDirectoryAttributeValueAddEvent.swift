@@ -75,7 +75,6 @@ public struct OpenDirectoryAttributeValueAddEvent: Identifiable, Codable, Hashab
             .toString()
         
         self.error_code = Int(attributeValueAddEvent.error_code)
-        self.error_code_human = decodeODErrorCode(self.error_code)
     
         self.record_type = ""
         switch(attributeValueAddEvent.record_type) {
@@ -113,5 +112,15 @@ public struct OpenDirectoryAttributeValueAddEvent: Identifiable, Codable, Hashab
         if attributeValueAddEvent.db_path.length > 0 {
             self.db_path = String(cString: attributeValueAddEvent.db_path.data)
         }
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension OpenDirectoryAttributeValueAddEvent: ESEnrichable {
+    /// Derive the error code's description.
+    public mutating func enrich() {
+        error_code_human = decodeODErrorCode(error_code)
     }
 }

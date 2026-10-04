@@ -15,7 +15,7 @@ public struct FileRenameEvent: Identifiable, Codable, Hashable {
     public var source: File
     
     public var destination_type: Int
-    public var destination_type_string: String
+    public var destination_type_string = ""
     public var destination: FileDestination
     
     /// @note Mac Monitor enrichment
@@ -38,24 +38,26 @@ public struct FileRenameEvent: Identifiable, Codable, Hashable {
         self.destination_type = Int(fileRenameEvent.destination_type.rawValue)
         self.destination = FileDestination.from(rename: fileRenameEvent)
         
-        switch(fileRenameEvent.destination_type) {
-        case ES_DESTINATION_TYPE_EXISTING_FILE:
-            self.destination_type_string = "ES_DESTINATION_TYPE_EXISTING_FILE"
-            
-            if let path = destination.existing_file?.path {
-                self.destination_path = path
-                self.is_quarantined = Int16(ProcessHelpers.isFileQuarantined(filePath: path))
-            }
-        case ES_DESTINATION_TYPE_NEW_PATH:
-            self.destination_type_string = "ES_DESTINATION_TYPE_NEW_PATH"
-            
-            if let dir = destination.new_path?.dir.path,
-               let fileName = destination.new_path?.filename {
-                self.destination_path = "\(dir)/\(fileName)"
-                self.is_quarantined = Int16(ProcessHelpers.isFileQuarantined(filePath: self.destination_path))
-            }
-        default:
-            self.destination_type_string = "NOT_MAPPED"
+        enrich()
+        if !destination_path.isEmpty {
+            self.is_quarantined = Int16(ProcessHelpers.isFileQuarantined(filePath: destination_path))
+        }
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension FileRenameEvent: ESEnrichable {
+    /// Derive the destination type's name and the destination's full path.
+    ///
+    /// Not derived: `is_quarantined`, which is read from the file.
+    public mutating func enrich() {
+        destination_type_string = FileDestination.typeName(destination_type)
+        switch destination {
+        case .existing_file(let file):
+            destination_path = file.path
+        case .new_path(let path):
+            destination_path = "\(path.dir.path)/\(path.filename)"
         }
     }
 }

@@ -13,7 +13,8 @@ import EndpointSecurity
 // Available beginning in macOS 15.4
 public struct TCCModifyEvent: Identifiable, Codable, Hashable {
     public var id: UUID = UUID()
-    public var service, identity, identity_type_string, update_type_string, right_string, reason_string: String
+    public var service, identity: String
+    public var identity_type_string = "", update_type_string = "", right_string = "", reason_string = ""
     public var identity_type, update_type, right, reason: UInt32
     public var instigator_token: AuditToken
     public var instigator, responsible: Process?
@@ -55,7 +56,19 @@ public struct TCCModifyEvent: Identifiable, Codable, Hashable {
         
         // MARK: - Enrichment
         
-        switch(tccModifyEvent.identity_type) {
+        
+        
+        
+        enrich()
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension TCCModifyEvent: ESEnrichable {
+    /// Derive the names of the identity type, update type, right, and reason.
+    public mutating func enrich() {
+        switch es_tcc_identity_type_t(rawValue: identity_type) {
         case ES_TCC_IDENTITY_TYPE_BUNDLE_ID:
             identity_type_string = "ES_TCC_IDENTITY_TYPE_BUNDLE_ID"
         case ES_TCC_IDENTITY_TYPE_POLICY_ID:
@@ -67,8 +80,7 @@ public struct TCCModifyEvent: Identifiable, Codable, Hashable {
         default:
             identity_type_string = "Unknown"
         }
-        
-        switch(tccModifyEvent.update_type) {
+        switch es_tcc_event_type_t(rawValue: update_type) {
         case ES_TCC_EVENT_TYPE_UNKNOWN:
             update_type_string = "ES_TCC_EVENT_TYPE_UNKNOWN"
         case ES_TCC_EVENT_TYPE_CREATE:
@@ -80,8 +92,7 @@ public struct TCCModifyEvent: Identifiable, Codable, Hashable {
         default:
             update_type_string = "Unknown"
         }
-        
-        switch(tccModifyEvent.right) {
+        switch es_tcc_authorization_right_t(rawValue: right) {
         case ES_TCC_AUTHORIZATION_RIGHT_DENIED:
             right_string = "ES_TCC_AUTHORIZATION_RIGHT_DENIED"
         case ES_TCC_AUTHORIZATION_RIGHT_UNKNOWN:
@@ -99,8 +110,7 @@ public struct TCCModifyEvent: Identifiable, Codable, Hashable {
         default:
             right_string = "Unknown"
         }
-        
-        switch(tccModifyEvent.reason) {
+        switch es_tcc_authorization_reason_t(rawValue: reason) {
         case ES_TCC_AUTHORIZATION_REASON_NONE:
             reason_string = "ES_TCC_AUTHORIZATION_REASON_NONE"
         case ES_TCC_AUTHORIZATION_REASON_ERROR:

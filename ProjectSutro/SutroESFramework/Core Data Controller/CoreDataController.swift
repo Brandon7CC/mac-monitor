@@ -18,7 +18,7 @@ import UniformTypeIdentifiers
 ///
 public class CoreDataController {
     public static let shared = CoreDataController()
-    private static let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "CoreDataController")
+    static let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "CoreDataController")
     
     /// Main context
     ///
@@ -29,7 +29,7 @@ public class CoreDataController {
     /// Background context
     ///
     /// Designed for asyncronous operations like batch inserting.
-    private let privateMOC: NSManagedObjectContext
+    let privateMOC: NSManagedObjectContext
     
     /// The rows `privateMOC`'s events share: one `ESProcess` (with its tokens and files) per process rather than one per
     /// event, and one `ESFile` per file and stat (#84). Kept in `privateMOC.userInfo`; only touched on its queue.
@@ -113,11 +113,13 @@ public class CoreDataController {
     public static let insertedObjectIDsKey = "insertedObjectIDs"
     public static let insertBatchKey = "insertBatch"
     
-    /// Posted on the calling thread (the main thread) by ``clearSystemEvents()`` before anything is deleted. Views must let
-    /// go of every event (and anything reached through one) right away: the delete starts on the next turn of the run loop.
+    /// Posted on the calling thread (the main thread) by ``clearSystemEvents(source:)`` before anything is deleted. Views
+    /// must let go of every event (and anything reached through one) right away: the delete starts on the next turn of the
+    /// run loop.
     public static let eventsWillClear = Notification.Name("com.swiftlydetecting.agent.eventsWillClear")
     
-    /// Posted on the main thread once ``clearSystemEvents()`` has deleted everything, so views can load events again.
+    /// Posted on the main thread once ``clearSystemEvents(source:)`` has deleted everything, so views can load events
+    /// again.
     public static let eventsDidClear = Notification.Name("com.swiftlydetecting.agent.eventsDidClear")
     
     /// Is a Clear deleting events right now (between ``eventsWillClear`` and ``eventsDidClear``)? Main thread only.
@@ -137,13 +139,36 @@ public class CoreDataController {
     /// and the events are dropped, rather than kept in memory until Mac Monitor runs out of it (#84).
     private static let maxUnsavedEvents = 20_000
     
-    /// Events that happened before this are discarded on insert. Set by ``clearSystemEvents()`` so events recorded before a
-    /// Clear, but still on their way from the Security Extension, can't refill the table. Only touched on `privateMOC`'s
-    /// queue.
+    /// Recorded events that happened before this are discarded on insert. Set by ``clearSystemEvents(source:)`` so events
+    /// recorded before a Clear, but still on their way from the Security Extension, can't refill the table. While a trace
+    /// is open it's `.distantFuture`, so no recorded event mixes into the trace. Only touched on `privateMOC`'s queue.
     ///
     /// Wall-clock time, not `mach_time`: under Rosetta this process's `mach_absolute_time()` uses a different timebase
     /// than the (native) Security Extension's, so the two can't be compared.
     private var discardBefore: Date = .distantPast
+    
+    /// Where the events in the store come from.
+    public enum EventSource: Equatable {
+        /// Recorded by the Security Extension.
+        case live
+        /// Read from a trace file (File > Open Trace…).
+        case trace(URL)
+    }
+    
+    /// Where the events in the store come from. Set by ``clearSystemEvents(source:)``. Main thread only.
+    public private(set) var source: EventSource = .live
+    
+    /// Clears requested so far. Main thread only.
+    private var clearsRequested = 0
+    /// The last Clear to reach `privateMOC`. A trace's inserts carry the Clear that opened it, so a trace that has since
+    /// been closed or replaced can't add to the store. Only touched on `privateMOC`'s queue.
+    private var currentClear = 0
+    
+    /// The ``ESMessage/insert_order`` of the next event inserted. Only touched on `privateMOC`'s queue.
+    private var nextInsertOrder: Int64 = 0
+    
+    /// The trace being read, stopped by the next Clear. Main thread only.
+    private weak var currentImport: TraceImporter?
     
     /// Inserts a batch of system events into the private context in a single background transaction.
     ///
@@ -158,6 +183,9 @@ public class CoreDataController {
     /// After a successful save the context is reset so it doesn't accumulate every event ever inserted. On failure the
     /// objects are kept and retried with the next batch's save rather than lost (up to 20,000 events).
     ///
+    /// Recorded events that happened before the last Clear are discarded, and while a trace is open every recorded event
+    /// is (see ``clearSystemEvents(source:)``).
+    ///
     ///  - Parameters:
     ///    - messages: An array of system events (`Message`) to insert.
     ///    - completion: Called on the private context's queue once the batch has been saved (or failed to save).
@@ -165,25 +193,58 @@ public class CoreDataController {
     ///      back-pressure when inserts fall behind.
     ///
     public func insertSystemEvents(messages: [Message], completion: @escaping () -> Void = {}) {
-        guard !messages.isEmpty else { return completion() }
+        insert(messages, keeping: { $0.message_darwin_time >= self.discardBefore }) { _ in completion() }
+    }
+    
+    /// Inserts a batch of events read from a trace file (see ``TraceImporter``), however long ago they happened.
+    ///
+    /// A batch that fails to save is dropped rather than retried with the next save: the trace can be read again, and the
+    /// store then holds exactly the events reported saved.
+    ///
+    /// - Parameters:
+    ///   - messages: The events, in file order.
+    ///   - clear: The Clear that opened the trace (``clearSystemEvents(source:)``). Once another Clear has run the trace is
+    ///     gone, and the batch is dropped.
+    ///   - completion: Called on the private context's queue with whether the batch was saved.
+    func insertTraceEvents(_ messages: [Message], clear: Int, completion: @escaping (Bool) -> Void) {
+        insert(messages, keeping: { _ in clear == self.currentClear }) { saved in
+            if !saved { self.discardUnsavedEvents() }
+            completion(saved)
+        }
+    }
+    
+    /// Insert the events `keep` accepts in a single background transaction, save, and announce them (``eventsInserted``).
+    ///
+    /// - Parameters:
+    ///   - messages: The events.
+    ///   - keep: Decides, on the private context's queue, which events to store.
+    ///   - completion: Called on the private context's queue with whether the batch was saved (`true` when nothing needed
+    ///     saving).
+    private func insert(_ messages: [Message], keeping keep: @escaping (Message) -> Bool,
+                        completion: @escaping (Bool) -> Void) {
+        guard !messages.isEmpty else { return completion(true) }
         
         privateMOC.perform {
             let context = self.privateMOC
-            defer { completion() }
+            var saved = false
+            defer { completion(saved) }
             
             guard self.canSave.withLock({ $0 }) else { return }
             let batch = self.lastInsertBatch + 1
-            for message in messages where message.message_darwin_time >= self.discardBefore {
+            for message in messages where keep(message) {
                 let systemESMessage = ESMessage(from: message, insertIntoManagedObjectContext: context)
+                systemESMessage.insert_order = self.nextInsertOrder
+                self.nextInsertOrder += 1
                 systemESMessage.instigator_audit_token = message.process.audit_token_string
                 systemESMessage.denormalize(from: message)
                 self.unsavedEvents.append(systemESMessage)
             }
             
-            guard context.hasChanges else { return }
+            guard context.hasChanges else { saved = true; return }
             self.unsavedEvents.forEach { $0.insert_batch = batch }
             do {
                 try context.save()
+                saved = true
                 let insertedIDs = self.unsavedEvents.map(\.objectID)
                 self.savedBatch.withLock { $0 = batch }
                 self.unsavedEvents = []
@@ -198,10 +259,16 @@ public class CoreDataController {
                 CoreDataController.logger.error("Error saving context after batch insert: \(error.localizedDescription)")
                 guard self.unsavedEvents.count > Self.maxUnsavedEvents else { return }
                 CoreDataController.logger.fault("Dropped \(self.unsavedEvents.count) events that could not be saved")
-                context.rollback()
-                self.unsavedEvents = []
+                self.discardUnsavedEvents()
             }
         }
+    }
+    
+    /// Drop every event inserted but not saved, and the shared rows made for them. On `privateMOC`'s queue only.
+    private func discardUnsavedEvents() {
+        privateMOC.rollback()
+        unsavedEvents = []
+        rowCaches.forget()
     }
     
     ///  Remove all events from the event store
@@ -215,11 +282,22 @@ public class CoreDataController {
     ///  The delete runs in the background (about two minutes at a million events) behind inserts already queued; inserts
     ///  that come after it wait for it. Events that happened before this call are discarded even if they arrive later.
     ///
+    ///  A Clear also closes any trace: a trace still being read stops, and its batches still on their way are dropped.
+    ///
     ///  Call on the main thread.
     ///
-    public func clearSystemEvents() {
+    /// - Parameter source: What the store holds after the Clear: ``EventSource/live`` (the toolbar's Clear and Start), or a
+    ///   trace about to be read (``openTrace(at:progress:completion:)``), which keeps out every recorded event until the
+    ///   next Clear.
+    /// - Returns: The Clear's number, which a trace's inserts carry.
+    @discardableResult
+    public func clearSystemEvents(source: EventSource = .live) -> Int {
         let clearedAt = Date()
         clearsInProgress += 1
+        clearsRequested += 1
+        let clear = clearsRequested
+        self.source = source
+        currentImport?.stop()
         NotificationCenter.default.post(name: Self.eventsWillClear, object: self)
         
         /// Everything is deleted, but only what the view context has loaded needs to hear about it. Asking the deletes for
@@ -235,12 +313,12 @@ public class CoreDataController {
             /// disappearing.
             turn.wait()
             /// Anything recorded up to the Clear goes, including events still on their way from the Security Extension and
-            /// any left unsaved by a failed save.
-            self.discardBefore = clearedAt
-            self.privateMOC.rollback()
-            self.unsavedEvents = []
+            /// any left unsaved by a failed save. A trace keeps out every recorded event until it's closed.
+            self.discardBefore = source == .live ? clearedAt : .distantFuture
+            self.currentClear = clear
             /// The shared rows are deleted (or, unsaved, rolled back) with everything else.
-            self.rowCaches.forget()
+            self.discardUnsavedEvents()
+            var replaced = false
             do {
                 for entity in self.container.managedObjectModel.entities where entity.superentity == nil {
                     guard self.canSave.withLock({ $0 }) else { break }
@@ -248,296 +326,91 @@ public class CoreDataController {
                     let deleteRequest = NSBatchDeleteRequest(fetchRequest: NSFetchRequest(entityName: name))
                     deleteRequest.resultType = .resultTypeStatusOnly
                     try self.privateMOC.execute(deleteRequest)
+                    /// A delete the disk has no room for reports success: count what's left.
+                    guard try self.privateMOC.count(for: NSFetchRequest(entityName: name)) == 0 else {
+                        throw CocoaError(.fileWriteOutOfSpace)
+                    }
                 }
                 /// Nothing is registered here after the rollback, so there are no deletions to merge.
                 self.privateMOC.reset()
             } catch {
                 CoreDataController.logger.error("Error clearing system events: \(error.localizedDescription)")
+                replaced = self.replaceStore()
             }
             
             DispatchQueue.main.async {
-                // The view context is not aware of the changes yet, so we merge them.
-                NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: loaded], into: [viewContext])
+                /// The view context is not aware of the changes yet, so we merge them, or, if the store was taken away,
+                /// forget everything it loaded from it.
+                if replaced { viewContext.reset() }
+                else { NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: loaded], into: [viewContext]) }
                 self.clearsInProgress -= 1
                 NotificationCenter.default.post(name: Self.eventsDidClear, object: self)
             }
         }
+        return clear
     }
     
-    // MARK: - Accessors
-    
-    ///  Given an entitiy `id` attempt to return its `ESMessage` representation from the store (through the indexed `id`).
+    /// Replace the store with an empty one, for a Clear whose deletes failed: SQLite logs a delete before making it, which
+    /// a full disk (most easily filled by a trace) has no room for, while emptying the store's files frees space. Not
+    /// while an export reads the store. On `privateMOC`'s queue only, after it has let go of every object.
     ///
-    ///  - Parameters:
-    ///     - id: The `UUID` of the entity to fetch from the Core Data store.
-    /// - Returns: The object representation of the entity: `ESMessage?`
-    ///
-    public func getEntityByID(id: UUID) -> ESMessage? {
-        let request = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
-        request.returnsObjectsAsFaults = false
-        request.fetchLimit = 1
-        
-        do {
-            // Fetches on the viewContext, so this must be called from the main thread.
-            let result = try self.container.viewContext.fetch(request)
-            return result.first
-        } catch {
-            CoreDataController.logger.error("Could not find the Core Data record by UUID of: \(id)")
+    /// - Returns: Whether the store was taken away, so every context must forget the objects it loaded from it.
+    private func replaceStore() -> Bool {
+        let coordinator = container.persistentStoreCoordinator
+        guard canSave.withLock({ $0 }), exports.withLock({ $0.isEmpty }), let url = storeURL,
+              let store = coordinator.persistentStore(for: url) else { return false }
+        privateMOC.reset()
+        let options = store.options
+        var removed = false
+        coordinator.performAndWait {
+            do { try coordinator.remove(store) } catch { return }
+            removed = true
+            do {
+                try coordinator.destroyPersistentStore(at: url, type: .sqlite, options: options)
+            } catch {
+                CoreDataController.logger.error("Unable to empty the event store: \(error.localizedDescription)")
+            }
+            /// The emptied store, or (as when one can't be made at launch) one in memory.
+            for location in [url, URL(fileURLWithPath: "/dev/null")] {
+                if (try? coordinator.addPersistentStore(type: .sqlite, at: location, options: options)) != nil { return }
+            }
+            canSave.withLock { $0 = false }
+            CoreDataController.logger.fault("Unable to reopen the event store; no more events can be kept")
         }
-        
-        return nil
+        return removed
     }
     
-    /// Get all `EXEC` events in a given process group.
+    // MARK: - Open Trace
+    
+    /// Replace the store's events with a trace file's, read in the background (see ``TraceImporter``), like opening a
+    /// saved Process Monitor log (#38).
+    ///
+    /// Clears the store first (``eventsWillClear`` and ``eventsDidClear``); then the trace's events arrive the way a
+    /// recording's do (``eventsInserted``), so the tables fill in as the file is read. Recorded events are dropped until
+    /// the next ``clearSystemEvents(source:)`` closes the trace. Call on the main thread, once
+    /// ``TraceImporter/preflight(_:)`` has accepted the file.
     ///
     /// - Parameters:
-    ///   - message: Provide a system event and we'll extract the `group_id` field to find the others in the same process group.
-    /// - Returns: `[ESMessage]` the list of `EXEC` events in the same process group, newest first.
-    ///
-    public func getProcGroup(message: ESMessage) -> [ESMessage] {
-        let gid = message.event.exec?.target.group_id ?? message.process.group_id
-        return execEvents(where: "exec_group_id", is: gid, group: "process group", of: message)
+    ///   - url: The trace.
+    ///   - progress: Called on the main thread, at most ten times a second.
+    ///   - completion: Called on the main thread once, when the file has been read, or reading stopped or failed.
+    /// - Returns: The import, to stop it.
+    @discardableResult
+    public func openTrace(at url: URL, progress: @escaping (TraceImporter.Progress) -> Void = { _ in },
+                          completion: @escaping (TraceImporter.Summary) -> Void) -> TraceImporter {
+        let importer = TraceImporter(url: url, store: self, clear: clearSystemEvents(source: .trace(url)))
+        currentImport = importer
+        importer.run(progress: progress, completion: completion)
+        return importer
     }
     
-    /// Get all `EXEC` events in a given process session.
-    ///
-    /// - Parameters:
-    ///   - message: Provide a system event and we'll extract the `session_id` field to find the others in the same session.
-    /// - Returns: `[ESMessage]` the list of `EXEC` events in the same process session, newest first.
-    ///
-    public func getProcSessionGroup(message: ESMessage) -> [ESMessage] {
-        let sid = message.event.exec?.target.session_id ?? message.process.session_id
-        return execEvents(where: "exec_session_id", is: sid, group: "session group", of: message)
-    }
-    
-    /// The `EXEC` events whose target has `key` equal to `value`, found through the key's index on the view context.
-    ///
-    /// - Parameters:
-    ///   - key: ``ESMessage/exec_group_id`` or ``ESMessage/exec_session_id``.
-    ///   - value: The group or session to find.
-    ///   - group: What's being looked up, for the log.
-    ///   - message: The event the lookup is for, for the log.
-    /// - Returns: The events, newest first.
-    private func execEvents(where key: String, is value: Int32, group: String, of message: ESMessage) -> [ESMessage] {
-        let request = ESMessage.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == %d", key, value)
-        request.returnsObjectsAsFaults = false
-        do {
-            return try container.viewContext.fetch(request).sorted { $0.mach_time > $1.mach_time }
-        } catch {
-            CoreDataController.logger.error("Error obtaining \(group) for \(message.process.executable?.name ?? "") ==> \(message.es_event_type ?? "")")
-            return []
-        }
-    }
-    
-    /// Construct a basic process tree given a target system event.
-    ///
-    /// We're calling `findParentProc` for the event, then for its parent, and so on, until no parent is found (or a
-    /// process shows up twice).
-    ///
-    ///  - Parameters:
-    ///    - targetEvent: The event (`ESMessage`) to find the parent process for
-    ///    - tree: Ancestors already found, to continue from
-    ///  - Returns: A list of system events: `[ESMessage]` the flat representation of the process tree, nearest parent first.
-    ///
-    public func getProcTree(targetEvent: ESMessage, tree: [ESMessage] = []) -> [ESMessage] {
-        var tree = tree, current = targetEvent
-        var seen: Set<NSManagedObjectID> = [targetEvent.objectID]
-        while let parent = findParentProc(message: current), seen.insert(parent.objectID).inserted {
-            tree.append(parent)
-            current = parent
-        }
-        return tree
-    }
-    
-    /// Find the parent process of a given system event
-    ///
-    /// Each `ESMessage` has an `initiating_process` we can attempt to find the corresponding `EXEC` and/or
-    /// `FORK` event. What we're essentially doing here is looking for the event that created the process with the event's
-    /// audit token: the indexed ``ESMessage/created_audit_token`` of an `EXEC` (preferred) or `FORK` event.
-    ///
-    /// - Parameters:
-    ///   - message: The system event to try and find the parent process for
-    /// - Returns: `ESMessage?`: The system event, if we can find it
-    ///
-    public func findParentProc(message: ESMessage) -> ESMessage? {
-        guard message.process.audit_token != nil, let token = message.instigator_audit_token else { return nil }
-        let request = ESMessage.fetchRequest()
-        request.predicate = NSPredicate(format: "created_audit_token == %@ AND event_type IN %@", token, [ESMessage.execEventType, ESMessage.forkEventType])
-        request.returnsObjectsAsFaults = false
-        do {
-            let creators = try container.viewContext.fetch(request)
-            return creators.first { $0.event_type == ESMessage.execEventType } ?? creators.first { $0.event_type == ESMessage.forkEventType }
-        } catch {
-            CoreDataController.logger.error("We could not find the parent proc for: \(message.process.executable?.name ?? "")")
-            return nil
-        }
+    /// The number of events in the store, counted by SQLite. Main thread only.
+    public var eventCount: Int {
+        (try? container.viewContext.count(for: ESMessage.fetchRequest())) ?? 0
     }
     
     
-    // MARK: - Telemetry export
-    
-    /// Export all system events to a file
-    ///
-    /// We can export all system events from the event store to either JSON or JSONL format. The events are streamed to
-    /// the file in the background (see ``TelemetryExporter``), so recording carries on meanwhile.
-    ///
-    /// - Parameters:
-    ///   - jsonl: Should we export the events line-by-line (one JSON object per line)?
-    ///
-    public func exportFullTrace(jsonl: Bool = false) {
-        // UI work must be on the main thread.
-        guard let telemetryFile = showSavePanel() else { return }
-        export(to: telemetryFile, jsonl: jsonl, writeIfEmpty: true) { exporter, batch in try exporter.allEvents(through: batch) }
-    }
-    
-    /// Export specified system events to a file, sorted by `mach_time`.
-    ///
-    /// The events are looked up and streamed to the file in the background (see ``TelemetryExporter``).
-    ///
-    /// - Parameters:
-    ///   - eventIDs: A listing of the event `UUID`s we want to export.
-    ///   - jsonl: Should we export the events line-by-line (one JSON object per line)?
-    ///
-    public func exportSelectedEvents(eventIDs: [UUID], jsonl: Bool = false) {
-        // UI work must be on the main thread.
-        guard let telemetryFile = showSavePanel(numberOfEvents: eventIDs.count) else { return }
-        export(to: telemetryFile, jsonl: jsonl, writeIfEmpty: false) { exporter, _ in try exporter.events(withIDs: eventIDs) }
-    }
     
     /// Exports in progress, so quitting can stop them before the store is deleted.
-    private let exports = OSAllocatedUnfairLock(initialState: [ObjectIdentifier: TelemetryExporter]())
-    
-    /// Stream events to `url` in the background.
-    ///
-    /// The export starts once the inserts already queued have been saved, and covers the events saved up to then (the
-    /// batch passed to `choose`): what it covered when it ran on `privateMOC`, without holding that queue while exporting.
-    ///
-    /// - Parameters:
-    ///   - url: The destination, from the save panel.
-    ///   - jsonl: JSONL (`true`) or pretty JSON (`false`).
-    ///   - writeIfEmpty: Write an empty file when no events are chosen.
-    ///   - choose: Picks the events, in file order, given the last ``ESMessage/insert_batch`` to cover.
-    private func export(to url: URL, jsonl: Bool, writeIfEmpty: Bool,
-                        choose: @escaping (TelemetryExporter, Int64) throws -> [NSManagedObjectID]) {
-        let exporter = TelemetryExporter(container: container, pretty: !jsonl)
-        let key = ObjectIdentifier(exporter)
-        exports.withLock { $0[key] = exporter }
-        privateMOC.perform {
-            /// Saves and Clears queued after this block come after the snapshot.
-            let batch = self.lastInsertBatch
-            exporter.pin()
-            exporter.run(to: url, writeIfEmpty: writeIfEmpty, choose: { try choose($0, batch) }) { result in
-                self.exports.withLock { $0[key] = nil }
-                if case .failure(let error) = result, !(error is CancellationError) {
-                    CoreDataController.logger.error("Failed to export telemetry: \(error.localizedDescription, privacy: .public)")
-                }
-            }
-        }
-    }
-    
-    /// AppKit UI to save system traces.
-    ///
-    /// Show the `NSSavePanel`
-    ///
-    /// - Parameters:
-    ///   - numberOfEvents: The number of events to save (to be displayed in the UI)
-    ///
-    ///  - Returns: `URL?`:  The optional URL to save the telemetry to
-    ///
-    public func showSavePanel(numberOfEvents: Int = 0) -> URL? {
-        let savePanel = NSSavePanel()
-        savePanel.allowedContentTypes = [UTType.json]
-        savePanel.canCreateDirectories = true
-        savePanel.isExtensionHidden = false
-        savePanel.allowsOtherFileTypes = false
-        savePanel.title = numberOfEvents == 0 ? "Save full system trace" : "Save \(numberOfEvents) events"
-        savePanel.message = "Choose a directory to export the trace to"
-        savePanel.nameFieldLabel = "Telemetry file name:"
-        let response = savePanel.runModal()
-        return response == .OK ? savePanel.url : nil
-    }
-}
-
-
-// MARK: - Event store files
-/// The event store's files on disk: one store per running Mac Monitor, each claimed with a lock.
-///
-/// Every process gets its own SQLite store in the caches folder and holds an exclusive `flock` on a `.lock` file beside it
-/// for as long as it runs. A second copy of Mac Monitor (`open -n`, or a development build with the same bundle ID) gets a
-/// store of its own instead of deleting the first one's trace. A store whose lock can be taken belongs to a process that
-/// has quit or crashed, so it's deleted.
-private struct EventStoreFile {
-    /// The store's SQLite file.
-    let url: URL
-    
-    private static let prefix = "Events"
-    private static let storeSuffixes = [".sqlite", ".sqlite-wal", ".sqlite-shm"]
-    
-    /// Claim `Events.sqlite`, or a store of its own if another Mac Monitor has that one, then delete every store left by a
-    /// process that's gone (including this store's, from a run that crashed).
-    ///
-    /// - Parameter directory: Mac Monitor's caches folder.
-    /// - Returns: `nil` if no store could be claimed (for example, the folder can't be written).
-    init?(in directory: URL) {
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        guard let name = [Self.prefix, "\(Self.prefix)-\(UUID().uuidString)"].first(where: { Self.claim($0, in: directory) != nil }) else { return nil }
-        url = directory.appendingPathComponent(name + ".sqlite")
-        Self.removeStore(name, in: directory)
-        
-        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
-        let stores = Set(names.compactMap { file in
-            (Self.storeSuffixes + [".lock"]).first { file.hasPrefix(Self.prefix) && file.hasSuffix($0) }.map { String(file.dropLast($0.count)) }
-        })
-        for store in stores where store != name {
-            /// Still claimed: another Mac Monitor is using it.
-            guard let lock = Self.claim(store, in: directory) else { continue }
-            Self.removeStore(store, in: directory)
-            unlink(directory.appendingPathComponent(store + ".lock").path)
-            close(lock)
-        }
-    }
-    
-    /// Delete this store's files, and its lock, at quit.
-    ///
-    /// Only the names go: the open connections keep working on the files until the process exits, so a save that lands
-    /// meanwhile can't hit a store that's been taken away (which raises an exception Swift can't catch).
-    func delete() {
-        let directory = url.deletingLastPathComponent(), name = url.deletingPathExtension().lastPathComponent
-        Self.removeStore(name, in: directory)
-        unlink(directory.appendingPathComponent(name + ".lock").path)
-    }
-    
-    /// Take the lock on store `name`, if no running process holds it.
-    ///
-    /// The lock is never released: the kernel drops it when the process exits.
-    ///
-    /// - Parameters:
-    ///   - name: The store's name, without extension.
-    ///   - directory: The caches folder.
-    /// - Returns: The locked file descriptor, or `nil` if another process holds the lock (or it couldn't be taken).
-    @discardableResult
-    private static func claim(_ name: String, in directory: URL) -> Int32? {
-        let path = directory.appendingPathComponent(name + ".lock").path
-        let lock = open(path, O_RDWR | O_CREAT | O_CLOEXEC, 0o600)
-        guard lock >= 0 else { return nil }
-        /// Another launch may have deleted the lock file between `open` and `flock`; a lock on a deleted file guards nothing.
-        var held = stat(), current = stat()
-        guard flock(lock, LOCK_EX | LOCK_NB) == 0, fstat(lock, &held) == 0, stat(path, &current) == 0,
-              held.st_dev == current.st_dev, held.st_ino == current.st_ino else {
-            close(lock)
-            return nil
-        }
-        return lock
-    }
-    
-    /// Delete store `name`'s SQLite files, if they exist.
-    ///
-    /// - Parameters:
-    ///   - name: The store's name, without extension.
-    ///   - directory: The caches folder.
-    private static func removeStore(_ name: String, in directory: URL) {
-        for suffix in storeSuffixes { unlink(directory.appendingPathComponent(name + suffix).path) }
-    }
+    let exports = OSAllocatedUnfairLock(initialState: [ObjectIdentifier: TelemetryExporter]())
 }

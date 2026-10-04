@@ -8,5 +8,51 @@
 	<string>Mac Monitor requires a Security Extension to be installed to monitor system events.</string>
 	<key>ProjectSutroBuildName</key>
 	<string>RockHopper</string>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>org.jsonlines.jsonl</string>
+			<key>UTTypeDescription</key>
+			<string>JSON Lines</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>jsonl</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/jsonl</string>
+					<string>application/x-jsonlines</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>public.ndjson</string>
+			<key>UTTypeDescription</key>
+			<string>Newline-Delimited JSON</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ndjson</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-ndjson</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>
