@@ -226,12 +226,14 @@ final class TelemetryExporter {
     /// Every to-one relationship path from `entity`, up to `depth` deep, derived from the model so new event types are
     /// prefetched too.
     ///
+    /// Six deep reaches the deepest path an event encodes, `event.rename.destination.new_path.dir.stat` (and `create`'s).
+    ///
     /// - Parameters:
     ///   - entity: The entity to start from.
     ///   - prefix: The path to `entity`.
     ///   - depth: How many relationships deep to go.
     /// - Returns: Key paths for `relationshipKeyPathsForPrefetching`.
-    private static func prefetchKeyPaths(from entity: NSEntityDescription, prefix: String = "", depth: Int = 5) -> [String] {
+    private static func prefetchKeyPaths(from entity: NSEntityDescription, prefix: String = "", depth: Int = 6) -> [String] {
         guard depth > 0 else { return [] }
         return entity.relationshipsByName.sorted { $0.key < $1.key }.flatMap { name, relationship -> [String] in
             guard !relationship.isToMany, let destination = relationship.destinationEntity else { return [] }

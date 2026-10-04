@@ -36,10 +36,7 @@ public class ProcessHelpers {
     static func parseExecArgs(execEvent: inout es_event_exec_t) -> [String] {
         var args: [String] = []
         for i in 0 ..< Int(es_exec_arg_count(&execEvent)) {
-            let arg: String = String(cString: es_exec_arg(&execEvent, UInt32(i)).data).trimmingCharacters(
-                in: .whitespaces
-            )
-            args.append(arg)
+            args.append(String(cString: es_exec_arg(&execEvent, UInt32(i)).data))
         }
         return args
     }

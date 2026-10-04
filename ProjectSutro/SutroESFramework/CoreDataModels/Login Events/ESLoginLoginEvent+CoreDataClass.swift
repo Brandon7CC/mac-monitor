@@ -48,7 +48,7 @@ extension ESLoginLoginEvent: Encodable {
         try container.encode(failure_message, forKey: .failure_message)
         try container.encode(username, forKey: .username)
         try container.encode(has_uid, forKey: .has_uid)
-        try container.encodeIfPresent(uid?.int64Value, forKey: .uid)
+        try container.encode(uid?.int64Value, forKey: .uid)
         try container.encodeIfPresent(uid_human, forKey: .uid_human)
     }
 }

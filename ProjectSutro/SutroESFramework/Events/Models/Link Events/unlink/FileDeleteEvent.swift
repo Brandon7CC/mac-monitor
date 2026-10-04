@@ -26,6 +26,6 @@ public struct FileDeleteEvent: Identifiable, Codable, Hashable {
         let event: es_event_unlink_t = rawMessage.pointee.event.unlink
         
         target = File(from: event.target.pointee)
-        parent_dir = File(from: event.target.pointee)
+        parent_dir = File(from: event.parent_dir.pointee)
     }
 }

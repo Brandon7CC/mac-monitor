@@ -27,7 +27,8 @@ public class ESSignedFileInfo: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = UUID()
         
-        cdhash = singingInfo.cdhash
+        /// Uppercase like eslogger, also when an older Security Extension sent lowercase.
+        cdhash = singingInfo.cdhash.uppercased()
         signing_id = singingInfo.signing_id
         team_id = singingInfo.team_id
     }

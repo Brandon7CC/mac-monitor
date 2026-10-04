@@ -54,8 +54,8 @@ extension ESProfileAddEvent: Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(is_update, forKey: .is_update)
         
-        try container.encodeIfPresent(instigator, forKey: .instigator)
-        try container.encodeIfPresent(instigator_token, forKey: .instigator_token)
+        try container.encode(instigator, forKey: .instigator)
+        try container.encode(instigator_token, forKey: .instigator_token)
         try container.encodeIfPresent(profile, forKey: .profile)
     }
 }

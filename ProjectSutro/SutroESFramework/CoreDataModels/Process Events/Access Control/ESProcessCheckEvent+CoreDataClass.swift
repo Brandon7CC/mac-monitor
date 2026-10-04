@@ -46,6 +46,6 @@ extension ESProcessCheckEvent: Encodable {
         try container.encode(type_string, forKey: .type_string)
         try container.encode(flavor, forKey: .flavor)
         
-        try container.encodeIfPresent(target, forKey: .target)
+        try container.encode(target, forKey: .target)
     }
 }

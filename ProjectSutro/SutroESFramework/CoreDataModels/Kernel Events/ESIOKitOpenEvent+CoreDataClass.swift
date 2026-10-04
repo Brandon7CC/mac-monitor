@@ -41,9 +41,8 @@ extension ESIOKitOpenEvent: Encodable {
         try container.encode(user_client_type, forKey: .user_client_type)
         try container.encode(user_client_class, forKey: .user_client_class)
         
-        try container.encodeIfPresent(parent_path, forKey: .parent_path)
-        if let _ = parent_path {
-            try container.encode(parent_registry_id, forKey: .parent_registry_id)
-        }
+        /// Message version 10 (macOS 26) and later. Written for earlier versions too, where eslogger has no such keys.
+        try container.encode(parent_path, forKey: .parent_path)
+        try container.encode(parent_registry_id, forKey: .parent_registry_id)
     }
 }

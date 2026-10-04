@@ -106,7 +106,8 @@ public class ESMessage: NSManagedObject {
         
         
         /// Time
-        self.time = message.time
+        /// eslogger's format even when an older Security Extension sent local time (see ``ESLogger/time(_:darwinTime:)``).
+        self.time = ESLogger.time(message.time, darwinTime: message.message_darwin_time)
         self.mach_time = Int64(message.mach_time)
         self.message_darwin_time = message.message_darwin_time
         

@@ -92,7 +92,7 @@ public struct Message: Identifiable, Codable, Hashable {
         
         /// Version and sequence
         self.version = Int(message.version)
-        self.schema_version = 1 // ESLogger schema version
+        self.schema_version = ESLogger.schemaVersion
         if version >= 2 {
             self.seq_num = Int(message.seq_num)
         }
@@ -101,8 +101,7 @@ public struct Message: Identifiable, Codable, Hashable {
         }
         
         /// Time
-        let ats = ProcessHelpers.timespecToTimestamp(timespec: message.time)
-        self.time = ProcessHelpers.timestampFormatter.string(from: ats)
+        self.time = ESLogger.time(message.time)
         self.mach_time = Int64(message.mach_time)
         self.message_darwin_time = ProcessHelpers.timespecToTimestamp(timespec: message.time)
         

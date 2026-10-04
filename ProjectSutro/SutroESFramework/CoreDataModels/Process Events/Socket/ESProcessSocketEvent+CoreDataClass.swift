@@ -40,6 +40,6 @@ extension ESProcessSocketEvent: Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(type, forKey: .type)
         try container.encode(type_string, forKey: .type_string)
-        try container.encodeIfPresent(target, forKey: .target)
+        try container.encode(target, forKey: .target)
     }
 }

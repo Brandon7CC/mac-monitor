@@ -45,7 +45,8 @@ public class ESGatekeeperUserOverrideEvent: NSManagedObject {
         
         /// ESLogger for some reason reports when this is null as a string...
         /// `"sha256": "NULL"`
-        sha256 = override.sha256 ?? "NULL"
+        /// Uppercase like eslogger, also when an older Security Extension sent lowercase.
+        sha256 = override.sha256?.uppercased() ?? "NULL"
         
         /// For some reason ESLogger as of macOS 26 does not emit this object...
         if let signing_info = override.signing_info {

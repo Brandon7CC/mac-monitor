@@ -46,6 +46,6 @@ extension ESXProtectDetect: Encodable {
         try container.encode(incident_identifier, forKey: .incident_identifier)
         try container.encode(detected_path, forKey: .detected_path)
         
-        try container.encodeIfPresent(detected_executable, forKey: .detected_executable)
+        try container.encode(detected_executable, forKey: .detected_executable)
     }
 }

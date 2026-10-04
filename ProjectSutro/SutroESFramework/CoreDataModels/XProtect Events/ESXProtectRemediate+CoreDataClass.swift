@@ -55,6 +55,6 @@ extension ESXProtectRemediate: Encodable {
         try container.encode(success, forKey: .success)
         try container.encode(result_description, forKey: .result_description)
         try container.encode(remediated_path, forKey: .remediated_path)
-        try container.encodeIfPresent(remediated_process_audit_token, forKey: .remediated_process_audit_token)
+        try container.encode(remediated_process_audit_token, forKey: .remediated_process_audit_token)
     }
 }

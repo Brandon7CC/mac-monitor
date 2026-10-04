@@ -56,7 +56,8 @@ public class ESProcess: NSManagedObject {
             self.team_id = team_id
         }
         if let cdhash = process.cdhash {
-            self.cdhash = cdhash
+            /// Uppercase like eslogger, also when an older Security Extension sent lowercase.
+            self.cdhash = cdhash.uppercased()
         }
         
         self.is_adhoc_signed = process.is_adhoc_signed
@@ -166,7 +167,7 @@ extension ESProcess: Encodable {
         try container.encodeIfPresent(responsible_audit_token_string, forKey: .responsible_audit_token_string)
         
         try container.encode(codesigning_flags, forKey: .codesigning_flags)
-        try container.encodeIfPresent(signing_id, forKey: .signing_id)
+        try container.encode(signing_id, forKey: .signing_id)
         try container.encode(team_id, forKey: .team_id)
         try container.encodeIfPresent(cdhash, forKey: .cdhash)
         try container.encode(is_adhoc_signed, forKey: .is_adhoc_signed)

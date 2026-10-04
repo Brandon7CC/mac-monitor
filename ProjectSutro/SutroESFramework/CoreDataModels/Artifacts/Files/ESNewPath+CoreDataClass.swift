@@ -37,18 +37,12 @@ public class ESNewPath: NSManagedObject {
 
 // MARK: - Encodable conformance and helper
 extension ESNewPath: Encodable {
+    /// Encode the new path with its directory, loading the directory if it isn't loaded yet.
+    ///
+    /// v2.0.0 through v2.1.0 wrote `dir` only when it was already loaded, which in an export it rarely was.
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        
-        willAccessValue(forKey: "dir")
-        defer { didAccessValue(forKey: "dir") }
-        
-        if let dirValue = primitiveValue(forKey: "dir"),
-           let dirFile = dirValue as? ESFile,
-           !dirFile.isFault {
-            try container.encode(dirFile, forKey: .dir)
-        }
-        
+        try container.encode(dir, forKey: .dir)
         try container.encode(filename, forKey: .filename)
         try container.encodeIfPresent(mode, forKey: .mode)
     }

@@ -62,13 +62,13 @@ extension ESLaunchItemAddEvent: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         //        try container.encode(id, forKey: .id)
-        try container.encodeIfPresent(instigator, forKey: .instigator)
-        try container.encodeIfPresent(app, forKey: .app)
+        try container.encode(instigator, forKey: .instigator)
+        try container.encode(app, forKey: .app)
         try container.encode(item, forKey: .item)
         try container.encode(executable_path, forKey: .executable_path)
         
-        try container.encodeIfPresent(instigator_token, forKey: .instigator_token)
-        try container.encodeIfPresent(app_token, forKey: .app_token)
+        try container.encode(instigator_token, forKey: .instigator_token)
+        try container.encode(app_token, forKey: .app_token)
         
     }
     

@@ -63,6 +63,7 @@ extension ESOpenSSHLoginEvent: Encodable {
         try container.encode(username, forKey: .username)
         
         try container.encode(has_uid, forKey: .has_uid)
-        try container.encodeIfPresent(uid, forKey: .uid)
+        /// eslogger writes `null` without a uid; the stored -1 only marks its absence.
+        try container.encode(has_uid ? uid : nil, forKey: .uid)
     }
 }
