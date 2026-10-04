@@ -102,19 +102,16 @@ public class ESProcessExecEvent: NSManagedObject {
         
         // MARK: - Conform to ESLogger
         self.dyld_exec_path = execEvent.dyld_exec_path // macOS 13.3+
-        self.target = ESProcess(
-            from: execEvent.target,
-            version: message.version,
-            insertIntoManagedObjectContext: context
-        )
+        /// The new process image: shared with the events it goes on to cause (see ``ESProcess/row(for:version:in:)``).
+        attach(ESProcess.row(for: execEvent.target, version: message.version, in: context), to: #keyPath(ESProcessExecEvent.target))
+        self.target_id = execEvent.target.id
         
         self.fds = execEvent.fds
         self.args = execEvent.args
         self.env = execEvent.env
         
         if let script = execEvent.script {
-            self.script = ESFile(from: script, insertIntoManagedObjectContext: context)
-            
+            attach(ESFile.row(for: script, in: context), to: #keyPath(ESProcessExecEvent.script))
         }
         if let resolved_script_path = execEvent.resolved_script_path {
             self.resolved_script_path = resolved_script_path
@@ -122,7 +119,7 @@ public class ESProcessExecEvent: NSManagedObject {
         self.script_content = execEvent.script_content
         
         if let cwd = execEvent.cwd {
-            self.cwd = ESFile(from: cwd, insertIntoManagedObjectContext: context)
+            attach(ESFile.row(for: cwd, in: context), to: #keyPath(ESProcessExecEvent.cwd))
         }
         
         if let last_fd = execEvent.last_fd {
@@ -147,7 +144,7 @@ extension ESProcessExecEvent: Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         
         // MARK: - Conform to ESLogger
-        try container.encode(target, forKey: .target)
+        try container.encode(ESProcessRecord(process: target, id: target_id ?? target.id), forKey: .target)
         try container.encode(fds, forKey: .fds)
         try container.encode(script, forKey: .script)
         try container

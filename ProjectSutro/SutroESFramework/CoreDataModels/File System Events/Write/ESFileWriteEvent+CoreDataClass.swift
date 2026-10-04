@@ -24,7 +24,7 @@ public class ESFileWriteEvent: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = event.id
         
-        self.target = ESFile(from: event.target, insertIntoManagedObjectContext: context)
+        attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESFileWriteEvent.target))
     }
 }
 

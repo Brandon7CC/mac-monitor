@@ -36,6 +36,8 @@ PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*] =
 // debugging in the VM.
 ENABLE_HARDENED_RUNTIME = NO
 
-// Switches the Security Extension's XPC code-signing requirement to one that an
-// ad-hoc signed client can satisfy (identifier only). See RCXPC.swift.
+// Relaxes both XPC code-signing requirements (the Security Extension's on Mac
+// Monitor and Mac Monitor's on the Security Extension) to identifier-only, which
+// ad-hoc signed builds can satisfy, and disables update installs in the Security
+// Extension. See SensorXPC.swift and UpdateInstaller.swift.
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) COMMUNITY_BUILD

@@ -7,6 +7,13 @@
 
 import Foundation
 
+/// ISO 8601 in UTC (`yyyy-MM-dd'T'HH:mm:ssZ`). A value type, so one shared instance is safe on any thread.
+///
+/// Replaces a new `ISO8601DateFormatter` (`.withInternetDateTime`) per call, ~70 µs each on the Core Data insert path
+/// (#84). Output is identical for whole-second dates, which is all ``TimeSpec`` and ``TimeVal`` format: the formatter
+/// rounds a fractional second while this truncates, and the fraction is appended separately below.
+private let iso8601Format = Date.ISO8601FormatStyle()
+
 
 /// Description: represents a simple calendar time, or an elapsed time, with sub-second resolution.
 /// https://www.gnu.org/software/libc/manual/html_node/Time-Types.html
@@ -26,10 +33,7 @@ public struct TimeSpec: Identifiable, Codable, Equatable, Hashable {
         let date = Date(timeIntervalSince1970: TimeInterval(tv_sec))
         let nanoseconds = String(format: "%09d", tv_nsec)
         
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        
-        let baseString = formatter.string(from: date)
+        let baseString = date.formatted(iso8601Format)
         return baseString.replacingOccurrences(of: "Z", with: ".\(nanoseconds)Z")
     }
 }
@@ -52,10 +56,7 @@ public struct TimeVal: Identifiable, Codable, Equatable, Hashable {
         let date = Date(timeIntervalSince1970: TimeInterval(tv_sec))
         let microseconds = String(format: "%06d", tv_usec) // Ensures 6-digit microsecond precision
         
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        
-        let baseString = formatter.string(from: date)
+        let baseString = date.formatted(iso8601Format)
         return baseString.replacingOccurrences(of: "Z", with: ".\(microseconds)Z")
     }
 }

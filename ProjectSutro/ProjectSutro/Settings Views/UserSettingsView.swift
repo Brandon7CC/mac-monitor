@@ -321,6 +321,8 @@ struct AppLifeCyclePrefsView: View {
                     Toggle(isOn: userPrefs.$autoUpdates) {
                         Label("Auto update", systemImage: "square.and.arrow.down.badge.checkmark")
                     }.padding(togglePadding)
+                    .disabled(!EndpointSecurityManager.supportsUpdates)
+                    .help(EndpointSecurityManager.supportsUpdates ? "" : "Community builds don't update themselves.")
                     
                     Toggle(isOn: userPrefs.$lifecycleWarnBeforeQuit) {
                         Label("Warn before **quitting** the app?", systemImage: "exclamationmark.octagon")

@@ -238,35 +238,74 @@
         <attribute name="username" optional="YES" attributeType="String"/>
     </entity>
     <entity name="ESMessage" representedClassName="ESMessage" syncable="YES">
+        <attribute name="actionResultData" optional="YES" attributeType="Binary"/>
         <attribute name="action_type" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="action_type_string" optional="YES" attributeType="String"/>
-        <attribute name="actionResultData" optional="YES" attributeType="Binary"/>
-        <attribute name="audit_token" optional="YES" attributeType="String"/>
         <attribute name="context" optional="YES" attributeType="String"/>
+        <attribute name="created_audit_token" optional="YES" attributeType="String"/>
+        <attribute name="created_name" optional="YES" attributeType="String"/>
+        <attribute name="created_path" optional="YES" attributeType="String"/>
+        <attribute name="created_pid" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
+        <attribute name="created_signing_id" optional="YES" attributeType="String"/>
         <attribute name="es_event_type" optional="YES" attributeType="String"/>
         <attribute name="event_type" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="exec_command_line" optional="YES" attributeType="String"/>
+        <attribute name="exec_group_id" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
+        <attribute name="exec_session_id" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
         <attribute name="global_seq_num" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="group_id" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="mach_time" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="initiating_euid_human" optional="YES" attributeType="String"/>
+        <attribute name="insert_batch" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="initiating_name" optional="YES" attributeType="String"/>
+        <attribute name="initiating_path" optional="YES" attributeType="String"/>
+        <attribute name="initiating_pid" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="initiating_ppid" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="initiating_signing_id" optional="YES" attributeType="String"/>
+        <attribute name="instigator_audit_token" optional="YES" attributeType="String"/>
+        <attribute name="instigator_parent_audit_token" optional="YES" attributeType="String"/>
         <attribute name="macOS" optional="YES" attributeType="String"/>
+        <attribute name="mach_time" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="message_darwin_time" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="parent_audit_token" optional="YES" attributeType="String"/>
-        <attribute name="parent_unique_id" optional="YES" attributeType="String"/>
-        <attribute name="path_is_truncated" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="responsible_audit_token" optional="YES" attributeType="String"/>
+        <attribute name="process_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="schema_version" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="sensor_id" optional="YES" attributeType="String"/>
         <attribute name="seq_num" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="sub_type" optional="YES" attributeType="String"/>
         <attribute name="target_path" optional="YES" attributeType="String"/>
         <attribute name="time" optional="YES" attributeType="String"/>
         <attribute name="version" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <relationship name="correlated_events" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ESMessage"/>
-        <relationship name="correlated_gid_events" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESMessage"/>
         <relationship name="event" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESEventType"/>
         <relationship name="process" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcess"/>
         <relationship name="thread" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESThread"/>
+        <fetchIndex name="byInstigatorAuditToken">
+            <fetchIndexElement property="instigator_audit_token" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byCreatedAuditToken">
+            <fetchIndexElement property="created_audit_token" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byID">
+            <fetchIndexElement property="id" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byTime">
+            <fetchIndexElement property="message_darwin_time" type="Binary" order="ascending"/>
+            <fetchIndexElement property="mach_time" type="Binary" order="ascending"/>
+            <fetchIndexElement property="insert_batch" type="Binary" order="ascending"/>
+            <fetchIndexElement property="es_event_type" type="Binary" order="ascending"/>
+            <fetchIndexElement property="context" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byTypeTime">
+            <fetchIndexElement property="event_type" type="Binary" order="ascending"/>
+            <fetchIndexElement property="message_darwin_time" type="Binary" order="ascending"/>
+            <fetchIndexElement property="mach_time" type="Binary" order="ascending"/>
+            <fetchIndexElement property="insert_batch" type="Binary" order="ascending"/>
+            <fetchIndexElement property="es_event_type" type="Binary" order="ascending"/>
+            <fetchIndexElement property="context" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byExecGroup">
+            <fetchIndexElement property="exec_group_id" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byExecSession">
+            <fetchIndexElement property="exec_session_id" type="Binary" order="ascending"/>
+        </fetchIndex>
     </entity>
     <entity name="ESMMapEvent" representedClassName="ESMMapEvent" syncable="YES">
         <attribute name="file_pos" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
@@ -473,6 +512,7 @@
         <attribute name="skip_lv" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="start_time" optional="YES" attributeType="String"/>
         <attribute name="submitted_by_audit_token" optional="YES" attributeType="String"/>
+        <attribute name="target_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="target_proc_audit_token_string" optional="YES" attributeType="String"/>
         <attribute name="target_proc_parent_audit_token_string" optional="YES" attributeType="String"/>
         <attribute name="target_proc_responsible_audit_token_string" optional="YES" attributeType="String"/>
@@ -487,6 +527,7 @@
         <attribute name="stat" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
     <entity name="ESProcessForkEvent" representedClassName="ESProcessForkEvent" syncable="YES">
+        <attribute name="child_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <relationship name="child" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcess"/>
     </entity>

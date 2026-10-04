@@ -94,7 +94,8 @@ struct SystemInitiatingProcessView: View {
                 GroupBox {
                     VStack(alignment: .leading) {
                         HStack {
-                            if selectedMessage.process.signing_id != nil || !selectedMessage.process.signing_id!.isEmpty {
+                            /// A nil signing ID used to force-unwrap here (and crash); any non-nil one shows, as before.
+                            if selectedMessage.process.signing_id != nil {
                                 Text("\u{2022} **Process signing ID:**")
                                 GroupBox {
                                     VStack(alignment: .leading) {

@@ -33,6 +33,17 @@ public class ESAuditToken: NSManagedObject {
         self.auid = token.auid
         self.pidversion = token.pidversion
     }
+    
+    /// The row for `token`: shared with every other use of the same token when `context` has ``EventRowCaches``, or a
+    /// new row otherwise. Tokens don't export their `id`, so sharing them doesn't show.
+    ///
+    /// - Parameters:
+    ///   - token: The audit token.
+    ///   - context: The context to insert into.
+    /// - Returns: The row, which may be a fault: attach it with ``NSManagedObject/attach(_:to:)``.
+    static func row(for token: AuditToken, in context: NSManagedObjectContext) -> ESAuditToken {
+        EventRowCaches.row(\.tokens, for: token.rowKey, in: context) { ESAuditToken(from: token, insertIntoManagedObjectContext: context) }
+    }
 }
 
 // MARK: - Encodable conformance and helper

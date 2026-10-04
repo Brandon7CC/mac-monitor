@@ -7,6 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D15C00000000000000000066 /* EventSpool.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000065 /* EventSpool.swift */; };
+		D15C00000000000000000072 /* EventFilterSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000071 /* EventFilterSpec.swift */; };
+		D15C00000000000000000074 /* EventQueryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000073 /* EventQueryModel.swift */; };
+		D15C00000000000000000076 /* AppKitEventTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000075 /* AppKitEventTable.swift */; };
+		D15C00000000000000000078 /* EventRowMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000077 /* EventRowMenu.swift */; };
+		D15C0000000000000000000A /* UpdateInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000009 /* UpdateInstaller.swift */; };
+		D15C00000000000000000007 /* SensorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000006 /* SensorService.swift */; };
+		D15C00000000000000000005 /* SensorClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000004 /* SensorClient.swift */; };
+		D15C00000000000000000003 /* SensorXPC.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000002 /* SensorXPC.swift */; };
 		2808ED9C2993368400238A8C /* BatchedEvents.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 2808ED9A2993368400238A8C /* BatchedEvents.xcdatamodeld */; };
 		2808EDA42993457400238A8C /* BatchedEvents.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 2808ED9A2993368400238A8C /* BatchedEvents.xcdatamodeld */; };
 		280C0F152970DAE7000C65E3 /* XProtectSystemEventViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 280C0F142970DAE7000C65E3 /* XProtectSystemEventViews.swift */; };
@@ -39,14 +48,10 @@
 		2826554129FA2947000A7C95 /* uninstall.sh in Copy uninstaller */ = {isa = PBXBuildFile; fileRef = 2826553F29FA2938000A7C95 /* uninstall.sh */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		282744AA28EF75F400464C5B /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282744A928EF75F400464C5B /* Message.swift */; };
 		282902B92A463D96003211A2 /* ThrottleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282902B82A463D96003211A2 /* ThrottleManager.swift */; };
-		2829D41B2E7BAFED00B7E977 /* ProcessLineage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2829D41A2E7BAFE700B7E977 /* ProcessLineage.swift */; };
 		2829EA6C2DC48096005E7788 /* ESAuthResult+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2829EA682DC48027005E7788 /* ESAuthResult+CoreDataClass.swift */; };
 		2829EA6D2DC48116005E7788 /* ESAuthResult+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2829EA692DC48027005E7788 /* ESAuthResult+CoreDataProperties.swift */; };
 		282DFE082D9DDFBA006E0C94 /* EventType+Accessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282DFE072D9DDFBA006E0C94 /* EventType+Accessors.swift */; };
 		282DFE0A2D9DE004006E0C94 /* EventType+ESMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282DFE092D9DE004006E0C94 /* EventType+ESMapping.swift */; };
-		282E64E828FA63590060ABFA /* RCXPC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282E64E728FA63590060ABFA /* RCXPC.swift */; };
-		282E64E928FA63590060ABFA /* RCXPC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282E64E728FA63590060ABFA /* RCXPC.swift */; };
-		282E64EA28FA69760060ABFA /* RCXPC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282E64E728FA63590060ABFA /* RCXPC.swift */; };
 		282FEDEA295FCE3600572E22 /* ESXProtectRemediate+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282FEDE6295FCE3600572E22 /* ESXProtectRemediate+CoreDataClass.swift */; };
 		282FEDEB295FCE3600572E22 /* ESXProtectRemediate+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282FEDE7295FCE3600572E22 /* ESXProtectRemediate+CoreDataProperties.swift */; };
 		282FEDEC295FCE3600572E22 /* ESXProtectDetect+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282FEDE8295FCE3600572E22 /* ESXProtectDetect+CoreDataClass.swift */; };
@@ -55,10 +60,10 @@
 		28320C9A2993FDED00CB9D81 /* EmittedEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28320C982993FDED00CB9D81 /* EmittedEvent+CoreDataClass.swift */; };
 		28320C9B2993FDED00CB9D81 /* EmittedEvent+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28320C992993FDED00CB9D81 /* EmittedEvent+CoreDataProperties.swift */; };
 		28320C9F29940F0600CB9D81 /* SECoreDataController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28320C9E29940F0600CB9D81 /* SECoreDataController.swift */; };
-		283C4D3629DF4C0F009FF6D3 /* EventTableViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D3529DF4C0F009FF6D3 /* EventTableViews.swift */; };
 		283C4D3929DF525F009FF6D3 /* DangerousEntitlements.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D3829DF525F009FF6D3 /* DangerousEntitlements.swift */; };
-		283C4D3B29DF5352009FF6D3 /* HighFidelityEventPartitionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D3A29DF5352009FF6D3 /* HighFidelityEventPartitionView.swift */; };
 		283C4D3D29E0983A009FF6D3 /* CoreDataController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D3C29E0983A009FF6D3 /* CoreDataController.swift */; };
+		D15C0000000000000000007A /* TelemetryExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000079 /* TelemetryExporter.swift */; };
+		D15C00000000000000000102 /* RowCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000101 /* RowCache.swift */; };
 		283C4D3F29E09D89009FF6D3 /* MutingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D3E29E09D89009FF6D3 /* MutingEngine.swift */; };
 		283C4D4329E0B633009FF6D3 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D4229E0B633009FF6D3 /* Helpers.swift */; };
 		283C4D4629E0B761009FF6D3 /* EventStreamControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D4529E0B761009FF6D3 /* EventStreamControl.swift */; };
@@ -148,7 +153,6 @@
 		28823F582ECEF8E8000B7F5C /* ESXattrListEvent+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F562ECEF8E8000B7F5C /* ESXattrListEvent+CoreDataProperties.swift */; };
 		28823F5D2ED14D5F000B7F5C /* SystemListExtattrMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F5C2ED14D5F000B7F5C /* SystemListExtattrMetadataView.swift */; };
 		2885A33A29EF99CE001C0420 /* TargetPathEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2885A33929EF99CE001C0420 /* TargetPathEvents.swift */; };
-		28893E2D29A97D3A00960966 /* SystemProcessGroupTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28893E2C29A97D3A00960966 /* SystemProcessGroupTableView.swift */; };
 		288AB3962919BCEF00D221AD /* MutedPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 288AB3952919BCEF00D221AD /* MutedPath.swift */; };
 		288AB398291DBFF400D221AD /* ESTranslation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 288AB397291DBFF400D221AD /* ESTranslation.swift */; };
 		289646BF2A4B8C6A000E9564 /* SystemOpenDirectoryGroupRemoveMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289646BE2A4B8C6A000E9564 /* SystemOpenDirectoryGroupRemoveMetadataView.swift */; };
@@ -224,7 +228,6 @@
 		28B9A94329DC9A74006619FF /* SystemProcessSocketMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B9A94229DC9A74006619FF /* SystemProcessSocketMetadataView.swift */; };
 		28B9A94529DC9DE0006619FF /* SystemProcessTraceMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B9A94429DC9DE0006619FF /* SystemProcessTraceMetadataView.swift */; };
 		28C1520229A9644E00B4391C /* SystemFileRenameEventTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C1520129A9644E00B4391C /* SystemFileRenameEventTableView.swift */; };
-		28C1520429A965DA00B4391C /* SystemFileDupEventTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C1520329A965DA00B4391C /* SystemFileDupEventTableView.swift */; };
 		28C1520629A967E700B4391C /* SystemLoginEventTableViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C1520529A967E700B4391C /* SystemLoginEventTableViews.swift */; };
 		28C5039A2A1BE1D80066DC0D /* TableExecEventContextMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C503992A1BE1D80066DC0D /* TableExecEventContextMenu.swift */; };
 		28C6DF192A46721300E97922 /* SystemOpenDirectoryModifyPasswordMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C6DF182A46721300E97922 /* SystemOpenDirectoryModifyPasswordMetadataView.swift */; };
@@ -288,8 +291,6 @@
 		28EC62DB29245C3100EAC8AD /* SystemEvents.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 28AF164C2922C66C00AA75A5 /* SystemEvents.xcdatamodeld */; };
 		28EC62DC29245CC300EAC8AD /* SystemEvents.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 28AF164C2922C66C00AA75A5 /* SystemEvents.xcdatamodeld */; };
 		28EC62DE29245D1A00EAC8AD /* SystemEvents.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 28AF164C2922C66C00AA75A5 /* SystemEvents.xcdatamodeld */; };
-		28EC62E12925922000EAC8AD /* UnifiedSystemEventViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E02925922000EAC8AD /* UnifiedSystemEventViews.swift */; };
-		28EC62E32925933000EAC8AD /* SystemEventsTableViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E22925933000EAC8AD /* SystemEventsTableViews.swift */; };
 		28EC62E5292595C100EAC8AD /* EventLabelViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E4292595C100EAC8AD /* EventLabelViews.swift */; };
 		28EC62E82925966D00EAC8AD /* EventChartViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E72925966D00EAC8AD /* EventChartViews.swift */; };
 		28EC62EA29259BB900EAC8AD /* ProcessSystemEventsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E929259BB900EAC8AD /* ProcessSystemEventsViews.swift */; };
@@ -455,6 +456,15 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D15C00000000000000000065 /* EventSpool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSpool.swift; sourceTree = "<group>"; };
+		D15C00000000000000000071 /* EventFilterSpec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventFilterSpec.swift; sourceTree = "<group>"; };
+		D15C00000000000000000073 /* EventQueryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventQueryModel.swift; sourceTree = "<group>"; };
+		D15C00000000000000000075 /* AppKitEventTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitEventTable.swift; sourceTree = "<group>"; };
+		D15C00000000000000000077 /* EventRowMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventRowMenu.swift; sourceTree = "<group>"; };
+		D15C00000000000000000009 /* UpdateInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstaller.swift; sourceTree = "<group>"; };
+		D15C00000000000000000006 /* SensorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorService.swift; sourceTree = "<group>"; };
+		D15C00000000000000000004 /* SensorClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorClient.swift; sourceTree = "<group>"; };
+		D15C00000000000000000002 /* SensorXPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorXPC.swift; sourceTree = "<group>"; };
 		2808ED9B2993368400238A8C /* BatchedEvents.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = BatchedEvents.xcdatamodel; sourceTree = "<group>"; };
 		280C0F142970DAE7000C65E3 /* XProtectSystemEventViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XProtectSystemEventViews.swift; sourceTree = "<group>"; };
 		280C78CE2E8DE21800B172E5 /* UIPCBindEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIPCBindEvent.swift; sourceTree = "<group>"; };
@@ -486,7 +496,6 @@
 		2826553F29FA2938000A7C95 /* uninstall.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = uninstall.sh; path = Uninstall/uninstall.sh; sourceTree = "<group>"; };
 		282744A928EF75F400464C5B /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		282902B82A463D96003211A2 /* ThrottleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThrottleManager.swift; sourceTree = "<group>"; };
-		2829D41A2E7BAFE700B7E977 /* ProcessLineage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessLineage.swift; sourceTree = "<group>"; };
 		2829EA682DC48027005E7788 /* ESAuthResult+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESAuthResult+CoreDataClass.swift"; sourceTree = "<group>"; };
 		2829EA692DC48027005E7788 /* ESAuthResult+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESAuthResult+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		282DFE072D9DDFBA006E0C94 /* EventType+Accessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventType+Accessors.swift"; sourceTree = "<group>"; };
@@ -494,7 +503,6 @@
 		282E64D428F9C4320060ABFA /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 		282E64D628F9C6110060ABFA /* libsystem_kernel.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsystem_kernel.tbd; path = usr/lib/system/libsystem_kernel.tbd; sourceTree = SDKROOT; };
 		282E64D828F9C94E0060ABFA /* Kernel.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kernel.framework; path = System/Library/Frameworks/Kernel.framework; sourceTree = SDKROOT; };
-		282E64E728FA63590060ABFA /* RCXPC.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RCXPC.swift; sourceTree = "<group>"; };
 		282FEDE6295FCE3600572E22 /* ESXProtectRemediate+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESXProtectRemediate+CoreDataClass.swift"; sourceTree = "<group>"; };
 		282FEDE7295FCE3600572E22 /* ESXProtectRemediate+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESXProtectRemediate+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		282FEDE8295FCE3600572E22 /* ESXProtectDetect+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESXProtectDetect+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -503,10 +511,10 @@
 		28320C982993FDED00CB9D81 /* EmittedEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EmittedEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28320C992993FDED00CB9D81 /* EmittedEvent+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EmittedEvent+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		28320C9E29940F0600CB9D81 /* SECoreDataController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SECoreDataController.swift; sourceTree = "<group>"; };
-		283C4D3529DF4C0F009FF6D3 /* EventTableViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTableViews.swift; sourceTree = "<group>"; };
 		283C4D3829DF525F009FF6D3 /* DangerousEntitlements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DangerousEntitlements.swift; sourceTree = "<group>"; };
-		283C4D3A29DF5352009FF6D3 /* HighFidelityEventPartitionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighFidelityEventPartitionView.swift; sourceTree = "<group>"; };
 		283C4D3C29E0983A009FF6D3 /* CoreDataController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataController.swift; sourceTree = "<group>"; };
+		D15C00000000000000000079 /* TelemetryExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryExporter.swift; sourceTree = "<group>"; };
+		D15C00000000000000000101 /* RowCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RowCache.swift; sourceTree = "<group>"; };
 		283C4D3E29E09D89009FF6D3 /* MutingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutingEngine.swift; sourceTree = "<group>"; };
 		283C4D4229E0B633009FF6D3 /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 		283C4D4529E0B761009FF6D3 /* EventStreamControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventStreamControl.swift; sourceTree = "<group>"; };
@@ -597,7 +605,6 @@
 		28823F5C2ED14D5F000B7F5C /* SystemListExtattrMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemListExtattrMetadataView.swift; sourceTree = "<group>"; };
 		2885A33929EF99CE001C0420 /* TargetPathEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetPathEvents.swift; sourceTree = "<group>"; };
 		2889013C28F776E000C1F4A6 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
-		28893E2C29A97D3A00960966 /* SystemProcessGroupTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemProcessGroupTableView.swift; sourceTree = "<group>"; };
 		288AB3952919BCEF00D221AD /* MutedPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutedPath.swift; sourceTree = "<group>"; };
 		288AB397291DBFF400D221AD /* ESTranslation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESTranslation.swift; sourceTree = "<group>"; };
 		288AB39E2921701500D221AD /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
@@ -673,7 +680,6 @@
 		28B9A94229DC9A74006619FF /* SystemProcessSocketMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemProcessSocketMetadataView.swift; sourceTree = "<group>"; };
 		28B9A94429DC9DE0006619FF /* SystemProcessTraceMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemProcessTraceMetadataView.swift; sourceTree = "<group>"; };
 		28C1520129A9644E00B4391C /* SystemFileRenameEventTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemFileRenameEventTableView.swift; sourceTree = "<group>"; };
-		28C1520329A965DA00B4391C /* SystemFileDupEventTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemFileDupEventTableView.swift; sourceTree = "<group>"; };
 		28C1520529A967E700B4391C /* SystemLoginEventTableViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemLoginEventTableViews.swift; sourceTree = "<group>"; };
 		28C503992A1BE1D80066DC0D /* TableExecEventContextMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableExecEventContextMenu.swift; sourceTree = "<group>"; };
 		28C6DF182A46721300E97922 /* SystemOpenDirectoryModifyPasswordMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemOpenDirectoryModifyPasswordMetadataView.swift; sourceTree = "<group>"; };
@@ -734,8 +740,6 @@
 		28EC62D4292446B700EAC8AD /* ESFileCreateEvent+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESFileCreateEvent+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		28EC62D5292446B700EAC8AD /* ESLaunchItemAddEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLaunchItemAddEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28EC62D6292446B700EAC8AD /* ESLaunchItemAddEvent+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLaunchItemAddEvent+CoreDataProperties.swift"; sourceTree = "<group>"; };
-		28EC62E02925922000EAC8AD /* UnifiedSystemEventViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedSystemEventViews.swift; sourceTree = "<group>"; };
-		28EC62E22925933000EAC8AD /* SystemEventsTableViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventsTableViews.swift; sourceTree = "<group>"; };
 		28EC62E4292595C100EAC8AD /* EventLabelViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventLabelViews.swift; sourceTree = "<group>"; };
 		28EC62E72925966D00EAC8AD /* EventChartViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventChartViews.swift; sourceTree = "<group>"; };
 		28EC62E929259BB900EAC8AD /* ProcessSystemEventsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessSystemEventsViews.swift; sourceTree = "<group>"; };
@@ -856,6 +860,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D15C00000000000000000008 /* Updates */ = {
+			isa = PBXGroup;
+			children = (
+				D15C00000000000000000009 /* UpdateInstaller.swift */,
+			);
+			path = Updates;
+			sourceTree = "<group>";
+		};
+		D15C00000000000000000001 /* XPC */ = {
+			isa = PBXGroup;
+			children = (
+				D15C00000000000000000004 /* SensorClient.swift */,
+				D15C00000000000000000002 /* SensorXPC.swift */,
+			);
+			path = XPC;
+			sourceTree = "<group>";
+		};
 		2808EDA12993409400238A8C /* CoreDataEDR */ = {
 			isa = PBXGroup;
 			children = (
@@ -1419,7 +1440,6 @@
 		2829D4192E7B472800B7E977 /* Filter View */ = {
 			isa = PBXGroup;
 			children = (
-				2829D41A2E7BAFE700B7E977 /* ProcessLineage.swift */,
 				28302B4A294D32E6001A616D /* FilterView.swift */,
 			);
 			path = "Filter View";
@@ -1462,14 +1482,6 @@
 			path = SwiftCSBlobs;
 			sourceTree = "<group>";
 		};
-		283C4D3429DF4BE5009FF6D3 /* Event Tables */ = {
-			isa = PBXGroup;
-			children = (
-				283C4D3529DF4C0F009FF6D3 /* EventTableViews.swift */,
-			);
-			path = "Event Tables";
-			sourceTree = "<group>";
-		};
 		283C4D3729DF4F58009FF6D3 /* Enrichment Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -1484,7 +1496,6 @@
 				28EC62F929280F8A00EAC8AD /* SystemEnrichedEventView.swift */,
 				28CEF0E629776C05003057D2 /* SystemInitatingProcessView.swift */,
 				283C4D3829DF525F009FF6D3 /* DangerousEntitlements.swift */,
-				283C4D3A29DF5352009FF6D3 /* HighFidelityEventPartitionView.swift */,
 			);
 			path = "Enrichment Views";
 			sourceTree = "<group>";
@@ -1492,6 +1503,7 @@
 		283C4D4029E0B3B7009FF6D3 /* ESM */ = {
 			isa = PBXGroup;
 			children = (
+				D15C00000000000000000001 /* XPC */,
 				283C4D4429E0B749009FF6D3 /* Extensions */,
 				283C4D4129E0B3E7009FF6D3 /* Utilities */,
 				BA3368B4287624F100794525 /* ESManager.swift */,
@@ -1541,7 +1553,6 @@
 			isa = PBXGroup;
 			children = (
 				2854A54A2E6DE82E004149AF /* SystemSessionGroupTableView.swift */,
-				28893E2C29A97D3A00960966 /* SystemProcessGroupTableView.swift */,
 			);
 			path = "Event Grouping";
 			sourceTree = "<group>";
@@ -1550,6 +1561,8 @@
 			isa = PBXGroup;
 			children = (
 				283C4D3C29E0983A009FF6D3 /* CoreDataController.swift */,
+				D15C00000000000000000101 /* RowCache.swift */,
+				D15C00000000000000000079 /* TelemetryExporter.swift */,
 				282902B82A463D96003211A2 /* ThrottleManager.swift */,
 			);
 			path = "Core Data Controller";
@@ -1558,7 +1571,8 @@
 		28822E1A2A329EE100C34879 /* XPC */ = {
 			isa = PBXGroup;
 			children = (
-				282E64E728FA63590060ABFA /* RCXPC.swift */,
+				D15C00000000000000000065 /* EventSpool.swift */,
+				D15C00000000000000000006 /* SensorService.swift */,
 			);
 			path = XPC;
 			sourceTree = "<group>";
@@ -2397,7 +2411,6 @@
 				28CEF10629776E46003057D2 /* SystemTargetProcessView.swift */,
 				28EC62F52925AA7100EAC8AD /* SystemEventFactsView.swift */,
 				28B9A93929DC8AC7006619FF /* Event Metadata Views */,
-				283C4D3429DF4BE5009FF6D3 /* Event Tables */,
 			);
 			path = "Event Facts Views";
 			sourceTree = "<group>";
@@ -2559,6 +2572,7 @@
 		BA97AFEB28754ABF0099C035 /* SecurityExtension */ = {
 			isa = PBXGroup;
 			children = (
+				D15C00000000000000000008 /* Updates */,
 				28822E1A2A329EE100C34879 /* XPC */,
 				BA97AFEC28754ABF0099C035 /* main.swift */,
 				BA97AFEE28754ABF0099C035 /* Info.plist */,
@@ -2631,20 +2645,22 @@
 		CA4CE63B2E58FC5F00C057EB /* Event Tables */ = {
 			isa = PBXGroup;
 			children = (
-				CA4CE63C2E58FC8C00C057EB /* Unified */,
 				CA4CE63D2E58FC9200C057EB /* Process */,
 				CA4CE63E2E58FD2400C057EB /* Correlation tables */,
+				D15C00000000000000000070 /* AppKit */,
 			);
 			path = "Event Tables";
 			sourceTree = "<group>";
 		};
-		CA4CE63C2E58FC8C00C057EB /* Unified */ = {
+		D15C00000000000000000070 /* AppKit */ = {
 			isa = PBXGroup;
 			children = (
-				28EC62E22925933000EAC8AD /* SystemEventsTableViews.swift */,
-				28EC62E02925922000EAC8AD /* UnifiedSystemEventViews.swift */,
+				D15C00000000000000000071 /* EventFilterSpec.swift */,
+				D15C00000000000000000073 /* EventQueryModel.swift */,
+				D15C00000000000000000075 /* AppKitEventTable.swift */,
+				D15C00000000000000000077 /* EventRowMenu.swift */,
 			);
-			path = Unified;
+			path = AppKit;
 			sourceTree = "<group>";
 		};
 		CA4CE63D2E58FC9200C057EB /* Process */ = {
@@ -2665,7 +2681,6 @@
 				28C1520529A967E700B4391C /* SystemLoginEventTableViews.swift */,
 				28EC62F02925A3B100EAC8AD /* FileMetadataSystemEventViews.swift */,
 				28C1520129A9644E00B4391C /* SystemFileRenameEventTableView.swift */,
-				28C1520329A965DA00B4391C /* SystemFileDupEventTableView.swift */,
 			);
 			path = "Correlation tables";
 			sourceTree = "<group>";
@@ -3328,6 +3343,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D15C00000000000000000005 /* SensorClient.swift in Sources */,
+				D15C00000000000000000003 /* SensorXPC.swift in Sources */,
 				28EC62D1292444C800EAC8AD /* ESXattrDeleteEvent+CoreDataClass.swift in Sources */,
 				2852BB9129D8CAAC00AA833C /* ESFileWriteEvent+CoreDataProperties.swift in Sources */,
 				28B9A92729DBDADF006619FF /* ProcessCheckEvent.swift in Sources */,
@@ -3352,7 +3369,6 @@
 				28B343AE2D87740D004127E8 /* ESAuditToken+CoreDataProperties.swift in Sources */,
 				CAD3D9822E0F167300028111 /* ESFileDestination+CoreDataClass.swift in Sources */,
 				28823F542ECEF7E7000B7F5C /* XattrListEvent.swift in Sources */,
-				282E64EA28FA69760060ABFA /* RCXPC.swift in Sources */,
 				282744AA28EF75F400464C5B /* Message.swift in Sources */,
 				2852BBB629DB756900AA833C /* ESCodeSignatureInvalidatedEvent+CoreDataClass.swift in Sources */,
 				283C4D3F29E09D89009FF6D3 /* MutingEngine.swift in Sources */,
@@ -3528,6 +3544,8 @@
 				28A25013299EFC47007B0753 /* ESFDDuplicateEvent+CoreDataProperties.swift in Sources */,
 				281BBE812A397C41009B94F8 /* ESODGroupRemoveEvent+CoreDataClass.swift in Sources */,
 				283C4D3D29E0983A009FF6D3 /* CoreDataController.swift in Sources */,
+				D15C0000000000000000007A /* TelemetryExporter.swift in Sources */,
+				D15C00000000000000000102 /* RowCache.swift in Sources */,
 				284F85602E736A00001542E3 /* MuteSet.swift in Sources */,
 				28A169D72DADF09700CA630B /* ActionResult.swift in Sources */,
 				2852BB9029D8CAAC00AA833C /* ESFileWriteEvent+CoreDataClass.swift in Sources */,
@@ -3581,7 +3599,6 @@
 				28B9A94529DC9DE0006619FF /* SystemProcessTraceMetadataView.swift in Sources */,
 				280C0F152970DAE7000C65E3 /* XProtectSystemEventViews.swift in Sources */,
 				28B9A92F29DBE976006619FF /* SystemFileOpenMetadataView.swift in Sources */,
-				2829D41B2E7BAFED00B7E977 /* ProcessLineage.swift in Sources */,
 				28CEF0F529776CE0003057D2 /* SystemBTMRemoveMetadataView.swift in Sources */,
 				28302B4B294D32E6001A616D /* FilterView.swift in Sources */,
 				289646BF2A4B8C6A000E9564 /* SystemOpenDirectoryGroupRemoveMetadataView.swift in Sources */,
@@ -3604,10 +3621,7 @@
 				283C4D3929DF525F009FF6D3 /* DangerousEntitlements.swift in Sources */,
 				28EC62DB29245C3100EAC8AD /* SystemEvents.xcdatamodeld in Sources */,
 				28CEF0E729776C05003057D2 /* SystemInitatingProcessView.swift in Sources */,
-				282E64E828FA63590060ABFA /* RCXPC.swift in Sources */,
-				28893E2D29A97D3A00960966 /* SystemProcessGroupTableView.swift in Sources */,
 				284409632A4BA07E009D6753 /* SystemAuthorizationPetitionMetadataView.swift in Sources */,
-				283C4D3629DF4C0F009FF6D3 /* EventTableViews.swift in Sources */,
 				28CEF0F929776D00003057D2 /* SystemFileCreateMetadataView.swift in Sources */,
 				28CEF0F729776CEF003057D2 /* SystemBTMAddMetadataView.swift in Sources */,
 				28C5039A2A1BE1D80066DC0D /* TableExecEventContextMenu.swift in Sources */,
@@ -3615,7 +3629,10 @@
 				28A2501F29A35D5F007B0753 /* SystemFDDuplicateMetadataView.swift in Sources */,
 				28B865C72A2FF5EF00F06441 /* SystemProfileAddMetadataView.swift in Sources */,
 				2854A54B2E6DE836004149AF /* SystemSessionGroupTableView.swift in Sources */,
-				28EC62E32925933000EAC8AD /* SystemEventsTableViews.swift in Sources */,
+				D15C00000000000000000072 /* EventFilterSpec.swift in Sources */,
+				D15C00000000000000000074 /* EventQueryModel.swift in Sources */,
+				D15C00000000000000000076 /* AppKitEventTable.swift in Sources */,
+				D15C00000000000000000078 /* EventRowMenu.swift in Sources */,
 				28CEF10529776D9A003057D2 /* InitiatingUserView.swift in Sources */,
 				28B9A94329DC9A74006619FF /* SystemProcessSocketMetadataView.swift in Sources */,
 				28B9A93D29DC8EC4006619FF /* SystemRemoteThreadCreateMetadataView.swift in Sources */,
@@ -3624,7 +3641,6 @@
 				28CEF0EB29776C54003057D2 /* SystemXProtectRemediateMetadataView.swift in Sources */,
 				287EAAA32A42C79E007E00C4 /* SystemOpenDirectoryCreateUserMetadataView.swift in Sources */,
 				28CEF0FB29776D1D003057D2 /* SystemMMAPMetadataView.swift in Sources */,
-				28C1520429A965DA00B4391C /* SystemFileDupEventTableView.swift in Sources */,
 				284CFE1D2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift in Sources */,
 				28B9A93F29DC93A7006619FF /* SystemIOKitOpenMetadataView.swift in Sources */,
 				28EC62F62925AA7100EAC8AD /* SystemEventFactsView.swift in Sources */,
@@ -3644,7 +3660,6 @@
 				28EC62E82925966D00EAC8AD /* EventChartViews.swift in Sources */,
 				28B9A93B29DC8B3A006619FF /* SystemProcessSignalMetadataView.swift in Sources */,
 				28CEF11F2978D2F7003057D2 /* SystemLWUnlockMetadataView.swift in Sources */,
-				28EC62E12925922000EAC8AD /* UnifiedSystemEventViews.swift in Sources */,
 				28CEF10929776E86003057D2 /* SystemMountMetadataView.swift in Sources */,
 				28823F3E2ECC2A3D000B7F5C /* SystemSetExtattrMetadataView.swift in Sources */,
 				28EC62FA29280F8A00EAC8AD /* SystemEnrichedEventView.swift in Sources */,
@@ -3664,7 +3679,6 @@
 				284CFE172A16EE1900D0038B /* AdvancedSettingsView.swift in Sources */,
 				28CEF0FF29776D64003057D2 /* SystemForkProcMetadataView.swift in Sources */,
 				2881CE1C294D0B2300F97F99 /* TableContextMenus.swift in Sources */,
-				283C4D3B29DF5352009FF6D3 /* HighFidelityEventPartitionView.swift in Sources */,
 				CADD9D842E8DC73C009EC919 /* SystemUIPCConnectMetadataView.swift in Sources */,
 				28CEF0ED29776C73003057D2 /* SystemXProtectDetectMetadataView.swift in Sources */,
 				CA59365C2E8B1920008A115D /* SystemPTYGrantMetadataView.swift in Sources */,
@@ -3679,7 +3693,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				282E64E928FA63590060ABFA /* RCXPC.swift in Sources */,
+				D15C00000000000000000066 /* EventSpool.swift in Sources */,
+				D15C0000000000000000000A /* UpdateInstaller.swift in Sources */,
+				D15C00000000000000000007 /* SensorService.swift in Sources */,
 				28EC62DE29245D1A00EAC8AD /* SystemEvents.xcdatamodeld in Sources */,
 				2808EDA42993457400238A8C /* BatchedEvents.xcdatamodeld in Sources */,
 				BA97AFED28754ABF0099C035 /* main.swift in Sources */,
@@ -4070,7 +4086,7 @@
 					"$(SDKROOT)/usr/lib/system",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent;
 				PRODUCT_NAME = "Mac Monitor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -4111,7 +4127,7 @@
 					"$(SDKROOT)/usr/lib/system",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent;
 				PRODUCT_NAME = "Mac Monitor";
 				SKIP_INSTALL = NO;
@@ -4155,7 +4171,7 @@
 					"$(SDKROOT)/usr/lib/system",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent;
 				PRODUCT_NAME = "Mac Monitor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -4195,7 +4211,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.securityextension;
 				PRODUCT_NAME = "$(inherited)";
 				PROVISIONING_PROFILE_SPECIFIER = "RC Release SE w/Ent";
@@ -4230,7 +4246,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.securityextension;
 				PRODUCT_NAME = "$(inherited)";
 				SKIP_INSTALL = NO;
@@ -4268,7 +4284,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.securityextension;
 				PRODUCT_NAME = "$(inherited)";
 				PROVISIONING_PROFILE_SPECIFIER = "RC Release SE w/Ent";

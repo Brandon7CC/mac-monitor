@@ -24,8 +24,8 @@ public class ESFileDeleteEvent: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = event.id
         
-        self.target = ESFile(from: event.target, insertIntoManagedObjectContext: context)
-        self.parent_dir = ESFile(from: event.parent_dir, insertIntoManagedObjectContext: context)
+        attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESFileDeleteEvent.target))
+        attach(ESFile.row(for: event.parent_dir, in: context), to: #keyPath(ESFileDeleteEvent.parent_dir))
     }
 }
 

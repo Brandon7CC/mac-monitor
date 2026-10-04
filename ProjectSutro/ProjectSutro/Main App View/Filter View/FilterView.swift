@@ -10,7 +10,7 @@ import SutroESFramework
 import OSLog
 
 
-public struct Filters {
+public struct Filters: Equatable {
     public var initiatingPaths: [String] = []
     public var targetPaths: [String] = []
     public var events: [String] = []
@@ -30,103 +30,6 @@ public struct Filters {
         return sum
     }
 }
-
-
-public func isEventFiltered(
-    event: ESMessage,
-    filteringLongRunningProcs: Bool = false,
-    filterText: String,
-    allFilters: Filters,
-    systemExtensionManager: EndpointSecurityManager,
-    initiatingLineageSet: Set<String>?,
-    targetLineageSet: Set<String>?
-) -> Bool {
-    let inclusionFilterActive = allFilters.rootIncludedInitiatingProcessPath != nil ||
-                                allFilters.rootIncludedTargetProcessPath != nil
-    
-    if inclusionFilterActive {
-        var matchesAnInclusionFilter = false
-        
-        let initiatingToken = event.process.audit_token_string
-        let initiatingPath = event.process.executable?.path
-        
-        // Check initiating process
-        if let path = allFilters.rootIncludedInitiatingProcessPath {
-            if allFilters.shouldIncludeProcessSubTrees {
-                if initiatingLineageSet?.contains(initiatingToken) == true {
-                    matchesAnInclusionFilter = true
-                }
-            } else if initiatingPath == path {
-                matchesAnInclusionFilter = true
-            }
-        }
-        
-        if !matchesAnInclusionFilter, let path = allFilters.rootIncludedTargetProcessPath {
-            if allFilters.shouldIncludeProcessSubTrees {
-                if targetLineageSet?.contains(initiatingToken) == true {
-                    matchesAnInclusionFilter = true
-                }
-            } else if initiatingPath == path {
-                matchesAnInclusionFilter = true
-            }
-        }
-        
-        // Check exec target
-        if !matchesAnInclusionFilter, let execEvent = event.event.exec {
-            let targetToken = execEvent.target.audit_token_string
-            let targetPath = execEvent.target.executable?.path
-            
-            if let path = allFilters.rootIncludedInitiatingProcessPath {
-                if allFilters.shouldIncludeProcessSubTrees {
-                    if initiatingLineageSet?.contains(targetToken) == true {
-                        matchesAnInclusionFilter = true
-                    }
-                } else if targetPath == path {
-                    matchesAnInclusionFilter = true
-                }
-            }
-            
-            if !matchesAnInclusionFilter, let path = allFilters.rootIncludedTargetProcessPath {
-                if allFilters.shouldIncludeProcessSubTrees {
-                    if targetLineageSet?.contains(targetToken) == true {
-                        matchesAnInclusionFilter = true
-                    }
-                } else if targetPath == path {
-                    matchesAnInclusionFilter = true
-                }
-            }
-        }
-        
-        if !matchesAnInclusionFilter { return false }
-    }
-    
-    // MARK: Non-lineage filters:
-    if filteringLongRunningProcs,
-       let messageTime = event.message_darwin_time,
-       messageTime.timeIntervalSince1970 < systemExtensionManager.clientConnectDT.timeIntervalSince1970 {
-        return false
-    }
-    
-    if allFilters.events.contains(event.es_event_type ?? "") { return false }
-    if allFilters.userIDs.contains(event.process.euid_human ?? "") { return false }
-    if allFilters.initiatingPaths.contains(event.process.executable?.path ?? "") { return false }
-    
-    let targetPath = event.target_path ?? ""
-    if allFilters.targetPaths.contains(targetPath) ||
-        !allFilters.targetPaths.filter({ targetPath.contains($0) }).isEmpty {
-        return false
-    }
-    
-    if !filterText.isEmpty,
-       let target = event.context,
-       !target.lowercased().contains(filterText) {
-        return false
-    }
-    
-    return true
-}
-
-
 
 
 struct FilterView: View {

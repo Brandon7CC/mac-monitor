@@ -23,7 +23,9 @@ public class ESProcessForkEvent: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = forkEvent.id
         
-        self.child = ESProcess(from: forkEvent.child, version: message.version, insertIntoManagedObjectContext: context)
+        /// The child: shared with the events it goes on to cause (see ``ESProcess/row(for:version:in:)``).
+        attach(ESProcess.row(for: forkEvent.child, version: message.version, in: context), to: #keyPath(ESProcessForkEvent.child))
+        self.child_id = forkEvent.child.id
     }
 }
 
@@ -31,6 +33,6 @@ public class ESProcessForkEvent: NSManagedObject {
 extension ESProcessForkEvent: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(child, forKey: .child)
+        try container.encode(ESProcessRecord(process: child, id: child_id ?? child.id), forKey: .child)
     }
 }

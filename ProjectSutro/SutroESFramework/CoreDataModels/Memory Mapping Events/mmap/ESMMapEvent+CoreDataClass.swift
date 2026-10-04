@@ -31,10 +31,7 @@ public class ESMMapEvent: NSManagedObject {
         self.max_protection = mmapEvent.max_protection
         self.flags = mmapEvent.flags
         self.file_pos = Int64(mmapEvent.file_pos)
-        self.source = ESFile(
-            from: mmapEvent.source,
-            insertIntoManagedObjectContext: context
-        )
+        attach(ESFile.row(for: mmapEvent.source, in: context), to: #keyPath(ESMMapEvent.source))
     }
 }
 

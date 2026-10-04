@@ -12,12 +12,14 @@ import SutroESFramework
 import CoreData
 
 
+/// Lives for the life of the process: `NSXPCListener` only holds its delegate weakly.
+let sensorService: SensorService = SensorService(esManager: EndpointSecurityManager())
+
 autoreleasepool {
     os_log("🏎 Hello from the Mac Monitor Security Extension!")
     
     // Let's get this show on the road!
-    let esManager: EndpointSecurityManager = EndpointSecurityManager()
-    RCXPCConnection.rcXPCConnection.startXPCListener(esManager: esManager)
+    sensorService.activate()
 }
 
 dispatchMain()

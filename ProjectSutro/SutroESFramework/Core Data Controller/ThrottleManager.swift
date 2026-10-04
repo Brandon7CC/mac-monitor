@@ -37,9 +37,13 @@ class ThrottleManager {
         queue.sync { _saveInterval }
     }
     
-    func registerEvent() {
+    /// Count a batch of events toward the current rate.
+    ///
+    /// - Parameter count: How many events just arrived.
+    func registerEvents(_ count: Int) {
+        guard count > 0 else { return }
         queue.async(flags: .barrier) {
-            self.eventRateCounter += 1
+            self.eventRateCounter += count
             let elapsedTime = Date().timeIntervalSince(self.eventTimestamp)
             
             if elapsedTime >= 1.0 {

@@ -198,12 +198,20 @@ public class ProcessHelpers {
         return date
     }
     
+    /// Formats event timestamps as `yyyy-MM-dd'T'HH:mm:ss.SSS'Z'`.
+    ///
+    /// Shared rather than created per call: `Message.init` runs for every event in the Security Extension.
+    /// `DateFormatter` is thread safe on macOS 10.9+ (see `NSDateFormatter.h`).
+    static let timestampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+        return formatter
+    }()
+    
     public static func timevalToTimestamp(timeval: timeval) -> String {
         let unixTimestamp = Double(timeval.tv_sec) + (Double(timeval.tv_usec) / 1000000)
         let date = Date(timeIntervalSince1970: unixTimestamp)
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-        return dateFormatter.string(from: date)
+        return timestampFormatter.string(from: date)
     }
     
     public static func procInfoToString(procInfo: proc_uniqidentifierinfo) -> String {

@@ -27,7 +27,7 @@ public class ESFileRenameEvent: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = fileRenameEvent.id
         
-        self.source = ESFile(from: fileRenameEvent.source, insertIntoManagedObjectContext: context)
+        attach(ESFile.row(for: fileRenameEvent.source, in: context), to: #keyPath(ESFileRenameEvent.source))
         
         self.destination_type = Int16(fileRenameEvent.destination_type)
         self.destination_type_string = fileRenameEvent.destination_type_string

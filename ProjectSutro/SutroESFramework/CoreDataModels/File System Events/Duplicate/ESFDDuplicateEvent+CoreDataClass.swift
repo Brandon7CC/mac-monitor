@@ -22,7 +22,7 @@ public class ESFDDuplicateEvent: NSManagedObject {
         let description = NSEntityDescription.entity(forEntityName: "ESFDDuplicateEvent", in: context)!
         self.init(entity: description, insertInto: context)
         self.id = event.id
-        self.target = ESFile(from: event.target, insertIntoManagedObjectContext: context)
+        attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESFDDuplicateEvent.target))
     }
 }
 

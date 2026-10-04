@@ -22,7 +22,7 @@ public class ESFileOpenEvent: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = fileEvent.id
         
-        self.file = ESFile(from: fileEvent.file, insertIntoManagedObjectContext: context)
+        attach(ESFile.row(for: fileEvent.file, in: context), to: #keyPath(ESFileOpenEvent.file))
         self.fflag = fileEvent.fflag
     }
 }

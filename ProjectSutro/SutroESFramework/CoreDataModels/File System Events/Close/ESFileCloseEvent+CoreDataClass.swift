@@ -25,10 +25,7 @@ public class ESFileCloseEvent: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = event.id
         
-        self.target = ESFile(
-            from: event.target,
-            insertIntoManagedObjectContext: context
-        )
+        attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESFileCloseEvent.target))
         self.modified = event.modified
         self.was_mapped_writable = event.was_mapped_writable ?? false
     }

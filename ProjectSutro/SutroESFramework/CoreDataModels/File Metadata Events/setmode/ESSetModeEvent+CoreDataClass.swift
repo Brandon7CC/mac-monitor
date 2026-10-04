@@ -25,7 +25,7 @@ public class ESSetModeEvent: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = event.id
         self.mode = event.mode
-        self.target = ESFile(from: event.target, insertIntoManagedObjectContext: context)
+        attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESSetModeEvent.target))
     }
 }
 

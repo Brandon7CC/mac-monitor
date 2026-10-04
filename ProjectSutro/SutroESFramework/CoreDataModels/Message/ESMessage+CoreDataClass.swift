@@ -114,12 +114,10 @@ public class ESMessage: NSManagedObject {
         self.macOS = message.macOS
         self.sensor_id = message.sensor_id
         
-        /// Initiating Process
-        self.process = ESProcess(
-            from: message.process,
-            version: message.version,
-            insertIntoManagedObjectContext: context
-        )
+        /// Initiating Process: shared with the process's other events (see ``EventRowCaches``), so the event keeps the
+        /// process `id` it exports itself.
+        attach(ESProcess.row(for: message.process, version: message.version, in: context), to: #keyPath(ESMessage.process))
+        self.process_id = message.process.id
         
         /// Thread
         self.thread = ESThread(
@@ -180,7 +178,7 @@ extension ESMessage: Encodable {
         try container.encode(sensor_id, forKey: .sensor_id)
         
         /// Initiating Process
-        try container.encode(process, forKey: .process)
+        try container.encode(ESProcessRecord(process: process, id: process_id ?? process.id), forKey: .process)
         
         /// Thread
         try container.encode(thread, forKey: .thread)

@@ -22,9 +22,9 @@ class AgentCloseController: ObservableObject {
         showAlert.toggle()
     }
     
-    /// Request that the app be re-launched over XPC by the persistent Security Extension
+    /// Request that the app be re-launched once it has quit
     func quitAgent(esm: EndpointSecurityManager) {
-        esm.tccRequestAppReboot()
+        esm.requestAgentRelaunch()
         NSApp.terminate(nil)
     }
 }
@@ -46,12 +46,6 @@ struct AlertButtonStyle: ButtonStyle {
 ///
 /// In this view  the user can interact with Mac Monitor's primary functionality,
 struct EventView: View {
-    /// Get the system apperance
-    @Environment(\.colorScheme) var colorMode
-    
-    /// Open a new "Event metadata" window
-    @Environment(\.openWindow) private var eventFactsWindow
-    
     /// Track everything going on with System Events and the Security Extension
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     
@@ -60,20 +54,13 @@ struct EventView: View {
     
     
     
-    /// Query Core Data for our System Events
-    ///
-    /// Events  (``ESMessage``) are inserted one-by-one in the order dispatched by Endpoint Security.
-    /// Our fetch request gets events in decending order by the ``mach_time`` entity key
-    @Environment(\.managedObjectContext) var moc
-    @FetchRequest(sortDescriptors: [
-        NSSortDescriptor(key: "mach_time", ascending: false)
-    ]) var coreDataEvents: FetchedResults<ESMessage>
+    /// Fetches, filters, and counts the System Events for the event tables, the mini-chart, and the toolbar.
+    @StateObject private var eventQueries = EventQueryModel()
     
     
     
     /// Is a system trace occuring?
     @Binding var recordingEvents: Bool
-    @State private var isBlinking: Bool = false
     
     /// Should the "System Security Unified" table be shown?
     @Binding var unifiedViewSelected: Bool
@@ -95,12 +82,9 @@ struct EventView: View {
     /// The text to filter by in the context search field
     @Binding var filterText: String
     
-    /// The query the user wants to filter the ``context`` field by.
-    @State var submitedQuery: String = ""
     
     
-    
-    /// Implements our ability to request app re-launches over XPC by the Security Extension.
+    /// Implements our ability to relaunch the app (e.g. after Full Disk Access is granted).
     ///
     /// This is done by ``AgentCloseController``.
     @StateObject private var agentTerminate = AgentCloseController()
@@ -121,78 +105,35 @@ struct EventView: View {
     /// Should we filter out *most* events initiated by a platform binary?
     @State private var filterPlatform: Bool = false
     
-    /// Should events be displayed in ascending order?
-    @State private var ascending: Bool = false
-    
     /// This more *rare* alert will be displayed when the the user launches the app.
     ///
     /// Usually what we'll do is check on app-launch and disable the start button.
     @State private var tccAlert: Bool = false
     
     
-    /// Returns the filtered collection of Endpoint Security events for display in the application UI.
-    ///
-    /// This computed property performs a multi-stage filtering operation on Core Data events,
-    /// applying both inclusion filters (process tree selection) and exclusion filters (event types,
-    /// user IDs, paths, etc.). The filtering is optimized for performance through pre-computation
-    /// of process lineage sets and lazy evaluation.
-    ///
-    /// 1. **Lineage Pre-computation**: If subtree filtering is enabled, computes the complete set
-    ///    of audit tokens in the selected process trees (O(m) where m is tree size)
-    /// 2. **Inclusion Filtering**: Events must match the selected process trees if specified
-    /// 3. **Exclusion Filtering**: Events matching blocked event types, paths, or users are removed
-    /// 4. **Text Filtering**: Events must contain the filter text in their context
-    ///
-    /// ## Performance
-    /// - Pre-computation: O(n + m) where n is total events, m is tree size
-    /// - Per-event filtering: O(1) for lineage checks (set lookup), O(k) for other filters
-    /// - Lazy evaluation: Only materializes filtered results when accessed
-    ///
-    /// ## Triggers
-    /// This property recomputes whenever any of its dependencies change:
-    /// - `coreDataEvents` (new events arrive)
-    /// - `allFilters` (user changes filter settings)
-    /// - `filterText` (user types in search)
-    /// - `filteringLongRunningProcs` (toggle changes)
-    ///
-    private var filteredCoreDataEvents: [ESMessage] {
-        let lineageResolver = ProcessLineageResolver(events: Array(coreDataEvents))
-        let lineageSubTreesIncludeAnsestors: Bool = true
-        
-        // Pre-compute lineage sets once
-        let initiatingLineageSet = allFilters.rootIncludedInitiatingProcessPath.flatMap { path in
-            allFilters.shouldIncludeProcessSubTrees ?
-                lineageResolver.computeLineageSet(includedPath: path, includeAncestors: lineageSubTreesIncludeAnsestors) : nil
-        }
-        
-        let targetLineageSet = allFilters.rootIncludedTargetProcessPath.flatMap { path in
-            allFilters.shouldIncludeProcessSubTrees ?
-                lineageResolver.computeLineageSet(includedPath: path, includeAncestors: lineageSubTreesIncludeAnsestors) : nil
-        }
-        
-        return coreDataEvents.lazy.filter { event in
-            return isEventFiltered(
-                event: event,
-                filteringLongRunningProcs: filteringLongRunningProcs,
-                filterText: filterText.lowercased(),
-                allFilters: allFilters,
-                systemExtensionManager: systemExtensionManager,
-                initiatingLineageSet: initiatingLineageSet,
-                targetLineageSet: targetLineageSet
-            )
-        }
+    /// Everything that decides which events the event tables show.
+    private var filterSpec: EventFilterSpec {
+        EventFilterSpec(
+            filters: allFilters,
+            searchText: filterText,
+            filteringLongRunningProcs: filteringLongRunningProcs,
+            clientConnectDT: systemExtensionManager.clientConnectDT
+        )
     }
+    
+    /// The number of System Events in the store.
+    private var totalEventCount: Int { eventQueries.totalCount }
     
     /// The string displaying the number of System Events collected over the course of the trace
     private var eventCountString: AttributedString {
         let hasActiveFilters = allFilters.totalFilters() + (filteringLongRunningProcs ? 1 : 0) > 0
         
         if !hasActiveFilters {
-            return try! AttributedString(markdown: "**Events** `\(coreDataEvents.count)`")
+            return try! AttributedString(markdown: "**Events** `\(totalEventCount)`")
         }
         
-        let totalCount = coreDataEvents.count
-        let filteredCount = filteredCoreDataEvents.count
+        let totalCount = totalEventCount
+        let filteredCount = eventQueries.filteredCount
         let percentage = totalCount > 0 ? Double(filteredCount) / Double(totalCount) * 100.0 : 0.0
         
         return try! AttributedString(
@@ -222,19 +163,19 @@ struct EventView: View {
     
     var body: some View {
         VStack(alignment: .leading) {
-            // MARK: Core Data System Events (replaces legacy Swift Array of events)
-            SystemEventsTableView(
-                messagesInScope: filteredCoreDataEvents,
+            AppKitEventTablesView(
+                model: eventQueries,
+                allFilters: $allFilters,
+                messageSelections: $eventSelection,
                 unifiedViewSelected: $unifiedViewSelected,
                 viewExec: $processExecSelected,
-                viewMiniChart: $viewMiniChart,
-                ascending: $ascending,
-                allFilters: $allFilters,
-                messageSelections: $eventSelection
+                viewMiniChart: $viewMiniChart
             )
             .environmentObject(systemExtensionManager)
             .environmentObject(userPrefs)
         }
+        .onAppear { eventQueries.activate(spec: filterSpec) }
+        .onChange(of: filterSpec) { spec in eventQueries.update(spec: spec) }
         .toolbar {
             ToolbarItemGroup(placement: .principal) {
                 if #unavailable(macOS 14) {
@@ -277,7 +218,7 @@ struct EventView: View {
                         .labelStyle(.titleAndIcon)
                         .padding([.leading, .trailing], 5)
                 }
-                .disabled(coreDataEvents.isEmpty)
+                .disabled(totalEventCount == 0)
                 
                 
             }
@@ -327,9 +268,6 @@ struct EventView: View {
             }
         }
         .searchable(text: $filterText, prompt: "Filter by context")
-//        .onSubmit(of: .search) {
-//            submitedQuery = filterText
-//        }
         .onAppear {
             if !CommandLine.arguments.contains("--deactive-security-extension") {
                 systemExtensionManager.activateSystemExtension()

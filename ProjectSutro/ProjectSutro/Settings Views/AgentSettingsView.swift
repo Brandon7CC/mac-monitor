@@ -34,12 +34,6 @@ class UserPrefs: ObservableObject {
     @AppStorage("lifecycleWarnBeforeQuit") var lifecycleWarnBeforeQuit = true  // Warn the user before quitting the app
     @AppStorage("lifecycleWarnBeforeClear") var lifecycleWarnBeforeClear = true  // Warn the user before clearing events
     
-    // MARK: - Table columns
-    @AppStorage("tableColsTimestamp") var tableColsTimestamp = true
-    @AppStorage("tableColsContext") var tableColsContext = true
-    @AppStorage("tableColsInitiatingEUID") var tableColsInitiatingEUID = true
-    @AppStorage("tableColsInitiatingProcName") var tableColsInitiatingProcName = true
-    
     // MARK: - Process tree
     @AppStorage("forksAsParent") var forksAsParent = false
     
@@ -77,22 +71,12 @@ class UserPrefs: ObservableObject {
         lifecycleWarnBeforeClear = true
     }
     
-    public func resetTableColumnPreferences() {
-        tableColsTimestamp = true
-        tableColsContext = true
-        tableColsInitiatingEUID = true
-        tableColsInitiatingProcName = true
-    }
-    
     public func resetAllPreferences() {
         // Reset the context menu preferences
         resetContextPreferences()
         
         // Reset the life cycle preferences
         resetLifecyclePreferences()
-        
-        // Reset the table column preferences
-        resetTableColumnPreferences()
     }
 }
 

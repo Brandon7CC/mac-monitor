@@ -107,6 +107,7 @@ struct ProcessExecEventNameView: View {
 
 // MARK: – Sortable proxies
 extension ESMessage {
+    var sortableTimestamp: TimeInterval { message_darwin_time?.timeIntervalSince1970 ?? 0 }
     var sortProcessName:   String       { event.exec?.target.executable?.name ?? "" }
     var sortSigningID:     String       { event.exec?.target.signing_id      ?? "" }
     var sortProcessPath:   String       { event.exec?.target.executable?.path ?? "" }
@@ -123,7 +124,6 @@ struct SystemProcessExecTableView: View {
     var simple: Bool = false
     @Binding var messageSelections: Set<ESMessage.ID>
     @Binding var allFilters: Filters
-    @Binding var ascending: Bool
 
     @State private var sortOrder: [KeyPathComparator] = [
         .init(\ESMessage.sortableTimestamp, order: .reverse)
@@ -213,7 +213,6 @@ struct CustomizableSystemProcessExecTableView: View {
     var simple: Bool = false
     @Binding var messageSelections: Set<ESMessage.ID>
     @Binding var allFilters: Filters
-    @Binding var ascending: Bool
 
     @State private var sortOrder: [KeyPathComparator] = [
         .init(\ESMessage.sortableTimestamp, order: .reverse)

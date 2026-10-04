@@ -108,20 +108,22 @@ struct UpdateAvailableSheet: View {
                         
                         Task {
                             let success = await withCheckedContinuation { continuation in
-                                systemExtensionManager.installUpdate(from: updateDetails.downloadURL) { success in
+                                systemExtensionManager.installUpdate { success in
                                     continuation.resume(returning: success)
                                 }
                             }
 
                             await MainActor.run {
                                 if success {
-                                    // 1. Request the reboot from the System Extension.
-                                    systemExtensionManager.tccRequestAppReboot()
+                                    // 1. Schedule the relaunch for when this process exits.
+                                    systemExtensionManager.requestAgentRelaunch()
 
                                     // 2. Dismiss the sheet to clean up the view hierarchy.
                                     dismiss()
 
-                                    // 3. Terminate the app after a brief delay
+                                    // 3. Terminate the app after a brief delay. Skip the "warn before quitting" prompt:
+                                    //    the relaunch only waits 10 seconds for this process to exit.
+                                    UserDefaults.standard.set(true, forKey: "lifecycleQuitInternal")
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                         NSApplication.shared.terminate(nil)
                                     }

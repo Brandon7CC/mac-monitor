@@ -21,7 +21,10 @@ extension ESProcessExecEvent {
     @NSManaged public var command_line: String?
     @NSManaged public var id: UUID?
     @NSManaged public var certificateChainData: Data?
+    /// The new process image. The row may be shared with the events that process goes on to cause.
     @NSManaged public var target: ESProcess
+    /// The `id` ``target`` had in this event (and exports). A shared row keeps the `id` of the first event that stored it.
+    @NSManaged public var target_id: UUID?
     @NSManaged public var dyld_exec_path: String?
     @NSManaged public var script: ESFile?
     @NSManaged public var cwd: ESFile?

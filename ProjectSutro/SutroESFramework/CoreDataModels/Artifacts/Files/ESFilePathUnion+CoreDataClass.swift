@@ -28,10 +28,7 @@ public class ESFilePathUnion: NSManagedObject {
         
         self.file_path = filePathUnion.file_path
         if let file = filePathUnion.file {
-            self.file = ESFile(
-                from: file,
-                insertIntoManagedObjectContext: context
-            )
+            attach(ESFile.row(for: file, in: context), to: #keyPath(ESFilePathUnion.file))
         }
     }
 }

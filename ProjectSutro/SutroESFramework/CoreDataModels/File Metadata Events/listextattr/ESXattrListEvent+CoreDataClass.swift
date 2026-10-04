@@ -23,7 +23,7 @@ public class ESXattrListEvent: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = event.id
         
-        target = ESFile(from: event.target, insertIntoManagedObjectContext: context)
+        attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESXattrListEvent.target))
     }
 }
 

@@ -25,14 +25,8 @@ public class ESLinkEvent: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = event.id
         
-        self.source = ESFile(
-            from: event.source,
-            insertIntoManagedObjectContext: context
-        )
-        self.target_dir = ESFile(
-            from: event.target_dir,
-            insertIntoManagedObjectContext: context
-        )
+        attach(ESFile.row(for: event.source, in: context), to: #keyPath(ESLinkEvent.source))
+        attach(ESFile.row(for: event.target_dir, in: context), to: #keyPath(ESLinkEvent.target_dir))
         self.target_filename = event.target_filename
     }
 }

@@ -101,10 +101,8 @@ public struct Message: Identifiable, Codable, Hashable {
         }
         
         /// Time
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
         let ats = ProcessHelpers.timespecToTimestamp(timespec: message.time)
-        self.time = dateFormatter.string(from: ats)
+        self.time = ProcessHelpers.timestampFormatter.string(from: ats)
         self.mach_time = Int64(message.mach_time)
         self.message_darwin_time = ProcessHelpers.timespecToTimestamp(timespec: message.time)
         

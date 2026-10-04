@@ -83,6 +83,8 @@ struct SystemEventFactsView : View {
     }
     
     var body: some View {
+        /// One lookup each per update (they query the store each time they're read).
+        let procGroup = self.procGroup, procSessionGroup = self.procSessionGroup
         TabView {
             // MARK: Event Facts tab view metadata view
             VStack(alignment: .leading) {
@@ -120,7 +122,8 @@ struct SystemEventFactsView : View {
             }
             
             // MARK: Enrichment view
-            if selectedMessage.correlated_array.count > 1 {
+            /// EXEC only: the enrichment view describes the exec target, and FORK events can have correlated events too.
+            if selectedMessage.event.exec != nil && selectedMessage.correlatedCount() > 1 {
                 VStack(alignment: .leading) {
                     SystemEnrichedEventView(allFilters: $allFilters, selectedMessage: selectedMessage)
                         .environmentObject(systemExtensionManager)
@@ -176,34 +179,37 @@ struct AppWrapperForFacts: View {
     @State private var selectedEventTree: ESMessage?
     @State private var visibility: NavigationSplitViewVisibility = .all
     
-    var procTree: [ESMessage] {
-        if selectedEventTree != nil {
-            return systemExtensionManager.coreDataContainer.getProcTree(targetEvent: selectedEventTree!).filter({
-                /// Forks as parent
-                if userPrefs.forksAsParent {
-                    true
-                } else {
-                    $0.es_event_type != "ES_EVENT_TYPE_NOTIFY_FORK"
-                }
-            })
-        }
-        return []
+    /// The selected event's ancestors, nearest first (forks only if they count as parents).
+    ///
+    /// - Parameter event: The selected event.
+    /// - Returns: Its process tree, looked up in the store.
+    private func procTree(for event: ESMessage) -> [ESMessage] {
+        systemExtensionManager.coreDataContainer.getProcTree(targetEvent: event).filter({
+            /// Forks as parent
+            if userPrefs.forksAsParent {
+                true
+            } else {
+                $0.es_event_type != "ES_EVENT_TYPE_NOTIFY_FORK"
+            }
+        })
     }
     
     var body: some View {
         NavigationSplitView(columnVisibility: $visibility) {
-            if selectedEventTree != nil {
+            if let selected = selectedEventTree {
+                /// One lookup per update: the tree is read for every row below.
+                let tree = procTree(for: selected)
                 // MARK: Process tree
                 List(selection: $selectedEventTree) {
-                    Text("Subtree: `\(procTree.count + 1)`")
+                    Text("Subtree: `\(tree.count + 1)`")
                         .font(.headline)
                         .foregroundStyle(.secondary)
                     Divider()
                     ForEach(
-                        procTree.reversed(),
+                        tree.reversed(),
                         id: \.self
                     ) { message in
-                        if message.id != procTree.last!.id {
+                        if message.id != tree.last?.id {
                             Label("**`\(ProcessHelpers.getTargetProcessName(message: message))`**", systemImage: "arrow.turn.down.right").contextMenu {
                                 Button("Open in new window") {
                                     openEventFacts(value: message.id)
@@ -237,7 +243,12 @@ struct AppWrapperForFacts: View {
             if selectedEventTree == nil {
                 _ = NSApplication.shared.windows.filter({ $0.title.contains("Event Facts")}).map({ $0.close() })
             }
-        }.toolbar {
+        }
+        /// Clear deletes the events (and processes) this window shows: let go of them first.
+        .onReceive(NotificationCenter.default.publisher(for: CoreDataController.eventsWillClear)) { _ in
+            selectedEventTree = nil
+        }
+        .toolbar {
             if let firstMessage = coreDataEvents.first,
                let tree = selectedEventTree {
                 Button(action: {

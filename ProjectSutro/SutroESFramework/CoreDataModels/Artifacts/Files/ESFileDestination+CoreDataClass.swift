@@ -28,7 +28,7 @@ public class ESFileDestination: NSManagedObject {
         
         switch destination {
         case .existing_file(let existingFile):
-            self.existing_file = ESFile(from: existingFile, insertIntoManagedObjectContext: context)
+            attach(ESFile.row(for: existingFile, in: context), to: #keyPath(ESFileDestination.existing_file))
         case .new_path(let newPath):
             self.new_path = ESNewPath(from: newPath, insertIntoManagedObjectContext: context)
         }

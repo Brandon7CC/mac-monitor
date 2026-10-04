@@ -33,6 +33,17 @@ public class ESFile: NSManagedObject {
             insertIntoManagedObjectContext: context
         )
     }
+    
+    /// The row for `file` (with its `ESStat`): shared with every other use of the same file and stat when `context` has
+    /// ``EventRowCaches``, or a new row otherwise. Neither row exports its `id`, so sharing them doesn't show.
+    ///
+    /// - Parameters:
+    ///   - file: The file.
+    ///   - context: The context to insert into.
+    /// - Returns: The row, which may be a fault: attach it with ``NSManagedObject/attach(_:to:)``.
+    static func row(for file: File, in context: NSManagedObjectContext) -> ESFile {
+        EventRowCaches.row(\.files, for: file.rowKey, in: context) { ESFile(from: file, insertIntoManagedObjectContext: context) }
+    }
 }
 
 // MARK: - Encodable conformance

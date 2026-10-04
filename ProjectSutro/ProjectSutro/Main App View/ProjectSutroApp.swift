@@ -90,7 +90,6 @@ struct ProjectSutroApp: App {
                 )
                 .environmentObject(systemExtensionManager)
                 .environmentObject(userPrefs)
-                .environment(\.managedObjectContext, systemExtensionManager.coreDataContainer.container.viewContext)
                 .padding(.bottom)
                 .frame(minWidth: 1200, minHeight: 750)
             }
@@ -99,7 +98,7 @@ struct ProjectSutroApp: App {
                 UserDefaults.standard.set(false, forKey: "lifecycleQuitInternal")
                 
                 /// If auto-updates are enabled then check at app launch
-                if userPrefs.autoUpdates {
+                if userPrefs.autoUpdates && EndpointSecurityManager.supportsUpdates {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                         systemExtensionManager.checkForUpdates { details in
                             if let details = details {
@@ -152,7 +151,8 @@ struct ProjectSutroApp: App {
                         }
                     }
                 }
-                .disabled(isCheckingForUpdate)
+                .disabled(isCheckingForUpdate || !EndpointSecurityManager.supportsUpdates)
+                .help(EndpointSecurityManager.supportsUpdates ? "" : "Community builds don't update themselves.")
             }
             
             CommandGroup(replacing: .help) {

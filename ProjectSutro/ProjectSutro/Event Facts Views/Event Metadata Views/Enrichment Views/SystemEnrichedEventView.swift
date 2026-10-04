@@ -377,11 +377,13 @@ struct SystemEnrichedEventView: View {
     }
     
     var body: some View {
+        /// One fetch per update: `correlated_array` queries the store each time it's read.
+        let correlated = selectedMessage.correlated_array
         Form {
             VStack(alignment: .leading) {
                 Section {
                     HStack {
-                        Text("**Unified correlated events (\(selectedMessage.correlated_array.count))**")
+                        Text("**Unified correlated events (\(correlated.count))**")
                         Spacer()
                         Button(hideUnifiedEnrichments ? "Show" : "Hide") {
                             withAnimation {
@@ -402,14 +404,14 @@ struct SystemEnrichedEventView: View {
                     if !hideUnifiedEnrichments {
                         if #available(macOS 14, *) {
                             CustomizableSystemEnrichedTableView(
-                                eventsInScope: selectedMessage.correlated_array,
+                                eventsInScope: correlated,
                                 allFilters: $allFilters
                             )
                             .environmentObject(systemExtensionManager)
                             .environmentObject(userPrefs)
                         } else {
                             SystemEnrichedTableView(
-                                eventsInScope: selectedMessage.correlated_array,
+                                eventsInScope: correlated,
                                 allFilters: $allFilters
                             )
                             .environmentObject(systemExtensionManager)
@@ -419,7 +421,7 @@ struct SystemEnrichedEventView: View {
                 }
                 
                 SystemRCCorrelatedEventsView(
-                    correlatedEvents: selectedMessage.correlated_array,
+                    correlatedEvents: correlated,
                      allFilters: $allFilters
                 )
                 .environmentObject(systemExtensionManager)

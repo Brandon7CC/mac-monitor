@@ -29,7 +29,7 @@ public class ESUIPCConnectEvent: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = event.id
         
-        self.file = ESFile(from: event.file, insertIntoManagedObjectContext: context)
+        attach(ESFile.row(for: event.file, in: context), to: #keyPath(ESUIPCConnectEvent.file))
         self.domain = event.domain
         self.type = event.type
         self.protocol = event.protocol

@@ -27,7 +27,7 @@ public class ESNewPath: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = newPath.id
         
-        self.dir = ESFile(from: newPath.dir, insertIntoManagedObjectContext: context)
+        attach(ESFile.row(for: newPath.dir, in: context), to: #keyPath(ESNewPath.dir))
         self.filename = newPath.filename
         if let mode = newPath.mode {
             self.mode = Int32(mode)

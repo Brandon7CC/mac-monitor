@@ -25,7 +25,7 @@ public class ESUIPCBindEvent: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = event.id
         
-        self.dir = ESFile(from: event.dir, insertIntoManagedObjectContext: context)
+        attach(ESFile.row(for: event.dir, in: context), to: #keyPath(ESUIPCBindEvent.dir))
         self.filename = event.filename
         self.mode = event.mode
     }

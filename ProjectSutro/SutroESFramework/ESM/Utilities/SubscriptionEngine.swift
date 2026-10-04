@@ -9,16 +9,22 @@ import Foundation
 import OSLog
 
 
+// MARK: - Event subscription operations
+/// Extension of the ESM which enables dynamic event subscriptions at the ES level.
+///
+/// **Functionality Covers:**
+///   - Getting the event subscriptions
+///   - Subscribing to an event
+///   - Unsubscribing from an event
+///
 extension EndpointSecurityManager {
+    // MARK: - Agent Context
+    
     // MARK: Step #1 in getting the list of events we're subscribed to from Endpoint Security
     public func requestEventSubscriptions() {
-        RCXPCConnection.rcXPCConnection.getEventSubscriptions(epDelegate: self) { response in
-            DispatchQueue.main.async {
-                self.monitoredEventStrings = Set<String>()
-                for eventString in response {
-                    self.monitoredEventStrings.insert(eventString)
-                }
-            }
+        sensor.call { $0.eventSubscriptions(reply: $1) } completion: { response in
+            guard let response else { return }
+            self.monitoredEventStrings = Set(response)
         }
     }
     
@@ -27,85 +33,57 @@ extension EndpointSecurityManager {
     }
     
     public func getCoreEvents() -> [String] {
-        var eventString: [String] = []
-        for event in defaultEventSubscriptions {
-            eventString.append(eventTypeToString(from: event))
-        }
-        return eventString
-    }
-    
-    public func seGetEventSubscriptionsAsString() -> Set<String> {
-        var eventArrayBuffer: Set<String> = []
-        for event in self.monitoredEvents {
-            eventArrayBuffer.insert(eventTypeToString(from: event))
-        }
-        
-        return eventArrayBuffer
+        return defaultEventSubscriptions.map { eventTypeToString(from: $0) }
     }
     
     // MARK: Step #2 in unsubscribing from events
     // @note send across events that should be unsubscribed from by the Endpoint Security client
     public func puntEventToUnsubscribe(eventString: String) {
-        //        os_log("Punting ES unsubscribe request over XPC! --> \(eventString)")
-        RCXPCConnection.rcXPCConnection.unsubscribeFromEvent(eventToUnsubscribeFrom: eventString, epDelegate: self)
+        sensor.call { $0.setSubscription(eventString, enabled: false, reply: $1) }
     }
     
     // MARK: Step #2 in subscribing to ES events
     // @note send across events that we should subscrube to
     public func puntEventToSubscribe(eventString: String) {
-        //        os_log("Punting ES subscrube request over XPC! --> \(eventString)")
-        RCXPCConnection.rcXPCConnection.subscribeToEvent(eventToSubscribeTo: eventString, epDelegate: self)
+        sensor.call { $0.setSubscription(eventString, enabled: true, reply: $1) }
     }
     
-    // MARK: Step #4 in unsubscribing from an ES event
-    public func unsubscribeFromEvent(eventToUnsubscribeFrom: String) {
-        if self.esClient != nil {
-            if eventToUnsubscribeFrom.count > 0 {
-                // Submit the "unsubscribe" request to our endpoint security client
-                //                os_log("ENDPOINT SECURITY :: UNSUBSCRIBING FROM \(eventToUnsubscribeFrom)")
-                let unsubscribeRequest: es_return_t = es_unsubscribe(self.esClient!, [eventStringToType(from: eventToUnsubscribeFrom)], 1)
-                
-                switch (unsubscribeRequest) {
-                case ES_RETURN_SUCCESS:
-                    //                    os_log("Successfully unsubscribed from: \(eventToUnsubscribeFrom)")
-                    self.monitoredEventStrings.remove(eventToUnsubscribeFrom)
-                    self.monitoredEvents = self.monitoredEvents.filter({ $0 != eventStringToType(from: eventToUnsubscribeFrom) })
-                    break
-                case ES_RETURN_ERROR:
-                    os_log("Error unsubscribing from: \(eventToUnsubscribeFrom)")
-                    break
-                default:
-                    os_log("Unknown error occured while unsubscribing from: \(eventToUnsubscribeFrom)")
-                }
-            }
-            
-        } else {
-            os_log("There is no client to submit this unsubscribe request to!")
-        }
+    
+    // MARK: - Sensor Context
+    
+    public func seGetEventSubscriptionsAsString() -> Set<String> {
+        return Set(self.monitoredEvents.map { eventTypeToString(from: $0) })
     }
     
-    // MARK: Step #4 in subscribing to ES events
-    public func subscribeToEvent(eventToSubscribeTo: String) {
-        let subscribeRequest: es_return_t
-        if self.esClient != nil {
-            if eventToSubscribeTo.count > 0 {
-                //                os_log("ENDPOINT SECURITY :: Submitting path subscribe request \(eventToSubscribeTo)")
-                subscribeRequest = es_subscribe(self.esClient!, [eventStringToType(from: eventToSubscribeTo)], 1)
-                
-                switch (subscribeRequest) {
-                case ES_RETURN_SUCCESS:
-                    //                    os_log("Successfully subscribed to: \(eventToSubscribeTo)")
-                    self.monitoredEventStrings.insert(eventToSubscribeTo)
-                    self.monitoredEvents.append(eventStringToType(from: eventToSubscribeTo))
-                    break
-                case ES_RETURN_ERROR:
-                    os_log("Error subscribing to event: \(eventToSubscribeTo)")
-                default:
-                    os_log("Unkown error occured while subscribing to: \(eventToSubscribeTo)")
-                }
-            }
-        } else {
-            os_log("There is no endpoint security client to submit this subscribe request to!")
+    // MARK: Step #3 in (un)subscribing from an ES event
+    /// Subscribe to, or unsubscribe from, a single event type on the ES client.
+    ///
+    /// - Parameters:
+    ///   - event: The `ES_EVENT_TYPE_*` name.
+    ///   - enabled: `true` to subscribe, `false` to unsubscribe.
+    /// - Returns: `true` if Endpoint Security accepted the request.
+    @discardableResult
+    public func setEventSubscription(_ event: String, enabled: Bool) -> Bool {
+        guard let esClient = self.esClient else {
+            os_log("There is no endpoint security client to submit this subscription request to!")
+            return false
         }
+        guard !event.isEmpty else { return false }
+        
+        let eventType: es_event_type_t = eventStringToType(from: event)
+        let request: es_return_t = enabled ? es_subscribe(esClient, [eventType], 1) : es_unsubscribe(esClient, [eventType], 1)
+        guard request == ES_RETURN_SUCCESS else {
+            os_log("Error \(enabled ? "subscribing to" : "unsubscribing from"): \(event)")
+            return false
+        }
+        
+        if enabled {
+            if !self.monitoredEvents.contains(eventType) { self.monitoredEvents.append(eventType) }
+            self.monitoredEventStrings.insert(event)
+        } else {
+            self.monitoredEvents.removeAll { $0 == eventType }
+            self.monitoredEventStrings.remove(event)
+        }
+        return true
     }
 }

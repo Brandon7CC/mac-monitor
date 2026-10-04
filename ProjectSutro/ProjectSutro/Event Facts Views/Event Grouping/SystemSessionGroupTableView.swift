@@ -17,7 +17,6 @@ struct SystemEventGroupTableViews: View {
     @Binding var allFilters: Filters
     
     @State private var selectedMessages: Set<ESMessage.ID> = []
-    @State private var ascending: Bool = false
     @State private var groupToShow: Groups?
     
     var selectedMessage: ESMessage
@@ -122,8 +121,7 @@ struct SystemEventGroupTableViews: View {
                     messages: messages,
                     simple: true,
                     messageSelections: $selectedMessages,
-                    allFilters: $allFilters,
-                    ascending: $ascending
+                    allFilters: $allFilters
                 )
                 .environmentObject(systemExtensionManager)
             } else {
@@ -131,8 +129,7 @@ struct SystemEventGroupTableViews: View {
                     messages: messages,
                     simple: true,
                     messageSelections: $selectedMessages,
-                    allFilters: $allFilters,
-                    ascending: $ascending
+                    allFilters: $allFilters
                 )
                 .environmentObject(systemExtensionManager)
             }

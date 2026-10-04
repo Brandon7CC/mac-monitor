@@ -37,10 +37,7 @@ public class ESGatekeeperUserOverrideEvent: NSManagedObject {
         
         /// We need to report the file union differently to the app to conform to ESLogger's oddness...
         if let file = override.file.file {
-            self.file = ESFile(
-                from: file,
-                insertIntoManagedObjectContext: context
-            )
+            attach(ESFile.row(for: file, in: context), to: #keyPath(ESGatekeeperUserOverrideEvent.file))
         }
         if let file_path = override.file.file_path {
             self.file_path = file_path

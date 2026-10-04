@@ -30,23 +30,21 @@ public class ESProcess: NSManagedObject {
         self.group_id = process.group_id
         self.session_id = process.session_id
         
-        /// Audit tokens
+        /// Audit tokens: rows shared with every process that has the same token (see ``EventRowCaches``). The strings are
+        /// formatted from the values, as reading a shared row would load it.
         if let audit_token = process.audit_token {
-            let auditTokenObj = ESAuditToken(from: audit_token, insertIntoManagedObjectContext: context)
-            self.audit_token_string = auditTokenObj.toString()
-            self.audit_token = auditTokenObj
+            attach(ESAuditToken.row(for: audit_token, in: context), to: #keyPath(ESProcess.audit_token))
+            self.audit_token_string = audit_token.toString()
         }
         
         if let parent_audit_token = process.parent_audit_token {
-            let parentAuditTokenObj = ESAuditToken(from: parent_audit_token, insertIntoManagedObjectContext: context)
-            self.parent_audit_token = parentAuditTokenObj
-            self.parent_audit_token_string = parentAuditTokenObj.toString()
+            attach(ESAuditToken.row(for: parent_audit_token, in: context), to: #keyPath(ESProcess.parent_audit_token))
+            self.parent_audit_token_string = parent_audit_token.toString()
         }
         
         if let responsible_audit_token = process.responsible_audit_token {
-            let responsibleAuditTokenObj = ESAuditToken(from: responsible_audit_token, insertIntoManagedObjectContext: context)
-            self.responsible_audit_token = responsibleAuditTokenObj
-            self.responsible_audit_token_string = responsibleAuditTokenObj.toString()
+            attach(ESAuditToken.row(for: responsible_audit_token, in: context), to: #keyPath(ESProcess.responsible_audit_token))
+            self.responsible_audit_token_string = responsible_audit_token.toString()
         }
         
         /// Codesigning
@@ -77,10 +75,7 @@ public class ESProcess: NSManagedObject {
         
         if let exe = process.executable {
             /// Executable
-            self.executable = ESFile(
-                from: exe,
-                insertIntoManagedObjectContext: context
-            )
+            attach(ESFile.row(for: exe, in: context), to: #keyPath(ESProcess.executable))
             /// @note Enrichment - File Quarantine
             self.file_quarantine_type = process.file_quarantine_type.rawValue
             /// @note Enrichment - Codesigning type
@@ -89,10 +84,7 @@ public class ESProcess: NSManagedObject {
         
         /// TTY
         if let tty = process.tty {
-            self.tty = ESFile(
-                from: tty,
-                insertIntoManagedObjectContext: context
-            )
+            attach(ESFile.row(for: tty, in: context), to: #keyPath(ESProcess.tty))
         }
         
         /// User identification
@@ -110,6 +102,33 @@ public class ESProcess: NSManagedObject {
             self.ruid_human = ruid_human
         }
     }
+    
+    /// The row for `process`: shared with every other event (and `EXEC` target or `FORK` child) of the same process
+    /// when `context` has ``EventRowCaches``, or a new row otherwise.
+    ///
+    /// A shared row keeps the `id` of the first process stored in it, so whoever attaches it keeps their own `id` to
+    /// export (``ESMessage/process_id``, ``ESProcessExecEvent/target_id``, ``ESProcessForkEvent/child_id``).
+    ///
+    /// - Parameters:
+    ///   - process: The process.
+    ///   - version: The message's version.
+    ///   - context: The context to insert into.
+    /// - Returns: The row, which may be a fault: attach it with ``NSManagedObject/attach(_:to:)``.
+    static func row(for process: Process, version: Int, in context: NSManagedObjectContext) -> ESProcess {
+        EventRowCaches.row(\.processes, for: ProcessRowKey(version: version, process: process.rowKey), in: context) {
+            ESProcess(from: process, version: version, insertIntoManagedObjectContext: context)
+        }
+    }
+}
+
+/// An ``ESProcess`` encoded with the `id` of the process it stands for, which a shared row doesn't have.
+struct ESProcessRecord: Encodable {
+    let process: ESProcess
+    let id: UUID?
+    
+    func encode(to encoder: Encoder) throws {
+        try process.encode(to: encoder, id: id)
+    }
 }
 
 // MARK: - Encodable conformance
@@ -119,6 +138,15 @@ extension ESProcess: Encodable {
     }
     
     public func encode(to encoder: Encoder) throws {
+        try encode(to: encoder, id: id)
+    }
+    
+    /// Encode this process as the one with `id`.
+    ///
+    /// - Parameters:
+    ///   - encoder: The encoder.
+    ///   - id: The `id` to encode: the event's own, for a shared row.
+    func encode(to encoder: Encoder, id: UUID?) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         
         try container.encode(id, forKey: .id)

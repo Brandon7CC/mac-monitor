@@ -12,14 +12,6 @@ import OSLog
 import UniformTypeIdentifiers
 
 
-// MARK: - App lifecycle
-// MARK: Step #2 in restarting RedRoc
-public func requestReboot() {
-    RCXPCConnection.rcXPCConnection.xpcReboot()
-}
-
-
-
 // MARK: - File System helpers
 // @discussion used for getting the console user's hoem directory
 extension FileManager {
@@ -29,13 +21,6 @@ extension FileManager {
             homeDirectory = URL(fileURLWithPath: "/Users/\(consoleUser)")
         }
         return homeDirectory
-    }
-}
-
-extension EndpointSecurityManager {
-    public func privlegedShowInFinder(filePath: String) {
-        os_log("Asking the Security Extension to open a Finder window!")
-        RCXPCConnection.rcXPCConnection.openFinderWidowSE(filePath: filePath)
     }
 }
 

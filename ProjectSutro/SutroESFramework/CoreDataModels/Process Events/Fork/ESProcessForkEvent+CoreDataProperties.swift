@@ -17,7 +17,10 @@ extension ESProcessForkEvent {
     }
     
     @NSManaged public var id: UUID?
+    /// The child process. The row may be shared with the events the child goes on to cause.
     @NSManaged public var child: ESProcess
+    /// The `id` ``child`` had in this event (and exports). A shared row keeps the `id` of the first event that stored it.
+    @NSManaged public var child_id: UUID?
 
 }
 
