@@ -164,9 +164,9 @@ action: {
         .puntPathToMute(
             pathToMute: event.process.executable?.path ?? "",
             muteCase:  ES_MUTE_PATH_TYPE_LITERAL,
-            pathEvents: []
+            pathEvents: [],
+            from: .eventMenu
         )
-                systemExtensionManager.requestMutedPaths()
             }) {
                 HStack {
                     Text(
@@ -184,16 +184,18 @@ action: {
                     let parentDir = URL(fileURLWithPath: targetPath).deletingLastPathComponent().path
                     Button(action: {
                         // Mute the target path's parent directory for the specified event
-                        systemExtensionManager.puntPathToMute(pathToMute: parentDir, muteCase:  ES_MUTE_PATH_TYPE_TARGET_PREFIX, pathEvents: [event.es_event_type!])
-                        systemExtensionManager.requestMutedPaths()
+                        systemExtensionManager.puntPathToMute(pathToMute: parentDir,
+                                                              muteCase: ES_MUTE_PATH_TYPE_TARGET_PREFIX,
+                                                              pathEvents: [event.es_event_type!], from: .eventMenu)
                     }) {
                         Text("Mute target path event: \"\(parentDir)/\"")
                     }
                 } else {
                     Button(action: {
                         // Mute the target path's parent directory for the specified event
-                        systemExtensionManager.puntPathToMute(pathToMute: event.target_path!, muteCase:  ES_MUTE_PATH_TYPE_TARGET_LITERAL, pathEvents: [event.es_event_type!])
-                        systemExtensionManager.requestMutedPaths()
+                        systemExtensionManager.puntPathToMute(pathToMute: event.target_path!,
+                                                              muteCase: ES_MUTE_PATH_TYPE_TARGET_LITERAL,
+                                                              pathEvents: [event.es_event_type!], from: .eventMenu)
                     }) {
                         HStack {
                             Text("Mute target path event: \"`\(event.target_path!)`/\"")

@@ -84,6 +84,35 @@ final class LiveEndpointSecurityClient: EndpointSecurityClient {
         return result == ES_RETURN_SUCCESS
     }
     
+    /// `es_sync_client`, looked up when first used: it's new in macOS 27, so this builds with SDKs that don't declare
+    /// it and runs on macOS that doesn't have it.
+    ///
+    /// - Parameter completion: Called once every message already queued has been handled.
+    /// - Returns: `false` if the client is deleted, this macOS has no `es_sync_client`, or it refused.
+    func sync(_ completion: @escaping () -> Void) -> Bool {
+        guard let client, let syncClient = Self.syncClient else { return false }
+        return syncClient(client, completion) == ES_RETURN_SUCCESS
+    }
+    
+    /// Does this macOS have `es_sync_client`?
+    static var supportsSync: Bool {
+        syncClient != nil
+    }
+    
+    /// `es_sync_client`'s C signature.
+    ///
+    /// The block escapes: Endpoint Security keeps it until the sync marker reaches the front of the client's queue.
+    /// As a non-escaping block, Swift traps when the call returns with the block still retained.
+    private typealias SyncClient =
+        @convention(c) (OpaquePointer, @escaping @convention(block) () -> Void) -> es_return_t
+    
+    /// `es_sync_client`, or `nil` before macOS 27.
+    private static let syncClient: SyncClient? = {
+        /// `RTLD_DEFAULT`: search every image loaded, which includes `libEndpointSecurity`.
+        guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "es_sync_client") else { return nil }
+        return unsafeBitCast(symbol, to: SyncClient.self)
+    }()
+    
     /// `es_muted_paths_events`.
     ///
     /// - Returns: Every muted path, or none if Endpoint Security doesn't list them.

@@ -106,3 +106,35 @@ struct ClientSequenceTracker {
         return drops
     }
 }
+
+
+// MARK: - Drop reports
+/// What a client's sequence tracker had counted when its drops were last reported, so each report holds only the
+/// drops since.
+struct DropReportMark {
+    /// `global_seq_num` drops at the last report.
+    private var dropped: UInt64 = 0
+    /// `seq_num` drops by event type at the last report.
+    private var byType: [Int: UInt64] = [:]
+    
+    /// The drops a tracker counted since the last report, which this then marks as reported.
+    ///
+    /// - Parameters:
+    ///   - eventClass: The tracker's client.
+    ///   - sequences: The tracker.
+    /// - Returns: The new drops, or `nil` if there were none.
+    mutating func takeReport(of eventClass: EventClass, from sequences: ClientSequenceTracker) -> CaptureDropReport? {
+        let dropped = sequences.global.dropped
+        let byType = sequences.droppedByType()
+        guard dropped != self.dropped || byType != self.byType else { return nil }
+        let newByType = byType.reduce(into: [Int: UInt64]()) { new, entry in
+            let reported = self.byType[entry.key, default: 0]
+            if entry.value > reported { new[entry.key] = entry.value - reported }
+        }
+        let report = CaptureDropReport(eventClass: eventClass, dropped: dropped - self.dropped,
+                                       droppedByType: newByType.byEventTypeName())
+        self.dropped = dropped
+        self.byType = byType
+        return report
+    }
+}

@@ -216,18 +216,3 @@ public func getMuteCaseString(muteType: es_mute_path_type_t) -> String {
         return "ES_MUTE_PATH_TYPE_TARGET_PREFIX"
     }
 }
-
-public func getMuteCaseFromString(muteString: String) -> es_mute_path_type_t {
-    switch(muteString) {
-    case "ES_MUTE_PATH_TYPE_PREFIX":
-        return ES_MUTE_PATH_TYPE_PREFIX
-    case "ES_MUTE_PATH_TYPE_LITERAL":
-        return ES_MUTE_PATH_TYPE_LITERAL
-    case "ES_MUTE_PATH_TYPE_TARGET_PREFIX":
-        return ES_MUTE_PATH_TYPE_TARGET_PREFIX
-    case "ES_MUTE_PATH_TYPE_TARGET_LITERAL":
-        return ES_MUTE_PATH_TYPE_TARGET_LITERAL
-    default:
-        return ES_MUTE_PATH_TYPE_TARGET_PREFIX
-    }
-}

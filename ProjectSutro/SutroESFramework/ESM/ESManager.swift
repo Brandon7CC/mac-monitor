@@ -39,14 +39,16 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         /// Give launchd / sysextd a moment to settle, then decide whether to redo the `start` handshake:
         /// - Never if we haven't handshaked before: an app launched with `--deactivate-security-extension` (or one that only
         ///   checked for updates) must not start monitoring on its own.
-        /// - `.restarted`: only the previous owner reclaims the stream, so a refused instance can't win the race.
-        /// - `.released`: only an instance that was refused (`.tooManyClients`) competes for the free stream.
+        /// - `.restarted`: the previous owner, or an instance Endpoint Security refused, takes the stream. An instance
+        ///   the owner refused doesn't, so it can't win the race.
+        /// - `.released`: only an instance that was refused, by the owner (`.streamOwned`) or by Endpoint Security
+        ///   (`.tooManyClients`, which a closed `macmonitor` stream may have freed), tries again.
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
             self?.pendingSignals.remove(signal)
             guard let self, self.connectionResult != .waiting else { return }
-            let wasRefused = self.connectionResult == .tooManyClients
+            let wasRefused = [.streamOwned, .tooManyClients].contains(self.connectionResult)
             switch signal {
-            case .restarted where wasRefused, .released where !wasRefused:
+            case .restarted where self.connectionResult == .streamOwned, .released where !wasRefused:
                 return
             case .restarted, .released:
                 self.kickoffXPCCommunication()
@@ -66,7 +68,17 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     
     // MARK: Muting Enging properties
     @Published public var emittedRCEventsByProcess: [Message: [Message]] = [:]
-    @Published public var globallyMutedPaths: Set<String> = []
+    /// The saved mute set, as the Security Extension last sent it (see ``requestMutes(_:from:completion:)``).
+    @Published public var savedMutes: [ESMutedPath] = []
+    /// Something to tell the user about the saved mute set: it was recovered, or can't be changed.
+    @Published public var muteNotice: String?
+    /// What the Security Extension last said this Mac Monitor may do with the saved mute set, or `nil` until it says.
+    @Published public var savedMutesAccess: MuteAccess?
+    /// What the Security Extension refused or left out of the last change asked for in Settings, which shows it.
+    @Published public var muteProblems: [String] = []
+    /// What the Security Extension refused or left out of the last mute asked for from an event's menu, which the
+    /// main window shows.
+    @Published public var eventMuteProblems: [String] = []
     @Published public var appleMuteSet = Set<String>()
     
     // MARK: Install properties
@@ -264,7 +276,7 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// Connect to the XPC service hosted by the Security Extension and run the `start` handshake.
     ///
     /// Safe to call any number of times: the Security Extension re-handshakes the connection that owns the event stream
-    /// (refusing any other with `.tooManyClients`) and only starts capture when it isn't running. It's called when the
+    /// (refusing any other with `.streamOwned`) and only starts capture when it isn't running. It's called when the
     /// System Extension activation finishes and again after the Security Extension restarts (see `sensor`). The current
     /// recording state rides along so a restarted extension resumes streaming.
     ///

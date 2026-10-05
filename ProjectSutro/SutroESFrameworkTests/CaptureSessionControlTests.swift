@@ -87,60 +87,59 @@ final class CaptureSessionControlTests: XCTestCase {
         XCTAssertEqual(factory.clients.map(\.calls.count), started)
     }
     
-    /// A mute and an unmute each reach every client.
+    /// Applying a list sends every client only what changed since the last one: new events muted first, then old
+    /// ones unmuted, key by key in canonical order.
     ///
     /// - Throws: ``CaptureStartError`` if the session couldn't start.
-    func testPathMuteGoesToEveryClient() throws {
+    func testApplyMutesSendsOnlyTheDifference() throws {
         let session = try makeSession(factory: factory)
+        let open = ES_EVENT_TYPE_NOTIFY_OPEN, close = ES_EVENT_TYPE_NOTIFY_CLOSE
+        let first = MuteList([PathMute(path: "/tmp/x", type: ES_MUTE_PATH_TYPE_PREFIX, events: [open]),
+                              PathMute(path: "/gone", type: ES_MUTE_PATH_TYPE_LITERAL)])
+        XCTAssertTrue(session.applyMutes(first))
         let started = factory.clients.map(\.calls.count)
-        let mute = PathMute(path: "/tmp/x", type: ES_MUTE_PATH_TYPE_PREFIX, events: [ES_EVENT_TYPE_NOTIFY_OPEN])
-        XCTAssertTrue(session.setPathMute(mute, muted: true))
-        XCTAssertTrue(session.setPathMute(mute, muted: false))
+        let second = MuteList([PathMute(path: "/tmp/x", type: ES_MUTE_PATH_TYPE_PREFIX, events: [close]),
+                               PathMute(path: "/new", type: ES_MUTE_PATH_TYPE_TARGET_LITERAL)])
+        XCTAssertTrue(session.applyMutes(second))
+        XCTAssertTrue(session.applyMutes(second))
+        let expected: [FakeEndpointSecurityClient.Call] = [
+            .setPathMute(PathMute(path: "/gone", type: ES_MUTE_PATH_TYPE_LITERAL), muted: false),
+            .setPathMute(PathMute(path: "/tmp/x", type: ES_MUTE_PATH_TYPE_PREFIX, events: [close]), muted: true),
+            .setPathMute(PathMute(path: "/tmp/x", type: ES_MUTE_PATH_TYPE_PREFIX, events: [open]), muted: false),
+            .setPathMute(PathMute(path: "/new", type: ES_MUTE_PATH_TYPE_TARGET_LITERAL), muted: true)
+        ]
         for (client, start) in zip(factory.clients, started) {
-            XCTAssertEqual(callsSince(start, on: client), [.setPathMute(mute, muted: true),
-                                                           .setPathMute(mute, muted: false)])
+            XCTAssertEqual(callsSince(start, on: client), expected)
         }
+        XCTAssertEqual(session.appliedMutes, second)
     }
     
-    /// An unmute read as the Security Extension reads one, leaving out an event name Mac Monitor doesn't know, unmutes
-    /// the events it does know on every client.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start, or an `XCTest` failure if the unmute is refused.
-    func testUnmuteWithAnUnknownEventNameReachesEveryClient() throws {
-        let session = try makeSession(factory: factory)
-        let started = factory.clients.map(\.calls.count)
-        let unmute = try XCTUnwrap(PathMute(path: "/tmp/x", typeName: "ES_MUTE_PATH_TYPE_LITERAL",
-                                            eventNames: ["ES_EVENT_TYPE_NOTIFY_OPEN", "ES_EVENT_TYPE_LAST"],
-                                            unknownEvents: .drop))
-        XCTAssertTrue(session.setPathMute(unmute, muted: false))
-        let expected = PathMute(path: "/tmp/x", type: ES_MUTE_PATH_TYPE_LITERAL, events: [ES_EVENT_TYPE_NOTIFY_OPEN])
-        for (client, start) in zip(factory.clients, started) {
-            XCTAssertEqual(callsSince(start, on: client), [.setPathMute(expected, muted: false)])
-        }
-    }
-    
-    /// One client's refusal is reported, and the others still take the mute.
+    /// One client's refusal is reported, the others still take the change, and the session counts the list as
+    /// applied, so the same list again sends nothing.
     ///
     /// - Throws: ``CaptureStartError`` if the session couldn't start.
-    func testPathMuteReportsAPartialRefusal() throws {
+    func testApplyMutesReportsAPartialRefusal() throws {
         let session = try makeSession(factory: factory)
         let started = factory.clients.map(\.calls.count)
         client(.memory).setRefusing(.setPathMute, true)
         let mute = PathMute(path: "/tmp/x", type: ES_MUTE_PATH_TYPE_LITERAL)
-        XCTAssertFalse(session.setPathMute(mute, muted: true))
+        XCTAssertFalse(session.applyMutes(MuteList([mute])))
+        XCTAssertTrue(session.applyMutes(MuteList([mute])))
         for (client, start) in zip(factory.clients, started) {
             XCTAssertEqual(callsSince(start, on: client), [.setPathMute(mute, muted: true)])
         }
     }
     
-    /// Applying a mute set mutes each of its paths on every client.
+    /// Applying Mac Monitor's default set to a session without mutes mutes each of its events on every client.
     ///
     /// - Throws: ``CaptureStartError`` if the session couldn't start.
-    func testApplyMuteSetGoesToEveryClient() throws {
+    func testApplyingTheDefaultSetGoesToEveryClient() throws {
         let session = try makeSession(factory: factory)
         let started = factory.clients.map(\.calls.count)
-        XCTAssertTrue(session.apply(.default))
-        let expected = MuteSet.default.pathMutes.map { FakeEndpointSecurityClient.Call.setPathMute($0, muted: true) }
+        XCTAssertTrue(session.applyMutes(.testDefault))
+        let expected = MuteList().changes(to: .testDefault).map {
+            FakeEndpointSecurityClient.Call.setPathMute($0.mute, muted: true)
+        }
         for (client, start) in zip(factory.clients, started) {
             XCTAssertEqual(callsSince(start, on: client), expected)
         }

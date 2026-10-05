@@ -49,6 +49,16 @@ protocol EndpointSecurityClient: AnyObject {
     /// - Returns: `true` if Endpoint Security accepted the request.
     func setPathMute(_ mute: PathMute, muted: Bool) -> Bool
     
+    /// Run `completion` once every message Endpoint Security has already queued for the client has been handled
+    /// (`es_sync_client`, macOS 27 and later). Never call it from the client's own handler.
+    ///
+    /// - Parameter completion: Called exactly once, on any thread, if this returns `true`: after the handler has
+    ///   returned for every message queued before the call, or when the client is deleted. Never called if this
+    ///   returns `false`.
+    /// - Returns: `false` if Endpoint Security can't place the marker: the client is deleted, or this macOS has no
+    ///   `es_sync_client`.
+    func sync(_ completion: @escaping () -> Void) -> Bool
+    
     /// Every path muted on the client, Endpoint Security's own default mutes included (`es_muted_paths_events`).
     ///
     /// - Returns: The muted paths, or none if they can't be read.

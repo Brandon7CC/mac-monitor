@@ -7,8 +7,8 @@
 
 import Foundation
 
-/// The default Mac Monitor mute set.
-///
+/// The default Mac Monitor mute set, as rules. ``MuteList/shippedDefault(for:)`` merges it by path and type: what a
+/// new saved mute set starts from and what Reset restores.
 public struct MuteSet {
     /// Rules that mute specific event types for a given path.
     let eventSpecificRules: [(eventType: es_event_type_t, muteType: es_mute_path_type_t, paths: [String])]
@@ -16,17 +16,17 @@ public struct MuteSet {
     /// Rules that mute all event types for a given path.
     let globalRules: [(pathType: es_mute_path_type_t, paths: [String])]
     
-    /// Mac Monitor's default mute set
-    public static var `default`: MuteSet {
-        // The paths for these directories is calculated at runtime
-        let caches_dir = String(
-            URL(fileURLWithPath: NSHomeDirectory())
-                .appendingPathComponent("Library/Caches").path
-        )
-        let homeLibraryBiomeSteams = String(
-            URL(fileURLWithPath: NSHomeDirectory())
-                .appendingPathComponent("Library/Biome/streams").path
-        )
+    /// Mac Monitor's default mute set, for one home folder.
+    ///
+    /// Two rules are per user: files created and renamed in `~/Library/Caches/`, and extended attributes read from
+    /// files in `~/Library/Biome/streams/`. The Security Extension runs as root, so it passes the console user's home
+    /// (``ConsoleUser``), never its own.
+    ///
+    /// - Parameter home: The home folder those two rules mute, or `nil` to leave them out (no one is logged in).
+    /// - Returns: The rules.
+    public static func `default`(home: String?) -> MuteSet {
+        let caches = homePaths("Library/Caches", in: home)
+        let biomeStreams = homePaths("Library/Biome/streams", in: home)
         
         // MARK: - Event-Specific Mute Rules
         var eventRules = [
@@ -45,8 +45,7 @@ public struct MuteSet {
                 "/usr/libexec/containermanagerd"
             ]),
             
-            (eventType: ES_EVENT_TYPE_NOTIFY_CREATE, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: [
-                caches_dir,
+            (eventType: ES_EVENT_TYPE_NOTIFY_CREATE, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: caches + [
                 "/System/Library/PrivateFrameworks/BiomeStreams.framework"
             ]),
             (eventType: ES_EVENT_TYPE_NOTIFY_RENAME, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: [
@@ -54,7 +53,7 @@ public struct MuteSet {
                 "/usr/libexec/logd",
                 "/usr/libexec/mobileassetd"
             ]),
-            (eventType: ES_EVENT_TYPE_NOTIFY_RENAME, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: [caches_dir]),
+            (eventType: ES_EVENT_TYPE_NOTIFY_RENAME, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: caches),
             (eventType: ES_EVENT_TYPE_NOTIFY_OPEN, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
                 "/usr/libexec/xpcproxy",
                 "/usr/sbin/cfprefsd",
@@ -174,9 +173,10 @@ public struct MuteSet {
             ]),
             (eventType: ES_EVENT_TYPE_NOTIFY_GETEXTATTR, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
                 "/Library/SystemExtensions/",
-                "/System/Library/PrivateFrameworks/",
-                homeLibraryBiomeSteams
+                "/System/Library/PrivateFrameworks/"
             ]),
+            (eventType: ES_EVENT_TYPE_NOTIFY_GETEXTATTR, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX,
+             paths: biomeStreams),
             (eventType: ES_EVENT_TYPE_NOTIFY_SETMODE, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
                 "/System/Library/PrivateFrameworks/StreamingExtractor.framework"
             ]),
@@ -202,7 +202,7 @@ public struct MuteSet {
                 "/usr/libexec/mobileassetd"
             ])
         ]
-
+        
         if #available(macOS 14, *) {
             let sonomaRules = [
                 (ES_EVENT_TYPE_NOTIFY_XPC_CONNECT, ES_MUTE_PATH_TYPE_LITERAL, [
@@ -239,53 +239,19 @@ public struct MuteSet {
         
         return MuteSet(eventSpecificRules: eventRules, globalRules: globalRules)
     }
-}
-
-extension MuteSet {
-    private struct EventRuleKey: Hashable {
-        let eventType: es_event_type_t
-        let muteType: es_mute_path_type_t
-    }
     
-    private struct GlobalRule: Hashable {
-        let pathType: es_mute_path_type_t
-        let path: String
-    }
-    
-    private struct EventRule: Hashable {
-        let eventType: es_event_type_t
-        let muteType: es_mute_path_type_t
-        let path: String
-    }
-    
-    // Creates a MuteSet by grouping an array of ESMutedPath JSON strings.
-    public init(from mutedPathJSONs: [String]) {
-        let parsedPaths = mutedPathJSONs.compactMap { jsonString in
-            decodePathJSON(pathJSON: jsonString)
-        }
-        
-        var eventSpecificBuilder = [EventRuleKey: Set<String>]()
-        var globalBuilder = [es_mute_path_type_t: Set<String>]()
-
-        for mutedPath in parsedPaths {
-            let muteType = getMuteCaseFromString(muteString: mutedPath.type)
-            if mutedPath.events.isEmpty {
-                globalBuilder[muteType, default: []].insert(mutedPath.path)
-            } else {
-                for eventString in mutedPath.events {
-                    let eventType = eventStringToType(from: eventString)
-                    let key = EventRuleKey(eventType: eventType, muteType: muteType)
-                    eventSpecificBuilder[key, default: []].insert(mutedPath.path)
-                }
-            }
-        }
-
-        self.eventSpecificRules = eventSpecificBuilder.map { (key, paths) in
-            (eventType: key.eventType, muteType: key.muteType, paths: Array(paths))
-        }
-
-        self.globalRules = globalBuilder.map { (pathType, paths) in
-            (pathType: pathType, paths: Array(paths))
-        }
+    /// A folder in a home folder, as a prefix rule's paths.
+    ///
+    /// The path ends in `/`: Endpoint Security matches a prefix as a string, so without it `~/Library/Caches` would
+    /// also mute `~/Library/CachesX`, a sibling the user can create.
+    ///
+    /// - Parameters:
+    ///   - relative: The folder, relative to the home folder.
+    ///   - home: The home folder, if any.
+    /// - Returns: The folder's path, ending in `/`, or nothing without a home folder or when it's too long to mute.
+    static func homePaths(_ relative: String, in home: String?) -> [String] {
+        guard let home else { return [] }
+        let path = URL(fileURLWithPath: home, isDirectory: true).appendingPathComponent(relative).path + "/"
+        return path.utf8.count <= MuteLimits.maxPathBytes ? [path] : []
     }
 }

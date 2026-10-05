@@ -31,7 +31,8 @@ import os
 ///
 /// **Counters:** every message the client is handed is counted first, under a lock of its own, recording or not. So
 /// sequence gaps are Endpoint Security's drops only, never messages ignored while stopped, and reading the counters
-/// never waits for an event being built.
+/// never waits for an event being built. Messages skipped because the lane isn't recording (and isn't closed) are
+/// counted under the control lock, so once recording is turned on, every message skipped before it is counted.
 final class CaptureLane {
     /// What the handler checks before it serializes a message, and before it emits the event.
     private struct Control {
@@ -43,6 +44,21 @@ final class CaptureLane {
         var isAbandoned = false
         /// The Sensor ID to stamp on events.
         var sensorID: String
+        /// Messages skipped while open but not recording.
+        var skipped: UInt64 = 0
+        
+        /// The Sensor ID to stamp on a message, while recording and open. A message turned away while open but not
+        /// recording is counted as skipped.
+        ///
+        /// - Returns: The Sensor ID, or `nil` to skip the message.
+        mutating func admit() -> String? {
+            guard !isClosed else { return nil }
+            guard isRecording else {
+                skipped &+= 1
+                return nil
+            }
+            return sensorID
+        }
     }
     
     /// What the lane has seen of its client's messages.
@@ -53,10 +69,8 @@ final class CaptureLane {
         var sequences = ClientSequenceTracker()
         /// Messages that couldn't be serialized.
         var serializationFailures: UInt64 = 0
-        /// The `global_seq_num` drops counted by the last ``CaptureLane/takeDropReport()``.
-        var reportedDropped: UInt64 = 0
-        /// The `seq_num` drops by event type counted by the last ``CaptureLane/takeDropReport()``.
-        var reportedByType: [Int: UInt64] = [:]
+        /// The drops counted by the last ``CaptureLane/takeDropReport()``.
+        var reported = DropReportMark()
     }
     
     /// The client this lane serves.
@@ -99,9 +113,7 @@ final class CaptureLane {
             counters.sequences.observe(message)
         }
         gate.withLockUnchecked {
-            guard let sensorID = control.withLock({ $0.isRecording && !$0.isClosed ? $0.sensorID : nil }) else {
-                return
-            }
+            guard let sensorID = control.withLock({ $0.admit() }) else { return }
             let lane = LaneContext(eventClass: eventClass, sensorID: sensorID, encoder: encoder,
                                    processPaths: processPaths)
             guard let json = serializer.serialize(message, in: lane) else {
@@ -167,6 +179,11 @@ final class CaptureLane {
         return true
     }
     
+    /// Messages skipped while the lane was open but not recording, over its lifetime.
+    var skippedMessages: UInt64 {
+        control.withLock { $0.skipped }
+    }
+    
     /// The lane's lifetime counters.
     ///
     /// - Parameter subscribedEvents: How many events the lane's client is subscribed to.
@@ -187,18 +204,7 @@ final class CaptureLane {
     /// - Returns: The drops, or `nil` if there were none.
     func takeDropReport() -> CaptureDropReport? {
         counters.withLockUnchecked { counters in
-            let dropped = counters.sequences.global.dropped
-            let byType = counters.sequences.droppedByType()
-            guard dropped != counters.reportedDropped || byType != counters.reportedByType else { return nil }
-            let newByType = byType.reduce(into: [Int: UInt64]()) { new, entry in
-                let reported = counters.reportedByType[entry.key, default: 0]
-                if entry.value > reported { new[entry.key] = entry.value - reported }
-            }
-            let report = CaptureDropReport(eventClass: eventClass, dropped: dropped - counters.reportedDropped,
-                                           droppedByType: newByType.byEventTypeName())
-            counters.reportedDropped = dropped
-            counters.reportedByType = byType
-            return report
+            counters.reported.takeReport(of: eventClass, from: counters.sequences)
         }
     }
     

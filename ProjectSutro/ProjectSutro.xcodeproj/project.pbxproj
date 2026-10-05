@@ -7,6 +7,107 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CB1C0000000000000000008E /* MuteConfirmationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000008D /* MuteConfirmationTests.swift */; };
+		CB1C0000000000000000008C /* TerminalPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000008B /* TerminalPrompt.swift */; };
+		CB1C0000000000000000008A /* MuteCommand+Confirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000089 /* MuteCommand+Confirmation.swift */; };
+		C11D00000000000000000012 /* CommandLineToolInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000011 /* CommandLineToolInstaller.swift */; };
+		C11D00000000000000000014 /* CommandLineToolSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000013 /* CommandLineToolSettingsView.swift */; };
+		C11D00000000000000000010 /* ToolLinkFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D0000000000000000000F /* ToolLinkFixture.swift */; };
+		C11D0000000000000000000A /* CommandLineToolLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000009 /* CommandLineToolLinkTests.swift */; };
+		C11D0000000000000000000C /* CommandLineToolLinkScriptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D0000000000000000000B /* CommandLineToolLinkScriptTests.swift */; };
+		C11D0000000000000000000E /* CommandLineToolInstallTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D0000000000000000000D /* CommandLineToolInstallTests.swift */; };
+		C11D00000000000000000002 /* CommandLineToolLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000001 /* CommandLineToolLink.swift */; };
+		C11D00000000000000000004 /* CommandLineToolLink+Trust.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000003 /* CommandLineToolLink+Trust.swift */; };
+		C11D00000000000000000006 /* CommandLineToolLinkScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000005 /* CommandLineToolLinkScript.swift */; };
+		C11D00000000000000000008 /* AppleScriptHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000007 /* AppleScriptHandler.swift */; };
+		CB1C00000000000000000088 /* MuteCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000087 /* MuteCommandTests.swift */; };
+		CB1C00000000000000000086 /* MuteCommandLineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000085 /* MuteCommandLineTests.swift */; };
+		CB1C00000000000000000084 /* MuteTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000083 /* MuteTable.swift */; };
+		CB1C00000000000000000082 /* MuteCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000081 /* MuteCommand.swift */; };
+		CB1C00000000000000000080 /* MuteInvocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000007F /* MuteInvocation.swift */; };
+		CB1C0000000000000000007E /* FileOutputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000007D /* FileOutputTests.swift */; };
+		CB1C0000000000000000007C /* CommandLineStreamTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000007B /* CommandLineStreamTests.swift */; };
+		CB1C0000000000000000007A /* StreamCommandHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000079 /* StreamCommandHarness.swift */; };
+		CB1C00000000000000000078 /* FileOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000077 /* FileOutput.swift */; };
+		CD0F00000000000000000006 /* String+Counted.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F00000000000000000005 /* String+Counted.swift */; };
+		CB1C00000000000000000076 /* StreamCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000075 /* StreamCommand.swift */; };
+		CB1C00000000000000000074 /* StreamClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000073 /* StreamClient.swift */; };
+		CB1C0000000000000000006A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000069 /* main.swift */; };
+		CB1C0000000000000000006C /* CommandLineTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000006B /* CommandLineTool.swift */; };
+		CB1C0000000000000000006E /* StreamRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000006D /* StreamRunner.swift */; };
+		CB1C00000000000000000070 /* SignalTrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000006F /* SignalTrap.swift */; };
+		CB1C00000000000000000072 /* ToolVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000071 /* ToolVersion.swift */; };
+		CB1C0000000000000000005E /* SutroESFramework.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BA33689E287620FD00794525 /* SutroESFramework.framework */; };
+		CB1C0000000000000000005F /* macmonitor in Embed Command Line Tool */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000059 /* macmonitor */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		CB1C00000000000000000058 /* CommandLineExitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000057 /* CommandLineExitTests.swift */; };
+		CB1C00000000000000000056 /* CommandLineParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000055 /* CommandLineParserTests.swift */; };
+		CB1C00000000000000000054 /* CommandLineExit.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000053 /* CommandLineExit.swift */; };
+		CB1C00000000000000000052 /* CommandLineHelp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000051 /* CommandLineHelp.swift */; };
+		CB1C00000000000000000050 /* CommandLineParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000004F /* CommandLineParser.swift */; };
+		CB1C0000000000000000004E /* CommandLineInvocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000004D /* CommandLineInvocation.swift */; };
+		CB1C0000000000000000004C /* StreamPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000004B /* StreamPipelineTests.swift */; };
+		CB1C0000000000000000004A /* TextOutputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000049 /* TextOutputTests.swift */; };
+		CB1C00000000000000000048 /* StreamDropMeterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000047 /* StreamDropMeterTests.swift */; };
+		CB1C00000000000000000046 /* PipelineScopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000045 /* PipelineScopeTests.swift */; };
+		CB1C00000000000000000044 /* EventHeaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000043 /* EventHeaderTests.swift */; };
+		CB1C00000000000000000042 /* ExportEncoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000041 /* ExportEncoderTests.swift */; };
+		CB1C00000000000000000040 /* XCTestCase+Wire.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000003F /* XCTestCase+Wire.swift */; };
+		CB1C0000000000000000003E /* ExportEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000003D /* ExportEncoder.swift */; };
+		CB1C0000000000000000003C /* StreamPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000003B /* StreamPipeline.swift */; };
+		CB1C0000000000000000003A /* TextEventFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000039 /* TextEventFormatter.swift */; };
+		CB1C00000000000000000038 /* TerminalSafeText.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000037 /* TerminalSafeText.swift */; };
+		CB1C00000000000000000036 /* StreamDropMeter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000035 /* StreamDropMeter.swift */; };
+		CB1C00000000000000000034 /* PipelineScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000033 /* PipelineScope.swift */; };
+		CB1C00000000000000000032 /* EventHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000031 /* EventHeader.swift */; };
+		CB1C00000000000000000030 /* CommandLineEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000002F /* CommandLineEvents.swift */; };
+		CB1C0000000000000000002D /* StreamSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000002C /* StreamSessionTests.swift */; };
+		CB1C0000000000000000002B /* StreamSlotsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000002A /* StreamSlotsTests.swift */; };
+		CB1C00000000000000000029 /* SensorListenerRouterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000028 /* SensorListenerRouterTests.swift */; };
+		CB1C00000000000000000027 /* StreamHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000026 /* StreamHarness.swift */; };
+		CB1C00000000000000000025 /* SensorListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000024 /* SensorListener.swift */; };
+		CB1C00000000000000000023 /* StreamSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000022 /* StreamSession.swift */; };
+		CB1C00000000000000000021 /* StreamService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000020 /* StreamService.swift */; };
+		CB1C0000000000000000001F /* StreamSlots.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000001E /* StreamSlots.swift */; };
+		CB1C0000000000000000001D /* SensorListenerRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000001C /* SensorListenerRouter.swift */; };
+		CB1C0000000000000000001B /* SensorXPCRequirementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000001A /* SensorXPCRequirementTests.swift */; };
+		CB1C00000000000000000019 /* StreamPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000018 /* StreamPlanTests.swift */; };
+		CB1C00000000000000000017 /* StreamRequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000016 /* StreamRequestTests.swift */; };
+		CB1C00000000000000000015 /* CaptureSessionDrainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000014 /* CaptureSessionDrainTests.swift */; };
+		CB1C00000000000000000013 /* CaptureSession+Drain.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000012 /* CaptureSession+Drain.swift */; };
+		CB1C00000000000000000011 /* StreamPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000010 /* StreamPlan.swift */; };
+		CB1C0000000000000000000F /* StreamReply.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000000E /* StreamReply.swift */; };
+		CB1C0000000000000000000D /* StreamProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000000C /* StreamProtocol.swift */; };
+		CB1C0000000000000000000B /* EventBatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000000A /* EventBatcherTests.swift */; };
+		CB1C00000000000000000009 /* FakeBatchDelivery.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000008 /* FakeBatchDelivery.swift */; };
+		CB1C00000000000000000007 /* XPCBatchDelivery.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000006 /* XPCBatchDelivery.swift */; };
+		CB1C00000000000000000005 /* EventBatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000004 /* EventBatcher.swift */; };
+		CB1C00000000000000000003 /* EventBatching.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000002 /* EventBatching.swift */; };
+		CA970000000000000000005D /* MuteFileMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000005C /* MuteFileMenu.swift */; };
+		CA970000000000000000005B /* MuteAddSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000005A /* MuteAddSheet.swift */; };
+		CA9700000000000000000059 /* SavedMuteSetSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000058 /* SavedMuteSetSessionTests.swift */; };
+		CA9700000000000000000057 /* CaptureSession+Mutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000056 /* CaptureSession+Mutes.swift */; };
+		CA9700000000000000000055 /* XCTestCase+MuteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000054 /* XCTestCase+MuteStore.swift */; };
+		CA9700000000000000000053 /* SavedMuteSetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000052 /* SavedMuteSetTests.swift */; };
+		DA2200000000000000000004 /* MuteAccessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2200000000000000000003 /* MuteAccessTests.swift */; };
+		DA2200000000000000000008 /* ConsoleUserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2200000000000000000007 /* ConsoleUserTests.swift */; };
+		DA220000000000000000000A /* DefaultMuteSetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2200000000000000000009 /* DefaultMuteSetTests.swift */; };
+		CA9700000000000000000051 /* MuteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000050 /* MuteStoreTests.swift */; };
+		CA970000000000000000004F /* MuteRequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000004E /* MuteRequestTests.swift */; };
+		CA970000000000000000004D /* MuteRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000004C /* MuteRequest.swift */; };
+		CD0F00000000000000000002 /* XPCMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F00000000000000000001 /* XPCMessage.swift */; };
+		CA970000000000000000004B /* SavedMuteSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000004A /* SavedMuteSet.swift */; };
+		DA2200000000000000000002 /* MuteAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2200000000000000000001 /* MuteAccess.swift */; };
+		CA9700000000000000000049 /* MuteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000048 /* MuteStore.swift */; };
+		CA9700000000000000000047 /* MuteFileReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000046 /* MuteFileReaderTests.swift */; };
+		CA9700000000000000000045 /* MuteFileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000044 /* MuteFileTests.swift */; };
+		CA9700000000000000000043 /* MuteFileReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000042 /* MuteFileReader.swift */; };
+		CA9700000000000000000041 /* MuteFile+Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000040 /* MuteFile+Validation.swift */; };
+		CA970000000000000000003F /* MuteFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000003E /* MuteFile.swift */; };
+		CA970000000000000000003D /* EndpointSecurityMuteModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000003C /* EndpointSecurityMuteModel.swift */; };
+		CA970000000000000000003B /* MuteListChangesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000003A /* MuteListChangesTests.swift */; };
+		CA9700000000000000000039 /* MuteListTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000038 /* MuteListTests.swift */; };
+		CA9700000000000000000037 /* MuteList+Changes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000036 /* MuteList+Changes.swift */; };
+		CA9700000000000000000035 /* MuteList.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000034 /* MuteList.swift */; };
 		CB9800000000000000000022 /* AuditTokenStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000021 /* AuditTokenStringTests.swift */; };
 		CB980000000000000000000C /* FileQuarantinedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB980000000000000000000B /* FileQuarantinedTests.swift */; };
 		CB9800000000000000000020 /* RandomUUIDBufferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB980000000000000000001F /* RandomUUIDBufferTests.swift */; };
@@ -33,7 +134,6 @@
 		CA970000000000000000002F /* SequenceGapCounter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000002E /* SequenceGapCounter.swift */; };
 		CA970000000000000000002D /* CaptureStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000002C /* CaptureStatistics.swift */; };
 		CA970000000000000000002B /* CaptureSession+Statistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000002A /* CaptureSession+Statistics.swift */; };
-		CA9700000000000000000029 /* EventSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000028 /* EventSink.swift */; };
 		CA9700000000000000000027 /* FakeEndpointSecurityClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000026 /* FakeEndpointSecurityClient.swift */; };
 		CA9700000000000000000025 /* XCTestCase+Capture.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000024 /* XCTestCase+Capture.swift */; };
 		CA9700000000000000000023 /* CaptureSessionStartTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000022 /* CaptureSessionStartTests.swift */; };
@@ -188,6 +288,8 @@
 		D15C0000000000000000012B /* TraceSessionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000012A /* TraceSessionViews.swift */; };
 		283C4D3F29E09D89009FF6D3 /* MutingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D3E29E09D89009FF6D3 /* MutingEngine.swift */; };
 		283C4D4329E0B633009FF6D3 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D4229E0B633009FF6D3 /* Helpers.swift */; };
+		DA2200000000000000000006 /* ConsoleUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2200000000000000000005 /* ConsoleUser.swift */; };
+		CD0F00000000000000000004 /* Data+WriteAll.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F00000000000000000003 /* Data+WriteAll.swift */; };
 		283C4D4629E0B761009FF6D3 /* EventStreamControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D4529E0B761009FF6D3 /* EventStreamControl.swift */; };
 		283C4D4829E0E16F009FF6D3 /* SubscriptionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D4729E0E16F009FF6D3 /* SubscriptionEngine.swift */; };
 		283C4D4C29E0F0F3009FF6D3 /* SecurityExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D4B29E0F0F3009FF6D3 /* SecurityExtension.swift */; };
@@ -521,6 +623,20 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		CB1C00000000000000000061 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BA97AFC42875471D0099C035 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BA33689D287620FD00794525;
+			remoteInfo = SutroESFramework;
+		};
+		CB1C00000000000000000063 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BA97AFC42875471D0099C035 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CB1C0000000000000000005D;
+			remoteInfo = macmonitor;
+		};
 		2875D81C290B768D00D2A11A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BA97AFC42875471D0099C035 /* Project object */;
@@ -552,6 +668,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		CB1C00000000000000000060 /* Embed Command Line Tool */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				CB1C0000000000000000005F /* macmonitor in Embed Command Line Tool */,
+			);
+			name = "Embed Command Line Tool";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		281186AE29F21D4900C8FB18 /* Copy uninstaller */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -609,6 +736,106 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		CB1C0000000000000000008D /* MuteConfirmationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteConfirmationTests.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000008B /* TerminalPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalPrompt.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000089 /* MuteCommand+Confirmation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuteCommand+Confirmation.swift"; sourceTree = "<group>"; };
+		C11D00000000000000000011 /* CommandLineToolInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolInstaller.swift; sourceTree = "<group>"; };
+		C11D00000000000000000013 /* CommandLineToolSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolSettingsView.swift; sourceTree = "<group>"; };
+		C11D0000000000000000000F /* ToolLinkFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolLinkFixture.swift; sourceTree = "<group>"; };
+		C11D00000000000000000009 /* CommandLineToolLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolLinkTests.swift; sourceTree = "<group>"; };
+		C11D0000000000000000000B /* CommandLineToolLinkScriptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolLinkScriptTests.swift; sourceTree = "<group>"; };
+		C11D0000000000000000000D /* CommandLineToolInstallTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolInstallTests.swift; sourceTree = "<group>"; };
+		C11D00000000000000000001 /* CommandLineToolLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolLink.swift; sourceTree = "<group>"; };
+		C11D00000000000000000003 /* CommandLineToolLink+Trust.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CommandLineToolLink+Trust.swift"; sourceTree = "<group>"; };
+		C11D00000000000000000005 /* CommandLineToolLinkScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolLinkScript.swift; sourceTree = "<group>"; };
+		C11D00000000000000000007 /* AppleScriptHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleScriptHandler.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000087 /* MuteCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteCommandTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000085 /* MuteCommandLineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteCommandLineTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000083 /* MuteTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteTable.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000081 /* MuteCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteCommand.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000007F /* MuteInvocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteInvocation.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000007D /* FileOutputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOutputTests.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000007B /* CommandLineStreamTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineStreamTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000079 /* StreamCommandHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamCommandHarness.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000077 /* FileOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOutput.swift; sourceTree = "<group>"; };
+		CD0F00000000000000000005 /* String+Counted.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Counted.swift"; sourceTree = "<group>"; };
+		CB1C00000000000000000075 /* StreamCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamCommand.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000073 /* StreamClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamClient.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000069 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000006B /* CommandLineTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineTool.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000006D /* StreamRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamRunner.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000006F /* SignalTrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalTrap.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000071 /* ToolVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolVersion.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000059 /* macmonitor */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = macmonitor; sourceTree = BUILT_PRODUCTS_DIR; };
+		CB1C00000000000000000057 /* CommandLineExitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineExitTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000055 /* CommandLineParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineParserTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000053 /* CommandLineExit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineExit.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000051 /* CommandLineHelp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineHelp.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000004F /* CommandLineParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineParser.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000004D /* CommandLineInvocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineInvocation.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000004B /* StreamPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamPipelineTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000049 /* TextOutputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextOutputTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000047 /* StreamDropMeterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamDropMeterTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000045 /* PipelineScopeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineScopeTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000043 /* EventHeaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventHeaderTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000041 /* ExportEncoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportEncoderTests.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000003F /* XCTestCase+Wire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+Wire.swift"; sourceTree = "<group>"; };
+		CB1C0000000000000000003D /* ExportEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportEncoder.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000003B /* StreamPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamPipeline.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000039 /* TextEventFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextEventFormatter.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000037 /* TerminalSafeText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSafeText.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000035 /* StreamDropMeter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamDropMeter.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000033 /* PipelineScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineScope.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000031 /* EventHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventHeader.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000002F /* CommandLineEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineEvents.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000002C /* StreamSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSessionTests.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000002A /* StreamSlotsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSlotsTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000028 /* SensorListenerRouterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorListenerRouterTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000026 /* StreamHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamHarness.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000024 /* SensorListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorListener.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000022 /* StreamSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSession.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000020 /* StreamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamService.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000001E /* StreamSlots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSlots.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000001C /* SensorListenerRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorListenerRouter.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000001A /* SensorXPCRequirementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorXPCRequirementTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000018 /* StreamPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamPlanTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000016 /* StreamRequestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamRequestTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000014 /* CaptureSessionDrainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionDrainTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000012 /* CaptureSession+Drain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CaptureSession+Drain.swift"; sourceTree = "<group>"; };
+		CB1C00000000000000000010 /* StreamPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamPlan.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000000E /* StreamReply.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamReply.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000000C /* StreamProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamProtocol.swift; sourceTree = "<group>"; };
+		CB1C0000000000000000000A /* EventBatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventBatcherTests.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000008 /* FakeBatchDelivery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeBatchDelivery.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000006 /* XPCBatchDelivery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCBatchDelivery.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000004 /* EventBatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventBatcher.swift; sourceTree = "<group>"; };
+		CB1C00000000000000000002 /* EventBatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventBatching.swift; sourceTree = "<group>"; };
+		CA970000000000000000005C /* MuteFileMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteFileMenu.swift; sourceTree = "<group>"; };
+		CA970000000000000000005A /* MuteAddSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteAddSheet.swift; sourceTree = "<group>"; };
+		CA9700000000000000000058 /* SavedMuteSetSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMuteSetSessionTests.swift; sourceTree = "<group>"; };
+		CA9700000000000000000056 /* CaptureSession+Mutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CaptureSession+Mutes.swift"; sourceTree = "<group>"; };
+		CA9700000000000000000054 /* XCTestCase+MuteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+MuteStore.swift"; sourceTree = "<group>"; };
+		CA9700000000000000000052 /* SavedMuteSetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMuteSetTests.swift; sourceTree = "<group>"; };
+		DA2200000000000000000003 /* MuteAccessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteAccessTests.swift; sourceTree = "<group>"; };
+		DA2200000000000000000007 /* ConsoleUserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleUserTests.swift; sourceTree = "<group>"; };
+		DA2200000000000000000009 /* DefaultMuteSetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultMuteSetTests.swift; sourceTree = "<group>"; };
+		CA9700000000000000000050 /* MuteStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteStoreTests.swift; sourceTree = "<group>"; };
+		CA970000000000000000004E /* MuteRequestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteRequestTests.swift; sourceTree = "<group>"; };
+		CA970000000000000000004C /* MuteRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteRequest.swift; sourceTree = "<group>"; };
+		CD0F00000000000000000001 /* XPCMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCMessage.swift; sourceTree = "<group>"; };
+		CA970000000000000000004A /* SavedMuteSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMuteSet.swift; sourceTree = "<group>"; };
+		DA2200000000000000000001 /* MuteAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteAccess.swift; sourceTree = "<group>"; };
+		CA9700000000000000000048 /* MuteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteStore.swift; sourceTree = "<group>"; };
+		CA9700000000000000000046 /* MuteFileReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteFileReaderTests.swift; sourceTree = "<group>"; };
+		CA9700000000000000000044 /* MuteFileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteFileTests.swift; sourceTree = "<group>"; };
+		CA9700000000000000000042 /* MuteFileReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteFileReader.swift; sourceTree = "<group>"; };
+		CA9700000000000000000040 /* MuteFile+Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuteFile+Validation.swift"; sourceTree = "<group>"; };
+		CA970000000000000000003E /* MuteFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteFile.swift; sourceTree = "<group>"; };
+		CA970000000000000000003C /* EndpointSecurityMuteModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointSecurityMuteModel.swift; sourceTree = "<group>"; };
+		CA970000000000000000003A /* MuteListChangesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteListChangesTests.swift; sourceTree = "<group>"; };
+		CA9700000000000000000038 /* MuteListTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteListTests.swift; sourceTree = "<group>"; };
+		CA9700000000000000000036 /* MuteList+Changes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MuteList+Changes.swift"; sourceTree = "<group>"; };
+		CA9700000000000000000034 /* MuteList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteList.swift; sourceTree = "<group>"; };
 		CB9800000000000000000021 /* AuditTokenStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditTokenStringTests.swift; sourceTree = "<group>"; };
 		CB980000000000000000000B /* FileQuarantinedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileQuarantinedTests.swift; sourceTree = "<group>"; };
 		CB980000000000000000001F /* RandomUUIDBufferTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomUUIDBufferTests.swift; sourceTree = "<group>"; };
@@ -635,7 +862,6 @@
 		CA970000000000000000002E /* SequenceGapCounter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SequenceGapCounter.swift; sourceTree = "<group>"; };
 		CA970000000000000000002C /* CaptureStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureStatistics.swift; sourceTree = "<group>"; };
 		CA970000000000000000002A /* CaptureSession+Statistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CaptureSession+Statistics.swift"; sourceTree = "<group>"; };
-		CA9700000000000000000028 /* EventSink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSink.swift; sourceTree = "<group>"; };
 		CA9700000000000000000026 /* FakeEndpointSecurityClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeEndpointSecurityClient.swift; sourceTree = "<group>"; };
 		CA9700000000000000000024 /* XCTestCase+Capture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+Capture.swift"; sourceTree = "<group>"; };
 		CA9700000000000000000022 /* CaptureSessionStartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionStartTests.swift; sourceTree = "<group>"; };
@@ -792,6 +1018,8 @@
 		D15C0000000000000000012A /* TraceSessionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceSessionViews.swift; sourceTree = "<group>"; };
 		283C4D3E29E09D89009FF6D3 /* MutingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutingEngine.swift; sourceTree = "<group>"; };
 		283C4D4229E0B633009FF6D3 /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
+		DA2200000000000000000005 /* ConsoleUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleUser.swift; sourceTree = "<group>"; };
+		CD0F00000000000000000003 /* Data+WriteAll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+WriteAll.swift"; sourceTree = "<group>"; };
 		283C4D4529E0B761009FF6D3 /* EventStreamControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventStreamControl.swift; sourceTree = "<group>"; };
 		283C4D4729E0E16F009FF6D3 /* SubscriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionEngine.swift; sourceTree = "<group>"; };
 		283C4D4B29E0F0F3009FF6D3 /* SecurityExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityExtension.swift; sourceTree = "<group>"; };
@@ -1123,6 +1351,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		CB1C0000000000000000005C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CB1C0000000000000000005E /* SutroESFramework.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BA33689B287620FD00794525 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -1167,6 +1403,62 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CB1C0000000000000000005A /* macmonitor */ = {
+			isa = PBXGroup;
+			children = (
+				CB1C00000000000000000069 /* main.swift */,
+				CB1C0000000000000000006B /* CommandLineTool.swift */,
+				CB1C0000000000000000006D /* StreamRunner.swift */,
+				CB1C0000000000000000006F /* SignalTrap.swift */,
+				CB1C00000000000000000071 /* ToolVersion.swift */,
+			);
+			path = macmonitor;
+			sourceTree = "<group>";
+		};
+		CB1C0000000000000000002E /* Command Line */ = {
+			isa = PBXGroup;
+			children = (
+				CB1C0000000000000000002F /* CommandLineEvents.swift */,
+				CB1C00000000000000000031 /* EventHeader.swift */,
+				CB1C00000000000000000033 /* PipelineScope.swift */,
+				CB1C00000000000000000035 /* StreamDropMeter.swift */,
+				CB1C00000000000000000037 /* TerminalSafeText.swift */,
+				CB1C00000000000000000039 /* TextEventFormatter.swift */,
+				CB1C0000000000000000003B /* StreamPipeline.swift */,
+				CB1C0000000000000000004D /* CommandLineInvocation.swift */,
+				CB1C0000000000000000004F /* CommandLineParser.swift */,
+				CB1C00000000000000000051 /* CommandLineHelp.swift */,
+				CB1C00000000000000000053 /* CommandLineExit.swift */,
+				CB1C00000000000000000073 /* StreamClient.swift */,
+				CB1C00000000000000000075 /* StreamCommand.swift */,
+				CB1C00000000000000000077 /* FileOutput.swift */,
+				CD0F00000000000000000005 /* String+Counted.swift */,
+				CB1C0000000000000000007F /* MuteInvocation.swift */,
+				CB1C00000000000000000081 /* MuteCommand.swift */,
+				CB1C00000000000000000083 /* MuteTable.swift */,
+				C11D00000000000000000001 /* CommandLineToolLink.swift */,
+				C11D00000000000000000003 /* CommandLineToolLink+Trust.swift */,
+				C11D00000000000000000005 /* CommandLineToolLinkScript.swift */,
+				C11D00000000000000000007 /* AppleScriptHandler.swift */,
+				CB1C00000000000000000089 /* MuteCommand+Confirmation.swift */,
+				CB1C0000000000000000008B /* TerminalPrompt.swift */,
+			);
+			path = "Command Line";
+			sourceTree = "<group>";
+		};
+		CB1C00000000000000000001 /* Streaming */ = {
+			isa = PBXGroup;
+			children = (
+				CB1C00000000000000000002 /* EventBatching.swift */,
+				CB1C00000000000000000004 /* EventBatcher.swift */,
+				CB1C00000000000000000006 /* XPCBatchDelivery.swift */,
+				CB1C0000000000000000001E /* StreamSlots.swift */,
+				CB1C00000000000000000020 /* StreamService.swift */,
+				CB1C00000000000000000022 /* StreamSession.swift */,
+			);
+			path = Streaming;
+			sourceTree = "<group>";
+		};
 		CA9700000000000000000001 /* Capture */ = {
 			isa = PBXGroup;
 			children = (
@@ -1188,6 +1480,8 @@
 				CA9700000000000000000006 /* EventClassTable.swift */,
 				CA9700000000000000000004 /* AppleEventCategory.swift */,
 				CA9700000000000000000002 /* EventClass.swift */,
+				CA9700000000000000000056 /* CaptureSession+Mutes.swift */,
+				CB1C00000000000000000012 /* CaptureSession+Drain.swift */,
 			);
 			path = Capture;
 			sourceTree = "<group>";
@@ -1205,6 +1499,12 @@
 			children = (
 				D15C00000000000000000004 /* SensorClient.swift */,
 				D15C00000000000000000002 /* SensorXPC.swift */,
+				CA970000000000000000004C /* MuteRequest.swift */,
+				CD0F00000000000000000001 /* XPCMessage.swift */,
+				CB1C0000000000000000000C /* StreamProtocol.swift */,
+				CB1C0000000000000000000E /* StreamReply.swift */,
+				CB1C00000000000000000010 /* StreamPlan.swift */,
+				CB1C0000000000000000001C /* SensorListenerRouter.swift */,
 			);
 			path = XPC;
 			sourceTree = "<group>";
@@ -1855,6 +2155,7 @@
 				283C4D4129E0B3E7009FF6D3 /* Utilities */,
 				7E5A1C00000000000000001D /* LaunchedByParent */,
 				BA3368B4287624F100794525 /* ESManager.swift */,
+				CB1C00000000000000000001 /* Streaming */,
 			);
 			path = ESM;
 			sourceTree = "<group>";
@@ -1867,6 +2168,8 @@
 				283C4D4729E0E16F009FF6D3 /* SubscriptionEngine.swift */,
 				CB980000000000000000001D /* RandomUUIDBuffer.swift */,
 				283C4D4229E0B633009FF6D3 /* Helpers.swift */,
+				DA2200000000000000000005 /* ConsoleUser.swift */,
+				CD0F00000000000000000003 /* Data+WriteAll.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -1885,6 +2188,8 @@
 			children = (
 				284CFE1A2A16F03200D0038B /* PathMutingSettingsView.swift */,
 				284F855C2E7210B1001542E3 /* MuteTypeBadgeView.swift */,
+				CA970000000000000000005A /* MuteAddSheet.swift */,
+				CA970000000000000000005C /* MuteFileMenu.swift */,
 			);
 			path = Muting;
 			sourceTree = "<group>";
@@ -1895,6 +2200,14 @@
 				CA970000000000000000000A /* PathMute.swift */,
 				284F855F2E7369F5001542E3 /* MuteSet.swift */,
 				283C4D3E29E09D89009FF6D3 /* MutingEngine.swift */,
+				CA9700000000000000000034 /* MuteList.swift */,
+				CA9700000000000000000036 /* MuteList+Changes.swift */,
+				CA970000000000000000003E /* MuteFile.swift */,
+				CA9700000000000000000040 /* MuteFile+Validation.swift */,
+				CA9700000000000000000042 /* MuteFileReader.swift */,
+				CA9700000000000000000048 /* MuteStore.swift */,
+				CA970000000000000000004A /* SavedMuteSet.swift */,
+				DA2200000000000000000001 /* MuteAccess.swift */,
 			);
 			path = "Path Muting";
 			sourceTree = "<group>";
@@ -1935,6 +2248,7 @@
 				D15C00000000000000000079 /* TelemetryExporter.swift */,
 				282902B82A463D96003211A2 /* ThrottleManager.swift */,
 				D15C00000000000000000111 /* Trace Import */,
+				CB1C0000000000000000003D /* ExportEncoder.swift */,
 			);
 			path = "Core Data Controller";
 			sourceTree = "<group>";
@@ -1942,9 +2256,9 @@
 		28822E1A2A329EE100C34879 /* XPC */ = {
 			isa = PBXGroup;
 			children = (
-				CA9700000000000000000028 /* EventSink.swift */,
 				D15C00000000000000000065 /* EventSpool.swift */,
 				D15C00000000000000000006 /* SensorService.swift */,
+				CB1C00000000000000000024 /* SensorListener.swift */,
 			);
 			path = XPC;
 			sourceTree = "<group>";
@@ -2809,6 +3123,8 @@
 				7E5A1C900000000000000003 /* ProcessTreePrefsView.swift */,
 				284CFE162A16EE1900D0038B /* AdvancedSettingsView.swift */,
 				284CFE1C2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift */,
+				C11D00000000000000000011 /* CommandLineToolInstaller.swift */,
+				C11D00000000000000000013 /* CommandLineToolSettingsView.swift */,
 			);
 			path = "Settings Views";
 			sourceTree = "<group>";
@@ -2885,6 +3201,7 @@
 				2808EDA12993409400238A8C /* CoreDataEDR */,
 				282E64D528F9C4830060ABFA /* SwiftCSBlobs */,
 				28E2E13F2D61701E00EF4145 /* ESExtensions.swift */,
+				CB1C0000000000000000002E /* Command Line */,
 			);
 			path = SutroESFramework;
 			sourceTree = "<group>";
@@ -2899,6 +3216,7 @@
 				7E5700000000000000000002 /* SutroESFrameworkTests */,
 				BA97AFE828754ABF0099C035 /* Frameworks */,
 				BA97AFCD2875471D0099C035 /* Products */,
+				CB1C0000000000000000005A /* macmonitor */,
 			);
 			sourceTree = "<group>";
 		};
@@ -2909,6 +3227,7 @@
 				BA97AFE728754ABF0099C035 /* com.swiftlydetecting.agent.securityextension.systemextension */,
 				BA33689E287620FD00794525 /* SutroESFramework.framework */,
 				7E5700000000000000000001 /* SutroESFrameworkTests.xctest */,
+				CB1C00000000000000000059 /* macmonitor */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -3662,6 +3981,41 @@
 				7E5700000000000000000008 /* TraceImporterMessageTests.swift */,
 				7E5700000000000000000003 /* TestSupport */,
 				7E570000000000000000000C /* Fixtures */,
+				CA9700000000000000000038 /* MuteListTests.swift */,
+				CA970000000000000000003A /* MuteListChangesTests.swift */,
+				CA9700000000000000000044 /* MuteFileTests.swift */,
+				CA9700000000000000000046 /* MuteFileReaderTests.swift */,
+				CA970000000000000000004E /* MuteRequestTests.swift */,
+				CA9700000000000000000050 /* MuteStoreTests.swift */,
+				CA9700000000000000000052 /* SavedMuteSetTests.swift */,
+				DA2200000000000000000003 /* MuteAccessTests.swift */,
+				DA2200000000000000000007 /* ConsoleUserTests.swift */,
+				DA2200000000000000000009 /* DefaultMuteSetTests.swift */,
+				CA9700000000000000000058 /* SavedMuteSetSessionTests.swift */,
+				CB1C0000000000000000000A /* EventBatcherTests.swift */,
+				CB1C00000000000000000014 /* CaptureSessionDrainTests.swift */,
+				CB1C00000000000000000016 /* StreamRequestTests.swift */,
+				CB1C00000000000000000018 /* StreamPlanTests.swift */,
+				CB1C0000000000000000001A /* SensorXPCRequirementTests.swift */,
+				CB1C00000000000000000028 /* SensorListenerRouterTests.swift */,
+				CB1C0000000000000000002A /* StreamSlotsTests.swift */,
+				CB1C0000000000000000002C /* StreamSessionTests.swift */,
+				CB1C00000000000000000041 /* ExportEncoderTests.swift */,
+				CB1C00000000000000000043 /* EventHeaderTests.swift */,
+				CB1C00000000000000000045 /* PipelineScopeTests.swift */,
+				CB1C00000000000000000047 /* StreamDropMeterTests.swift */,
+				CB1C00000000000000000049 /* TextOutputTests.swift */,
+				CB1C0000000000000000004B /* StreamPipelineTests.swift */,
+				CB1C00000000000000000055 /* CommandLineParserTests.swift */,
+				CB1C00000000000000000057 /* CommandLineExitTests.swift */,
+				CB1C0000000000000000007B /* CommandLineStreamTests.swift */,
+				CB1C0000000000000000007D /* FileOutputTests.swift */,
+				CB1C00000000000000000085 /* MuteCommandLineTests.swift */,
+				CB1C00000000000000000087 /* MuteCommandTests.swift */,
+				C11D00000000000000000009 /* CommandLineToolLinkTests.swift */,
+				C11D0000000000000000000B /* CommandLineToolLinkScriptTests.swift */,
+				C11D0000000000000000000D /* CommandLineToolInstallTests.swift */,
+				CB1C0000000000000000008D /* MuteConfirmationTests.swift */,
 			);
 			path = SutroESFrameworkTests;
 			sourceTree = "<group>";
@@ -3680,6 +4034,13 @@
 				7E5A1C00000000000000002A /* XCTestCase+Store.swift */,
 				7E5715000000000000000007 /* RawMessageFixture.swift */,
 				7E570000000000000000000A /* XCTestCase+Fixtures.swift */,
+				CA970000000000000000003C /* EndpointSecurityMuteModel.swift */,
+				CA9700000000000000000054 /* XCTestCase+MuteStore.swift */,
+				CB1C00000000000000000008 /* FakeBatchDelivery.swift */,
+				CB1C00000000000000000026 /* StreamHarness.swift */,
+				CB1C0000000000000000003F /* XCTestCase+Wire.swift */,
+				CB1C00000000000000000079 /* StreamCommandHarness.swift */,
+				C11D0000000000000000000F /* ToolLinkFixture.swift */,
 			);
 			path = TestSupport;
 			sourceTree = "<group>";
@@ -3699,6 +4060,25 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		CB1C0000000000000000005D /* macmonitor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CB1C00000000000000000065 /* Build configuration list for PBXNativeTarget "macmonitor" */;
+			buildPhases = (
+				CB1C0000000000000000005B /* Sources */,
+				CB1C0000000000000000005C /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CB1C00000000000000000062 /* PBXTargetDependency */,
+			);
+			name = macmonitor;
+			packageProductDependencies = (
+			);
+			productName = macmonitor;
+			productReference = CB1C00000000000000000059 /* macmonitor */;
+			productType = "com.apple.product-type.tool";
+		};
 		BA33689D287620FD00794525 /* SutroESFramework */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = BA3368A8287620FD00794525 /* Build configuration list for PBXNativeTarget "SutroESFramework" */;
@@ -3728,6 +4108,7 @@
 				BA97AFCA2875471D0099C035 /* Resources */,
 				BA97AFF628754ABF0099C035 /* Embed System Extensions */,
 				BA9522562886CFB700CF6222 /* Embed Frameworks */,
+				CB1C00000000000000000060 /* Embed Command Line Tool */,
 				288AB3AB2921701600D221AD /* Embed Foundation Extensions */,
 				281186AE29F21D4900C8FB18 /* Copy uninstaller */,
 			);
@@ -3736,6 +4117,7 @@
 			dependencies = (
 				288DFFD9290C6C77007D6FDD /* PBXTargetDependency */,
 				2875D81D290B768D00D2A11A /* PBXTargetDependency */,
+				CB1C00000000000000000064 /* PBXTargetDependency */,
 			);
 			name = ProjectSutro;
 			packageProductDependencies = (
@@ -3809,6 +4191,9 @@
 					7E5700000000000000000014 = {
 						CreatedOnToolsVersion = 27.0;
 					};
+					CB1C0000000000000000005D = {
+						CreatedOnToolsVersion = 27.0;
+					};
 				};
 			};
 			buildConfigurationList = BA97AFC72875471D0099C035 /* Build configuration list for PBXProject "ProjectSutro" */;
@@ -3830,6 +4215,7 @@
 				BA97AFE628754ABF0099C035 /* SecurityExtension */,
 				BA33689D287620FD00794525 /* SutroESFramework */,
 				7E5700000000000000000014 /* SutroESFrameworkTests */,
+				CB1C0000000000000000005D /* macmonitor */,
 			);
 		};
 /* End PBXProject section */
@@ -3872,10 +4258,65 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		CB1C0000000000000000005B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CB1C0000000000000000006A /* main.swift in Sources */,
+				CB1C0000000000000000006C /* CommandLineTool.swift in Sources */,
+				CB1C0000000000000000006E /* StreamRunner.swift in Sources */,
+				CB1C00000000000000000070 /* SignalTrap.swift in Sources */,
+				CB1C00000000000000000072 /* ToolVersion.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BA33689A287620FD00794525 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CB1C0000000000000000008C /* TerminalPrompt.swift in Sources */,
+				CB1C0000000000000000008A /* MuteCommand+Confirmation.swift in Sources */,
+				CB1C00000000000000000084 /* MuteTable.swift in Sources */,
+				CB1C00000000000000000082 /* MuteCommand.swift in Sources */,
+				CB1C00000000000000000080 /* MuteInvocation.swift in Sources */,
+				CB1C00000000000000000078 /* FileOutput.swift in Sources */,
+				CD0F00000000000000000006 /* String+Counted.swift in Sources */,
+				CB1C00000000000000000076 /* StreamCommand.swift in Sources */,
+				CB1C00000000000000000074 /* StreamClient.swift in Sources */,
+				CB1C00000000000000000054 /* CommandLineExit.swift in Sources */,
+				CB1C00000000000000000052 /* CommandLineHelp.swift in Sources */,
+				CB1C00000000000000000050 /* CommandLineParser.swift in Sources */,
+				CB1C0000000000000000004E /* CommandLineInvocation.swift in Sources */,
+				CB1C0000000000000000003E /* ExportEncoder.swift in Sources */,
+				CB1C0000000000000000003C /* StreamPipeline.swift in Sources */,
+				CB1C0000000000000000003A /* TextEventFormatter.swift in Sources */,
+				CB1C00000000000000000038 /* TerminalSafeText.swift in Sources */,
+				CB1C00000000000000000036 /* StreamDropMeter.swift in Sources */,
+				CB1C00000000000000000034 /* PipelineScope.swift in Sources */,
+				CB1C00000000000000000032 /* EventHeader.swift in Sources */,
+				CB1C00000000000000000030 /* CommandLineEvents.swift in Sources */,
+				CB1C00000000000000000023 /* StreamSession.swift in Sources */,
+				CB1C00000000000000000021 /* StreamService.swift in Sources */,
+				CB1C0000000000000000001F /* StreamSlots.swift in Sources */,
+				CB1C0000000000000000001D /* SensorListenerRouter.swift in Sources */,
+				CB1C00000000000000000013 /* CaptureSession+Drain.swift in Sources */,
+				CB1C00000000000000000011 /* StreamPlan.swift in Sources */,
+				CB1C0000000000000000000F /* StreamReply.swift in Sources */,
+				CB1C0000000000000000000D /* StreamProtocol.swift in Sources */,
+				CB1C00000000000000000007 /* XPCBatchDelivery.swift in Sources */,
+				CB1C00000000000000000005 /* EventBatcher.swift in Sources */,
+				CB1C00000000000000000003 /* EventBatching.swift in Sources */,
+				CA9700000000000000000057 /* CaptureSession+Mutes.swift in Sources */,
+				CA970000000000000000004D /* MuteRequest.swift in Sources */,
+				CD0F00000000000000000002 /* XPCMessage.swift in Sources */,
+				CA970000000000000000004B /* SavedMuteSet.swift in Sources */,
+				DA2200000000000000000002 /* MuteAccess.swift in Sources */,
+				CA9700000000000000000049 /* MuteStore.swift in Sources */,
+				CA9700000000000000000043 /* MuteFileReader.swift in Sources */,
+				CA9700000000000000000041 /* MuteFile+Validation.swift in Sources */,
+				CA970000000000000000003F /* MuteFile.swift in Sources */,
+				CA9700000000000000000037 /* MuteList+Changes.swift in Sources */,
+				CA9700000000000000000035 /* MuteList.swift in Sources */,
 				CA970000000000000000002F /* SequenceGapCounter.swift in Sources */,
 				CA970000000000000000002D /* CaptureStatistics.swift in Sources */,
 				CA970000000000000000002B /* CaptureSession+Statistics.swift in Sources */,
@@ -4135,6 +4576,8 @@
 				2852BB9029D8CAAC00AA833C /* ESFileWriteEvent+CoreDataClass.swift in Sources */,
 				CB980000000000000000001E /* RandomUUIDBuffer.swift in Sources */,
 				283C4D4329E0B633009FF6D3 /* Helpers.swift in Sources */,
+				DA2200000000000000000006 /* ConsoleUser.swift in Sources */,
+				CD0F00000000000000000004 /* Data+WriteAll.swift in Sources */,
 				282FEDEB295FCE3600572E22 /* ESXProtectRemediate+CoreDataProperties.swift in Sources */,
 				28320C9F29940F0600CB9D81 /* SECoreDataController.swift in Sources */,
 				28AF16612923099400AA75A5 /* ESMessage+CoreDataClass.swift in Sources */,
@@ -4164,6 +4607,10 @@
 				284BAEDB2A4DE047007F1193 /* ODHelpers.swift in Sources */,
 				28C6DF1B2A4676FA00E97922 /* XPCConnectEvent.swift in Sources */,
 				28EC62DA292446B700EAC8AD /* ESLaunchItemAddEvent+CoreDataProperties.swift in Sources */,
+				C11D00000000000000000002 /* CommandLineToolLink.swift in Sources */,
+				C11D00000000000000000004 /* CommandLineToolLink+Trust.swift in Sources */,
+				C11D00000000000000000006 /* CommandLineToolLinkScript.swift in Sources */,
+				C11D00000000000000000008 /* AppleScriptHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4171,6 +4618,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CA970000000000000000005D /* MuteFileMenu.swift in Sources */,
+				CA970000000000000000005B /* MuteAddSheet.swift in Sources */,
 				7E571500000000000000001A /* ThreadStateFactsView.swift in Sources */,
 				0D0D0D000000000000000018 /* OpenDirectoryFactsViews.swift in Sources */,
 				0D0D0D00000000000000001E /* FactRow.swift in Sources */,
@@ -4293,6 +4742,8 @@
 				284BAED12A4CE079007F1193 /* SystemOpenDirectoryCreateGroupMetadataView.swift in Sources */,
 				28823F502ECC3400000B7F5C /* SystemGetExtattrMetadataView.swift in Sources */,
 				28CEF0FD29776D31003057D2 /* SystemProcExitMetadataView.swift in Sources */,
+				C11D00000000000000000012 /* CommandLineToolInstaller.swift in Sources */,
+				C11D00000000000000000014 /* CommandLineToolSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4300,7 +4751,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CA9700000000000000000029 /* EventSink.swift in Sources */,
+				CB1C00000000000000000025 /* SensorListener.swift in Sources */,
 				D15C00000000000000000066 /* EventSpool.swift in Sources */,
 				D15C0000000000000000000A /* UpdateInstaller.swift in Sources */,
 				D15C00000000000000000007 /* SensorService.swift in Sources */,
@@ -4314,6 +4765,44 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CB1C0000000000000000008E /* MuteConfirmationTests.swift in Sources */,
+				CB1C00000000000000000088 /* MuteCommandTests.swift in Sources */,
+				CB1C00000000000000000086 /* MuteCommandLineTests.swift in Sources */,
+				CB1C0000000000000000007E /* FileOutputTests.swift in Sources */,
+				CB1C0000000000000000007C /* CommandLineStreamTests.swift in Sources */,
+				CB1C0000000000000000007A /* StreamCommandHarness.swift in Sources */,
+				CB1C00000000000000000058 /* CommandLineExitTests.swift in Sources */,
+				CB1C00000000000000000056 /* CommandLineParserTests.swift in Sources */,
+				CB1C0000000000000000004C /* StreamPipelineTests.swift in Sources */,
+				CB1C0000000000000000004A /* TextOutputTests.swift in Sources */,
+				CB1C00000000000000000048 /* StreamDropMeterTests.swift in Sources */,
+				CB1C00000000000000000046 /* PipelineScopeTests.swift in Sources */,
+				CB1C00000000000000000044 /* EventHeaderTests.swift in Sources */,
+				CB1C00000000000000000042 /* ExportEncoderTests.swift in Sources */,
+				CB1C00000000000000000040 /* XCTestCase+Wire.swift in Sources */,
+				CB1C0000000000000000002D /* StreamSessionTests.swift in Sources */,
+				CB1C0000000000000000002B /* StreamSlotsTests.swift in Sources */,
+				CB1C00000000000000000029 /* SensorListenerRouterTests.swift in Sources */,
+				CB1C00000000000000000027 /* StreamHarness.swift in Sources */,
+				CB1C0000000000000000001B /* SensorXPCRequirementTests.swift in Sources */,
+				CB1C00000000000000000019 /* StreamPlanTests.swift in Sources */,
+				CB1C00000000000000000017 /* StreamRequestTests.swift in Sources */,
+				CB1C00000000000000000015 /* CaptureSessionDrainTests.swift in Sources */,
+				CB1C0000000000000000000B /* EventBatcherTests.swift in Sources */,
+				CB1C00000000000000000009 /* FakeBatchDelivery.swift in Sources */,
+				CA9700000000000000000059 /* SavedMuteSetSessionTests.swift in Sources */,
+				CA9700000000000000000055 /* XCTestCase+MuteStore.swift in Sources */,
+				CA9700000000000000000053 /* SavedMuteSetTests.swift in Sources */,
+				DA2200000000000000000004 /* MuteAccessTests.swift in Sources */,
+				DA2200000000000000000008 /* ConsoleUserTests.swift in Sources */,
+				DA220000000000000000000A /* DefaultMuteSetTests.swift in Sources */,
+				CA9700000000000000000051 /* MuteStoreTests.swift in Sources */,
+				CA970000000000000000004F /* MuteRequestTests.swift in Sources */,
+				CA9700000000000000000047 /* MuteFileReaderTests.swift in Sources */,
+				CA9700000000000000000045 /* MuteFileTests.swift in Sources */,
+				CA970000000000000000003D /* EndpointSecurityMuteModel.swift in Sources */,
+				CA970000000000000000003B /* MuteListChangesTests.swift in Sources */,
+				CA9700000000000000000039 /* MuteListTests.swift in Sources */,
 				CB9800000000000000000004 /* ESLoggerUTCTimeTests.swift in Sources */,
 				CB9800000000000000000008 /* CodeSigningCertificateCacheTests.swift in Sources */,
 				CB980000000000000000000A /* ExecCommandLineTests.swift in Sources */,
@@ -4383,12 +4872,26 @@
 				7E5700000000000000000007 /* TraceRecordReaderTests.swift in Sources */,
 				7E5700000000000000000009 /* TraceImporterMessageTests.swift in Sources */,
 				7E570000000000000000000B /* XCTestCase+Fixtures.swift in Sources */,
+				C11D0000000000000000000A /* CommandLineToolLinkTests.swift in Sources */,
+				C11D0000000000000000000C /* CommandLineToolLinkScriptTests.swift in Sources */,
+				C11D0000000000000000000E /* CommandLineToolInstallTests.swift in Sources */,
+				C11D00000000000000000010 /* ToolLinkFixture.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		CB1C00000000000000000062 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BA33689D287620FD00794525 /* SutroESFramework */;
+			targetProxy = CB1C00000000000000000061 /* PBXContainerItemProxy */;
+		};
+		CB1C00000000000000000064 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CB1C0000000000000000005D /* macmonitor */;
+			targetProxy = CB1C00000000000000000063 /* PBXContainerItemProxy */;
+		};
 		2875D81D290B768D00D2A11A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = BA33689D287620FD00794525 /* SutroESFramework */;
@@ -4412,6 +4915,84 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		CB1C00000000000000000066 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 4HMJQ7V3SX;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "2025 Brandon Dalton";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.1;
+				MARKETING_VERSION = 2.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.cli;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		CB1C00000000000000000067 /* Community */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = C0330000C0330000C0330001 /* Community.xcconfig */;
+			buildSettings = {
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "2025 Brandon Dalton";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.1;
+				MARKETING_VERSION = 2.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.cli;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Community;
+		};
+		CB1C00000000000000000068 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 4HMJQ7V3SX;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "2025 Brandon Dalton";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.1;
+				MARKETING_VERSION = 2.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.cli;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		BA3368A9287620FD00794525 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -5054,6 +5635,16 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		CB1C00000000000000000065 /* Build configuration list for PBXNativeTarget "macmonitor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CB1C00000000000000000066 /* Debug */,
+				CB1C00000000000000000067 /* Community */,
+				CB1C00000000000000000068 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		BA3368A8287620FD00794525 /* Build configuration list for PBXNativeTarget "SutroESFramework" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

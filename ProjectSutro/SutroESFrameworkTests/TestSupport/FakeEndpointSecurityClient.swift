@@ -25,6 +25,7 @@ final class FakeEndpointSecurityClient: EndpointSecurityClient {
         case muteProcess(pid: Int32)
         case setPathMute(PathMute, muted: Bool)
         case mutedPaths
+        case sync
         case delete
         
         /// The call without its arguments.
@@ -36,6 +37,7 @@ final class FakeEndpointSecurityClient: EndpointSecurityClient {
             case .muteProcess: return .muteProcess
             case .setPathMute: return .setPathMute
             case .mutedPaths: return .mutedPaths
+            case .sync: return .sync
             case .delete: return .delete
             }
         }
@@ -43,7 +45,7 @@ final class FakeEndpointSecurityClient: EndpointSecurityClient {
     
     /// A kind of call, such as one the client refuses.
     enum Kind: Hashable {
-        case subscribe, unsubscribe, unsubscribeAll, muteProcess, setPathMute, mutedPaths, delete
+        case subscribe, unsubscribe, unsubscribeAll, muteProcess, setPathMute, mutedPaths, sync, delete
     }
     
     /// The client's state, behind ``lock``.
@@ -51,6 +53,9 @@ final class FakeEndpointSecurityClient: EndpointSecurityClient {
         var calls: [Call] = []
         var handler: ((UnsafePointer<es_message_t>) -> Void)?
         var refusing: Set<Kind>
+        /// Hold sync completions until ``releaseSyncs()``, rather than calling them right away.
+        var holdsSyncs = false
+        var heldSyncs: [() -> Void] = []
     }
     
     private let lock: OSAllocatedUnfairLock<State>
@@ -94,6 +99,23 @@ final class FakeEndpointSecurityClient: EndpointSecurityClient {
         lock.withLockUnchecked { state in
             if refused { state.refusing.insert(kind) } else { state.refusing.remove(kind) }
         }
+    }
+    
+    /// Hold every sync completion from now on until ``releaseSyncs()``, as Endpoint Security does while messages are
+    /// still queued in front of the marker.
+    func holdSyncs() {
+        lock.withLockUnchecked { $0.holdsSyncs = true }
+    }
+    
+    /// Call every held sync completion, as Endpoint Security does once the marker reaches the front of the queue, and
+    /// stop holding them.
+    func releaseSyncs() {
+        let held = lock.withLockUnchecked { state -> [() -> Void] in
+            state.holdsSyncs = false
+            defer { state.heldSyncs = [] }
+            return state.heldSyncs
+        }
+        held.forEach { $0() }
     }
     
     /// Hand a message to the session's handler on the calling thread, as Endpoint Security would on the client's
@@ -165,12 +187,31 @@ final class FakeEndpointSecurityClient: EndpointSecurityClient {
         record(.mutedPaths) ? presetMutedPaths : []
     }
     
+    /// Record the call. The fake hands each message to the handler as it's delivered, so every message before the call
+    /// has been handled: the completion runs right away, unless syncs are held (``holdSyncs()``).
+    ///
+    /// - Parameter completion: The sync's completion.
+    /// - Returns: `false` if syncs are refused, as before macOS 27: the completion is never called.
+    func sync(_ completion: @escaping () -> Void) -> Bool {
+        guard record(.sync) else { return false }
+        let held = lock.withLockUnchecked { state -> Bool in
+            if state.holdsSyncs { state.heldSyncs.append(completion) }
+            return state.holdsSyncs
+        }
+        if !held { completion() }
+        return true
+    }
+    
     /// Record the call and drop the handler, as `es_delete_client` does.
     ///
     /// - Returns: `false` if deletes are refused (Endpoint Security leaked the client's resources).
     @discardableResult
     func delete() -> Bool {
-        defer { lock.withLockUnchecked { $0.handler = nil } }
+        defer {
+            lock.withLockUnchecked { $0.handler = nil }
+            /// `ESClient.h`: if the client is destroyed, all sync blocks are called.
+            releaseSyncs()
+        }
         return record(.delete)
     }
 }

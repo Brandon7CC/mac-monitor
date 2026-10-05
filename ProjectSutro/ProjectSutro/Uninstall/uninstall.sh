@@ -40,4 +40,20 @@ sleep 1
 # Forcefully delete
 if [ "$uninstall_success" = true ]; then
     /bin/rm -rf "/Applications/Mac Monitor.app" && echo "App successfully deleted"
+
+    # The command line tool's link, if Settings > Command Line installed it. Only Mac Monitor's own link (to some
+    # app's Contents/MacOS/macmonitor), and only once it points at nothing: a link to a copy that's still there stays.
+    tool_link="/usr/local/bin/macmonitor"
+    if [[ -L "$tool_link" && ! -e "$tool_link" ]]; then
+        case "$(/usr/bin/readlink "$tool_link")" in
+            /*.app/Contents/MacOS/macmonitor)
+                /bin/rm -f "$tool_link" && echo "Command line tool link successfully deleted" ;;
+        esac
+    fi
+
+    # The saved mute set the Security Extension kept. Only this exact directory, and never through a symbolic link.
+    saved_mutes="/Library/Application Support/com.swiftlydetecting.agent.securityextension"
+    if [[ -d "$saved_mutes" && ! -L "$saved_mutes" ]]; then
+        /bin/rm -rf "$saved_mutes" && echo "Saved mute set successfully deleted"
+    fi
 fi

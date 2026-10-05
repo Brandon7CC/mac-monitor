@@ -68,9 +68,6 @@ struct ProjectSutroApp: App {
     /// Used to disable the update button while a check is in progress.
     @State private var isCheckingForUpdate: Bool = false
     
-    /// Dynamically query the Security Extension to get the globally muted paths at the Endpoint Security level
-    var globallyMutedPaths: Set<String> { systemExtensionManager.globallyMutedPaths }
-    
     @AppStorage("lifecycleWarnBeforeQuit") var shouldWarnBeforeAppQuit: Bool = false
     
     init() {

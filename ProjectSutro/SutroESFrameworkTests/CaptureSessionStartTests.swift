@@ -14,10 +14,11 @@ import EndpointSecurity
 /// Pins how a capture session starts: one client per class, each muted the same way before it subscribes to its
 /// share of the events, and all or nothing when Endpoint Security refuses.
 final class CaptureSessionStartTests: XCTestCase {
-    /// A configuration with one mute of its own, so tests can tell it from the default set.
+    /// A configuration with the default set and one mute of its own, as the saved mute set might be.
     private var configuration: CaptureConfiguration {
         var configuration = CaptureConfiguration(label: "Test")
-        configuration.mutes = [PathMute(path: "/tmp/mine", type: ES_MUTE_PATH_TYPE_TARGET_PREFIX)]
+        configuration.mutes = .testDefault
+        configuration.mutes.add(PathMute(path: "/private/tmp/mine", type: ES_MUTE_PATH_TYPE_TARGET_PREFIX))
         return configuration
     }
     
@@ -63,32 +64,34 @@ final class CaptureSessionStartTests: XCTestCase {
         XCTAssertTrue(other.clients.allSatisfy { $0.calls(.muteProcess).isEmpty })
     }
     
-    /// Every client gets the same path mutes, the default set then the configuration's, before it subscribes.
+    /// Every client gets the configuration's path mutes, one call per event, before it subscribes, and the session
+    /// records them as applied.
     ///
     /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testEveryClientGetsTheSameMutesBeforeSubscribing() throws {
         let factory = FakeEndpointSecurityClientFactory()
-        _ = try makeSession(configuration, factory: factory)
-        let expected = (MuteSet.default.pathMutes + configuration.mutes).map {
-            FakeEndpointSecurityClient.Call.setPathMute($0, muted: true)
-        }
+        let session = try makeSession(configuration, factory: factory)
+        let changes = MuteList().changes(to: configuration.mutes)
+        XCTAssertTrue(changes.allSatisfy(\.muted))
+        XCTAssertEqual(changes.count, MuteList().changes(to: .testDefault).count + 1)
+        let expected = changes.map { FakeEndpointSecurityClient.Call.setPathMute($0.mute, muted: $0.muted) }
         for client in factory.clients {
             XCTAssertEqual(callsBeforeSubscribing(client).filter { $0.kind == .setPathMute }, expected)
             XCTAssertEqual(client.calls(.setPathMute).count, expected.count)
         }
+        XCTAssertEqual(session.appliedMutes, configuration.mutes)
     }
     
-    /// Without the default set, only the configuration's mutes are applied.
+    /// No mutes, as `macmonitor stream --no-mutes` asks, sends no path mutes.
     ///
     /// - Throws: ``CaptureStartError`` if the session couldn't start.
-    func testDefaultMuteSetCanBeLeftOut() throws {
+    func testNoMutesSendNoPathMutes() throws {
         var bare = configuration
-        bare.appliesDefaultMuteSet = false
+        bare.mutes = MuteList()
         let factory = FakeEndpointSecurityClientFactory()
-        _ = try makeSession(bare, factory: factory)
-        for client in factory.clients {
-            XCTAssertEqual(client.calls(.setPathMute), [.setPathMute(bare.mutes[0], muted: true)])
-        }
+        let session = try makeSession(bare, factory: factory)
+        XCTAssertTrue(factory.clients.allSatisfy { $0.calls(.setPathMute).isEmpty })
+        XCTAssertTrue(session.appliedMutes.isEmpty)
     }
     
     /// Endpoint Security's default mutes are read from the first client before any of Mac Monitor's are applied.

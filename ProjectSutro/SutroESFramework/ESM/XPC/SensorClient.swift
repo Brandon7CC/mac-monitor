@@ -86,7 +86,7 @@ public final class SensorClient {
     /// block, so `completion` is always called exactly once.
     ///
     /// ```swift
-    /// sensor.call { $0.mutedPaths(reply: $1) } completion: { paths in
+    /// sensor.call { $0.appleMuteSet(reply: $1) } completion: { paths in
     ///     guard let paths else { return } // The request failed and has been logged.
     /// }
     /// ```

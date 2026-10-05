@@ -91,7 +91,7 @@ struct AgentSettingsView: View {
     @Binding var eventMaskEnabled: Bool
     
     private enum Tabs: Hashable {
-        case esMuting, esEventSubscriptions, advanced, streamTelemetry, userSettings
+        case esMuting, esEventSubscriptions, advanced, streamTelemetry, userSettings, commandLine
     }
     
     var body: some View {
@@ -105,6 +105,10 @@ struct AgentSettingsView: View {
                 .tabItem{
                     Label("Path Muting", systemImage: "firewall")
                 }.tag(Tabs.esMuting)
+            CommandLineToolSettingsView()
+                .tabItem {
+                    Label("Command Line", systemImage: "terminal").tag(Tabs.commandLine)
+                }
             UserSettingsView()
                 .environmentObject(systemExtensionManager)
                 .tabItem {

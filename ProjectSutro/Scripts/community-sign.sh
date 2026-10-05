@@ -34,8 +34,10 @@ SYSEXT="$APP/Contents/Library/SystemExtensions/com.swiftlydetecting.agent.securi
 # The framework is embedded twice: once in the app, once inside the extension.
 SYSEXT_FRAMEWORK="$SYSEXT/Contents/Frameworks/SutroESFramework.framework"
 APP_FRAMEWORK="$APP/Contents/Frameworks/SutroESFramework.framework"
+# The command line tool. No entitlements: it only talks to the extension.
+CLI="$APP/Contents/MacOS/macmonitor"
 
-for path in "$SYSEXT_FRAMEWORK" "$APP_FRAMEWORK" "$SYSEXT" "$APP_ENTITLEMENTS" "$SYSEXT_ENTITLEMENTS"; do
+for path in "$SYSEXT_FRAMEWORK" "$APP_FRAMEWORK" "$SYSEXT" "$CLI" "$APP_ENTITLEMENTS" "$SYSEXT_ENTITLEMENTS"; do
     [[ -e "$path" ]] || { echo "missing: $path" >&2; exit 66; }
 done
 
@@ -56,6 +58,10 @@ sign \
 echo "→ framework (inside app)"
 sign "$APP_FRAMEWORK"
 
+# The extension only streams to a peer signed with this identifier (SensorXPC.commandLineRequirement).
+echo "→ command line tool"
+sign --identifier com.swiftlydetecting.agent.cli "$CLI"
+
 echo "→ app"
 sign \
     --identifier com.swiftlydetecting.agent \
@@ -65,4 +71,7 @@ echo "→ verify"
 "$CODESIGN" --verify --deep --strict --verbose=1 "$APP"
 "$CODESIGN" --display --entitlements - "$SYSEXT" 2>&1 | "$GREP" -q endpoint-security.client \
     || { echo "security extension lost its ES entitlement" >&2; exit 70; }
+# grep reads every line (no -q), so codesign never writes into a closed pipe under pipefail.
+[[ "$("$CODESIGN" --display --verbose=1 "$CLI" 2>&1 | "$GREP" "^Identifier=")" == \
+    "Identifier=com.swiftlydetecting.agent.cli" ]] || { echo "macmonitor lost its signing identifier" >&2; exit 70; }
 echo "✅ ad-hoc signed: $APP"

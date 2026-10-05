@@ -12,14 +12,20 @@ import SutroESFramework
 import CoreData
 
 
+/// The one saved mute set, shared by Mac Monitor's capture and every `macmonitor` stream.
+let savedMutes = SavedMuteSet()
+
 /// Lives for the life of the process: `NSXPCListener` only holds its delegate weakly.
-let sensorService: SensorService = SensorService()
+let sensorListener = SensorListener(app: SensorService(savedMutes: savedMutes),
+                                    commandLine: StreamService(savedMutes: savedMutes))
 
 autoreleasepool {
     os_log("🏎 Hello from the Mac Monitor Security Extension!")
     
+    /// Before any request: the first run creates the saved set from Mac Monitor's default set.
+    savedMutes.load()
     // Let's get this show on the road!
-    sensorService.activate()
+    sensorListener.activate()
 }
 
 dispatchMain()
