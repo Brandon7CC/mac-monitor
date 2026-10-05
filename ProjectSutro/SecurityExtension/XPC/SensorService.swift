@@ -210,7 +210,7 @@ extension SensorService: SensorProtocol {
         let caller = NSXPCConnection.current()
         queue.async { [self] in
             /// Any Mac Monitor may install while nobody owns the stream (e.g. one launched with
-            /// `--deactive-security-extension`). While someone does, only they may.
+            /// `--deactivate-security-extension`). While someone does, only they may.
             guard sink == nil || owns(caller) else { return reply(false) }
             updates.install(reply: reply)
         }

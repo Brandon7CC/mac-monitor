@@ -14,7 +14,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let userDefaults = UserDefaults.standard
         let defaultValues = [
             "lifecycleWarnBeforeQuit" : true,
-            "lifecycleWarnBeforeClear" : true
+            "lifecycleWarnBeforeClear" : true,
+            /// Open a new main window at launch rather than restoring the last session's windows: their events were
+            /// cleared at quit, and a main window saved by an older version restores to no window at all.
+            "ApplePersistenceIgnoreState" : true
         ]
         userDefaults.register(defaults: defaultValues)
     }

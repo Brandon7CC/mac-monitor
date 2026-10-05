@@ -31,7 +31,7 @@ struct UpdateAvailableSheet: View {
     }
 
     var updateTagURL: String {
-        "https://github.com/redcanaryco/mac-monitor/releases/tag/\(updateDetails.version)"
+        "https://github.com/Brandon7CC/mac-monitor/releases/tag/\(updateDetails.version)"
     }
 
     var body: some View {

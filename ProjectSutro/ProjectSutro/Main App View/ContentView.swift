@@ -176,6 +176,8 @@ struct EventView: View {
         }
         .onAppear { eventQueries.activate(spec: filterSpec) }
         .onChange(of: filterSpec) { spec in eventQueries.update(spec: spec) }
+        /// The selected events are about to be deleted, so "Export telemetry" > "Selected events" mustn't offer them.
+        .onReceive(NotificationCenter.default.publisher(for: CoreDataController.eventsWillClear)) { _ in eventSelection = [] }
         .toolbar {
             ToolbarItemGroup(placement: .principal) {
                 if #unavailable(macOS 14) {
@@ -269,7 +271,7 @@ struct EventView: View {
         }
         .searchable(text: $filterText, prompt: "Filter by context")
         .onAppear {
-            if !CommandLine.arguments.contains("--deactive-security-extension") {
+            if !CommandLine.arguments.contains("--deactivate-security-extension") {
                 systemExtensionManager.activateSystemExtension()
                 
                 switch(systemExtensionManager.connectionResult) {
@@ -303,9 +305,6 @@ struct EventView: View {
                     break
                 }
             }
-            
-            // We're not recording events at app launch
-            recordingEvents = false
         }
         .alert("The Security Extension does not have full disk access!", isPresented: $tccAlert) {
             Button("Open System Settings") {

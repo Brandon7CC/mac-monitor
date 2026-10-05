@@ -38,7 +38,7 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         /// of posts costs at most one handshake per kind per second.
         guard let self, self.pendingSignals.insert(signal).inserted else { return }
         /// Give launchd / sysextd a moment to settle, then decide whether to redo the `start` handshake:
-        /// - Never if we haven't handshaked before: an app launched with `--deactive-security-extension` (or one that only
+        /// - Never if we haven't handshaked before: an app launched with `--deactivate-security-extension` (or one that only
         ///   checked for updates) must not start monitoring on its own.
         /// - `.restarted`: only the previous owner reclaims the stream, so a refused instance can't win the race.
         /// - `.released`: only an instance that was refused (`.tooManyClients`) competes for the free stream.

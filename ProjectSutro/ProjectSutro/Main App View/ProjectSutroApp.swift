@@ -31,7 +31,7 @@ struct ProjectSutroApp: App {
     /// Load user preferences from ``UserDefaults``
     @State var userPrefs: UserPrefs = UserPrefs()
     
-    /// Is a system trace occuring?
+    /// Is a system trace occuring? Not at launch; shared by every main window, so a new window doesn't reset it.
     @State private var recordingEvents: Bool = false
     /// Should the "System Security Unified" table be shown?
     @State var unifiedViewSelected: Bool = true

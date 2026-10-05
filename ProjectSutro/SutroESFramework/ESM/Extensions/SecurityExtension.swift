@@ -40,10 +40,28 @@ extension EndpointSecurityManager {
     
     
     // MARK: - Sensor Context
-    ///  Update the System Extension (Security Extension context)
+    /// Replace the running Security Extension only with a different version or build of it.
+    ///
+    /// Every launch of Mac Monitor asks to activate the extension. Replacing an identical extension restarts it, which
+    /// ends the event stream of any other Mac Monitor that's recording. The request is cancelled instead, and
+    /// ``request(_:didFailWithError:)`` treats that cancellation as "already installed".
+    ///
+    /// - Parameters:
+    ///   - request: The activation request.
+    ///   - existing: The extension that's installed and running.
+    ///   - ext: The extension in this copy of Mac Monitor.
+    /// - Returns: `.replace` for another version or build, otherwise `.cancel`.
     public func request(_ request: OSSystemExtensionRequest, actionForReplacingExtension existing: OSSystemExtensionProperties, withExtension ext: OSSystemExtensionProperties) -> OSSystemExtensionRequest.ReplacementAction {
-        os_log("🔄 Updating the Mac Monitor security extension!")
         self.seIsInstalled = true
+        let sameBuild = existing.bundleVersion == ext.bundleVersion
+            && existing.bundleShortVersion == ext.bundleShortVersion
+        guard !sameBuild else {
+            os_log("✅ The Mac Monitor Security Extension %{public}@ (%{public}@) is already running",
+                   ext.bundleShortVersion, ext.bundleVersion)
+            return .cancel
+        }
+        os_log("🔄 Updating the Mac Monitor Security Extension from %{public}@ (%{public}@) to %{public}@ (%{public}@)",
+               existing.bundleShortVersion, existing.bundleVersion, ext.bundleShortVersion, ext.bundleVersion)
         return .replace
     }
     
@@ -63,6 +81,12 @@ extension EndpointSecurityManager {
     /// This is likely because the app is not in `/Applications`.
     ///
     public func request(_: OSSystemExtensionRequest, didFailWithError error: Error) {
+        /// The same extension is already running: the replacement was cancelled on purpose.
+        if (error as? OSSystemExtensionError)?.code == .requestCanceled {
+            self.seIsInstalled = true
+            kickoffXPCCommunication()
+            return
+        }
         os_log(OSLogType.error, "☠️ Please ensure the app is in `/Applications/`!")
         self.seIsInstalled = false
     }
