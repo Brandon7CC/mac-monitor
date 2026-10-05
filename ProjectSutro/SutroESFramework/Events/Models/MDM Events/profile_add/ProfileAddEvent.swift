@@ -14,7 +14,7 @@ import Foundation
 ///
 //@available(macOS, introduced: 14.0)
 public struct ProfileAddEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var instigator: Process?
     public var is_update: Bool

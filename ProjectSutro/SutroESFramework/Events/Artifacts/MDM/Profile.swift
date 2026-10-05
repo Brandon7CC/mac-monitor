@@ -10,7 +10,7 @@ import Foundation
 /// Models a ``es_profile_t``
 /// Ensure Profile conforms to Codable and Equatable
 public struct Profile: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     public var identifier: String
     public var uuid: String

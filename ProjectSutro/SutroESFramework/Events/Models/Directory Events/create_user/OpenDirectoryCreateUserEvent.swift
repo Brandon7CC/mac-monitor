@@ -15,7 +15,7 @@ import Foundation
 /// Examples of Open Directory implementations include: Active Directory (Windows) and OpenLDAP (an open-source directory service)
 /// https://developer.apple.com/documentation/endpointsecurity/3228936-es_events_t/4161233-od_create_user
 public struct OpenDirectoryCreateUserEvent: Identifiable, Codable, Hashable, OpenDirectoryEvent {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     /// The process that instigated the operation (the XPC caller), or `nil` when Endpoint Security leaves it out.
     public var instigator: Process?

@@ -10,7 +10,7 @@ import Foundation
 
 // Ensure Stat conforms to Codable and Equatable
 public struct Stat: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     // [XSI] File serial number
     public var st_ino: Int64

@@ -9,7 +9,7 @@ import Foundation
 
 /// Models an `es_thread_t` for a ``Message``
 public struct Thread: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     public var thread_id: Int
     

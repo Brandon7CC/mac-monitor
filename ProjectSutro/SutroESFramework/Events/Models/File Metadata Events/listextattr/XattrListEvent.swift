@@ -11,7 +11,7 @@ import Foundation
 // List extended attributes of a file
 // https://developer.apple.com/documentation/endpointsecurity/es_event_listextattr_t
 public struct XattrListEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var target: File
     

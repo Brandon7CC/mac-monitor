@@ -15,7 +15,7 @@ func charPointerToString(_ pointer: UnsafePointer<Int8>) -> String {
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_mount_t
 public struct MountEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var statfs: StatFS
     public var disposition: Int16

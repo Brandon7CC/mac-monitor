@@ -10,7 +10,7 @@ import Foundation
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_lw_session_unlock_t
 public struct LWUnlockEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var username: String
     public var graphical_session_id: Int32

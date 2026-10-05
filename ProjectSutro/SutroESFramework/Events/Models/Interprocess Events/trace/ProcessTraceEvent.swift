@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - Process Trace Event https://developer.apple.com/documentation/endpointsecurity/es_event_trace_t
 public struct ProcessTraceEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     public var target: Process
     
     public func hash(into hasher: inout Hasher) {

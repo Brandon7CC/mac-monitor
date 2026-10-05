@@ -152,9 +152,39 @@ extension AuditToken {
     /// This token with its random `id` zeroed.
     var rowKey: AuditToken { var token = self; token.id = zeroID; return token }
     
-    /// The token as ``ESAuditToken/toString()`` formats it (also what `ESProcess` stores as `*_audit_token_string`).
+    /// The token as ``ESAuditToken/toString()`` formats it (also what `ESProcess` stores as `*_audit_token_string`):
+    /// `pid:1, euid:0, ruid:0, rgid:0, egid:0, asid:100000, auid:4294967295, pidversion:2`.
+    ///
+    /// Written digit by digit into one string rather than interpolated (~0.3 µs, three times for every process an
+    /// event models).
+    ///
+    /// - Returns: The token's fields, labeled.
     func toString() -> String {
-        "pid:\(pid), euid:\(euid), ruid:\(ruid), rgid:\(rgid), egid:\(egid), asid:\(asid), auid:\(auid), pidversion:\(pidversion)"
+        String(unsafeUninitializedCapacity: 240) { buffer in
+            var count = 0
+            /// Write a label, then a number's decimal digits.
+            func put(_ label: StaticString, _ value: Int64) {
+                label.withUTF8Buffer { for byte in $0 { buffer[count] = byte; count += 1 } }
+                if value < 0 { buffer[count] = UInt8(ascii: "-"); count += 1 }
+                var magnitude = value.magnitude
+                let first = count
+                repeat {
+                    buffer[count] = UInt8(ascii: "0") + UInt8(magnitude % 10)
+                    magnitude /= 10
+                    count += 1
+                } while magnitude != 0
+                buffer[first..<count].reverse()
+            }
+            put("pid:", Int64(pid))
+            put(", euid:", euid)
+            put(", ruid:", ruid)
+            put(", rgid:", rgid)
+            put(", egid:", egid)
+            put(", asid:", Int64(asid))
+            put(", auid:", auid)
+            put(", pidversion:", Int64(pidversion))
+            return count
+        }
     }
 }
 

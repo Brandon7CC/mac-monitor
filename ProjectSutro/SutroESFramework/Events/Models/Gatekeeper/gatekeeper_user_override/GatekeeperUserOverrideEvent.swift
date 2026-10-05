@@ -12,7 +12,7 @@ import EndpointSecurity
 // MARK: - Gatekeeper User Override event model: https://developer.apple.com/documentation/endpointsecurity/es_event_gatekeeper_user_override_t
 // Available beginning in macOS 15.0
 public struct GatekeeperUserOverrideEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     /// `es_gatekeeper_user_override_file_type_t`
     public var file_type: Int32

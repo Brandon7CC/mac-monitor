@@ -8,59 +8,9 @@
 import Foundation
 import OSLog
 
-/// Defines constants and  functions for working with path muting at the Endpoint Security level
-///
-/// Principle is ``applyDefaultMuteSet(client:)`` which takes an ES client and applies the default
-/// mute set.
-public class MutingEngine {
-    
-    /// Applies the default mute set to an Endpoint Security client.
-    public static func applyDefaultMuteSet(client: OpaquePointer?) {
-        _processMuteSet(
-            MuteSet.default,
-            client: client,
-            eventAction: es_mute_path_events,
-            globalAction: es_mute_path
-        )
-    }
-    
-    /// Unmutes all paths and events defined in the default mute set.
-    public static func unmuteDefaultMuteSet(client: OpaquePointer?) {
-        _processMuteSet(
-            MuteSet.default,
-            client: client,
-            eventAction: es_unmute_path_events,
-            globalAction: es_unmute_path
-        )
-    }
-    
-    private static func _processMuteSet(
-        _ muteSet: MuteSet,
-        client: OpaquePointer?,
-        eventAction: (OpaquePointer, UnsafePointer<CChar>, es_mute_path_type_t, UnsafePointer<es_event_type_t>, Int) -> es_return_t,
-        globalAction: (OpaquePointer, UnsafePointer<CChar>, es_mute_path_type_t) -> es_return_t
-    ) {
-        guard let client else { return }
-        // Event specific
-        for rule in muteSet.eventSpecificRules {
-            for path in rule.paths {
-                _ = eventAction(client, path, rule.muteType, [rule.eventType], 1)
-            }
-        }
-        
-        // Global
-        for rule in muteSet.globalRules {
-            for path in rule.paths {
-                _ = globalAction(client, path, rule.pathType)
-            }
-        }
-    }
-}
-
-
 
 // MARK: - Path muting XPC operations
-/// Extension of the ESM which enables path muting at the ES level.
+/// Extension of the ESM which asks the Security Extension to mute and unmute paths (agent context).
 ///
 /// **Functionality Covers:**
 ///   - Getting globally muted paths
@@ -116,68 +66,5 @@ extension EndpointSecurityManager {
     // MARK: Step #2 in reseting to the default mute set
     public func resetMuteSetToDefault() {
         sensor.call { $0.resetMutes(reply: $1) }
-    }
-    
-    
-    
-    // MARK: - Sensor Context
-    
-    /// Every path currently muted on the ES client.
-    ///
-    /// - Returns: JSON serializations of ``ESMutedPath``. Empty when there is no ES client.
-    public func seGetGlobalMutedPaths() -> Set<String> {
-        guard let esClient = self.esClient else {
-            os_log("There is no client to fetch the muted paths from!")
-            return []
-        }
-        
-        // Submit the fetch request to endpoint security
-        guard let fetchedPaths: UnsafeMutablePointer<es_muted_paths_t> = fetch_muted_paths(esClient) else {
-            os_log("The paths we fetched from ES are nil!")
-            return []
-        }
-        defer { release_es_memory(fetchedPaths) }
-        
-        return Set((0..<fetchedPaths.pointee.count).map { index in
-            pathToJSON(value: ESMutedPath(fromRawESPath: fetchedPaths.pointee.paths[index]))
-        })
-    }
-    
-    // MARK: Step #3 in (un)muting paths
-    /// Mute, or unmute, a path on the ES client.
-    ///
-    /// - Parameters:
-    ///   - path: The path to mute or unmute.
-    ///   - type: How `path` is matched.
-    ///   - events: `ES_EVENT_TYPE_*` names to scope the request to. Empty means all events.
-    ///   - muted: `true` to mute, `false` to unmute.
-    /// - Returns: `true` if Endpoint Security accepted the request.
-    @discardableResult
-    public func setPathMute(_ path: String, type: es_mute_path_type_t, events: [String], muted: Bool) -> Bool {
-        guard let esClient = self.esClient else {
-            os_log("There is no endpoint security client to submit this (un)muting request to!")
-            return false
-        }
-        guard !path.isEmpty else { return false }
-        
-        // Convert the listing of Endpoint Security event type strings to es_event_type_t
-        let eventTypes: [es_event_type_t] = events.map { eventStringToType(from: $0) }
-        let request: es_return_t
-        switch (muted, eventTypes.isEmpty) {
-        case (true, true):
-            request = es_mute_path(esClient, path, type)
-        case (true, false):
-            request = es_mute_path_events(esClient, path, type, eventTypes, eventTypes.count)
-        case (false, true):
-            request = es_unmute_path(esClient, path, type)
-        case (false, false):
-            request = es_unmute_path_events(esClient, path, type, eventTypes, eventTypes.count)
-        }
-        
-        guard request == ES_RETURN_SUCCESS else {
-            os_log("Error \(muted ? "muting" : "unmuting") path: \(getMuteCaseString(muteType: type)): \(path)")
-            return false
-        }
-        return true
     }
 }

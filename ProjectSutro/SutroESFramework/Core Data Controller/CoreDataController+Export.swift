@@ -18,8 +18,9 @@ extension CoreDataController {
     
     /// Export all system events to a file
     ///
-    /// We can export all system events from the event store to either JSON or JSONL format. The events are streamed to
-    /// the file in the background (see ``TelemetryExporter``), so recording carries on meanwhile.
+    /// We can export all system events from the event store to either JSON or JSONL format: a live recording's sorted
+    /// by `mach_time`, an opened trace's in its file order. The events are streamed to the file in the background (see
+    /// ``TelemetryExporter``), so recording carries on meanwhile.
     ///
     /// - Parameters:
     ///   - jsonl: Should we export the events line-by-line (one JSON object per line)?
@@ -27,7 +28,10 @@ extension CoreDataController {
     public func exportFullTrace(jsonl: Bool = false) {
         // UI work must be on the main thread.
         guard let telemetryFile = showSavePanel(jsonl: jsonl) else { return }
-        export(to: telemetryFile, jsonl: jsonl, writeIfEmpty: true) { exporter, batch in try exporter.allEvents(through: batch) }
+        let source = self.source
+        export(to: telemetryFile, jsonl: jsonl, writeIfEmpty: true) { exporter, batch in
+            try exporter.allEvents(through: batch, from: source)
+        }
     }
     
     /// Export specified system events to a file, sorted by `mach_time`.

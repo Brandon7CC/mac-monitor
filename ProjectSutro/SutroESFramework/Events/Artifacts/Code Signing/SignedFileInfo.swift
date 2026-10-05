@@ -8,7 +8,7 @@
 
 // Ensure SignedFileInfo conforms to Codable and Equatable
 public struct SignedFileInfo: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     public var cdhash: String
     /// Optional ("if available in the signing information"): `nil`, eslogger's `null`, when it isn't.

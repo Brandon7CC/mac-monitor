@@ -10,7 +10,7 @@ import Foundation
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_create_t
 public struct FileCreateEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var destination_type: Int
     public var destination_type_string = ""

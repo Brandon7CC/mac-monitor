@@ -10,7 +10,7 @@ import Foundation
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_open_t
 public struct FileOpenEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var file: File
     public var fflag: Int32

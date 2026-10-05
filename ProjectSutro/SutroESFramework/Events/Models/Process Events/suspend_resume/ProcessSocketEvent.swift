@@ -21,7 +21,7 @@ import Foundation
 /// We call [es_event_proc_suspend_resume_t](https://developer.apple.com/documentation/endpointsecurity/es_event_proc_suspend_resume_t)
 ///  a `ProcessSocketEvent`
 public struct ProcessSocketEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var target: Process?
     public var type: Int32

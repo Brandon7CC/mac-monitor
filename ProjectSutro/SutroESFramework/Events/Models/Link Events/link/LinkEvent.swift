@@ -12,7 +12,7 @@ import EndpointSecurity
 /// A type for an event that indicates the creation of a hard link.
 ///
 public struct LinkEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var source, target_dir: File
     public var target_filename: String

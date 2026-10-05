@@ -7,7 +7,7 @@
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_uipc_connect_t
 public struct UIPCConnectEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var file: File
     public var domain, type, `protocol`: Int32

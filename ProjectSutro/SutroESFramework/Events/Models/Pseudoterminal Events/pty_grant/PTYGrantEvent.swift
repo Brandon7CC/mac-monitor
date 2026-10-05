@@ -9,7 +9,7 @@ import Foundation
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_pty_grant_t
 public struct PTYGrantEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     /// `dev_t`
     public var dev: Int64

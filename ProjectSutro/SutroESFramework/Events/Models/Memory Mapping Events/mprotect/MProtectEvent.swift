@@ -28,7 +28,7 @@ private func decodeProtectionFlags(_ protection: Int32) -> [String] {
 /// A type for an event that indicates a change to protection of memory-mapped pages.
 /// https://developer.apple.com/documentation/endpointsecurity/es_event_mprotect_t
 public struct MProtectEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var protection: Int32
     public var address, size: Int64

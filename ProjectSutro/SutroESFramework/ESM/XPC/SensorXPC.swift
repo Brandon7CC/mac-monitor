@@ -98,29 +98,30 @@ public enum SensorXPC {
 /// string names (see `getMuteCaseString(muteType:)` and `eventTypeToString(from:)`).
 @objc public protocol SensorProtocol {
     // MARK: Lifecycle
-    /// Claim the event stream for the calling connection and ensure an Endpoint Security client exists.
+    /// Claim the event stream for the calling connection and ensure capture is running (one Endpoint Security client
+    /// per event class).
     ///
     /// The first connection to call this owns the event stream until it goes away. Any other connection is refused with
     /// `.tooManyClients`, and the calls below that change monitoring reply with `false` to it.
     ///
-    /// Idempotent: the owner calling it again (e.g. after the Security Extension restarts) re-handshakes and only creates
-    /// a new ES client when none exists.
+    /// Idempotent: the owner calling it again (e.g. after the Security Extension restarts) re-handshakes and only
+    /// starts capture when it isn't running.
     ///
     /// - Parameters:
     ///   - recording: Should events be serialized and streamed to the caller right away?
-    ///   - reply: The result of creating (or reusing) the Endpoint Security client, or `.tooManyClients` if another
-    ///     connection owns the event stream.
+    ///   - reply: The result of creating (or reusing) the Endpoint Security clients, or `.tooManyClients` if another
+    ///     connection owns the event stream or the system has too many clients.
     func start(recording: Bool, reply: @escaping (NewClientResult) -> Void)
     
     /// Start or stop serializing events. While stopped the Security Extension does no per-event work.
     ///
     /// - Parameters:
     ///   - enabled: `true` to stream events to the agent.
-    ///   - reply: `true` if the Endpoint Security client exists, or `false` if the caller doesn't own the event stream.
+    ///   - reply: `true` if capture is running, or `false` if the caller doesn't own the event stream.
     func setRecording(_ enabled: Bool, reply: @escaping (Bool) -> Void)
     
     // MARK: Event subscriptions
-    /// The event types the Endpoint Security client is subscribed to.
+    /// The event types the Endpoint Security clients are subscribed to.
     ///
     /// - Parameter reply: `ES_EVENT_TYPE_*` names.
     func eventSubscriptions(reply: @escaping ([String]) -> Void)
@@ -134,12 +135,12 @@ public enum SensorXPC {
     func setSubscription(_ event: String, enabled: Bool, reply: @escaping (Bool) -> Void)
     
     // MARK: Path muting
-    /// Every path currently muted on the Endpoint Security client.
+    /// Every path currently muted on the Endpoint Security clients (each client has the same mutes).
     ///
     /// - Parameter reply: JSON serializations of ``ESMutedPath``.
     func mutedPaths(reply: @escaping ([String]) -> Void)
     
-    /// The paths Apple mutes by default, captured when the ES client was first created.
+    /// The paths Apple mutes by default, captured when the Security Extension first started capture.
     ///
     /// - Parameter reply: JSON serializations of ``ESMutedPath``.
     func appleMuteSet(reply: @escaping ([String]) -> Void)
@@ -156,8 +157,7 @@ public enum SensorXPC {
     
     /// Re-apply Mac Monitor's default mute set.
     ///
-    /// - Parameter reply: `true` if the Endpoint Security client exists, or `false` if the caller doesn't own the event
-    ///   stream.
+    /// - Parameter reply: `true` if capture is running, or `false` if the caller doesn't own the event stream.
     func resetMutes(reply: @escaping (Bool) -> Void)
     
     // MARK: Updates

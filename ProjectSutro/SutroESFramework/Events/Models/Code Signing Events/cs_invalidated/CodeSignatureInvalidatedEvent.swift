@@ -11,7 +11,7 @@ import EndpointSecurity
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_cs_invalidated_t
 public struct CodeSignatureInvalidatedEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)

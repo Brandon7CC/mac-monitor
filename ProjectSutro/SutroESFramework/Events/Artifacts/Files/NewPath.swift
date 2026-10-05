@@ -10,7 +10,7 @@ import Foundation
 
 // Ensure File conforms to Codable and Equatable
 public struct NewPath: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     public var dir: File
     public var filename: String

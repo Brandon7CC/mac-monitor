@@ -10,7 +10,7 @@ import Foundation
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_setextattr_t
 public struct XattrSetEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var target: File
     public var extattr: String

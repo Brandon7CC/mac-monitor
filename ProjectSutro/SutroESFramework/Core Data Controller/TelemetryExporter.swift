@@ -94,16 +94,25 @@ final class TelemetryExporter {
     }
     
     // MARK: Choosing events
-    /// Every event saved by `batch`, in the order they reached the store (``ESMessage/insert_order``): the order they
-    /// were recorded in, or a trace's file order.
+    /// Every event saved by `batch`, in file order.
     ///
-    /// - Parameter batch: The last ``ESMessage/insert_batch`` to include.
+    /// A trace's events keep the order they were read in (``ESMessage/insert_order``): the trace's file order. A live
+    /// recording's are sorted by `mach_time`, ties in the order they reached the store, as a selection is
+    /// (``events(withIDs:)``). The Security Extension captures with one Endpoint Security client per event class, whose
+    /// events reach the store in the order they were handled: a class that falls behind (a flood of file events) can
+    /// arrive hundreds of milliseconds after the others. `mach_time` is the clock every client's messages share.
+    ///
+    /// - Parameters:
+    ///   - batch: The last ``ESMessage/insert_batch`` to include.
+    ///   - source: Where the store's events come from.
     /// - Returns: The events' object IDs.
-    func allEvents(through batch: Int64) throws -> [NSManagedObjectID] {
+    func allEvents(through batch: Int64, from source: CoreDataController.EventSource) throws -> [NSManagedObjectID] {
         let request = NSFetchRequest<NSManagedObjectID>(entityName: "ESMessage")
         request.resultType = .managedObjectIDResultType
         request.predicate = NSPredicate(format: "insert_batch <= %lld", batch)
-        request.sortDescriptors = [NSSortDescriptor(key: "insert_order", ascending: true)]
+        let arrival = NSSortDescriptor(key: "insert_order", ascending: true)
+        request.sortDescriptors = source == .live ? [NSSortDescriptor(key: "mach_time", ascending: true), arrival]
+            : [arrival]
         return try context.fetch(request)
     }
     

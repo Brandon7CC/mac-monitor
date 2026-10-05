@@ -35,4 +35,16 @@ final class EventSubscriptionsTests: XCTestCase {
             XCTAssertNotEqual(eventStringToImage(from: name), Self.unknownEventIcon, name)
         }
     }
+    
+    /// Every event offered is a NOTIFY event Mac Monitor names, offered once: a capture session subscribes only to
+    /// these.
+    func testSupportedEventsAreNotifyOnly() {
+        for event in supportedEvents {
+            let name = eventTypeToString(from: event)
+            XCTAssertTrue(name.hasPrefix("ES_EVENT_TYPE_NOTIFY_"), name)
+            XCTAssertNotEqual(event, ES_EVENT_TYPE_LAST, name)
+        }
+        XCTAssertEqual(Set(supportedEvents.map(\.rawValue)).count, supportedEvents.count)
+        XCTAssertEqual(Set(defaultEventSubscriptions.map(\.rawValue)).count, defaultEventSubscriptions.count)
+    }
 }

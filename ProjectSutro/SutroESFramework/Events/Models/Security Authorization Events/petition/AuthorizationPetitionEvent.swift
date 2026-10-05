@@ -22,7 +22,7 @@ import Foundation
 
 
 public struct AuthorizationPetitionEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var instigator, petitioner: Process?
     public var flags: Int64

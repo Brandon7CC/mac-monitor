@@ -12,7 +12,7 @@ import EndpointSecurity
 
 // MARK: - Get Task Event https://developer.apple.com/documentation/endpointsecurity/es_event_get_task_t
 public struct GetTaskEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     public var target: Process
     
     /* field available only if message version >= 5 */

@@ -109,7 +109,7 @@ func signalName(from signalNumber: Int32) -> String {
 
 // MARK:  Process Signal event https://developer.apple.com/documentation/endpointsecurity/es_event_signal_t
 public struct ProcessSignalEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     public var sig: Int
     public var signal_name = ""
     

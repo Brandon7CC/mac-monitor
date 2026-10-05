@@ -9,7 +9,7 @@ import Foundation
 
 /// Models an `es_auth_result_t`
 public struct AuthResult: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     public var auth: Int?
     public var auth_human: String?

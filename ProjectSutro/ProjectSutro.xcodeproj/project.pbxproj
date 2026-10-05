@@ -7,6 +7,52 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CB9800000000000000000022 /* AuditTokenStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000021 /* AuditTokenStringTests.swift */; };
+		CB980000000000000000000C /* FileQuarantinedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB980000000000000000000B /* FileQuarantinedTests.swift */; };
+		CB9800000000000000000020 /* RandomUUIDBufferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB980000000000000000001F /* RandomUUIDBufferTests.swift */; };
+		CB980000000000000000001E /* RandomUUIDBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB980000000000000000001D /* RandomUUIDBuffer.swift */; };
+		CB980000000000000000001C /* QuarantineEnabledTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB980000000000000000001B /* QuarantineEnabledTests.swift */; };
+		CB980000000000000000001A /* StreamingJSONEncoderMessageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000019 /* StreamingJSONEncoderMessageTests.swift */; };
+		CB9800000000000000000018 /* StreamingJSONEncoderStructureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000017 /* StreamingJSONEncoderStructureTests.swift */; };
+		CB9800000000000000000016 /* StreamingJSONEncoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000015 /* StreamingJSONEncoderTests.swift */; };
+		CB9800000000000000000014 /* JSONCanonicalForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000013 /* JSONCanonicalForm.swift */; };
+		CB9800000000000000000012 /* StreamingJSONEncoder+Containers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000011 /* StreamingJSONEncoder+Containers.swift */; };
+		CC9900000000000000000004 /* StreamingJSONEncoder+ObjectWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000003 /* StreamingJSONEncoder+ObjectWriter.swift */; };
+		CC9900000000000000000006 /* StreamingJSONEncoder+ArrayWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000005 /* StreamingJSONEncoder+ArrayWriter.swift */; };
+		CC9900000000000000000008 /* StreamingJSONEncoder+ScalarWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000007 /* StreamingJSONEncoder+ScalarWriter.swift */; };
+		CB9800000000000000000010 /* StreamingJSONEncoder+Scalars.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB980000000000000000000F /* StreamingJSONEncoder+Scalars.swift */; };
+		CB980000000000000000000E /* StreamingJSONEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB980000000000000000000D /* StreamingJSONEncoder.swift */; };
+		CB980000000000000000000A /* ExecCommandLineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000009 /* ExecCommandLineTests.swift */; };
+		CB9800000000000000000008 /* CodeSigningCertificateCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000007 /* CodeSigningCertificateCacheTests.swift */; };
+		CB9800000000000000000006 /* CodeSigningCertificateCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000005 /* CodeSigningCertificateCache.swift */; };
+		CC990000000000000000000C /* ProcessHelpers+CodeSigning.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC990000000000000000000B /* ProcessHelpers+CodeSigning.swift */; };
+		CB9800000000000000000004 /* ESLoggerUTCTimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000003 /* ESLoggerUTCTimeTests.swift */; };
+		CB9800000000000000000002 /* ESLoggerHexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000001 /* ESLoggerHexTests.swift */; };
+		CA9700000000000000000033 /* SequenceGapCounterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000032 /* SequenceGapCounterTests.swift */; };
+		CA9700000000000000000031 /* CaptureDropAccountingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000030 /* CaptureDropAccountingTests.swift */; };
+		CA970000000000000000002F /* SequenceGapCounter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000002E /* SequenceGapCounter.swift */; };
+		CA970000000000000000002D /* CaptureStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000002C /* CaptureStatistics.swift */; };
+		CA970000000000000000002B /* CaptureSession+Statistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000002A /* CaptureSession+Statistics.swift */; };
+		CA9700000000000000000029 /* EventSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000028 /* EventSink.swift */; };
+		CA9700000000000000000027 /* FakeEndpointSecurityClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000026 /* FakeEndpointSecurityClient.swift */; };
+		CA9700000000000000000025 /* XCTestCase+Capture.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000024 /* XCTestCase+Capture.swift */; };
+		CA9700000000000000000023 /* CaptureSessionStartTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000022 /* CaptureSessionStartTests.swift */; };
+		CA9700000000000000000021 /* CaptureSessionControlTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000020 /* CaptureSessionControlTests.swift */; };
+		CA970000000000000000001F /* CaptureSessionStopTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000001E /* CaptureSessionStopTests.swift */; };
+		CA970000000000000000001D /* MessageSerializerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000001C /* MessageSerializerTests.swift */; };
+		CA970000000000000000001B /* CaptureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000001A /* CaptureConfiguration.swift */; };
+		CA9700000000000000000019 /* MessageSerializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000018 /* MessageSerializer.swift */; };
+		CA9700000000000000000017 /* CaptureLane.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000016 /* CaptureLane.swift */; };
+		CA9700000000000000000015 /* CaptureSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000014 /* CaptureSession.swift */; };
+		CA9700000000000000000013 /* EndpointSecurityClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000012 /* EndpointSecurityClientTests.swift */; };
+		CA9700000000000000000011 /* EndpointSecurityClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000010 /* EndpointSecurityClient.swift */; };
+		CA970000000000000000000F /* LiveEndpointSecurityClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000000E /* LiveEndpointSecurityClient.swift */; };
+		CA970000000000000000000D /* PathMuteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000000C /* PathMuteTests.swift */; };
+		CA970000000000000000000B /* PathMute.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000000A /* PathMute.swift */; };
+		CA9700000000000000000009 /* EventClassTableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000008 /* EventClassTableTests.swift */; };
+		CA9700000000000000000007 /* EventClassTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000006 /* EventClassTable.swift */; };
+		CA9700000000000000000005 /* AppleEventCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000004 /* AppleEventCategory.swift */; };
+		CA9700000000000000000003 /* EventClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000002 /* EventClass.swift */; };
 		7E5715000000000000000024 /* RawMessageFixture+RemoteThreadCreate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000023 /* RawMessageFixture+RemoteThreadCreate.swift */; };
 		7E5715000000000000000022 /* RemoteThreadCreateExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000021 /* RemoteThreadCreateExportTests.swift */; };
 		7E5715000000000000000020 /* RemoteThreadCreateDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000001F /* RemoteThreadCreateDecodingTests.swift */; };
@@ -33,6 +79,7 @@
 		7E5715000000000000000014 /* ExecXPCServiceNameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000013 /* ExecXPCServiceNameTests.swift */; };
 		7E5715000000000000000026 /* ScriptInterpreterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000025 /* ScriptInterpreterTests.swift */; };
 		7E5715000000000000000012 /* ExportValueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000011 /* ExportValueTests.swift */; };
+		CC9900000000000000000002 /* TelemetryExporterOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000001 /* TelemetryExporterOrderTests.swift */; };
 		7E5715000000000000000028 /* MessageThreadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000027 /* MessageThreadTests.swift */; };
 		7E571500000000000000002A /* FileCreateQuarantineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000029 /* FileCreateQuarantineTests.swift */; };
 		7E571500000000000000002C /* ProfileAddTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000002B /* ProfileAddTokenTests.swift */; };
@@ -258,6 +305,7 @@
 		28B865CD2A31016500F06441 /* TerminationDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B865CC2A31016500F06441 /* TerminationDelegate.swift */; };
 		28B865CF2A3107D900F06441 /* AppIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B865CE2A3107D900F06441 /* AppIconView.swift */; };
 		28B865D62A3119C700F06441 /* ProcessHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B865D52A3119C700F06441 /* ProcessHelpers.swift */; };
+		CC990000000000000000000A /* ProcessHelpers+Quarantine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000009 /* ProcessHelpers+Quarantine.swift */; };
 		28B865D82A31266C00F06441 /* OpenDirectoryCreateUserEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B865D72A31266C00F06441 /* OpenDirectoryCreateUserEvent.swift */; };
 		28B865DB2A312C7100F06441 /* ESODCreateUserEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B865D92A312C7100F06441 /* ESODCreateUserEvent+CoreDataClass.swift */; };
 		28B865DC2A312C7100F06441 /* ESODCreateUserEvent+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B865DA2A312C7100F06441 /* ESODCreateUserEvent+CoreDataProperties.swift */; };
@@ -527,6 +575,52 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		CB9800000000000000000021 /* AuditTokenStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditTokenStringTests.swift; sourceTree = "<group>"; };
+		CB980000000000000000000B /* FileQuarantinedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileQuarantinedTests.swift; sourceTree = "<group>"; };
+		CB980000000000000000001F /* RandomUUIDBufferTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomUUIDBufferTests.swift; sourceTree = "<group>"; };
+		CB980000000000000000001D /* RandomUUIDBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomUUIDBuffer.swift; sourceTree = "<group>"; };
+		CB980000000000000000001B /* QuarantineEnabledTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuarantineEnabledTests.swift; sourceTree = "<group>"; };
+		CB9800000000000000000019 /* StreamingJSONEncoderMessageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingJSONEncoderMessageTests.swift; sourceTree = "<group>"; };
+		CB9800000000000000000017 /* StreamingJSONEncoderStructureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingJSONEncoderStructureTests.swift; sourceTree = "<group>"; };
+		CB9800000000000000000015 /* StreamingJSONEncoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingJSONEncoderTests.swift; sourceTree = "<group>"; };
+		CB9800000000000000000013 /* JSONCanonicalForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONCanonicalForm.swift; sourceTree = "<group>"; };
+		CB9800000000000000000011 /* StreamingJSONEncoder+Containers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+Containers.swift"; sourceTree = "<group>"; };
+		CC9900000000000000000003 /* StreamingJSONEncoder+ObjectWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+ObjectWriter.swift"; sourceTree = "<group>"; };
+		CC9900000000000000000005 /* StreamingJSONEncoder+ArrayWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+ArrayWriter.swift"; sourceTree = "<group>"; };
+		CC9900000000000000000007 /* StreamingJSONEncoder+ScalarWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+ScalarWriter.swift"; sourceTree = "<group>"; };
+		CB980000000000000000000F /* StreamingJSONEncoder+Scalars.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+Scalars.swift"; sourceTree = "<group>"; };
+		CB980000000000000000000D /* StreamingJSONEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingJSONEncoder.swift; sourceTree = "<group>"; };
+		CB9800000000000000000009 /* ExecCommandLineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecCommandLineTests.swift; sourceTree = "<group>"; };
+		CB9800000000000000000007 /* CodeSigningCertificateCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeSigningCertificateCacheTests.swift; sourceTree = "<group>"; };
+		CB9800000000000000000005 /* CodeSigningCertificateCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeSigningCertificateCache.swift; sourceTree = "<group>"; };
+		CC990000000000000000000B /* ProcessHelpers+CodeSigning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessHelpers+CodeSigning.swift"; sourceTree = "<group>"; };
+		CB9800000000000000000003 /* ESLoggerUTCTimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESLoggerUTCTimeTests.swift; sourceTree = "<group>"; };
+		CB9800000000000000000001 /* ESLoggerHexTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESLoggerHexTests.swift; sourceTree = "<group>"; };
+		CA9700000000000000000032 /* SequenceGapCounterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SequenceGapCounterTests.swift; sourceTree = "<group>"; };
+		CA9700000000000000000030 /* CaptureDropAccountingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureDropAccountingTests.swift; sourceTree = "<group>"; };
+		CA970000000000000000002E /* SequenceGapCounter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SequenceGapCounter.swift; sourceTree = "<group>"; };
+		CA970000000000000000002C /* CaptureStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureStatistics.swift; sourceTree = "<group>"; };
+		CA970000000000000000002A /* CaptureSession+Statistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CaptureSession+Statistics.swift"; sourceTree = "<group>"; };
+		CA9700000000000000000028 /* EventSink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSink.swift; sourceTree = "<group>"; };
+		CA9700000000000000000026 /* FakeEndpointSecurityClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeEndpointSecurityClient.swift; sourceTree = "<group>"; };
+		CA9700000000000000000024 /* XCTestCase+Capture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+Capture.swift"; sourceTree = "<group>"; };
+		CA9700000000000000000022 /* CaptureSessionStartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionStartTests.swift; sourceTree = "<group>"; };
+		CA9700000000000000000020 /* CaptureSessionControlTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionControlTests.swift; sourceTree = "<group>"; };
+		CA970000000000000000001E /* CaptureSessionStopTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionStopTests.swift; sourceTree = "<group>"; };
+		CA970000000000000000001C /* MessageSerializerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageSerializerTests.swift; sourceTree = "<group>"; };
+		CA970000000000000000001A /* CaptureConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureConfiguration.swift; sourceTree = "<group>"; };
+		CA9700000000000000000018 /* MessageSerializer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageSerializer.swift; sourceTree = "<group>"; };
+		CA9700000000000000000016 /* CaptureLane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureLane.swift; sourceTree = "<group>"; };
+		CA9700000000000000000014 /* CaptureSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSession.swift; sourceTree = "<group>"; };
+		CA9700000000000000000012 /* EndpointSecurityClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointSecurityClientTests.swift; sourceTree = "<group>"; };
+		CA9700000000000000000010 /* EndpointSecurityClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointSecurityClient.swift; sourceTree = "<group>"; };
+		CA970000000000000000000E /* LiveEndpointSecurityClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveEndpointSecurityClient.swift; sourceTree = "<group>"; };
+		CA970000000000000000000C /* PathMuteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathMuteTests.swift; sourceTree = "<group>"; };
+		CA970000000000000000000A /* PathMute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathMute.swift; sourceTree = "<group>"; };
+		CA9700000000000000000008 /* EventClassTableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventClassTableTests.swift; sourceTree = "<group>"; };
+		CA9700000000000000000006 /* EventClassTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventClassTable.swift; sourceTree = "<group>"; };
+		CA9700000000000000000004 /* AppleEventCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleEventCategory.swift; sourceTree = "<group>"; };
+		CA9700000000000000000002 /* EventClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventClass.swift; sourceTree = "<group>"; };
 		7E5715000000000000000023 /* RawMessageFixture+RemoteThreadCreate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RawMessageFixture+RemoteThreadCreate.swift"; sourceTree = "<group>"; };
 		7E5715000000000000000021 /* RemoteThreadCreateExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteThreadCreateExportTests.swift; sourceTree = "<group>"; };
 		7E571500000000000000001F /* RemoteThreadCreateDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteThreadCreateDecodingTests.swift; sourceTree = "<group>"; };
@@ -553,6 +647,7 @@
 		7E5715000000000000000013 /* ExecXPCServiceNameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecXPCServiceNameTests.swift; sourceTree = "<group>"; };
 		7E5715000000000000000025 /* ScriptInterpreterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptInterpreterTests.swift; sourceTree = "<group>"; };
 		7E5715000000000000000011 /* ExportValueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportValueTests.swift; sourceTree = "<group>"; };
+		CC9900000000000000000001 /* TelemetryExporterOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryExporterOrderTests.swift; sourceTree = "<group>"; };
 		7E5715000000000000000027 /* MessageThreadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageThreadTests.swift; sourceTree = "<group>"; };
 		7E5715000000000000000029 /* FileCreateQuarantineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileCreateQuarantineTests.swift; sourceTree = "<group>"; };
 		7E571500000000000000002B /* ProfileAddTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAddTokenTests.swift; sourceTree = "<group>"; };
@@ -781,6 +876,7 @@
 		28B865CC2A31016500F06441 /* TerminationDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminationDelegate.swift; sourceTree = "<group>"; };
 		28B865CE2A3107D900F06441 /* AppIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconView.swift; sourceTree = "<group>"; };
 		28B865D52A3119C700F06441 /* ProcessHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessHelpers.swift; sourceTree = "<group>"; };
+		CC9900000000000000000009 /* ProcessHelpers+Quarantine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessHelpers+Quarantine.swift"; sourceTree = "<group>"; };
 		28B865D72A31266C00F06441 /* OpenDirectoryCreateUserEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryCreateUserEvent.swift; sourceTree = "<group>"; };
 		28B865D92A312C7100F06441 /* ESODCreateUserEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESODCreateUserEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28B865DA2A312C7100F06441 /* ESODCreateUserEvent+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESODCreateUserEvent+CoreDataProperties.swift"; sourceTree = "<group>"; };
@@ -1003,6 +1099,31 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CA9700000000000000000001 /* Capture */ = {
+			isa = PBXGroup;
+			children = (
+				CA970000000000000000002E /* SequenceGapCounter.swift */,
+				CA970000000000000000002C /* CaptureStatistics.swift */,
+				CA970000000000000000002A /* CaptureSession+Statistics.swift */,
+				CA970000000000000000001A /* CaptureConfiguration.swift */,
+				CB980000000000000000000D /* StreamingJSONEncoder.swift */,
+				CB980000000000000000000F /* StreamingJSONEncoder+Scalars.swift */,
+				CB9800000000000000000011 /* StreamingJSONEncoder+Containers.swift */,
+				CC9900000000000000000003 /* StreamingJSONEncoder+ObjectWriter.swift */,
+				CC9900000000000000000005 /* StreamingJSONEncoder+ArrayWriter.swift */,
+				CC9900000000000000000007 /* StreamingJSONEncoder+ScalarWriter.swift */,
+				CA9700000000000000000018 /* MessageSerializer.swift */,
+				CA9700000000000000000016 /* CaptureLane.swift */,
+				CA9700000000000000000014 /* CaptureSession.swift */,
+				CA9700000000000000000010 /* EndpointSecurityClient.swift */,
+				CA970000000000000000000E /* LiveEndpointSecurityClient.swift */,
+				CA9700000000000000000006 /* EventClassTable.swift */,
+				CA9700000000000000000004 /* AppleEventCategory.swift */,
+				CA9700000000000000000002 /* EventClass.swift */,
+			);
+			path = Capture;
+			sourceTree = "<group>";
+		};
 		D15C00000000000000000008 /* Updates */ = {
 			isa = PBXGroup;
 			children = (
@@ -1650,6 +1771,7 @@
 		283C4D4029E0B3B7009FF6D3 /* ESM */ = {
 			isa = PBXGroup;
 			children = (
+				CA9700000000000000000001 /* Capture */,
 				D15C00000000000000000001 /* XPC */,
 				283C4D4429E0B749009FF6D3 /* Extensions */,
 				283C4D4129E0B3E7009FF6D3 /* Utilities */,
@@ -1664,6 +1786,7 @@
 				284F855E2E7369E7001542E3 /* Path Muting */,
 				CA7D0EE52E427E770024243F /* UpdateEngine.swift */,
 				283C4D4729E0E16F009FF6D3 /* SubscriptionEngine.swift */,
+				CB980000000000000000001D /* RandomUUIDBuffer.swift */,
 				283C4D4229E0B633009FF6D3 /* Helpers.swift */,
 			);
 			path = Utilities;
@@ -1690,6 +1813,7 @@
 		284F855E2E7369E7001542E3 /* Path Muting */ = {
 			isa = PBXGroup;
 			children = (
+				CA970000000000000000000A /* PathMute.swift */,
 				284F855F2E7369F5001542E3 /* MuteSet.swift */,
 				283C4D3E29E09D89009FF6D3 /* MutingEngine.swift */,
 			);
@@ -1735,6 +1859,7 @@
 		28822E1A2A329EE100C34879 /* XPC */ = {
 			isa = PBXGroup;
 			children = (
+				CA9700000000000000000028 /* EventSink.swift */,
 				D15C00000000000000000065 /* EventSpool.swift */,
 				D15C00000000000000000006 /* SensorService.swift */,
 			);
@@ -2784,6 +2909,8 @@
 			isa = PBXGroup;
 			children = (
 				CA4CE5A32E53E70400C057EB /* SignedFileInfo.swift */,
+				CB9800000000000000000005 /* CodeSigningCertificateCache.swift */,
+				CC990000000000000000000B /* ProcessHelpers+CodeSigning.swift */,
 				28A608A32D9B633000962337 /* X509Cert.swift */,
 			);
 			path = "Code Signing";
@@ -3248,6 +3375,7 @@
 			children = (
 				28A169CF2DA4E57000CA630B /* Thread.swift */,
 				28B865D52A3119C700F06441 /* ProcessHelpers.swift */,
+				CC9900000000000000000009 /* ProcessHelpers+Quarantine.swift */,
 				28B343A92D8769D2004127E8 /* AuditToken.swift */,
 				28EF8F032D7E47D600223464 /* Process.swift */,
 			);
@@ -3370,6 +3498,26 @@
 		7E5700000000000000000002 /* SutroESFrameworkTests */ = {
 			isa = PBXGroup;
 			children = (
+				CB9800000000000000000003 /* ESLoggerUTCTimeTests.swift */,
+				CB9800000000000000000007 /* CodeSigningCertificateCacheTests.swift */,
+				CB9800000000000000000009 /* ExecCommandLineTests.swift */,
+				CB9800000000000000000015 /* StreamingJSONEncoderTests.swift */,
+				CB9800000000000000000017 /* StreamingJSONEncoderStructureTests.swift */,
+				CB9800000000000000000019 /* StreamingJSONEncoderMessageTests.swift */,
+				CB980000000000000000001B /* QuarantineEnabledTests.swift */,
+				CB980000000000000000001F /* RandomUUIDBufferTests.swift */,
+				CB980000000000000000000B /* FileQuarantinedTests.swift */,
+				CB9800000000000000000021 /* AuditTokenStringTests.swift */,
+				CB9800000000000000000001 /* ESLoggerHexTests.swift */,
+				CA9700000000000000000032 /* SequenceGapCounterTests.swift */,
+				CA9700000000000000000030 /* CaptureDropAccountingTests.swift */,
+				CA9700000000000000000022 /* CaptureSessionStartTests.swift */,
+				CA9700000000000000000020 /* CaptureSessionControlTests.swift */,
+				CA970000000000000000001E /* CaptureSessionStopTests.swift */,
+				CA970000000000000000001C /* MessageSerializerTests.swift */,
+				CA9700000000000000000012 /* EndpointSecurityClientTests.swift */,
+				CA970000000000000000000C /* PathMuteTests.swift */,
+				CA9700000000000000000008 /* EventClassTableTests.swift */,
 				7E5715000000000000000021 /* RemoteThreadCreateExportTests.swift */,
 				7E571500000000000000001F /* RemoteThreadCreateDecodingTests.swift */,
 				7E571500000000000000001D /* ThreadStateFlavorTests.swift */,
@@ -3382,6 +3530,7 @@
 				7E5715000000000000000013 /* ExecXPCServiceNameTests.swift */,
 				7E5715000000000000000025 /* ScriptInterpreterTests.swift */,
 				7E5715000000000000000011 /* ExportValueTests.swift */,
+				CC9900000000000000000001 /* TelemetryExporterOrderTests.swift */,
 				7E571500000000000000000F /* GatekeeperFileTests.swift */,
 				7E571500000000000000002F /* MountDispositionTests.swift */,
 				7E571500000000000000002D /* ValidationCategoryTests.swift */,
@@ -3404,6 +3553,9 @@
 		7E5700000000000000000003 /* TestSupport */ = {
 			isa = PBXGroup;
 			children = (
+				CB9800000000000000000013 /* JSONCanonicalForm.swift */,
+				CA9700000000000000000026 /* FakeEndpointSecurityClient.swift */,
+				CA9700000000000000000024 /* XCTestCase+Capture.swift */,
 				7E5715000000000000000023 /* RawMessageFixture+RemoteThreadCreate.swift */,
 				0D0D0D000000000000000013 /* XCTestCase+JSON.swift */,
 				0D0D0D000000000000000011 /* RawMessageFixture+ESLogger.swift */,
@@ -3606,6 +3758,25 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CA970000000000000000002F /* SequenceGapCounter.swift in Sources */,
+				CA970000000000000000002D /* CaptureStatistics.swift in Sources */,
+				CA970000000000000000002B /* CaptureSession+Statistics.swift in Sources */,
+				CA970000000000000000001B /* CaptureConfiguration.swift in Sources */,
+				CB980000000000000000000E /* StreamingJSONEncoder.swift in Sources */,
+				CB9800000000000000000010 /* StreamingJSONEncoder+Scalars.swift in Sources */,
+				CB9800000000000000000012 /* StreamingJSONEncoder+Containers.swift in Sources */,
+				CC9900000000000000000004 /* StreamingJSONEncoder+ObjectWriter.swift in Sources */,
+				CC9900000000000000000006 /* StreamingJSONEncoder+ArrayWriter.swift in Sources */,
+				CC9900000000000000000008 /* StreamingJSONEncoder+ScalarWriter.swift in Sources */,
+				CA9700000000000000000019 /* MessageSerializer.swift in Sources */,
+				CA9700000000000000000017 /* CaptureLane.swift in Sources */,
+				CA9700000000000000000015 /* CaptureSession.swift in Sources */,
+				CA9700000000000000000011 /* EndpointSecurityClient.swift in Sources */,
+				CA970000000000000000000F /* LiveEndpointSecurityClient.swift in Sources */,
+				CA970000000000000000000B /* PathMute.swift in Sources */,
+				CA9700000000000000000007 /* EventClassTable.swift in Sources */,
+				CA9700000000000000000005 /* AppleEventCategory.swift in Sources */,
+				CA9700000000000000000003 /* EventClass.swift in Sources */,
 				7E5715000000000000000018 /* ThreadStateFlavor.swift in Sources */,
 				7E5715000000000000000016 /* ThreadState.swift in Sources */,
 				0D0D0D000000000000000008 /* ESODEvent+CoreDataProperties.swift in Sources */,
@@ -3688,10 +3859,13 @@
 				28B3438E2D8637F2004127E8 /* LWUnlockEvent.swift in Sources */,
 				28EC62D2292444C800EAC8AD /* ESXattrDeleteEvent+CoreDataProperties.swift in Sources */,
 				28B865D62A3119C700F06441 /* ProcessHelpers.swift in Sources */,
+				CC990000000000000000000A /* ProcessHelpers+Quarantine.swift in Sources */,
 				282DFE0A2D9DE004006E0C94 /* EventType+ESMapping.swift in Sources */,
 				28A169DB2DAE12C300CA630B /* AuthResult.swift in Sources */,
 				2852BBA129D982B800AA833C /* ProcessSignalEvent.swift in Sources */,
 				28ADAC452DCC77AA000DB4D2 /* FileDestination.swift in Sources */,
+				CB9800000000000000000006 /* CodeSigningCertificateCache.swift in Sources */,
+				CC990000000000000000000C /* ProcessHelpers+CodeSigning.swift in Sources */,
 				28A608A42D9B634600962337 /* X509Cert.swift in Sources */,
 				284BAECF2A4CCE4D007F1193 /* ESODCreateGroupEvent+CoreDataProperties.swift in Sources */,
 				2852BBB929DB840C00AA833C /* XattrSetEvent.swift in Sources */,
@@ -3829,6 +4003,7 @@
 				284F85602E736A00001542E3 /* MuteSet.swift in Sources */,
 				28A169D72DADF09700CA630B /* ActionResult.swift in Sources */,
 				2852BB9029D8CAAC00AA833C /* ESFileWriteEvent+CoreDataClass.swift in Sources */,
+				CB980000000000000000001E /* RandomUUIDBuffer.swift in Sources */,
 				283C4D4329E0B633009FF6D3 /* Helpers.swift in Sources */,
 				282FEDEB295FCE3600572E22 /* ESXProtectRemediate+CoreDataProperties.swift in Sources */,
 				28320C9F29940F0600CB9D81 /* SECoreDataController.swift in Sources */,
@@ -3987,6 +4162,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CA9700000000000000000029 /* EventSink.swift in Sources */,
 				D15C00000000000000000066 /* EventSpool.swift in Sources */,
 				D15C0000000000000000000A /* UpdateInstaller.swift in Sources */,
 				D15C00000000000000000007 /* SensorService.swift in Sources */,
@@ -4000,6 +4176,29 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CB9800000000000000000004 /* ESLoggerUTCTimeTests.swift in Sources */,
+				CB9800000000000000000008 /* CodeSigningCertificateCacheTests.swift in Sources */,
+				CB980000000000000000000A /* ExecCommandLineTests.swift in Sources */,
+				CB9800000000000000000016 /* StreamingJSONEncoderTests.swift in Sources */,
+				CB9800000000000000000018 /* StreamingJSONEncoderStructureTests.swift in Sources */,
+				CB980000000000000000001A /* StreamingJSONEncoderMessageTests.swift in Sources */,
+				CB980000000000000000001C /* QuarantineEnabledTests.swift in Sources */,
+				CB9800000000000000000020 /* RandomUUIDBufferTests.swift in Sources */,
+				CB980000000000000000000C /* FileQuarantinedTests.swift in Sources */,
+				CB9800000000000000000022 /* AuditTokenStringTests.swift in Sources */,
+				CB9800000000000000000002 /* ESLoggerHexTests.swift in Sources */,
+				CA9700000000000000000033 /* SequenceGapCounterTests.swift in Sources */,
+				CA9700000000000000000031 /* CaptureDropAccountingTests.swift in Sources */,
+				CB9800000000000000000014 /* JSONCanonicalForm.swift in Sources */,
+				CA9700000000000000000027 /* FakeEndpointSecurityClient.swift in Sources */,
+				CA9700000000000000000025 /* XCTestCase+Capture.swift in Sources */,
+				CA9700000000000000000023 /* CaptureSessionStartTests.swift in Sources */,
+				CA9700000000000000000021 /* CaptureSessionControlTests.swift in Sources */,
+				CA970000000000000000001F /* CaptureSessionStopTests.swift in Sources */,
+				CA970000000000000000001D /* MessageSerializerTests.swift in Sources */,
+				CA9700000000000000000013 /* EndpointSecurityClientTests.swift in Sources */,
+				CA970000000000000000000D /* PathMuteTests.swift in Sources */,
+				CA9700000000000000000009 /* EventClassTableTests.swift in Sources */,
 				7E5715000000000000000024 /* RawMessageFixture+RemoteThreadCreate.swift in Sources */,
 				7E5715000000000000000022 /* RemoteThreadCreateExportTests.swift in Sources */,
 				7E5715000000000000000020 /* RemoteThreadCreateDecodingTests.swift in Sources */,
@@ -4015,6 +4214,7 @@
 				7E5715000000000000000014 /* ExecXPCServiceNameTests.swift in Sources */,
 				7E5715000000000000000026 /* ScriptInterpreterTests.swift in Sources */,
 				7E5715000000000000000012 /* ExportValueTests.swift in Sources */,
+				CC9900000000000000000002 /* TelemetryExporterOrderTests.swift in Sources */,
 				7E5715000000000000000010 /* GatekeeperFileTests.swift in Sources */,
 				7E5715000000000000000030 /* MountDispositionTests.swift in Sources */,
 				7E571500000000000000002E /* ValidationCategoryTests.swift in Sources */,

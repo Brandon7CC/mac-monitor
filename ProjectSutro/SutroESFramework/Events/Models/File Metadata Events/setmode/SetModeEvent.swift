@@ -10,7 +10,7 @@ import Foundation
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_setmode_t
 public struct SetModeEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var mode: Int32
     public var target: File

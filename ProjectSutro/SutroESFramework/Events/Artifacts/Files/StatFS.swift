@@ -8,7 +8,7 @@
 import Foundation
 
 public struct StatFS: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     // fundamental file system block size
     public var f_bsize: UInt32

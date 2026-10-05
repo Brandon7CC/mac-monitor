@@ -12,7 +12,7 @@ import OSLog
 
 // MARK: - OpenSSH Login event model: https://developer.apple.com/documentation/endpointsecurity/3228936-es_events_t/3930481-openssh_login
 public struct SSHLoginEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var success: Bool
     public var result_type: Int32

@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - Process Fork Event https://developer.apple.com/documentation/endpointsecurity/es_event_fork_t
 public struct ProcessForkEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var child: Process
     

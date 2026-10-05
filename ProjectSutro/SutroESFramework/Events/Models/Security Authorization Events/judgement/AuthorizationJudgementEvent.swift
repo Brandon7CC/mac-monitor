@@ -18,7 +18,7 @@ import Foundation
  * @field granted               Indicates if the right was granted or not
  */
 public struct ESAuthorizationResult: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     /*
      * The class of rules used to evaluate the petition for a specific authorization right
@@ -72,7 +72,7 @@ public struct ESAuthorizationResult: Identifiable, Codable, Hashable {
 
 
 public struct AuthorizationJudgementEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var instigator, petitioner: Process?
     

@@ -9,7 +9,7 @@ import Foundation
 
 // Ensure FileDescriptor conforms to Codable and Equatable
 public struct FileDescriptor: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     public var fdtype, fd: Int
     public var type = ""

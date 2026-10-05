@@ -28,7 +28,7 @@ import Foundation
 
 
 public struct XPCConnectEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     public var service_name: String
     public var service_domain_type: Int32
     public var service_domain_type_string = ""

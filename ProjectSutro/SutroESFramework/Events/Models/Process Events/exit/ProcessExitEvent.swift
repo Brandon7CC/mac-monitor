@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - Process Exit event: https://developer.apple.com/documentation/endpointsecurity/es_event_exit_t
 public struct ProcessExitEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     /// stat The exit status of a process (same format as wait(2))
     public var stat: Int

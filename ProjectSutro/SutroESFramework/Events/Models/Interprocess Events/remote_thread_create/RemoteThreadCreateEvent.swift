@@ -12,7 +12,7 @@ import Foundation
 /// Models an `ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE`: a process created a thread in another process with
 /// `thread_create` or `thread_create_running`.
 public struct RemoteThreadCreateEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     /// The process the thread was created in.
     public var target: Process

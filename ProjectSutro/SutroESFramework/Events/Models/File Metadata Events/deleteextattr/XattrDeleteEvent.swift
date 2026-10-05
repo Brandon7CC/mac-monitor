@@ -11,7 +11,7 @@ import EndpointSecurity
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_deleteextattr_t
 public struct XattrDeleteEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var target: File
     public var extattr: String

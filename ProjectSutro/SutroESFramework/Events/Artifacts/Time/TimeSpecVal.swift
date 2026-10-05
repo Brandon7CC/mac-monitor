@@ -19,7 +19,7 @@ private let iso8601Format = Date.ISO8601FormatStyle()
 /// https://www.gnu.org/software/libc/manual/html_node/Time-Types.html
 // Ensure TimeSpec conforms to Codable and Equatable
 public struct TimeSpec: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     public var tv_sec, tv_nsec: Int
     
@@ -30,6 +30,7 @@ public struct TimeSpec: Identifiable, Codable, Equatable, Hashable {
     
     /// Returns the time as an ISO 8601 formatted string with nanosecond precision.
     public func humanFormat() -> String {
+        if let time = ESLogger.utcTime(seconds: tv_sec, fraction: tv_nsec, digits: 9) { return time }
         let date = Date(timeIntervalSince1970: TimeInterval(tv_sec))
         let nanoseconds = String(format: "%09d", tv_nsec)
         
@@ -42,7 +43,7 @@ public struct TimeSpec: Identifiable, Codable, Equatable, Hashable {
 /// https://www.gnu.org/software/libc/manual/html_node/Time-Types.html
 // Ensure TimeVal conforms to Codable and Equatable
 public struct TimeVal: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     public var tv_sec, tv_usec: Int
     
@@ -53,6 +54,7 @@ public struct TimeVal: Identifiable, Codable, Equatable, Hashable {
     
     /// Returns the time as an ISO 8601 formatted string with microsecond precision.
     public func humanFormat() -> String {
+        if let time = ESLogger.utcTime(seconds: tv_sec, fraction: tv_usec, digits: 6) { return time }
         let date = Date(timeIntervalSince1970: TimeInterval(tv_sec))
         let microseconds = String(format: "%06d", tv_usec) // Ensures 6-digit microsecond precision
         

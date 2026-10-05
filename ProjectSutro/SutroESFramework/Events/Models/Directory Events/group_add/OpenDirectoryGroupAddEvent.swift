@@ -28,7 +28,7 @@ import Foundation
 
 /// Models an `ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD`: a member was added to an Open Directory group.
 public struct OpenDirectoryGroupAddEvent: Identifiable, Codable, Hashable, OpenDirectoryGroupMemberEvent {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     /// The process that instigated the operation (the XPC caller), or `nil` when Endpoint Security leaves it out.
     public var instigator: Process?
     /// The instigator's audit token: message version 8 and later.

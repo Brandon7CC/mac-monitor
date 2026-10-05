@@ -53,4 +53,60 @@ final class ScriptInterpreterTests: XCTestCase {
         XCTAssertEqual(resolved(["bun", "run", "app.ts"]), script)
         XCTAssertNil(resolved(["bun", "tool"]))
     }
+    
+    /// Only a regular file can be the script: a FIFO, a directory or a missing file among the arguments isn't one, and
+    /// looking never waits. A FIFO with no writer (`bash -c : /tmp/fifo`) used to block the lane building the exec
+    /// until something wrote to it.
+    ///
+    /// - Throws: The error making the temporary directory or the FIFO's folder.
+    func testOnlyRegularFilesAreScripts() throws {
+        let directory = try makeTemporaryDirectory()
+        let fifo = directory.appendingPathComponent("fifo").path
+        XCTAssertEqual(mkfifo(fifo, 0o600), 0)
+        /// Lets a reader stuck on the FIFO go, should one ever be.
+        addTeardownBlock {
+            let writer = open(fifo, O_WRONLY | O_NONBLOCK)
+            if writer >= 0 { close(writer) }
+        }
+        try FileManager.default.createDirectory(at: directory.appendingPathComponent("folder"),
+                                                withIntermediateDirectories: false)
+        
+        let looked = DispatchSemaphore(value: 0)
+        var script: String?
+        var content: String?
+        DispatchQueue.global().async {
+            script = ProcessHelpers.parseScriptFromArgs(args: ["bash", "-c", ":", fifo, "folder", "missing"],
+                                                        workingDirectory: directory.path)
+            content = ProcessHelpers.getFileContents(at: fifo)
+            looked.signal()
+        }
+        XCTAssertEqual(looked.wait(timeout: .now() + 5), .success)
+        XCTAssertNil(script)
+        XCTAssertNil(content)
+        XCTAssertNil(ProcessHelpers.getFileContents(at: directory.path))
+    }
+    
+    /// A script's content is its UTF-8 text, cut at the limit back to the end of a whole character.
+    ///
+    /// - Throws: The error writing the temporary files.
+    func testScriptContentStopsAtTheLimit() throws {
+        let limit = ProcessHelpers.fileContentsLimit
+        let short = try temporaryFile(containing: "echo hi\n", named: "short.sh")
+        XCTAssertEqual(ProcessHelpers.getFileContents(at: short.path), "echo hi\n")
+        XCTAssertEqual(ProcessHelpers.getFileContents(at: "file://" + short.path), "echo hi\n")
+        let empty = try temporaryFile(containing: "", named: "empty.sh")
+        XCTAssertEqual(ProcessHelpers.getFileContents(at: empty.path), "")
+        
+        let exact = String(repeating: "a", count: limit)
+        XCTAssertEqual(ProcessHelpers.getFileContents(at: try temporaryFile(containing: exact, named: "exact.sh").path),
+                       exact)
+        /// "é" is two bytes, the first of them the limit's last.
+        let long = String(repeating: "a", count: limit - 1) + "\u{E9}tail"
+        XCTAssertEqual(ProcessHelpers.getFileContents(at: try temporaryFile(containing: long, named: "long.sh").path),
+                       String(repeating: "a", count: limit - 1))
+        
+        let binary = try makeTemporaryDirectory().appendingPathComponent("tool")
+        try Data([0xCF, 0xFA, 0xED, 0xFE, 0xFF]).write(to: binary)
+        XCTAssertNil(ProcessHelpers.getFileContents(at: binary.path))
+    }
 }

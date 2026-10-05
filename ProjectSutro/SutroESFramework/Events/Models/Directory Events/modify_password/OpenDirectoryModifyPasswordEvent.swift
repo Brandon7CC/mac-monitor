@@ -10,7 +10,7 @@ import Foundation
 
 /// Models an `ES_EVENT_TYPE_NOTIFY_OD_MODIFY_PASSWORD`: an account's password was changed in an Open Directory node.
 public struct OpenDirectoryModifyPasswordEvent: Identifiable, Codable, Hashable, OpenDirectoryEvent {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     /// The process that instigated the operation (the XPC caller), or `nil` when Endpoint Security leaves it out.
     public var instigator: Process?
     /// The instigator's audit token: message version 8 and later.

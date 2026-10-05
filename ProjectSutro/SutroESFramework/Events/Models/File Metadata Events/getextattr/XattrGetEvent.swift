@@ -10,7 +10,7 @@ import Foundation
 // Retrieve an extended attribute
 // https://developer.apple.com/documentation/endpointsecurity/es_event_getextattr_t
 public struct XattrGetEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var target: File
     public var extattr: String

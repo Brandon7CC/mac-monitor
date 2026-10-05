@@ -15,19 +15,20 @@ import SutroESFramework
 // MARK: - Sensor service
 /// The Security Extension's (sensor) side of the XPC connection.
 ///
-/// Listens on `SensorXPC.machServiceName`, owns the Endpoint Security client through `EndpointSecurityManager`, and
-/// streams batched events to the Mac Monitor connection that owns the event stream.
+/// Listens on `SensorXPC.machServiceName`, runs capture with a `CaptureSession` (one Endpoint Security client per event
+/// class), and streams batched events to the Mac Monitor connection that owns the event stream.
 ///
 /// **Ownership:** the first connection to call `start(recording:reply:)` owns the event stream (the *sink*) until it goes
 /// away. A second Mac Monitor (`open -n`, another user's session) gets `.tooManyClients` and can't change recording,
 /// subscriptions, mutes, or install updates. It can still read state and check for updates. When the owner goes away we
 /// post `SensorXPC.sensorReleasedNotification` so a refused Mac Monitor can claim the stream.
 ///
-/// **Threading:** every piece of state below, and every call into `EndpointSecurityManager`, happens on `queue`. The
-/// Endpoint Security handler only serializes events (while recording) and hops onto `queue` to buffer them.
+/// **Threading:** every piece of state below, and every call into the `CaptureSession`, happens on `queue`. The
+/// Endpoint Security handlers only serialize events (while recording) and hop onto `queue` to buffer them, so each
+/// class's events reach Mac Monitor in its client's order.
 ///
-/// **Lifecycle:** only the sink's connection going away deletes the ES client. Any other connection (e.g. an update
-/// check that raced the handshake) can come and go without affecting monitoring.
+/// **Lifecycle:** only the sink's connection going away stops capture and deletes the ES clients. Any other connection
+/// (e.g. an update check that raced the handshake) can come and go without affecting monitoring.
 final class SensorService: NSObject {
     // MARK: Tuning
     /// The most events sent in one XPC message.
@@ -41,7 +42,6 @@ final class SensorService: NSObject {
     /// too (``EventSpool/maxSize``, ``EventSpool/minFreeSpace``).
     private static let memoryBufferLimit: Int = 5_000
     
-    private let esManager: EndpointSecurityManager
     private let updates = UpdateInstaller()
     private let listener = NSXPCListener(machServiceName: SensorXPC.machServiceName)
     private let queue = DispatchQueue(label: "com.swiftlydetecting.agent.securityextension.sensor")
@@ -50,11 +50,15 @@ final class SensorService: NSObject {
     /// The Mac Monitor connection receiving events, if any.
     private var sink: EventSink?
     
-    /// - Parameter esManager: The Endpoint Security manager this service drives.
-    init(esManager: EndpointSecurityManager) {
-        self.esManager = esManager
-        super.init()
-    }
+    /// Capture for the sink, while there is one.
+    private var capture: CaptureSession?
+    
+    /// Mac Monitor's event subscriptions. They outlive a capture session, so a Mac Monitor that reconnects keeps the
+    /// ones it chose.
+    private var subscriptions: [es_event_type_t] = defaultEventSubscriptions
+    
+    /// Endpoint Security's default mutes (``ESMutedPath`` JSON), from the first capture session this process started.
+    private var appleDefaultMutes: Set<String> = []
     
     /// Start accepting connections from Mac Monitor, then announce that we're ready.
     ///
@@ -81,10 +85,10 @@ final class SensorService: NSObject {
     ///
     /// - Parameters:
     ///   - reply: The XPC reply block.
-    ///   - work: Produces the reply from the Endpoint Security manager.
-    private func perform<Reply>(_ reply: @escaping (Reply) -> Void, _ work: @escaping (EndpointSecurityManager) -> Reply) {
-        queue.async { [esManager] in
-            reply(work(esManager))
+    ///   - work: Produces the reply.
+    private func perform<Reply>(_ reply: @escaping (Reply) -> Void, _ work: @escaping () -> Reply) {
+        queue.async {
+            reply(work())
         }
     }
     
@@ -94,12 +98,13 @@ final class SensorService: NSObject {
     /// - Parameters:
     ///   - refused: The reply for a connection that doesn't own the event stream.
     ///   - reply: The XPC reply block.
-    ///   - work: Produces the reply from the Endpoint Security manager.
-    private func performForOwner<Reply>(refusing refused: Reply, _ reply: @escaping (Reply) -> Void, _ work: @escaping (EndpointSecurityManager) -> Reply) {
+    ///   - work: Produces the reply.
+    private func performForOwner<Reply>(refusing refused: Reply, _ reply: @escaping (Reply) -> Void,
+                                        _ work: @escaping () -> Reply) {
         /// Must be read on the thread delivering the message, before hopping queues.
         let caller = NSXPCConnection.current()
         queue.async { [self] in
-            reply(owns(caller) ? work(esManager) : refused)
+            reply(owns(caller) ? work() : refused)
         }
     }
     
@@ -157,46 +162,65 @@ extension SensorService: SensorProtocol {
             }
             if sink == nil { sink = EventSink(connection: caller) }
             
-            let result = esManager.kickstartClient { [weak self] event in
-                self?.queue.async { self?.enqueue(event) }
-            }
-            esManager.isRecording = recording
-            logger.log("Mac Monitor connected (recording: \(recording)). ES client result: \(result.rawValue)")
+            let result = startCapture()
+            capture?.isRecording = recording
+            logger.log("Mac Monitor connected (recording: \(recording)). Endpoint Security result: \(result.rawValue)")
             reply(result)
         }
     }
     
     func setRecording(_ enabled: Bool, reply: @escaping (Bool) -> Void) {
-        performForOwner(refusing: false, reply) { esManager in
-            esManager.isRecording = enabled
-            return esManager.esClient != nil
+        performForOwner(refusing: false, reply) { [self] in
+            capture?.isRecording = enabled
+            return capture != nil
         }
     }
     
     func eventSubscriptions(reply: @escaping ([String]) -> Void) {
-        perform(reply) { $0.seGetEventSubscriptionsAsString().sorted() }
+        perform(reply) { [self] in
+            Set((capture?.subscribedEvents ?? subscriptions).map { eventTypeToString(from: $0) }).sorted()
+        }
     }
     
     func setSubscription(_ event: String, enabled: Bool, reply: @escaping (Bool) -> Void) {
-        performForOwner(refusing: false, reply) { $0.setEventSubscription(event, enabled: enabled) }
+        performForOwner(refusing: false, reply) { [self] in
+            guard let capture, capture.setSubscription(eventStringToType(from: event), enabled: enabled) else {
+                return false
+            }
+            subscriptions = capture.subscribedEvents
+            return true
+        }
     }
     
     func mutedPaths(reply: @escaping ([String]) -> Void) {
-        perform(reply) { $0.seGetGlobalMutedPaths().sorted() }
+        perform(reply) { [self] in capture?.mutedPaths().sorted() ?? [] }
     }
     
     func appleMuteSet(reply: @escaping ([String]) -> Void) {
-        perform(reply) { $0.seGetAppleMuteSet().sorted() }
+        perform(reply) { [self] in appleDefaultMutes.sorted() }
     }
     
     func setMute(_ path: String, type: String, events: [String], muted: Bool, reply: @escaping (Bool) -> Void) {
-        performForOwner(refusing: false, reply) { $0.setPathMute(path, type: getMuteCaseFromString(muteString: type), events: events, muted: muted) }
+        performForOwner(refusing: false, reply) { [self] in
+            guard let capture else { return false }
+            /// An unmute carries the events Endpoint Security listed for the path, which can include types Mac Monitor
+            /// has no name for: those are left out rather than refusing the unmute.
+            guard let mute = PathMute(path: path, typeName: type, eventNames: events,
+                                      unknownEvents: muted ? .refuse : .drop) else {
+                logger.error("""
+                    Refusing to \(muted ? "mute" : "unmute", privacy: .public) a path with an unknown mute type \
+                    (\(type, privacy: .public)) or event.
+                    """)
+                return false
+            }
+            return capture.setPathMute(mute, muted: muted)
+        }
     }
     
     func resetMutes(reply: @escaping (Bool) -> Void) {
-        performForOwner(refusing: false, reply) { esManager in
-            guard let esClient = esManager.esClient else { return false }
-            MutingEngine.applyDefaultMuteSet(client: esClient)
+        performForOwner(refusing: false, reply) { [self] in
+            guard let capture else { return false }
+            capture.apply(.default)
             return true
         }
     }
@@ -220,15 +244,41 @@ extension SensorService: SensorProtocol {
 
 // MARK: - Event streaming
 extension SensorService {
+    /// Start capture if there's no session yet, else refresh its Sensor ID (which follows the console user). Call on
+    /// `queue`.
+    ///
+    /// - Returns: `.success`, or why Endpoint Security refused, such as `.tooManyClients`.
+    private func startCapture() -> NewClientResult {
+        if let capture {
+            capture.refreshSensorID()
+            return .success
+        }
+        do {
+            let configuration = CaptureConfiguration(events: subscriptions, label: "Mac Monitor")
+            let session = try CaptureSession(configuration) { [weak self] event in
+                self?.queue.async { self?.enqueue(event.json) }
+            }
+            if appleDefaultMutes.isEmpty { appleDefaultMutes = session.appleMuteSet }
+            capture = session
+            return .success
+        } catch {
+            return (error as? CaptureStartError)?.clientResult ?? .internalSubsystem
+        }
+    }
+    
     /// Tear down monitoring if `connection` was the event sink.
     ///
     /// - Parameter connection: A connection that was just invalidated.
     private func detach(_ connection: NSXPCConnection) {
         guard let current = sink, current.connection === connection else { return }
-        logger.log("Mac Monitor disconnected after \(current.deliveredEvents) of \(current.enqueuedEvents) events (\(current.spooledEvents) went through the spool). Deleting the Endpoint Security client.")
+        logger.log("""
+            Mac Monitor disconnected after \(current.deliveredEvents) of \(current.enqueuedEvents) events \
+            (\(current.spooledEvents) went through the spool). Stopping capture.
+            """)
         reportDrops(of: current)
         sink = nil
-        esManager.cleanup()
+        capture?.stop()
+        capture = nil
         /// Let a Mac Monitor that was refused with `.tooManyClients` claim the stream.
         notify_post(SensorXPC.sensorReleasedNotification)
     }
@@ -265,6 +315,9 @@ extension SensorService {
     /// Each reply calls back in here, so a backlog drains as fast as Mac Monitor takes it. A failed delivery only frees
     /// its slot: on a listener connection that means Mac Monitor is gone, and ``detach(_:)`` is about to run.
     ///
+    /// Each batch sent also logs what the spool and Endpoint Security dropped since the last report (Endpoint
+    /// Security's at most once a second).
+    ///
     /// - Parameter sink: The sink to flush. Ignored if it's no longer the current sink.
     private func flush(_ sink: EventSink) {
         guard sink === self.sink else { return }
@@ -294,6 +347,7 @@ extension SensorService {
         sink.buffer.removeFirst(batchCount)
         sink.batchesInFlight += 1
         reportDrops(of: sink)
+        capture?.reportDrops()
         agent.receive(events: batch) { finished(true) }
     }
     
@@ -341,28 +395,5 @@ extension SensorService {
         guard sink.droppedEvents > 0 else { return }
         logger.fault("Dropped \(sink.droppedEvents) events: the event spool is full or couldn't be written.")
         sink.droppedEvents = 0
-    }
-}
-
-
-// MARK: - Event sink
-/// The Mac Monitor connection that receives events, plus the events waiting to be sent to it: the oldest in memory, any
-/// overflow in a spool file. Only touched on `SensorService`'s queue.
-private final class EventSink {
-    let connection: NSXPCConnection
-    /// Events waiting in memory, oldest first.
-    var buffer: [Data] = []
-    /// Overflow on disk. Every event in it is newer than every event in `buffer`.
-    var spool: EventSpool?
-    var batchesInFlight: Int = 0
-    /// Lifetime counters, logged when the sink goes away.
-    var enqueuedEvents: Int = 0, spooledEvents: Int = 0, deliveredEvents: Int = 0
-    /// Events the spool couldn't take since the last report.
-    var droppedEvents: Int = 0
-    var isFlushScheduled: Bool = false
-    
-    /// - Parameter connection: The connection that called `start(recording:reply:)`.
-    init(connection: NSXPCConnection) {
-        self.connection = connection
     }
 }

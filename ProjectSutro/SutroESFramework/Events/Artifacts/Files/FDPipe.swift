@@ -7,7 +7,7 @@
 
 // Ensure FDPipe conforms to Codable and Equatable
 public struct FDPipe: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     public var pipe_id: Int64 = -1
     

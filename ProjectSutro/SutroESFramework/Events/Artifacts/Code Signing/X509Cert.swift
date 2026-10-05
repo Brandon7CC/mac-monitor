@@ -8,7 +8,7 @@
 
 /// Models an `X509` certificate
 public struct X509Cert: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     public var summary, thumbprint: String
     

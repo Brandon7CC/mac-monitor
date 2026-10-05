@@ -10,7 +10,7 @@ import Foundation
 
 /// Models an `action_type` union from an `es_message_t`
 public struct ActionResult: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     public var result_type: Int?
     public var result_type_human: String?
@@ -65,7 +65,7 @@ extension ActionResult: ESEnrichable {
 
 
 public struct ActionResultWrapper: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     public var result: ActionResult?
     

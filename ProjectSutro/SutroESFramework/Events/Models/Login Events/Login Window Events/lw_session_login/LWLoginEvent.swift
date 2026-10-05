@@ -12,7 +12,7 @@ import OSLog
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_lw_session_login_t
 public struct LWLoginEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var username: String
     public var graphical_session_id: Int32

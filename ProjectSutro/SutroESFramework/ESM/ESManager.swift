@@ -20,9 +20,8 @@ import CryptoKit
 ///
 /// The "Endpoint Security Manager" (ESM) exposes functionality to interact with the Mac Monitor Security Extension `com.swiftlydetecting.agent.securityextension`
 ///
-/// **Contexts:** the same class runs in both processes.
-/// - Agent (Mac Monitor): talks to the Security Extension through `sensor` and receives events as an ``AgentProtocol``.
-/// - Sensor (Security Extension): owns the Endpoint Security client. `SensorService` drives it over XPC.
+/// **Context:** Mac Monitor (the agent). It talks to the Security Extension through `sensor` and receives events as an
+/// ``AgentProtocol``. In the Security Extension (the sensor), `SensorService` runs capture with a ``CaptureSession``.
 ///
 public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtensionRequestDelegate, AgentProtocol {
     /// Decodes incoming events. Only used on the XPC connection's serial queue.
@@ -58,15 +57,8 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// Signals from ``sensor`` waiting out their one-second delay. Main thread only.
     private var pendingSignals: Set<SensorClient.Signal> = []
     
-    // MARK: ES client properties: client and event subscriptions
-    /// The Endpoint Security client we'll leverage for tracing system events
-    public var esClient: OpaquePointer?
-    
-    /// The events we're subscribed to.
-    ///
-    /// These are defined by the `coreEventSubscriptions` in `ESTranslation.swift`. Core event subscriptions are a subset of the total supported
-    /// subscriptions.
-    @Published public var monitoredEvents: [es_event_type_t] = defaultEventSubscriptions
+    // MARK: Event subscriptions
+    /// The Security Extension's event subscriptions, as `ES_EVENT_TYPE_*` names (see ``requestEventSubscriptions()``).
     @Published public var monitoredEventStrings: Set<String> = []
     
     /// When Project Sutro connects let's grab the current time so we can filter long running processes
@@ -89,19 +81,10 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// The Sensor ID for this Mac and console user, as shown in Mac Monitor (agent context). Computed on first use.
     public private(set) lazy var sensorID: String = EndpointSecurityManager.makeSensorID()
     
-    /// The Sensor ID stamped on each event (sensor context).
+    /// Is the user recording? Sent to the Security Extension with every handshake, which only serializes events while
+    /// it's `true`.
     ///
-    /// The Security Extension outlives logouts and user switches, so this is refreshed on every `start` handshake (see
-    /// ``kickstartClient(emit:)``) rather than cached for the life of the process. Read by the ES handler, so it's locked.
-    private let eventSensorID = OSAllocatedUnfairLock(initialState: "")
-    
-    /// Should events flow?
-    ///
-    /// - Agent context: whether the user is recording. Sent to the Security Extension with every handshake.
-    /// - Sensor context: serialize Endpoint Security events at all. While `false` the ES handler returns immediately.
-    ///
-    /// Thread-safe. It's read from the XPC and Endpoint Security queues and written from the main thread or the
-    /// Security Extension's service queue.
+    /// Thread-safe. It's read from the XPC queue and written from the main thread.
     public var isRecording: Bool {
         get { recordingState.withLock { $0 } }
         set { recordingState.withLock { $0 = newValue } }
@@ -252,8 +235,9 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// Connect to the XPC service hosted by the Security Extension and run the `start` handshake.
     ///
     /// Safe to call any number of times: the Security Extension re-handshakes the connection that owns the event stream
-    /// (refusing any other with `.tooManyClients`) and only creates an ES client when none exists. It's called when the System Extension activation finishes and again after the Security Extension
-    /// restarts (see `sensor`). The current recording state rides along so a restarted extension resumes streaming.
+    /// (refusing any other with `.tooManyClients`) and only starts capture when it isn't running. It's called when the
+    /// System Extension activation finishes and again after the Security Extension restarts (see `sensor`). The current
+    /// recording state rides along so a restarted extension resumes streaming.
     ///
     /// The XPC service name we'll be connecting to is ``SensorXPC/machServiceName``.
     ///
@@ -261,72 +245,6 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         sensor.call { $0.start(recording: self.isRecording, reply: $1) } completion: { result in
             self.connectionResult = result ?? .internalSubsystem
         }
-    }
-    
-    private var appleBaselineMutedPaths = Set<String>()
-    
-    public func seGetAppleMuteSet() -> Set<String> { appleBaselineMutedPaths }
-    
-    private func captureAppleMuteSet() {
-        guard appleBaselineMutedPaths.isEmpty else { return }
-        appleBaselineMutedPaths = seGetGlobalMutedPaths()
-    }
-    
-    
-    // MARK: - New ES client (SE context)
-    /// Get a new Endpoint Security client off the ground!
-    ///
-    /// This function handles kicking a new ES client into gear:
-    /// 1) Instantiates a new client using `es_new_client`
-    /// 2) Validates the connection result using `validateClient(result: es_new_client_result_t)`
-    /// 3) Subscribes to our initial event subscriptions
-    /// 4) Applies the default Projcect Sutro mute set
-    /// 5) Returns the result
-    ///
-    /// Idempotent: when an ES client already exists it's reused and `emit` is **not** replaced. Callers should route
-    /// events through state they own (as `SensorService` does) rather than capturing per-call state in `emit`.
-    ///
-    /// The ES handler does no work while ``isRecording`` is `false`. The sensor ID is refreshed here on every call (so it
-    /// follows the console user across logouts and user switches) and read by the handler, never recomputed per event.
-    ///
-    /// - Parameters:
-    ///   - emit: Receives each event's JSON serialization. Called serially on the Endpoint Security client's queue.
-    /// - Returns: The `NewClientResult` of creating (or reusing) the client.
-    ///
-    public func kickstartClient(emit: @escaping (_ event: Data) -> Void) -> NewClientResult {
-        let currentSensorID: String = EndpointSecurityManager.makeSensorID()
-        eventSensorID.withLock { $0 = currentSensorID }
-        guard self.esClient == nil else { return .success }
-        
-        /// Only used by the ES handler, which Endpoint Security calls serially for a client.
-        let encoder = JSONEncoder()
-        var client: OpaquePointer?
-        
-        let result = es_new_client(&client) { [self] _, message in
-            guard self.isRecording else { return }
-            let event = Message(from: message, sensorID: self.eventSensorID.withLock { $0 }, forcedQuarantineSigningIDs: ProcessHelpers.forcedQuarantineSigningIDs)
-            guard let json = try? encoder.encode(event) else { return }
-            emit(json)
-        }
-        let tempConnResult = validateClient(result: result)
-        guard let client else { return tempConnResult }
-        
-        // Subscribe (order here doesn't affect the snapshot)
-        guard es_subscribe(client, monitoredEvents, UInt32(monitoredEvents.count)) == ES_RETURN_SUCCESS else {
-            os_log(OSLogType.error, "Failed to subscribe the new Endpoint Security client to its events!")
-            es_delete_client(client)
-            return .internalSubsystem
-        }
-        self.esClient = client
-        
-        // Capture Apple's default mute set
-        captureAppleMuteSet()
-        
-        // Apply Mac Monitor default mute set
-        MutingEngine.applyDefaultMuteSet(client: client)
-        
-        os_log("🚀 New ES client created: \(String(describing: self.esClient))")
-        return tempConnResult
     }
     
 }
@@ -337,15 +255,13 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
 /// **Functionality Covers:**
 ///  - Starting a system trace
 ///  - Stoping a system trace
-///  - **Cleaning up by:**
-///      - Unsubscribing from events
-///      - Deleting the ES client
+///  - Cleaning up when Mac Monitor stops monitoring
 ///
 extension EndpointSecurityManager {
     /// Start recording system events.
     ///
-    /// If the result of ``kickstartClient(emit:)`` was successful we'll start the event producer. Otherwise, we'll open
-    /// the Full Disk Access pane of System Settings.
+    /// If the Security Extension couldn't start capture for lack of Full Disk Access (`.notPermitted`), we'll open the
+    /// Full Disk Access pane of System Settings.
     ///
     /// The Security Extension only serializes events while recording, so this is what turns the event stream on.
     public func startRecordingEvents() {
@@ -372,48 +288,10 @@ extension EndpointSecurityManager {
         }
     }
     
-    /// Unsubscribe from event subscriptions and delete the ES client
-    ///
-    /// We call the following functions here to support cleanup:
-    /// - `es_unsubscribe`
-    /// - `es_delete_client`
-    ///
-    /// In the agent context there is no ES client, so this only clears the local ``isRecording`` flag; it's
-    /// ``stopRecordingEvents()`` that tells the Security Extension to stop.
-    ///
+    /// Clear the local ``isRecording`` flag. It's ``stopRecordingEvents()`` that tells the Security Extension to stop,
+    /// and the Security Extension stops capture when Mac Monitor's connection goes away.
     public func cleanup() {
         self.isRecording = false
-        if self.esClient != nil {
-            // First unsubscribe
-            let unsubscribeResult: es_return_t = es_unsubscribe(self.esClient!, monitoredEvents, UInt32(monitoredEvents.count))
-            switch unsubscribeResult {
-            case ES_RETURN_ERROR:
-                os_log(OSLogType.error, "We were unable to unsubscribe from ES!")
-                break
-            case ES_RETURN_SUCCESS:
-                os_log("Successfully unsubscribed from ES.")
-                break
-            default:
-                os_log(OSLogType.error, "Error unsubscribing from event subscriptions!")
-            }
-            
-            // Then delete the client
-            let deleteClientResult: es_return_t = es_delete_client(self.esClient!)
-            /// The pointer is invalid either way: on `ES_RETURN_ERROR` ES has already torn the client down and leaked its
-            /// resources (see `ESClient.h`). Keeping it would make ``kickstartClient(emit:)`` reuse a dead client.
-            self.esClient = nil
-            switch deleteClientResult {
-            case ES_RETURN_ERROR:
-                os_log(OSLogType.error, "We were unable to delete the ES client")
-                break
-            case ES_RETURN_SUCCESS:
-                os_log("Successfully deleted the ES client")
-                self.seIsInstalled = false
-                break
-            default:
-                os_log(OSLogType.error, "An unknown error occured while trying to delete the ES clinet!")
-            }
-        }
     }
 }
 
@@ -422,8 +300,9 @@ extension EndpointSecurityManager {
 extension EndpointSecurityManager {
     /// Produce the Sensor ID for the Mac Monitor Security Extension
     ///
-    /// A SHA-512 of the platform serial number and the console user's short name. It's computed on every
-    /// ``kickstartClient(emit:)`` handshake (sensor) and once for display (agent), never per event.
+    /// A SHA-512 of the platform serial number and the console user's short name. It's computed by a
+    /// ``CaptureSession`` as it starts and on every `start` handshake (sensor), and once for display (agent), never per
+    /// event.
     ///
     /// - Returns: The hex digest, or `SENSOR-ID-ERROR-<date>` if the serial number can't be read. When no user is at the
     ///   console (e.g. `loginwindow`) only the serial number is hashed.

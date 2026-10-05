@@ -13,7 +13,7 @@ import EndpointSecurity
 
 // MARK: - Exports without the event store
 /// The event model, loaded once: Core Data complains when a second copy of a model claims the same classes.
-private let eventModel = NSManagedObjectModel(
+let eventModel = NSManagedObjectModel(
     contentsOf: Bundle(for: ESMessage.self).url(forResource: "SystemEvents", withExtension: "momd")!)!
 
 

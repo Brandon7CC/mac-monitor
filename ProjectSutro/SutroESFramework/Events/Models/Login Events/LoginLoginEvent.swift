@@ -12,7 +12,7 @@ import OSLog
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_login_login_t
 public struct LoginLoginEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var succcess, has_uid: Bool
     public var username: String

@@ -9,7 +9,7 @@
 /// Models a `es_btm_launch_item_t`:
 /// https://developer.apple.com/documentation/endpointsecurity/es_btm_launch_item_t
 public struct LaunchItem: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
 
     // Type of launch item.
     public var item_type: Int16

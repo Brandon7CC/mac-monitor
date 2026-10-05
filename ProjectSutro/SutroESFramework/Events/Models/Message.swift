@@ -19,7 +19,7 @@ import OSLog
 /// * `iokit_open_event` similarly corresponds to an ``IOKitOpenEvent``. This event notifies us when an IOKit device has been opened.
 ///
 public struct Message: Identifiable, Codable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     /// Version and sequence
     public var version, schema_version: Int
@@ -82,9 +82,28 @@ public struct Message: Identifiable, Codable, Hashable {
     
     
     // MARK: - Message init
+    /// This Mac's macOS version as events carry it: `ProcessInfo`'s version string without "Version ", for example
+    /// `27.0.1 (Build 26A434)`.
+    ///
+    /// About 1 µs per call, so a capture session reads it once (``MessageSerializer``) rather than once per event.
+    ///
+    /// - Returns: The version.
+    static func currentMacOSVersion() -> String {
+        String(ProcessInfo.processInfo.operatingSystemVersionString.trimmingPrefix("Version "))
+    }
+    
+    /// Model an Endpoint Security message, with Mac Monitor's enrichment.
+    ///
+    /// - Parameters:
+    ///   - rawMessage: The message. Only read during the call.
+    ///   - sensorID: The Sensor ID to stamp on the event.
+    ///   - macOS: The macOS version to stamp on the event.
+    ///   - archivedFiles: Not used.
+    ///   - forcedQuarantineSigningIDs: Signing IDs Apple forces into File Quarantine.
     init(
         from rawMessage: UnsafePointer<es_message_t>,
         sensorID: String = "SENSOR-ID-NOT-SET",
+        macOS: String = Message.currentMacOSVersion(),
         archivedFiles: [String] = [],
         forcedQuarantineSigningIDs: [String] = []
     ) {
@@ -107,7 +126,7 @@ public struct Message: Identifiable, Codable, Hashable {
         
         /// Platform -- Mac Monitor enrichment
         self.sensor_id = sensorID
-        self.macOS = String(ProcessInfo.processInfo.operatingSystemVersionString.trimmingPrefix("Version "))
+        self.macOS = macOS
         
         /// Initiating process
         if message.event_type == ES_EVENT_TYPE_NOTIFY_EXEC {

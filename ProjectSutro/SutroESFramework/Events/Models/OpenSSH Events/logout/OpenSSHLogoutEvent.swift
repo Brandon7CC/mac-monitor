@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - OpenSSH Logout event model: https://developer.apple.com/documentation/endpointsecurity/3228936-es_events_t/3930482-openssh_logout
 public struct SSHLogoutEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var source_address_type: Int32
     public var source_address_type_string = ""

@@ -10,7 +10,7 @@ import OSLog
 
 // MARK: - Process Execution event https://developer.apple.com/documentation/endpointsecurity/es_event_exec_t
 public struct ProcessExecEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     /// Base properties `es_event_exec_t`
     public var argc: Int
@@ -54,12 +54,9 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
             isExecMessage: true
         )
         
-        // Arguments and command line
+        // Arguments (the command line is joined from them by `enrich()`)
         self.argc = Int(es_exec_arg_count(&execEvent))
         self.args = ProcessHelpers.parseExecArgs(execEvent: &execEvent)
-        
-        /// @note Mac Monitor enrichment
-        self.command_line = ProcessHelpers.parseCommandLine(execEvent: &execEvent)
         
         // Environment variables
         self.env = ProcessHelpers.parseExecEnv(event: &execEvent)

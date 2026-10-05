@@ -8,7 +8,6 @@
 import Foundation
 import OSLog
 import Compression
-import CryptoKit
 
 
 public class ProcessHelpers {
@@ -38,15 +37,7 @@ public class ProcessHelpers {
     }
     
     
-    // MARK: - Parsing the command line of exec events
-    static func parseCommandLine(execEvent: inout es_event_exec_t) -> String {
-        var command_line_builder: String = ""
-        for i in 0 ..< Int(es_exec_arg_count(&execEvent)) {
-            command_line_builder = "\(command_line_builder) \(es_exec_arg(&execEvent, UInt32(i)).string ?? "")"
-        }
-        return command_line_builder.trimmingCharacters(in: .whitespaces)
-    }
-    
+    // MARK: - Parsing the arguments of exec events
     static func parseExecArgs(execEvent: inout es_event_exec_t) -> [String] {
         var args: [String] = []
         for i in 0 ..< Int(es_exec_arg_count(&execEvent)) {
@@ -243,224 +234,60 @@ public class ProcessHelpers {
                       procInfo.p_uuid.12, procInfo.p_uuid.13, procInfo.p_uuid.14, procInfo.p_uuid.15)
     }
     
+    // MARK: - Reading scripts and plists
+    /// The most bytes ``getFileContents(at:)`` reads: a longer script or plist is cut there.
+    static let fileContentsLimit = 1 << 20
     
-    public static func getCodeSigningCerts(forBinaryAt path: String) -> [X509Cert] {
-        var staticCode: SecStaticCode?
-        guard let url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, path as CFString, .cfurlposixPathStyle, false) else {
-            return []
-        }
-        
-        let createFlags: SecCSFlags = []
-        var status = SecStaticCodeCreateWithPath(url, createFlags, &staticCode)
-        
-        guard status == errSecSuccess, let staticCode = staticCode else {
-            return []
-        }
-        
-        var dict: CFDictionary?
-        let infoFlags: SecCSFlags = SecCSFlags(rawValue: kSecCSSigningInformation)
-        status = SecCodeCopySigningInformation(staticCode, infoFlags, &dict)
-        guard status == errSecSuccess, let infoDict = dict as? [String: Any] else {
-            return []
-        }
-        
-        let certificateChainKey = kSecCodeInfoCertificates as String
-        guard let certificateChain = infoDict[certificateChainKey] as? [SecCertificate] else {
-            return []
-        }
-        
-        var chain: [X509Cert] = []
-        for (index, certificate) in certificateChain.enumerated() {
-            if let summary = SecCertificateCopySubjectSummary(certificate) as String? {
-                let certificateData = SecCertificateCopyData(certificate) as Data
-                let thumbprint: String = Insecure.SHA1.hash(data: certificateData).map { String(format: "%02hhx", $0) }.joined()
-                chain.append(X509Cert(summary: summary, thumbprint: thumbprint))
-            }
-        }
-        
-        return chain
-    }
-    
-    static func fileExists(at path: String) -> Bool {
-        FileManager.default.fileExists(atPath: path)
-    }
-    
+    /// Does a path name a regular file whose first 512 bytes are UTF-8 text, such as a script?
+    ///
+    /// - Parameter path: The file's path, or a `file://` URL's.
+    /// - Returns: `false` for a binary, or anything that isn't a regular file (``openRegularFile(at:)``).
     static func fileIsNonBinary(at path: String) -> Bool {
-        let modPath = String(path.trimmingPrefix("file://"))
-        let fileURL = URL(fileURLWithPath: modPath)
-        
-        guard fileExists(at: fileURL.path) else {
+        guard let file = openRegularFile(at: path), let data = try? file.read(upToCount: 512) else {
             return false
         }
-        
-        guard let fileHandle = try? FileHandle(forReadingFrom: fileURL),
-              let data = try? fileHandle.read(upToCount: 512) else {
-            return false
-        }
-        
-        try? fileHandle.close()
-        
         return String(data: data, encoding: .utf8) != nil
     }
     
+    /// The UTF-8 text of a regular file, such as a script or a launch item's plist, up to ``fileContentsLimit``.
+    ///
+    /// - Parameter path: The file's path, or a `file://` URL's.
+    /// - Returns: The text, cut at the limit back to the end of a whole character, or `nil` if the file isn't UTF-8
+    ///   text or isn't a regular file (``openRegularFile(at:)``).
     public static func getFileContents(at path: String) -> String? {
-        let modPath = String(path.trimmingPrefix("file://"))
-        let fileURL = URL(fileURLWithPath: modPath)
-        
-        // Check if the file exists
-        guard fileExists(at: fileURL.path) else {
-            return nil
-        }
-        
+        guard let file = openRegularFile(at: path) else { return nil }
+        let data: Data
         do {
-            let fileContents = try String(contentsOf: fileURL, encoding: .utf8)
-            return fileContents
+            data = try file.read(upToCount: fileContentsLimit + 1) ?? Data()
         } catch {
             return nil
         }
+        guard data.count > fileContentsLimit else { return String(data: data, encoding: .utf8) }
+        /// A UTF-8 character is at most 4 bytes, so one of the last 4 cuts ends on a whole one.
+        for end in stride(from: fileContentsLimit, to: fileContentsLimit - 4, by: -1) {
+            if let text = String(data: data.prefix(end), encoding: .utf8) { return text }
+        }
+        return nil
     }
     
-    /// Returns 1 if the file is quarantined, 0 if not, and 2 if the file is not found
-    public static func isFileQuarantined(filePath: String) -> Int {
-        let fileManager = FileManager.default
-        if fileManager.fileExists(atPath: filePath) {
-            return getxattr(filePath, "com.apple.quarantine", nil, 0, 0, 0) > 0 ? 1 : 0
-        } else {
-            return 2
-        }
-    }
-    
-    
-    public static func newIsFileQuarantined(filePath: String) -> Bool {
-        let url = URL(fileURLWithPath: filePath)
-        let resourceValues = try? url.resourceValues(forKeys:[.quarantinePropertiesKey])
-        let quarantineProperties = resourceValues?.quarantineProperties
-        return quarantineProperties != nil
-    }
-    
-    // MARK: - Code Signing Type
-    public static func codeSigningType(for process: es_process_t) -> CodeSigningType {
-        // Helper function to determine type from certificates
-        func certType(forPath path: String) -> CodeSigningType? {
-            let certificates = ProcessHelpers.getCodeSigningCerts(forBinaryAt: path)
-            
-            for cert in certificates {
-                let summary = cert.summary
-                if summary.hasPrefix("Apple Mac OS") {
-                    return .appStore
-                } else if summary.hasPrefix("Developer ID Application") {
-                    return .developerId
-                }
-            }
-            return nil
-        }
-        
-        // Platform binary
-        if process.is_platform_binary {
-            return .platform
-        }
-        
-        // Adhoc binary
-        if (Int(process.codesigning_flags) & Int(CS_ADHOC)) == Int(CS_ADHOC) {
-            return .adhoc
-        }
-        
-        // Is validly signed. The flags are a `uint32_t`: read by bit pattern, since one with bit 31 set has no `Int32`.
-        let csValid = (Int32(bitPattern: process.codesigning_flags) & CS_VALID) == CS_VALID
-        if csValid, let executablePath = process.executable.pointee.path.string, !executablePath.isEmpty {
-            
-            // Check the codesinging certificates
-            if let type = certType(forPath: executablePath) {
-                return type
-            }
-            
-            return .unknown
-        }
-        
-        // Not validly signed
-        return .unsigned
-    }
-    
-    
-    // MARK: - LSFileQuarantineEnabled check
-    
-    /// Which bundle identifiers are forced into File Quarantine?
+    /// Open a file for reading, only if it's a regular file, without waiting.
     ///
-    /// Bundle identifiers forced into File Quarantine by Apple are located in a property list file by the name of `Exceptions.plist`.
-    /// We read from that property list and pull out all identiifers with a `LSFileQuarantineEnabled` key value set to `true`.
+    /// An exec's arguments can name anything. Opening a FIFO that has no writer waits until something opens it for
+    /// writing, and the capture lane building the event waited with it; opening a device can have side effects. So the
+    /// path is `stat`ed first, opened with `O_NONBLOCK`, and checked again with `fstat` in case it was replaced in
+    /// between.
     ///
-    public static let forcedQuarantineSigningIDs: [String] = {
-        var signingIDs: [String] = []
-        let filePath = "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/Exceptions.plist"
-        
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: filePath)),
-              let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
-              let dict = plist as? [String: Any],
-              let entries = dict["Additions"] as? [String: Any] else {
-            return signingIDs
-        }
-        
-        for (key, value) in entries {
-            if let data = value as? [String: Any], data["LSFileQuarantineEnabled"] != nil {
-                signingIDs.append(key)
-            }
-        }
-        
-        return signingIDs
-    }()
-    
-    /// The cache we use for paths we've already checked
-    private static let quarantineCheckCache: NSCache<NSString, NSNumber> = {
-        let cache = NSCache<NSString, NSNumber>()
-        cache.countLimit = 1000
-        return cache
-    }()
-    
-    /// Given the path to an executable on-disk return if it's "File Quarantine-aware".
-    ///
-    /// This method checks if an executable application has the `LSFileQuarantineEnabled` key
-    /// set to `true` in its Info.plist file. Applications with this flag enabled respect in file quarantine.
-    ///
-    /// - Parameter path: The file path to the executable to check
-    /// - Returns: `true` if the executable has quarantine enabled, `false` otherwise
-    ///
-    /// The method uses an internal cache to avoid repeated disk access and plist parsing
-    /// for paths that have already been checked. The cache has a limit of 1000 entries.
-    public static func isQuarantineEnabled(forExecutableAt path: String, signingId: String?) -> FileQuarantineType {
-        /// We're only going to check for File Quarantine with app bundles.
-        if !path.contains(".app") {
-            return .disabled
-        }
-        
-        /// First, check if Apple has forced the executable into being File Quarantine-aware
-        if let signingId = signingId,
-           forcedQuarantineSigningIDs.contains(signingId) {
-            return .forced
-        }
-        
-        /// Second, check if the path is in the cache
-        let nsPath = path as NSString
-        if let cached = quarantineCheckCache.object(forKey: nsPath) {
-            return cached.boolValue ? .optIn : .disabled
-        }
-        
-        let components = URL(fileURLWithPath: path).pathComponents
-        guard let contentsIndex = components.firstIndex(of: "Contents") else {
-            quarantineCheckCache.setObject(NSNumber(value: false), forKey: nsPath)
-            return .disabled
-        }
-        
-        /// Third, check if `LSFileQuarantineEnabled` is in the plist
-        let plistPath = NSString.path(withComponents: Array(components.prefix(through: contentsIndex)) + ["Info.plist"])
-        guard FileManager.default.fileExists(atPath: plistPath),
-              let dict = NSDictionary(contentsOfFile: plistPath),
-              let quarantineEnabled = dict["LSFileQuarantineEnabled"] as? Bool else {
-            quarantineCheckCache.setObject(NSNumber(value: false), forKey: nsPath)
-            return .disabled
-        }
-        
-        // Cache the result we found in the plist
-        quarantineCheckCache.setObject(NSNumber(value: quarantineEnabled), forKey: nsPath)
-        return quarantineEnabled ? .optIn : .disabled
+    /// - Parameter path: The file's path, or a `file://` URL's. A symbolic link is followed.
+    /// - Returns: The open file, closed when it's released, or `nil` if the path doesn't name a regular file or it
+    ///   can't be opened.
+    static func openRegularFile(at path: String) -> FileHandle? {
+        let path = URL(fileURLWithPath: String(path.trimmingPrefix("file://"))).path
+        var info = stat()
+        guard stat(path, &info) == 0, info.st_mode & S_IFMT == S_IFREG else { return nil }
+        let descriptor = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC)
+        guard descriptor >= 0 else { return nil }
+        let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        guard fstat(descriptor, &info) == 0, info.st_mode & S_IFMT == S_IFREG else { return nil }
+        return file
     }
 }

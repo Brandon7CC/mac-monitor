@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - XProtect Malware Detected event model: https://developer.apple.com/documentation/endpointsecurity/es_event_xp_malware_detected_t
 public struct XProtectDetectEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var signature_version: String
     public var malware_identifier: String

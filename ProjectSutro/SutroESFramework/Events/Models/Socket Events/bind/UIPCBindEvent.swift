@@ -8,7 +8,7 @@
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_uipc_connect_t
 public struct UIPCBindEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var dir: File
     public var filename: String

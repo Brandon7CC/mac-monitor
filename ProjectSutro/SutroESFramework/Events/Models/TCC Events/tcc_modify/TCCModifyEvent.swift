@@ -12,7 +12,7 @@ import EndpointSecurity
 // MARK: - TCC Modify event model: https://developer.apple.com/documentation/endpointsecurity/es_event_tcc_modify_t
 // Available beginning in macOS 15.4
 public struct TCCModifyEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     public var service, identity: String
     public var identity_type_string = "", update_type_string = "", right_string = "", reason_string = ""
     public var identity_type, update_type, right, reason: UInt32

@@ -28,7 +28,7 @@ public enum FileQuarantineType: String, Codable {
 /// Models an `es_process_t`
 /// Ensure Process conforms to Codable and Equatable
 public struct Process: Identifiable, Codable, Hashable {
-    public var id = UUID()
+    public var id = UUID.buffered()
     
     /// Time
     public var start_time: TimeVal

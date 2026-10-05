@@ -11,7 +11,7 @@ import EndpointSecurity
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_iokit_open_t
 public struct IOKitOpenEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var user_client_type: Int64
     public var user_client_class: String

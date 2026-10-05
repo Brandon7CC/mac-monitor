@@ -63,13 +63,35 @@ enum ESLogger {
     private static let timeTemplate = Array("0000-00-00T00:00:00.000000000Z".utf8)
     /// The seconds from 1970 to 2001 (a `Date`'s reference date), in microseconds.
     private static let referenceDateMicroseconds: Int64 = 978_307_200 * 1_000_000
+    /// Hex digits in ASCII: uppercase, then lowercase.
+    private static let hexDigits = Array("0123456789ABCDEF0123456789abcdef".utf8)
     
     /// `bytes` in uppercase hex.
     ///
     /// - Parameter bytes: A fixed-size value such as `es_cdhash_t` or `es_sha256_t`.
     /// - Returns: Two hex digits per byte.
     static func hex<T>(_ bytes: T) -> String {
-        withUnsafeBytes(of: bytes) { $0.map { String(format: "%02X", $0) }.joined() }
+        withUnsafeBytes(of: bytes) { hex(bytes: $0) }
+    }
+    
+    /// Bytes in hex, two digits per byte, from a lookup table.
+    ///
+    /// Not `String(format: "%02X")` per byte, which parses the format and makes a `CFString` for every byte: that took
+    /// ~9 µs for a code directory hash, most of the cost of modeling a process.
+    ///
+    /// - Parameters:
+    ///   - bytes: The bytes.
+    ///   - uppercase: Uppercase digits, as eslogger writes hashes, rather than lowercase.
+    /// - Returns: Two hex digits per byte.
+    static func hex(bytes: UnsafeRawBufferPointer, uppercase: Bool = true) -> String {
+        let offset = uppercase ? 0 : 16
+        return String(unsafeUninitializedCapacity: bytes.count * 2) { buffer in
+            for (index, byte) in bytes.enumerated() {
+                buffer[index * 2] = hexDigits[offset + Int(byte >> 4)]
+                buffer[index * 2 + 1] = hexDigits[offset + Int(byte & 0x0f)]
+            }
+            return bytes.count * 2
+        }
     }
     
     /// A message's `time` as eslogger writes it.
@@ -77,7 +99,66 @@ enum ESLogger {
     /// - Parameter time: `es_message_t.time`.
     /// - Returns: The time in UTC with nine fractional digits.
     static func time(_ time: timespec) -> String {
-        TimeSpec(from: time).humanFormat()
+        utcTime(seconds: time.tv_sec, fraction: time.tv_nsec, digits: 9) ?? TimeSpec(from: time).humanFormat()
+    }
+    
+    /// The last second ``utcTime(seconds:fraction:digits:)`` writes: 9999-12-31T23:59:59Z.
+    private static let lastFourDigitYearSecond = 253_402_300_799
+    
+    /// A UTC time as ``TimeSpec/humanFormat()`` and ``TimeVal/humanFormat()`` write it, for example
+    /// `2026-10-04T00:01:54.394127173Z`, by arithmetic.
+    ///
+    /// Not an `ISO8601FormatStyle`, a `String(format:)` and a `replacingOccurrences(of:with:)`, which took ~1.2 µs per
+    /// call: the Security Extension writes a `time` for every event, and the app formats five times for every process
+    /// it stores.
+    ///
+    /// - Parameters:
+    ///   - seconds: Seconds since 1970.
+    ///   - fraction: The fraction of a second, in units of 10^-`digits` seconds.
+    ///   - digits: The fraction's width: 9 for a `timespec`, 6 for a `timeval`.
+    /// - Returns: The time, or `nil` before 1970, after 9999, or for a fraction that isn't one, which the caller then
+    ///   formats as before.
+    static func utcTime(seconds: Int, fraction: Int, digits: Int) -> String? {
+        let fractionLimit = digits == 9 ? 1_000_000_000 : 1_000_000
+        guard (0...lastFourDigitYearSecond).contains(seconds), (0..<fractionLimit).contains(fraction) else {
+            return nil
+        }
+        /// The civil date from days since 1970 (Howard Hinnant's `civil_from_days`, the inverse of the
+        /// `days_from_civil` in ``utcTimespec(from:)``).
+        let days = seconds / 86_400, secondOfDay = seconds % 86_400
+        let shifted = days + 719_468, era = shifted / 146_097, dayOfEra = shifted - era * 146_097
+        let yearOfEra = (dayOfEra - dayOfEra / 1_460 + dayOfEra / 36_524 - dayOfEra / 146_096) / 365
+        let dayOfYear = dayOfEra - (365 * yearOfEra + yearOfEra / 4 - yearOfEra / 100)
+        let monthIndex = (5 * dayOfYear + 2) / 153
+        let day = dayOfYear - (153 * monthIndex + 2) / 5 + 1
+        let month = monthIndex < 10 ? monthIndex + 3 : monthIndex - 9
+        let year = yearOfEra + era * 400 + (month <= 2 ? 1 : 0)
+        let length = 21 + digits
+        return String(unsafeUninitializedCapacity: length) { buffer in
+            /// Write a number's last `width` digits, zero-padded, at `offset`.
+            func put(_ value: Int, at offset: Int, width: Int) {
+                var value = value
+                for index in stride(from: offset + width - 1, through: offset, by: -1) {
+                    buffer[index] = UInt8(ascii: "0") + UInt8(value % 10)
+                    value /= 10
+                }
+            }
+            put(year, at: 0, width: 4)
+            buffer[4] = UInt8(ascii: "-")
+            put(month, at: 5, width: 2)
+            buffer[7] = UInt8(ascii: "-")
+            put(day, at: 8, width: 2)
+            buffer[10] = UInt8(ascii: "T")
+            put(secondOfDay / 3_600, at: 11, width: 2)
+            buffer[13] = UInt8(ascii: ":")
+            put(secondOfDay / 60 % 60, at: 14, width: 2)
+            buffer[16] = UInt8(ascii: ":")
+            put(secondOfDay % 60, at: 17, width: 2)
+            buffer[19] = UInt8(ascii: ".")
+            put(fraction, at: 20, width: digits)
+            buffer[length - 1] = UInt8(ascii: "Z")
+            return length
+        }
     }
     
     /// Is `time` exactly as eslogger writes it: UTC to the nanosecond, `2026-10-04T00:01:54.394127173Z`?

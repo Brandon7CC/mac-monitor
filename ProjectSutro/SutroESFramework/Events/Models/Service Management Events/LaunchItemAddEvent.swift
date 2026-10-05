@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - Background Task Management (BTM) Launch Item Add event model https://developer.apple.com/documentation/endpointsecurity/3228936-es_events_t/4042928-btm_launch_item_add
 public struct LaunchItemAddEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     public var instigator: Process?
     public var app: Process?
