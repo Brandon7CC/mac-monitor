@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SutroESFramework
 
 
 // MARK: - Event spool
@@ -28,8 +29,8 @@ import Foundation
 /// in a root-only (`0700`) directory and are created `0600`. Every remaining segment is deleted when the spool is
 /// released.
 ///
-/// Not thread-safe: `SensorService` only touches it on its serial queue.
-final class EventSpool {
+/// Not thread-safe: Mac Monitor's ``EventBatcher`` only touches it on its queue.
+final class EventSpool: EventBacklog {
     /// Where spool files live. Anything left here by a crashed extension is removed by ``removeLeftovers()``.
     static let directory: URL = FileManager.default.temporaryDirectory
         .appendingPathComponent("com.swiftlydetecting.agent.securityextension.spool", isDirectory: true)

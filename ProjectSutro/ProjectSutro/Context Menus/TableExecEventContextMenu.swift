@@ -170,9 +170,9 @@ action: {
         .puntPathToMute(
             pathToMute: exec.target.executable?.path ?? "",
             muteCase:  ES_MUTE_PATH_TYPE_TARGET_LITERAL,
-            pathEvents: []
+            pathEvents: [],
+            from: .eventMenu
         )
-                systemExtensionManager.requestMutedPaths()
             }) {
                 HStack {
                     Text("Mute target path: \"`\(procName)`\"")
@@ -192,9 +192,9 @@ action: {
         .puntPathToMute(
             pathToMute: message.process.executable?.path ?? "",
             muteCase:  ES_MUTE_PATH_TYPE_LITERAL,
-            pathEvents: []
+            pathEvents: [],
+            from: .eventMenu
         )
-                systemExtensionManager.requestMutedPaths()
             }) {
                 HStack {
                     Text(

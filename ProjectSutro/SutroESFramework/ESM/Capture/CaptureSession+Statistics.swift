@@ -22,6 +22,12 @@ extension CaptureSession {
         lanes.map { lane in lane.statistics(subscribedEvents: subscribedEvents.filter(lane.serves).count) }
     }
     
+    /// Messages the clients were handed while capture was open but not recording, and skipped, over the session's
+    /// lifetime. Counted as each is turned away, so once ``isRecording`` is set, every message skipped before it is in.
+    public var skippedMessages: UInt64 {
+        lanes.reduce(0) { $0 + $1.skippedMessages }
+    }
+    
     /// The messages Endpoint Security dropped since the last call, for each client that lost any.
     ///
     /// - Returns: One report per client with new drops.

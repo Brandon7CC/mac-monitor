@@ -15,11 +15,9 @@ public struct CaptureConfiguration {
     /// The events to subscribe to. Only the NOTIFY events Mac Monitor models (`supportedEvents`) are kept; anything
     /// else (an AUTH event, an unknown name read as `ES_EVENT_TYPE_LAST`) is left out and logged.
     public var events: [es_event_type_t]
-    /// Apply Mac Monitor's default mute set (``MuteSet/default``) to every client. Endpoint Security's own default
-    /// mutes come with each new client either way.
-    public var appliesDefaultMuteSet: Bool = true
-    /// More mutes for every client, applied after the default set.
-    public var mutes: [PathMute] = []
+    /// The path mutes for every client: the saved mute set, or none. Endpoint Security's own default mutes come with
+    /// each new client either way.
+    public var mutes = MuteList()
     /// Mute this process on every client, as eslogger mutes itself, so that what the session's own process does (such
     /// as spooling events to disk) never feeds back into the capture.
     public var mutesSelf: Bool = true

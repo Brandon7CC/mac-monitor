@@ -19,9 +19,9 @@ import OSLog
 /// and a flood of file events no longer holds up process events. There's no worker pool: each event is built and
 /// encoded in its client's handler.
 ///
-/// **Mutes:** every client mutes this process and has the same path mutes: Mac Monitor's default set, the
-/// configuration's, and every later ``setPathMute(_:muted:)`` and ``apply(_:)``. They're in place before the first
-/// subscription, so no message arrives unmuted.
+/// **Mutes:** every client mutes this process and has the same path mutes: the configuration's (the saved mute set,
+/// or none), then each list ``applyMutes(_:)`` is given. They're in place before the first subscription, so no message
+/// arrives unmuted.
 ///
 /// **Order:** each class's events are emitted in the order its client delivers them, so `fork`, `exec`, and `exit`
 /// keep Endpoint Security's order. Classes interleave in the order their events are handled; nothing re-sorts them by
@@ -38,6 +38,8 @@ public final class CaptureSession {
     public private(set) var subscribedEvents: [es_event_type_t]
     /// Endpoint Security's own default mutes (``ESMutedPath`` JSON), read before any of Mac Monitor's were applied.
     public let appleMuteSet: Set<String>
+    /// The path mutes every client was last given (``applyMutes(_:)``), on top of Endpoint Security's own.
+    public internal(set) var appliedMutes: MuteList
     /// Serialize and emit events? A new session isn't recording. Setting it never waits for an event being built.
     public var isRecording: Bool = false {
         didSet { lanes.forEach { $0.setRecording(isRecording) } }
@@ -46,7 +48,7 @@ public final class CaptureSession {
     let lanes: [CaptureLane]
     /// Computes the Sensor ID stamped on events.
     private let makeSensorID: () -> String
-    private var isStopped: Bool = false
+    private(set) var isStopped: Bool = false
     /// How long stopping waits for the events being built, unless a test sets ``closeTimeout``.
     static let defaultCloseTimeout: DispatchTimeInterval = .seconds(1)
     /// How long ``stop()`` waits for an event being built before it leaves that client to be deleted once it's done.
@@ -73,7 +75,7 @@ public final class CaptureSession {
     /// 1. Create every client before configuring any. A client gets no messages until it subscribes, so if one is
     ///    refused (usually because the system has too many clients) the others are simply deleted.
     /// 2. Read Endpoint Security's default mutes from the first client.
-    /// 3. Mute this process and every path on each client, then subscribe each to its class's events.
+    /// 3. Mute this process and the configuration's paths on each client, then subscribe each to its class's events.
     ///
     /// - Parameters:
     ///   - configuration: The events to subscribe to, and the mutes.
@@ -91,12 +93,14 @@ public final class CaptureSession {
         let lanes = EventClass.allCases.map { CaptureLane($0, sensorID: sensorID, serializer: serializer, emit: emit) }
         try Self.createClients(for: lanes, with: factory, label: label)
         appleMuteSet = Set((lanes.first?.client?.mutedPaths() ?? []).map { pathToJSON(value: $0) })
-        Self.applyMutes(of: configuration, to: lanes)
+        if configuration.mutesSelf { Self.muteSelf(on: lanes, label: label) }
+        Self.apply(MuteList().changes(to: configuration.mutes), on: lanes, label: label)
         try Self.subscribe(lanes, to: events, label: label)
         
         self.label = label
         self.lanes = lanes
         self.makeSensorID = makeSensorID
+        appliedMutes = configuration.mutes
         subscribedEvents = events
         let shares = lanes.map { lane in "\(lane.eventClass.rawValue) \(events.filter(lane.serves).count)" }
         Self.logger.log("""
@@ -141,28 +145,6 @@ public final class CaptureSession {
             subscribedEvents.append(event)
         }
         return true
-    }
-    
-    /// Mute or unmute a path on every client, so it applies whichever client serves an event.
-    ///
-    /// - Parameters:
-    ///   - mute: The path, its type, and the events it's scoped to.
-    ///   - muted: `true` to mute, `false` to unmute.
-    /// - Returns: `true` if every client accepted it. A refusal is logged, and the other clients keep the change.
-    @discardableResult
-    public func setPathMute(_ mute: PathMute, muted: Bool) -> Bool {
-        guard !isStopped else { return false }
-        return Self.setPathMutes([mute], muted: muted, on: lanes, label: label)
-    }
-    
-    /// Mute every path of a mute set on every client. Mutes already in place, such as the user's, stay.
-    ///
-    /// - Parameter muteSet: The mute set, such as ``MuteSet/default``.
-    /// - Returns: `true` if every client accepted every mute. Refusals are logged, and the rest still apply.
-    @discardableResult
-    public func apply(_ muteSet: MuteSet) -> Bool {
-        guard !isStopped else { return false }
-        return Self.setPathMutes(muteSet.pathMutes, muted: true, on: lanes, label: label)
     }
     
     /// Every muted path, over all the clients. Their mutes are the same unless a client refused one.
@@ -246,51 +228,6 @@ extension CaptureSession {
                 throw CaptureStartError.clientRefused(lane.eventClass, result)
             }
         }
-    }
-    
-    /// Mute this process and the configuration's paths on every lane's client.
-    ///
-    /// A refusal is logged and the rest still apply, as Mac Monitor's mutes always have been.
-    ///
-    /// - Parameters:
-    ///   - configuration: Which mutes to apply.
-    ///   - lanes: The lanes, each with its client.
-    private static func applyMutes(of configuration: CaptureConfiguration, to lanes: [CaptureLane]) {
-        if configuration.mutesSelf {
-            let token = audit_token_t.currentProcess
-            for lane in lanes where lane.client?.muteProcess(token) != true {
-                logger.fault("""
-                    \(configuration.label, privacy: .public): couldn't mute this process on the \
-                    \(lane.eventClass.rawValue, privacy: .public) client, so its own activity will be captured.
-                    """)
-            }
-        }
-        let mutes = (configuration.appliesDefaultMuteSet ? MuteSet.default.pathMutes : []) + configuration.mutes
-        setPathMutes(mutes, muted: true, on: lanes, label: configuration.label)
-    }
-    
-    /// Mute or unmute paths on every lane's client.
-    ///
-    /// - Parameters:
-    ///   - mutes: The mutes.
-    ///   - muted: `true` to mute, `false` to unmute.
-    ///   - lanes: The lanes.
-    ///   - label: Names the session in the log, which counts each client's refusals.
-    /// - Returns: `true` if every client accepted every request.
-    @discardableResult
-    private static func setPathMutes(_ mutes: [PathMute], muted: Bool, on lanes: [CaptureLane], label: String) -> Bool {
-        var accepted = true
-        for lane in lanes {
-            let refused = mutes.filter { lane.client?.setPathMute($0, muted: muted) != true }
-            guard !refused.isEmpty else { continue }
-            accepted = false
-            logger.error("""
-                \(label, privacy: .public): the \(lane.eventClass.rawValue, privacy: .public) client refused \
-                \(refused.count) of \(mutes.count) path \(muted ? "mutes" : "unmutes", privacy: .public), \
-                such as \(refused[0].path).
-                """)
-        }
-        return accepted
     }
     
     /// Subscribe each lane's client to its class's share of the events, all or nothing.

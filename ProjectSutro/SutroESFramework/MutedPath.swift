@@ -53,6 +53,13 @@ public struct ESMutedPath: Identifiable, Codable, Hashable {
         self.eventCount = events.count
     }
     
+    /// A saved mute set entry, as the list shows it. No events means every event.
+    ///
+    /// - Parameter entry: The entry.
+    public init(_ entry: MuteFile.Entry) {
+        self.init(type: entry.type, events: entry.events, path: entry.path)
+    }
+    
 }
 
 public struct ESMutedPaths: Identifiable, Codable, Hashable {
@@ -102,16 +109,6 @@ public func pathToJSON(value: Encodable) -> String {
 }
 
 
-
-public func decodePathJSON(pathJSON: String) -> ESMutedPath? {
-    let json: Data = pathJSON.data(using: .utf8) ?? "".data(using: .utf8)!
-    guard let esMutedPath: ESMutedPath = try? JSONDecoder().decode(ESMutedPath.self, from: json)
-    else {
-        os_log("Could not decode this path JSON!")
-        return nil
-    }
-    return esMutedPath
-}
 
 public func encodePathJSON(path: ESMutedPath) -> String? {
     guard let data = try? JSONEncoder().encode(path) else { return nil }

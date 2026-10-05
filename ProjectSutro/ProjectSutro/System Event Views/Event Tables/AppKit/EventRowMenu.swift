@@ -84,20 +84,20 @@ struct EventRowMenu {
         }
         if isRecorded && prefs.contextInitiatingPathMute {
             advanced.append(Self.item("Mute initiating path: \"\(path ?? "")\"") {
-                manager.puntPathToMute(pathToMute: path ?? "", muteCase: ES_MUTE_PATH_TYPE_LITERAL, pathEvents: [])
-                manager.requestMutedPaths()
+                manager.puntPathToMute(pathToMute: path ?? "", muteCase: ES_MUTE_PATH_TYPE_LITERAL, pathEvents: [],
+                                       from: .eventMenu)
             })
         }
         if isRecorded && prefs.contextTargetPathMute && !targetPath.isEmpty {
             if byDirectory {
                 advanced.append(Self.item("Mute target path event: \"\(directory)/\"") {
-                    manager.puntPathToMute(pathToMute: directory, muteCase: ES_MUTE_PATH_TYPE_TARGET_PREFIX, pathEvents: [eventType])
-                    manager.requestMutedPaths()
+                    manager.puntPathToMute(pathToMute: directory, muteCase: ES_MUTE_PATH_TYPE_TARGET_PREFIX,
+                                           pathEvents: [eventType], from: .eventMenu)
                 })
             } else {
                 advanced.append(Self.item("Mute target path event: \"\(targetPath)/\"") {
-                    manager.puntPathToMute(pathToMute: targetPath, muteCase: ES_MUTE_PATH_TYPE_TARGET_LITERAL, pathEvents: [eventType])
-                    manager.requestMutedPaths()
+                    manager.puntPathToMute(pathToMute: targetPath, muteCase: ES_MUTE_PATH_TYPE_TARGET_LITERAL,
+                                           pathEvents: [eventType], from: .eventMenu)
                 })
             }
         }
@@ -155,15 +155,15 @@ struct EventRowMenu {
         if isRecorded && prefs.contextExecTargetPathMute {
             advanced.append(Self.item("Mute target path: \"\(targetFileName)\"") {
                 os_log("Requesting ES mute the target process path for: \(id)\n \(targetFileName)")
-                manager.puntPathToMute(pathToMute: targetPath ?? "", muteCase: ES_MUTE_PATH_TYPE_TARGET_LITERAL, pathEvents: [])
-                manager.requestMutedPaths()
+                manager.puntPathToMute(pathToMute: targetPath ?? "", muteCase: ES_MUTE_PATH_TYPE_TARGET_LITERAL,
+                                       pathEvents: [], from: .eventMenu)
             })
         }
         if isRecorded && prefs.contextExecInitiatingPathMute {
             advanced.append(Self.item("Mute initiating path: \"\(name ?? "")\"") {
                 os_log("Requesting ES mute the initiating process path for: \(id)\n \(name ?? "")")
-                manager.puntPathToMute(pathToMute: path ?? "", muteCase: ES_MUTE_PATH_TYPE_LITERAL, pathEvents: [])
-                manager.requestMutedPaths()
+                manager.puntPathToMute(pathToMute: path ?? "", muteCase: ES_MUTE_PATH_TYPE_LITERAL, pathEvents: [],
+                                       from: .eventMenu)
             })
         }
         if isRecorded && prefs.contextExecEventUnsubscribe {

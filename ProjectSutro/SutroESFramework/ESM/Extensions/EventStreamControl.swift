@@ -25,6 +25,9 @@ import EndpointSecurity
     case invalidArgument
     case waiting
     case success
+    /// Mac Monitor's own refusal, not Endpoint Security's: another Mac Monitor owns the event stream. Last, so the
+    /// cases above keep their raw values over XPC.
+    case streamOwned
 }
 
 

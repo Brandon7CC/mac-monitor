@@ -128,8 +128,8 @@ final class CaptureSessionStopTests: XCTestCase {
         session.stop()
         let stopped = factory.clients.map(\.calls.count)
         XCTAssertFalse(session.setSubscription(ES_EVENT_TYPE_NOTIFY_OPEN, enabled: true))
-        XCTAssertFalse(session.setPathMute(PathMute(path: "/tmp/x", type: ES_MUTE_PATH_TYPE_LITERAL), muted: true))
-        XCTAssertFalse(session.apply(.default))
+        XCTAssertFalse(session.applyMutes(MuteList([PathMute(path: "/tmp/x", type: ES_MUTE_PATH_TYPE_LITERAL)])))
+        XCTAssertFalse(session.applyMutes(.testDefault))
         XCTAssertTrue(session.mutedPaths().isEmpty)
         XCTAssertEqual(factory.clients.map(\.calls.count), stopped)
     }

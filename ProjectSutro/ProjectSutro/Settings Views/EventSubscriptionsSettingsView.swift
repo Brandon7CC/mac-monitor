@@ -250,29 +250,39 @@ struct TargetedEventsView: View {
 
             Divider()
 
-            ScrollView {
-                ForEach(path.events, id: \.self) { event in
-                    GroupBox {
-                        HStack {
-                            Text(event)
-                                .monospaced()
-                                .bold()
-                                .frame(alignment: .leading)
-                            Spacer()
-                            Button(action: {
-                                // MARK: Step #1 in unmuting path per event
-                                systemExtensionManager.puntPathToUnmute(pathToUnmute: path.path, type: path.type, events: [event])
-                                systemExtensionManager.requestMutedPaths()
-                            }) {
-                                Text("Unmute")
+            if path.events.isEmpty {
+                /// Narrowing a path muted for every event would need every other event listed, so it's refused.
+                Text("""
+                    Muted for every event. To mute only some events, unmute the path, then add it back for those \
+                    events.
+                    """)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding()
+            } else {
+                ScrollView {
+                    ForEach(path.events, id: \.self) { event in
+                        GroupBox {
+                            HStack {
+                                Text(event)
+                                    .monospaced()
                                     .bold()
+                                    .frame(alignment: .leading)
+                                Spacer()
+                                Button(action: {
+                                    // MARK: Step #1 in unmuting path per event
+                                    systemExtensionManager.puntPathToUnmute(pathToUnmute: path.path, type: path.type, events: [event])
+                                }) {
+                                    Text("Unmute")
+                                        .bold()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(.orange)
+                                .opacity(0.8)
+                                .padding(.trailing)
+                                .disabled(!systemExtensionManager.canChangeSavedMutes)
                             }
-                            .buttonStyle(.borderedProminent)
-                            .tint(.orange)
-                            .opacity(0.8)
-                            .padding(.trailing)
-                        }
-                    }.padding([.leading, .trailing])
+                        }.padding([.leading, .trailing])
+                    }
                 }
             }
             

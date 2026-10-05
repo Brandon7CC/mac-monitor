@@ -114,6 +114,12 @@ struct EventView: View {
     /// Usually what we'll do is check on app-launch and disable the start button.
     @State private var tccAlert: Bool = false
     
+    /// Shows, right away, what the Security Extension refused or left out of a mute asked for from an event's menu.
+    private var showsEventMuteProblems: Binding<Bool> {
+        Binding(get: { !systemExtensionManager.eventMuteProblems.isEmpty },
+                set: { if !$0 { systemExtensionManager.eventMuteProblems = [] } })
+    }
+    
     
     /// Everything that decides which events the event tables show.
     private var filterSpec: EventFilterSpec {
@@ -327,6 +333,9 @@ struct EventView: View {
                 case .tooManyClients:
                     os_log("🍬 [ES new client result] tooManyClients error!")
                     break
+                case .streamOwned:
+                    os_log("[ES new client result] Another Mac Monitor owns the event stream.")
+                    break
                 case .success:
                     os_log("⚡️ [ES new client result] Success!")
                     break
@@ -348,6 +357,9 @@ struct EventView: View {
                 NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
             }
         }
+        .alert("Saved mute set", isPresented: showsEventMuteProblems,
+               actions: { Button("OK", role: .cancel, action: {}) },
+               message: { Text(systemExtensionManager.eventMuteProblems.joined(separator: "\n\n")) })
     }
 }
 
