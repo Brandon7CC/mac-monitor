@@ -21,9 +21,16 @@ extension ESProcessForkEvent {
     @NSManaged public var child: ESProcess
     /// The `id` ``child`` had in this event (and exports). A shared row keeps the `id` of the first event that stored it.
     @NSManaged public var child_id: UUID?
+    /// ``launched_by_parent``, in plain columns (``LaunchedByParentColumns``).
+    @NSManaged public var launched_by_parent_source, launched_by_parent_resolved_by: String?
+    @NSManaged public var launched_by_parent_path, launched_by_parent_job: String?
+    @NSManaged public var launched_by_parent_pid: NSNumber?
+    @NSManaged public var launched_by_parent_token: Data?
 
 }
 
 extension ESProcessForkEvent : Identifiable {
 
 }
+
+extension ESProcessForkEvent: LaunchedByParentColumns {}

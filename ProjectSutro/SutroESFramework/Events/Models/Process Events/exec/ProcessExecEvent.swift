@@ -28,6 +28,10 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
     public var command_line: String?
     public var script_content: String?
     public var resolved_script_path: String?
+    /// Mac Monitor's launched-by parent of ``target`` (``LaunchedByParent``): stamped by the Security Extension's
+    /// serializer from the message's own fields, not by ``enrich()``, which also runs on traces recorded on other Macs,
+    /// where no process's path may be read. `nil` until it's resolved.
+    public var launched_by_parent: LaunchedByParent?
     
     // MARK: - Protocol conformance
     public func hash(into hasher: inout Hasher) {
@@ -148,5 +152,23 @@ extension ProcessExecEvent: ESEnrichable {
         if resolved_script_path == nil, let script {
             resolved_script_path = script.path
         }
+    }
+}
+
+
+// MARK: - XPC service name
+extension ProcessExecEvent {
+    /// The XPC service name in a process's environment.
+    ///
+    /// Only an entry named exactly `XPC_SERVICE_NAME` counts. launchd sets it to `0` for a process that isn't an XPC
+    /// service, which counts as none.
+    ///
+    /// - Parameter env: The environment's `KEY=value` entries, in order.
+    /// - Returns: The first `XPC_SERVICE_NAME`'s value, or `nil` without one or when it's empty or `0`.
+    static func xpcServiceName(in env: [String]) -> String? {
+        let prefix = "XPC_SERVICE_NAME="
+        guard let entry = env.first(where: { $0.hasPrefix(prefix) }) else { return nil }
+        let name = String(entry.dropFirst(prefix.count))
+        return name.isEmpty || name == "0" ? nil : name
     }
 }

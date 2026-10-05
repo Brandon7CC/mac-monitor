@@ -14,6 +14,10 @@ public struct ProcessForkEvent: Identifiable, Codable, Hashable {
     
     public var child: Process
     
+    /// Mac Monitor's launched-by parent of ``child`` (``LaunchedByParent``): stamped by the Security Extension's
+    /// serializer from the message's own fields. `nil` until it's resolved.
+    public var launched_by_parent: LaunchedByParent?
+    
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }

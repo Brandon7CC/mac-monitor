@@ -57,6 +57,8 @@ struct ProjectSutroApp: App {
     @State private var filteringLongRunningProcs: Bool = false
     
     @AppStorage("forcedDarkMode") private var forcedDarkMode = false
+    /// Which parents Event Facts' process tree follows: View > Process tree, and Settings > User Preferences.
+    @AppStorage(ProcessLineageMode.storageKey) private var processLineageMode = ProcessLineageMode.defaultMode
     
     // MARK: - Update Check State
     /// Holds the details of an available update. If nil, it means no update is available or the check hasn't run.
@@ -102,6 +104,8 @@ struct ProjectSutroApp: App {
             .preferredColorScheme(userPrefs.forcedDarkMode ? .dark : nil)
             .onAppear {
                 UserDefaults.standard.set(false, forKey: "lifecycleQuitInternal")
+                /// Name who launched each app Mac Monitor sees exec'd: before recording can start.
+                systemExtensionManager.launchedByParentUpgrader.reader = LaunchServicesReader.shared
                 
                 /// If auto-updates are enabled then check at app launch
                 if userPrefs.autoUpdates && EndpointSecurityManager.supportsUpdates {
@@ -214,6 +218,8 @@ struct ProjectSutroApp: App {
                     Label("Default", systemImage: "checkmark.seal")
                 }.keyboardShortcut("0")
             }
+            
+            ProcessTreeCommands(mode: $processLineageMode)
             
             CommandMenu("Security Extension") {
                 Button("System Setting: Full Disk Access") {

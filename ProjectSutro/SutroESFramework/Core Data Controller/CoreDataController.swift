@@ -49,7 +49,7 @@ public class CoreDataController {
     
     /// Can events be saved? Not without a store (a save or batch delete would raise an exception Swift can't catch), and
     /// not once Mac Monitor is quitting and the store's files are gone (Core Data would make a new, empty store).
-    private let canSave: OSAllocatedUnfairLock<Bool>
+    let canSave: OSAllocatedUnfairLock<Bool>
     
     /// Set up the on-disk Core Data PSC named: `SystemEvents`, starting from an empty store.
     init() {
@@ -134,6 +134,8 @@ public class CoreDataController {
     /// Events inserted but not yet saved. Normally just the current batch; after a failed save the earlier events stay
     /// here and are saved (and announced) with the next batch. Only touched on `privateMOC`'s queue.
     private var unsavedEvents: [ESMessage] = []
+    /// Has a failed save left events unsaved? Only on `privateMOC`'s queue.
+    var hasUnsavedEvents: Bool { !unsavedEvents.isEmpty }
     
     /// The most events kept for another try after failed saves. Past this, saves are failing for good (the disk is full)
     /// and the events are dropped, rather than kept in memory until Mac Monitor runs out of it (#84).

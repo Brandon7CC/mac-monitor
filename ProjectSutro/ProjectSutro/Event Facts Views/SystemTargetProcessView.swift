@@ -12,7 +12,8 @@ public let helpfulProcessColor: Color = Color(cgColor: .init(red: 43/255.0, gree
 
 
 /// Metadata includes:
-/// - Launch Services
+/// - The launched-by parent's source, when the launched-by parent isn't the Unix parent: "Launched by parent:
+///   launchd job", for example
 /// - Group Leader
 struct AdditionalProcMetadataView: View {
     var selectedMessage: ESMessage
@@ -20,14 +21,8 @@ struct AdditionalProcMetadataView: View {
     
     var body: some View {
         if let exec = selectedMessage.event.exec {
-            if selectedMessage.process.pid == 1 {
-                HStack {
-                    Image(systemName: "paperplane").symbolRenderingMode(.palette).foregroundColor(.black).font(Font.system(size: 15, weight: .bold))
-                    Text("**`Launch Services likely`**").foregroundColor(.black)
-                }.padding(5.0)
-                .background(
-                    RoundedRectangle(cornerSize: .init(width: 5.0, height: 5.0)).fill(helpfulProcessColor)
-                ).help("This process was likely submitted by another to be run by \"Launch Services\". It's hard in this case to determine which process submitted it to run.")
+            if let parent = exec.launched_by_parent, parent.source != .unixParent {
+                LaunchedByParentBadge(parent, titled: true)
             }
             
             if exec.target.group_id == exec.target.pid {

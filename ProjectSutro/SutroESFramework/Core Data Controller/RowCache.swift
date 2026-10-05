@@ -146,7 +146,7 @@ extension NSManagedObject {
 
 // MARK: - Values without their random IDs
 /// The `id` every value gets in a row cache key, so equal values have equal keys.
-private let zeroID = UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+let zeroID = UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
 
 extension AuditToken {
     /// This token with its random `id` zeroed.

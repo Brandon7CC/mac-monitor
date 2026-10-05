@@ -132,9 +132,12 @@ final class RawMessageFixture {
     /// - Parameters:
     ///   - pid: The process ID.
     ///   - euid: The effective user ID.
-    /// - Returns: The token, with audit user ID 4294967295 (none), session 100000 and pid version 1.
-    static func auditToken(pid: Int32, euid: UInt32 = 0) -> audit_token_t {
-        audit_token_t(val: (UInt32.max, euid, 0, 0, 0, UInt32(bitPattern: pid), 100_000, 1))
+    ///   - pidversion: The pid version.
+    ///   - asid: The audit session ID.
+    /// - Returns: The token, with audit user ID 4294967295 (none).
+    static func auditToken(pid: Int32, euid: UInt32 = 0, pidversion: UInt32 = 1,
+                           asid: UInt32 = 100_000) -> audit_token_t {
+        audit_token_t(val: (UInt32.max, euid, 0, 0, 0, UInt32(bitPattern: pid), asid, pidversion))
     }
 }
 

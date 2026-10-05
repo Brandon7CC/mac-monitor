@@ -50,6 +50,7 @@ public class ESProcessExecEvent: NSManagedObject {
         case args
         case env
         case script_content
+        case launched_by_parent
     }
     
     public var args: [String] {
@@ -72,24 +73,23 @@ public class ESProcessExecEvent: NSManagedObject {
         }
     }
     
+    /// Mac Monitor's launched-by parent of ``target`` (``LaunchedByParent``), kept in plain columns
+    /// (``LaunchedByParentColumns``). `nil` until it's resolved.
+    public var launched_by_parent: LaunchedByParent? {
+        get { storedLaunchedByParent }
+        set { storedLaunchedByParent = newValue }
+    }
+    
     /// The XPC service launchd started the process as: `XPC_SERVICE_NAME`'s value in ``env``, or `nil` without one.
     public var xpcServiceName: String? {
         Self.xpcServiceName(in: env)
     }
     
-    /// The XPC service name in a process's environment.
-    ///
-    /// Only an entry named exactly `XPC_SERVICE_NAME` counts. launchd sets it to `0` for a process that isn't an XPC
-    /// service, which counts as none.
+    /// The XPC service name in a process's environment (``ProcessExecEvent/xpcServiceName(in:)``).
     ///
     /// - Parameter env: The environment's `KEY=value` entries, in order.
     /// - Returns: The first `XPC_SERVICE_NAME`'s value, or `nil` without one or when it's empty or `0`.
-    static func xpcServiceName(in env: [String]) -> String? {
-        let prefix = "XPC_SERVICE_NAME="
-        guard let entry = env.first(where: { $0.hasPrefix(prefix) }) else { return nil }
-        let name = String(entry.dropFirst(prefix.count))
-        return name.isEmpty || name == "0" ? nil : name
-    }
+    static func xpcServiceName(in env: [String]) -> String? { ProcessExecEvent.xpcServiceName(in: env) }
     
     
     public var fds: [FileDescriptor] {
@@ -154,6 +154,7 @@ public class ESProcessExecEvent: NSManagedObject {
         
         self.command_line = execEvent.command_line ?? ""
         self.certificate_chain = execEvent.certificate_chain
+        self.launched_by_parent = execEvent.launched_by_parent
     }
 }
 
@@ -187,5 +188,8 @@ extension ESProcessExecEvent: Encodable {
         if !self.certificate_chain.isEmpty && self.certificate_chain.count != 0 {
             try container.encode(certificate_chain, forKey: .certificate_chain)
         }
+        
+        /// Mac Monitor's addition beside eslogger's fields: `null` when there's none, so the key is always there.
+        try container.encode(launched_by_parent, forKey: .launched_by_parent)
     }
 }

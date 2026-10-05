@@ -464,6 +464,12 @@
         <attribute name="is_es_client" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="is_platform_binary" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="last_fd" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="launched_by_parent_job" optional="YES" attributeType="String"/>
+        <attribute name="launched_by_parent_path" optional="YES" attributeType="String"/>
+        <attribute name="launched_by_parent_pid" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
+        <attribute name="launched_by_parent_resolved_by" optional="YES" attributeType="String"/>
+        <attribute name="launched_by_parent_source" optional="YES" attributeType="String"/>
+        <attribute name="launched_by_parent_token" optional="YES" attributeType="Binary"/>
         <attribute name="pid" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="process_name" optional="YES" attributeType="String"/>
         <attribute name="process_path" optional="YES" attributeType="String"/>
@@ -493,6 +499,12 @@
     <entity name="ESProcessForkEvent" representedClassName="ESProcessForkEvent" syncable="YES">
         <attribute name="child_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="launched_by_parent_job" optional="YES" attributeType="String"/>
+        <attribute name="launched_by_parent_path" optional="YES" attributeType="String"/>
+        <attribute name="launched_by_parent_pid" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
+        <attribute name="launched_by_parent_resolved_by" optional="YES" attributeType="String"/>
+        <attribute name="launched_by_parent_source" optional="YES" attributeType="String"/>
+        <attribute name="launched_by_parent_token" optional="YES" attributeType="Binary"/>
         <relationship name="child" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcess"/>
     </entity>
     <entity name="ESProcessSignalEvent" representedClassName="ESProcessSignalEvent" syncable="YES">

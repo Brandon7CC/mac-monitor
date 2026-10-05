@@ -37,9 +37,6 @@ struct SystemEventDetailsView: View {
     var selectedMessage: ESMessage
     @State private var targetMetadataExpanded: Bool = true
     
-    var potentialParent: ESMessage? { systemExtensionManager.coreDataContainer.findParentProc(message: selectedMessage) }
-    var procTree: [ESMessage] { systemExtensionManager.coreDataContainer.getProcTree(targetEvent: selectedMessage) }
-    
     var body: some View {
         List {
             SystemTargetProcessView(selectedMessage: selectedMessage).environmentObject(systemExtensionManager)
@@ -150,6 +147,7 @@ struct SystemEventFactsView : View {
             // MARK: Initating process view
             VStack(alignment: .leading) {
                 SystemInitiatingProcessView(selectedMessage: selectedMessage)
+                    .environmentObject(systemExtensionManager)
                     .textSelection(.enabled)
             }
             .tabItem{ Text("Parent") }
@@ -179,56 +177,10 @@ struct AppWrapperForFacts: View {
     @State private var selectedEventTree: ESMessage?
     @State private var visibility: NavigationSplitViewVisibility = .all
     
-    /// The selected event's ancestors, nearest first (forks only if they count as parents).
-    ///
-    /// - Parameter event: The selected event.
-    /// - Returns: Its process tree, looked up in the store.
-    private func procTree(for event: ESMessage) -> [ESMessage] {
-        systemExtensionManager.coreDataContainer.getProcTree(targetEvent: event).filter({
-            /// Forks as parent
-            if userPrefs.forksAsParent {
-                true
-            } else {
-                $0.es_event_type != "ES_EVENT_TYPE_NOTIFY_FORK"
-            }
-        })
-    }
-    
     var body: some View {
         NavigationSplitView(columnVisibility: $visibility) {
-            if let selected = selectedEventTree {
-                /// One lookup per update: the tree is read for every row below.
-                let tree = procTree(for: selected)
-                // MARK: Process tree
-                List(selection: $selectedEventTree) {
-                    Text("Subtree: `\(tree.count + 1)`")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                    Divider()
-                    ForEach(
-                        tree.reversed(),
-                        id: \.self
-                    ) { message in
-                        if message.id != tree.last?.id {
-                            Label("**`\(ProcessHelpers.getTargetProcessName(message: message))`**", systemImage: "arrow.turn.down.right").contextMenu {
-                                Button("Open in new window") {
-                                    openEventFacts(value: message.id)
-                                }
-                            }
-                            .foregroundStyle(.secondary)
-                        } else {
-                            Text("**`\(ProcessHelpers.getTargetProcessName(message: message))`**").contextMenu {
-                                Button("Open in new window") {
-                                    openEventFacts(value: message.id)
-                                }
-                            }
-                            .foregroundStyle(.secondary)
-                        }
-                    }
-                    Label("**`\(ProcessHelpers.getTargetProcessName(message: selectedEventTree!))`**", systemImage: "scope").disabled(true)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            // MARK: Process tree
+            ProcessLineageSidebar(selection: $selectedEventTree)
         } detail: {
             if let tree = selectedEventTree {
                 SystemEventFactsView(allFilters: $allFilters, selectedMessage: tree)

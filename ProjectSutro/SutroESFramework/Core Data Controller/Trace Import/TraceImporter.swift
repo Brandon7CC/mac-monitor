@@ -25,7 +25,8 @@ import os
 /// Every event is read with ``TraceDecoder``, which bridges these shapes for all event types at once instead of with a
 /// decoder per type. eslogger's events lack what Mac Monitor adds to each event (its name, context, and the values Mac
 /// Monitor derives from the event's own fields), so those are derived the way the Security Extension derives them
-/// (``Message/enrich()``, ``ESEnrichable``).
+/// (``Message/enrich()``, ``ESEnrichable``), and so is the launched-by parent of each process an exec or fork creates,
+/// from the trace alone (``TraceLaunchedByParents``).
 ///
 /// The file is read incrementally (``TraceRecordReader``), decoded in parallel a batch at a time, and each batch is saved
 /// while the next is decoded, so memory stays flat whatever the file's size. Records that aren't events (malformed or
@@ -119,6 +120,7 @@ public final class TraceImporter {
         /// One batch saving while the next is read and decoded, and what the saves did.
         let saving = DispatchSemaphore(value: 1)
         let saves = OSAllocatedUnfairLock(initialState: (events: 0, failed: false, range: ClosedRange<Date>?.none))
+        let launchedByParents = TraceLaunchedByParents()
         
         /// Decode the records read, wait for the batch being saved, and hand these to the store.
         ///
@@ -138,6 +140,9 @@ public final class TraceImporter {
                     if record.line < firstProblem?.line ?? .max { firstProblem = (record.line, Self.describe(error)) }
                 }
             }
+            /// In file order, after the parallel decode: each event's launched-by parent is named from the events
+            /// before it.
+            launchedByParents.fill(&messages)
             records.removeAll(keepingCapacity: true)
             recordBytes = 0
             saving.wait()

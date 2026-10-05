@@ -86,6 +86,9 @@ struct SystemInitiatingProcessView: View {
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
                 
+                // MARK: Launched by parent
+                LaunchedByParentBox(message: selectedMessage)
+                
                 Label("**Code signing details**", systemImage: "signature")
                     .font(.title2)
                     .padding([.leading], 5.0)

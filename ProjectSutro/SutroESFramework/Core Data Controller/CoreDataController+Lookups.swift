@@ -102,7 +102,8 @@ extension CoreDataController {
     ///
     /// Each `ESMessage` has an `initiating_process` we can attempt to find the corresponding `EXEC` and/or
     /// `FORK` event. What we're essentially doing here is looking for the event that created the process with the event's
-    /// audit token: the indexed ``ESMessage/created_audit_token`` of an `EXEC` (preferred) or `FORK` event.
+    /// audit token: the indexed ``ESMessage/created_audit_token`` of an `EXEC` (preferred) or `FORK` event
+    /// (``LineageLookup/creator(ofToken:)``).
     ///
     /// - Parameters:
     ///   - message: The system event to try and find the parent process for
@@ -110,12 +111,8 @@ extension CoreDataController {
     ///
     public func findParentProc(message: ESMessage) -> ESMessage? {
         guard message.process.audit_token != nil, let token = message.instigator_audit_token else { return nil }
-        let request = ESMessage.fetchRequest()
-        request.predicate = NSPredicate(format: "created_audit_token == %@ AND event_type IN %@", token, [ESMessage.execEventType, ESMessage.forkEventType])
-        request.returnsObjectsAsFaults = false
         do {
-            let creators = try container.viewContext.fetch(request)
-            return creators.first { $0.event_type == ESMessage.execEventType } ?? creators.first { $0.event_type == ESMessage.forkEventType }
+            return try LineageLookup(container.viewContext).creator(ofToken: token)
         } catch {
             CoreDataController.logger.error("We could not find the parent proc for: \(message.process.executable?.name ?? "")")
             return nil

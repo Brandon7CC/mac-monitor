@@ -34,8 +34,15 @@ extension ESProcessExecEvent {
     @NSManaged public var image_cpusubtype: Int64
     @NSManaged public var script_content: String?
     @NSManaged public var resolved_script_path: String?
+    /// ``launched_by_parent``, in plain columns (``LaunchedByParentColumns``).
+    @NSManaged public var launched_by_parent_source, launched_by_parent_resolved_by: String?
+    @NSManaged public var launched_by_parent_path, launched_by_parent_job: String?
+    @NSManaged public var launched_by_parent_pid: NSNumber?
+    @NSManaged public var launched_by_parent_token: Data?
 }
 
 extension ESProcessExecEvent : Identifiable {
 
 }
+
+extension ESProcessExecEvent: LaunchedByParentColumns {}

@@ -13,10 +13,10 @@ import os
 // MARK: - Capture lane
 /// One client of a ``CaptureSession``, and the work done for each of its messages on the client's handler queue.
 ///
-/// Lanes keep no state in common: each has its own locks, encoder, copy of the Sensor ID, and drop counters. Building
-/// an event still takes locks the whole process shares, so lanes building events at once wait on each other there:
-/// ``RandomUUIDBuffer/shared``'s for every model's `id`, ``CodeSigningCertificateCache/shared``'s, and libinfo's user
-/// cache's behind `getpwuid`.
+/// Lanes keep no state in common: each has its own locks, encoder, process path memory, copy of the Sensor ID, and
+/// drop counters. Building an event still takes locks the whole process shares, so lanes building events at once wait
+/// on each other there: ``RandomUUIDBuffer/shared``'s for every model's `id`, ``CodeSigningCertificateCache/shared``'s,
+/// and libinfo's user cache's behind `getpwuid`.
 ///
 /// **Control:** whether to record, and the Sensor ID, are read under a lock of their own as each message is handled.
 /// So turning recording on or off, or changing the Sensor ID, never waits for an event being built; one already being
@@ -69,6 +69,8 @@ final class CaptureLane {
     private let counters = OSAllocatedUnfairLock(uncheckedState: Counters())
     /// Only used under ``gate``.
     private let encoder = StreamingJSONEncoder()
+    /// The executables of the processes the lane's execs and forks named. Only used under ``gate``.
+    private let processPaths = ProcessPathMemory(capacity: ProcessPathMemory.laneCapacity)
     private let serializer: any EventSerializing
     private let emit: (CapturedEvent) -> Void
     
@@ -100,7 +102,8 @@ final class CaptureLane {
             guard let sensorID = control.withLock({ $0.isRecording && !$0.isClosed ? $0.sensorID : nil }) else {
                 return
             }
-            let lane = LaneContext(eventClass: eventClass, sensorID: sensorID, encoder: encoder)
+            let lane = LaneContext(eventClass: eventClass, sensorID: sensorID, encoder: encoder,
+                                   processPaths: processPaths)
             guard let json = serializer.serialize(message, in: lane) else {
                 counters.withLockUnchecked { $0.serializationFailures &+= 1 }
                 return

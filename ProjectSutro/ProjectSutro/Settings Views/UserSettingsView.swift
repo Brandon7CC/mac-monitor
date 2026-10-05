@@ -364,15 +364,8 @@ struct UserSettingsView: View {
                 Divider()
                 
                 GroupBox {
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Toggle("Forks as parents", isOn: userPrefs.$forksAsParent)
-                                .bold()
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        Text("Show forks as parents in process subtrees.")
-                    }
+                    ProcessTreePrefsView()
+                        .environmentObject(userPrefs)
                 }
                 
                 Divider()

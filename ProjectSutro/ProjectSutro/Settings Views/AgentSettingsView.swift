@@ -36,6 +36,8 @@ class UserPrefs: ObservableObject {
     
     // MARK: - Process tree
     @AppStorage("forksAsParent") var forksAsParent = false
+    // Which parents Event Facts' process tree follows is kept under ProcessLineageMode.storageKey: the View menu,
+    // Settings and the tree each read it through their own @AppStorage, so each follows the others' changes.
     
     // MARK: - Dark mode
     @AppStorage("forcedDarkMode") var forcedDarkMode: Bool = false

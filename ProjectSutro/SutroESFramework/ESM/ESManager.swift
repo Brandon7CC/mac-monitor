@@ -103,6 +103,8 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     private let eventBufferQueue = DispatchQueue(label: "com.swiftlydetecting.agent.eventBufferQueue")
     /// A high-performance GCD timer to periodically flush the event buffer.
     private var flushTimer: DispatchSourceTimer?
+    /// Asks LaunchServices who launched the apps whose execs arrive (agent context): the app gives it a reader.
+    public let launchedByParentUpgrader = LaunchedByParentUpgrader()
     
     // MARK: - Dynamic Throttling Properties
     /// Dynamic throttle manager that adjusts based on event rate
@@ -142,6 +144,9 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// The reply is held until the batch has been saved to Core Data. That's the back-pressure: when inserts fall behind,
     /// the Security Extension stops sending and spools to disk instead of this process growing without bound.
     ///
+    /// Execs and forks from an older Security Extension, which doesn't name launched-by parents, get theirs here, and
+    /// each app LaunchServices launched is looked up (``launchedByParentUpgrader``) once its exec is buffered.
+    ///
     /// Batches are accepted even after recording stops: the Security Extension stops serializing at the source, so anything
     /// still arriving was recorded before Stop and belongs in the trace. (A Clear discards older events by time instead;
     /// see ``CoreDataController/clearSystemEvents(source:)``.)
@@ -155,10 +160,13 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         // Track event rate for dynamic throttling
         throttleManager.registerEvents(decoded.count)
         
-        let messages: [Message] = decoded.filter(shouldInsert)
+        var messages: [Message] = decoded.filter(shouldInsert)
         guard !messages.isEmpty else { return reply() }
+        /// An exec or fork without a launched-by parent (from an older Security Extension) gets one, with its parent's
+        /// path read now.
+        for index in messages.indices { messages[index].resolveLaunchedByParent(by: .app, path: ProcessPath.live) }
         
-        eventBufferQueue.async {
+        eventBufferQueue.async { [messages] in
             self.eventBuffer.append(contentsOf: messages)
             self.pendingReplies.append(reply)
             
@@ -172,6 +180,27 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
                 self.flushEvents()
                 self.updateFlushTimer()
             }
+        }
+        /// After the append is queued, so an answer applied later reaches the buffer queue behind it.
+        launchedByParentUpgrader.schedule(messages) { [weak self] id, launchedByParent in
+            self?.applyLaunchedByParent(launchedByParent, toEventWithID: id)
+        }
+    }
+    
+    /// Give an app's exec the launched-by parent LaunchServices named after the exec arrived
+    /// (``LaunchedByParentUpgrader``).
+    ///
+    /// On ``eventBufferQueue``, behind the exec's append (``receive(events:reply:)`` queues it first): an exec still
+    /// buffered is patched before it's stored. An exec already flushed has had its insert queued on the store's private
+    /// queue, so the update there comes after it (``CoreDataController/updateLaunchedByParent(eventID:to:)``).
+    ///
+    /// - Parameters:
+    ///   - launchedByParent: The launched-by parent of the exec's target.
+    ///   - id: The exec's `id`.
+    private func applyLaunchedByParent(_ launchedByParent: LaunchedByParent, toEventWithID id: UUID) {
+        eventBufferQueue.async {
+            guard !self.eventBuffer.setLaunchedByParent(launchedByParent, ofEventWithID: id) else { return }
+            self.coreDataContainer.updateLaunchedByParent(eventID: id, to: launchedByParent)
         }
     }
     

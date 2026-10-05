@@ -27,6 +27,9 @@ struct SystemForkProcMetadataView: View {
             // MARK: Process
             ProcessView(message: selectedMessage, process: forkEvent.child)
             
+            // MARK: Parents
+            ParentsBox(message: selectedMessage)
+            
             Divider()
             
             Label("**Context items**", systemImage: "folder.badge.plus")
