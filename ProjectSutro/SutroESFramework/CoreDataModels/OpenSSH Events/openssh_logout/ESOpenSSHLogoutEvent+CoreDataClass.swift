@@ -44,6 +44,7 @@ extension ESOpenSSHLogoutEvent: Encodable {
         try container.encode(source_address_type_string, forKey: .source_address_type_string)
         try container.encode(source_address, forKey: .source_address)
         try container.encode(username, forKey: .username)
-        try container.encode(uid, forKey: .uid)
+        /// A `uid_t`, kept by bit pattern: written unsigned, as eslogger writes it.
+        try container.encode(UInt32(bitPattern: uid), forKey: .uid)
     }
 }

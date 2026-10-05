@@ -230,8 +230,9 @@ public final class TraceImporter {
     /// Exports and eslogger don't carry `message_darwin_time`, the event's time as a `Date`: it's read back from `time`
     /// (``ESLogger/date(fromTime:legacy:)``), and `time` is kept in eslogger's format (``ESLogger/time(_:darwinTime:)``).
     /// A new path's directory, which exports from 2.0.0 to 2.1.0 leave out, is read back from the event's destination
-    /// path (see ``Message/restoreNewPathDirectory()``). An event without Mac Monitor's own fields (one of eslogger's)
-    /// gets them derived from its Endpoint Security fields (``Message/enrich()``).
+    /// path, and a rename's `mode`, which 2.0.0 to 2.1.0 wrote as 0, is dropped (see ``Message/repairNewPath()``). An
+    /// event without Mac Monitor's own fields (one of eslogger's) gets them derived from its Endpoint Security fields
+    /// (``Message/enrich()``).
     ///
     /// - Parameter json: The event's JSON object, or a unified log entry whose `eventMessage` is one.
     /// - Returns: The event.
@@ -257,7 +258,7 @@ public final class TraceImporter {
             message.message_darwin_time = date
         }
         message.time = ESLogger.time(message.time, darwinTime: message.message_darwin_time)
-        message.restoreNewPathDirectory()
+        message.repairNewPath()
         return message
     }
     

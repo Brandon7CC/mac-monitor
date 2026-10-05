@@ -21,6 +21,11 @@ public struct MountEvent: Identifiable, Codable, Hashable {
     public var disposition: Int16
     public var disposition_string = ""
     
+    /// eslogger's keys, then Mac Monitor's.
+    enum CodingKeys: String, CodingKey {
+        case id, statfs, disposition, disposition_string
+    }
+    
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
@@ -34,8 +39,29 @@ public struct MountEvent: Identifiable, Codable, Hashable {
         
         statfs = StatFS(from: event.statfs.pointee)
         
-        disposition = Int16(event.disposition.rawValue)
+        /// Message version 8 and later. Before it the field is reserved: its zeros would read as an external device.
+        let disposition = rawMessage.pointee.version >= 8 ? event.disposition : ES_MOUNT_DISPOSITION_UNKNOWN
+        self.disposition = Int16(truncatingIfNeeded: disposition.rawValue)
         enrich()
+    }
+}
+
+
+// MARK: - Decoding
+extension MountEvent {
+    /// Read the event from eslogger's JSON, an export, or the Security Extension. eslogger's traces before message
+    /// version 8 have no `disposition`, which reads as unknown, as the Security Extension records it for those
+    /// versions: a default of 0 would read as an external device.
+    ///
+    /// - Parameter decoder: The event's decoder.
+    /// - Throws: The error decoding a field, such as a `statfs` that isn't an object.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        statfs = try container.decode(StatFS.self, forKey: .statfs)
+        disposition = try container.decodeIfPresent(Int16.self, forKey: .disposition)
+            ?? Int16(truncatingIfNeeded: ES_MOUNT_DISPOSITION_UNKNOWN.rawValue)
+        disposition_string = try container.decodeIfPresent(String.self, forKey: .disposition_string) ?? ""
     }
 }
 

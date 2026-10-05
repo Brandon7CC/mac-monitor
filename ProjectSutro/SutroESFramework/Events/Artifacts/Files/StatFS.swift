@@ -74,11 +74,15 @@ public struct StatFS: Identifiable, Codable, Equatable, Hashable {
         self.f_mntfromname = Self.cCharTupleToString(s.f_mntfromname)
     }
     
+    /// A fixed-size `char` array's text, up to its first NUL.
+    ///
+    /// Never reads past the array, even when the kernel leaves it without a NUL.
+    ///
+    /// - Parameter tuple: The array, as Swift imports it (a tuple of `CChar`).
+    /// - Returns: The text, decoded as UTF-8.
     private static func cCharTupleToString<T>(_ tuple: T) -> String {
-        var tuple = tuple
-        return withUnsafeBytes(of: &tuple) { buffer in
-            let ptr = buffer.bindMemory(to: CChar.self)
-            return String(cString: ptr.baseAddress!)
+        withUnsafeBytes(of: tuple) { buffer in
+            String(decoding: buffer.prefix { $0 != 0 }, as: UTF8.self)
         }
     }
 }

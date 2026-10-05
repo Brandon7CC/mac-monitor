@@ -33,8 +33,8 @@ public struct TCCModifyEvent: Identifiable, Codable, Hashable {
         let tccModifyEvent: es_event_tcc_modify_t = rawMessage.pointee.event.tcc_modify.pointee
         let version: Int = Int(rawMessage.pointee.version)
         
-        service = String(cString: tccModifyEvent.service.data)
-        identity = String(cString: tccModifyEvent.identity.data)
+        service = tccModifyEvent.service.string ?? ""
+        identity = tccModifyEvent.identity.string ?? ""
         identity_type = tccModifyEvent.identity_type.rawValue
         update_type = tccModifyEvent.update_type.rawValue
         instigator_token = AuditToken(from: tccModifyEvent.instigator_token)

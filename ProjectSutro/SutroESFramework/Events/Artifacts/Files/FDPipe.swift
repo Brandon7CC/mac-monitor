@@ -18,7 +18,8 @@ public struct FDPipe: Identifiable, Codable, Equatable, Hashable {
     
     public init(from fd: es_fd_t) {
         if fd.fdtype == PROX_FDTYPE_PIPE {
-            pipe_id = Int64(fd.pipe.pipe_id)
+            /// A `uint64_t`, kept by bit pattern: one of 2^63 or more has no `Int64`.
+            pipe_id = Int64(bitPattern: fd.pipe.pipe_id)
         }
     }
 }

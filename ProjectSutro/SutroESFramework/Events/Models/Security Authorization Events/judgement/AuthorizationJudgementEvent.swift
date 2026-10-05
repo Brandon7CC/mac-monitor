@@ -37,7 +37,7 @@ public struct ESAuthorizationResult: Identifiable, Codable, Hashable {
     }
 
     init(from esResult: es_authorization_result_t) {
-        right_name = String(cString: esResult.right_name.data)
+        right_name = esResult.right_name.string ?? ""
         granted = esResult.granted
         rule_class = Int32(esResult.rule_class.rawValue)
         
@@ -101,18 +101,16 @@ public struct AuthorizationJudgementEvent: Identifiable, Codable, Hashable {
         
         if let instigator = event.instigator {
             self.instigator = Process(from: instigator.pointee, version: version)
-            
-            if version >= 8 {
-                self.instigator_token = AuditToken(from: event.instigator_token)
-            }
         }
         
         if let petitioner = event.petitioner {
             self.petitioner = Process(from: petitioner.pointee, version: version)
-            
-            if version >= 8 {
-                self.petitioner_token = AuditToken(from: event.petitioner_token)
-            }
+        }
+        
+        /// Read whether or not Endpoint Security gave the processes, which are `_Nullable`.
+        if version >= 8 {
+            self.instigator_token = AuditToken(from: event.instigator_token)
+            self.petitioner_token = AuditToken(from: event.petitioner_token)
         }
         
         if let rawResults = event.results {

@@ -43,11 +43,11 @@ public struct Profile: Identifiable, Codable, Equatable, Hashable {
     }
     
     public init(from profile: es_profile_t) {
-        self.identifier = profile.identifier.toString() ?? ""
-        self.uuid = profile.uuid.toString() ?? ""
-        self.organization = profile.organization.toString() ?? ""
-        self.display_name = profile.display_name.toString() ?? ""
-        self.scope = profile.scope.toString() ?? ""
+        self.identifier = profile.identifier.string ?? ""
+        self.uuid = profile.uuid.string ?? ""
+        self.organization = profile.organization.string ?? ""
+        self.display_name = profile.display_name.string ?? ""
+        self.scope = profile.scope.string ?? ""
         
         self.install_source = Int16(profile.install_source.rawValue)
         enrich()

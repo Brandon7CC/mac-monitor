@@ -29,6 +29,6 @@ public struct XattrDeleteEvent: Identifiable, Codable, Hashable {
         let event: es_event_deleteextattr_t = rawMessage.pointee.event.deleteextattr
         
         target = File(from: event.target.pointee)
-        extattr = event.extattr.toString() ?? ""
+        extattr = event.extattr.string ?? ""
     }
 }

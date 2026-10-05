@@ -31,6 +31,9 @@ public class ESFileDestination: NSManagedObject {
             attach(ESFile.row(for: existingFile, in: context), to: #keyPath(ESFileDestination.existing_file))
         case .new_path(let newPath):
             self.new_path = ESNewPath(from: newPath, insertIntoManagedObjectContext: context)
+        case .unknown:
+            /// Neither: the destination encodes as `{}`.
+            break
         }
     }
 }

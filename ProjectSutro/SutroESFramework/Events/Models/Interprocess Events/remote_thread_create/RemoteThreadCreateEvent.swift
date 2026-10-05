@@ -9,11 +9,24 @@ import Foundation
 
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_remote_thread_create_t
+/// Models an `ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE`: a process created a thread in another process with
+/// `thread_create` or `thread_create_running`.
 public struct RemoteThreadCreateEvent: Identifiable, Codable, Hashable {
     public var id: UUID = UUID()
     
+    /// The process the thread was created in.
     public var target: Process
-    public var thread_state: String?
+    /// The new thread's state for `thread_create_running`, as eslogger writes it; `nil` for `thread_create`.
+    public var thread_state: ThreadState?
+    
+    /// Mac Monitor enrichment: the name of the state's flavor on the architecture of the Mac that recorded it
+    /// (``ThreadStateFlavor``), which Mac Monitor wrote as `thread_state` before 2.2.0.
+    public var thread_state_string: String?
+    
+    /// eslogger's keys, then Mac Monitor's.
+    enum CodingKeys: String, CodingKey {
+        case id, target, thread_state, thread_state_string
+    }
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -31,70 +44,56 @@ public struct RemoteThreadCreateEvent: Identifiable, Codable, Hashable {
         return true
     }
     
+    /// Record the event of a message from Endpoint Security.
+    ///
+    /// - Parameter rawMessage: The message.
     init(from rawMessage: UnsafePointer<es_message_t>) {
-        // Getting the thread create event
-        let remoteThreadEvent: es_event_remote_thread_create_t = rawMessage.pointee.event.remote_thread_create
-        let version = Int(rawMessage.pointee.version)
-        
-        self.target = Process(from: remoteThreadEvent.target.pointee, version: version)
-        
-        self.thread_state = remoteThreadEvent.thread_state.flatMap { Self.flavorName($0.pointee.flavor) }
+        let event: es_event_remote_thread_create_t = rawMessage.pointee.event.remote_thread_create
+        self.init(target: Process(from: event.target.pointee, version: Int(rawMessage.pointee.version)),
+                  threadState: event.thread_state?.pointee)
+    }
+    
+    /// Record an event from its Endpoint Security values.
+    ///
+    /// - Parameters:
+    ///   - target: The process the thread was created in.
+    ///   - threadState: The event's `thread_state`, or `nil` when it's `NULL` (`thread_create`). Its bytes are copied.
+    init(target: Process, threadState: es_thread_state_t?) {
+        self.target = target
+        thread_state = threadState.map { ThreadState(from: $0) }
+        enrich()
     }
 }
 
 
-// MARK: - Thread state flavors
+// MARK: - Decoding
 extension RemoteThreadCreateEvent {
-    /// The name of a thread state's flavor on this Mac's architecture, as the Security Extension records `thread_state`.
+    /// Read the event from eslogger's JSON, an export, or the Security Extension, including those before 2.2.0, which
+    /// wrote `thread_state` as its flavor's name, or left it out for a flavor they didn't name.
     ///
-    /// - Parameter flavor: The thread state's `thread_state_flavor_t`.
-    /// - Returns: The flavor's name, or `nil` for one this architecture doesn't name.
-    static func flavorName(_ flavor: thread_state_flavor_t) -> String? {
-        #if arch(i386)
-        return switch flavor {
-        case x86_THREAD_STATE32: "x86_THREAD_STATE32"
-        case x86_FLOAT_STATE32: "x86_FLOAT_STATE32"
-        case x86_EXCEPTION_STATE32: "x86_EXCEPTION_STATE32"
-        case x86_DEBUG_STATE32: "x86_DEBUG_STATE32"
-        case x86_THREAD_STATE64: "x86_THREAD_STATE64"
-        case x86_THREAD_FULL_STATE64: "x86_THREAD_FULL_STATE64"
-        case x86_FLOAT_STATE64: "x86_FLOAT_STATE64"
-        case x86_EXCEPTION_STATE64: "x86_EXCEPTION_STATE64"
-        case x86_DEBUG_STATE64: "x86_DEBUG_STATE64"
-        case x86_THREAD_STATE: "x86_THREAD_STATE"
-        case x86_FLOAT_STATE: "x86_FLOAT_STATE"
-        case x86_EXCEPTION_STATE: "x86_EXCEPTION_STATE"
-        case x86_DEBUG_STATE: "x86_DEBUG_STATE"
-        case x86_AVX_STATE32: "x86_AVX_STATE32"
-        case x86_AVX_STATE64: "x86_THREAD_STATE32"
-        case x86_AVX_STATE: "x86_AVX_STATE"
-        case x86_AVX512_STATE32: "x86_AVX512_STATE32"
-        case x86_AVX512_STATE64: "x86_AVX512_STATE64"
-        case x86_AVX512_STATE: "x86_AVX512_STATE"
-        case x86_PAGEIN_STATE: "x86_PAGEIN_STATE"
-        case x86_INSTRUCTION_STATE: "x86_INSTRUCTION_STATE"
-        case x86_LAST_BRANCH_STATE: "x86_LAST_BRANCH_STATE"
-        case THREAD_STATE_NONE: "THREAD_STATE_NONE"
-        default: nil
+    /// - Parameter decoder: The event's decoder.
+    /// - Throws: The error decoding a field, such as a thread state whose `flavor` isn't a number.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        target = try container.decode(Process.self, forKey: .target)
+        /// A name first: ``TraceDecoder`` reads a string where an object is expected as the object's `_0`, so it would
+        /// read a name as flavor 0.
+        if let name = try? container.decodeIfPresent(String.self, forKey: .thread_state) {
+            thread_state = ThreadStateFlavor.flavor(named: name).map { ThreadState(flavor: $0, state_base64: nil) }
+            thread_state_string = name
+        } else {
+            thread_state = try container.decodeIfPresent(ThreadState.self, forKey: .thread_state)
+            thread_state_string = try container.decodeIfPresent(String.self, forKey: .thread_state_string)
         }
-        #elseif arch(arm64)
-        return switch flavor {
-        case ARM_THREAD_STATE: "ARM_THREAD_STATE"
-        case ARM_VFP_STATE: "ARM_VFP_STATE"
-        case ARM_EXCEPTION_STATE: "ARM_EXCEPTION_STATE"
-        case ARM_DEBUG_STATE: "ARM_DEBUG_STATE"
-        case THREAD_STATE_NONE: "THREAD_STATE_NONE"
-        case ARM_THREAD_STATE32: "ARM_THREAD_STATE32"
-        case ARM_THREAD_STATE64: "ARM_THREAD_STATE64"
-        case ARM_EXCEPTION_STATE64: "ARM_EXCEPTION_STATE64"
-        case ARM_NEON_STATE: "ARM_NEON_STATE"
-        case ARM_NEON_STATE64: "ARM_NEON_STATE64"
-        case ARM_DEBUG_STATE32: "ARM_DEBUG_STATE32"
-        case ARM_DEBUG_STATE64: "ARM_DEBUG_STATE64"
-        default: nil
-        }
-        #else
-        return nil
-        #endif
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension RemoteThreadCreateEvent: ESEnrichable {
+    /// Derive the name of the thread state's flavor, on this Mac's architecture.
+    public mutating func enrich() {
+        thread_state_string = thread_state.flatMap { ThreadStateFlavor.name(of: $0.flavor) }
     }
 }

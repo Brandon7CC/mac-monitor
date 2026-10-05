@@ -26,17 +26,26 @@
 import Foundation
 
 
-public struct OpenDirectoryGroupAddEvent: Identifiable, Codable, Hashable {
+/// Models an `ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD`: a member was added to an Open Directory group.
+public struct OpenDirectoryGroupAddEvent: Identifiable, Codable, Hashable, OpenDirectoryGroupMemberEvent {
     public var id: UUID = UUID()
-    public var instigator_process_name, instigator_process_path, instigator_process_audit_token, instigator_process_signing_id: String?
+    /// The process that instigated the operation (the XPC caller), or `nil` when Endpoint Security leaves it out.
+    public var instigator: Process?
+    /// The instigator's audit token: message version 8 and later.
+    public var instigator_token: AuditToken?
+    /// Error codes defined in: `odconstants.h`. An error code of 0 indicates success.
+    public var error_code: Int = 0
     public var group_name: String?
-    public var member: String?
+    /// The member added, as eslogger writes it.
+    public var member: OpenDirectoryMember?
     public var node_name: String?
     public var db_path: String?
-    /// Error codes defined in: `odconstants.h`. An error code of 0 indicates success.
-    public var error_code: Int
-    /// Decoded OD error code from `odconstants.h`.
-    public var error_code_human: String?
+    
+    /// Mac Monitor enrichment: the error's description, the name of the member's type (written in place of `member`
+    /// before 2.2.0), and the instigator's name, path, audit token and signing ID.
+    public var error_code_human, member_string: String?
+    public var instigator_process_name, instigator_process_path: String?
+    public var instigator_process_audit_token, instigator_process_signing_id: String?
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -46,56 +55,28 @@ public struct OpenDirectoryGroupAddEvent: Identifiable, Codable, Hashable {
         return lhs.id == rhs.id
     }
     
+    /// Record the event of a message from Endpoint Security.
+    ///
+    /// - Parameter rawMessage: The message.
     init(from rawMessage: UnsafePointer<es_message_t>) {
-        let odGroupAddEvent: es_event_od_group_add_t = rawMessage.pointee.event.od_group_add.pointee
-        let instigatorProcess: es_process_t = odGroupAddEvent.instigator!.pointee
-        
-        self.instigator_process_name = ""
-        if instigatorProcess.executable.pointee.path.length > 0 {
-            self.instigator_process_name = URL(filePath: String(cString: instigatorProcess.executable.pointee.path.data)).lastPathComponent
-        }
-        
-        self.instigator_process_path = ""
-        if instigatorProcess.executable.pointee.path.length > 0 {
-            self.instigator_process_path = String(cString: instigatorProcess.executable.pointee.path.data)
-        }
-        
-        self.instigator_process_signing_id = ""
-        if instigatorProcess.signing_id.length > 0 {
-            self.instigator_process_signing_id = String(cString: instigatorProcess.signing_id.data)
-        }
-        
-        self.instigator_process_audit_token = ""
-        self.instigator_process_audit_token =  instigatorProcess.audit_token
-            .toString()
-        
-        self.error_code = Int(odGroupAddEvent.error_code)
+        read(from: rawMessage.pointee.event.od_group_add, version: Int(rawMessage.pointee.version))
+    }
     
-        self.group_name = ""
-        if odGroupAddEvent.group_name.length > 0 {
-            self.group_name = String(cString: odGroupAddEvent.group_name.data)
-        }
-        
-        self.member = odMemberTypeName(odGroupAddEvent.member.pointee.member_type)
-        
-        self.node_name = ""
-        if odGroupAddEvent.node_name.length > 0 {
-            self.node_name = String(cString: odGroupAddEvent.node_name.data)
-        }
-        
-        self.db_path = ""
-        if odGroupAddEvent.db_path.length > 0 {
-            self.db_path = String(cString: odGroupAddEvent.db_path.data)
-        }
-        enrich()
+    /// Read the event from eslogger's JSON, an export, or the Security Extension, including those before
+    /// 2.2.0, which wrote the name of the member's type as `member`.
+    ///
+    /// - Parameter decoder: The event's decoder.
+    /// - Throws: The error decoding a field.
+    public init(from decoder: Decoder) throws {
+        try decodeGroupMember(from: decoder)
     }
 }
 
 
 // MARK: - Mac Monitor enrichment
 extension OpenDirectoryGroupAddEvent: ESEnrichable {
-    /// Derive the error code's description.
+    /// Derive the error code's description, the name of the member's type, and the instigator's fields.
     public mutating func enrich() {
-        error_code_human = decodeODErrorCode(error_code)
+        enrichGroupMember()
     }
 }

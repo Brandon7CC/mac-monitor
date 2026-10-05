@@ -116,8 +116,8 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
         
         // Version 7 - macOS 13.3+
         // The exec path passed up to dyld, before symlink resolution.
-        if version >= 7, execEvent.dyld_exec_path.length > 0 {
-            self.dyld_exec_path = String(cString: execEvent.dyld_exec_path.data)
+        if version >= 7 {
+            self.dyld_exec_path = execEvent.dyld_exec_path.string
         }
         
         // MARK: - Code Signing certificate chain

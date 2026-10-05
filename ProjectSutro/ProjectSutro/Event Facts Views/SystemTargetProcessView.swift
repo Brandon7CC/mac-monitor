@@ -120,7 +120,7 @@ struct ParentProcessMetadata: View {
                     Text("`\(String(selectedMessage.process.executable?.name ?? ""))`")
                 }
                 
-                if let parentSigningID: String = selectedMessage.process.signing_id {
+                if let parentSigningID: String = selectedMessage.process.signing_id.nonEmpty {
                     Text("\u{2022} **Signing ID:**")
                     GroupBox {
                         Text("`\(parentSigningID)`")
@@ -185,7 +185,7 @@ struct SystemTargetProcessView: View {
                     }
                     Label("**Thread ID:**", systemImage: "scribble")
                     GroupBox {
-                        Text("`\(String(selectedMessage.thread.thread_id))`")
+                        Text("`\(selectedMessage.thread.map { String($0.thread_id) } ?? "None")`")
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 

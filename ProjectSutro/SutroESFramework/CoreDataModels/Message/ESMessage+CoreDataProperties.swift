@@ -71,7 +71,7 @@ extension ESMessage {
     @NSManaged public var process_id: UUID?
     
     /// Thread
-    @NSManaged public var thread: ESThread
+    @NSManaged public var thread: ESThread?
     
     /// Event
     /// A process execution event. Corresponds to `ES_EVENT_TYPE_NOTIFY_EXEC`

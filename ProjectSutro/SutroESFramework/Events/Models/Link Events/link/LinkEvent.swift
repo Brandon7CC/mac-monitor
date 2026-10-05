@@ -31,6 +31,6 @@ public struct LinkEvent: Identifiable, Codable, Hashable {
         
         source = File(from: event.source.pointee)
         target_dir = File(from: event.target_dir.pointee)
-        target_filename = event.target_filename.toString() ?? ""
+        target_filename = event.target_filename.string ?? ""
     }
 }

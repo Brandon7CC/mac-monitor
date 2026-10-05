@@ -172,6 +172,8 @@ public func eventStringToImage(from eventString: String) -> String {
         return "person.crop.circle.badge.minus"
     case "ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD":
         return "person.3.fill"
+    case "ES_EVENT_TYPE_NOTIFY_OD_GROUP_REMOVE":
+        return "person.fill.badge.minus"
     case "ES_EVENT_TYPE_NOTIFY_OD_CREATE_GROUP":
         return "person.3.fill"
     case "ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_VALUE_ADD":

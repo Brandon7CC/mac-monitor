@@ -34,6 +34,7 @@ extension ESLWLoginEvent: Encodable {
         
 //        try container.encode(id, forKey: .id)
         try container.encode(username, forKey: .username)
-        try container.encode(graphical_session_id, forKey: .graphical_session_id)
+        /// A `uint32_t`, kept by bit pattern: written unsigned, as eslogger writes it.
+        try container.encode(UInt32(bitPattern: graphical_session_id), forKey: .graphical_session_id)
     }
 }

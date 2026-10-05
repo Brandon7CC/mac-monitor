@@ -28,7 +28,7 @@ public class ProcessHelpers {
     static func parseCommandLine(execEvent: inout es_event_exec_t) -> String {
         var command_line_builder: String = ""
         for i in 0 ..< Int(es_exec_arg_count(&execEvent)) {
-            command_line_builder = "\(command_line_builder) \(String(cString: es_exec_arg(&execEvent, UInt32(i)).data))"
+            command_line_builder = "\(command_line_builder) \(es_exec_arg(&execEvent, UInt32(i)).string ?? "")"
         }
         return command_line_builder.trimmingCharacters(in: .whitespaces)
     }
@@ -36,7 +36,7 @@ public class ProcessHelpers {
     static func parseExecArgs(execEvent: inout es_event_exec_t) -> [String] {
         var args: [String] = []
         for i in 0 ..< Int(es_exec_arg_count(&execEvent)) {
-            args.append(String(cString: es_exec_arg(&execEvent, UInt32(i)).data))
+            args.append(es_exec_arg(&execEvent, UInt32(i)).string ?? "")
         }
         return args
     }
@@ -67,7 +67,7 @@ public class ProcessHelpers {
         var envVars: [String] = []
         
         for index in 0..<numberOfVars {
-            let envVarVar: String = String(cString: es_exec_env(&event, UInt32(index)).data)
+            let envVarVar: String = es_exec_env(&event, UInt32(index)).string ?? ""
             envVars.append(envVarVar)
         }
         return envVars.joined(separator: "[::]")
@@ -78,7 +78,7 @@ public class ProcessHelpers {
         var env: [String] = []
         
         for index in 0..<count {
-            let envVarVar: String = String(cString: es_exec_env(&event, UInt32(index)).data)
+            let envVarVar: String = es_exec_env(&event, UInt32(index)).string ?? ""
             env.append(envVarVar)
         }
         return env
@@ -98,8 +98,15 @@ public class ProcessHelpers {
     }
     
     // MARK: - Address to hex
-    public static func toHex(target: String) -> String {
-        return String(format: "0x%llx", target)
+    /// An address in lowercase hex, for example `0x104b9c000`.
+    ///
+    /// It used to take the address's decimal digits as a `String`, which `%llx` can't format: it printed the string's
+    /// pointer instead, a different wrong value on every run.
+    ///
+    /// - Parameter address: The address.
+    /// - Returns: `0x` and the address's hex digits.
+    public static func toHex(_ address: UInt64) -> String {
+        return String(format: "0x%llx", address)
     }
     
     // MARK: - Normalized size
@@ -344,12 +351,9 @@ public class ProcessHelpers {
             return .adhoc
         }
         
-        // Is validly signed
-        let csValid = (Int32(process.codesigning_flags) & CS_VALID) == CS_VALID
-        if csValid && process.executable.pointee.path.length > 0 {
-            let executablePath = String(
-                cString: process.executable.pointee.path.data
-            )
+        // Is validly signed. The flags are a `uint32_t`: read by bit pattern, since one with bit 31 set has no `Int32`.
+        let csValid = (Int32(bitPattern: process.codesigning_flags) & CS_VALID) == CS_VALID
+        if csValid, let executablePath = process.executable.pointee.path.string, !executablePath.isEmpty {
             
             // Check the codesinging certificates
             if let type = certType(forPath: executablePath) {

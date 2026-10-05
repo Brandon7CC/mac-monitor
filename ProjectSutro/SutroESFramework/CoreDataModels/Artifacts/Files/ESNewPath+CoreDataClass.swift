@@ -29,9 +29,7 @@ public class ESNewPath: NSManagedObject {
         
         attach(ESFile.row(for: newPath.dir, in: context), to: #keyPath(ESNewPath.dir))
         self.filename = newPath.filename
-        if let mode = newPath.mode {
-            self.mode = Int32(truncatingIfNeeded: mode)
-        }
+        self.mode = newPath.mode.map { NSNumber(value: Int32(truncatingIfNeeded: $0)) }
     }
 }
 
@@ -39,11 +37,15 @@ public class ESNewPath: NSManagedObject {
 extension ESNewPath: Encodable {
     /// Encode the new path with its directory, loading the directory if it isn't loaded yet.
     ///
-    /// v2.0.0 through v2.1.0 wrote `dir` only when it was already loaded, which in an export it rarely was.
+    /// v2.0.0 through v2.1.0 wrote `dir` only when it was already loaded, which in an export it rarely was. `mode` is
+    /// written only for a create event's new path: a rename's has none, and v2.0.0 through v2.1.0 wrote 0 for it.
+    ///
+    /// - Parameter encoder: The encoder.
+    /// - Throws: The encoder's error.
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(dir, forKey: .dir)
         try container.encode(filename, forKey: .filename)
-        try container.encodeIfPresent(mode, forKey: .mode)
+        try container.encodeIfPresent(mode?.int32Value, forKey: .mode)
     }
 }

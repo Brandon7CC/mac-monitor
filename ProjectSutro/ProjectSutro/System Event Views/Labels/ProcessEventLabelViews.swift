@@ -45,7 +45,7 @@ struct ExecEventLabelView: View {
             if event.target.is_adhoc_signed {
                 Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow)
                 Label("**`\(message.es_event_type!)`**", systemImage: "xmark.seal").symbolRenderingMode(.palette).foregroundStyle(.orange)
-            } else if event.target.signing_id != nil && event.target.signing_id! != "Unknown" {
+            } else if let signingID = event.target.signing_id.nonEmpty, signingID != "Unknown" {
                 // MARK: Signed
                 Label("**`\(message.es_event_type!)`**", systemImage: "checkmark.seal")
             } else {

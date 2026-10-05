@@ -70,21 +70,21 @@ struct SystemGatekeeperUserOverrideMetadataView: View {
                                     .bold()
                                     .font(.title3)
                                 
-                                if !codeSigning.signing_id.isEmpty {
+                                if let signingID = codeSigning.signing_id.nonEmpty {
                                     HStack {
                                         Text("\u{2022} **Signing ID**")
                                         GroupBox {
-                                            Text(codeSigning.signing_id)
+                                            Text(signingID)
                                                 .monospaced()
                                         }
                                     }
                                 }
                                 
-                                if !codeSigning.team_id.isEmpty {
+                                if let teamID = codeSigning.team_id.nonEmpty {
                                     HStack {
                                         Text("\u{2022} **Team ID**")
                                         GroupBox {
-                                            Text(codeSigning.team_id)
+                                            Text(teamID)
                                                 .monospaced()
                                         }
                                     }

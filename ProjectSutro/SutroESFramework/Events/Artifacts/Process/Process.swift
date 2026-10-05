@@ -84,12 +84,9 @@ public struct Process: Identifiable, Codable, Hashable {
             self.cs_validation_category = Int32(process.cs_validation_category.rawValue)
         }
         
-        if process.signing_id.length > 0 {
-            self.signing_id = String(cString: process.signing_id.data)
-        }
-        if process.team_id.length > 0 {
-            self.team_id = String(cString: process.team_id.data)
-        }
+        /// `nil` (eslogger's `null`) when Endpoint Security has none, and "" when it has an empty one.
+        self.signing_id = process.signing_id.string
+        self.team_id = process.team_id.string
         
         self.executable = File(from: process.executable.pointee)
         

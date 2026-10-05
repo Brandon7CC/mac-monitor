@@ -29,8 +29,16 @@ public class ESIOKitOpenEvent: NSManagedObject {
         self.user_client_type = iokitEvent.user_client_type
         self.user_client_class = iokitEvent.user_client_class
         
-        self.parent_registry_id = iokitEvent.parent_registry_id
-        self.parent_path = iokitEvent.parent_path
+        /// Message version 10 and later: before it, Endpoint Security has no such fields and eslogger writes neither.
+        if message.version >= 10 {
+            self.parent_registry_id = NSNumber(value: iokitEvent.parent_registry_id)
+            self.parent_path = iokitEvent.parent_path
+        }
+    }
+    
+    /// The parent's IOKit registry ID, unsigned as Endpoint Security gives it, or `nil` before message version 10.
+    public var parentRegistryID: UInt64? {
+        parent_registry_id.map { UInt64(bitPattern: $0.int64Value) }
     }
 }
 
@@ -41,8 +49,10 @@ extension ESIOKitOpenEvent: Encodable {
         try container.encode(user_client_type, forKey: .user_client_type)
         try container.encode(user_client_class, forKey: .user_client_class)
         
-        /// Message version 10 (macOS 26) and later. Written for earlier versions too, where eslogger has no such keys.
-        try container.encode(parent_path, forKey: .parent_path)
-        try container.encode(parent_registry_id, forKey: .parent_registry_id)
+        /// Message version 10 (macOS 26) and later only, as eslogger writes them: both keys, or neither.
+        if let parentRegistryID {
+            try container.encode(parent_path, forKey: .parent_path)
+            try container.encode(parentRegistryID, forKey: .parent_registry_id)
+        }
     }
 }

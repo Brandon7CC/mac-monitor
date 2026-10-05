@@ -33,7 +33,8 @@ public struct LWLoginEvent: Identifiable, Codable, Hashable {
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let lwLoginEvent: es_event_lw_session_login_t = rawMessage.pointee.event.lw_session_login.pointee
         
-        self.username = String(cString: lwLoginEvent.username.data)
-        self.graphical_session_id = Int32(lwLoginEvent.graphical_session_id)
+        self.username = lwLoginEvent.username.string ?? ""
+        /// A `uint32_t`, kept by bit pattern: one of 2^31 or more has no `Int32`.
+        self.graphical_session_id = Int32(bitPattern: lwLoginEvent.graphical_session_id)
     }
 }

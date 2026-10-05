@@ -35,7 +35,7 @@ public class ESGatekeeperUserOverrideEvent: NSManagedObject {
         file_type = override.file_type
         file_type_string = override.file_type_string
         
-        /// We need to report the file union differently to the app to conform to ESLogger's oddness...
+        /// The union's arm: a file, or a path. An unknown arm stores neither.
         if let file = override.file.file {
             attach(ESFile.row(for: file, in: context), to: #keyPath(ESGatekeeperUserOverrideEvent.file))
         }
@@ -60,12 +60,28 @@ public class ESGatekeeperUserOverrideEvent: NSManagedObject {
 
 // MARK: - Encodable conformance and helper
 extension ESGatekeeperUserOverrideEvent: Encodable {
+    /// Encode the event as eslogger does, plus Mac Monitor's own fields.
+    ///
+    /// eslogger writes either arm of the `file` union under `file`: the `es_file_t` as an object, or the path itself as
+    /// a string (`null` when it's `NULL`). Which one is decided by the stored `file_type`, as eslogger decides it.
+    /// Mac Monitor's own `file_path` spelling of the path arm is kept as an addition.
+    ///
+    /// - Parameter encoder: The encoder.
+    /// - Throws: The encoder's error.
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         //        try container.encode(id, forKey: .id)
         try container.encode(file_type, forKey: .file_type)
         try container.encode(file_type_string, forKey: .file_type_string)
-        try container.encodeIfPresent(file, forKey: .file)
+        switch UInt32(truncatingIfNeeded: file_type) {
+        case ES_GATEKEEPER_USER_OVERRIDE_FILE_TYPE_PATH.rawValue:
+            try container.encode(file_path, forKey: .file)
+        case ES_GATEKEEPER_USER_OVERRIDE_FILE_TYPE_FILE.rawValue:
+            try container.encode(file, forKey: .file)
+        default:
+            /// eslogger can't encode another arm, so there's no value of its to match.
+            try container.encodeIfPresent(file, forKey: .file)
+        }
         try container.encodeIfPresent(file_path, forKey: .file_path)
         try container.encode(sha256, forKey: .sha256)
         try container.encode(signing_info, forKey: .signing_info)

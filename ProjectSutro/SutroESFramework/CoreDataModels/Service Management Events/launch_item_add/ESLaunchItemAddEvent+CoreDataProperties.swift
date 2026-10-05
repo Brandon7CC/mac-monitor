@@ -25,7 +25,7 @@ extension ESLaunchItemAddEvent {
     @NSManaged public var app_token: ESAuditToken?
     
     @NSManaged public var item: ESLaunchItem
-    @NSManaged public var executable_path: String
+    @NSManaged public var executable_path: String?
 
 }
 

@@ -23,7 +23,7 @@ public struct File: Identifiable, Codable, Equatable, Hashable {
     }
     
     public init(from file: es_file_t) {
-        self.path = String(cString: file.path.data)
+        self.path = file.path.string ?? ""
         self.path_truncated = file.path_truncated
         self.stat = Stat(from: file.stat)
     }

@@ -144,16 +144,49 @@ public func decodeODErrorCode(_ errorCode: Int) -> String {
 }
 
 
-/// The name of an Open Directory group member's type, as the Security Extension records an `od_group_add` or
-/// `od_group_remove` event's `member`.
+// MARK: - Names of Open Directory values
+/// The names Mac Monitor gives an Open Directory enum's values, which it writes in a `*_string` field beside
+/// eslogger's number: `member_string`, `record_type_string` and `account_type_string`.
 ///
-/// - Parameter type: The member's `es_od_member_type_t`.
-/// - Returns: The type's name, or `UNKNOWN`.
-func odMemberTypeName(_ type: es_od_member_type_t) -> String {
-    switch type {
-    case ES_OD_MEMBER_TYPE_USER_NAME: "ES_OD_MEMBER_TYPE_USER_NAME"
-    case ES_OD_MEMBER_TYPE_USER_UUID: "ES_OD_MEMBER_TYPE_USER_UUID"
-    case ES_OD_MEMBER_TYPE_GROUP_UUID: "ES_OD_MEMBER_TYPE_GROUP_UUID"
-    default: "UNKNOWN"
+/// Before 2.2.0 Mac Monitor wrote these names in place of the numbers, so they also read those events back.
+struct ODEnumNames {
+    /// The name of each value.
+    let names: [Int: String]
+    /// The name of a value `names` doesn't have.
+    let unknown: String
+    
+    /// The name of a value.
+    ///
+    /// - Parameter rawValue: The value.
+    /// - Returns: Its name, or ``unknown``.
+    func name(of rawValue: Int) -> String {
+        names[rawValue] ?? unknown
     }
+    
+    /// The value a name stands for.
+    ///
+    /// - Parameter name: A name ``name(of:)`` returns.
+    /// - Returns: The value, or `nil` for ``unknown`` and any other name.
+    func rawValue(of name: String) -> Int? {
+        names.first { $0.value == name }?.key
+    }
+    
+    /// `es_od_member_type_t`: the type of an `od_group_add` or `od_group_remove` event's member.
+    static let memberType = ODEnumNames(names: [
+        Int(ES_OD_MEMBER_TYPE_USER_NAME.rawValue): "ES_OD_MEMBER_TYPE_USER_NAME",
+        Int(ES_OD_MEMBER_TYPE_USER_UUID.rawValue): "ES_OD_MEMBER_TYPE_USER_UUID",
+        Int(ES_OD_MEMBER_TYPE_GROUP_UUID.rawValue): "ES_OD_MEMBER_TYPE_GROUP_UUID",
+    ], unknown: "UNKNOWN")
+    
+    /// `es_od_record_type_t`: the type of the record an `od_attribute_value_add` event changes.
+    static let recordType = ODEnumNames(names: [
+        Int(ES_OD_RECORD_TYPE_USER.rawValue): "USER",
+        Int(ES_OD_RECORD_TYPE_GROUP.rawValue): "GROUP",
+    ], unknown: "UNKNOWN")
+    
+    /// `es_od_account_type_t`: the type of the account whose password an `od_modify_password` event changes.
+    static let accountType = ODEnumNames(names: [
+        Int(ES_OD_ACCOUNT_TYPE_USER.rawValue): "ES_OD_ACCOUNT_TYPE_USER",
+        Int(ES_OD_ACCOUNT_TYPE_COMPUTER.rawValue): "ES_OD_ACCOUNT_TYPE_COMPUTER",
+    ], unknown: "UNKNOWN_ACCOUNT_TYPE")
 }

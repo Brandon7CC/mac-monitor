@@ -50,36 +50,20 @@ public class ESAuthorizationPetitionEvent: NSManagedObject {
         self.init(entity: description, insertInto: context)
         self.id = event.id
         
-        if let instigator = event.instigator,
-           let instigator_token = event.instigator_token {
-            self.instigator = ESProcess(
-                from: instigator,
-                version: message.version,
-                insertIntoManagedObjectContext: context
-            )
-            
-            self.instigator_token = ESAuditToken(
-                from: instigator_token,
-                insertIntoManagedObjectContext: context
-            )
+        /// Each process and token on its own: Endpoint Security can leave out a process (`NULL`) and still give its
+        /// token, and before message version 8 gives the processes without tokens.
+        let process = { (process: Process) in
+            ESProcess(from: process, version: message.version, insertIntoManagedObjectContext: context)
         }
-        
-        if let petitioner = event.petitioner,
-           let petitioner_token = event.petitioner_token {
-            self.petitioner = ESProcess(
-                from: petitioner,
-                version: message.version,
-                insertIntoManagedObjectContext: context
-            )
-            
-            self.petitioner_token = ESAuditToken(
-                from: petitioner_token,
-                insertIntoManagedObjectContext: context
-            )
-        }
+        let token = { (token: AuditToken) in ESAuditToken(from: token, insertIntoManagedObjectContext: context) }
+        self.instigator = event.instigator.map(process)
+        self.instigator_token = event.instigator_token.map(token)
+        self.petitioner = event.petitioner.map(process)
+        self.petitioner_token = event.petitioner_token.map(token)
         
         self.flags = event.flags
         self.flags_array = event.flags_array
+        self.right_count = event.right_count
         self.rights = event.rights
     }
 }

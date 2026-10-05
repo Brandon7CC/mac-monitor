@@ -62,7 +62,7 @@ struct SystemIOKitOpenMetadataView: View {
                             Text("\u{2022} **Parent registry ID:**")
                                 .padding([.leading], 5.0)
                             GroupBox {
-                                Text("\(String(event.parent_registry_id))")
+                                Text(event.parentRegistryID.map(String.init) ?? "")
                                     .monospaced()
                                     .frame(alignment: .leading)
                             }

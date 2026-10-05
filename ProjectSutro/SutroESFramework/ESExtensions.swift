@@ -9,9 +9,25 @@ import Foundation
 
 
 extension es_string_token_t {
-    func toString() -> String? {
-        guard length > 0 else { return nil }
-        return String(cString: data)
+    /// The token's text as `eslogger(1)` writes it: `nil` only when `data` is `NULL`, otherwise its `length` bytes
+    /// decoded as UTF-8 (invalid bytes become U+FFFD), so an empty token is "".
+    ///
+    /// Endpoint Security sets `data` to `NULL` for an optional string that's absent, which eslogger writes as `null`.
+    /// For a string the SDK doesn't call optional, read it as `string ?? ""`: the "" only keeps a `NULL` it never sends
+    /// from stopping the Security Extension. `length` bounds the read, so a token needn't end in a NUL.
+    var string: String? {
+        guard let data else { return nil }
+        return String(decoding: UnsafeRawBufferPointer(start: data, count: length), as: UTF8.self)
+    }
+}
+
+public extension Optional where Wrapped == String {
+    /// The string, or `nil` when it's `nil` or empty.
+    ///
+    /// For showing a value Endpoint Security can leave out either way, such as a process's signing ID: `NULL` is kept
+    /// as `nil` and an empty token as "", as eslogger writes them, but both mean there's none to show.
+    var nonEmpty: String? {
+        flatMap { $0.isEmpty ? nil : $0 }
     }
 }
 
@@ -37,12 +53,16 @@ func cdhashToString(cdhash: es_cdhash_t) -> String {
 ///   `encodeIfPresent`). Mac Monitor's own fields may be left out.
 /// * `seq_num` and `global_seq_num` count the messages one Endpoint Security client received, so they're Mac Monitor's own
 ///   and never equal eslogger's.
+/// * `remote_thread_create`'s `thread_state.state` is always `null`: eslogger writes no thread state bytes. Mac Monitor
+///   keeps them in its own `state_base64` (``ThreadState``).
 enum ESLogger {
     /// The `schema_version` of the eslogger output these rules match.
     static let schemaVersion = 1
     
-    /// The length of an eslogger `time`, for example `2026-10-04T00:01:54.394127173Z`.
-    private static let timeLength = 30
+    /// The shape of an eslogger `time`, for example `2026-10-04T00:01:54.394127173Z`: `0` stands for any digit.
+    private static let timeTemplate = Array("0000-00-00T00:00:00.000000000Z".utf8)
+    /// The seconds from 1970 to 2001 (a `Date`'s reference date), in microseconds.
+    private static let referenceDateMicroseconds: Int64 = 978_307_200 * 1_000_000
     
     /// `bytes` in uppercase hex.
     ///
@@ -60,27 +80,59 @@ enum ESLogger {
         TimeSpec(from: time).humanFormat()
     }
     
+    /// Is `time` exactly as eslogger writes it: UTC to the nanosecond, `2026-10-04T00:01:54.394127173Z`?
+    ///
+    /// - Parameter time: A message's `time`.
+    /// - Returns: `true` for eslogger's format, which Mac Monitor also writes since 2.2.0.
+    static func isESLoggerTime(_ time: String) -> Bool {
+        matches(time, timeTemplate)
+    }
+    
+    /// Does `text` have a template's shape?
+    ///
+    /// - Parameters:
+    ///   - text: The text.
+    ///   - template: The shape, in UTF-8: `0` stands for any digit, and any other byte for itself.
+    /// - Returns: `true` if `text` is as long as `template` and matches it byte for byte.
+    private static func matches(_ text: String, _ template: [UInt8]) -> Bool {
+        let digits = UInt8(ascii: "0")...UInt8(ascii: "9")
+        var text = text
+        return text.withUTF8 { utf8 in
+            utf8.count == template.count && zip(utf8, template).allSatisfy { byte, expected in
+                expected == UInt8(ascii: "0") ? digits.contains(byte) : byte == expected
+            }
+        }
+    }
+    
     /// `time` from a message, rebuilt when it came from a Security Extension older than 2.2.0.
     ///
-    /// Those sent local time to the millisecond with a literal `Z`, which can't be read back exactly. The rebuilt value comes
-    /// from `message_darwin_time` and is within a few hundred nanoseconds of the real one.
+    /// Those sent local time to the millisecond with a literal `Z`, which can't be read back exactly. The rebuilt value
+    /// comes from `message_darwin_time`, to the microsecond: older Security Extensions and 2.1 exports carry no finer
+    /// time, and rounding drops the error of the `Double` that holds it (at most about 0.12 microseconds) rather than
+    /// printing it as nanoseconds.
     ///
     /// - Parameters:
     ///   - time: The message's `time`.
     ///   - darwinTime: The message's `message_darwin_time`.
-    /// - Returns: `time` in eslogger's format, or `time` as it is if `darwinTime` is too far from 1970 to be a time.
+    /// - Returns: `time` if it's already in eslogger's format (``isESLoggerTime(_:)``), otherwise `darwinTime` in it;
+    ///   `time` as it is if `darwinTime` is too far from 1970 to be a time.
     static func time(_ time: String, darwinTime: Date) -> String {
-        guard time.utf8.count != timeLength else { return time }
-        let since1970 = darwinTime.timeIntervalSince1970
-        guard var seconds = Int(exactly: since1970.rounded(.down)) else { return time }
-        var nanoseconds = Int(((since1970 - Double(seconds)) * 1e9).rounded())
-        if nanoseconds >= 1_000_000_000 { seconds += 1; nanoseconds -= 1_000_000_000 }
-        return Self.time(timespec(tv_sec: seconds, tv_nsec: nanoseconds))
+        guard !isESLoggerTime(time) else { return time }
+        guard let since2001 = Int64(exactly: (darwinTime.timeIntervalSinceReferenceDate * 1_000_000).rounded()) else {
+            return time
+        }
+        let (since1970, overflow) = since2001.addingReportingOverflow(referenceDateMicroseconds)
+        guard !overflow else { return time }
+        /// Floored, so a time before 1970 counts its fraction up from the second before.
+        let (seconds, microseconds) = since1970.quotientAndRemainder(dividingBy: 1_000_000)
+        let floored = microseconds < 0 ? (seconds - 1, microseconds + 1_000_000) : (seconds, microseconds)
+        return Self.time(timespec(tv_sec: Int(floored.0), tv_nsec: Int(floored.1) * 1_000))
     }
     
     // MARK: Reading times back
-    /// The length of a `time` written by Mac Monitor up to 2.1.0, for example `2026-10-03T17:01:59.285Z`.
-    private static let legacyTimeLength = 24
+    /// The shape of a `time` written by Mac Monitor up to 2.1.0, for example `2026-10-03T17:01:59.285Z`: `0` stands
+    /// for any digit.
+    private static let legacyTimeTemplate = Array("0000-00-00T00:00:00.000Z".utf8)
     
     /// When an event happened, from its `time` as eslogger or any version of Mac Monitor wrote it.
     ///
@@ -91,10 +143,10 @@ enum ESLogger {
     /// - Parameters:
     ///   - time: An event's `time`.
     ///   - legacy: Could the event come from Mac Monitor 2.1.0 or older (it's Mac Monitor's, not eslogger's)? Only then
-    ///     is a `time` of that length local time; anywhere else it's UTC.
+    ///     is a `time` of that shape local time; anywhere else it's UTC.
     /// - Returns: The time, or `nil` if `time` isn't one.
     static func date(fromTime time: String, legacy: Bool) -> Date? {
-        if legacy, time.utf8.count == legacyTimeLength { return legacyFormatter.date(from: time) }
+        if legacy, matches(time, legacyTimeTemplate) { return legacyFormatter.date(from: time) }
         return utcTimespec(from: time).map { ProcessHelpers.timespecToTimestamp(timespec: $0) }
     }
     

@@ -35,7 +35,7 @@ struct SystemLWLoginMetadataView: View {
                     HStack {
                         Text("\u{2022} **Graphical session ID:**")
                         GroupBox {
-                            Text("`\(event.graphical_session_id)`")
+                            Text("`\(UInt32(bitPattern: event.graphical_session_id))`")
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     

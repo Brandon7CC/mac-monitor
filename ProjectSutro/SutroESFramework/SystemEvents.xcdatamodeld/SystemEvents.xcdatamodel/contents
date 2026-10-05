@@ -16,6 +16,7 @@
         <attribute name="pidversion" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="rgid" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="ruid" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="od_instigated" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ESODEvent" inverseName="instigator_token" inverseEntity="ESODEvent"/>
     </entity>
     <entity name="ESAuthorizationJudgementEvent" representedClassName="ESAuthorizationJudgementEvent" syncable="YES">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
@@ -177,7 +178,7 @@
     <entity name="ESIOKitOpenEvent" representedClassName="ESIOKitOpenEvent" syncable="YES">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="parent_path" optional="YES" attributeType="String"/>
-        <attribute name="parent_registry_id" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="parent_registry_id" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
         <attribute name="user_client_class" optional="YES" attributeType="String"/>
         <attribute name="user_client_type" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
@@ -223,7 +224,7 @@
         <attribute name="has_uid" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="success" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="uid" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="uid" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
         <attribute name="uid_human" optional="YES" attributeType="String"/>
         <attribute name="username" optional="YES" attributeType="String"/>
     </entity>
@@ -334,86 +335,47 @@
     <entity name="ESNewPath" representedClassName="ESNewPath" syncable="YES">
         <attribute name="filename" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="mode" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="mode" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
         <relationship name="dir" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFile"/>
     </entity>
-    <entity name="ESODAttributeValueAddEvent" representedClassName="ESODAttributeValueAddEvent" syncable="YES">
+    <entity name="ESODAttributeValueAddEvent" representedClassName="ESODAttributeValueAddEvent" parentEntity="ESODEvent" syncable="YES">
         <attribute name="attribute_name" optional="YES" attributeType="String"/>
         <attribute name="attribute_value" optional="YES" attributeType="String"/>
-        <attribute name="db_path" optional="YES" attributeType="String"/>
-        <attribute name="error_code" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="error_code_human" optional="YES" attributeType="String"/>
-        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="instigator_process_audit_token" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_name" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_path" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_signing_id" optional="YES" attributeType="String"/>
-        <attribute name="node_name" optional="YES" attributeType="String"/>
         <attribute name="record_name" optional="YES" attributeType="String"/>
-        <attribute name="record_type" optional="YES" attributeType="String"/>
+        <attribute name="record_type" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
+        <attribute name="record_type_string" optional="YES" attributeType="String"/>
     </entity>
-    <entity name="ESODCreateGroupEvent" representedClassName="ESODCreateGroupEvent" syncable="YES">
-        <attribute name="db_path" optional="YES" attributeType="String"/>
-        <attribute name="error_code" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="error_code_human" optional="YES" attributeType="String"/>
+    <entity name="ESODCreateGroupEvent" representedClassName="ESODCreateGroupEvent" parentEntity="ESODEvent" syncable="YES">
         <attribute name="group_name" optional="YES" attributeType="String"/>
-        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="instigator_process_audit_token" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_name" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_path" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_signing_id" optional="YES" attributeType="String"/>
-        <attribute name="node_name" optional="YES" attributeType="String"/>
     </entity>
-    <entity name="ESODCreateUserEvent" representedClassName="ESODCreateUserEvent" syncable="YES">
-        <attribute name="db_path" optional="YES" attributeType="String"/>
-        <attribute name="error_code" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="error_code_human" optional="YES" attributeType="String"/>
-        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="instigator_process_audit_token" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_name" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_path" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_signing_id" optional="YES" attributeType="String"/>
-        <attribute name="node_name" optional="YES" attributeType="String"/>
+    <entity name="ESODCreateUserEvent" representedClassName="ESODCreateUserEvent" parentEntity="ESODEvent" syncable="YES">
         <attribute name="user_name" optional="YES" attributeType="String"/>
     </entity>
-    <entity name="ESODGroupAddEvent" representedClassName="ESODGroupAddEvent" syncable="YES">
+    <entity name="ESODEvent" representedClassName="ESODEvent" isAbstract="YES" syncable="YES">
         <attribute name="db_path" optional="YES" attributeType="String"/>
         <attribute name="error_code" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="error_code_human" optional="YES" attributeType="String"/>
-        <attribute name="group_name" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="instigator_process_audit_token" optional="YES" attributeType="String"/>
         <attribute name="instigator_process_name" optional="YES" attributeType="String"/>
         <attribute name="instigator_process_path" optional="YES" attributeType="String"/>
         <attribute name="instigator_process_signing_id" optional="YES" attributeType="String"/>
-        <attribute name="member" optional="YES" attributeType="String"/>
         <attribute name="node_name" optional="YES" attributeType="String"/>
+        <relationship name="instigator" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcess" inverseName="od_instigated" inverseEntity="ESProcess"/>
+        <relationship name="instigator_token" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESAuditToken" inverseName="od_instigated" inverseEntity="ESAuditToken"/>
     </entity>
-    <entity name="ESODGroupRemoveEvent" representedClassName="ESODGroupRemoveEvent" syncable="YES">
-        <attribute name="db_path" optional="YES" attributeType="String"/>
-        <attribute name="error_code" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="error_code_human" optional="YES" attributeType="String"/>
+    <entity name="ESODGroupAddEvent" representedClassName="ESODGroupAddEvent" parentEntity="ESODGroupMemberEvent" syncable="YES"/>
+    <entity name="ESODGroupMemberEvent" representedClassName="ESODGroupMemberEvent" isAbstract="YES" parentEntity="ESODEvent" syncable="YES">
         <attribute name="group_name" optional="YES" attributeType="String"/>
-        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="instigator_process_audit_token" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_name" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_path" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_signing_id" optional="YES" attributeType="String"/>
-        <attribute name="member" optional="YES" attributeType="String"/>
-        <attribute name="node_name" optional="YES" attributeType="String"/>
+        <attribute name="member_string" optional="YES" attributeType="String"/>
+        <attribute name="member_type" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
+        <attribute name="member_value" optional="YES" attributeType="String"/>
     </entity>
-    <entity name="ESODModifyPasswordEvent" representedClassName="ESODModifyPasswordEvent" syncable="YES">
+    <entity name="ESODGroupRemoveEvent" representedClassName="ESODGroupRemoveEvent" parentEntity="ESODGroupMemberEvent" syncable="YES"/>
+    <entity name="ESODModifyPasswordEvent" representedClassName="ESODModifyPasswordEvent" parentEntity="ESODEvent" syncable="YES">
         <attribute name="account_name" optional="YES" attributeType="String"/>
-        <attribute name="account_type" optional="YES" attributeType="String"/>
-        <attribute name="db_path" optional="YES" attributeType="String"/>
-        <attribute name="error_code" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="error_code_human" optional="YES" attributeType="String"/>
-        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="instigator_process_audit_token" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_name" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_path" optional="YES" attributeType="String"/>
-        <attribute name="instigator_process_signing_id" optional="YES" attributeType="String"/>
-        <attribute name="node_name" optional="YES" attributeType="String"/>
+        <attribute name="account_type" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
+        <attribute name="account_type_string" optional="YES" attributeType="String"/>
     </entity>
     <entity name="ESOpenSSHLoginEvent" representedClassName="ESOpenSSHLoginEvent" syncable="YES">
         <attribute name="has_uid" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
@@ -468,6 +430,7 @@
         <attribute name="team_id" optional="YES" attributeType="String"/>
         <relationship name="audit_token" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESAuditToken"/>
         <relationship name="executable" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFile"/>
+        <relationship name="od_instigated" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ESODEvent" inverseName="instigator" inverseEntity="ESODEvent"/>
         <relationship name="parent_audit_token" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESAuditToken"/>
         <relationship name="responsible_audit_token" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESAuditToken"/>
         <relationship name="tty" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFile"/>
@@ -562,7 +525,9 @@
     </entity>
     <entity name="ESRemoteThreadCreateEvent" representedClassName="ESRemoteThreadCreateEvent" syncable="YES">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="thread_state" optional="YES" attributeType="String"/>
+        <attribute name="thread_state_base64" optional="YES" attributeType="String"/>
+        <attribute name="thread_state_flavor" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
+        <attribute name="thread_state_string" optional="YES" attributeType="String"/>
         <relationship name="target" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcess"/>
     </entity>
     <entity name="ESSetModeEvent" representedClassName="ESSetModeEvent" syncable="YES">

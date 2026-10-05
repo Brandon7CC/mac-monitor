@@ -57,7 +57,9 @@ extension FileRenameEvent: ESEnrichable {
         case .existing_file(let file):
             destination_path = file.path
         case .new_path(let path):
-            destination_path = "\(path.dir.path)/\(path.filename)"
+            destination_path = path.fullPath
+        case .unknown:
+            destination_path = ""
         }
     }
 }

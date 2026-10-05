@@ -42,53 +42,11 @@ struct SystemRemoteThreadCreateMetadataView: View {
             GroupBox {
                 VStack(alignment: .leading) {
                     
-                    if let state = event.thread_state {
-                        HStack {
-                            Text("\u{2022} Thread state:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(state)
-                                    .monospaced()
-                                    .frame(alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    
-                    
-                    HStack {
-                        Text("\u{2022} Target process name:")
-                            .bold()
-                            .padding([.leading], 5.0)
-                        GroupBox {
-                            Text(targetName)
-                                .monospaced()
-                                .frame(alignment: .leading)
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    VStack(alignment: .leading) {
-                        Text("\u{2022} Target process path:")
-                            .bold()
-                            .padding([.leading], 5.0)
-                        GroupBox {
-                            Text(targetPath)
-                                .monospaced()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                    
+                    ThreadStateFactsView(state: event.thread_state, flavorName: event.thread_state_string)
+                    FactRow(name: "Target process name", value: targetName, style: .monospaced)
+                    FactRow(name: "Target process path", value: targetPath, stacked: true, style: .monospaced)
                     if let signingId = targetSigningId, !signingId.isEmpty {
-                        HStack {
-                            Text("\u{2022} Signing ID:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(signingId)
-                                    .monospaced()
-                                    .frame(alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        FactRow(name: "Signing ID", value: signingId, style: .monospaced)
                     }
                     
                 }.frame(maxWidth: .infinity, alignment: .leading)

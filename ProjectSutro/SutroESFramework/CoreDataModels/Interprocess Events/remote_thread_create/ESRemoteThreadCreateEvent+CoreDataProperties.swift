@@ -18,7 +18,12 @@ extension ESRemoteThreadCreateEvent {
 
     @NSManaged public var id: UUID
     @NSManaged public var target: ESProcess
-    @NSManaged public var thread_state: String?
+    /// The thread state's `flavor`, or `nil` when the event has no thread state (`thread_create`).
+    @NSManaged public var thread_state_flavor: NSNumber?
+    /// The thread state's bytes in base64 (``ThreadState/state_base64``).
+    @NSManaged public var thread_state_base64: String?
+    /// Mac Monitor enrichment: the name of the thread state's flavor.
+    @NSManaged public var thread_state_string: String?
 
 }
 

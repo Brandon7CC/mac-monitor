@@ -25,16 +25,23 @@
 import Foundation
 
 
-public struct OpenDirectoryCreateGroupEvent: Identifiable, Codable, Hashable {
+/// Models an `ES_EVENT_TYPE_NOTIFY_OD_CREATE_GROUP`: a group was created in an Open Directory node.
+public struct OpenDirectoryCreateGroupEvent: Identifiable, Codable, Hashable, OpenDirectoryEvent {
     public var id: UUID = UUID()
-    public var instigator_process_name, instigator_process_path, instigator_process_audit_token, instigator_process_signing_id: String?
+    /// The process that instigated the operation (the XPC caller), or `nil` when Endpoint Security leaves it out.
+    public var instigator: Process?
+    /// The instigator's audit token: message version 8 and later.
+    public var instigator_token: AuditToken?
     public var group_name: String?
     public var node_name: String?
     public var db_path: String?
     /// Error codes defined in: `odconstants.h`. An error code of 0 indicates success.
-    public var error_code: Int
-    /// Decoded OD error code from `odconstants.h`.
+    public var error_code: Int = 0
+    
+    /// Mac Monitor enrichment: the error's description, and the instigator's name, path, audit token and signing ID.
     public var error_code_human: String?
+    public var instigator_process_name, instigator_process_path: String?
+    public var instigator_process_audit_token, instigator_process_signing_id: String?
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -44,45 +51,13 @@ public struct OpenDirectoryCreateGroupEvent: Identifiable, Codable, Hashable {
         return lhs.id == rhs.id
     }
     
+    /// Record the event of a message from Endpoint Security.
+    ///
+    /// - Parameter rawMessage: The message.
     init(from rawMessage: UnsafePointer<es_message_t>) {
-        let odGroupCreatedEvent: es_event_od_create_group_t = rawMessage.pointee.event.od_create_group.pointee
-        let instigatorProcess: es_process_t = odGroupCreatedEvent.instigator!.pointee
-        
-        self.instigator_process_name = ""
-        if instigatorProcess.executable.pointee.path.length > 0 {
-            self.instigator_process_name = URL(filePath: String(cString: instigatorProcess.executable.pointee.path.data)).lastPathComponent
-        }
-        
-        self.instigator_process_path = ""
-        if instigatorProcess.executable.pointee.path.length > 0 {
-            self.instigator_process_path = String(cString: instigatorProcess.executable.pointee.path.data)
-        }
-        
-        self.instigator_process_signing_id = ""
-        if instigatorProcess.signing_id.length > 0 {
-            self.instigator_process_signing_id = String(cString: instigatorProcess.signing_id.data)
-        }
-        
-        self.instigator_process_audit_token = ""
-        self.instigator_process_audit_token = instigatorProcess.audit_token
-            .toString()
-        
-        self.error_code = Int(odGroupCreatedEvent.error_code)
-    
-        self.group_name = ""
-        if odGroupCreatedEvent.group_name.length > 0 {
-            self.group_name = String(cString: odGroupCreatedEvent.group_name.data)
-        }
-        
-        self.node_name = ""
-        if odGroupCreatedEvent.node_name.length > 0 {
-            self.node_name = String(cString: odGroupCreatedEvent.node_name.data)
-        }
-        
-        self.db_path = ""
-        if odGroupCreatedEvent.db_path.length > 0 {
-            self.db_path = String(cString: odGroupCreatedEvent.db_path.data)
-        }
+        let event = rawMessage.pointee.event.od_create_group
+        readCommonFields(from: event, version: Int(rawMessage.pointee.version))
+        self.group_name = event.pointee.group_name.string ?? ""
         enrich()
     }
 }
@@ -90,8 +65,8 @@ public struct OpenDirectoryCreateGroupEvent: Identifiable, Codable, Hashable {
 
 // MARK: - Mac Monitor enrichment
 extension OpenDirectoryCreateGroupEvent: ESEnrichable {
-    /// Derive the error code's description.
+    /// Derive the error code's description and the instigator's fields.
     public mutating func enrich() {
-        error_code_human = decodeODErrorCode(error_code)
+        enrichCommonFields()
     }
 }

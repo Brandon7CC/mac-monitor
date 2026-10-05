@@ -72,6 +72,25 @@ public class ESProcessExecEvent: NSManagedObject {
         }
     }
     
+    /// The XPC service launchd started the process as: `XPC_SERVICE_NAME`'s value in ``env``, or `nil` without one.
+    public var xpcServiceName: String? {
+        Self.xpcServiceName(in: env)
+    }
+    
+    /// The XPC service name in a process's environment.
+    ///
+    /// Only an entry named exactly `XPC_SERVICE_NAME` counts. launchd sets it to `0` for a process that isn't an XPC
+    /// service, which counts as none.
+    ///
+    /// - Parameter env: The environment's `KEY=value` entries, in order.
+    /// - Returns: The first `XPC_SERVICE_NAME`'s value, or `nil` without one or when it's empty or `0`.
+    static func xpcServiceName(in env: [String]) -> String? {
+        let prefix = "XPC_SERVICE_NAME="
+        guard let entry = env.first(where: { $0.hasPrefix(prefix) }) else { return nil }
+        let name = String(entry.dropFirst(prefix.count))
+        return name.isEmpty || name == "0" ? nil : name
+    }
+    
     
     public var fds: [FileDescriptor] {
         get {

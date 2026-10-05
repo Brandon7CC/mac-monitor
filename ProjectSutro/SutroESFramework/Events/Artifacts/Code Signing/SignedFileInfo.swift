@@ -10,7 +10,9 @@
 public struct SignedFileInfo: Identifiable, Codable, Equatable, Hashable {
     public var id = UUID()
     
-    public var cdhash, signing_id, team_id: String
+    public var cdhash: String
+    /// Optional ("if available in the signing information"): `nil`, eslogger's `null`, when it isn't.
+    public var signing_id, team_id: String?
     
     // Ignore id from being decoded
     enum CodingKeys: String, CodingKey {
@@ -19,16 +21,7 @@ public struct SignedFileInfo: Identifiable, Codable, Equatable, Hashable {
     
     public init(from signing_info: es_signed_file_info_t) {
         cdhash = cdhashToString(cdhash: signing_info.cdhash)
-        if signing_info.signing_id.length > 0 {
-            signing_id = String(cString: signing_info.signing_id.data)
-        } else {
-            signing_id = ""
-        }
-        
-        if signing_info.team_id.length > 0 {
-            team_id = String(cString: signing_info.team_id.data)
-        } else {
-            team_id = ""
-        }
+        signing_id = signing_info.signing_id.string
+        team_id = signing_info.team_id.string
     }
 }

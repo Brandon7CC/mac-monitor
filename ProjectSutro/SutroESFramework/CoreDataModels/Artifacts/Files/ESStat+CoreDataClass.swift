@@ -53,7 +53,9 @@ extension ESStat: Encodable {
         try container.encode(st_flags, forKey: .st_flags)
         try container.encode(st_gen, forKey: .st_gen)
         try container.encode(st_gid, forKey: .st_gid)
-        try container.encode(st_ino, forKey: .st_ino)
+        /// `ino_t` is unsigned, and kept by bit pattern: a file ID on SMB, NFS or FUSE can be 2^63 or more, which
+        /// eslogger writes unsigned.
+        try container.encode(UInt64(bitPattern: st_ino), forKey: .st_ino)
         try container.encode(st_mode, forKey: .st_mode)
         try container.encode(st_nlink, forKey: .st_nlink)
         try container.encode(st_rdev, forKey: .st_rdev)

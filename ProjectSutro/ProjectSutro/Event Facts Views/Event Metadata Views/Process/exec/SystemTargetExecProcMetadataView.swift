@@ -71,8 +71,10 @@ struct SystemTargetExecProcMetadataView: View {
         return event.target.codesigning_type
     }
     
-    private var hasXPCServiceName: Bool {
-        event.env.contains("XPC_SERVICE_NAME") && !event.env.contains("XPC_SERVICE_NAME=0")
+    /// The XPC service the process was started as. Matching whole entries for `XPC_SERVICE_NAME` never found one, so
+    /// the XPC sheet never showed.
+    private var xpcServiceName: String? {
+        event.xpcServiceName
     }
     
     var body: some View {
@@ -243,11 +245,11 @@ struct SystemTargetExecProcMetadataView: View {
                         
                         // MARK: Signing ID
                         HStack {
-                            if event.target.signing_id != nil && event.target.signing_id! != "Unknown" {
+                            if let signingID = event.target.signing_id.nonEmpty, signingID != "Unknown" {
                                 Text("\u{2022} **Process signing ID:**")
                                 GroupBox {
                                     VStack(alignment: .leading) {
-                                        Text("`\(event.target.signing_id!)`")
+                                        Text("`\(signingID)`")
                                     }
                                 }
                             } else {
@@ -260,19 +262,19 @@ struct SystemTargetExecProcMetadataView: View {
                         }
                         
                         // MARK: Team ID
-                        if event.target.team_id != nil {
+                        if let teamID = event.target.team_id.nonEmpty {
                             HStack {
                                 Text("\u{2022} **Team ID:**")
                                 GroupBox {
                                     VStack(alignment: .leading) {
-                                        Text("`\(event.target.team_id!)`")
+                                        Text("`\(teamID)`")
                                     }
                                 }
                             }
                         }
                         
                         // MARK: CD Hash
-                        if event.target.signing_id != nil && !event.target.signing_id!.isEmpty {
+                        if event.target.signing_id.nonEmpty != nil {
                             HStack {
                                 Text("\u{2022} **`SHA256` Code directory hash:**")
                                 GroupBox {
@@ -355,7 +357,7 @@ struct SystemTargetExecProcMetadataView: View {
                         showAuditTokens.toggle()
                     }
                     
-                    if hasXPCServiceName {
+                    if xpcServiceName != nil {
                         Button("**XPC**") {
                             showXPCServiceName.toggle()
                         }
@@ -397,7 +399,7 @@ struct SystemTargetExecProcMetadataView: View {
             }.padding(.bottom)
         }.sheet(isPresented: $showXPCServiceName) {
             VStack(alignment: .leading) {
-                XPCMetadataView(execEvent: event, envVars: event.env)
+                XPCMetadataView(serviceName: xpcServiceName ?? "")
                 
             }.frame(maxWidth: 1000.0, maxHeight: .infinity).padding(.all)
             

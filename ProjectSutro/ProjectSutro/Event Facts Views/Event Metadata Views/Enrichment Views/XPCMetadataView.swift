@@ -9,25 +9,17 @@ import SwiftUI
 import SutroESFramework
 
 // MARK: - XPC details view
+/// The XPC service an exec'd process was started as (``ESProcessExecEvent/xpcServiceName``).
 struct XPCMetadataView: View {
-    var execEvent: ESProcessExecEvent
-    var envVars: [String]
-    
-    var serviceName: String {
-        (
-            envVars.filter({ $0.hasPrefix("XPC_SERVICE_NAME") }).first ?? "None"
-        ).replacing("XPC_SERVICE_NAME=", with: "")
-    }
+    /// The service's name.
+    var serviceName: String
     
     var body: some View {
-        if serviceName != "None" && serviceName != "0" {
-            VStack(alignment: .leading) {
-                Text("\u{2022} **XPC service name**").font(.title3)
-                GroupBox {
-                    Text("`\(serviceName)`").font(.title3)
-                }
+        VStack(alignment: .leading) {
+            Text("\u{2022} **XPC service name**").font(.title3)
+            GroupBox {
+                Text("`\(serviceName)`").font(.title3)
             }
-            
         }
     }
 }

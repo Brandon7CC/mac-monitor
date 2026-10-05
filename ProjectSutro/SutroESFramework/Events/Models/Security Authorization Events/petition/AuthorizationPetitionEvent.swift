@@ -89,16 +89,8 @@ public struct AuthorizationPetitionEvent: Identifiable, Codable, Hashable {
         self.flags = Int64(event.flags)
         self.right_count = Int32(event.right_count)
         
-        var tempRights: [String] = []
-        if let rightsPointer = event.rights {
-            for i in 0..<event.right_count {
-                let right = rightsPointer[i]
-                if right.length > 0 {
-                    tempRights.append(String(cString: right.data))
-                }
-            }
-        }
-        self.rights = tempRights
+        /// Every right, empty ones included, as eslogger writes them.
+        self.rights = event.rights.map { rights in (0..<event.right_count).map { rights[$0].string ?? "" } } ?? []
         enrich()
     }
 }

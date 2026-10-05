@@ -1,0 +1,77 @@
+{
+  "_comment": "Open Directory events as Mac Monitor 2.0.0 to 2.1.0 (and 2.2.0 before eslogger's format) exported them, and, with an id, sent them from the Security Extension: the name of the member's type in place of eslogger's member object, the names of the record and account types in place of their numbers, and no instigator or instigator_token.",
+  "events": {
+    "od_attribute_value_add": {
+      "attribute_name": "dsAttrTypeStandard:Comment",
+      "attribute_value": "hello",
+      "db_path": "/var/db/dslocal/nodes/Default",
+      "error_code": 0,
+      "error_code_human": "`kODErrorSuccess`: The operation was successful.",
+      "instigator_process_audit_token": "pid:4102, euid:0, ruid:0, rgid:0, egid:0, asid:100100, auid:501, pidversion:9104",
+      "instigator_process_name": "dscl",
+      "instigator_process_path": "/usr/bin/dscl",
+      "instigator_process_signing_id": "com.apple.dscl",
+      "node_name": "/Local/Default",
+      "record_name": "testgroup",
+      "record_type": "GROUP"
+    },
+    "od_create_group": {
+      "db_path": "/var/db/dslocal/nodes/Default",
+      "error_code": 0,
+      "error_code_human": "`kODErrorSuccess`: The operation was successful.",
+      "group_name": "testgroup",
+      "instigator_process_audit_token": "pid:4110, euid:0, ruid:0, rgid:0, egid:0, asid:100100, auid:501, pidversion:9112",
+      "instigator_process_name": "dseditgroup",
+      "instigator_process_path": "/usr/sbin/dseditgroup",
+      "instigator_process_signing_id": "com.apple.dseditgroup",
+      "node_name": "/Local/Default"
+    },
+    "od_create_user": {
+      "db_path": "/var/db/dslocal/nodes/Default",
+      "error_code": 4102,
+      "error_code_human": "`kODErrorRecordAlreadyExists`: The record create failed because the record already exists.",
+      "instigator_process_audit_token": "pid:4102, euid:0, ruid:0, rgid:0, egid:0, asid:100100, auid:501, pidversion:9104",
+      "instigator_process_name": "dscl",
+      "instigator_process_path": "/usr/bin/dscl",
+      "instigator_process_signing_id": "com.apple.dscl",
+      "node_name": "/Local/Default",
+      "user_name": "testuser"
+    },
+    "od_group_add": {
+      "db_path": "/var/db/dslocal/nodes/Default",
+      "error_code": 0,
+      "error_code_human": "`kODErrorSuccess`: The operation was successful.",
+      "group_name": "testgroup",
+      "instigator_process_audit_token": "pid:4110, euid:0, ruid:0, rgid:0, egid:0, asid:100100, auid:501, pidversion:9112",
+      "instigator_process_name": "dseditgroup",
+      "instigator_process_path": "/usr/sbin/dseditgroup",
+      "instigator_process_signing_id": "com.apple.dseditgroup",
+      "member": "ES_OD_MEMBER_TYPE_USER_UUID",
+      "node_name": "/Local/Default"
+    },
+    "od_group_remove": {
+      "db_path": "",
+      "error_code": 0,
+      "error_code_human": "`kODErrorSuccess`: The operation was successful.",
+      "group_name": "testgroup",
+      "instigator_process_audit_token": "pid:4110, euid:0, ruid:0, rgid:0, egid:0, asid:100100, auid:501, pidversion:9112",
+      "instigator_process_name": "dseditgroup",
+      "instigator_process_path": "/usr/sbin/dseditgroup",
+      "instigator_process_signing_id": "com.apple.dseditgroup",
+      "member": "UNKNOWN",
+      "node_name": "/LDAPv3/ldap.example.com"
+    },
+    "od_modify_password": {
+      "account_name": "testmac$",
+      "account_type": "ES_OD_ACCOUNT_TYPE_COMPUTER",
+      "db_path": "/var/db/dslocal/nodes/Default",
+      "error_code": 0,
+      "error_code_human": "`kODErrorSuccess`: The operation was successful.",
+      "instigator_process_audit_token": "pid:4102, euid:0, ruid:0, rgid:0, egid:0, asid:100100, auid:501, pidversion:9104",
+      "instigator_process_name": "dscl",
+      "instigator_process_path": "/usr/bin/dscl",
+      "instigator_process_signing_id": "com.apple.dscl",
+      "node_name": "/Local/Default"
+    }
+  }
+}

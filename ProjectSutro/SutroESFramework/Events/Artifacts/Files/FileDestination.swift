@@ -11,7 +11,13 @@ import Foundation
 public enum FileDestination: Hashable, Codable {
     case existing_file(File)
     case new_path(NewPath)
+    /// A `destination_type` this version of Mac Monitor doesn't know: the destination can't be read.
+    case unknown
     
+    /// A create event's destination, as its `destination_type` says to read it.
+    ///
+    /// - Parameter create: The event.
+    /// - Returns: The existing file or the new path, or ``unknown`` for a type that names neither.
     static func from(create: es_event_create_t) -> FileDestination {
         switch create.destination_type {
         case ES_DESTINATION_TYPE_EXISTING_FILE:
@@ -25,10 +31,15 @@ public enum FileDestination: Hashable, Codable {
             )
             
         default:
-            fatalError("Unhandled destination type \(create.destination_type)")
+            /// A newer macOS's destination type: recording it beats stopping the Security Extension.
+            return .unknown
         }
     }
     
+    /// A rename event's destination, as its `destination_type` says to read it.
+    ///
+    /// - Parameter rename: The event.
+    /// - Returns: The existing file or the new path, or ``unknown`` for a type that names neither.
     static func from(rename: es_event_rename_t) -> FileDestination {
         switch rename.destination_type {
         case ES_DESTINATION_TYPE_EXISTING_FILE:
@@ -42,7 +53,7 @@ public enum FileDestination: Hashable, Codable {
             )
             
         default:
-            fatalError("Unhandled destination type \(rename.destination_type)")
+            return .unknown
         }
     }
 }

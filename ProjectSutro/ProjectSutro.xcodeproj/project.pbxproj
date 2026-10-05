@@ -7,6 +7,43 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7E5715000000000000000024 /* RawMessageFixture+RemoteThreadCreate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000023 /* RawMessageFixture+RemoteThreadCreate.swift */; };
+		7E5715000000000000000022 /* RemoteThreadCreateExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000021 /* RemoteThreadCreateExportTests.swift */; };
+		7E5715000000000000000020 /* RemoteThreadCreateDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000001F /* RemoteThreadCreateDecodingTests.swift */; };
+		7E571500000000000000001E /* ThreadStateFlavorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000001D /* ThreadStateFlavorTests.swift */; };
+		7E571500000000000000001C /* ThreadStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000001B /* ThreadStateTests.swift */; };
+		7E571500000000000000001A /* ThreadStateFactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000019 /* ThreadStateFactsView.swift */; };
+		7E5715000000000000000018 /* ThreadStateFlavor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000017 /* ThreadStateFlavor.swift */; };
+		7E5715000000000000000016 /* ThreadState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000015 /* ThreadState.swift */; };
+		0D0D0D000000000000000018 /* OpenDirectoryFactsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000017 /* OpenDirectoryFactsViews.swift */; };
+		0D0D0D00000000000000001E /* FactRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D00000000000000001D /* FactRow.swift */; };
+		0D0D0D000000000000000016 /* EventSubscriptionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000015 /* EventSubscriptionsTests.swift */; };
+		0D0D0D000000000000000014 /* XCTestCase+JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000013 /* XCTestCase+JSON.swift */; };
+		0D0D0D000000000000000012 /* RawMessageFixture+ESLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000011 /* RawMessageFixture+ESLogger.swift */; };
+		0D0D0D000000000000000010 /* OpenDirectoryExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D00000000000000000F /* OpenDirectoryExportTests.swift */; };
+		0D0D0D00000000000000000E /* OpenDirectoryWireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D00000000000000000D /* OpenDirectoryWireTests.swift */; };
+		0D0D0D00000000000000000C /* OpenDirectoryCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D00000000000000000B /* OpenDirectoryCaptureTests.swift */; };
+		0D0D0D00000000000000000A /* OpenDirectoryMemberTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000009 /* OpenDirectoryMemberTests.swift */; };
+		0D0D0D000000000000000008 /* ESODEvent+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000007 /* ESODEvent+CoreDataProperties.swift */; };
+		0D0D0D000000000000000006 /* ESODEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000005 /* ESODEvent+CoreDataClass.swift */; };
+		0D0D0D00000000000000001A /* ESODGroupMemberEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000019 /* ESODGroupMemberEvent+CoreDataClass.swift */; };
+		0D0D0D00000000000000001C /* ESODGroupMemberEvent+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D00000000000000001B /* ESODGroupMemberEvent+CoreDataProperties.swift */; };
+		0D0D0D000000000000000004 /* OpenDirectoryEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000003 /* OpenDirectoryEvent.swift */; };
+		0D0D0D000000000000000002 /* OpenDirectoryMember.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000001 /* OpenDirectoryMember.swift */; };
+		7E5715000000000000000014 /* ExecXPCServiceNameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000013 /* ExecXPCServiceNameTests.swift */; };
+		7E5715000000000000000012 /* ExportValueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000011 /* ExportValueTests.swift */; };
+		7E5715000000000000000028 /* MessageThreadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000027 /* MessageThreadTests.swift */; };
+		7E571500000000000000002A /* FileCreateQuarantineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000029 /* FileCreateQuarantineTests.swift */; };
+		7E571500000000000000002C /* ProfileAddTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000002B /* ProfileAddTokenTests.swift */; };
+		7E571500000000000000002E /* ValidationCategoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000002D /* ValidationCategoryTests.swift */; };
+		7E5715000000000000000030 /* MountDispositionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000002F /* MountDispositionTests.swift */; };
+		7E5715000000000000000010 /* GatekeeperFileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000000F /* GatekeeperFileTests.swift */; };
+		7E571500000000000000000E /* OptionalStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000000D /* OptionalStringTests.swift */; };
+		7E571500000000000000000C /* ESStringTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000000B /* ESStringTokenTests.swift */; };
+		7E571500000000000000000A /* XCTestCase+Export.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000009 /* XCTestCase+Export.swift */; };
+		7E5715000000000000000008 /* RawMessageFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000007 /* RawMessageFixture.swift */; };
+		7E5715000000000000000006 /* UnsignedValueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000005 /* UnsignedValueTests.swift */; };
+		7E5715000000000000000004 /* CaptureCrashGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000003 /* CaptureCrashGuardTests.swift */; };
 		D15C00000000000000000066 /* EventSpool.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000065 /* EventSpool.swift */; };
 		D15C00000000000000000072 /* EventFilterSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000071 /* EventFilterSpec.swift */; };
 		D15C00000000000000000074 /* EventQueryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000073 /* EventQueryModel.swift */; };
@@ -392,6 +429,12 @@
 		CAE9E44D2E4FE2DD001143C2 /* TCCModifyEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE9E44C2E4FE2D7001143C2 /* TCCModifyEvent.swift */; };
 		CAE9E4532E4FF87C001143C2 /* ESTCCModifyEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE9E44E2E4FF103001143C2 /* ESTCCModifyEvent+CoreDataClass.swift */; };
 		CAE9E4542E4FF883001143C2 /* ESTCCModifyEvent+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE9E44F2E4FF103001143C2 /* ESTCCModifyEvent+CoreDataProperties.swift */; };
+		7E5700000000000000000005 /* ESLoggerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5700000000000000000004 /* ESLoggerTests.swift */; };
+		7E5700000000000000000007 /* TraceRecordReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5700000000000000000006 /* TraceRecordReaderTests.swift */; };
+		7E5700000000000000000009 /* TraceImporterMessageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5700000000000000000008 /* TraceImporterMessageTests.swift */; };
+		7E570000000000000000000B /* XCTestCase+Fixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E570000000000000000000A /* XCTestCase+Fixtures.swift */; };
+		7E570000000000000000000D /* Fixtures in Resources */ = {isa = PBXBuildFile; fileRef = 7E570000000000000000000C /* Fixtures */; };
+		7E570000000000000000000E /* SutroESFramework.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BA33689E287620FD00794525 /* SutroESFramework.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -410,6 +453,13 @@
 			remoteInfo = SecurityExtension;
 		};
 		BA993778288613C70019E9FB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BA97AFC42875471D0099C035 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BA33689D287620FD00794525;
+			remoteInfo = SutroESFramework;
+		};
+		7E5700000000000000000012 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BA97AFC42875471D0099C035 /* Project object */;
 			proxyType = 1;
@@ -476,6 +526,43 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		7E5715000000000000000023 /* RawMessageFixture+RemoteThreadCreate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RawMessageFixture+RemoteThreadCreate.swift"; sourceTree = "<group>"; };
+		7E5715000000000000000021 /* RemoteThreadCreateExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteThreadCreateExportTests.swift; sourceTree = "<group>"; };
+		7E571500000000000000001F /* RemoteThreadCreateDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteThreadCreateDecodingTests.swift; sourceTree = "<group>"; };
+		7E571500000000000000001D /* ThreadStateFlavorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadStateFlavorTests.swift; sourceTree = "<group>"; };
+		7E571500000000000000001B /* ThreadStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadStateTests.swift; sourceTree = "<group>"; };
+		7E5715000000000000000019 /* ThreadStateFactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadStateFactsView.swift; sourceTree = "<group>"; };
+		7E5715000000000000000017 /* ThreadStateFlavor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadStateFlavor.swift; sourceTree = "<group>"; };
+		7E5715000000000000000015 /* ThreadState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadState.swift; sourceTree = "<group>"; };
+		0D0D0D000000000000000017 /* OpenDirectoryFactsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryFactsViews.swift; sourceTree = "<group>"; };
+		0D0D0D00000000000000001D /* FactRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactRow.swift; sourceTree = "<group>"; };
+		0D0D0D000000000000000015 /* EventSubscriptionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSubscriptionsTests.swift; sourceTree = "<group>"; };
+		0D0D0D000000000000000013 /* XCTestCase+JSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+JSON.swift"; sourceTree = "<group>"; };
+		0D0D0D000000000000000011 /* RawMessageFixture+ESLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RawMessageFixture+ESLogger.swift"; sourceTree = "<group>"; };
+		0D0D0D00000000000000000F /* OpenDirectoryExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryExportTests.swift; sourceTree = "<group>"; };
+		0D0D0D00000000000000000D /* OpenDirectoryWireTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryWireTests.swift; sourceTree = "<group>"; };
+		0D0D0D00000000000000000B /* OpenDirectoryCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryCaptureTests.swift; sourceTree = "<group>"; };
+		0D0D0D000000000000000009 /* OpenDirectoryMemberTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryMemberTests.swift; sourceTree = "<group>"; };
+		0D0D0D000000000000000007 /* ESODEvent+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESODEvent+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		0D0D0D000000000000000005 /* ESODEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESODEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
+		0D0D0D000000000000000019 /* ESODGroupMemberEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESODGroupMemberEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
+		0D0D0D00000000000000001B /* ESODGroupMemberEvent+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESODGroupMemberEvent+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		0D0D0D000000000000000003 /* OpenDirectoryEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryEvent.swift; sourceTree = "<group>"; };
+		0D0D0D000000000000000001 /* OpenDirectoryMember.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryMember.swift; sourceTree = "<group>"; };
+		7E5715000000000000000013 /* ExecXPCServiceNameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecXPCServiceNameTests.swift; sourceTree = "<group>"; };
+		7E5715000000000000000011 /* ExportValueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportValueTests.swift; sourceTree = "<group>"; };
+		7E5715000000000000000027 /* MessageThreadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageThreadTests.swift; sourceTree = "<group>"; };
+		7E5715000000000000000029 /* FileCreateQuarantineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileCreateQuarantineTests.swift; sourceTree = "<group>"; };
+		7E571500000000000000002B /* ProfileAddTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAddTokenTests.swift; sourceTree = "<group>"; };
+		7E571500000000000000002D /* ValidationCategoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidationCategoryTests.swift; sourceTree = "<group>"; };
+		7E571500000000000000002F /* MountDispositionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MountDispositionTests.swift; sourceTree = "<group>"; };
+		7E571500000000000000000F /* GatekeeperFileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatekeeperFileTests.swift; sourceTree = "<group>"; };
+		7E571500000000000000000D /* OptionalStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionalStringTests.swift; sourceTree = "<group>"; };
+		7E571500000000000000000B /* ESStringTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESStringTokenTests.swift; sourceTree = "<group>"; };
+		7E5715000000000000000009 /* XCTestCase+Export.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+Export.swift"; sourceTree = "<group>"; };
+		7E5715000000000000000007 /* RawMessageFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RawMessageFixture.swift; sourceTree = "<group>"; };
+		7E5715000000000000000005 /* UnsignedValueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnsignedValueTests.swift; sourceTree = "<group>"; };
+		7E5715000000000000000003 /* CaptureCrashGuardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureCrashGuardTests.swift; sourceTree = "<group>"; };
 		D15C00000000000000000065 /* EventSpool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSpool.swift; sourceTree = "<group>"; };
 		D15C00000000000000000071 /* EventFilterSpec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventFilterSpec.swift; sourceTree = "<group>"; };
 		D15C00000000000000000073 /* EventQueryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventQueryModel.swift; sourceTree = "<group>"; };
@@ -861,6 +948,12 @@
 		CAE9E44E2E4FF103001143C2 /* ESTCCModifyEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESTCCModifyEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CAE9E44F2E4FF103001143C2 /* ESTCCModifyEvent+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESTCCModifyEvent+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		C0330000C0330000C0330001 /* Community.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Community.xcconfig; sourceTree = "<group>"; };
+		7E5700000000000000000001 /* SutroESFrameworkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SutroESFrameworkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7E5700000000000000000004 /* ESLoggerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESLoggerTests.swift; sourceTree = "<group>"; };
+		7E5700000000000000000006 /* TraceRecordReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceRecordReaderTests.swift; sourceTree = "<group>"; };
+		7E5700000000000000000008 /* TraceImporterMessageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceImporterMessageTests.swift; sourceTree = "<group>"; };
+		7E570000000000000000000A /* XCTestCase+Fixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+Fixtures.swift"; sourceTree = "<group>"; };
+		7E570000000000000000000C /* Fixtures */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Fixtures; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -894,6 +987,14 @@
 				28A7B4BA2900E1BD00B63333 /* SutroESFramework.framework in Frameworks */,
 				BA97AFEA28754ABF0099C035 /* libEndpointSecurity.tbd in Frameworks */,
 				BA993775288613C10019E9FB /* libbsm.tbd in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7E5700000000000000000010 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7E570000000000000000000E /* SutroESFramework.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1053,6 +1154,7 @@
 		280C78E62E8DEB8A00B172E5 /* remote_thread_create */ = {
 			isa = PBXGroup;
 			children = (
+				7E5715000000000000000019 /* ThreadStateFactsView.swift */,
 				28B9A93C29DC8EC4006619FF /* SystemRemoteThreadCreateMetadataView.swift */,
 			);
 			path = remote_thread_create;
@@ -1133,6 +1235,8 @@
 		280C78F02E8DEC1E00B172E5 /* remote_thread_create */ = {
 			isa = PBXGroup;
 			children = (
+				7E5715000000000000000017 /* ThreadStateFlavor.swift */,
+				7E5715000000000000000015 /* ThreadState.swift */,
 				2852BBA629D9EF7C00AA833C /* RemoteThreadCreateEvent.swift */,
 			);
 			path = remote_thread_create;
@@ -1406,6 +1510,7 @@
 		282633A72E9196F6006FFF83 /* Directory */ = {
 			isa = PBXGroup;
 			children = (
+				0D0D0D000000000000000001 /* OpenDirectoryMember.swift */,
 				284BAEDA2A4DE047007F1193 /* ODHelpers.swift */,
 			);
 			path = Directory;
@@ -2024,6 +2129,10 @@
 		28B3437E2D8633C4004127E8 /* Directory Events */ = {
 			isa = PBXGroup;
 			children = (
+				0D0D0D000000000000000007 /* ESODEvent+CoreDataProperties.swift */,
+				0D0D0D000000000000000005 /* ESODEvent+CoreDataClass.swift */,
+				0D0D0D000000000000000019 /* ESODGroupMemberEvent+CoreDataClass.swift */,
+				0D0D0D00000000000000001B /* ESODGroupMemberEvent+CoreDataProperties.swift */,
 				28B865D92A312C7100F06441 /* ESODCreateUserEvent+CoreDataClass.swift */,
 				28B865DA2A312C7100F06441 /* ESODCreateUserEvent+CoreDataProperties.swift */,
 				28B865DF2A314B2C00F06441 /* ESODModifyPasswordEvent+CoreDataClass.swift */,
@@ -2265,6 +2374,7 @@
 		28B3439A2D863CAD004127E8 /* Directory Events */ = {
 			isa = PBXGroup;
 			children = (
+				0D0D0D000000000000000003 /* OpenDirectoryEvent.swift */,
 				282633AD2E919765006FFF83 /* attribute_value_add */,
 				282633AC2E91975C006FFF83 /* create_group */,
 				282633AB2E919751006FFF83 /* group_remove */,
@@ -2469,6 +2579,7 @@
 				28A169CC2DA206E600CA630B /* EventViewProvider.swift */,
 				28CEF10629776E46003057D2 /* SystemTargetProcessView.swift */,
 				28EC62F52925AA7100EAC8AD /* SystemEventFactsView.swift */,
+				0D0D0D00000000000000001D /* FactRow.swift */,
 				28B9A93929DC8AC7006619FF /* Event Metadata Views */,
 			);
 			path = "Event Facts Views";
@@ -2569,6 +2680,7 @@
 				BA97AFCE2875471D0099C035 /* ProjectSutro */,
 				BA97AFEB28754ABF0099C035 /* SecurityExtension */,
 				BA33689F287620FD00794525 /* SutroESFramework */,
+				7E5700000000000000000002 /* SutroESFrameworkTests */,
 				BA97AFE828754ABF0099C035 /* Frameworks */,
 				BA97AFCD2875471D0099C035 /* Products */,
 			);
@@ -2580,6 +2692,7 @@
 				BA97AFCC2875471D0099C035 /* Mac Monitor.app */,
 				BA97AFE728754ABF0099C035 /* com.swiftlydetecting.agent.securityextension.systemextension */,
 				BA33689E287620FD00794525 /* SutroESFramework.framework */,
+				7E5700000000000000000001 /* SutroESFrameworkTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -3089,6 +3202,7 @@
 		CAC48B032E28565F00260C5F /* Open Directory */ = {
 			isa = PBXGroup;
 			children = (
+				0D0D0D000000000000000017 /* OpenDirectoryFactsViews.swift */,
 				287EAAA22A42C79E007E00C4 /* SystemOpenDirectoryCreateUserMetadataView.swift */,
 				28C6DF182A46721300E97922 /* SystemOpenDirectoryModifyPasswordMetadataView.swift */,
 				289646C02A4B8C77000E9564 /* SystemOpenDirectoryGroupAddMetadataView.swift */,
@@ -3251,6 +3365,52 @@
 			path = "TCC Events";
 			sourceTree = "<group>";
 		};
+		7E5700000000000000000002 /* SutroESFrameworkTests */ = {
+			isa = PBXGroup;
+			children = (
+				7E5715000000000000000021 /* RemoteThreadCreateExportTests.swift */,
+				7E571500000000000000001F /* RemoteThreadCreateDecodingTests.swift */,
+				7E571500000000000000001D /* ThreadStateFlavorTests.swift */,
+				7E571500000000000000001B /* ThreadStateTests.swift */,
+				0D0D0D000000000000000015 /* EventSubscriptionsTests.swift */,
+				0D0D0D00000000000000000F /* OpenDirectoryExportTests.swift */,
+				0D0D0D00000000000000000D /* OpenDirectoryWireTests.swift */,
+				0D0D0D00000000000000000B /* OpenDirectoryCaptureTests.swift */,
+				0D0D0D000000000000000009 /* OpenDirectoryMemberTests.swift */,
+				7E5715000000000000000013 /* ExecXPCServiceNameTests.swift */,
+				7E5715000000000000000011 /* ExportValueTests.swift */,
+				7E571500000000000000000F /* GatekeeperFileTests.swift */,
+				7E571500000000000000002F /* MountDispositionTests.swift */,
+				7E571500000000000000002D /* ValidationCategoryTests.swift */,
+				7E571500000000000000002B /* ProfileAddTokenTests.swift */,
+				7E5715000000000000000029 /* FileCreateQuarantineTests.swift */,
+				7E5715000000000000000027 /* MessageThreadTests.swift */,
+				7E571500000000000000000D /* OptionalStringTests.swift */,
+				7E571500000000000000000B /* ESStringTokenTests.swift */,
+				7E5715000000000000000005 /* UnsignedValueTests.swift */,
+				7E5715000000000000000003 /* CaptureCrashGuardTests.swift */,
+				7E5700000000000000000004 /* ESLoggerTests.swift */,
+				7E5700000000000000000006 /* TraceRecordReaderTests.swift */,
+				7E5700000000000000000008 /* TraceImporterMessageTests.swift */,
+				7E5700000000000000000003 /* TestSupport */,
+				7E570000000000000000000C /* Fixtures */,
+			);
+			path = SutroESFrameworkTests;
+			sourceTree = "<group>";
+		};
+		7E5700000000000000000003 /* TestSupport */ = {
+			isa = PBXGroup;
+			children = (
+				7E5715000000000000000023 /* RawMessageFixture+RemoteThreadCreate.swift */,
+				0D0D0D000000000000000013 /* XCTestCase+JSON.swift */,
+				0D0D0D000000000000000011 /* RawMessageFixture+ESLogger.swift */,
+				7E5715000000000000000009 /* XCTestCase+Export.swift */,
+				7E5715000000000000000007 /* RawMessageFixture.swift */,
+				7E570000000000000000000A /* XCTestCase+Fixtures.swift */,
+			);
+			path = TestSupport;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -3330,6 +3490,26 @@
 			productReference = BA97AFE728754ABF0099C035 /* com.swiftlydetecting.agent.securityextension.systemextension */;
 			productType = "com.apple.product-type.system-extension";
 		};
+		7E5700000000000000000014 /* SutroESFrameworkTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7E5700000000000000000015 /* Build configuration list for PBXNativeTarget "SutroESFrameworkTests" */;
+			buildPhases = (
+				7E570000000000000000000F /* Sources */,
+				7E5700000000000000000010 /* Frameworks */,
+				7E5700000000000000000011 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7E5700000000000000000013 /* PBXTargetDependency */,
+			);
+			name = SutroESFrameworkTests;
+			packageProductDependencies = (
+			);
+			productName = SutroESFrameworkTests;
+			productReference = 7E5700000000000000000001 /* SutroESFrameworkTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -3353,6 +3533,9 @@
 					BA97AFE628754ABF0099C035 = {
 						CreatedOnToolsVersion = 14.0;
 					};
+					7E5700000000000000000014 = {
+						CreatedOnToolsVersion = 27.0;
+					};
 				};
 			};
 			buildConfigurationList = BA97AFC72875471D0099C035 /* Build configuration list for PBXProject "ProjectSutro" */;
@@ -3373,6 +3556,7 @@
 				BA97AFCB2875471D0099C035 /* ProjectSutro */,
 				BA97AFE628754ABF0099C035 /* SecurityExtension */,
 				BA33689D287620FD00794525 /* SutroESFramework */,
+				7E5700000000000000000014 /* SutroESFrameworkTests */,
 			);
 		};
 /* End PBXProject section */
@@ -3404,6 +3588,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7E5700000000000000000011 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7E570000000000000000000D /* Fixtures in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -3411,6 +3603,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7E5715000000000000000018 /* ThreadStateFlavor.swift in Sources */,
+				7E5715000000000000000016 /* ThreadState.swift in Sources */,
+				0D0D0D000000000000000008 /* ESODEvent+CoreDataProperties.swift in Sources */,
+				0D0D0D000000000000000006 /* ESODEvent+CoreDataClass.swift in Sources */,
+				0D0D0D00000000000000001A /* ESODGroupMemberEvent+CoreDataClass.swift in Sources */,
+				0D0D0D00000000000000001C /* ESODGroupMemberEvent+CoreDataProperties.swift in Sources */,
+				0D0D0D000000000000000004 /* OpenDirectoryEvent.swift in Sources */,
+				0D0D0D000000000000000002 /* OpenDirectoryMember.swift in Sources */,
 				D15C00000000000000000005 /* SensorClient.swift in Sources */,
 				D15C00000000000000000003 /* SensorXPC.swift in Sources */,
 				28EC62D1292444C800EAC8AD /* ESXattrDeleteEvent+CoreDataClass.swift in Sources */,
@@ -3662,6 +3862,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7E571500000000000000001A /* ThreadStateFactsView.swift in Sources */,
+				0D0D0D000000000000000018 /* OpenDirectoryFactsViews.swift in Sources */,
+				0D0D0D00000000000000001E /* FactRow.swift in Sources */,
 				28A2501D299FFD1B007B0753 /* SystemFileRenameMetadataView.swift in Sources */,
 				28B49C5429DCA3E800ADDABA /* SystemProcessCheckMetadataView.swift in Sources */,
 				28B865C92A30015D00F06441 /* VenturaStartButton.swift in Sources */,
@@ -3790,6 +3993,43 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7E570000000000000000000F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7E5715000000000000000024 /* RawMessageFixture+RemoteThreadCreate.swift in Sources */,
+				7E5715000000000000000022 /* RemoteThreadCreateExportTests.swift in Sources */,
+				7E5715000000000000000020 /* RemoteThreadCreateDecodingTests.swift in Sources */,
+				7E571500000000000000001E /* ThreadStateFlavorTests.swift in Sources */,
+				7E571500000000000000001C /* ThreadStateTests.swift in Sources */,
+				0D0D0D000000000000000016 /* EventSubscriptionsTests.swift in Sources */,
+				0D0D0D000000000000000014 /* XCTestCase+JSON.swift in Sources */,
+				0D0D0D000000000000000012 /* RawMessageFixture+ESLogger.swift in Sources */,
+				0D0D0D000000000000000010 /* OpenDirectoryExportTests.swift in Sources */,
+				0D0D0D00000000000000000E /* OpenDirectoryWireTests.swift in Sources */,
+				0D0D0D00000000000000000C /* OpenDirectoryCaptureTests.swift in Sources */,
+				0D0D0D00000000000000000A /* OpenDirectoryMemberTests.swift in Sources */,
+				7E5715000000000000000014 /* ExecXPCServiceNameTests.swift in Sources */,
+				7E5715000000000000000012 /* ExportValueTests.swift in Sources */,
+				7E5715000000000000000010 /* GatekeeperFileTests.swift in Sources */,
+				7E5715000000000000000030 /* MountDispositionTests.swift in Sources */,
+				7E571500000000000000002E /* ValidationCategoryTests.swift in Sources */,
+				7E571500000000000000002C /* ProfileAddTokenTests.swift in Sources */,
+				7E571500000000000000002A /* FileCreateQuarantineTests.swift in Sources */,
+				7E5715000000000000000028 /* MessageThreadTests.swift in Sources */,
+				7E571500000000000000000E /* OptionalStringTests.swift in Sources */,
+				7E571500000000000000000C /* ESStringTokenTests.swift in Sources */,
+				7E571500000000000000000A /* XCTestCase+Export.swift in Sources */,
+				7E5715000000000000000008 /* RawMessageFixture.swift in Sources */,
+				7E5715000000000000000006 /* UnsignedValueTests.swift in Sources */,
+				7E5715000000000000000004 /* CaptureCrashGuardTests.swift in Sources */,
+				7E5700000000000000000005 /* ESLoggerTests.swift in Sources */,
+				7E5700000000000000000007 /* TraceRecordReaderTests.swift in Sources */,
+				7E5700000000000000000009 /* TraceImporterMessageTests.swift in Sources */,
+				7E570000000000000000000B /* XCTestCase+Fixtures.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -3807,6 +4047,11 @@
 			isa = PBXTargetDependency;
 			target = BA33689D287620FD00794525 /* SutroESFramework */;
 			targetProxy = BA993778288613C70019E9FB /* PBXContainerItemProxy */;
+		};
+		7E5700000000000000000013 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BA33689D287620FD00794525 /* SutroESFramework */;
+			targetProxy = 7E5700000000000000000012 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -4383,6 +4628,73 @@
 			};
 			name = Release;
 		};
+		7E5700000000000000000016 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.SutroESFrameworkTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		7E5700000000000000000017 /* Community */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = C0330000C0330000C0330001 /* Community.xcconfig */;
+			buildSettings = {
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.SutroESFrameworkTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Community;
+		};
+		7E5700000000000000000018 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.SutroESFrameworkTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -4422,6 +4734,16 @@
 				BA97AFF428754ABF0099C035 /* Debug */,
 				C0330000C0330000C0330014 /* Community */,
 				BA97AFF528754ABF0099C035 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7E5700000000000000000015 /* Build configuration list for PBXNativeTarget "SutroESFrameworkTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7E5700000000000000000016 /* Debug */,
+				7E5700000000000000000017 /* Community */,
+				7E5700000000000000000018 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

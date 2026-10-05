@@ -130,7 +130,8 @@ public struct ProcessSignalEvent: Identifiable, Codable, Hashable {
         
         self.sig = Int(signalEvent.sig)
         
-        if let instigator = signalEvent.instigator {
+        /// Message version 9 and later: before it, these bytes are reserved and can't be read as a process.
+        if rawMessage.pointee.version >= 9, let instigator = signalEvent.instigator {
             self.instigator = Process(from: instigator.pointee, version: Int(rawMessage.pointee.version))
         }
         

@@ -45,7 +45,11 @@ struct TraceKeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
         guard Key(stringValue: "\u{0}") == nil else { return nil }
         let names = object.keyEnumerator()
         while let name = names.nextObject() as? String { if Key(stringValue: name) != nil { return nil } }
-        if object.count > 0, let key = decoder.key, Key(stringValue: key) != nil { return [key: object] }
+        if object.count > 0, let key = decoder.key, Key(stringValue: key) != nil {
+            /// A string under a case's key may be another case's payload (``TraceDecoder/stringCases``).
+            let named = decoder.value is NSString ? TraceDecoder.stringCases[key].flatMap { Key(stringValue: $0) } : nil
+            return [named?.stringValue ?? key: object]
+        }
         if decoder.value == nil, let parent = decoder.parent {
             let cases = parent.filter { ($0.key as? String).flatMap(Key.init(stringValue:)) != nil && !($0.value is NSNull) }
             if cases.count == 1, let (name, payload) = cases.first.map({ ($0.key as! String, $0.value) }) { return [name: payload] }

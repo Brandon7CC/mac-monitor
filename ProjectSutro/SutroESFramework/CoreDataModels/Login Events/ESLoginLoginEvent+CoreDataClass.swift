@@ -32,8 +32,9 @@ public class ESLoginLoginEvent: NSManagedObject {
         self.failure_message = event.failure_message
         self.username = event.username
         self.has_uid = event.has_uid
-        if event.has_uid {
-            self.uid = event.uid as NSNumber
+        /// Unset without a uid: an older Security Extension sends -1 in its place.
+        if event.has_uid, let uid = event.uid {
+            self.uid = NSNumber(value: uid)
         }
         self.uid_human = event.uid_human
     }
@@ -48,6 +49,7 @@ extension ESLoginLoginEvent: Encodable {
         try container.encode(failure_message, forKey: .failure_message)
         try container.encode(username, forKey: .username)
         try container.encode(has_uid, forKey: .has_uid)
+        /// eslogger writes `null` without a uid.
         try container.encode(uid?.int64Value, forKey: .uid)
         try container.encodeIfPresent(uid_human, forKey: .uid_human)
     }

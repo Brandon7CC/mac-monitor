@@ -47,13 +47,16 @@ extension ESFileCreateEvent: Encodable {
         try container.encode(is_quarantined, forKey: .is_quarantined)
     }
     
+    /// The created file's path: the existing file's, or the new path's directory and file name joined.
+    ///
+    /// "" for a destination that can't be read.
     public var targetPath: String {
         if let existingFile = destination.existing_file,
            let path = existingFile.path {
             return path
         } else if let newPath = destination.new_path {
             if let dir = newPath.dir?.path,
-               let fileName = newPath.dir?.name {
+               let fileName = newPath.filename {
                 return "\(dir)/\(fileName)"
             }
         }
@@ -61,7 +64,10 @@ extension ESFileCreateEvent: Encodable {
         return ""
     }
     
+    /// The created file's name: the last component of ``targetPath``, or "" without one.
+    ///
+    /// Read as a path, not a URL: `URL(string:)` has no URL for "" and, on macOS 13, none for a path with a space.
     public var fileName: String {
-        return URL(string: targetPath)!.lastPathComponent
+        return (targetPath as NSString).lastPathComponent
     }
 }

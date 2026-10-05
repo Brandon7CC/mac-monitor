@@ -132,8 +132,8 @@ extension NSManagedObject {
     /// Point this newly inserted object's to-one relationship `key` at `row`, which may be shared and already saved.
     ///
     /// The relationship's setter would fire `row`'s fault and mark it updated (one `SELECT` and one `UPDATE` per shared
-    /// row per save), even though no relationship has an inverse. A primitive value is stored with the new object all
-    /// the same.
+    /// row per save), even though the relationships it's used for have no inverse. A primitive value is stored with the
+    /// new object all the same, but it never updates an inverse, so it's only for relationships without one.
     ///
     /// - Parameters:
     ///   - row: The destination.

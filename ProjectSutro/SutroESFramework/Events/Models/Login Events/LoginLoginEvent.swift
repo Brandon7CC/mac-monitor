@@ -18,7 +18,8 @@ public struct LoginLoginEvent: Identifiable, Codable, Hashable {
     public var username: String
     public var uid_human = ""
     public var failure_message: String?
-    public var uid: Int64
+    /// The user's ID: `nil` (eslogger's `null`) without one.
+    public var uid: Int64?
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -32,16 +33,17 @@ public struct LoginLoginEvent: Identifiable, Codable, Hashable {
         let loginLoginEvent: es_event_login_login_t = rawMessage.pointee.event.login_login.pointee
     
         self.succcess = loginLoginEvent.success
-        if !loginLoginEvent.success &&  loginLoginEvent.failure_message.length > 0 {
-            self.failure_message = String(cString: loginLoginEvent.failure_message.data)
-        }
+        /// Optional: `nil` (eslogger's `null`) without one. Read whatever `success` says, as eslogger reads it.
+        self.failure_message = loginLoginEvent.failure_message.string
         
-        self.username = String(cString: loginLoginEvent.username.data)
+        self.username = loginLoginEvent.username.string ?? ""
         self.has_uid = loginLoginEvent.has_uid
-        self.uid = loginLoginEvent.has_uid ? Int64(loginLoginEvent.uid.uid) : -1
+        self.uid = loginLoginEvent.has_uid ? Int64(loginLoginEvent.uid.uid) : nil
         enrich()
-        if loginLoginEvent.has_uid {
-            self.uid_human = String(cString: getpwuid(uid_t(loginLoginEvent.uid.uid))!.pointee.pw_name)
+        /// Any user this Mac knows. A uid it doesn't (a directory user while the directory is offline, a deleted
+        /// account) keeps the name ``enrich()`` gave it.
+        if let uid, let name = Process.userName(Int(uid), systemAccountsOnly: false) {
+            self.uid_human = name
         }
     }
 }
@@ -49,10 +51,12 @@ public struct LoginLoginEvent: Identifiable, Codable, Hashable {
 
 // MARK: - Mac Monitor enrichment
 extension LoginLoginEvent: ESEnrichable {
-    /// Derive the user's name if it's a system account, or "Unknown" without a user ID.
+    /// Derive `has_uid`, which eslogger doesn't write (there's a uid exactly when it's set), and the user's name if
+    /// it's a system account, or "Unknown" without a user ID.
     ///
     /// Not derived: the names of other users (read from this Mac).
     public mutating func enrich() {
-        uid_human = has_uid ? Process.userName(Int(uid), systemAccountsOnly: true) ?? uid_human : "Unknown"
+        has_uid = uid != nil
+        uid_human = uid.map { Process.userName(Int($0), systemAccountsOnly: true) ?? uid_human } ?? "Unknown"
     }
 }

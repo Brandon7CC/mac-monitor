@@ -40,7 +40,7 @@ struct SystemInitiatingProcessView: View {
                         }
                         Label("**Thread ID:**", systemImage: "scribble")
                         GroupBox {
-                            Text("`\(String(selectedMessage.thread.thread_id))`")
+                            Text("`\(selectedMessage.thread.map { String($0.thread_id) } ?? "None")`")
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     
@@ -92,12 +92,12 @@ struct SystemInitiatingProcessView: View {
                 GroupBox {
                     VStack(alignment: .leading) {
                         HStack {
-                            /// A nil signing ID used to force-unwrap here (and crash); any non-nil one shows, as before.
-                            if selectedMessage.process.signing_id != nil {
+                            /// A nil signing ID used to force-unwrap here (and crash). An empty one is none, too.
+                            if let signingID = selectedMessage.process.signing_id.nonEmpty {
                                 Text("\u{2022} **Process signing ID:**")
                                 GroupBox {
                                     VStack(alignment: .leading) {
-                                        Text("`\(selectedMessage.process.signing_id ?? "")`")
+                                        Text("`\(signingID)`")
                                     }
                                 }
                             } else {

@@ -64,7 +64,7 @@ struct SystemXProtectRemediateMetadataView: View {
                     HStack {
                         Text("\u{2022} **Remediated path:**")
                         GroupBox {
-                            Text("`\(event.remediated_path)`")
+                            Text("`\(event.remediated_path ?? "")`")
                                 .lineLimit(10)
                         }
                     }

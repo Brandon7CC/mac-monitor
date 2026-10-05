@@ -137,11 +137,11 @@ struct SystemFileCreateMetadataView: View {
                         }
                     }
                     
-                    if let newPath = create?.destination.new_path {
+                    if let mode = create?.destination.new_path?.mode {
                         HStack {
                             Text("\u{2022} **Mode:**")
                             GroupBox {
-                                Text("`\(newPath.mode)`")
+                                Text("`\(mode.int32Value)`")
                             }
                         }
                     }

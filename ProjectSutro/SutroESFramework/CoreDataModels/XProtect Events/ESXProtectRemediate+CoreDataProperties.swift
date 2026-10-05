@@ -23,7 +23,7 @@ extension ESXProtectRemediate {
     @NSManaged public var action_type: String
     @NSManaged public var success: Bool
     @NSManaged public var result_description: String
-    @NSManaged public var remediated_path: String
+    @NSManaged public var remediated_path: String?
     @NSManaged public var remediated_process_audit_token: ESAuditToken?
 
 }

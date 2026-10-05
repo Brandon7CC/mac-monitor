@@ -26,7 +26,7 @@ public struct UIPCBindEvent: Identifiable, Codable, Hashable {
         let event: es_event_uipc_bind_t = rawMessage.pointee.event.uipc_bind
         
         dir = File(from: event.dir.pointee)
-        filename = event.filename.toString() ?? ""
+        filename = event.filename.string ?? ""
         mode = Int32(event.mode)
     }
 }

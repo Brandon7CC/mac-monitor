@@ -44,10 +44,7 @@ public struct XPCConnectEvent: Identifiable, Codable, Hashable {
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let xpcConnectEvent: es_event_xpc_connect_t = rawMessage.pointee.event.xpc_connect.pointee
         
-        self.service_name = ""
-        if xpcConnectEvent.service_name.length > 0 {
-            self.service_name = String(cString: xpcConnectEvent.service_name.data)
-        }
+        self.service_name = xpcConnectEvent.service_name.string ?? ""
         
         self.service_domain_type = Int32(xpcConnectEvent.service_domain_type.rawValue)
         enrich()

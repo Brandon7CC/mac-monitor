@@ -40,16 +40,12 @@ public struct FileCreateEvent: Identifiable, Codable, Hashable {
         self.destination_type = Int(create.destination_type.rawValue)
         self.destination = FileDestination.from(create: create)
         enrich()
-        switch(create.destination_type) {
-        case ES_DESTINATION_TYPE_EXISTING_FILE:
-            self.is_quarantined = Int16(ProcessHelpers.isFileQuarantined(filePath: destination.existing_file!.path))
-        case ES_DESTINATION_TYPE_NEW_PATH:
-            if let new_path = destination.new_path {
-                let dir: String = new_path.dir.path
-                let path: String = "\(dir)\\/\(new_path.filename)"
-                self.is_quarantined = Int16(ProcessHelpers.isFileQuarantined(filePath: path))
-            }
-        default:
+        switch destination {
+        case .existing_file(let file):
+            self.is_quarantined = Int16(ProcessHelpers.isFileQuarantined(filePath: file.path))
+        case .new_path(let new_path):
+            self.is_quarantined = Int16(ProcessHelpers.isFileQuarantined(filePath: new_path.fullPath))
+        case .unknown:
             break
         }
         
@@ -73,8 +69,13 @@ extension FileCreateEvent: ESEnrichable {
 }
 
 extension acl_t {
+    /// The ACL in its text form.
+    ///
+    /// - Returns: The text, or `nil` if the ACL can't be read.
     func toString() -> String? {
+        /// `acl_size` returns -1 for an ACL it can't size, which no buffer can hold.
         let size = acl_size(self)
+        guard size > 0 else { return nil }
         let extBuffer = UnsafeMutableRawPointer.allocate(byteCount: size, alignment: MemoryLayout<Int8>.alignment)
         defer { extBuffer.deallocate() }
 

@@ -44,13 +44,14 @@ public struct SSHLoginEvent: Identifiable, Codable, Hashable {
         
         source_address_type = Int32(event.source_address_type.rawValue)
         
-        source_address = event.source_address.toString() ?? ""
+        source_address = event.source_address.string ?? ""
         
-        username = event.username.toString() ?? ""
+        username = event.username.string ?? ""
         
         has_uid = event.has_uid
         if event.has_uid {
-            uid = Int32(event.uid.uid)
+            /// A `uid_t`, kept by bit pattern: one of 2^31 or more has no `Int32`.
+            uid = Int32(bitPattern: event.uid.uid)
         }
         enrich()
     }
@@ -59,8 +60,10 @@ public struct SSHLoginEvent: Identifiable, Codable, Hashable {
 
 // MARK: - Mac Monitor enrichment
 extension SSHLoginEvent: ESEnrichable {
-    /// Derive the names of the result type and the source address type.
+    /// Derive `has_uid`, which eslogger doesn't write (there's a uid exactly when it's set), and the names of the
+    /// result type and the source address type.
     public mutating func enrich() {
+        has_uid = uid != nil
         switch es_openssh_login_result_type_t(rawValue: UInt32(truncatingIfNeeded: result_type)) {
         case ES_OPENSSH_AUTH_SUCCESS:
             result_type_string = "ES_OPENSSH_AUTH_SUCCESS"

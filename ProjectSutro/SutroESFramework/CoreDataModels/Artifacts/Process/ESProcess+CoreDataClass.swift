@@ -172,9 +172,12 @@ extension ESProcess: Encodable {
         try container.encodeIfPresent(cdhash, forKey: .cdhash)
         try container.encode(is_adhoc_signed, forKey: .is_adhoc_signed)
         
-        if #available(macOS 14.0, *) {
+        /// Endpoint Security's from message version 10 (`ESMessageCore.h`), and stored with its name only then: before
+        /// it eslogger writes no category, and the attribute's default (0) would read as
+        /// `ES_CS_VALIDATION_CATEGORY_INVALID`.
+        if let cs_validation_category_string {
             try container.encode(cs_validation_category, forKey: .cs_validation_category)
-            try container.encodeIfPresent(cs_validation_category_string, forKey: .cs_validation_category_string)
+            try container.encode(cs_validation_category_string, forKey: .cs_validation_category_string)
         }
         
         try container.encode(is_es_client, forKey: .is_es_client)

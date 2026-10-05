@@ -29,7 +29,7 @@ extension ESGatekeeperUserOverrideEvent {
     /// Making non-optional to support this behavior.
     @NSManaged public var sha256: String
     
-    /// We need to report the file union differently to the app to conform to ESLogger's oddness...
+    /// The `file` union's arm that `file_type` names: the file, or its path. eslogger writes either under `file`.
     @NSManaged public var file: ESFile?
     @NSManaged public var file_path: String?
 }

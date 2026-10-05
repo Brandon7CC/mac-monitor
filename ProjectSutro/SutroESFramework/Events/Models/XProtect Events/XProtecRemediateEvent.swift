@@ -19,7 +19,8 @@ public struct XProtecRemediateEvent: Identifiable, Codable, Hashable {
     public var action_type: String
     public var success: Bool
     public var result_description: String
-    public var remediated_path: String
+    /// Optional: `nil` (eslogger's `null`) when nothing was remediated at a path.
+    public var remediated_path: String?
     public var remediated_process_audit_token: AuditToken?
     
     
@@ -38,13 +39,13 @@ public struct XProtecRemediateEvent: Identifiable, Codable, Hashable {
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let event: es_event_xp_malware_remediated_t = rawMessage.pointee.event.xp_malware_remediated.pointee
         
-        self.signature_version = event.signature_version.toString() ?? ""
-        self.malware_identifier = event.malware_identifier.toString()  ?? ""
-        self.incident_identifier = event.incident_identifier.toString()  ?? ""
-        self.action_type = event.action_type.toString() ?? ""
+        self.signature_version = event.signature_version.string ?? ""
+        self.malware_identifier = event.malware_identifier.string ?? ""
+        self.incident_identifier = event.incident_identifier.string ?? ""
+        self.action_type = event.action_type.string ?? ""
         self.success = event.success
-        self.result_description = event.result_description.toString() ?? ""
-        self.remediated_path = event.remediated_path.toString() ?? ""
+        self.result_description = event.result_description.string ?? ""
+        self.remediated_path = event.remediated_path.string
         
         if let remediated_process_audit_token = event.remediated_process_audit_token {
             self.remediated_process_audit_token = AuditToken(from: remediated_process_audit_token.pointee)

@@ -32,7 +32,7 @@ public struct ESMutedPath: Identifiable, Codable, Hashable {
     
     init(fromRawESPath rawPath: es_muted_path_t) {
         // Set the path
-        self.path = String(cString: rawPath.path.data)
+        self.path = rawPath.path.string ?? ""
         
         self.type = getMuteCaseString(muteType: rawPath.type)
         
@@ -88,15 +88,17 @@ public struct ESMutedPaths: Identifiable, Codable, Hashable {
 }
 
 
+/// A value as compact JSON with sorted keys.
+///
+/// - Parameter value: The value, such as an ``ESMutedPath``.
+/// - Returns: The JSON, or "" if the value can't be encoded.
 public func pathToJSON(value: Encodable) -> String {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.withoutEscapingSlashes, .sortedKeys]
     
-    let encodedData = try? encoder.encode(value)
-    if let json = String(data: encodedData!, encoding: .utf8) {
-        return json
-    }
-    return ""
+    guard let encodedData = try? encoder.encode(value),
+          let json = String(data: encodedData, encoding: .utf8) else { return "" }
+    return json
 }
 
 

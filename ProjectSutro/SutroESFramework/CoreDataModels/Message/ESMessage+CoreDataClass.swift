@@ -121,10 +121,7 @@ public class ESMessage: NSManagedObject {
         self.process_id = message.process.id
         
         /// Thread
-        self.thread = ESThread(
-            from: message.thread,
-            insertIntoManagedObjectContext: context
-        )
+        self.thread = message.thread.map { ESThread(from: $0, insertIntoManagedObjectContext: context) }
         
         /// Event
         /// A process execution event. Corresponds to `ES_EVENT_TYPE_NOTIFY_EXEC`
@@ -181,7 +178,7 @@ extension ESMessage: Encodable {
         /// Initiating Process
         try container.encode(ESProcessRecord(process: process, id: process_id ?? process.id), forKey: .process)
         
-        /// Thread
+        /// Thread: `null` when Endpoint Security named none, as eslogger writes it.
         try container.encode(thread, forKey: .thread)
         
         /// Event

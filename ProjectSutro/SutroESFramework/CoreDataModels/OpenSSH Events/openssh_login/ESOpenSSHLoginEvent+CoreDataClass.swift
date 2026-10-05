@@ -63,7 +63,8 @@ extension ESOpenSSHLoginEvent: Encodable {
         try container.encode(username, forKey: .username)
         
         try container.encode(has_uid, forKey: .has_uid)
-        /// eslogger writes `null` without a uid; the stored -1 only marks its absence.
-        try container.encode(has_uid ? uid : nil, forKey: .uid)
+        /// eslogger writes `null` without a uid; the stored -1 only marks its absence. A `uid_t`, kept by bit pattern:
+        /// written unsigned, as eslogger writes it.
+        try container.encode(has_uid ? UInt32(bitPattern: uid) : nil, forKey: .uid)
     }
 }

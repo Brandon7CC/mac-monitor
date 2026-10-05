@@ -15,7 +15,8 @@ public struct LaunchItemAddEvent: Identifiable, Codable, Hashable {
     public var instigator: Process?
     public var app: Process?
     public var item: LaunchItem
-    public var executable_path: String
+    /// Optional ("if available and applicable"): `nil`, eslogger's `null`, when it isn't.
+    public var executable_path: String?
     
     /// Message `>= 8`:
     public var instigator_token, app_token: AuditToken?
@@ -59,6 +60,6 @@ public struct LaunchItemAddEvent: Identifiable, Codable, Hashable {
         item = LaunchItem(from: lauchItemAddEvent.item.pointee)
         
         // MARK: - Executable path
-        executable_path = lauchItemAddEvent.executable_path.toString() ?? ""
+        executable_path = lauchItemAddEvent.executable_path.string
     }
 }

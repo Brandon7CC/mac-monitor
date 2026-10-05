@@ -31,17 +31,29 @@
 import Foundation
 
 
-public struct OpenDirectoryAttributeValueAddEvent: Identifiable, Codable, Hashable {
+/// Models an `ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_VALUE_ADD`: a value was added to an Open Directory record's attribute.
+public struct OpenDirectoryAttributeValueAddEvent: Identifiable, Codable, Hashable, OpenDirectoryEvent {
     public var id: UUID = UUID()
-    public var instigator_process_name, instigator_process_path, instigator_process_audit_token, instigator_process_signing_id: String?
-    public var error_code: Int
-    public var record_type: String
+    /// The process that instigated the operation (the XPC caller), or `nil` when Endpoint Security leaves it out.
+    public var instigator: Process?
+    /// The instigator's audit token: message version 8 and later.
+    public var instigator_token: AuditToken?
+    /// Error codes defined in: `odconstants.h`. An error code of 0 indicates success.
+    public var error_code: Int = 0
+    /// The record's type, an `es_od_record_type_t`: a user (0) or a group (1). `nil` only for an event recorded
+    /// before 2.2.0 whose type Mac Monitor didn't know.
+    public var record_type: Int?
     public var record_name: String?
     public var attribute_name: String?
     public var attribute_value: String?
     public var node_name: String?
     public var db_path: String?
-    public var error_code_human: String?
+    
+    /// Mac Monitor enrichment: the error's description, the name of the record's type (written in place of
+    /// `record_type` before 2.2.0), and the instigator's name, path, audit token and signing ID.
+    public var error_code_human, record_type_string: String?
+    public var instigator_process_name, instigator_process_path: String?
+    public var instigator_process_audit_token, instigator_process_signing_id: String?
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -51,76 +63,41 @@ public struct OpenDirectoryAttributeValueAddEvent: Identifiable, Codable, Hashab
         return lhs.id == rhs.id
     }
     
+    /// Record the event of a message from Endpoint Security.
+    ///
+    /// - Parameter rawMessage: The message.
     init(from rawMessage: UnsafePointer<es_message_t>) {
-        let attributeValueAddEvent: es_event_od_attribute_value_add_t = rawMessage.pointee.event.od_attribute_value_add.pointee
-        let instigatorProcess: es_process_t = attributeValueAddEvent.instigator!.pointee
-        
-        self.instigator_process_name = ""
-        if instigatorProcess.executable.pointee.path.length > 0 {
-            self.instigator_process_name = URL(fileURLWithPath: String(cString: instigatorProcess.executable.pointee.path.data)).lastPathComponent
-        }
-        
-        self.instigator_process_path = ""
-        if instigatorProcess.executable.pointee.path.length > 0 {
-            self.instigator_process_path = String(cString: instigatorProcess.executable.pointee.path.data)
-        }
-        
-        self.instigator_process_signing_id = ""
-        if instigatorProcess.signing_id.length > 0 {
-            self.instigator_process_signing_id = String(cString: instigatorProcess.signing_id.data)
-        }
-        
-        self.instigator_process_audit_token = ""
-        self.instigator_process_audit_token = instigatorProcess.audit_token
-            .toString()
-        
-        self.error_code = Int(attributeValueAddEvent.error_code)
-    
-        self.record_type = ""
-        switch(attributeValueAddEvent.record_type) {
-        case ES_OD_RECORD_TYPE_USER:
-            self.record_type = "USER"
-            break
-        case ES_OD_RECORD_TYPE_GROUP:
-            self.record_type = "GROUP"
-            break
-        default:
-            self.record_type = "UNKNOWN"
-        }
-
-        self.record_name = ""
-        if attributeValueAddEvent.record_name.length > 0 {
-            self.record_name = String(cString: attributeValueAddEvent.record_name.data)
-        }
-        
-        self.attribute_name = ""
-        if attributeValueAddEvent.attribute_name.length > 0 {
-            self.attribute_name = String(cString: attributeValueAddEvent.attribute_name.data)
-        }
-
-        self.attribute_value = ""
-        if attributeValueAddEvent.attribute_value.length > 0 {
-            self.attribute_value = String(cString: attributeValueAddEvent.attribute_value.data)
-        }
-        
-        self.node_name = ""
-        if attributeValueAddEvent.node_name.length > 0 {
-            self.node_name = String(cString: attributeValueAddEvent.node_name.data)
-        }
-        
-        self.db_path = ""
-        if attributeValueAddEvent.db_path.length > 0 {
-            self.db_path = String(cString: attributeValueAddEvent.db_path.data)
-        }
+        let event = rawMessage.pointee.event.od_attribute_value_add
+        readCommonFields(from: event, version: Int(rawMessage.pointee.version))
+        self.record_type = Int(event.pointee.record_type.rawValue)
+        self.record_name = event.pointee.record_name.string ?? ""
+        self.attribute_name = event.pointee.attribute_name.string ?? ""
+        self.attribute_value = event.pointee.attribute_value.string ?? ""
         enrich()
+    }
+    
+    /// Read the event from eslogger's JSON, an export, or the Security Extension, including those before
+    /// 2.2.0, which wrote the name of the record's type as `record_type`.
+    ///
+    /// - Parameter decoder: The event's decoder.
+    /// - Throws: The error decoding a field.
+    public init(from decoder: Decoder) throws {
+        try decodeCommonFields(from: decoder)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        (record_type, record_type_string) = try container.decodeODEnum(
+            .record_type, name: .record_type_string, names: .recordType)
+        record_name = try container.decodeIfPresent(String.self, forKey: .record_name)
+        attribute_name = try container.decodeIfPresent(String.self, forKey: .attribute_name)
+        attribute_value = try container.decodeIfPresent(String.self, forKey: .attribute_value)
     }
 }
 
 
 // MARK: - Mac Monitor enrichment
 extension OpenDirectoryAttributeValueAddEvent: ESEnrichable {
-    /// Derive the error code's description.
+    /// Derive the error code's description, the name of the record's type, and the instigator's fields.
     public mutating func enrich() {
-        error_code_human = decodeODErrorCode(error_code)
+        enrichCommonFields()
+        record_type_string = record_type.map(ODEnumNames.recordType.name(of:)) ?? record_type_string
     }
 }

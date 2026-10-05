@@ -122,7 +122,9 @@ extension EventType {
         // MARK: Interprocess events
         case .remote_thread_create(let event):
             let targetPath = event.target.executable?.path ?? "Unknown"
-            return (event.thread_state.map { "[\($0)] \(targetPath)" } ?? targetPath, targetPath)
+            /// The flavor's name, or its number when this Mac's architecture doesn't name it.
+            let flavor = event.thread_state_string ?? event.thread_state.map { "flavor \($0.flavor)" }
+            return (flavor.map { "[\($0)] \(targetPath)" } ?? targetPath, targetPath)
         case .trace(let event):
             return (event.target.executable?.name ?? "Unknown", event.target.executable?.path ?? "Unknown")
         // MARK: Code Signing events
@@ -143,6 +145,7 @@ extension EventType {
             let targetFileName = switch event.destination {
             case .existing_file: URL(string: targetPath)?.lastPathComponent ?? ""
             case .new_path(let path): path.filename
+            case .unknown: ""
             }
             return ("\(URL(fileURLWithPath: event.source.path).lastPathComponent) → \(targetFileName)", targetPath)
         case .open(let event):
@@ -227,10 +230,10 @@ extension EventType {
         case .od_modify_password(let event):
             return ("[\(event.error_code_human ?? "")] \(event.account_name ?? "") in \(event.node_name ?? "")", nil)
         case .od_group_add(let event):
-            let change = "Added \(event.member ?? "") to \(event.group_name ?? "")"
+            let change = "Added \(event.memberSummary) to \(event.group_name ?? "")"
             return ("[\(event.error_code_human ?? "")] \(change) in \(event.node_name ?? "")", nil)
         case .od_group_remove(let event):
-            let change = "Removed \(event.member ?? "") from \(event.group_name ?? "")"
+            let change = "Removed \(event.memberSummary) from \(event.group_name ?? "")"
             return ("[\(event.error_code_human ?? "")] \(change) in \(event.node_name ?? "")", nil)
         case .od_create_group(let event):
             return ("[\(event.error_code_human ?? "")] \(event.group_name ?? "") in \(event.node_name ?? "")", nil)
@@ -264,11 +267,13 @@ extension EventType {
     /// Read from the destination itself rather than its `destination_type`, which a trace file may contradict.
     ///
     /// - Parameter destination: The event's destination.
-    /// - Returns: The existing file's path, or the new path's directory and file name joined by "\/".
+    /// - Returns: The existing file's path, the new path's directory and file name joined by "\/", or "" for a
+    ///   destination that can't be read.
     private static func destinationPath(_ destination: FileDestination) -> String {
         switch destination {
         case .existing_file(let file): file.path
         case .new_path(let path): "\(path.dir.path)\\/\(path.filename)"
+        case .unknown: ""
         }
     }
 }

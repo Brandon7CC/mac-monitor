@@ -81,7 +81,7 @@ struct SystemBTMRemoveMetadataView: View {
                                 }
                             }
 
-                            if let app = event.app, let teamId = app.team_id {
+                            if let app = event.app, let teamId = app.team_id.nonEmpty {
                                 HStack {
                                     Text("\u{2022} **App Team ID:**")
                                     GroupBox {
@@ -92,7 +92,7 @@ struct SystemBTMRemoveMetadataView: View {
                                 }
                             }
 
-                            if let app = event.app, let signingId = app.signing_id {
+                            if let app = event.app, let signingId = app.signing_id.nonEmpty {
                                 HStack {
                                     Text("\u{2022} **App Signing ID:**")
                                     GroupBox {
@@ -123,7 +123,7 @@ struct SystemBTMRemoveMetadataView: View {
                                 }
                             }
 
-                            if let teamId = instigator.team_id {
+                            if let teamId = instigator.team_id.nonEmpty {
                                 HStack {
                                     Text("\u{2022} **Instigator Team ID:**")
                                     GroupBox {
@@ -134,7 +134,7 @@ struct SystemBTMRemoveMetadataView: View {
                                 }
                             }
 
-                            if let signingId = instigator.signing_id {
+                            if let signingId = instigator.signing_id.nonEmpty {
                                 HStack {
                                     Text("\u{2022} **Instigator Signing ID:**")
                                     GroupBox {

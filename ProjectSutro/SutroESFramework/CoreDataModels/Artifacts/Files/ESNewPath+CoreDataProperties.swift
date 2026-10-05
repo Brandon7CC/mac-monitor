@@ -18,7 +18,8 @@ extension ESNewPath {
 
     @NSManaged public var id: UUID?
     @NSManaged public var filename: String?
-    @NSManaged public var mode: Int32
+    /// A create event's `mode_t`. A rename's new path has none (`nil`), and eslogger writes no `mode` for it.
+    @NSManaged public var mode: NSNumber?
     @NSManaged public var dir: ESFile?
 
 }

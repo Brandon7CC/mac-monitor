@@ -43,12 +43,11 @@ public struct LaunchItem: Identifiable, Codable, Hashable {
         managed = launchItem.managed
         
         // MARK: - App
-        if let appURLString = launchItem.app_url.toString(), URL(string: appURLString) != nil {
-            app_url = appURLString
-        }
+        /// Optional: `nil` (eslogger's `null`) when the item has no app. Kept as written, even when it isn't a URL.
+        app_url = launchItem.app_url.string
         
         // MARK: - Item
-        item_url = launchItem.item_url.toString() ?? ""
+        item_url = launchItem.item_url.string ?? ""
         item_type = Int16(launchItem.item_type.rawValue)
         
         // MARK: - UID

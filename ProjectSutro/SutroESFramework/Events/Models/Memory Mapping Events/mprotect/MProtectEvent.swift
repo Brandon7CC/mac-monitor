@@ -50,8 +50,9 @@ public struct MProtectEvent: Identifiable, Codable, Hashable {
         let event: es_event_mprotect_t = rawMessage.pointee.event.mprotect
         
         self.protection = event.protection
-        self.address = Int64(event.address)
-        self.size = Int64(event.size)
+        /// `user_addr_t` and `user_size_t` are unsigned, kept by bit pattern: one of 2^63 or more has no `Int64`.
+        self.address = Int64(bitPattern: event.address)
+        self.size = Int64(bitPattern: event.size)
         
         enrich()
     }
@@ -62,8 +63,7 @@ public struct MProtectEvent: Identifiable, Codable, Hashable {
 extension MProtectEvent: ESEnrichable {
     /// Derive the address in hex, the size in KB, and the protection's flags.
     public mutating func enrich() {
-        self.hex_address = ProcessHelpers
-            .toHex(target: String(UInt64(bitPattern: address)))
+        self.hex_address = ProcessHelpers.toHex(UInt64(bitPattern: address))
         self.kb_size = Int64(ProcessHelpers
             .sizeFromHexNormalized(size: Double(UInt64(bitPattern: size))))
         self.flags = decodeProtectionFlags(protection)

@@ -8,14 +8,16 @@
 import Foundation
 
 
-// MARK: - New path directories
+// MARK: - New paths
 extension Message {
-    /// Restore the directory of a create or rename event's new path from the event's full destination path.
+    /// Repair what older exports wrote wrong in a create or rename event's new path.
     ///
-    /// Exports from 2.0.0 to 2.1.0 wrote ``ESNewPath``'s `dir` only when it was already loaded, which it rarely was, so an
-    /// imported event's directory would be empty: its path and name are what the create event's Event Facts show. Its
-    /// `stat` is lost.
-    mutating func restoreNewPathDirectory() {
+    /// - Exports from 2.0.0 to 2.1.0 wrote ``ESNewPath``'s `dir` only when it was already loaded, which it rarely was,
+    ///   so an imported event's directory would be empty: it's restored from the event's full destination path (its
+    ///   path and name are what the create event's Event Facts show; its `stat` is lost).
+    /// - Exports from 2.0.0 to 2.1.0 wrote a rename's new path with `mode` 0, which a rename doesn't have (only a
+    ///   create's new path does): it's dropped, as eslogger has none.
+    mutating func repairNewPath() {
         /// `full` less `file`, and the "/" (or "\/", as `target_path` writes it) before it.
         func directory(of full: String?, file: String) -> String? {
             guard let full, !file.isEmpty, full.hasSuffix(file) else { return nil }
@@ -32,9 +34,11 @@ extension Message {
             create.destination = .new_path(path)
             event = .create(create)
         case .rename(var rename):
-            guard case .new_path(var path) = rename.destination, path.dir.path.isEmpty,
-                  let directory = directory(of: rename.destination_path, file: path.filename) else { return }
-            path.dir.path = directory
+            guard case .new_path(var path) = rename.destination else { return }
+            path.mode = nil
+            if path.dir.path.isEmpty, let directory = directory(of: rename.destination_path, file: path.filename) {
+                path.dir.path = directory
+            }
             rename.destination = .new_path(path)
             event = .rename(rename)
         default:

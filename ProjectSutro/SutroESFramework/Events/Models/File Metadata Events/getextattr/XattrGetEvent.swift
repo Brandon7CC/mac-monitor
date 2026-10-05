@@ -28,6 +28,6 @@ public struct XattrGetEvent: Identifiable, Codable, Hashable {
         let event: es_event_getextattr_t = rawMessage.pointee.event.getextattr
         
         target = File(from: event.target.pointee)
-        extattr = event.extattr.toString() ?? ""
+        extattr = event.extattr.string ?? ""
     }
 }

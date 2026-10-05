@@ -46,7 +46,7 @@ struct SystemXProtectEventTableView: View {
                         Text(xp_malware_detected.detected_path)
                             .monospaced()
                     } else if let xp_malware_remediated = message.event.xp_malware_remediated {
-                        Text(xp_malware_remediated.remediated_path)
+                        Text(xp_malware_remediated.remediated_path ?? "")
                             .monospaced()
                     }
                 }

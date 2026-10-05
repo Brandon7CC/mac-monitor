@@ -23,12 +23,13 @@ import Foundation
 /// - A missing `_0` is the enclosing object itself: the export writes an enum case's payload as `{"exec": {...}}` where
 ///   `Codable` writes `{"exec": {"_0": {...}}}`.
 /// - An enum whose value names none of its cases was flattened into its parent: the value is the payload of the case
-///   its key names (`"file": {...}` for ``FilePathUnion/file(_:)``), or, when the value is missing, the parent holds it
-///   under the one key that names a case (`"file_path": "..."`). An empty one is the case named `unknown`, if any.
+///   its key names (`"file": {...}` for ``FilePathUnion/file(_:)``), or of the case ``stringCases`` names for a
+///   string under that key (eslogger's `"file": "..."` for ``FilePathUnion/file_path(_:)``), or, when the value is
+///   missing, the parent holds it under the one key that names a case (`"file_path": "..."`). An empty one (or
+///   `null`) is the case named `unknown`, if any.
 /// - Keys a type doesn't have (derived values such as `name`, `team_id`, or `destination_type_string`) are ignored, and
 ///   ``renamed`` keys are read under their export spelling.
-/// - A value of the wrong JSON type is an error, so the event is skipped and counted rather than imported wrong, except
-///   for the objects in ``bridges``, which Mac Monitor keeps as a string.
+/// - A value of the wrong JSON type is an error, so the event is skipped and counted rather than imported wrong.
 ///
 /// Enums with raw values have no default, so they take one from ``fallbacks`` when missing or unknown.
 ///
@@ -52,17 +53,9 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
     /// Keys the export spells differently from the `Codable` form, by their `Codable` spelling.
     static let renamed = ["succcess": "success"]
     
-    /// eslogger objects that Mac Monitor keeps as the string the Security Extension builds from them, by key: an
-    /// `od_group_add` or `od_group_remove` event's `member` (`{member_type, member_value}`) is its type's name, and a
-    /// `remote_thread_create` event's `thread_state` (`{flavor, state}`) its flavor's name. `nil` is no value.
-    static let bridges: [String: (NSDictionary) -> String?] = [
-        "member": { object in
-            (object["member_type"] as? NSNumber).map { odMemberTypeName(es_od_member_type_t(rawValue: UInt32(truncatingIfNeeded: $0.int64Value))) }
-        },
-        "thread_state": { object in
-            (object["flavor"] as? NSNumber).flatMap { RemoteThreadCreateEvent.flavorName(thread_state_flavor_t(truncatingIfNeeded: $0.int64Value)) }
-        },
-    ]
+    /// Enum keys whose string value is another case's payload, by key: eslogger writes a `gatekeeper_user_override`
+    /// event's path arm under `file`, as the path. Only used when the enum has the case named.
+    static let stringCases = ["file": "file_path"]
     
     /// Values for raw-value enums when theirs is missing or isn't one of their cases.
     static let fallbacks: [ObjectIdentifier: Any] = [
@@ -89,12 +82,6 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
     
     /// Is the value missing or `null`?
     private var isAbsent: Bool { value == nil || value is NSNull }
-    
-    /// For an object in ``bridges``: the string it stands for (`nil` for none). `nil` for any other value.
-    private var bridged: String?? {
-        guard let object = value as? NSDictionary, let bridge = key.flatMap({ Self.bridges[$0] }) else { return nil }
-        return .some(bridge(object))
-    }
     
     /// The error for a value of the wrong JSON type.
     ///
@@ -134,8 +121,8 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
     func singleValueContainer() throws -> SingleValueDecodingContainer { self }
     
     // MARK: Single values
-    /// Is the value missing, `null`, or a bridged object (see ``bridges``) that stands for nothing?
-    func decodeNil() -> Bool { isAbsent || bridged == .some(nil) }
+    /// Is the value missing or `null`?
+    func decodeNil() -> Bool { isAbsent }
     
     /// The value as a `T`: a `UUID` (a new one if it's missing), a ``fallbacks`` value, or what `T` decodes, enriched when
     /// ``enriching``.
@@ -160,16 +147,13 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
         }
     }
     
-    /// The value as a `String`: a string, a number's digits, or a bridged object's string (see ``bridges``). Missing is
-    /// `""`.
+    /// The value as a `String`: a string, or a number's digits. Missing is `""`.
     func decode(_ type: String.Type) throws -> String {
         switch value {
         case let text as NSString: return text as String
         case let number as NSNumber: return number.stringValue
         case _ where isAbsent: return ""
-        default:
-            guard case .some(let text) = bridged else { throw mismatch(type) }
-            return text ?? ""
+        default: throw mismatch(type)
         }
     }
     
@@ -200,6 +184,9 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
     
     /// The value as an integer: a number (truncated to fit, as `UInt64` values written as `Int64` are), or a string of
     /// digits. Missing is 0.
+    ///
+    /// An unsigned 64-bit value of 2^63 or more (an `st_ino` on SMB, NFS or FUSE) reads into an `Int64` as its bit
+    /// pattern: `JSONSerialization` keeps it as an unsigned `NSNumber`, whose `int64Value` is that pattern.
     ///
     /// - Returns: The integer.
     /// - Throws: A type mismatch for any other value.

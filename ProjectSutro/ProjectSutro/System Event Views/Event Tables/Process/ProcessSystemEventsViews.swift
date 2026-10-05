@@ -56,7 +56,7 @@ struct ProcessExecEventNameView: View {
                     Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .orange).help("Binary is adhoc signed!")
                     Label("**\(procName)**", systemImage: "xmark.seal").symbolRenderingMode(.palette).foregroundStyle(.orange)
                 }.frame(alignment: .leading)
-            } else if (exec.target.signing_id ?? "Unknown") == "Unknown" {
+            } else if (exec.target.signing_id.nonEmpty ?? "Unknown") == "Unknown" {
                 HStack {
                     if exec.target.ruid == 0 {
                         Image(systemName: "person.crop.circle.badge.exclamationmark.fill").symbolRenderingMode(.multicolor).padding([.leading], 2.0).help("Process is running as the root user")

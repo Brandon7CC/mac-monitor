@@ -8,17 +8,27 @@
 import Foundation
 
 
-public struct OpenDirectoryModifyPasswordEvent: Identifiable, Codable, Hashable {
+/// Models an `ES_EVENT_TYPE_NOTIFY_OD_MODIFY_PASSWORD`: an account's password was changed in an Open Directory node.
+public struct OpenDirectoryModifyPasswordEvent: Identifiable, Codable, Hashable, OpenDirectoryEvent {
     public var id: UUID = UUID()
-    public var instigator_process_name, instigator_process_path, instigator_process_audit_token, instigator_process_signing_id: String?
-    public var account_type: String?
+    /// The process that instigated the operation (the XPC caller), or `nil` when Endpoint Security leaves it out.
+    public var instigator: Process?
+    /// The instigator's audit token: message version 8 and later.
+    public var instigator_token: AuditToken?
+    /// The account's type, an `es_od_account_type_t`: a user (0) or a computer (1). `nil` only for an event recorded
+    /// before 2.2.0 whose type Mac Monitor didn't know.
+    public var account_type: Int?
     public var account_name: String?
     public var node_name: String?
     public var db_path: String?
     /// Error codes defined in: `odconstants.h`. An error code of 0 indicates success.
-    public var error_code: Int
-    /// Decoded OD error code from `odconstants.h`.
-    public var error_code_human: String?
+    public var error_code: Int = 0
+    
+    /// Mac Monitor enrichment: the error's description, the name of the account's type (written in place of
+    /// `account_type` before 2.2.0), and the instigator's name, path, audit token and signing ID.
+    public var error_code_human, account_type_string: String?
+    public var instigator_process_name, instigator_process_path: String?
+    public var instigator_process_audit_token, instigator_process_signing_id: String?
     
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -28,63 +38,37 @@ public struct OpenDirectoryModifyPasswordEvent: Identifiable, Codable, Hashable 
         return lhs.id == rhs.id
     }
     
+    /// Record the event of a message from Endpoint Security.
+    ///
+    /// - Parameter rawMessage: The message.
     init(from rawMessage: UnsafePointer<es_message_t>) {
-        let odModifyPasswordEvent: es_event_od_modify_password_t = rawMessage.pointee.event.od_modify_password.pointee
-        let instigatorProcess: es_process_t = odModifyPasswordEvent.instigator!.pointee
-        
-        self.instigator_process_name = ""
-        if instigatorProcess.executable.pointee.path.length > 0 {
-            self.instigator_process_name = URL(filePath: String(cString: instigatorProcess.executable.pointee.path.data)).lastPathComponent
-        }
-        
-        self.instigator_process_path = ""
-        if instigatorProcess.executable.pointee.path.length > 0 {
-            self.instigator_process_path = String(cString: instigatorProcess.executable.pointee.path.data)
-        }
-        
-        self.instigator_process_signing_id = ""
-        if instigatorProcess.signing_id.length > 0 {
-            self.instigator_process_signing_id = String(cString: instigatorProcess.signing_id.data)
-        }
-        
-        self.instigator_process_audit_token = ""
-        self.instigator_process_audit_token = instigatorProcess.audit_token
-            .toString()
-        
-        self.error_code = Int(odModifyPasswordEvent.error_code)
-        
-        switch odModifyPasswordEvent.account_type.rawValue {
-        case ES_OD_ACCOUNT_TYPE_USER.rawValue:
-            self.account_type = "ES_OD_ACCOUNT_TYPE_USER"
-        case ES_OD_ACCOUNT_TYPE_COMPUTER.rawValue:
-            self.account_type = "ES_OD_ACCOUNT_TYPE_COMPUTER"
-        default:
-            self.account_type = "UNKNOWN_ACCOUNT_TYPE"
-        }
-        
-        self.account_name = ""
-        if odModifyPasswordEvent.account_name.length > 0 {
-            self.account_name = String(cString: odModifyPasswordEvent.account_name.data)
-        }
-        
-        self.node_name = ""
-        if odModifyPasswordEvent.node_name.length > 0 {
-            self.node_name = String(cString: odModifyPasswordEvent.node_name.data)
-        }
-        
-        self.db_path = ""
-        if odModifyPasswordEvent.db_path.length > 0 {
-            self.db_path = String(cString: odModifyPasswordEvent.db_path.data)
-        }
+        let event = rawMessage.pointee.event.od_modify_password
+        readCommonFields(from: event, version: Int(rawMessage.pointee.version))
+        self.account_type = Int(event.pointee.account_type.rawValue)
+        self.account_name = event.pointee.account_name.string ?? ""
         enrich()
+    }
+    
+    /// Read the event from eslogger's JSON, an export, or the Security Extension, including those before
+    /// 2.2.0, which wrote the name of the account's type as `account_type`.
+    ///
+    /// - Parameter decoder: The event's decoder.
+    /// - Throws: The error decoding a field.
+    public init(from decoder: Decoder) throws {
+        try decodeCommonFields(from: decoder)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        (account_type, account_type_string) = try container.decodeODEnum(
+            .account_type, name: .account_type_string, names: .accountType)
+        account_name = try container.decodeIfPresent(String.self, forKey: .account_name)
     }
 }
 
 
 // MARK: - Mac Monitor enrichment
 extension OpenDirectoryModifyPasswordEvent: ESEnrichable {
-    /// Derive the error code's description.
+    /// Derive the error code's description, the name of the account's type, and the instigator's fields.
     public mutating func enrich() {
-        error_code_human = decodeODErrorCode(error_code)
+        enrichCommonFields()
+        account_type_string = account_type.map(ODEnumNames.accountType.name(of:)) ?? account_type_string
     }
 }

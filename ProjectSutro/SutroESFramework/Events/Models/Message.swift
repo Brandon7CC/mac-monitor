@@ -37,8 +37,8 @@ public struct Message: Identifiable, Codable, Hashable {
     /// Initiating process
     public var process: Process
     
-    /// Thread
-    public var thread: Thread
+    /// The thread that took the action, or `nil` when Endpoint Security names none.
+    public var thread: Thread?
     
     /// Event
     /// A process execution event. Corresponds to `ES_EVENT_TYPE_NOTIFY_EXEC`
@@ -122,7 +122,7 @@ public struct Message: Identifiable, Codable, Hashable {
         
         
         /// Thread
-        self.thread = Thread(from: message.thread)
+        self.thread = Thread.of(message)
         
         
         /// Event

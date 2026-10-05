@@ -20,8 +20,8 @@ extension ESSignedFileInfo {
 
     @NSManaged public var id: UUID?
     @NSManaged public var cdhash: String
-    @NSManaged public var signing_id: String
-    @NSManaged public var team_id: String
+    @NSManaged public var signing_id: String?
+    @NSManaged public var team_id: String?
 
 }
 

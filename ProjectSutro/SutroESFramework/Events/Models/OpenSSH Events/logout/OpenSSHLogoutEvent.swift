@@ -31,9 +31,10 @@ public struct SSHLogoutEvent: Identifiable, Codable, Hashable {
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let event: es_event_openssh_logout_t = rawMessage.pointee.event.openssh_logout.pointee
         
-        username = event.username.toString() ?? ""
-        source_address = event.source_address.toString() ?? ""
-        uid = Int32(event.uid)
+        username = event.username.string ?? ""
+        source_address = event.source_address.string ?? ""
+        /// A `uid_t`, kept by bit pattern: one of 2^31 or more (`nobody` is 4294967294) has no `Int32`.
+        uid = Int32(bitPattern: event.uid)
         
         source_address_type = Int32(event.source_address_type.rawValue)
         enrich()

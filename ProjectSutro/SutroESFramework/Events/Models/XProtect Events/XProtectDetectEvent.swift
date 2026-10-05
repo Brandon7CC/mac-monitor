@@ -36,13 +36,13 @@ public struct XProtectDetectEvent: Identifiable, Codable, Hashable {
         let event: es_event_xp_malware_detected_t = rawMessage.pointee.event.xp_malware_detected.pointee
         let version: Int = Int(rawMessage.pointee.version)
         
-        self.signature_version = event.signature_version.toString() ?? ""
-        self.malware_identifier = event.malware_identifier.toString()  ?? ""
-        self.incident_identifier = event.incident_identifier.toString()  ?? ""
-        self.detected_path = event.detected_path.toString() ?? ""
+        self.signature_version = event.signature_version.string ?? ""
+        self.malware_identifier = event.malware_identifier.string ?? ""
+        self.incident_identifier = event.incident_identifier.string ?? ""
+        self.detected_path = event.detected_path.string ?? ""
         
         if version >= 10 {
-            self.detected_executable = event.detected_executable.toString()
+            self.detected_executable = event.detected_executable.string
         }
     }
 }

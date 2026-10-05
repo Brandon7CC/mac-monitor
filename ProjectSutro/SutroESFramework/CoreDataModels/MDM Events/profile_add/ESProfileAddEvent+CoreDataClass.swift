@@ -39,10 +39,11 @@ public class ESProfileAddEvent: NSManagedObject {
         self.is_update = event.is_update
         if let instigator = event.instigator {
             self.instigator = ESProcess(from: instigator, version: message.version, insertIntoManagedObjectContext: context)
-            
-            if let instigator_token = event.instigator_token {
-                self.instigator_token = ESAuditToken(from: instigator_token, insertIntoManagedObjectContext: context)
-            }
+        }
+        /// On its own: Endpoint Security can leave out the instigator process (`NULL`) and still give its token
+        /// (message version 8 and later).
+        if let instigator_token = event.instigator_token {
+            self.instigator_token = ESAuditToken(from: instigator_token, insertIntoManagedObjectContext: context)
         }
         self.profile = event.profile
     }
