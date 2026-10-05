@@ -20,8 +20,22 @@ public class ProcessHelpers {
         "perl",
         "python",
         "node",
+        "bun",
         "swift"
     ]
+    
+    /// Is `executableName` a supported scripting interpreter: one of ``supportedInterpreters``, alone or followed by a
+    /// version (`python3`, `python3.12`, `ruby3.3`)? Names that only start with one (`bundle`, `bunzip2`,
+    /// `swift-frontend`) aren't.
+    ///
+    /// - Parameter executableName: The executable's file name.
+    /// - Returns: Whether to look for the script among the exec's arguments.
+    static func isScriptingInterpreter(_ executableName: String) -> Bool {
+        supportedInterpreters.contains { interpreter in
+            guard executableName.hasPrefix(interpreter) else { return false }
+            return executableName.dropFirst(interpreter.count).allSatisfy { $0.isNumber || $0 == "." }
+        }
+    }
     
     
     // MARK: - Parsing the command line of exec events

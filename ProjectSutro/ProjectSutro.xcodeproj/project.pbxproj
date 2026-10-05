@@ -31,6 +31,7 @@
 		0D0D0D000000000000000004 /* OpenDirectoryEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000003 /* OpenDirectoryEvent.swift */; };
 		0D0D0D000000000000000002 /* OpenDirectoryMember.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000001 /* OpenDirectoryMember.swift */; };
 		7E5715000000000000000014 /* ExecXPCServiceNameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000013 /* ExecXPCServiceNameTests.swift */; };
+		7E5715000000000000000026 /* ScriptInterpreterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000025 /* ScriptInterpreterTests.swift */; };
 		7E5715000000000000000012 /* ExportValueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000011 /* ExportValueTests.swift */; };
 		7E5715000000000000000028 /* MessageThreadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000027 /* MessageThreadTests.swift */; };
 		7E571500000000000000002A /* FileCreateQuarantineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000029 /* FileCreateQuarantineTests.swift */; };
@@ -550,6 +551,7 @@
 		0D0D0D000000000000000003 /* OpenDirectoryEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryEvent.swift; sourceTree = "<group>"; };
 		0D0D0D000000000000000001 /* OpenDirectoryMember.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryMember.swift; sourceTree = "<group>"; };
 		7E5715000000000000000013 /* ExecXPCServiceNameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecXPCServiceNameTests.swift; sourceTree = "<group>"; };
+		7E5715000000000000000025 /* ScriptInterpreterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptInterpreterTests.swift; sourceTree = "<group>"; };
 		7E5715000000000000000011 /* ExportValueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportValueTests.swift; sourceTree = "<group>"; };
 		7E5715000000000000000027 /* MessageThreadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageThreadTests.swift; sourceTree = "<group>"; };
 		7E5715000000000000000029 /* FileCreateQuarantineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileCreateQuarantineTests.swift; sourceTree = "<group>"; };
@@ -3378,6 +3380,7 @@
 				0D0D0D00000000000000000B /* OpenDirectoryCaptureTests.swift */,
 				0D0D0D000000000000000009 /* OpenDirectoryMemberTests.swift */,
 				7E5715000000000000000013 /* ExecXPCServiceNameTests.swift */,
+				7E5715000000000000000025 /* ScriptInterpreterTests.swift */,
 				7E5715000000000000000011 /* ExportValueTests.swift */,
 				7E571500000000000000000F /* GatekeeperFileTests.swift */,
 				7E571500000000000000002F /* MountDispositionTests.swift */,
@@ -4010,6 +4013,7 @@
 				0D0D0D00000000000000000C /* OpenDirectoryCaptureTests.swift in Sources */,
 				0D0D0D00000000000000000A /* OpenDirectoryMemberTests.swift in Sources */,
 				7E5715000000000000000014 /* ExecXPCServiceNameTests.swift in Sources */,
+				7E5715000000000000000026 /* ScriptInterpreterTests.swift in Sources */,
 				7E5715000000000000000012 /* ExportValueTests.swift in Sources */,
 				7E5715000000000000000010 /* GatekeeperFileTests.swift in Sources */,
 				7E5715000000000000000030 /* MountDispositionTests.swift in Sources */,
