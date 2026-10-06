@@ -176,6 +176,7 @@
         <relationship name="target" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcess"/>
     </entity>
     <entity name="ESIOKitOpenEvent" representedClassName="ESIOKitOpenEvent" syncable="YES">
+        <attribute name="has_parent_fields" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="parent_path" optional="YES" attributeType="String"/>
         <attribute name="parent_registry_id" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>

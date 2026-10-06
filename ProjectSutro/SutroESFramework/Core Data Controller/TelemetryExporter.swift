@@ -19,7 +19,8 @@ import os
 ///
 /// The file is byte for byte what the old exports wrote: each event as ``ProcessHelpers/eventToJSON(value:)`` (JSONL) or
 /// ``ProcessHelpers/eventToPrettyJSON(value:)``, joined by "\n" with no trailing newline, saved the way
-/// `String.write(to:atomically:encoding:)` saves.
+/// `String.write(to:atomically:encoding:)` saves. Since 2.2.0 each event also carries its telemetry version
+/// (``TelemetrySchema/versionKey``), which ``ESMessage`` encodes.
 ///
 /// The context is pinned to the store as it was when the export started (``pin()``), so events cleared meanwhile still
 /// export. While pinned, SQLite can't fold its write-ahead log back into the store, so the log grows with whatever changes

@@ -57,17 +57,13 @@ public class ESTCCModifyEvent: NSManagedObject {
             )
         }
         
-        if let responsibleToken = tccModifyEvent.responsible_token,
-           let responsible = tccModifyEvent.responsible {
-            self.responsible_token = ESAuditToken(
-                from: responsibleToken,
-                insertIntoManagedObjectContext: context
-            )
-            self.responsible = ESProcess(
-                from: responsible,
-                version: message.version,
-                insertIntoManagedObjectContext: context
-            )
+        /// The responsible token and process on their own: Endpoint Security can leave out the process (`NULL`) and
+        /// still give its token.
+        self.responsible_token = tccModifyEvent.responsible_token.map {
+            ESAuditToken(from: $0, insertIntoManagedObjectContext: context)
+        }
+        self.responsible = tccModifyEvent.responsible.map {
+            ESProcess(from: $0, version: message.version, insertIntoManagedObjectContext: context)
         }
         
         self.right = Int32(truncatingIfNeeded: tccModifyEvent.right)

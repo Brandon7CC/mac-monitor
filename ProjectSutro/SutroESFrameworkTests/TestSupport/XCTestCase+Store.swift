@@ -43,3 +43,65 @@ extension XCTestCase {
         }
     }
 }
+
+
+// MARK: - An event store on disk
+extension XCTestCase {
+    /// A store on disk holding events as Mac Monitor stores them, all saved in batch 1, in order. It's removed when the
+    /// test ends.
+    ///
+    /// Each event is inserted the way ``CoreDataController`` inserts one (see ``withEventStore(_:_:)``).
+    ///
+    /// - Parameter messages: The events, in the order they reach the store.
+    /// - Returns: The store.
+    /// - Throws: The error loading the store or saving the events.
+    func makeExportStore(_ messages: [Message]) throws -> NSPersistentContainer {
+        let container = NSPersistentContainer(name: "SystemEvents", managedObjectModel: eventModel)
+        let url = try makeTemporaryDirectory().appendingPathComponent("SystemEvents.sqlite")
+        container.persistentStoreDescriptions = [NSPersistentStoreDescription(url: url)]
+        var loadError: Error?
+        container.loadPersistentStores { _, error in loadError = error }
+        if let loadError { throw loadError }
+        addTeardownBlock {
+            container.persistentStoreCoordinator.persistentStores.forEach {
+                try? container.persistentStoreCoordinator.remove($0)
+            }
+        }
+        
+        let context = container.newBackgroundContext()
+        try context.performAndWait {
+            for (order, message) in messages.enumerated() {
+                let stored = ESMessage(from: message, insertIntoManagedObjectContext: context)
+                stored.insert_order = Int64(order)
+                stored.insert_batch = 1
+                stored.instigator_audit_token = message.process.audit_token_string
+                stored.denormalize(from: message)
+            }
+            try context.save()
+        }
+        return container
+    }
+    
+    /// Export every event of a store the way "Export all" does.
+    ///
+    /// - Parameters:
+    ///   - container: The store.
+    ///   - pretty: Pretty-printed JSON (`true`) or JSONL (`false`).
+    ///   - source: Where the store's events come from.
+    /// - Returns: The export, in a temporary folder, and the number of events written.
+    /// - Throws: The export's error.
+    func exportAll(_ container: NSPersistentContainer, pretty: Bool = false,
+                   from source: CoreDataController.EventSource = .live) throws -> (url: URL, events: Int) {
+        let url = try makeTemporaryDirectory().appendingPathComponent(pretty ? "trace.json" : "trace.jsonl")
+        let exported = expectation(description: "exported")
+        var result: Result<Int, Error>?
+        TelemetryExporter(container: container, pretty: pretty).run(to: url, writeIfEmpty: true, choose: {
+            try $0.allEvents(through: 1, from: source)
+        }) {
+            result = $0
+            exported.fulfill()
+        }
+        wait(for: [exported], timeout: 30)
+        return (url, try XCTUnwrap(result).get())
+    }
+}

@@ -110,8 +110,10 @@ public enum CommandLineParser {
         switch command.id {
         case .stream: return .stream(try stream(&cursor))
         case .mute: return .mute(try mute(&cursor))
+        case .validate: return .validate(try validate(&cursor))
         case .help: return .help(command: try help(&cursor))
         case .events: return try takingNothing(&cursor, .events)
+        case .schema: return try takingNothing(&cursor, .schema)
         case .version: return try takingNothing(&cursor, .version)
         }
     }
@@ -166,6 +168,35 @@ public enum CommandLineParser {
                                         hint: "Run 'macmonitor events' to list them.")
         }
         return event
+    }
+    
+    /// `validate [--eslogger] TRACE`. An argument a message repeats is escaped for a terminal: `validate *.jsonl`
+    /// expands to file names anyone can choose.
+    ///
+    /// - Parameter cursor: The arguments.
+    /// - Returns: The trace to check, and how.
+    /// - Throws: ``CommandLineUsageError`` for no trace or more than one, a value given to `--eslogger`, or an unknown
+    ///   option.
+    static func validate(_ cursor: inout ArgumentCursor) throws -> ValidateInvocation {
+        var path: String?, mode = TelemetryValidator.Mode.macMonitor
+        while let argument = cursor.next() {
+            switch argument {
+            case .positional(let value) where path == nil:
+                path = value
+            case .positional(let value):
+                throw CommandLineUsageError("validate takes one trace, not also '\(TerminalSafeText.text(value))'.",
+                                            command: "validate")
+            case .option("--eslogger", nil):
+                mode = .eslogger
+            case .option("--eslogger", .some):
+                throw CommandLineUsageError("--eslogger takes no value.", command: "validate")
+            case .option(let option, _):
+                throw CommandLineUsageError("Unknown option '\(TerminalSafeText.text(option))' for validate.",
+                                            command: "validate")
+            }
+        }
+        guard let path else { throw CommandLineUsageError("validate needs a trace.", command: "validate") }
+        return ValidateInvocation(path: path, mode: mode)
     }
     
     /// `help [COMMAND]`. `-h` or `--help` asks for help's own help, as it does for every other command.

@@ -19,6 +19,26 @@ public protocol StreamOutput: AnyObject {
 }
 
 
+extension StreamOutput {
+    /// Write all of `data` for a command that writes its answer and exits: a closed pipe (`| head`) is a success.
+    ///
+    /// - Parameter data: The bytes.
+    /// - Returns: Success, or ``CommandLineFailure/output(_:)`` for any other write error: exit 74.
+    public func writeResult(_ data: Data) -> Result<Void, CommandLineFailure> {
+        do {
+            try write(data)
+        } catch StreamOutputError.closed {
+            /// The reader has what it wanted.
+        } catch StreamOutputError.failed(let code) {
+            return .failure(.output(code))
+        } catch {
+            return .failure(.output(EIO))
+        }
+        return .success(())
+    }
+}
+
+
 /// Why output couldn't be written.
 public enum StreamOutputError: Error, Equatable {
     /// The reader went away (`EPIPE`), as `| head` does once it has its lines: not a failure.

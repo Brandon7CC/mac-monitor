@@ -14,9 +14,11 @@ import SutroESFramework
 ///
 /// Everything with logic in it lives in `SutroESFramework`, where the tests reach it; this is process glue. Only
 /// `stream` and `mute` need root, and then both the effective and the real user must be root: `macmonitor` never
-/// drops privileges after it connects, and refuses to run set-user-ID.
+/// drops privileges after it connects, and refuses to run set-user-ID. `schema` and `validate` need neither root nor
+/// the Security Extension.
 enum CommandLineTool {
-    /// Run a command line. Commands that finish right away exit here; `stream` returns and runs on the main queue.
+    /// Run a command line. Commands that finish right away exit here; `stream` and `validate` return, and exit from
+    /// the main queue once they're done.
     ///
     /// - Parameter arguments: The arguments, without the program's name.
     static func run(_ arguments: [String]) {
@@ -42,6 +44,13 @@ enum CommandLineTool {
             return
         case .mute(let mute):
             if case .failure(let failure) = runMute(mute) { fail(failure) }
+        case .schema:
+            if case .failure(let failure) = SchemaCommand(output: FileOutput(descriptor: STDOUT_FILENO)).run() {
+                fail(failure)
+            }
+        case .validate(let validate):
+            ValidateRunner.start(validate)
+            return
         }
         exit(CommandLineExit.success.rawValue)
     }

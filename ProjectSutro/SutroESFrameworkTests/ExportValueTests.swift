@@ -188,6 +188,15 @@ final class ExportValueTests: XCTestCase {
         XCTAssertFalse(text.contains("parent_path"), text)
     }
     
+    /// The Security Extension's event from version 10 has both: a NULL parent path is `null` beside its registry ID.
+    func testCapturedIOKitParentFromVersion10() {
+        let fixture = rawMessage(version: 10, type: ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN)
+        fixture.message.pointee.event.iokit_open.user_client_class = fixture.token("IOHIDLibUserClient")
+        fixture.message.pointee.event.iokit_open.parent_registry_id = 4_294_968_147
+        let text = exportText(Message(from: fixture.raw))
+        XCTAssertTrue(text.contains(#""parent_path":null,"parent_registry_id":4294968147"#), text)
+    }
+    
     // MARK: Login user IDs
     
     /// eslogger's login events without their `uid`, by key and type. eslogger writes no `has_uid`.

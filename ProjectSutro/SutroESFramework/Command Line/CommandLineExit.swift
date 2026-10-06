@@ -9,20 +9,24 @@ import Foundation
 
 
 // MARK: - Exit statuses
-/// `macmonitor`'s exit statuses, from `sysexits.h`. A stream stopped by a signal exits by that signal instead (130 for
-/// Ctrl-C), and a closed pipe (`| head`) is a success.
+/// `macmonitor`'s exit statuses, from `sysexits.h`. A stream or a check stopped by a signal exits by that signal
+/// instead (130 for Ctrl-C), and a closed pipe (`| head`) is a success, except that `validate` keeps its verdict: 65
+/// for a trace that doesn't follow the schema, piped or not.
 public enum CommandLineExit: Int32, Sendable {
-    /// Done, or the reader closed the pipe.
+    /// Done, or, for every command but `validate`, the reader closed the pipe. For `validate`, the trace has records
+    /// and every one follows the schema.
     case success = 0
     /// The answer to "Continue?" was no, so nothing changed.
     case declined = 1
     /// A command line `macmonitor` can't act on: an unknown command or option, a missing argument, or a change that
     /// asks first with no terminal to ask at (`EX_USAGE`).
     case usage = 64
-    /// Mutes that can't be used: named on the command line (a relative path, an unknown type or event), in a file to
-    /// import, or refused by the Security Extension (`EX_DATAERR`).
+    /// Data `macmonitor` can't use: mutes named on the command line (a relative path, an unknown type or event), in a
+    /// file to import, or refused by the Security Extension; or a trace to validate with a record that doesn't follow
+    /// the telemetry schema or isn't JSON, or with no records (`EX_DATAERR`).
     case dataError = 65
-    /// A file to import that can't be read (`EX_NOINPUT`).
+    /// A file to import, or a trace to validate, that can't be read: missing, unreadable, or not a regular file
+    /// (`EX_NOINPUT`).
     case noInput = 66
     /// The Security Extension isn't running, refused `macmonitor`, is out of date, or lacks Full Disk Access
     /// (`EX_UNAVAILABLE`).
@@ -196,6 +200,40 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
     /// - Returns: The failure: exit 74.
     public static func output(_ code: Int32) -> CommandLineFailure {
         CommandLineFailure(.ioError, "Couldn't write the output: \(String(cString: strerror(code))).")
+    }
+    
+    /// A file that can't be read.
+    ///
+    /// - Parameters:
+    ///   - name: The file, as a message names it, such as “mutes.json” or "Standard input".
+    ///   - error: Why: what opening or reading it threw.
+    /// - Returns: The failure: exit 66, such as “mutes.json” couldn't be read: No such file or directory.
+    public static func unreadable(_ name: String, because error: Error) -> CommandLineFailure {
+        CommandLineFailure(.noInput, "\(name) couldn't be read: \(reason(error)).")
+    }
+    
+    /// Why a file couldn't be read, in a few words.
+    ///
+    /// - Parameter error: What opening or reading it threw.
+    /// - Returns: Such as "No such file or directory", or "it isn't a regular file" for a folder, pipe or device.
+    static func reason(_ error: Error) -> String {
+        if let posix = error as? POSIXError { return String(cString: strerror(posix.code.rawValue)) }
+        if case .notAFile? = error as? TraceImporter.Failure { return "it isn't a regular file" }
+        if (error as? CocoaError)?.code == .fileReadUnsupportedScheme { return "it isn't a regular file" }
+        /// Foundation's errors for a file that can't be opened wrap the `errno` that says why.
+        if let underlying = (error as NSError).userInfo[NSUnderlyingErrorKey] as? NSError,
+           underlying.domain == NSPOSIXErrorDomain {
+            return String(cString: strerror(Int32(underlying.code)))
+        }
+        return error.localizedDescription
+    }
+    
+    /// Mac Monitor's telemetry schema can't be read or compiled: a bug in the build, since the framework bundles it.
+    ///
+    /// - Parameter error: Why, such as ``TelemetrySchemaError/missingResource``.
+    /// - Returns: The failure: exit 70.
+    public static func schema(_ error: Error) -> CommandLineFailure {
+        CommandLineFailure(.software, error.localizedDescription)
     }
     
     /// The Security Extension didn't answer in time.

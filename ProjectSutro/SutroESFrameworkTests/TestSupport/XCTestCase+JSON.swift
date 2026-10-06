@@ -25,6 +25,19 @@ extension XCTestCase {
         }
     }
     
+    /// A JSON value as Mac Monitor's exports write it: keys sorted, slashes left alone, pretty-printed or on one line.
+    ///
+    /// - Parameters:
+    ///   - value: The value: an object or an array.
+    ///   - pretty: Pretty-printed, as the pretty export writes it.
+    /// - Returns: The value's JSON text.
+    /// - Throws: The error serializing it.
+    func jsonText(_ value: Any, pretty: Bool = false) throws -> String {
+        var options: JSONSerialization.WritingOptions = [.sortedKeys, .withoutEscapingSlashes]
+        if pretty { options.insert(.prettyPrinted) }
+        return String(decoding: try JSONSerialization.data(withJSONObject: value, options: options), as: UTF8.self)
+    }
+    
     /// The places where `actual` differs from `expected` on `expected`'s key paths: every value `expected` has must be
     /// at the same key path in `actual`, with the same JSON type and value. `actual` may have more keys.
     ///

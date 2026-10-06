@@ -24,35 +24,14 @@ final class TelemetryExporterOrderTests: XCTestCase {
     /// - Returns: The store.
     /// - Throws: The error loading the store, reading the fixture, or saving the events.
     private func makeStore() throws -> NSPersistentContainer {
-        let container = NSPersistentContainer(name: "SystemEvents", managedObjectModel: eventModel)
-        let url = try makeTemporaryDirectory().appendingPathComponent("SystemEvents.sqlite")
-        container.persistentStoreDescriptions = [NSPersistentStoreDescription(url: url)]
-        var loadError: Error?
-        container.loadPersistentStores { _, error in loadError = error }
-        if let loadError { throw loadError }
-        addTeardownBlock {
-            container.persistentStoreCoordinator.persistentStores.forEach {
-                try? container.persistentStoreCoordinator.remove($0)
-            }
-        }
-        
         let exit = try importRecord(try fixtureObject("eslogger-exit.jsonl"))
-        let context = container.newBackgroundContext()
-        try context.performAndWait {
-            for (order, machTime) in arrivals.enumerated() {
-                var message = exit
-                message.id = UUID()
-                message.mach_time = machTime
-                message.global_seq_num = order
-                let stored = ESMessage(from: message, insertIntoManagedObjectContext: context)
-                stored.insert_order = Int64(order)
-                stored.insert_batch = 1
-                stored.instigator_audit_token = message.process.audit_token_string
-                stored.denormalize(from: message)
-            }
-            try context.save()
-        }
-        return container
+        return try makeExportStore(arrivals.enumerated().map { order, machTime in
+            var message = exit
+            message.id = UUID()
+            message.mach_time = machTime
+            message.global_seq_num = order
+            return message
+        })
     }
     
     /// Export every event the way "Export all" does, as JSONL.
@@ -62,19 +41,10 @@ final class TelemetryExporterOrderTests: XCTestCase {
     ///   - source: Where the store's events come from.
     /// - Returns: Each exported event's `global_seq_num` (its `insert_order`), in file order.
     /// - Throws: The export's error, or an `XCTest` failure if a line isn't an event.
-    private func exportAll(_ container: NSPersistentContainer,
-                           from source: CoreDataController.EventSource) throws -> [Int] {
-        let url = try makeTemporaryDirectory().appendingPathComponent("trace.jsonl")
-        let exported = expectation(description: "exported")
-        var result: Result<Int, Error>?
-        TelemetryExporter(container: container, pretty: false).run(to: url, writeIfEmpty: true, choose: {
-            try $0.allEvents(through: 1, from: source)
-        }) {
-            result = $0
-            exported.fulfill()
-        }
-        wait(for: [exported], timeout: 10)
-        XCTAssertEqual(try XCTUnwrap(result).get(), arrivals.count)
+    private func exportedOrder(_ container: NSPersistentContainer,
+                               from source: CoreDataController.EventSource) throws -> [Int] {
+        let (url, events) = try exportAll(container, pretty: false, from: source)
+        XCTAssertEqual(events, arrivals.count)
         return try String(contentsOf: url, encoding: .utf8).split(separator: "\n").map { line in
             let record = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any])
             return try XCTUnwrap(record["global_seq_num"] as? Int)
@@ -85,7 +55,7 @@ final class TelemetryExporterOrderTests: XCTestCase {
     ///
     /// - Throws: The error building the store or exporting it.
     func testLiveRecordingIsExportedByMachTime() throws {
-        XCTAssertEqual(try exportAll(try makeStore(), from: .live), [4, 1, 2, 3, 0])
+        XCTAssertEqual(try exportedOrder(try makeStore(), from: .live), [4, 1, 2, 3, 0])
     }
     
     /// An opened trace is exported in its file order, which is the order its events reached the store.
@@ -93,6 +63,6 @@ final class TelemetryExporterOrderTests: XCTestCase {
     /// - Throws: The error building the store or exporting it.
     func testOpenedTraceKeepsItsFileOrder() throws {
         let trace = CoreDataController.EventSource.trace(URL(fileURLWithPath: "/tmp/trace.jsonl"))
-        XCTAssertEqual(try exportAll(try makeStore(), from: trace), [0, 1, 2, 3, 4])
+        XCTAssertEqual(try exportedOrder(try makeStore(), from: trace), [0, 1, 2, 3, 4])
     }
 }

@@ -29,6 +29,9 @@ public class ESMessage: NSManagedObject {
         /// Version and sequence
         case version
         case schema_version
+        /// Mac Monitor's addition beside eslogger's `schema_version`: the telemetry schema the record follows
+        /// (``TelemetrySchema/version``).
+        case telemetry_version
         case seq_num
         case global_seq_num
         
@@ -160,6 +163,8 @@ extension ESMessage: Encodable {
         /// Version and sequence
         try container.encode(version, forKey: .version)
         try container.encode(schema_version, forKey: .schema_version)
+        /// Mac Monitor's telemetry version beside eslogger's `schema_version`: the schema this record follows.
+        try container.encode(TelemetrySchema.version, forKey: .telemetry_version)
         if version >= 2 {
             try container.encode(seq_num, forKey: .seq_num)
         }

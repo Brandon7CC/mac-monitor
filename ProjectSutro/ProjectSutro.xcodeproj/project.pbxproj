@@ -179,6 +179,8 @@
 		7E5A1C30000000000000000E /* ProcessLineageSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C30000000000000000D /* ProcessLineageSidebar.swift */; };
 		0D0D0D000000000000000016 /* EventSubscriptionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000015 /* EventSubscriptionsTests.swift */; };
 		0D0D0D000000000000000014 /* XCTestCase+JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000013 /* XCTestCase+JSON.swift */; };
+		5C4E00000000000000000051 /* SchemaParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000050 /* SchemaParts.swift */; };
+		5C4E00000000000000000053 /* SchemaKeyPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000052 /* SchemaKeyPaths.swift */; };
 		0D0D0D000000000000000012 /* RawMessageFixture+ESLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000011 /* RawMessageFixture+ESLogger.swift */; };
 		0D0D0D000000000000000010 /* OpenDirectoryExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D00000000000000000F /* OpenDirectoryExportTests.swift */; };
 		0D0D0D00000000000000000E /* OpenDirectoryWireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D00000000000000000D /* OpenDirectoryWireTests.swift */; };
@@ -197,6 +199,7 @@
 		7E5715000000000000000028 /* MessageThreadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000027 /* MessageThreadTests.swift */; };
 		7E571500000000000000002A /* FileCreateQuarantineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5715000000000000000029 /* FileCreateQuarantineTests.swift */; };
 		7E571500000000000000002C /* ProfileAddTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000002B /* ProfileAddTokenTests.swift */; };
+		5C4E00000000000000000057 /* TCCModifyTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000056 /* TCCModifyTokenTests.swift */; };
 		7E571500000000000000002E /* ValidationCategoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000002D /* ValidationCategoryTests.swift */; };
 		7E5715000000000000000030 /* MountDispositionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000002F /* MountDispositionTests.swift */; };
 		7E5715000000000000000010 /* GatekeeperFileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E571500000000000000000F /* GatekeeperFileTests.swift */; };
@@ -620,6 +623,47 @@
 		7E570000000000000000000B /* XCTestCase+Fixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E570000000000000000000A /* XCTestCase+Fixtures.swift */; };
 		7E570000000000000000000D /* Fixtures in Resources */ = {isa = PBXBuildFile; fileRef = 7E570000000000000000000C /* Fixtures */; };
 		7E570000000000000000000E /* SutroESFramework.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BA33689E287620FD00794525 /* SutroESFramework.framework */; };
+		5C4E00000000000000000003 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000002 /* JSONValue.swift */; };
+		5C4E00000000000000000005 /* JSONSchema+Checking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000004 /* JSONSchema+Checking.swift */; };
+		5C4E00000000000000000007 /* JSONSchemaCompiler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000006 /* JSONSchemaCompiler.swift */; };
+		5C4E00000000000000000009 /* JSONSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000008 /* JSONSchema.swift */; };
+		5C4E0000000000000000000B /* TelemetryIssue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000000A /* TelemetryIssue.swift */; };
+		5C4E0000000000000000000D /* TelemetryValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000000C /* TelemetryValidation.swift */; };
+		5C4E0000000000000000000F /* TelemetryValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000000E /* TelemetryValidator.swift */; };
+		5C4E00000000000000000011 /* TelemetrySchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000010 /* TelemetrySchema.swift */; };
+		5C4E00000000000000000014 /* TelemetryValidatorTraceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000013 /* TelemetryValidatorTraceTests.swift */; };
+		5C4E00000000000000000016 /* TelemetryValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000015 /* TelemetryValidatorTests.swift */; };
+		5C4E00000000000000000018 /* TelemetryVersionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000017 /* TelemetryVersionTests.swift */; };
+		5C4E0000000000000000001C /* TelemetrySchemaDriftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000001B /* TelemetrySchemaDriftTests.swift */; };
+		5C4E0000000000000000001E /* TelemetrySchemaFileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000001D /* TelemetrySchemaFileTests.swift */; };
+		5C4E00000000000000000020 /* TelemetrySchemaSource+DirectoryEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000001F /* TelemetrySchemaSource+DirectoryEvents.swift */; };
+		5C4E00000000000000000022 /* TelemetrySchemaSource+SystemEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000021 /* TelemetrySchemaSource+SystemEvents.swift */; };
+		5C4E00000000000000000024 /* TelemetrySchemaSource+FileEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000023 /* TelemetrySchemaSource+FileEvents.swift */; };
+		5C4E00000000000000000026 /* TelemetrySchemaSource+ProcessEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000025 /* TelemetrySchemaSource+ProcessEvents.swift */; };
+		5C4E00000000000000000028 /* TelemetrySchemaSource+Artifacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000027 /* TelemetrySchemaSource+Artifacts.swift */; };
+		5C4E0000000000000000002A /* TelemetrySchemaSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000029 /* TelemetrySchemaSource.swift */; };
+		5C4E0000000000000000002C /* SchemaJSONWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000002B /* SchemaJSONWriter.swift */; };
+		5C4E0000000000000000002E /* SchemaSource+JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000002D /* SchemaSource+JSON.swift */; };
+		5C4E00000000000000000030 /* SchemaSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000002F /* SchemaSource.swift */; };
+		5C4E00000000000000000032 /* SyntheticCorpus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000031 /* SyntheticCorpus.swift */; };
+		5C4E00000000000000000034 /* SyntheticValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000033 /* SyntheticValues.swift */; };
+		5C4E00000000000000000036 /* SyntheticDecoder+Containers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000035 /* SyntheticDecoder+Containers.swift */; };
+		5C4E00000000000000000038 /* SyntheticDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000037 /* SyntheticDecoder.swift */; };
+		5C4E0000000000000000003A /* XCTestCase+TelemetrySchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000039 /* XCTestCase+TelemetrySchema.swift */; };
+		5C4E0000000000000000003C /* mac-monitor-telemetry.schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000003B /* mac-monitor-telemetry.schema.json */; };
+		5C4E0000000000000000003E /* TelemetrySchemaOriginTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000003D /* TelemetrySchemaOriginTests.swift */; };
+		5C4E00000000000000000055 /* TelemetrySchemaRoundTripTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000054 /* TelemetrySchemaRoundTripTests.swift */; };
+		5C4E00000000000000000040 /* TelemetrySchemaIssueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000003F /* TelemetrySchemaIssueTests.swift */; };
+		5C4E00000000000000000043 /* ReadOnlyTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000042 /* ReadOnlyTextView.swift */; };
+		5C4E00000000000000000045 /* TelemetrySchemaModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000044 /* TelemetrySchemaModel.swift */; };
+		5C4E00000000000000000047 /* TraceValidationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000046 /* TraceValidationSheet.swift */; };
+		5C4E00000000000000000049 /* TelemetrySchemaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000048 /* TelemetrySchemaView.swift */; };
+		5C4E0000000000000000004B /* AttachTelemetrySchemaScriptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000004A /* AttachTelemetrySchemaScriptTests.swift */; };
+		D5A100000000000000000002 /* SchemaCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A100000000000000000001 /* SchemaCommand.swift */; };
+		D5A100000000000000000004 /* ValidateCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A100000000000000000003 /* ValidateCommand.swift */; };
+		D5A100000000000000000006 /* ValidateRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A100000000000000000005 /* ValidateRunner.swift */; };
+		D5A100000000000000000008 /* SchemaCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A100000000000000000007 /* SchemaCommandTests.swift */; };
+		D5A10000000000000000000A /* ValidateCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A100000000000000000009 /* ValidateCommandTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -907,6 +951,8 @@
 		7E5A1C30000000000000000D /* ProcessLineageSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessLineageSidebar.swift; sourceTree = "<group>"; };
 		0D0D0D000000000000000015 /* EventSubscriptionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSubscriptionsTests.swift; sourceTree = "<group>"; };
 		0D0D0D000000000000000013 /* XCTestCase+JSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+JSON.swift"; sourceTree = "<group>"; };
+		5C4E00000000000000000050 /* SchemaParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaParts.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000052 /* SchemaKeyPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaKeyPaths.swift; sourceTree = "<group>"; };
 		0D0D0D000000000000000011 /* RawMessageFixture+ESLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RawMessageFixture+ESLogger.swift"; sourceTree = "<group>"; };
 		0D0D0D00000000000000000F /* OpenDirectoryExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryExportTests.swift; sourceTree = "<group>"; };
 		0D0D0D00000000000000000D /* OpenDirectoryWireTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryWireTests.swift; sourceTree = "<group>"; };
@@ -925,6 +971,7 @@
 		7E5715000000000000000027 /* MessageThreadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageThreadTests.swift; sourceTree = "<group>"; };
 		7E5715000000000000000029 /* FileCreateQuarantineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileCreateQuarantineTests.swift; sourceTree = "<group>"; };
 		7E571500000000000000002B /* ProfileAddTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAddTokenTests.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000056 /* TCCModifyTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TCCModifyTokenTests.swift; sourceTree = "<group>"; };
 		7E571500000000000000002D /* ValidationCategoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidationCategoryTests.swift; sourceTree = "<group>"; };
 		7E571500000000000000002F /* MountDispositionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MountDispositionTests.swift; sourceTree = "<group>"; };
 		7E571500000000000000000F /* GatekeeperFileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatekeeperFileTests.swift; sourceTree = "<group>"; };
@@ -1348,6 +1395,47 @@
 		7E5700000000000000000008 /* TraceImporterMessageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceImporterMessageTests.swift; sourceTree = "<group>"; };
 		7E570000000000000000000A /* XCTestCase+Fixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+Fixtures.swift"; sourceTree = "<group>"; };
 		7E570000000000000000000C /* Fixtures */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Fixtures; sourceTree = "<group>"; };
+		5C4E00000000000000000002 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000004 /* JSONSchema+Checking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JSONSchema+Checking.swift"; sourceTree = "<group>"; };
+		5C4E00000000000000000006 /* JSONSchemaCompiler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONSchemaCompiler.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000008 /* JSONSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONSchema.swift; sourceTree = "<group>"; };
+		5C4E0000000000000000000A /* TelemetryIssue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryIssue.swift; sourceTree = "<group>"; };
+		5C4E0000000000000000000C /* TelemetryValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryValidation.swift; sourceTree = "<group>"; };
+		5C4E0000000000000000000E /* TelemetryValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryValidator.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000010 /* TelemetrySchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchema.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000013 /* TelemetryValidatorTraceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryValidatorTraceTests.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000015 /* TelemetryValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryValidatorTests.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000017 /* TelemetryVersionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryVersionTests.swift; sourceTree = "<group>"; };
+		5C4E0000000000000000001B /* TelemetrySchemaDriftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaDriftTests.swift; sourceTree = "<group>"; };
+		5C4E0000000000000000001D /* TelemetrySchemaFileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaFileTests.swift; sourceTree = "<group>"; };
+		5C4E0000000000000000001F /* TelemetrySchemaSource+DirectoryEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TelemetrySchemaSource+DirectoryEvents.swift"; sourceTree = "<group>"; };
+		5C4E00000000000000000021 /* TelemetrySchemaSource+SystemEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TelemetrySchemaSource+SystemEvents.swift"; sourceTree = "<group>"; };
+		5C4E00000000000000000023 /* TelemetrySchemaSource+FileEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TelemetrySchemaSource+FileEvents.swift"; sourceTree = "<group>"; };
+		5C4E00000000000000000025 /* TelemetrySchemaSource+ProcessEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TelemetrySchemaSource+ProcessEvents.swift"; sourceTree = "<group>"; };
+		5C4E00000000000000000027 /* TelemetrySchemaSource+Artifacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TelemetrySchemaSource+Artifacts.swift"; sourceTree = "<group>"; };
+		5C4E00000000000000000029 /* TelemetrySchemaSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaSource.swift; sourceTree = "<group>"; };
+		5C4E0000000000000000002B /* SchemaJSONWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaJSONWriter.swift; sourceTree = "<group>"; };
+		5C4E0000000000000000002D /* SchemaSource+JSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SchemaSource+JSON.swift"; sourceTree = "<group>"; };
+		5C4E0000000000000000002F /* SchemaSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaSource.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000031 /* SyntheticCorpus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntheticCorpus.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000033 /* SyntheticValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntheticValues.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000035 /* SyntheticDecoder+Containers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SyntheticDecoder+Containers.swift"; sourceTree = "<group>"; };
+		5C4E00000000000000000037 /* SyntheticDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntheticDecoder.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000039 /* XCTestCase+TelemetrySchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+TelemetrySchema.swift"; sourceTree = "<group>"; };
+		5C4E0000000000000000003B /* mac-monitor-telemetry.schema.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = "mac-monitor-telemetry.schema.json"; path = "../../Schema/mac-monitor-telemetry.schema.json"; sourceTree = "<group>"; };
+		5C4E0000000000000000003D /* TelemetrySchemaOriginTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaOriginTests.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000054 /* TelemetrySchemaRoundTripTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaRoundTripTests.swift; sourceTree = "<group>"; };
+		5C4E0000000000000000003F /* TelemetrySchemaIssueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaIssueTests.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000042 /* ReadOnlyTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadOnlyTextView.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000044 /* TelemetrySchemaModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaModel.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000046 /* TraceValidationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceValidationSheet.swift; sourceTree = "<group>"; };
+		5C4E00000000000000000048 /* TelemetrySchemaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaView.swift; sourceTree = "<group>"; };
+		5C4E0000000000000000004A /* AttachTelemetrySchemaScriptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachTelemetrySchemaScriptTests.swift; sourceTree = "<group>"; };
+		D5A100000000000000000001 /* SchemaCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaCommand.swift; sourceTree = "<group>"; };
+		D5A100000000000000000003 /* ValidateCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidateCommand.swift; sourceTree = "<group>"; };
+		D5A100000000000000000005 /* ValidateRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidateRunner.swift; sourceTree = "<group>"; };
+		D5A100000000000000000007 /* SchemaCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaCommandTests.swift; sourceTree = "<group>"; };
+		D5A100000000000000000009 /* ValidateCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidateCommandTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1409,6 +1497,7 @@
 				CB1C00000000000000000069 /* main.swift */,
 				CB1C0000000000000000006B /* CommandLineTool.swift */,
 				CB1C0000000000000000006D /* StreamRunner.swift */,
+				D5A100000000000000000005 /* ValidateRunner.swift */,
 				CB1C0000000000000000006F /* SignalTrap.swift */,
 				CB1C00000000000000000071 /* ToolVersion.swift */,
 			);
@@ -1442,6 +1531,8 @@
 				C11D00000000000000000007 /* AppleScriptHandler.swift */,
 				CB1C00000000000000000089 /* MuteCommand+Confirmation.swift */,
 				CB1C0000000000000000008B /* TerminalPrompt.swift */,
+				D5A100000000000000000001 /* SchemaCommand.swift */,
+				D5A100000000000000000003 /* ValidateCommand.swift */,
 			);
 			path = "Command Line";
 			sourceTree = "<group>";
@@ -3186,6 +3277,8 @@
 		BA33689F287620FD00794525 /* SutroESFramework */ = {
 			isa = PBXGroup;
 			children = (
+				5C4E0000000000000000003B /* mac-monitor-telemetry.schema.json */,
+				5C4E00000000000000000001 /* Telemetry Schema */,
 				BA3368A1287620FD00794525 /* SutroESFramework.docc */,
 				28AF164C2922C66C00AA75A5 /* SystemEvents.xcdatamodeld */,
 				28320C9E29940F0600CB9D81 /* SECoreDataController.swift */,
@@ -3249,6 +3342,7 @@
 				28EC62DF292591F600EAC8AD /* System Event Views */,
 				28EBAA8A2A1C3B1500AE80F9 /* Context Menus */,
 				28EC62B82924239400EAC8AD /* Event Facts Views */,
+				5C4E00000000000000000041 /* Telemetry Schema Views */,
 				7E5A1C00000000000000002E /* Launch Services */,
 				2818143229131038002B2368 /* Info.plist */,
 				28AE6BD828FB85AF009AC91F /* README.md */,
@@ -3921,6 +4015,7 @@
 		7E5700000000000000000002 /* SutroESFrameworkTests */ = {
 			isa = PBXGroup;
 			children = (
+				5C4E00000000000000000012 /* Telemetry Schema */,
 				CB9800000000000000000003 /* ESLoggerUTCTimeTests.swift */,
 				CB9800000000000000000007 /* CodeSigningCertificateCacheTests.swift */,
 				CB9800000000000000000009 /* ExecCommandLineTests.swift */,
@@ -3970,6 +4065,7 @@
 				7E571500000000000000002F /* MountDispositionTests.swift */,
 				7E571500000000000000002D /* ValidationCategoryTests.swift */,
 				7E571500000000000000002B /* ProfileAddTokenTests.swift */,
+				5C4E00000000000000000056 /* TCCModifyTokenTests.swift */,
 				7E5715000000000000000029 /* FileCreateQuarantineTests.swift */,
 				7E5715000000000000000027 /* MessageThreadTests.swift */,
 				7E571500000000000000000D /* OptionalStringTests.swift */,
@@ -4016,6 +4112,8 @@
 				C11D0000000000000000000B /* CommandLineToolLinkScriptTests.swift */,
 				C11D0000000000000000000D /* CommandLineToolInstallTests.swift */,
 				CB1C0000000000000000008D /* MuteConfirmationTests.swift */,
+				D5A100000000000000000007 /* SchemaCommandTests.swift */,
+				D5A100000000000000000009 /* ValidateCommandTests.swift */,
 			);
 			path = SutroESFrameworkTests;
 			sourceTree = "<group>";
@@ -4023,12 +4121,15 @@
 		7E5700000000000000000003 /* TestSupport */ = {
 			isa = PBXGroup;
 			children = (
+				5C4E00000000000000000039 /* XCTestCase+TelemetrySchema.swift */,
 				CB9800000000000000000013 /* JSONCanonicalForm.swift */,
 				CA9700000000000000000026 /* FakeEndpointSecurityClient.swift */,
 				CA9700000000000000000024 /* XCTestCase+Capture.swift */,
 				7E5715000000000000000023 /* RawMessageFixture+RemoteThreadCreate.swift */,
 				7E5A1C000000000000000007 /* RawMessageFixture+Lineage.swift */,
 				0D0D0D000000000000000013 /* XCTestCase+JSON.swift */,
+				5C4E00000000000000000050 /* SchemaParts.swift */,
+				5C4E00000000000000000052 /* SchemaKeyPaths.swift */,
 				0D0D0D000000000000000011 /* RawMessageFixture+ESLogger.swift */,
 				7E5715000000000000000009 /* XCTestCase+Export.swift */,
 				7E5A1C00000000000000002A /* XCTestCase+Store.swift */,
@@ -4043,6 +4144,77 @@
 				C11D0000000000000000000F /* ToolLinkFixture.swift */,
 			);
 			path = TestSupport;
+			sourceTree = "<group>";
+		};
+		5C4E00000000000000000001 /* Telemetry Schema */ = {
+			isa = PBXGroup;
+			children = (
+				5C4E00000000000000000010 /* TelemetrySchema.swift */,
+				5C4E0000000000000000000E /* TelemetryValidator.swift */,
+				5C4E0000000000000000000C /* TelemetryValidation.swift */,
+				5C4E0000000000000000000A /* TelemetryIssue.swift */,
+				5C4E00000000000000000008 /* JSONSchema.swift */,
+				5C4E00000000000000000006 /* JSONSchemaCompiler.swift */,
+				5C4E00000000000000000004 /* JSONSchema+Checking.swift */,
+				5C4E00000000000000000002 /* JSONValue.swift */,
+			);
+			path = "Telemetry Schema";
+			sourceTree = "<group>";
+		};
+		5C4E00000000000000000012 /* Telemetry Schema */ = {
+			isa = PBXGroup;
+			children = (
+				5C4E00000000000000000019 /* Source */,
+				5C4E0000000000000000001A /* Synthetic */,
+				5C4E0000000000000000004A /* AttachTelemetrySchemaScriptTests.swift */,
+				5C4E0000000000000000001D /* TelemetrySchemaFileTests.swift */,
+				5C4E0000000000000000001B /* TelemetrySchemaDriftTests.swift */,
+				5C4E0000000000000000003F /* TelemetrySchemaIssueTests.swift */,
+				5C4E0000000000000000003D /* TelemetrySchemaOriginTests.swift */,
+				5C4E00000000000000000054 /* TelemetrySchemaRoundTripTests.swift */,
+				5C4E00000000000000000017 /* TelemetryVersionTests.swift */,
+				5C4E00000000000000000015 /* TelemetryValidatorTests.swift */,
+				5C4E00000000000000000013 /* TelemetryValidatorTraceTests.swift */,
+			);
+			path = "Telemetry Schema";
+			sourceTree = "<group>";
+		};
+		5C4E00000000000000000019 /* Source */ = {
+			isa = PBXGroup;
+			children = (
+				5C4E0000000000000000002F /* SchemaSource.swift */,
+				5C4E0000000000000000002D /* SchemaSource+JSON.swift */,
+				5C4E0000000000000000002B /* SchemaJSONWriter.swift */,
+				5C4E00000000000000000029 /* TelemetrySchemaSource.swift */,
+				5C4E00000000000000000027 /* TelemetrySchemaSource+Artifacts.swift */,
+				5C4E00000000000000000025 /* TelemetrySchemaSource+ProcessEvents.swift */,
+				5C4E00000000000000000023 /* TelemetrySchemaSource+FileEvents.swift */,
+				5C4E00000000000000000021 /* TelemetrySchemaSource+SystemEvents.swift */,
+				5C4E0000000000000000001F /* TelemetrySchemaSource+DirectoryEvents.swift */,
+			);
+			path = Source;
+			sourceTree = "<group>";
+		};
+		5C4E0000000000000000001A /* Synthetic */ = {
+			isa = PBXGroup;
+			children = (
+				5C4E00000000000000000037 /* SyntheticDecoder.swift */,
+				5C4E00000000000000000035 /* SyntheticDecoder+Containers.swift */,
+				5C4E00000000000000000033 /* SyntheticValues.swift */,
+				5C4E00000000000000000031 /* SyntheticCorpus.swift */,
+			);
+			path = Synthetic;
+			sourceTree = "<group>";
+		};
+		5C4E00000000000000000041 /* Telemetry Schema Views */ = {
+			isa = PBXGroup;
+			children = (
+				5C4E00000000000000000048 /* TelemetrySchemaView.swift */,
+				5C4E00000000000000000046 /* TraceValidationSheet.swift */,
+				5C4E00000000000000000044 /* TelemetrySchemaModel.swift */,
+				5C4E00000000000000000042 /* ReadOnlyTextView.swift */,
+			);
+			path = "Telemetry Schema Views";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -4225,6 +4397,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5C4E0000000000000000003C /* mac-monitor-telemetry.schema.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4265,6 +4438,7 @@
 				CB1C0000000000000000006A /* main.swift in Sources */,
 				CB1C0000000000000000006C /* CommandLineTool.swift in Sources */,
 				CB1C0000000000000000006E /* StreamRunner.swift in Sources */,
+				D5A100000000000000000006 /* ValidateRunner.swift in Sources */,
 				CB1C00000000000000000070 /* SignalTrap.swift in Sources */,
 				CB1C00000000000000000072 /* ToolVersion.swift in Sources */,
 			);
@@ -4275,6 +4449,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				CB1C0000000000000000008C /* TerminalPrompt.swift in Sources */,
+				D5A100000000000000000002 /* SchemaCommand.swift in Sources */,
+				D5A100000000000000000004 /* ValidateCommand.swift in Sources */,
 				CB1C0000000000000000008A /* MuteCommand+Confirmation.swift in Sources */,
 				CB1C00000000000000000084 /* MuteTable.swift in Sources */,
 				CB1C00000000000000000082 /* MuteCommand.swift in Sources */,
@@ -4317,6 +4493,14 @@
 				CA970000000000000000003F /* MuteFile.swift in Sources */,
 				CA9700000000000000000037 /* MuteList+Changes.swift in Sources */,
 				CA9700000000000000000035 /* MuteList.swift in Sources */,
+				5C4E00000000000000000011 /* TelemetrySchema.swift in Sources */,
+				5C4E0000000000000000000F /* TelemetryValidator.swift in Sources */,
+				5C4E0000000000000000000D /* TelemetryValidation.swift in Sources */,
+				5C4E0000000000000000000B /* TelemetryIssue.swift in Sources */,
+				5C4E00000000000000000009 /* JSONSchema.swift in Sources */,
+				5C4E00000000000000000007 /* JSONSchemaCompiler.swift in Sources */,
+				5C4E00000000000000000005 /* JSONSchema+Checking.swift in Sources */,
+				5C4E00000000000000000003 /* JSONValue.swift in Sources */,
 				CA970000000000000000002F /* SequenceGapCounter.swift in Sources */,
 				CA970000000000000000002D /* CaptureStatistics.swift in Sources */,
 				CA970000000000000000002B /* CaptureSession+Statistics.swift in Sources */,
@@ -4620,6 +4804,10 @@
 			files = (
 				CA970000000000000000005D /* MuteFileMenu.swift in Sources */,
 				CA970000000000000000005B /* MuteAddSheet.swift in Sources */,
+				5C4E00000000000000000049 /* TelemetrySchemaView.swift in Sources */,
+				5C4E00000000000000000047 /* TraceValidationSheet.swift in Sources */,
+				5C4E00000000000000000045 /* TelemetrySchemaModel.swift in Sources */,
+				5C4E00000000000000000043 /* ReadOnlyTextView.swift in Sources */,
 				7E571500000000000000001A /* ThreadStateFactsView.swift in Sources */,
 				0D0D0D000000000000000018 /* OpenDirectoryFactsViews.swift in Sources */,
 				0D0D0D00000000000000001E /* FactRow.swift in Sources */,
@@ -4766,6 +4954,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				CB1C0000000000000000008E /* MuteConfirmationTests.swift in Sources */,
+				D5A100000000000000000008 /* SchemaCommandTests.swift in Sources */,
+				D5A10000000000000000000A /* ValidateCommandTests.swift in Sources */,
 				CB1C00000000000000000088 /* MuteCommandTests.swift in Sources */,
 				CB1C00000000000000000086 /* MuteCommandLineTests.swift in Sources */,
 				CB1C0000000000000000007E /* FileOutputTests.swift in Sources */,
@@ -4803,6 +4993,29 @@
 				CA970000000000000000003D /* EndpointSecurityMuteModel.swift in Sources */,
 				CA970000000000000000003B /* MuteListChangesTests.swift in Sources */,
 				CA9700000000000000000039 /* MuteListTests.swift in Sources */,
+				5C4E0000000000000000004B /* AttachTelemetrySchemaScriptTests.swift in Sources */,
+				5C4E00000000000000000040 /* TelemetrySchemaIssueTests.swift in Sources */,
+				5C4E0000000000000000003E /* TelemetrySchemaOriginTests.swift in Sources */,
+				5C4E00000000000000000055 /* TelemetrySchemaRoundTripTests.swift in Sources */,
+				5C4E0000000000000000003A /* XCTestCase+TelemetrySchema.swift in Sources */,
+				5C4E00000000000000000038 /* SyntheticDecoder.swift in Sources */,
+				5C4E00000000000000000036 /* SyntheticDecoder+Containers.swift in Sources */,
+				5C4E00000000000000000034 /* SyntheticValues.swift in Sources */,
+				5C4E00000000000000000032 /* SyntheticCorpus.swift in Sources */,
+				5C4E00000000000000000030 /* SchemaSource.swift in Sources */,
+				5C4E0000000000000000002E /* SchemaSource+JSON.swift in Sources */,
+				5C4E0000000000000000002C /* SchemaJSONWriter.swift in Sources */,
+				5C4E0000000000000000002A /* TelemetrySchemaSource.swift in Sources */,
+				5C4E00000000000000000028 /* TelemetrySchemaSource+Artifacts.swift in Sources */,
+				5C4E00000000000000000026 /* TelemetrySchemaSource+ProcessEvents.swift in Sources */,
+				5C4E00000000000000000024 /* TelemetrySchemaSource+FileEvents.swift in Sources */,
+				5C4E00000000000000000022 /* TelemetrySchemaSource+SystemEvents.swift in Sources */,
+				5C4E00000000000000000020 /* TelemetrySchemaSource+DirectoryEvents.swift in Sources */,
+				5C4E0000000000000000001E /* TelemetrySchemaFileTests.swift in Sources */,
+				5C4E0000000000000000001C /* TelemetrySchemaDriftTests.swift in Sources */,
+				5C4E00000000000000000018 /* TelemetryVersionTests.swift in Sources */,
+				5C4E00000000000000000016 /* TelemetryValidatorTests.swift in Sources */,
+				5C4E00000000000000000014 /* TelemetryValidatorTraceTests.swift in Sources */,
 				CB9800000000000000000004 /* ESLoggerUTCTimeTests.swift in Sources */,
 				CB9800000000000000000008 /* CodeSigningCertificateCacheTests.swift in Sources */,
 				CB980000000000000000000A /* ExecCommandLineTests.swift in Sources */,
@@ -4846,6 +5059,8 @@
 				7E571500000000000000001C /* ThreadStateTests.swift in Sources */,
 				0D0D0D000000000000000016 /* EventSubscriptionsTests.swift in Sources */,
 				0D0D0D000000000000000014 /* XCTestCase+JSON.swift in Sources */,
+				5C4E00000000000000000051 /* SchemaParts.swift in Sources */,
+				5C4E00000000000000000053 /* SchemaKeyPaths.swift in Sources */,
 				0D0D0D000000000000000012 /* RawMessageFixture+ESLogger.swift in Sources */,
 				0D0D0D000000000000000010 /* OpenDirectoryExportTests.swift in Sources */,
 				0D0D0D00000000000000000E /* OpenDirectoryWireTests.swift in Sources */,
@@ -4859,6 +5074,7 @@
 				7E5715000000000000000030 /* MountDispositionTests.swift in Sources */,
 				7E571500000000000000002E /* ValidationCategoryTests.swift in Sources */,
 				7E571500000000000000002C /* ProfileAddTokenTests.swift in Sources */,
+				5C4E00000000000000000057 /* TCCModifyTokenTests.swift in Sources */,
 				7E571500000000000000002A /* FileCreateQuarantineTests.swift in Sources */,
 				7E5715000000000000000028 /* MessageThreadTests.swift in Sources */,
 				7E571500000000000000000E /* OptionalStringTests.swift in Sources */,

@@ -76,8 +76,8 @@ public final class MuteCommand {
             do {
                 let list = try importList(from: path)
                 request = MuteRequest(merge ? .add : .replace, MuteFile(list).mutes)
-                change = confirmed ? nil : .importing(list, from: path == "-" ? "standard input" : Self.name(path),
-                                                      merging: merge)
+                let source = path == "-" ? "standard input" : TerminalSafeText.quoted(path)
+                change = confirmed ? nil : .importing(list, from: source, merging: merge)
             } catch {
                 return completion(.failure(error as? CommandLineFailure ?? CommandLineFailure(.software, "\(error)")))
             }
@@ -97,12 +97,12 @@ public final class MuteCommand {
     /// - Returns: The mutes, merged by path and type.
     /// - Throws: ``CommandLineFailure``: 66 for a file that can't be read, 65 for one with no usable mutes.
     private func importList(from path: String) throws -> MuteList {
-        let name = path == "-" ? "Standard input" : Self.name(path)
+        let name = path == "-" ? "Standard input" : TerminalSafeText.quoted(path)
         let data: Data
         do {
             data = try readFile(path)
         } catch {
-            throw CommandLineFailure(.noInput, "\(name) couldn't be read: \(Self.reason(error)).")
+            throw CommandLineFailure.unreadable(name, because: error)
         }
         let imported: MuteImport
         do {
@@ -117,14 +117,6 @@ public final class MuteCommand {
                 """)
         }
         return imported.list
-    }
-    
-    /// A file's name for a message, quoted and escaped for a terminal.
-    ///
-    /// - Parameter path: The file.
-    /// - Returns: Such as “mutes.json”.
-    static func name(_ path: String) -> String {
-        "“\(TerminalSafeText.text(path))”"
     }
     
     /// Report an answer: the notice and warnings on standard error, the result on standard output.
@@ -143,7 +135,7 @@ public final class MuteCommand {
         case .list(.text):
             text = MuteTable.text(reply.mutes)
         case .list(.json), .export:
-            return write(MuteFile(mutes: reply.mutes).encoded())
+            return output.writeResult(MuteFile(mutes: reply.mutes).encoded())
         case .reset:
             text = "The saved mute set is Mac Monitor's default set again: \(count).\n"
         case .add(let entry):
@@ -154,7 +146,7 @@ public final class MuteCommand {
             let verb = merge ? "Added the file's mutes to the saved set" : "Replaced the saved set with the file's"
             text = "\(reply.changed ? verb : "The saved set already had them"): \(count) now.\n"
         }
-        return write(Data(text.utf8))
+        return output.writeResult(Data(text.utf8))
     }
     
     /// Say the Security Extension's notice about the saved set on standard error, unless it was just said.
@@ -165,21 +157,6 @@ public final class MuteCommand {
             return
         }
         diagnose("macmonitor: \(TerminalSafeText.text(notice))")
-    }
-    
-    /// Write to standard output. A closed pipe is a success.
-    ///
-    /// - Parameter data: The bytes.
-    /// - Returns: Success, or the output failure.
-    private func write(_ data: Data) -> Result<Void, CommandLineFailure> {
-        do {
-            try output.write(data)
-        } catch StreamOutputError.failed(let code) {
-            return .failure(.output(code))
-        } catch {
-            /// `.closed`: the reader has what it wanted.
-        }
-        return .success(())
     }
 }
 
@@ -204,15 +181,5 @@ extension MuteCommand {
             throw CocoaError(.fileReadUnsupportedScheme)
         }
         return try file.read(upToCount: MuteLimits.maxFileBytes + 1) ?? Data()
-    }
-    
-    /// Why a file couldn't be read, in a few words.
-    ///
-    /// - Parameter error: The error.
-    /// - Returns: Such as "No such file or directory".
-    static func reason(_ error: Error) -> String {
-        if let posix = error as? POSIXError { return String(cString: strerror(posix.code.rawValue)) }
-        if (error as? CocoaError)?.code == .fileReadUnsupportedScheme { return "it isn't a regular file" }
-        return error.localizedDescription
     }
 }
