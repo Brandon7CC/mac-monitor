@@ -13,19 +13,19 @@ import Foundation
 public struct CommandLineCommand: Equatable {
     /// Every command `macmonitor` has, by what's typed.
     ///
-    /// **Adding a command** (`schema`, or `validate` for `validate <trace>`): add its case here. The build then fails
-    /// until ``CommandLineParser/parse(_:)``, which switches over every case with no default, parses it into a new
-    /// ``CommandLineInvocation`` case, and `CommandLineTool.run` in `macmonitor` runs that case.
-    /// ``CommandLineHelp/commands`` must describe each case once, which the tests check. A command that needs neither
-    /// root nor the Security Extension, as `schema` and `validate` won't, runs entirely in `macmonitor`.
+    /// **Adding a command**: add its case here. The build then fails until ``CommandLineParser/parse(_:)``, which
+    /// switches over every case with no default, parses it into a new ``CommandLineInvocation`` case, and
+    /// `CommandLineTool.run` in `macmonitor` runs that case. ``CommandLineHelp/commands`` must describe each case once,
+    /// which the tests check. A command that needs neither root nor the Security Extension, as `schema` and `validate`
+    /// don't, runs entirely in `macmonitor`.
     public enum Name: String, CaseIterable, Sendable {
-        case stream, mute, events, version, help
+        case stream, mute, events, schema, validate, version, help
         
         /// Does the command need root? Only what talks to the Security Extension does.
         public var requiresRoot: Bool {
             switch self {
             case .stream, .mute: return true
-            case .events, .version, .help: return false
+            case .events, .schema, .validate, .version, .help: return false
             }
         }
     }
@@ -50,8 +50,7 @@ public struct CommandLineCommand: Equatable {
 /// `macmonitor`'s commands and help text.
 ///
 /// Every ``CommandLineCommand/Name-swift.enum`` has one ``CommandLineCommand`` here, a case in
-/// ``CommandLineParser``, and a ``CommandLineInvocation`` case. `schema` and `validate <trace>` fit in the same way
-/// later (see ``CommandLineCommand/Name-swift.enum``).
+/// ``CommandLineParser``, and a ``CommandLineInvocation`` case (see ``CommandLineCommand/Name-swift.enum``).
 public enum CommandLineHelp {
     /// Every command, in the order help lists them: one for each ``CommandLineCommand/Name-swift.enum``.
     public static let commands: [CommandLineCommand] = [
@@ -107,6 +106,29 @@ public enum CommandLineHelp {
         CommandLineCommand(id: .events, summary: "List the events macmonitor can stream.",
                            usage: "macmonitor events",
                            details: "Events marked * are streamed when no EVENT is given."),
+        CommandLineCommand(
+            id: .schema, summary: "Print Mac Monitor's telemetry schema.", usage: "macmonitor schema",
+            details: """
+                Writes the JSON Schema (draft 2020-12) of every record Mac Monitor and macmonitor write, telemetry \
+                \(TelemetrySchema.version), byte for byte as Mac Monitor ships it. Save it with 'macmonitor schema > \
+                \(TelemetrySchema.fileName)'.
+                """),
+        CommandLineCommand(
+            id: .validate, summary: "Check a trace against the telemetry schema.",
+            usage: "macmonitor validate [--eslogger] TRACE",
+            details: """
+                TRACE is a file Mac Monitor or macmonitor exported: JSON Lines, pretty records, or a JSON array. It \
+                must be a regular file, not a folder, a pipe, or standard input.
+
+                Options:
+                  --eslogger   Check only the keys eslogger writes: for eslogger's own JSON.
+
+                The report gives the number of valid, invalid and malformed records, how many issues of each kind \
+                there are, and the first \(ValidateCommand.issueLimit) issues, each with the line its record starts \
+                on and the path of the value. macmonitor exits 0 when every record follows the schema, 65 when a \
+                record doesn't or isn't JSON or TRACE has no records, and 66 when TRACE can't be read. Ctrl-C stops \
+                checking, prints the report so far, and exits 130.
+                """),
         CommandLineCommand(id: .version, summary: "Show macmonitor's version.", usage: "macmonitor version",
                            details: ""),
         CommandLineCommand(id: .help, summary: "Show help for a command.", usage: "macmonitor help [COMMAND]",
@@ -141,9 +163,10 @@ public enum CommandLineHelp {
         }
         let rooted = commands.filter(\.requiresRoot).map(\.name).joined(separator: " and ")
         return """
-            macmonitor streams Endpoint Security events from Mac Monitor's Security Extension.
+            macmonitor streams Endpoint Security events from Mac Monitor's Security Extension, and checks traces \
+            against Mac Monitor's telemetry schema.
 
-            Usage: sudo macmonitor <command> [options]
+            Usage: macmonitor <command> [options]
 
             Commands:
             \(list.joined(separator: "\n"))

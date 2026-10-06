@@ -26,6 +26,8 @@ struct ProjectSutroApp: App {
     
     /// The main window's identifier, to open one for a trace when none is open.
     private static let mainWindow = "main"
+    /// The Telemetry Schema window's identifier: Help > Telemetry Schema….
+    private static let schemaWindow = "telemetry-schema"
     
     /// Track everything going on with System Events and the Security Extension
     @StateObject var systemExtensionManager: EndpointSecurityManager = EndpointSecurityManager()
@@ -184,6 +186,10 @@ struct ProjectSutroApp: App {
             }
             
             CommandGroup(replacing: .help) {
+                Section("Telemetry") {
+                    Button("Telemetry Schema…") { openEventJSON(id: Self.schemaWindow) }
+                }
+                
                 Section("GitHub") {
                     Button("Bug report form") {
                         NSWorkspace.shared.open(URL(string: "https://github.com/brandon7cc/mac-monitor/issues/new?assignees=Brandon7CC&labels=bug&template=bug_report.md&title=")!)
@@ -300,6 +306,15 @@ struct ProjectSutroApp: App {
             }
         }
         .defaultPosition(.topLeading).defaultSize(width: 1000, height: 900)
+        /// Never the window a trace opens in.
+        .handlesExternalEvents(matching: [])
+        
+        /// Help > Telemetry Schema…: the schema of Mac Monitor's exports, and traces checked against it. One window.
+        Window("Telemetry Schema", id: Self.schemaWindow) {
+            TelemetrySchemaView()
+                .preferredColorScheme(userPrefs.forcedDarkMode ? .dark : nil)
+        }
+        .defaultSize(width: 820, height: 720)
         /// Never the window a trace opens in.
         .handlesExternalEvents(matching: [])
     }

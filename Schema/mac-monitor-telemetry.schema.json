@@ -1,0 +1,3458 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mac-monitor:telemetry:1.0.0",
+  "title": "Mac Monitor telemetry 1.0.0",
+  "description": "The records Mac Monitor writes: its JSONL and pretty exports, and the macmonitor command line's output. Each record is eslogger's JSON for an Endpoint Security event plus Mac Monitor's additions; every key is marked x-mac-monitor-origin: eslogger or mac-monitor, and everything under a Mac Monitor key is Mac Monitor's. Each GitHub release attaches the schema as Mac-Monitor.telemetry.schema.json, and the latest is at https://github.com/Brandon7CC/mac-monitor/releases/latest/download/Mac-Monitor.telemetry.schema.json.",
+  "type": "object",
+  "properties": {
+    "action": {
+      "x-mac-monitor-origin": "eslogger",
+      "$ref": "#/$defs/action"
+    },
+    "action_type": {
+      "x-mac-monitor-origin": "eslogger",
+      "type": "integer"
+    },
+    "action_type_string": {
+      "description": "The name of `action_type`: ES_ACTION_TYPE_NOTIFY.",
+      "x-mac-monitor-origin": "mac-monitor",
+      "type": "string"
+    },
+    "context": {
+      "description": "A summary of the event, as Mac Monitor's event list shows it.",
+      "x-mac-monitor-origin": "mac-monitor",
+      "type": "string"
+    },
+    "es_event_type": {
+      "description": "The SDK's name for `event_type`.",
+      "x-mac-monitor-origin": "mac-monitor",
+      "type": "string",
+      "enum": [
+        "ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_JUDGEMENT",
+        "ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_PETITION",
+        "ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD",
+        "ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_REMOVE",
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_CREATE",
+        "ES_EVENT_TYPE_NOTIFY_CS_INVALIDATED",
+        "ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR",
+        "ES_EVENT_TYPE_NOTIFY_DUP",
+        "ES_EVENT_TYPE_NOTIFY_EXEC",
+        "ES_EVENT_TYPE_NOTIFY_EXIT",
+        "ES_EVENT_TYPE_NOTIFY_FORK",
+        "ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE",
+        "ES_EVENT_TYPE_NOTIFY_GETEXTATTR",
+        "ES_EVENT_TYPE_NOTIFY_GET_TASK",
+        "ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN",
+        "ES_EVENT_TYPE_NOTIFY_LINK",
+        "ES_EVENT_TYPE_NOTIFY_LISTEXTATTR",
+        "ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN",
+        "ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN",
+        "ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK",
+        "ES_EVENT_TYPE_NOTIFY_MMAP",
+        "ES_EVENT_TYPE_NOTIFY_MOUNT",
+        "ES_EVENT_TYPE_NOTIFY_MPROTECT",
+        "ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_VALUE_ADD",
+        "ES_EVENT_TYPE_NOTIFY_OD_CREATE_GROUP",
+        "ES_EVENT_TYPE_NOTIFY_OD_CREATE_USER",
+        "ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD",
+        "ES_EVENT_TYPE_NOTIFY_OD_GROUP_REMOVE",
+        "ES_EVENT_TYPE_NOTIFY_OD_MODIFY_PASSWORD",
+        "ES_EVENT_TYPE_NOTIFY_OPEN",
+        "ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGIN",
+        "ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGOUT",
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK",
+        "ES_EVENT_TYPE_NOTIFY_PROC_SUSPEND_RESUME",
+        "ES_EVENT_TYPE_NOTIFY_PROFILE_ADD",
+        "ES_EVENT_TYPE_NOTIFY_PTY_GRANT",
+        "ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE",
+        "ES_EVENT_TYPE_NOTIFY_RENAME",
+        "ES_EVENT_TYPE_NOTIFY_SETEXTATTR",
+        "ES_EVENT_TYPE_NOTIFY_SETMODE",
+        "ES_EVENT_TYPE_NOTIFY_SIGNAL",
+        "ES_EVENT_TYPE_NOTIFY_TCC_MODIFY",
+        "ES_EVENT_TYPE_NOTIFY_TRACE",
+        "ES_EVENT_TYPE_NOTIFY_UIPC_BIND",
+        "ES_EVENT_TYPE_NOTIFY_UIPC_CONNECT",
+        "ES_EVENT_TYPE_NOTIFY_UNLINK",
+        "ES_EVENT_TYPE_NOTIFY_WRITE",
+        "ES_EVENT_TYPE_NOTIFY_XPC_CONNECT",
+        "ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED",
+        "ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED"
+      ]
+    },
+    "event": {
+      "x-mac-monitor-origin": "eslogger",
+      "$ref": "#/$defs/event"
+    },
+    "event_type": {
+      "x-mac-monitor-origin": "eslogger",
+      "type": "integer",
+      "enum": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        15,
+        16,
+        19,
+        20,
+        21,
+        22,
+        24,
+        25,
+        27,
+        29,
+        31,
+        32,
+        33,
+        64,
+        66,
+        70,
+        73,
+        76,
+        78,
+        83,
+        86,
+        93,
+        94,
+        96,
+        97,
+        112,
+        113,
+        114,
+        117,
+        120,
+        121,
+        122,
+        124,
+        125,
+        126,
+        129,
+        130,
+        132,
+        133,
+        135,
+        138,
+        141,
+        142,
+        145,
+        146,
+        147
+      ]
+    },
+    "global_seq_num": {
+      "description": "The message's sequence number among all, for the client that received it: Mac Monitor's numbers never match eslogger's.",
+      "x-mac-monitor-origin": "eslogger",
+      "type": "integer"
+    },
+    "macOS": {
+      "description": "The macOS version of the Mac that recorded the event: 27.0 (Build 26A1).",
+      "x-mac-monitor-origin": "mac-monitor",
+      "type": "string"
+    },
+    "mach_time": {
+      "x-mac-monitor-origin": "eslogger",
+      "type": "integer"
+    },
+    "process": {
+      "x-mac-monitor-origin": "eslogger",
+      "$ref": "#/$defs/process"
+    },
+    "schema_version": {
+      "description": "eslogger's own schema version.",
+      "x-mac-monitor-origin": "eslogger",
+      "type": "integer"
+    },
+    "sensor_id": {
+      "description": "The Sensor ID of the Mac Monitor that recorded the event.",
+      "x-mac-monitor-origin": "mac-monitor",
+      "type": "string"
+    },
+    "seq_num": {
+      "description": "The message's sequence number among its type's, for the client that received it: Mac Monitor's numbers never match eslogger's.",
+      "x-mac-monitor-origin": "eslogger",
+      "type": "integer"
+    },
+    "target_path": {
+      "description": "The path the event is about, or \"Not supported\".",
+      "x-mac-monitor-origin": "mac-monitor",
+      "type": "string"
+    },
+    "telemetry_version": {
+      "description": "The version of Mac Monitor's telemetry schema the record follows.",
+      "x-mac-monitor-origin": "mac-monitor",
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "thread": {
+      "x-mac-monitor-origin": "eslogger",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/thread"
+        }
+      ]
+    },
+    "time": {
+      "x-mac-monitor-origin": "eslogger",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{9}Z$"
+    },
+    "version": {
+      "description": "The Endpoint Security message's version.",
+      "x-mac-monitor-origin": "eslogger",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "action",
+    "action_type",
+    "action_type_string",
+    "context",
+    "es_event_type",
+    "event",
+    "event_type",
+    "global_seq_num",
+    "macOS",
+    "mach_time",
+    "process",
+    "schema_version",
+    "sensor_id",
+    "seq_num",
+    "target_path",
+    "telemetry_version",
+    "thread",
+    "time",
+    "version"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "action": {
+      "description": "The message's action.",
+      "type": "object",
+      "properties": {
+        "result": {
+          "description": "A notify event's result.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "object",
+          "properties": {
+            "result": {
+              "description": "Absent when `result_type` is neither ES_RESULT_TYPE_AUTH nor ES_RESULT_TYPE_FLAGS.",
+              "x-mac-monitor-origin": "eslogger",
+              "anyOf": [
+                {
+                  "description": "An ES_RESULT_TYPE_AUTH result.",
+                  "type": "object",
+                  "properties": {
+                    "auth": {
+                      "x-mac-monitor-origin": "eslogger",
+                      "type": "integer"
+                    },
+                    "auth_human": {
+                      "description": "The name of `auth`: ES_AUTH_RESULT_ALLOW or ES_AUTH_RESULT_DENY.",
+                      "x-mac-monitor-origin": "mac-monitor",
+                      "type": "string"
+                    }
+                  },
+                  "required": ["auth", "auth_human"],
+                  "additionalProperties": false
+                },
+                {
+                  "description": "An ES_RESULT_TYPE_FLAGS result.",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "x-mac-monitor-origin": "eslogger",
+                      "type": "integer"
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "result_type": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            },
+            "result_type_human": {
+              "description": "The name of `result_type`. Absent when `result_type` is neither ES_RESULT_TYPE_AUTH nor ES_RESULT_TYPE_FLAGS.",
+              "x-mac-monitor-origin": "mac-monitor",
+              "type": "string"
+            }
+          },
+          "required": ["result_type"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["result"],
+      "additionalProperties": false
+    },
+    "audit_token": {
+      "description": "An audit_token_t, by its fields.",
+      "type": "object",
+      "properties": {
+        "asid": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "auid": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "egid": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "euid": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "pid": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "pidversion": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "rgid": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "ruid": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        }
+      },
+      "required": ["asid", "auid", "egid", "euid", "pid", "pidversion", "rgid", "ruid"],
+      "additionalProperties": false
+    },
+    "authorization_judgement_event": {
+      "description": "Authorization rights judged: es_event_authorization_judgement_t.",
+      "type": "object",
+      "properties": {
+        "instigator": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "instigator_token": {
+          "description": "null before message version 8.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "petitioner": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "petitioner_token": {
+          "description": "null before message version 8.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "result_count": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "results": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "array",
+          "items": {
+            "description": "A right's result: es_authorization_result_t.",
+            "type": "object",
+            "properties": {
+              "granted": {
+                "x-mac-monitor-origin": "eslogger",
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Mac Monitor's identifier for the result.",
+                "x-mac-monitor-origin": "mac-monitor",
+                "type": "string",
+                "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
+              },
+              "right_name": {
+                "x-mac-monitor-origin": "eslogger",
+                "type": "string"
+              },
+              "rule_class": {
+                "description": "The es_authorization_rule_class_t.",
+                "x-mac-monitor-origin": "eslogger",
+                "type": "integer"
+              },
+              "rule_class_string": {
+                "description": "The name of `rule_class`, from the SDK's constants.",
+                "x-mac-monitor-origin": "mac-monitor",
+                "type": "string"
+              }
+            },
+            "required": ["granted", "id", "right_name", "rule_class", "rule_class_string"],
+            "additionalProperties": false
+          }
+        },
+        "return_code": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "instigator",
+        "instigator_token",
+        "petitioner",
+        "petitioner_token",
+        "result_count",
+        "results",
+        "return_code"
+      ],
+      "additionalProperties": false
+    },
+    "authorization_petition_event": {
+      "description": "A process asked for authorization rights: es_event_authorization_petition_t.",
+      "type": "object",
+      "properties": {
+        "flags": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "flags_array": {
+          "description": "The names of the flags `flags` has.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "instigator": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "instigator_token": {
+          "description": "null before message version 8.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "petitioner": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "petitioner_token": {
+          "description": "null before message version 8.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "right_count": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "rights": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "flags",
+        "flags_array",
+        "instigator",
+        "instigator_token",
+        "petitioner",
+        "petitioner_token",
+        "right_count",
+        "rights"
+      ],
+      "additionalProperties": false
+    },
+    "btm_launch_item_add_event": {
+      "description": "A background task added: es_event_btm_launch_item_add_t.",
+      "type": "object",
+      "properties": {
+        "app": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "app_token": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "executable_path": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "instigator": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "instigator_token": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "item": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/launch_item"
+        }
+      },
+      "required": ["app", "app_token", "executable_path", "instigator", "instigator_token", "item"],
+      "additionalProperties": false
+    },
+    "btm_launch_item_remove_event": {
+      "description": "A background task removed: es_event_btm_launch_item_remove_t.",
+      "type": "object",
+      "properties": {
+        "app": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "app_token": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "instigator": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "instigator_token": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "item": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/launch_item"
+        }
+      },
+      "required": ["app", "app_token", "instigator", "instigator_token", "item"],
+      "additionalProperties": false
+    },
+    "close_event": {
+      "description": "A file closed: es_event_close_t.",
+      "type": "object",
+      "properties": {
+        "modified": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "boolean"
+        },
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        },
+        "was_mapped_writable": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "boolean"
+        }
+      },
+      "required": ["modified", "target", "was_mapped_writable"],
+      "additionalProperties": false
+    },
+    "create_event": {
+      "description": "A file created: es_event_create_t.",
+      "type": "object",
+      "properties": {
+        "acl": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "destination": {
+          "description": "The destination: an existing file, or a new path, as `destination_type` says.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "object",
+          "minProperties": 0,
+          "maxProperties": 1,
+          "properties": {
+            "existing_file": {
+              "description": "Absent when the destination is a new path.",
+              "x-mac-monitor-origin": "eslogger",
+              "$ref": "#/$defs/file"
+            },
+            "new_path": {
+              "description": "A file not yet created: its directory, name and mode.",
+              "x-mac-monitor-origin": "eslogger",
+              "type": "object",
+              "properties": {
+                "dir": {
+                  "x-mac-monitor-origin": "eslogger",
+                  "$ref": "#/$defs/file"
+                },
+                "filename": {
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": "string"
+                },
+                "mode": {
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": "integer"
+                }
+              },
+              "required": ["dir", "filename", "mode"],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "destination_type": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "destination_type_string": {
+          "description": "The name of `destination_type`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "is_quarantined": {
+          "description": "Whether the file was quarantined when the event was recorded: 1 if it had a com.apple.quarantine attribute, 0 if not, 2 if it wasn't found.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        }
+      },
+      "required": ["acl", "destination", "destination_type", "destination_type_string", "is_quarantined"],
+      "additionalProperties": false
+    },
+    "cs_invalidated_event": {
+      "description": "A process's code signature invalidated: es_event_cs_invalidated_t, which has no fields.",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "deleteextattr_event": {
+      "description": "An extended attribute deleted: es_event_deleteextattr_t.",
+      "type": "object",
+      "properties": {
+        "extattr": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        }
+      },
+      "required": ["extattr", "target"],
+      "additionalProperties": false
+    },
+    "dup_event": {
+      "description": "A file descriptor duplicated: es_event_dup_t.",
+      "type": "object",
+      "properties": {
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        }
+      },
+      "required": ["target"],
+      "additionalProperties": false
+    },
+    "event": {
+      "description": "The event: one key, named for its type, as eslogger names it.",
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 1,
+      "properties": {
+        "authorization_judgement": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/authorization_judgement_event"
+        },
+        "authorization_petition": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/authorization_petition_event"
+        },
+        "btm_launch_item_add": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/btm_launch_item_add_event"
+        },
+        "btm_launch_item_remove": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/btm_launch_item_remove_event"
+        },
+        "close": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/close_event"
+        },
+        "create": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/create_event"
+        },
+        "cs_invalidated": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/cs_invalidated_event"
+        },
+        "deleteextattr": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/deleteextattr_event"
+        },
+        "dup": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/dup_event"
+        },
+        "exec": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/exec_event"
+        },
+        "exit": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/exit_event"
+        },
+        "fork": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/fork_event"
+        },
+        "gatekeeper_user_override": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/gatekeeper_user_override_event"
+        },
+        "get_task": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/get_task_event"
+        },
+        "getextattr": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/getextattr_event"
+        },
+        "iokit_open": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/iokit_open_event"
+        },
+        "link": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/link_event"
+        },
+        "listextattr": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/listextattr_event"
+        },
+        "login_login": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/login_login_event"
+        },
+        "lw_session_login": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/lw_session_login_event"
+        },
+        "lw_session_unlock": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/lw_session_unlock_event"
+        },
+        "mmap": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/mmap_event"
+        },
+        "mount": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/mount_event"
+        },
+        "mprotect": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/mprotect_event"
+        },
+        "od_attribute_value_add": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/od_attribute_value_add_event"
+        },
+        "od_create_group": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/od_create_group_event"
+        },
+        "od_create_user": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/od_create_user_event"
+        },
+        "od_group_add": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/od_group_add_event"
+        },
+        "od_group_remove": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/od_group_remove_event"
+        },
+        "od_modify_password": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/od_modify_password_event"
+        },
+        "open": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/open_event"
+        },
+        "openssh_login": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/openssh_login_event"
+        },
+        "openssh_logout": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/openssh_logout_event"
+        },
+        "proc_check": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/proc_check_event"
+        },
+        "proc_suspend_resume": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/proc_suspend_resume_event"
+        },
+        "profile_add": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/profile_add_event"
+        },
+        "pty_grant": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/pty_grant_event"
+        },
+        "remote_thread_create": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/remote_thread_create_event"
+        },
+        "rename": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/rename_event"
+        },
+        "setextattr": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/setextattr_event"
+        },
+        "setmode": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/setmode_event"
+        },
+        "signal": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/signal_event"
+        },
+        "tcc_modify": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/tcc_modify_event"
+        },
+        "trace": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/trace_event"
+        },
+        "uipc_bind": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/uipc_bind_event"
+        },
+        "uipc_connect": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/uipc_connect_event"
+        },
+        "unlink": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/unlink_event"
+        },
+        "write": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/write_event"
+        },
+        "xp_malware_detected": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/xp_malware_detected_event"
+        },
+        "xp_malware_remediated": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/xp_malware_remediated_event"
+        },
+        "xpc_connect": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/xpc_connect_event"
+        }
+      },
+      "additionalProperties": false
+    },
+    "exec_event": {
+      "description": "An exec: es_event_exec_t.",
+      "type": "object",
+      "properties": {
+        "args": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "certificate_chain": {
+          "description": "The target's signing certificates, leaf first. Absent when the target has none.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "description": "A signing certificate.",
+            "type": "object",
+            "properties": {
+              "summary": {
+                "description": "The certificate's subject summary.",
+                "x-mac-monitor-origin": "mac-monitor",
+                "type": "string"
+              },
+              "thumbprint": {
+                "description": "The certificate's SHA-1 fingerprint, in hex.",
+                "x-mac-monitor-origin": "mac-monitor",
+                "type": "string"
+              }
+            },
+            "required": ["summary", "thumbprint"],
+            "additionalProperties": false
+          }
+        },
+        "command_line": {
+          "description": "`args` joined by spaces.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "cwd": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        },
+        "dyld_exec_path": {
+          "description": "null before message version 7. Absent when the Mac that wrote the record ran macOS 13.0 to 13.2.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "env": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fds": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "array",
+          "items": {
+            "description": "An open file descriptor: es_fd_t.",
+            "type": "object",
+            "properties": {
+              "fd": {
+                "x-mac-monitor-origin": "eslogger",
+                "type": "integer"
+              },
+              "fdtype": {
+                "x-mac-monitor-origin": "eslogger",
+                "type": "integer"
+              },
+              "pipe": {
+                "description": "A pipe's ID.",
+                "x-mac-monitor-origin": "eslogger",
+                "type": "object",
+                "properties": {
+                  "pipe_id": {
+                    "x-mac-monitor-origin": "eslogger",
+                    "type": "integer"
+                  }
+                },
+                "required": ["pipe_id"],
+                "additionalProperties": false
+              },
+              "type": {
+                "description": "The name of `fdtype`: PROX_FDTYPE_PIPE.",
+                "x-mac-monitor-origin": "mac-monitor",
+                "type": "string"
+              }
+            },
+            "required": ["fd", "fdtype", "type"],
+            "additionalProperties": false
+          }
+        },
+        "image_cpusubtype": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "image_cputype": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "last_fd": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "launched_by_parent": {
+          "description": "The process that really caused the target to run; null when it isn't known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/launched_by_parent"
+            }
+          ]
+        },
+        "resolved_script_path": {
+          "description": "The script run: `script`'s path, or the script an interpreter's arguments name.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "script": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/file"
+            }
+          ]
+        },
+        "script_content": {
+          "description": "The script's text, read when the event was recorded.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/process"
+        }
+      },
+      "required": [
+        "args",
+        "command_line",
+        "cwd",
+        "env",
+        "fds",
+        "image_cpusubtype",
+        "image_cputype",
+        "last_fd",
+        "launched_by_parent",
+        "resolved_script_path",
+        "script",
+        "script_content",
+        "target"
+      ],
+      "additionalProperties": false
+    },
+    "exit_event": {
+      "description": "A process's exit: es_event_exit_t.",
+      "type": "object",
+      "properties": {
+        "stat": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        }
+      },
+      "required": ["stat"],
+      "additionalProperties": false
+    },
+    "file": {
+      "description": "A file: es_file_t.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The last component of `path`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "path": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "path_truncated": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "boolean"
+        },
+        "stat": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/stat"
+        }
+      },
+      "required": ["name", "path", "path_truncated", "stat"],
+      "additionalProperties": false
+    },
+    "fork_event": {
+      "description": "A fork: es_event_fork_t.",
+      "type": "object",
+      "properties": {
+        "child": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/process"
+        },
+        "launched_by_parent": {
+          "description": "The process that really caused the child to run; null when it isn't known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/launched_by_parent"
+            }
+          ]
+        }
+      },
+      "required": ["child", "launched_by_parent"],
+      "additionalProperties": false
+    },
+    "gatekeeper_user_override_event": {
+      "description": "A user overrode Gatekeeper: es_event_gatekeeper_user_override_t.",
+      "type": "object",
+      "properties": {
+        "file": {
+          "description": "The file's path, or the file, as `file_type` says; null when the path is NULL. Absent when `file_type` names neither.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/file"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "file_path": {
+          "description": "The file's path, when `file_type` names a path. Absent when `file_type` doesn't name a path.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "file_type": {
+          "description": "The es_gatekeeper_user_override_file_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "file_type_string": {
+          "description": "The name of `file_type`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "The file's SHA-256 in uppercase hex, given for a file under 100 MB. Mac Monitor writes NULL when there's none, where eslogger writes null.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"],
+          "pattern": "^([0-9A-F]{64}|NULL)$"
+        },
+        "signing_info": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/signed_file_info"
+            }
+          ]
+        }
+      },
+      "required": ["file_type", "file_type_string", "sha256", "signing_info"],
+      "additionalProperties": false
+    },
+    "get_task_event": {
+      "description": "A task port taken: es_event_get_task_t.",
+      "type": "object",
+      "properties": {
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/process"
+        },
+        "type": {
+          "description": "The es_get_task_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "type_string": {
+          "description": "The name of `type`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        }
+      },
+      "required": ["target", "type", "type_string"],
+      "additionalProperties": false
+    },
+    "getextattr_event": {
+      "description": "An extended attribute read: es_event_getextattr_t.",
+      "type": "object",
+      "properties": {
+        "extattr": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        }
+      },
+      "required": ["extattr", "target"],
+      "additionalProperties": false
+    },
+    "iokit_open_event": {
+      "description": "An IOKit device opened: es_event_iokit_open_t.",
+      "type": "object",
+      "properties": {
+        "parent_path": {
+          "description": "null when Endpoint Security gives none, or in a record from Mac Monitor before 2.2.0, which left out an empty one. Absent when the message's version is before 10 (macOS 26).",
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "parent_registry_id": {
+          "description": "Unsigned. null in a record from Mac Monitor before 2.2.0, which left it out with an empty `parent_path`. Absent when the message's version is before 10 (macOS 26).",
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["integer", "null"]
+        },
+        "user_client_class": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "user_client_type": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        }
+      },
+      "required": ["user_client_class", "user_client_type"],
+      "additionalProperties": false
+    },
+    "launch_item": {
+      "description": "A launch item: es_btm_launch_item_t.",
+      "type": "object",
+      "properties": {
+        "app_path": {
+          "description": "`app_url` as a path.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "app_url": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "item_path": {
+          "description": "`item_url` as a path.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "item_type": {
+          "description": "The item's es_btm_item_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "item_type_string": {
+          "description": "The name of `item_type`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "item_url": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "legacy": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "boolean"
+        },
+        "managed": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "boolean"
+        },
+        "plist_contents": {
+          "description": "The item's property list, read when the event was recorded. Absent when the property list couldn't be read.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "uid": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "uid_human": {
+          "description": "The name of `uid`, when it's a system account.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        }
+      },
+      "required": [
+        "app_path",
+        "app_url",
+        "item_path",
+        "item_type",
+        "item_type_string",
+        "item_url",
+        "legacy",
+        "managed",
+        "uid",
+        "uid_human"
+      ],
+      "additionalProperties": false
+    },
+    "launched_by_parent": {
+      "description": "The process that really caused another to run, and how Mac Monitor knows.",
+      "type": "object",
+      "properties": {
+        "audit_token": {
+          "description": "The launched-by parent's audit token, as eslogger writes one; null when only its pid is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "launchd_job": {
+          "description": "The launchd job that started the process, for a direct launchd child with a label.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "description": "The launchd job that started the process.",
+              "type": "object",
+              "properties": {
+                "label": {
+                  "description": "The job's label, from XPC_SERVICE_NAME in its exec environment.",
+                  "x-mac-monitor-origin": "mac-monitor",
+                  "type": "string"
+                }
+              },
+              "required": ["label"],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "path": {
+          "description": "The launched-by parent's executable, when known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "pid": {
+          "description": "The launched-by parent's pid.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["integer", "null"]
+        },
+        "resolved_by": {
+          "description": "Who resolved it: the Security Extension, the app, or the opening of a trace.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["security_extension", "app", "import"]
+        },
+        "source": {
+          "description": "The signal that named it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["unix_parent", "responsible_process", "launchd_job", "launch_services"]
+        }
+      },
+      "required": ["audit_token", "launchd_job", "path", "pid", "resolved_by", "source"],
+      "additionalProperties": false
+    },
+    "link_event": {
+      "description": "A hard link made: es_event_link_t.",
+      "type": "object",
+      "properties": {
+        "source": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        },
+        "target_dir": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        },
+        "target_filename": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        }
+      },
+      "required": ["source", "target_dir", "target_filename"],
+      "additionalProperties": false
+    },
+    "listextattr_event": {
+      "description": "A file's extended attributes listed: es_event_listextattr_t.",
+      "type": "object",
+      "properties": {
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        }
+      },
+      "required": ["target"],
+      "additionalProperties": false
+    },
+    "login_login_event": {
+      "description": "A login with /usr/bin/login: es_event_login_login_t.",
+      "type": "object",
+      "properties": {
+        "failure_message": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "has_uid": {
+          "description": "Whether `uid` is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "boolean"
+        },
+        "success": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "boolean"
+        },
+        "uid": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["integer", "null"]
+        },
+        "uid_human": {
+          "description": "The name of `uid`, or Unknown.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "username": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        }
+      },
+      "required": ["failure_message", "has_uid", "success", "uid", "uid_human", "username"],
+      "additionalProperties": false
+    },
+    "lw_session_login_event": {
+      "description": "A login window login: es_event_lw_session_login_t.",
+      "type": "object",
+      "properties": {
+        "graphical_session_id": {
+          "description": "Unsigned.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "username": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        }
+      },
+      "required": ["graphical_session_id", "username"],
+      "additionalProperties": false
+    },
+    "lw_session_unlock_event": {
+      "description": "A login window unlock: es_event_lw_session_unlock_t.",
+      "type": "object",
+      "properties": {
+        "graphical_session_id": {
+          "description": "Unsigned.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "username": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        }
+      },
+      "required": ["graphical_session_id", "username"],
+      "additionalProperties": false
+    },
+    "mmap_event": {
+      "description": "A file mapped into memory: es_event_mmap_t.",
+      "type": "object",
+      "properties": {
+        "file_pos": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "flags": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "max_protection": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "protection": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "source": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        }
+      },
+      "required": ["file_pos", "flags", "max_protection", "protection", "source"],
+      "additionalProperties": false
+    },
+    "mount_event": {
+      "description": "A file system mounted: es_event_mount_t.",
+      "type": "object",
+      "properties": {
+        "disposition": {
+          "description": "The es_mount_disposition_t: ES_MOUNT_DISPOSITION_UNKNOWN before message version 8.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "disposition_string": {
+          "description": "The name of `disposition`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "statfs": {
+          "description": "The file system's struct statfs.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "object",
+          "properties": {
+            "f_bavail": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            },
+            "f_bfree": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            },
+            "f_blocks": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            },
+            "f_bsize": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            },
+            "f_ffree": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            },
+            "f_files": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            },
+            "f_flags": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            },
+            "f_flags_ext": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            },
+            "f_fsid": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "f_fssubtype": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            },
+            "f_fstypename": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "string"
+            },
+            "f_iosize": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            },
+            "f_mntfromname": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "string"
+            },
+            "f_mntonname": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "string"
+            },
+            "f_owner": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            },
+            "f_type": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "f_bavail",
+            "f_bfree",
+            "f_blocks",
+            "f_bsize",
+            "f_ffree",
+            "f_files",
+            "f_flags",
+            "f_flags_ext",
+            "f_fsid",
+            "f_fssubtype",
+            "f_fstypename",
+            "f_iosize",
+            "f_mntfromname",
+            "f_mntonname",
+            "f_owner",
+            "f_type"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": ["disposition", "disposition_string", "statfs"],
+      "additionalProperties": false
+    },
+    "mprotect_event": {
+      "description": "A memory region's protection changed: es_event_mprotect_t.",
+      "type": "object",
+      "properties": {
+        "address": {
+          "description": "Unsigned.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "flags": {
+          "description": "The names of the flags `protection` has: PROT_READ.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hex_address": {
+          "description": "`address` in hex.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "kb_size": {
+          "description": "`size` in kilobytes.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "protection": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "size": {
+          "description": "Unsigned.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        }
+      },
+      "required": ["address", "flags", "hex_address", "kb_size", "protection", "size"],
+      "additionalProperties": false
+    },
+    "od_attribute_value_add_event": {
+      "description": "A value added to a record's attribute: es_event_od_attribute_value_add_t.",
+      "type": "object",
+      "properties": {
+        "attribute_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "attribute_value": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "db_path": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "error_code": {
+          "description": "0 for success, otherwise an error from odconstants.h.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "error_code_human": {
+          "description": "The name and description of `error_code`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "instigator": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "instigator_process_audit_token": {
+          "description": "The instigator's audit token as one line of text, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_name": {
+          "description": "The instigator's executable's name, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_path": {
+          "description": "The instigator's executable's path, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_signing_id": {
+          "description": "The instigator's signing ID, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_token": {
+          "description": "null before message version 8.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "node_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "record_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "record_type": {
+          "description": "The es_od_record_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["integer", "null"]
+        },
+        "record_type_string": {
+          "description": "The name of `record_type`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        }
+      },
+      "required": [
+        "attribute_name",
+        "attribute_value",
+        "db_path",
+        "error_code",
+        "error_code_human",
+        "instigator",
+        "instigator_process_audit_token",
+        "instigator_process_name",
+        "instigator_process_path",
+        "instigator_process_signing_id",
+        "instigator_token",
+        "node_name",
+        "record_name",
+        "record_type",
+        "record_type_string"
+      ],
+      "additionalProperties": false
+    },
+    "od_create_group_event": {
+      "description": "A group created: es_event_od_create_group_t.",
+      "type": "object",
+      "properties": {
+        "db_path": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "error_code": {
+          "description": "0 for success, otherwise an error from odconstants.h.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "error_code_human": {
+          "description": "The name and description of `error_code`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "group_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "instigator": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "instigator_process_audit_token": {
+          "description": "The instigator's audit token as one line of text, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_name": {
+          "description": "The instigator's executable's name, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_path": {
+          "description": "The instigator's executable's path, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_signing_id": {
+          "description": "The instigator's signing ID, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_token": {
+          "description": "null before message version 8.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "node_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        }
+      },
+      "required": [
+        "db_path",
+        "error_code",
+        "error_code_human",
+        "group_name",
+        "instigator",
+        "instigator_process_audit_token",
+        "instigator_process_name",
+        "instigator_process_path",
+        "instigator_process_signing_id",
+        "instigator_token",
+        "node_name"
+      ],
+      "additionalProperties": false
+    },
+    "od_create_user_event": {
+      "description": "A user created: es_event_od_create_user_t.",
+      "type": "object",
+      "properties": {
+        "db_path": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "error_code": {
+          "description": "0 for success, otherwise an error from odconstants.h.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "error_code_human": {
+          "description": "The name and description of `error_code`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "instigator": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "instigator_process_audit_token": {
+          "description": "The instigator's audit token as one line of text, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_name": {
+          "description": "The instigator's executable's name, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_path": {
+          "description": "The instigator's executable's path, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_signing_id": {
+          "description": "The instigator's signing ID, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_token": {
+          "description": "null before message version 8.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "node_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "user_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        }
+      },
+      "required": [
+        "db_path",
+        "error_code",
+        "error_code_human",
+        "instigator",
+        "instigator_process_audit_token",
+        "instigator_process_name",
+        "instigator_process_path",
+        "instigator_process_signing_id",
+        "instigator_token",
+        "node_name",
+        "user_name"
+      ],
+      "additionalProperties": false
+    },
+    "od_group_add_event": {
+      "description": "A member added to a group: es_event_od_group_add_t.",
+      "type": "object",
+      "properties": {
+        "db_path": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "error_code": {
+          "description": "0 for success, otherwise an error from odconstants.h.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "error_code_human": {
+          "description": "The name and description of `error_code`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "group_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "instigator": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "instigator_process_audit_token": {
+          "description": "The instigator's audit token as one line of text, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_name": {
+          "description": "The instigator's executable's name, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_path": {
+          "description": "The instigator's executable's path, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_signing_id": {
+          "description": "The instigator's signing ID, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_token": {
+          "description": "null before message version 8.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "member": {
+          "description": "null in a record from Mac Monitor before 2.2.0 whose member's type it didn't know.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/od_member"
+            }
+          ]
+        },
+        "member_string": {
+          "description": "The name of the member's type.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "node_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        }
+      },
+      "required": [
+        "db_path",
+        "error_code",
+        "error_code_human",
+        "group_name",
+        "instigator",
+        "instigator_process_audit_token",
+        "instigator_process_name",
+        "instigator_process_path",
+        "instigator_process_signing_id",
+        "instigator_token",
+        "member",
+        "member_string",
+        "node_name"
+      ],
+      "additionalProperties": false
+    },
+    "od_group_remove_event": {
+      "description": "A member removed from a group: es_event_od_group_remove_t.",
+      "type": "object",
+      "properties": {
+        "db_path": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "error_code": {
+          "description": "0 for success, otherwise an error from odconstants.h.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "error_code_human": {
+          "description": "The name and description of `error_code`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "group_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "instigator": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "instigator_process_audit_token": {
+          "description": "The instigator's audit token as one line of text, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_name": {
+          "description": "The instigator's executable's name, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_path": {
+          "description": "The instigator's executable's path, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_signing_id": {
+          "description": "The instigator's signing ID, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_token": {
+          "description": "null before message version 8.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "member": {
+          "description": "null in a record from Mac Monitor before 2.2.0 whose member's type it didn't know.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/od_member"
+            }
+          ]
+        },
+        "member_string": {
+          "description": "The name of the member's type.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "node_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        }
+      },
+      "required": [
+        "db_path",
+        "error_code",
+        "error_code_human",
+        "group_name",
+        "instigator",
+        "instigator_process_audit_token",
+        "instigator_process_name",
+        "instigator_process_path",
+        "instigator_process_signing_id",
+        "instigator_token",
+        "member",
+        "member_string",
+        "node_name"
+      ],
+      "additionalProperties": false
+    },
+    "od_member": {
+      "description": "A group member: es_od_member_id_t.",
+      "type": "object",
+      "properties": {
+        "member_type": {
+          "description": "A user's name (0), a user's UUID (1) or a group's UUID (2).",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "member_value": {
+          "description": "The user's name, or the UUID; null in a record from Mac Monitor before 2.2.0.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        }
+      },
+      "required": ["member_type", "member_value"],
+      "additionalProperties": false
+    },
+    "od_modify_password_event": {
+      "description": "An account's password changed: es_event_od_modify_password_t.",
+      "type": "object",
+      "properties": {
+        "account_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "account_type": {
+          "description": "The es_od_account_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["integer", "null"]
+        },
+        "account_type_string": {
+          "description": "The name of `account_type`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "db_path": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "error_code": {
+          "description": "0 for success, otherwise an error from odconstants.h.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "error_code_human": {
+          "description": "The name and description of `error_code`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "instigator": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "instigator_process_audit_token": {
+          "description": "The instigator's audit token as one line of text, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_name": {
+          "description": "The instigator's executable's name, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_path": {
+          "description": "The instigator's executable's path, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_process_signing_id": {
+          "description": "The instigator's signing ID, from `instigator` (or `instigator_token`); null when neither is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "instigator_token": {
+          "description": "null before message version 8.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "node_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        }
+      },
+      "required": [
+        "account_name",
+        "account_type",
+        "account_type_string",
+        "db_path",
+        "error_code",
+        "error_code_human",
+        "instigator",
+        "instigator_process_audit_token",
+        "instigator_process_name",
+        "instigator_process_path",
+        "instigator_process_signing_id",
+        "instigator_token",
+        "node_name"
+      ],
+      "additionalProperties": false
+    },
+    "open_event": {
+      "description": "A file opened: es_event_open_t.",
+      "type": "object",
+      "properties": {
+        "fflag": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "file": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        }
+      },
+      "required": ["fflag", "file"],
+      "additionalProperties": false
+    },
+    "openssh_login_event": {
+      "description": "An OpenSSH login: es_event_openssh_login_t.",
+      "type": "object",
+      "properties": {
+        "has_uid": {
+          "description": "Whether `uid` is known.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "boolean"
+        },
+        "result_type": {
+          "description": "The es_openssh_login_result_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "result_type_string": {
+          "description": "The name of `result_type`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "source_address": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "source_address_type": {
+          "description": "The es_address_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "source_address_type_string": {
+          "description": "The name of `source_address_type`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "success": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "boolean"
+        },
+        "uid": {
+          "description": "Unsigned.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["integer", "null"]
+        },
+        "username": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        }
+      },
+      "required": [
+        "has_uid",
+        "result_type",
+        "result_type_string",
+        "source_address",
+        "source_address_type",
+        "source_address_type_string",
+        "success",
+        "uid",
+        "username"
+      ],
+      "additionalProperties": false
+    },
+    "openssh_logout_event": {
+      "description": "An OpenSSH logout: es_event_openssh_logout_t.",
+      "type": "object",
+      "properties": {
+        "source_address": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "source_address_type": {
+          "description": "The es_address_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "source_address_type_string": {
+          "description": "The name of `source_address_type`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "uid": {
+          "description": "Unsigned.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "username": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        }
+      },
+      "required": ["source_address", "source_address_type", "source_address_type_string", "uid", "username"],
+      "additionalProperties": false
+    },
+    "proc_check_event": {
+      "description": "A process inspected: es_event_proc_check_t.",
+      "type": "object",
+      "properties": {
+        "flavor": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "type": {
+          "description": "The es_proc_check_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "type_string": {
+          "description": "The name of `type`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        }
+      },
+      "required": ["flavor", "target", "type", "type_string"],
+      "additionalProperties": false
+    },
+    "proc_suspend_resume_event": {
+      "description": "A process suspended or resumed: es_event_proc_suspend_resume_t.",
+      "type": "object",
+      "properties": {
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "type": {
+          "description": "The es_proc_suspend_resume_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "type_string": {
+          "description": "The name of `type`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        }
+      },
+      "required": ["target", "type", "type_string"],
+      "additionalProperties": false
+    },
+    "process": {
+      "description": "A process: es_process_t, as eslogger writes it, with Mac Monitor's additions.",
+      "type": "object",
+      "properties": {
+        "audit_token": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/audit_token"
+        },
+        "audit_token_string": {
+          "description": "`audit_token` as one line of text.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "cdhash": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string",
+          "pattern": "^[0-9A-F]{40}$"
+        },
+        "codesigning_flags": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "codesigning_type": {
+          "description": "How the executable is signed: from `codesigning_flags`, or its certificates.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["PLATFORM", "DEVELOPER_ID", "APP_STORE", "ADHOC", "UNSIGNED", "UNKNOWN"]
+        },
+        "cs_validation_category": {
+          "description": "Absent when the message's version is before 10 (macOS 26).",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "cs_validation_category_string": {
+          "description": "The name of `cs_validation_category`. Absent when `cs_validation_category` is.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "euid": {
+          "description": "The effective user ID, from `audit_token`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "euid_human": {
+          "description": "The name of the effective user. Absent when the user has no name on the Mac that wrote the record, or isn't a system account in a trace opened from another Mac.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "executable": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        },
+        "file_quarantine_type": {
+          "description": "Whether File Quarantine applies to the executable: opted in, forced by Apple, or disabled.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["OPT_IN", "FORCED", "DISABLED"]
+        },
+        "group_id": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "id": {
+          "description": "Mac Monitor's identifier for the process in this record.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
+        },
+        "is_adhoc_signed": {
+          "description": "Whether `codesigning_flags` has CS_ADHOC.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "boolean"
+        },
+        "is_es_client": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "boolean"
+        },
+        "is_platform_binary": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "boolean"
+        },
+        "original_ppid": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "parent_audit_token": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/audit_token"
+        },
+        "parent_audit_token_string": {
+          "description": "`parent_audit_token` as one line of text.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "pid": {
+          "description": "The process ID, from `audit_token`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "ppid": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "responsible_audit_token": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/audit_token"
+        },
+        "responsible_audit_token_string": {
+          "description": "`responsible_audit_token` as one line of text.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "ruid": {
+          "description": "The real user ID, from `audit_token`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "ruid_human": {
+          "description": "The name of the real user. Absent when the user has no name on the Mac that wrote the record, or isn't a system account in a trace opened from another Mac.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "session_id": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "signing_id": {
+          "description": "null when Endpoint Security gives none, or in a record from Mac Monitor before 2.2.0, which left out an empty one.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "start_time": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{6}Z$"
+        },
+        "team_id": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "tty": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/file"
+            }
+          ]
+        }
+      },
+      "required": [
+        "audit_token",
+        "audit_token_string",
+        "cdhash",
+        "codesigning_flags",
+        "codesigning_type",
+        "euid",
+        "executable",
+        "file_quarantine_type",
+        "group_id",
+        "id",
+        "is_adhoc_signed",
+        "is_es_client",
+        "is_platform_binary",
+        "original_ppid",
+        "parent_audit_token",
+        "parent_audit_token_string",
+        "pid",
+        "ppid",
+        "responsible_audit_token",
+        "responsible_audit_token_string",
+        "ruid",
+        "session_id",
+        "signing_id",
+        "start_time",
+        "team_id",
+        "tty"
+      ],
+      "additionalProperties": false
+    },
+    "profile_add_event": {
+      "description": "A configuration profile installed: es_event_profile_add_t.",
+      "type": "object",
+      "properties": {
+        "instigator": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "instigator_token": {
+          "description": "null before message version 8.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "is_update": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "boolean"
+        },
+        "profile": {
+          "description": "A configuration profile: es_profile_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "object",
+          "properties": {
+            "display_name": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "string"
+            },
+            "identifier": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "string"
+            },
+            "install_source": {
+              "description": "The es_profile_source_t.",
+              "x-mac-monitor-origin": "eslogger",
+              "type": "integer"
+            },
+            "install_source_string": {
+              "description": "The name of `install_source`, from the SDK's constants.",
+              "x-mac-monitor-origin": "mac-monitor",
+              "type": "string"
+            },
+            "organization": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "string"
+            },
+            "scope": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "string"
+            },
+            "uuid": {
+              "x-mac-monitor-origin": "eslogger",
+              "type": "string"
+            }
+          },
+          "required": [
+            "display_name",
+            "identifier",
+            "install_source",
+            "install_source_string",
+            "organization",
+            "scope",
+            "uuid"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": ["instigator", "instigator_token", "is_update", "profile"],
+      "additionalProperties": false
+    },
+    "pty_grant_event": {
+      "description": "A pseudoterminal granted: es_event_pty_grant_t.",
+      "type": "object",
+      "properties": {
+        "dev": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        }
+      },
+      "required": ["dev"],
+      "additionalProperties": false
+    },
+    "remote_thread_create_event": {
+      "description": "A thread created in another process: es_event_remote_thread_create_t.",
+      "type": "object",
+      "properties": {
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/process"
+        },
+        "thread_state": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/thread_state"
+            }
+          ]
+        },
+        "thread_state_string": {
+          "description": "The name of the thread state's flavor, for the architecture of the Mac that recorded it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        }
+      },
+      "required": ["target", "thread_state", "thread_state_string"],
+      "additionalProperties": false
+    },
+    "rename_event": {
+      "description": "A file renamed: es_event_rename_t.",
+      "type": "object",
+      "properties": {
+        "destination": {
+          "description": "The destination: an existing file, or a new path, as `destination_type` says.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "object",
+          "minProperties": 0,
+          "maxProperties": 1,
+          "properties": {
+            "existing_file": {
+              "description": "Absent when the destination is a new path.",
+              "x-mac-monitor-origin": "eslogger",
+              "$ref": "#/$defs/file"
+            },
+            "new_path": {
+              "description": "A path that doesn't exist yet: its directory and name.",
+              "x-mac-monitor-origin": "eslogger",
+              "type": "object",
+              "properties": {
+                "dir": {
+                  "x-mac-monitor-origin": "eslogger",
+                  "$ref": "#/$defs/file"
+                },
+                "filename": {
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": "string"
+                }
+              },
+              "required": ["dir", "filename"],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "destination_path": {
+          "description": "The destination's full path.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "destination_type": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "destination_type_string": {
+          "description": "The name of `destination_type`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "is_quarantined": {
+          "description": "Whether the file was quarantined when the event was recorded: 1 if it had a com.apple.quarantine attribute, 0 if not, 2 if it wasn't found.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "source": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        }
+      },
+      "required": [
+        "destination",
+        "destination_path",
+        "destination_type",
+        "destination_type_string",
+        "is_quarantined",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "setextattr_event": {
+      "description": "An extended attribute set: es_event_setextattr_t.",
+      "type": "object",
+      "properties": {
+        "extattr": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        }
+      },
+      "required": ["extattr", "target"],
+      "additionalProperties": false
+    },
+    "setmode_event": {
+      "description": "A file's mode set: es_event_setmode_t.",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        }
+      },
+      "required": ["mode", "target"],
+      "additionalProperties": false
+    },
+    "signal_event": {
+      "description": "A signal sent: es_event_signal_t.",
+      "type": "object",
+      "properties": {
+        "instigator": {
+          "description": "null before message version 9.",
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "sig": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "signal_name": {
+          "description": "The name of `sig`: SIGKILL.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/process"
+        }
+      },
+      "required": ["instigator", "sig", "signal_name", "target"],
+      "additionalProperties": false
+    },
+    "signed_file_info": {
+      "description": "A file's code signing: es_signed_file_info_t.",
+      "type": "object",
+      "properties": {
+        "cdhash": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string",
+          "pattern": "^[0-9A-F]{40}$"
+        },
+        "signing_id": {
+          "description": "null when the signing information has none.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "team_id": {
+          "description": "null when the signing information has none, as for ad hoc signing.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        }
+      },
+      "required": ["cdhash", "signing_id", "team_id"],
+      "additionalProperties": false
+    },
+    "stat": {
+      "description": "A file's struct stat.",
+      "type": "object",
+      "properties": {
+        "st_atimespec": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{9}Z$"
+        },
+        "st_birthtimespec": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{9}Z$"
+        },
+        "st_blksize": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "st_blocks": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "st_ctimespec": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{9}Z$"
+        },
+        "st_dev": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "st_flags": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "st_gen": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "st_gid": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "st_ino": {
+          "description": "Unsigned: 2^63 or more on some network file systems.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "st_mode": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "st_mtimespec": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{9}Z$"
+        },
+        "st_nlink": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "st_rdev": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "st_size": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "st_uid": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "st_atimespec",
+        "st_birthtimespec",
+        "st_blksize",
+        "st_blocks",
+        "st_ctimespec",
+        "st_dev",
+        "st_flags",
+        "st_gen",
+        "st_gid",
+        "st_ino",
+        "st_mode",
+        "st_mtimespec",
+        "st_nlink",
+        "st_rdev",
+        "st_size",
+        "st_uid"
+      ],
+      "additionalProperties": false
+    },
+    "tcc_modify_event": {
+      "description": "A TCC permission changed: es_event_tcc_modify_t.",
+      "type": "object",
+      "properties": {
+        "identity": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "identity_type": {
+          "description": "The es_tcc_identity_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "identity_type_string": {
+          "description": "The name of `identity_type`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "instigator": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "instigator_token": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/audit_token"
+        },
+        "reason": {
+          "description": "The es_tcc_authorization_reason_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "reason_string": {
+          "description": "The name of `reason`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "responsible": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/process"
+            }
+          ]
+        },
+        "responsible_token": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "right": {
+          "description": "The es_tcc_authorization_right_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "right_string": {
+          "description": "The name of `right`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "service": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "update_type": {
+          "description": "The es_tcc_event_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "update_type_string": {
+          "description": "The name of `update_type`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identity",
+        "identity_type",
+        "identity_type_string",
+        "instigator",
+        "instigator_token",
+        "reason",
+        "reason_string",
+        "responsible",
+        "responsible_token",
+        "right",
+        "right_string",
+        "service",
+        "update_type",
+        "update_type_string"
+      ],
+      "additionalProperties": false
+    },
+    "thread": {
+      "description": "The thread that took the action: es_thread_t.",
+      "type": "object",
+      "properties": {
+        "thread_id": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        }
+      },
+      "required": ["thread_id"],
+      "additionalProperties": false
+    },
+    "thread_state": {
+      "description": "A thread's state: es_thread_state_t.",
+      "type": "object",
+      "properties": {
+        "flavor": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "state": {
+          "description": "eslogger writes no bytes.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "null"
+        },
+        "state_base64": {
+          "description": "The state's bytes in base64: null when they weren't kept.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        }
+      },
+      "required": ["flavor", "state", "state_base64"],
+      "additionalProperties": false
+    },
+    "trace_event": {
+      "description": "A process traced: es_event_trace_t.",
+      "type": "object",
+      "properties": {
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/process"
+        }
+      },
+      "required": ["target"],
+      "additionalProperties": false
+    },
+    "uipc_bind_event": {
+      "description": "A Unix domain socket bound: es_event_uipc_bind_t.",
+      "type": "object",
+      "properties": {
+        "dir": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        },
+        "filename": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "mode": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        }
+      },
+      "required": ["dir", "filename", "mode"],
+      "additionalProperties": false
+    },
+    "uipc_connect_event": {
+      "description": "A Unix domain socket connected: es_event_uipc_connect_t.",
+      "type": "object",
+      "properties": {
+        "domain": {
+          "description": "The socket's domain.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "domain_string": {
+          "description": "The name of `domain`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "file": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        },
+        "protocol": {
+          "description": "The socket's protocol.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "protocol_string": {
+          "description": "The name of `protocol`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "type": {
+          "description": "The socket's type.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "type_string": {
+          "description": "The name of `type`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        }
+      },
+      "required": ["domain", "domain_string", "file", "protocol", "protocol_string", "type", "type_string"],
+      "additionalProperties": false
+    },
+    "unlink_event": {
+      "description": "A file deleted: es_event_unlink_t.",
+      "type": "object",
+      "properties": {
+        "parent_dir": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        },
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        }
+      },
+      "required": ["parent_dir", "target"],
+      "additionalProperties": false
+    },
+    "write_event": {
+      "description": "A file written: es_event_write_t.",
+      "type": "object",
+      "properties": {
+        "target": {
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/file"
+        }
+      },
+      "required": ["target"],
+      "additionalProperties": false
+    },
+    "xp_malware_detected_event": {
+      "description": "XProtect found malware: es_event_xp_malware_detected_t.",
+      "type": "object",
+      "properties": {
+        "detected_executable": {
+          "description": "null before message version 10.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "detected_path": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "incident_identifier": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "malware_identifier": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "signature_version": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        }
+      },
+      "required": [
+        "detected_executable",
+        "detected_path",
+        "incident_identifier",
+        "malware_identifier",
+        "signature_version"
+      ],
+      "additionalProperties": false
+    },
+    "xp_malware_remediated_event": {
+      "description": "XProtect remediated malware: es_event_xp_malware_remediated_t.",
+      "type": "object",
+      "properties": {
+        "action_type": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "incident_identifier": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "malware_identifier": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "remediated_path": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": ["string", "null"]
+        },
+        "remediated_process_audit_token": {
+          "x-mac-monitor-origin": "eslogger",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/audit_token"
+            }
+          ]
+        },
+        "result_description": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "signature_version": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        },
+        "success": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "action_type",
+        "incident_identifier",
+        "malware_identifier",
+        "remediated_path",
+        "remediated_process_audit_token",
+        "result_description",
+        "signature_version",
+        "success"
+      ],
+      "additionalProperties": false
+    },
+    "xpc_connect_event": {
+      "description": "An XPC connection: es_event_xpc_connect_t.",
+      "type": "object",
+      "properties": {
+        "service_domain_type": {
+          "description": "The es_xpc_domain_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "service_domain_type_string": {
+          "description": "The name of `service_domain_type`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "service_name": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "string"
+        }
+      },
+      "required": ["service_domain_type", "service_domain_type_string", "service_name"],
+      "additionalProperties": false
+    }
+  }
+}

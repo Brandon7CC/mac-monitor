@@ -17,7 +17,9 @@ public struct IOKitOpenEvent: Identifiable, Codable, Hashable {
     public var user_client_class: String
     
     /* fields available only if message version >= 10 */
-    public var parent_registry_id: Int64 = 0
+    /// A `uint64_t`, kept by bit pattern. `nil` before message version 10, or in a record from Mac Monitor before
+    /// 2.2.0, which left it out when the parent path was empty.
+    public var parent_registry_id: Int64?
     public var parent_path: String?
     
     

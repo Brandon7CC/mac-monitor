@@ -9,7 +9,7 @@ import Foundation
 import OSLog
 
 
-public enum CodeSigningType: String, Codable {
+public enum CodeSigningType: String, Codable, CaseIterable {
     case platform = "PLATFORM"
     case developerId = "DEVELOPER_ID"
     case appStore = "APP_STORE"
@@ -18,7 +18,7 @@ public enum CodeSigningType: String, Codable {
     case unknown = "UNKNOWN"
 }
 
-public enum FileQuarantineType: String, Codable {
+public enum FileQuarantineType: String, Codable, CaseIterable {
     case optIn = "OPT_IN"
     case forced = "FORCED"
     case disabled = "DISABLED"

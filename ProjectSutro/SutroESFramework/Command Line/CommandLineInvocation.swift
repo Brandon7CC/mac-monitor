@@ -12,9 +12,8 @@ import EndpointSecurity
 // MARK: - Invocation
 /// What a `macmonitor` command line asks for, once parsed (``CommandLineParser``).
 ///
-/// One case for each ``CommandLineCommand/Name-swift.enum``. A command added later, such as `schema` or
-/// `validate <trace>`, gets its case here too, and the switches below and in `CommandLineTool.run` won't build until
-/// they say which command it is and what it does.
+/// One case for each ``CommandLineCommand/Name-swift.enum``. A command added later gets its case here too, and the
+/// switches below and in `CommandLineTool.run` won't build until they say which command it is and what it does.
 public enum CommandLineInvocation: Equatable {
     /// Show help: for one command, or for `macmonitor` itself.
     case help(command: String?)
@@ -26,6 +25,10 @@ public enum CommandLineInvocation: Equatable {
     case stream(StreamInvocation)
     /// Read or change the saved mute set.
     case mute(MuteInvocation)
+    /// Write the telemetry schema.
+    case schema
+    /// Check a trace against the telemetry schema.
+    case validate(ValidateInvocation)
     
     /// Does it need root? Its command decides (``CommandLineCommand/Name-swift.enum/requiresRoot``).
     public var requiresRoot: Bool { id.requiresRoot }
@@ -38,6 +41,8 @@ public enum CommandLineInvocation: Equatable {
         case .events: return .events
         case .stream: return .stream
         case .mute: return .mute
+        case .schema: return .schema
+        case .validate: return .validate
         }
     }
     
@@ -72,6 +77,24 @@ public struct StreamInvocation: Equatable {
     /// - Returns: The format asked for, else text on a terminal and JSONL anywhere else.
     public func resolvedFormat(isTerminal: Bool) -> StreamOutputFormat {
         format ?? (isTerminal ? .text : .jsonl)
+    }
+}
+
+
+// MARK: - Validate
+/// `macmonitor validate [--eslogger] TRACE`.
+public struct ValidateInvocation: Equatable {
+    /// The trace, as typed. `-` is kept, for ``ValidateCommand`` to refuse: a trace is read from a file.
+    public var path: String
+    /// Which keys are checked: every key, or with `--eslogger` only eslogger's.
+    public var mode: TelemetryValidator.Mode
+    
+    /// - Parameters:
+    ///   - path: The trace, as typed.
+    ///   - mode: Which keys are checked: every key unless given.
+    public init(path: String, mode: TelemetryValidator.Mode = .macMonitor) {
+        self.path = path
+        self.mode = mode
     }
 }
 

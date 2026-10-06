@@ -1,0 +1,5 @@
+# Each telemetry schema version Mac Monitor has released, and the SHA-256 of the
+# mac-monitor-telemetry.schema.json released with it, one per line:
+#   <version> <shasum -a 256 Schema/mac-monitor-telemetry.schema.json>
+# Add the line before tagging a release. A released version's schema never changes:
+# TelemetrySchemaFileTests fails if the file's hash differs from its version's line.

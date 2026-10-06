@@ -57,12 +57,15 @@ struct SystemIOKitOpenMetadataView: View {
                                     .frame(alignment: .leading)
                             }
                         }.frame(maxWidth: .infinity, alignment: .leading)
-                        
+                    }
+                    
+                    /// Whenever the record has one, also beside a NULL parent path.
+                    if let parentRegistryID = event.parentRegistryID {
                         HStack{
                             Text("\u{2022} **Parent registry ID:**")
                                 .padding([.leading], 5.0)
                             GroupBox {
-                                Text(event.parentRegistryID.map(String.init) ?? "")
+                                Text(String(parentRegistryID))
                                     .monospaced()
                                     .frame(alignment: .leading)
                             }

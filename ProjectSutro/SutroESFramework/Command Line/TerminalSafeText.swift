@@ -46,6 +46,14 @@ public enum TerminalSafeText {
         return String(escaped)
     }
     
+    /// A file's name for a message: in curly quotes, escaped for a terminal.
+    ///
+    /// - Parameter path: The file, as typed.
+    /// - Returns: Such as “mutes.json”.
+    public static func quoted(_ path: String) -> String {
+        "“\(text(path))”"
+    }
+    
     /// JSON for a terminal: DEL, C1 controls and bidirectional controls in its strings become `\uXXXX` escapes. The
     /// JSON stays valid and means the same: those characters can only appear inside strings.
     ///

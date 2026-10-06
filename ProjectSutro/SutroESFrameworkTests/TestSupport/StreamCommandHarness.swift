@@ -21,9 +21,14 @@ final class BufferOutput: StreamOutput {
     
     private let state = OSAllocatedUnfairLock(uncheckedState: State())
     
+    /// Everything written so far.
+    var data: Data {
+        state.withLockUnchecked { $0.data }
+    }
+    
     /// Everything written so far, as text.
     var text: String {
-        String(decoding: state.withLockUnchecked { $0.data }, as: UTF8.self)
+        String(decoding: data, as: UTF8.self)
     }
     
     /// The lines written so far.

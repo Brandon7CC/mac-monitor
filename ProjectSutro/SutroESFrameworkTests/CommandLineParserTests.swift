@@ -154,6 +154,42 @@ final class CommandLineParserTests: XCTestCase {
         XCTAssertEqual(usageError("--verbose"), "Unknown option '--verbose'. Run 'macmonitor help'.")
     }
     
+    /// `schema` takes nothing, and `validate` one trace, with `--eslogger` before or after it; neither needs root.
+    /// Anything else is a usage error, exit 64, and a file name or option it repeats is escaped for a terminal.
+    ///
+    /// - Throws: ``CommandLineUsageError``.
+    func testSchemaAndValidate() throws {
+        XCTAssertEqual(try parse("schema"), .schema)
+        XCTAssertEqual(try parse("validate trace.jsonl"), .validate(ValidateInvocation(path: "trace.jsonl")))
+        for line in ["validate --eslogger trace.jsonl", "validate trace.jsonl --eslogger"] {
+            XCTAssertEqual(try parse(line), .validate(ValidateInvocation(path: "trace.jsonl", mode: .eslogger)), line)
+        }
+        XCTAssertEqual(try parse("validate -- -h"), .validate(ValidateInvocation(path: "-h")))
+        XCTAssertEqual(try parse("validate -"), .validate(ValidateInvocation(path: "-")), "Refused when it's run")
+        XCTAssertEqual(try parse("validate trace.jsonl -h"), .help(command: "validate"))
+        XCTAssertEqual(try parse("help schema"), .help(command: "schema"))
+        XCTAssertFalse(try parse("schema").requiresRoot)
+        XCTAssertFalse(try parse("validate trace.jsonl").requiresRoot)
+        
+        let errors = [
+            "schema --pretty": "schema takes no arguments, not '--pretty'. Run 'macmonitor help schema'.",
+            "schema out.json": "schema takes no arguments, not 'out.json'. Run 'macmonitor help schema'.",
+            "validate": "validate needs a trace. Run 'macmonitor help validate'.",
+            "validate --eslogger": "validate needs a trace. Run 'macmonitor help validate'.",
+            "validate a.jsonl b.jsonl": "validate takes one trace, not also 'b.jsonl'. Run 'macmonitor help validate'.",
+            "validate a.jsonl --eslogger=yes": "--eslogger takes no value. Run 'macmonitor help validate'.",
+            "validate a.jsonl --strict": "Unknown option '--strict' for validate. Run 'macmonitor help validate'.",
+            "validate a.jsonl b\u{1B}]0;x\u{07}.jsonl":
+                #"validate takes one trace, not also 'b\x1B]0;x\x07.jsonl'. Run 'macmonitor help validate'."#,
+            "validate a.jsonl --x\u{1B}[31m":
+                #"Unknown option '--x\x1B[31m' for validate. Run 'macmonitor help validate'."#
+        ]
+        for (line, message) in errors {
+            XCTAssertEqual(usageError(line), message, line)
+            XCTAssertThrowsError(try parse(line)) { XCTAssertEqual(CommandLineFailure.parsing($0).exit, .usage, line) }
+        }
+    }
+    
     /// Help describes every command once, every command parses as itself, and the overview names the commands that
     /// need root.
     ///
@@ -162,8 +198,9 @@ final class CommandLineParserTests: XCTestCase {
         XCTAssertEqual(CommandLineHelp.commands.map(\.id).sorted { $0.rawValue < $1.rawValue },
                        CommandLineCommand.Name.allCases.sorted { $0.rawValue < $1.rawValue })
         XCTAssertTrue(CommandLineHelp.text(for: nil).contains(" stream and mute need root: run them with sudo."))
+        let lines: [CommandLineCommand.Name: String] = [.mute: "mute list", .validate: "validate trace.jsonl"]
         for command in CommandLineHelp.commands {
-            let invocation = try parse(command.id == .mute ? "mute list" : command.name)
+            let invocation = try parse(lines[command.id] ?? command.name)
             XCTAssertEqual(invocation.id, command.id)
             XCTAssertEqual(invocation.command, command.name)
             XCTAssertTrue(CommandLineHelp.text(for: command.name).hasPrefix("Usage: \(command.usage)\n"))
