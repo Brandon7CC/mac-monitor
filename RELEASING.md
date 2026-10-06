@@ -27,9 +27,34 @@ the names: the schema's name on a release sorts after the pkg's. The repository'
   `attach-telemetry-schema.sh` prints the exact line when it's missing. From then on, `TelemetrySchemaFileTests` fails
   if that version's schema changes.
 - **Tests.** Every test passes: `xcodebuild test -project ProjectSutro/ProjectSutro.xcodeproj -scheme
-  SutroESFramework -destination 'platform=macOS'`.
-- **arm64e.** Check that notarization accepts the arm64e slices of the app, the Security Extension, the framework and
-  `macmonitor`, and, if a Mac or VM on macOS 13 to 15 is at hand, launch the build there once.
+  SutroESFramework -destination 'platform=macOS'`. On Apple silicon, Xcode's test runner is arm64, so that runs the
+  tests with pointer authentication off, and from macOS 14.4 its dyld loads the tests' and the framework's arm64e
+  slices. So also run the same command with `ARCHS=arm64` at the end, for the arm64 slices that macOS 13 to 14.3 load,
+  and, on macOS 26 or later, `ProjectSutro/Scripts/test-arm64e.sh`, which runs the arm64e slices with pointer
+  authentication on.
+- **arm64e.** Every Mach-O ships x86_64, arm64 and arm64e (`ENABLE_POINTER_AUTHENTICATION` in the project's three
+  configurations). On the notarized build:
+  - Slices: `find "Mac Monitor.app" -type f | while read -r f; do a=$(lipo -archs "$f" 2>/dev/null) && echo "$a  $f";
+    done` prints `x86_64 arm64 arm64e` for each of the five: `Mac Monitor`, `macmonitor`, the Security Extension and
+    both copies of the framework. An arm64e process with pointer authentication on can't load a library without
+    arm64e, so anything embedded later needs it too.
+  - ABI: `lipo -detailed_info` names the arm64e slice of the three executables `arm64e.v1` (`PTR_AUTH_VERSION
+    USERSPACE 1`), as Xcode 27 writes it. macOS 13 to 26.4 prefer an arm64e slice to arm64, and refuse to run an
+    executable that isn't Apple's when that slice is ABI 0, so a build whose executables say plain `arm64e` doesn't
+    launch on Apple silicon below 26.5.
+  - Signing: `codesign --verify --deep --strict --all-architectures "Mac Monitor.app"` passes, and notarization
+    accepts the pkg with nothing about arm64e in `xcrun notarytool log <submission-id>`. Apple documents no arm64e
+    rule for the notary service, and Gatekeeper finds a ticket by the cdhash of the slice that runs, so an accepted
+    pkg isn't enough: its ticket must have an `arm64e` entry, beside `x86_64` and `arm64`, for each of the five.
+    `xcrun notarytool log <submission-id> | jq -r '.ticketContents[] | "\(.arch) \(.path)"'` lists them. If
+    notarization refuses the slices, or the ticket has no arm64e entries, set `ENABLE_POINTER_AUTHENTICATION = NO`
+    in the project's three configurations and ship x86_64 and arm64 as 2.1 did.
+  - Launch: install the pkg, allow the Security Extension, start a capture and run `sudo macmonitor stream` on Apple
+    silicon on macOS 26 or later, which runs arm64e with pointer authentication on, and on Intel. If Macs or VMs on
+    macOS 13 to 15 are at hand, do it there too, on one from 13.0 to 14.3 and one from 14.4 to 15: both run the
+    executables' arm64e slices with pointer authentication off, but 13 to 14.3 (dyld 1125.5 and earlier) load the
+    framework's arm64 slice into them, and 14.4 and later its arm64e slice (as xnu's and dyld's sources read; not yet
+    tried there). `sudo vmmap --summary <pid> | grep "Code Type"` shows which slice a process runs.
 
 ## Publishing
 

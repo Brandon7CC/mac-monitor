@@ -41,3 +41,16 @@ ENABLE_HARDENED_RUNTIME = NO
 // ad-hoc signed builds can satisfy, and disables update installs in the Security
 // Extension. See SensorXPC.swift and UpdateInstaller.swift.
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) COMMUNITY_BUILD
+
+// Build every architecture this kind of Mac runs, not only the active one, so a VM on Apple silicon runs the arm64e
+// slices that Release ships (with pointer authentication from macOS 26), and an Intel Mac builds x86_64. Leaving out
+// the other kind's architectures only keeps the build, and the tests that build in Community, quick.
+ONLY_ACTIVE_ARCH = NO
+EXCLUDED_ARCHS = $(COMMUNITY_EXCLUDED_ARCHS_$(NATIVE_ARCH))
+COMMUNITY_EXCLUDED_ARCHS_arm64 = x86_64
+COMMUNITY_EXCLUDED_ARCHS_x86_64 = arm64 arm64e
+
+// No Mac Monitor.debug.dylib or __preview.dylib beside the app's executable: they serve Xcode Previews, which a VM
+// build has no use for, and Scripts/community-sign.sh doesn't sign them. Only the linker's ad-hoc signature, which it
+// writes for arm64 and arm64e alone, kept them valid, so an Intel Mac's x86_64 build failed the script's verify step.
+ENABLE_DEBUG_DYLIB = NO

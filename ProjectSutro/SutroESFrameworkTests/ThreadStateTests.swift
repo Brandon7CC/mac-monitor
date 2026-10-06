@@ -75,20 +75,33 @@ final class ThreadStateTests: XCTestCase {
     #if arch(arm64)
     /// An `ARM_THREAD_STATE64` is kept whole: its 272 bytes read back as the same registers.
     ///
+    /// On arm64e the SDK makes the pointer registers opaque (`__opaque_sp`, `__opaque_pc` and so on) for its accessor
+    /// macros, which sign and authenticate them, in the same layout, so the test sets and reads their bits directly.
+    ///
     /// - Throws: An `XCTest` failure if the state has no bytes.
     func testArmThreadState64RoundTrips() throws {
         var registers = arm_thread_state64_t()
         registers.__x.0 = 0x1111
+        #if _ptrauth(_arm64e)
+        registers.__opaque_pc = UnsafeMutableRawPointer(bitPattern: 0x1_0000_4000)
+        registers.__opaque_sp = UnsafeMutableRawPointer(bitPattern: 0x16F00_0000)
+        #else
         registers.__pc = 0x1_0000_4000
         registers.__sp = 0x16F00_0000
+        #endif
         let bytes = withUnsafeBytes(of: registers) { Array($0) }
         let state = ThreadState(from: fixture().threadState(flavor: ARM_THREAD_STATE64, bytes: bytes))
         let copy = try XCTUnwrap(state.stateBytes)
         XCTAssertEqual(copy.count, 272)
         let read = copy.withUnsafeBytes { $0.loadUnaligned(as: arm_thread_state64_t.self) }
         XCTAssertEqual(read.__x.0, 0x1111)
+        #if _ptrauth(_arm64e)
+        XCTAssertEqual(UInt(bitPattern: read.__opaque_pc), 0x1_0000_4000)
+        XCTAssertEqual(UInt(bitPattern: read.__opaque_sp), 0x16F00_0000)
+        #else
         XCTAssertEqual(read.__pc, 0x1_0000_4000)
         XCTAssertEqual(read.__sp, 0x16F00_0000)
+        #endif
     }
     #endif
     

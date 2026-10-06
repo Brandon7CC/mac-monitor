@@ -11,6 +11,7 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 
 ## Requirements
 - Processor: We recommend an `Apple Silicon` machine, but `Intel` works too!
+  - (`2.2.0+`) Every binary has `x86_64`, `arm64` and `arm64e` slices. On Apple silicon, Mac Monitor runs its `arm64e` slices: with pointer authentication on macOS 26 and later, and without it on earlier versions.
 - System memory: `4GB+` is recommended
 - macOS version: `13.1+` (Ventura)
 
