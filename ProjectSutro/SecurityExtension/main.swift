@@ -24,6 +24,8 @@ autoreleasepool {
     
     /// Before any request: the first run creates the saved set from Mac Monitor's default set.
     savedMutes.load()
+    /// The right an administrator approves to change /usr/local/bin/macmonitor
+    CommandLineToolAuthorization.registerRight()
     // Let's get this show on the road!
     sensorListener.activate()
 }

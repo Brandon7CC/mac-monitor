@@ -14,12 +14,12 @@
 		C11D00000000000000000014 /* CommandLineToolSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000013 /* CommandLineToolSettingsView.swift */; };
 		C11D00000000000000000010 /* ToolLinkFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D0000000000000000000F /* ToolLinkFixture.swift */; };
 		C11D0000000000000000000A /* CommandLineToolLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000009 /* CommandLineToolLinkTests.swift */; };
-		C11D0000000000000000000C /* CommandLineToolLinkScriptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D0000000000000000000B /* CommandLineToolLinkScriptTests.swift */; };
+		C11D0000000000000000000C /* CommandLineToolLinkerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D0000000000000000000B /* CommandLineToolLinkerTests.swift */; };
 		C11D0000000000000000000E /* CommandLineToolInstallTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D0000000000000000000D /* CommandLineToolInstallTests.swift */; };
 		C11D00000000000000000002 /* CommandLineToolLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000001 /* CommandLineToolLink.swift */; };
 		C11D00000000000000000004 /* CommandLineToolLink+Trust.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000003 /* CommandLineToolLink+Trust.swift */; };
-		C11D00000000000000000006 /* CommandLineToolLinkScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000005 /* CommandLineToolLinkScript.swift */; };
-		C11D00000000000000000008 /* AppleScriptHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000007 /* AppleScriptHandler.swift */; };
+		C11D00000000000000000006 /* CommandLineToolLinker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000005 /* CommandLineToolLinker.swift */; };
+		C11D00000000000000000008 /* CommandLineToolAuthorization.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000007 /* CommandLineToolAuthorization.swift */; };
 		CB1C00000000000000000088 /* MuteCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000087 /* MuteCommandTests.swift */; };
 		CB1C00000000000000000086 /* MuteCommandLineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000085 /* MuteCommandLineTests.swift */; };
 		CB1C00000000000000000084 /* MuteTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000083 /* MuteTable.swift */; };
@@ -596,6 +596,7 @@
 		CA59365C2E8B1920008A115D /* SystemPTYGrantMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA59365B2E8B1913008A115D /* SystemPTYGrantMetadataView.swift */; };
 		CA59365E2E8B51A0008A115D /* FDPipe.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA59365D2E8B519A008A115D /* FDPipe.swift */; };
 		CA7D0EE62E427E850024243F /* UpdateEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7D0EE52E427E770024243F /* UpdateEngine.swift */; };
+		7E5A1C0000000000000F0004 /* CommandLineToolEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C0000000000000F0003 /* CommandLineToolEngine.swift */; };
 		CA7D0EE82E42A07B0024243F /* UpdateAvailableSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7D0EE72E42A0600024243F /* UpdateAvailableSheet.swift */; };
 		CAC48AF42E24720700260C5F /* ProcessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC48AF32E24720700260C5F /* ProcessView.swift */; };
 		7E5A1C30000000000000000A /* LaunchedByParentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C300000000000000009 /* LaunchedByParentView.swift */; };
@@ -786,12 +787,12 @@
 		C11D00000000000000000013 /* CommandLineToolSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolSettingsView.swift; sourceTree = "<group>"; };
 		C11D0000000000000000000F /* ToolLinkFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolLinkFixture.swift; sourceTree = "<group>"; };
 		C11D00000000000000000009 /* CommandLineToolLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolLinkTests.swift; sourceTree = "<group>"; };
-		C11D0000000000000000000B /* CommandLineToolLinkScriptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolLinkScriptTests.swift; sourceTree = "<group>"; };
+		C11D0000000000000000000B /* CommandLineToolLinkerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolLinkerTests.swift; sourceTree = "<group>"; };
 		C11D0000000000000000000D /* CommandLineToolInstallTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolInstallTests.swift; sourceTree = "<group>"; };
 		C11D00000000000000000001 /* CommandLineToolLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolLink.swift; sourceTree = "<group>"; };
 		C11D00000000000000000003 /* CommandLineToolLink+Trust.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CommandLineToolLink+Trust.swift"; sourceTree = "<group>"; };
-		C11D00000000000000000005 /* CommandLineToolLinkScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolLinkScript.swift; sourceTree = "<group>"; };
-		C11D00000000000000000007 /* AppleScriptHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleScriptHandler.swift; sourceTree = "<group>"; };
+		C11D00000000000000000005 /* CommandLineToolLinker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolLinker.swift; sourceTree = "<group>"; };
+		C11D00000000000000000007 /* CommandLineToolAuthorization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolAuthorization.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000087 /* MuteCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteCommandTests.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000085 /* MuteCommandLineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteCommandLineTests.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000083 /* MuteTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteTable.swift; sourceTree = "<group>"; };
@@ -1366,6 +1367,7 @@
 		CA59365B2E8B1913008A115D /* SystemPTYGrantMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPTYGrantMetadataView.swift; sourceTree = "<group>"; };
 		CA59365D2E8B519A008A115D /* FDPipe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FDPipe.swift; sourceTree = "<group>"; };
 		CA7D0EE52E427E770024243F /* UpdateEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateEngine.swift; sourceTree = "<group>"; };
+		7E5A1C0000000000000F0003 /* CommandLineToolEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolEngine.swift; sourceTree = "<group>"; };
 		CA7D0EE72E42A0600024243F /* UpdateAvailableSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateAvailableSheet.swift; sourceTree = "<group>"; };
 		CAC48AF32E24720700260C5F /* ProcessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessView.swift; sourceTree = "<group>"; };
 		7E5A1C300000000000000009 /* LaunchedByParentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchedByParentView.swift; sourceTree = "<group>"; };
@@ -1525,8 +1527,8 @@
 				CB1C00000000000000000083 /* MuteTable.swift */,
 				C11D00000000000000000001 /* CommandLineToolLink.swift */,
 				C11D00000000000000000003 /* CommandLineToolLink+Trust.swift */,
-				C11D00000000000000000005 /* CommandLineToolLinkScript.swift */,
-				C11D00000000000000000007 /* AppleScriptHandler.swift */,
+				C11D00000000000000000005 /* CommandLineToolLinker.swift */,
+				C11D00000000000000000007 /* CommandLineToolAuthorization.swift */,
 				CB1C00000000000000000089 /* MuteCommand+Confirmation.swift */,
 				CB1C0000000000000000008B /* TerminalPrompt.swift */,
 				D5A100000000000000000001 /* SchemaCommand.swift */,
@@ -2256,6 +2258,7 @@
 			children = (
 				284F855E2E7369E7001542E3 /* Path Muting */,
 				CA7D0EE52E427E770024243F /* UpdateEngine.swift */,
+				7E5A1C0000000000000F0003 /* CommandLineToolEngine.swift */,
 				283C4D4729E0E16F009FF6D3 /* SubscriptionEngine.swift */,
 				CB980000000000000000001D /* RandomUUIDBuffer.swift */,
 				283C4D4229E0B633009FF6D3 /* Helpers.swift */,
@@ -4099,7 +4102,7 @@
 				CB1C00000000000000000085 /* MuteCommandLineTests.swift */,
 				CB1C00000000000000000087 /* MuteCommandTests.swift */,
 				C11D00000000000000000009 /* CommandLineToolLinkTests.swift */,
-				C11D0000000000000000000B /* CommandLineToolLinkScriptTests.swift */,
+				C11D0000000000000000000B /* CommandLineToolLinkerTests.swift */,
 				C11D0000000000000000000D /* CommandLineToolInstallTests.swift */,
 				CB1C0000000000000000008D /* MuteConfirmationTests.swift */,
 				D5A100000000000000000007 /* SchemaCommandTests.swift */,
@@ -4570,6 +4573,7 @@
 				284BAED62A4D09BE007F1193 /* ESODAttributeValueAddEvent+CoreDataClass.swift in Sources */,
 				28B865DC2A312C7100F06441 /* ESODCreateUserEvent+CoreDataProperties.swift in Sources */,
 				CA7D0EE62E427E850024243F /* UpdateEngine.swift in Sources */,
+				7E5A1C0000000000000F0004 /* CommandLineToolEngine.swift in Sources */,
 				CADD9D7F2E8DBE52009EC919 /* ESUIPCConnectEvent+CoreDataClass.swift in Sources */,
 				CADD9D802E8DBE52009EC919 /* ESUIPCConnectEvent+CoreDataProperties.swift in Sources */,
 				28EC62C9292441C400EAC8AD /* ESProcessExitEvent+CoreDataClass.swift in Sources */,
@@ -4784,8 +4788,8 @@
 				28EC62DA292446B700EAC8AD /* ESLaunchItemAddEvent+CoreDataProperties.swift in Sources */,
 				C11D00000000000000000002 /* CommandLineToolLink.swift in Sources */,
 				C11D00000000000000000004 /* CommandLineToolLink+Trust.swift in Sources */,
-				C11D00000000000000000006 /* CommandLineToolLinkScript.swift in Sources */,
-				C11D00000000000000000008 /* AppleScriptHandler.swift in Sources */,
+				C11D00000000000000000006 /* CommandLineToolLinker.swift in Sources */,
+				C11D00000000000000000008 /* CommandLineToolAuthorization.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5077,7 +5081,7 @@
 				7E5700000000000000000009 /* TraceImporterMessageTests.swift in Sources */,
 				7E570000000000000000000B /* XCTestCase+Fixtures.swift in Sources */,
 				C11D0000000000000000000A /* CommandLineToolLinkTests.swift in Sources */,
-				C11D0000000000000000000C /* CommandLineToolLinkScriptTests.swift in Sources */,
+				C11D0000000000000000000C /* CommandLineToolLinkerTests.swift in Sources */,
 				C11D0000000000000000000E /* CommandLineToolInstallTests.swift in Sources */,
 				C11D00000000000000000010 /* ToolLinkFixture.swift in Sources */,
 			);

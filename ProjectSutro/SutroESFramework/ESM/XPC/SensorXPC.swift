@@ -218,6 +218,21 @@ public enum SensorXPC {
     ///
     /// - Parameter reply: `true` if the update was installed, or `false` if another connection owns the event stream.
     func installUpdate(reply: @escaping (Bool) -> Void)
+
+    // MARK: Command line tool
+    /// Install or remove `/usr/local/bin/macmonitor` as root.
+    ///
+    /// The Security Extension only acts when the authorization holds ``CommandLineToolAuthorization/rightName``, which
+    /// means an administrator approved this change. The link's directory is always `/usr/local/bin`.
+    ///
+    /// - Parameters:
+    ///   - action: `install` or `remove` (``CommandLineToolLink/Action``).
+    ///   - tool: The tool to link, or empty for a removal.
+    ///   - expected: What Settings saw at the link's path, or empty for nothing.
+    ///   - authorization: The authorization's external form (``CommandLineToolAuthorization/requestApproval(prompt:)``).
+    ///   - reply: A ``CommandLineToolLinker/Outcome`` raw value.
+    func changeCommandLineTool(action: String, tool: String, expected: String, authorization: Data,
+                               reply: @escaping (Int) -> Void)
 }
 
 
