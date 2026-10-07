@@ -51,6 +51,10 @@ if [ "$uninstall_success" = true ]; then
         esac
     fi
 
+    # The authorization right Settings > Command Line asks an administrator to approve.
+    /usr/bin/security authorizationdb remove com.swiftlydetecting.agent.command-line-tool >/dev/null 2>&1 \
+        && echo "Command line tool authorization right successfully deleted"
+
     # The saved mute set the Security Extension kept. Only this exact directory, and never through a symbolic link.
     saved_mutes="/Library/Application Support/com.swiftlydetecting.agent.securityextension"
     if [[ -d "$saved_mutes" && ! -L "$saved_mutes" ]]; then

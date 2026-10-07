@@ -98,22 +98,19 @@ struct ToolLinkFixture {
         return FileManager.default.fileExists(atPath: link) ? "file" : nil
     }
     
-    /// Run the link script as the user running the tests.
+    /// Run the linker as the user running the tests. It trusts every tool that passes its basic checks.
     ///
     /// - Parameters:
-    ///   - arguments: Its arguments.
-    ///   - source: The script, if not the shipped one.
-    /// - Returns: Its exit status.
-    /// - Throws: If it can't be run.
+    ///   - action: Install or remove.
+    ///   - tool: The tool to link, or empty for a removal.
+    ///   - binDirectory: The link's directory, if not ``binDirectory``.
+    ///   - expected: What Settings saw at the link's path.
+    /// - Returns: What happened.
     @discardableResult
-    func runScript(_ arguments: [String], source: String = CommandLineToolLinkScript.source) throws -> Int32 {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/sh")
-        process.arguments = ["-c", source, CommandLineToolLinkScript.name] + arguments
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        try process.run()
-        process.waitUntilExit()
-        return process.terminationStatus
+    func apply(_ action: CommandLineToolLink.Action, _ tool: String = "", in binDirectory: String? = nil,
+               expecting expected: String = "") -> CommandLineToolLinker.Outcome {
+        let plan = CommandLineToolLink.Plan(action: action, tool: tool, binDirectory: binDirectory ?? self.binDirectory,
+                                            expected: expected)
+        return CommandLineToolLinker { _ in true }.apply(plan)
     }
 }

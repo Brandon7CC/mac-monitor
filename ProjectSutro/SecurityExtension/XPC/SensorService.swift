@@ -211,6 +211,28 @@ extension SensorService: SensorProtocol {
         updates.check(reply: reply)
     }
     
+    func changeCommandLineTool(action: String, tool: String, expected: String, authorization: Data,
+                               reply: @escaping (Int) -> Void) {
+        /// Off `queue`, which buffers events. Checking the tool's signature reads it from disk.
+        DispatchQueue.global(qos: .userInitiated).async { [logger] in
+            guard let action = CommandLineToolLink.Action(rawValue: action) else {
+                return reply(CommandLineToolLinker.Outcome.badTool.rawValue)
+            }
+            guard CommandLineToolAuthorization.isApproved(authorization) else {
+                logger.error("Refused to \(action.rawValue, privacy: .public) the command line tool: not authorized.")
+                return reply(CommandLineToolLinker.Outcome.notAuthorized.rawValue)
+            }
+            let plan = CommandLineToolLink.Plan(action: action, tool: action == .install ? tool : "",
+                                                binDirectory: "/usr/local/bin", expected: expected)
+            let outcome = CommandLineToolLinker().apply(plan)
+            logger.log("""
+                \(action.rawValue, privacy: .public) \(plan.linkPath, privacy: .public) \
+                (\(plan.tool, privacy: .public)): \(String(describing: outcome), privacy: .public)
+                """)
+            reply(outcome.rawValue)
+        }
+    }
+
     func installUpdate(reply: @escaping (Bool) -> Void) {
         let caller = NSXPCConnection.current()
         queue.async { [self] in

@@ -10,13 +10,13 @@ import Foundation
 
 // MARK: - Command line tool link
 /// `/usr/local/bin/macmonitor` (app context): what's there, whether this copy of Mac Monitor can link its command line
-/// tool there, and the plan Settings ▸ Command Line hands to the administrator password prompt.
+/// tool there, and the plan Settings ▸ Command Line sends to the Security Extension.
 ///
-/// It only looks, with `lstat`, `readlink`, `realpath` and a static code signature check. The change runs as root, as
-/// ``CommandLineToolLinkScript``, which checks again what it changes.
+/// It only looks, with `lstat`, `readlink`, `realpath` and a static code signature check. The Security Extension
+/// makes the change as root with ``CommandLineToolLinker``, which checks everything again first.
 ///
 /// **Mac Monitor's link:** a symbolic link whose value is an absolute path ending in `.app/Contents/MacOS/macmonitor`
-/// (``isMacMonitorLink(_:)``, the script's `ours`). Anything else there, a file, a directory or another program's link,
+/// (``isMacMonitorLink(_:)``). Anything else there, a file, a directory or another program's link,
 /// is never touched.
 ///
 /// **What can be linked:** this copy's own tool, by its real path, when the tool and every directory from it up to `/`
@@ -79,7 +79,7 @@ public struct CommandLineToolLink {
         case unusableDirectory(String)
     }
     
-    /// What Install…, Update… and Remove… ask the script to do.
+    /// What Install…, Update… and Remove… ask for
     public enum Action: String, Equatable {
         /// Link this copy's tool, replacing Mac Monitor's link to another copy.
         case install
@@ -87,7 +87,7 @@ public struct CommandLineToolLink {
         case remove
     }
     
-    /// One run of the script: its arguments, from what Settings showed.
+    /// One change, based on what Settings showed
     public struct Plan: Equatable {
         /// Install or remove.
         public let action: Action
@@ -95,13 +95,22 @@ public struct CommandLineToolLink {
         public let tool: String
         /// The link's directory.
         public let binDirectory: String
-        /// What the script must find at the link's path to change it: the link's value Settings showed, or empty
-        /// for nothing there. Anything else means it changed meanwhile, and the script changes nothing.
+        /// What must be at the link's path for the change to go ahead. It's the link's value Settings showed, or empty
+        /// for nothing. If something else is there now, nothing changes.
         public let expected: String
-        
-        /// The script's arguments, in order: `ACTION TOOL BINDIR EXPECTED`.
-        public var arguments: [String] { [action.rawValue, tool, binDirectory, expected] }
-        
+
+        /// - Parameters:
+        ///   - action: Install or remove.
+        ///   - tool: The tool to link, or empty for a removal.
+        ///   - binDirectory: The link's directory.
+        ///   - expected: What Settings saw at the link's path, or empty for nothing.
+        public init(action: Action, tool: String, binDirectory: String, expected: String) {
+            self.action = action
+            self.tool = tool
+            self.binDirectory = binDirectory
+            self.expected = expected
+        }
+
         /// The link's path, such as `/usr/local/bin/macmonitor`.
         public var linkPath: String { binDirectory + "/" + CommandLineToolLink.toolName }
     }
@@ -126,8 +135,7 @@ public struct CommandLineToolLink {
         CommandLineToolLink(layout: Layout(bundle: Bundle.main.bundleURL))
     }
     
-    /// Is a link's value Mac Monitor's? The same rule as the script's `ours`: an absolute path ending in
-    /// ``toolSuffix``.
+    /// Is a link's value Mac Monitor's? It must be an absolute path ending in ``toolSuffix``.
     ///
     /// - Parameter value: The link's value.
     /// - Returns: `true` if Mac Monitor made it, or would.

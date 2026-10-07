@@ -13,6 +13,7 @@ import SutroESFramework
 /// Settings ▸ Command Line: link `macmonitor` into `/usr/local/bin`, so `sudo macmonitor` works in any terminal, or
 /// remove the link, through the administrator password prompt. The installer package never links it.
 struct CommandLineToolSettingsView: View {
+    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @StateObject private var installer = CommandLineToolInstaller()
     
     /// The tool inside this copy of Mac Monitor, which works without the link.
@@ -68,11 +69,11 @@ struct CommandLineToolSettingsView: View {
     private func actions(for inspection: CommandLineToolLink.Inspection) -> some View {
         HStack {
             if inspection.plan(.install) != nil {
-                Button(installTitle(for: inspection.link)) { installer.perform(.install) }
+                Button(installTitle(for: inspection.link)) { installer.perform(.install, through: systemExtensionManager) }
                     .help("Asks for an administrator password, then links \(inspection.linkPath) to this copy's tool.")
             }
             if inspection.plan(.remove) != nil {
-                Button("Remove…") { installer.perform(.remove) }
+                Button("Remove…") { installer.perform(.remove, through: systemExtensionManager) }
                     .buttonStyle(.borderedProminent).tint(.pink).opacity(0.8)
                     .help("Asks for an administrator password, then removes Mac Monitor's link.")
             }
