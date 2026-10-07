@@ -12,8 +12,8 @@ import Foundation
 /// What LaunchServices knows about an app it launched: which process checked in, and who asked for the launch.
 ///
 /// An app checks in with LaunchServices only once its own code runs, 2-5 ms after Endpoint Security reports its exec,
-/// so the Security Extension can't read this as it handles the exec. Mac Monitor reads it after the event arrives
-/// (``LaunchedByParentUpgrader``), in the console user's audit session, through a ``LaunchServicesReading``.
+/// so the Security Extension can't read this while it handles the exec. Instead it holds the exec and reads the
+/// record a little later (``LaunchServicesHold``, ``LaunchedByParentUpgrader``).
 public struct LaunchServicesRecord: Hashable {
     /// `LSAuditToken`: the process that checked in. Its pid version tells this launch apart from a reused pid.
     public var token: AuditToken
@@ -49,10 +49,10 @@ public struct LaunchServicesRecord: Hashable {
 // MARK: - Reading records
 /// Reads LaunchServices' records of the apps it launched.
 ///
-/// Mac Monitor's reader uses LaunchServices' private calls, so it lives in the app alone: the Security Extension never
-/// contains or resolves them.
+/// The live reader is ``LaunchServicesReader``, which uses Launch Services' private calls. Tests supply their own
+/// records.
 public protocol LaunchServicesReading: AnyObject {
-    /// LaunchServices' record of a process, in the caller's audit session.
+    /// Launch Services' record of a process. Called on the upgrader's queue.
     ///
     /// - Parameter pid: The process's pid.
     /// - Returns: The record, or `nil` when there's none yet (the app hasn't checked in), none any more, or it can't
@@ -96,8 +96,8 @@ extension LaunchedByParent {
     ///   - target: The exec target's audit token.
     ///   - path: Names the launcher's executable from its pid and token when its record holds no path. A launcher that
     ///     has quit is named by nothing, or by whatever process reused its pid.
-    /// - Returns: The improved answer, resolved by ``ResolvedBy/app``, or `nil` when the record doesn't improve this
-    ///   one.
+    /// - Returns: The improved answer, resolved by ``ResolvedBy/securityExtension``, or `nil` when the record doesn't
+    ///   improve this one.
     func upgraded(with record: LaunchServicesRecord, for target: AuditToken,
                   path: (Int32, AuditToken?) -> String?) -> LaunchedByParent? {
         guard needsLaunchServices, record.token.isSameProcess(as: target) else { return nil }
@@ -105,10 +105,10 @@ extension LaunchedByParent {
             guard launcher.pid > 0, !launcher.isSameProcess(as: target) else { return nil }
             return LaunchedByParent(source: .launchServices, audit_token: launcher,
                                     path: record.parentPath ?? path(launcher.pid, launcher), launchd_job: launchd_job,
-                                    resolved_by: .app)
+                                    resolved_by: .securityExtension)
         }
         guard !record.hasParentASN, record.launchedByLaunchServices, source == .launchdJob else { return nil }
         return LaunchedByParent(source: .launchServices, audit_token: nil, pid: nil, path: nil,
-                                launchd_job: launchd_job, resolved_by: .app)
+                                launchd_job: launchd_job, resolved_by: .securityExtension)
     }
 }

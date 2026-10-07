@@ -223,8 +223,6 @@ struct SystemTargetExecProcMetadataView: View {
                     
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }
-            // MARK: Parents
-            ParentsBox(message: selectedMessage)
         }
         GroupBox {
             VStack(alignment: .leading) {

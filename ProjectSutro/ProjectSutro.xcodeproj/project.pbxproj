@@ -145,7 +145,6 @@
 		7E5A1C000000000000000012 /* LaunchedByParentWireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C000000000000000011 /* LaunchedByParentWireTests.swift */; };
 		7E5A1C000000000000000021 /* LaunchedByParentLaunchServicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C000000000000000020 /* LaunchedByParentLaunchServicesTests.swift */; };
 		7E5A1C000000000000000025 /* LaunchedByParentUpgraderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C000000000000000024 /* LaunchedByParentUpgraderTests.swift */; };
-		7E5A1C00000000000000002D /* LaunchedByParentStoreUpdateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C00000000000000002C /* LaunchedByParentStoreUpdateTests.swift */; };
 		7E5A1C300000000000000006 /* LaunchedByParentChainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C300000000000000005 /* LaunchedByParentChainTests.swift */; };
 		7E5A1C300000000000000008 /* ProcessParentsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C300000000000000007 /* ProcessParentsTests.swift */; };
 		7E5A1C000000000000000016 /* ProcessPathMemoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C000000000000000015 /* ProcessPathMemoryTests.swift */; };
@@ -154,6 +153,7 @@
 		7E5A1C00000000000000000A /* LaunchedByParentResolveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C000000000000000009 /* LaunchedByParentResolveTests.swift */; };
 		CA970000000000000000001B /* CaptureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA970000000000000000001A /* CaptureConfiguration.swift */; };
 		CA9700000000000000000019 /* MessageSerializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000018 /* MessageSerializer.swift */; };
+		7E5A1C0000000000000F0002 /* LaunchServicesHold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C0000000000000F0001 /* LaunchServicesHold.swift */; };
 		CA9700000000000000000017 /* CaptureLane.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000016 /* CaptureLane.swift */; };
 		CA9700000000000000000015 /* CaptureSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000014 /* CaptureSession.swift */; };
 		CA9700000000000000000013 /* EndpointSecurityClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000012 /* EndpointSecurityClientTests.swift */; };
@@ -916,7 +916,6 @@
 		7E5A1C000000000000000011 /* LaunchedByParentWireTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchedByParentWireTests.swift; sourceTree = "<group>"; };
 		7E5A1C000000000000000020 /* LaunchedByParentLaunchServicesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchedByParentLaunchServicesTests.swift; sourceTree = "<group>"; };
 		7E5A1C000000000000000024 /* LaunchedByParentUpgraderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchedByParentUpgraderTests.swift; sourceTree = "<group>"; };
-		7E5A1C00000000000000002C /* LaunchedByParentStoreUpdateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchedByParentStoreUpdateTests.swift; sourceTree = "<group>"; };
 		7E5A1C300000000000000005 /* LaunchedByParentChainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchedByParentChainTests.swift; sourceTree = "<group>"; };
 		7E5A1C300000000000000007 /* ProcessParentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessParentsTests.swift; sourceTree = "<group>"; };
 		7E5A1C000000000000000015 /* ProcessPathMemoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessPathMemoryTests.swift; sourceTree = "<group>"; };
@@ -925,6 +924,7 @@
 		7E5A1C000000000000000009 /* LaunchedByParentResolveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchedByParentResolveTests.swift; sourceTree = "<group>"; };
 		CA970000000000000000001A /* CaptureConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureConfiguration.swift; sourceTree = "<group>"; };
 		CA9700000000000000000018 /* MessageSerializer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageSerializer.swift; sourceTree = "<group>"; };
+		7E5A1C0000000000000F0001 /* LaunchServicesHold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchServicesHold.swift; sourceTree = "<group>"; };
 		CA9700000000000000000016 /* CaptureLane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureLane.swift; sourceTree = "<group>"; };
 		CA9700000000000000000014 /* CaptureSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSession.swift; sourceTree = "<group>"; };
 		CA9700000000000000000012 /* EndpointSecurityClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointSecurityClientTests.swift; sourceTree = "<group>"; };
@@ -1562,6 +1562,7 @@
 				CC9900000000000000000005 /* StreamingJSONEncoder+ArrayWriter.swift */,
 				CC9900000000000000000007 /* StreamingJSONEncoder+ScalarWriter.swift */,
 				CA9700000000000000000018 /* MessageSerializer.swift */,
+				7E5A1C0000000000000F0001 /* LaunchServicesHold.swift */,
 				CA9700000000000000000016 /* CaptureLane.swift */,
 				CA9700000000000000000014 /* CaptureSession.swift */,
 				CA9700000000000000000010 /* EndpointSecurityClient.swift */,
@@ -2231,6 +2232,7 @@
 			children = (
 				7E5A1C00000000000000001E /* LaunchServicesRecord.swift */,
 				7E5A1C000000000000000022 /* LaunchedByParentUpgrader.swift */,
+				7E5A1C00000000000000002F /* LaunchServicesReader.swift */,
 			);
 			path = LaunchedByParent;
 			sourceTree = "<group>";
@@ -3323,14 +3325,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		7E5A1C00000000000000002E /* Launch Services */ = {
-			isa = PBXGroup;
-			children = (
-				7E5A1C00000000000000002F /* LaunchServicesReader.swift */,
-			);
-			path = "Launch Services";
-			sourceTree = "<group>";
-		};
 		BA97AFCE2875471D0099C035 /* ProjectSutro */ = {
 			isa = PBXGroup;
 			children = (
@@ -3341,7 +3335,6 @@
 				28EBAA8A2A1C3B1500AE80F9 /* Context Menus */,
 				28EC62B82924239400EAC8AD /* Event Facts Views */,
 				5C4E00000000000000000041 /* Telemetry Schema Views */,
-				7E5A1C00000000000000002E /* Launch Services */,
 				2818143229131038002B2368 /* Info.plist */,
 				28AE6BD828FB85AF009AC91F /* README.md */,
 				BA97AFD32875471E0099C035 /* Assets.xcassets */,
@@ -4036,7 +4029,6 @@
 				7E5A1C000000000000000011 /* LaunchedByParentWireTests.swift */,
 				7E5A1C000000000000000020 /* LaunchedByParentLaunchServicesTests.swift */,
 				7E5A1C000000000000000024 /* LaunchedByParentUpgraderTests.swift */,
-				7E5A1C00000000000000002C /* LaunchedByParentStoreUpdateTests.swift */,
 				7E5A1C300000000000000005 /* LaunchedByParentChainTests.swift */,
 				7E5A1C300000000000000007 /* ProcessParentsTests.swift */,
 				7E5A1C000000000000000015 /* ProcessPathMemoryTests.swift */,
@@ -4509,6 +4501,7 @@
 				CC9900000000000000000006 /* StreamingJSONEncoder+ArrayWriter.swift in Sources */,
 				CC9900000000000000000008 /* StreamingJSONEncoder+ScalarWriter.swift in Sources */,
 				CA9700000000000000000019 /* MessageSerializer.swift in Sources */,
+				7E5A1C0000000000000F0002 /* LaunchServicesHold.swift in Sources */,
 				CA9700000000000000000017 /* CaptureLane.swift in Sources */,
 				CA9700000000000000000015 /* CaptureSession.swift in Sources */,
 				CA9700000000000000000011 /* EndpointSecurityClient.swift in Sources */,
@@ -4625,6 +4618,7 @@
 				BA3368B5287624F100794525 /* ESManager.swift in Sources */,
 				7E5A1C00000000000000001F /* LaunchServicesRecord.swift in Sources */,
 				7E5A1C000000000000000023 /* LaunchedByParentUpgrader.swift in Sources */,
+				7E5A1C000000000000000030 /* LaunchServicesReader.swift in Sources */,
 				CA5936502E8B07FD008A115D /* ESSetModeEvent+CoreDataProperties.swift in Sources */,
 				CA5936512E8B07FD008A115D /* ESSetModeEvent+CoreDataClass.swift in Sources */,
 				CA5936432E875F7B008A115D /* ESLaunchItem+CoreDataClass.swift in Sources */,
@@ -4884,7 +4878,6 @@
 				7E5A1C900000000000000006 /* ProcessLineageMode.swift in Sources */,
 				7E5A1C30000000000000000C /* ParentsView.swift in Sources */,
 				BA97AFD02875471D0099C035 /* ProjectSutroApp.swift in Sources */,
-				7E5A1C000000000000000030 /* LaunchServicesReader.swift in Sources */,
 				284CFE152A16EDEA00D0038B /* UserSettingsView.swift in Sources */,
 				CA59364B2E8B06EC008A115D /* SystemSetModeMetadataView.swift in Sources */,
 				28EC62ED2925A0B400EAC8AD /* EntitlementsView.swift in Sources */,
@@ -5037,7 +5030,6 @@
 				7E5A1C000000000000000012 /* LaunchedByParentWireTests.swift in Sources */,
 				7E5A1C000000000000000021 /* LaunchedByParentLaunchServicesTests.swift in Sources */,
 				7E5A1C000000000000000025 /* LaunchedByParentUpgraderTests.swift in Sources */,
-				7E5A1C00000000000000002D /* LaunchedByParentStoreUpdateTests.swift in Sources */,
 				7E5A1C300000000000000006 /* LaunchedByParentChainTests.swift in Sources */,
 				7E5A1C300000000000000008 /* ProcessParentsTests.swift in Sources */,
 				7E5A1C000000000000000016 /* ProcessPathMemoryTests.swift in Sources */,

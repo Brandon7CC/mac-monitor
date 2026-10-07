@@ -52,15 +52,15 @@ final class LaunchedByParentLaunchServicesTests: XCTestCase {
         answer.upgraded(with: record, for: app) { pid, _ in "/path/of/\(pid)" }
     }
     
-    /// The launcher LaunchServices recorded: its token and path, the app's label kept, resolved by Mac Monitor. Only
-    /// an answer that needs LaunchServices (not the Unix parent, an app's label) is upgraded.
+    /// We get the launcher Launch Services recorded, with its token and path. The app's label is kept and the Security
+    /// Extension is credited. Only answers that need Launch Services are upgraded, not the Unix parent.
     ///
     /// - Throws: An `XCTest` failure if the launcher's answer is missing.
     func testOnlyAnswersThatNeedLaunchServicesAreUpgraded() throws {
         let launched = record(parentASN: true, parent: launcher)
         let answer = try XCTUnwrap(upgrade(appJob, with: launched))
         XCTAssertEqual(answer, LaunchedByParent(source: .launchServices, audit_token: launcher, path: "/path/of/502",
-                                                launchd_job: .init(label: label), resolved_by: .app))
+                                                launchd_job: .init(label: label), resolved_by: .securityExtension))
         XCTAssertEqual(answer.pid, 502)
         
         var responsible = appJob
@@ -111,7 +111,7 @@ final class LaunchedByParentLaunchServicesTests: XCTestCase {
     func testLaunchWithoutLauncher() throws {
         let answer = try XCTUnwrap(upgrade(appJob, with: record(parentASN: false, parent: nil)))
         XCTAssertEqual(answer, LaunchedByParent(source: .launchServices, audit_token: nil, pid: nil, path: nil,
-                                                launchd_job: .init(label: label), resolved_by: .app))
+                                                launchd_job: .init(label: label), resolved_by: .securityExtension))
         
         var responsible = appJob
         responsible.source = .responsibleProcess

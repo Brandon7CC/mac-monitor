@@ -24,7 +24,8 @@ import OSLog
 /// arrives unmuted.
 ///
 /// **Order:** each class's events are emitted in the order its client delivers them, so `fork`, `exec`, and `exit`
-/// keep Endpoint Security's order. Classes interleave in the order their events are handled; nothing re-sorts them by
+/// keep Endpoint Security's order. That holds even while an app's exec waits for Launch Services
+/// (``LaunchServicesHold``). Classes interleave in the order their events are handled. Nothing re-sorts them by
 /// `mach_time`.
 ///
 /// **Threading:** not thread-safe. Create the session and call it on one serial queue. Only the clients' handlers run
@@ -67,7 +68,8 @@ public final class CaptureSession {
     public convenience init(_ configuration: CaptureConfiguration,
                             emit: @escaping (CapturedEvent) -> Void) throws {
         try self.init(configuration, clients: LiveEndpointSecurityClientFactory(), serializer: MessageSerializer(),
-                      sensorID: EndpointSecurityManager.makeSensorID, emit: emit)
+                      sensorID: EndpointSecurityManager.makeSensorID, launchServices: LaunchServicesReader.shared,
+                      emit: emit)
     }
     
     /// Create, mute, and subscribe one client per class. Not recording until ``isRecording`` is set.
@@ -82,15 +84,20 @@ public final class CaptureSession {
     ///   - factory: Makes the clients.
     ///   - serializer: Builds each event's JSON.
     ///   - makeSensorID: Computes the Sensor ID stamped on events, now and on ``refreshSensorID()``.
-    ///   - emit: Receives each event, on its client's handler queue. It must not block or call back into the session.
+    ///   - launchServices: Reads Launch Services' records so the exec lane can hold each app's exec until we know
+    ///     who launched it (``LaunchServicesHold``). The default is `nil`, which holds nothing.
+    ///   - emit: Receives each event in its class's order, on the client's handler queue or the hold's lookup queue.
+    ///     It must not block or call back into the session.
     /// - Throws: ``CaptureStartError``, once every client already created is deleted.
     init(_ configuration: CaptureConfiguration, clients factory: any EndpointSecurityClientFactory,
          serializer: any EventSerializing, sensorID makeSensorID: @escaping () -> String,
-         emit: @escaping (CapturedEvent) -> Void) throws {
+         launchServices: LaunchServicesReading? = nil, emit: @escaping (CapturedEvent) -> Void) throws {
         let label = configuration.label
         let events = Self.capturable(configuration.events, label: label)
         let sensorID = makeSensorID()
-        let lanes = EventClass.allCases.map { CaptureLane($0, sensorID: sensorID, serializer: serializer, emit: emit) }
+        let lanes = EventClass.allCases.map {
+            CaptureLane($0, sensorID: sensorID, serializer: serializer, launchServices: launchServices, emit: emit)
+        }
         try Self.createClients(for: lanes, with: factory, label: label)
         appleMuteSet = Set((lanes.first?.client?.mutedPaths() ?? []).map { pathToJSON(value: $0) })
         if configuration.mutesSelf { Self.muteSelf(on: lanes, label: label) }
@@ -266,9 +273,11 @@ extension CaptureSession {
                     \(label, privacy: .public): the \(eventClass.rawValue, privacy: .public) client was still building \
                     an event at the deadline. Dropped the event; the client is deleted once it's done.
                     """)
+                lane.releaseHeld()
                 lane.deleteClientOnceIdle { logDeletion(freed: $0, of: eventClass, label: label) }
                 continue
             }
+            lane.releaseHeld()
             logDeletion(freed: lane.deleteClient(), of: eventClass, label: label)
         }
     }

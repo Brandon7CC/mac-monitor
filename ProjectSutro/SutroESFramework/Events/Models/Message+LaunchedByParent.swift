@@ -69,18 +69,3 @@ extension Message {
     }
 }
 
-
-// MARK: - Buffered events
-extension Array where Element == Message {
-    /// Set the launched-by parent of the process an event in the array created, found by its `id`, newest first.
-    ///
-    /// - Parameters:
-    ///   - launchedByParent: The launched-by parent.
-    ///   - id: The event's `id`.
-    /// - Returns: Whether the array holds the event.
-    mutating func setLaunchedByParent(_ launchedByParent: LaunchedByParent, ofEventWithID id: UUID) -> Bool {
-        guard let index = lastIndex(where: { $0.id == id }) else { return false }
-        self[index].setLaunchedByParent(launchedByParent)
-        return true
-    }
-}

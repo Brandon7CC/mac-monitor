@@ -17,7 +17,7 @@ extension LaunchedByParent.Source {
         case .unixParent: "Unix parent"
         case .responsibleProcess: "Responsible process"
         case .launchdJob: "launchd job"
-        case .launchServices: "LaunchServices"
+        case .launchServices: "Launch Services"
         }
     }
     
@@ -52,7 +52,7 @@ extension LaunchedByParent.ResolvedBy {
     var caption: String {
         switch self {
         case .securityExtension: "Stamped by the Security Extension"
-        case .app: "Looked up by Mac Monitor"
+        case .app: "Named by Mac Monitor"
         case .import: "Computed when the trace was opened"
         }
     }
@@ -61,10 +61,10 @@ extension LaunchedByParent.ResolvedBy {
     var explanation: String {
         switch self {
         case .securityExtension:
-            "The Security Extension named it from the event's own fields as it recorded the event."
+            "The Security Extension named it while recording the event. For an app, it asked Launch Services who "
+                + "launched it."
         case .app:
-            "Mac Monitor named it after the event arrived: from LaunchServices' record of the launch, or for an event "
-                + "from an older Security Extension."
+            "Mac Monitor named it after the event arrived from an older Security Extension, which didn't name one."
         case .import:
             "Mac Monitor named it from the trace's own events when the trace was opened."
         }
@@ -73,26 +73,17 @@ extension LaunchedByParent.ResolvedBy {
 
 
 // MARK: - Badge
-/// A launched-by parent's source as a badge, styled like ``GroupLeaderView``. VoiceOver reads it as one element:
-/// "Launched by parent:" and the source's name, with the source's explanation as its hint.
+/// Badge showing where a launched-by parent came from, such as "Launch Services". Styled like ``GroupLeaderView``.
+///
+/// VoiceOver reads the badge as "Launched by parent:" plus the source's name, with the source's explanation as the
+/// hint.
 struct LaunchedByParentBadge: View {
     /// The source shown.
     let source: LaunchedByParent.Source
-    /// Does the badge itself say "Launched by parent"? It must where no "Launched by parent" heading sits beside it.
-    let titled: Bool
     
-    /// - Parameters:
-    ///   - launchedByParent: The launched-by parent whose source to show.
-    ///   - titled: Show "Launched by parent:" before the source's name, for a badge without a "Launched by parent"
-    ///     heading beside it.
-    init(_ launchedByParent: LaunchedByParent, titled: Bool = false) {
+    /// - Parameter launchedByParent: The launched-by parent whose source to show.
+    init(_ launchedByParent: LaunchedByParent) {
         source = launchedByParent.source
-        self.titled = titled
-    }
-    
-    /// The badge's text (Markdown).
-    private var text: LocalizedStringKey {
-        titled ? "**`Launched by parent: \(source.title)`**" : "**`\(source.title)`**"
     }
     
     var body: some View {
@@ -101,7 +92,7 @@ struct LaunchedByParentBadge: View {
                 .symbolRenderingMode(.palette)
                 .foregroundColor(.black)
                 .font(Font.system(size: 15, weight: .bold))
-            Text(text).foregroundColor(.black)
+            Text("**`\(source.title)`**").foregroundColor(.black)
         }
         .padding(5.0)
         .background(RoundedRectangle(cornerSize: .init(width: 5.0, height: 5.0)).fill(helpfulProcessColor))
@@ -138,7 +129,7 @@ struct LaunchedByParentFacts: View {
                         Text("Its exec isn't in this trace.").font(.caption).foregroundStyle(.secondary)
                     }
                 } else {
-                    Text("LaunchServices recorded no launcher, as for `open` run from a shell.")
+                    Text("Launch Services recorded no launcher, as for `open` run from a shell.")
                 }
                 if let label = answer.launchd_job?.label {
                     FactRow(name: "launchd job", value: label, stacked: true)

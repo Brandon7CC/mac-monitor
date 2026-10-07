@@ -1,36 +1,38 @@
 //
 //  LaunchServicesReader.swift
-//  ProjectSutro
+//  SutroESFramework
 //
 //  Created by Brandon Dalton on 10/5/26.
 //
 
 import Foundation
-import SutroESFramework
 
 
-// MARK: - LaunchServices reader
-/// Reads LaunchServices' records of the apps it launched, so Mac Monitor can name who asked for each launch
-/// (``LaunchedByParentUpgrader``).
+// MARK: - Launch Services reader
+/// Reads Launch Services' records of the apps it launched, so the Security Extension can name who asked for each
+/// launch (``LaunchedByParentUpgrader``).
 ///
-/// LaunchServices has no public call for that. This uses the private calls `lsappinfo(1)` is built on, looked up at
-/// run time, so a macOS without them reads nothing and its apps' launched-by parents stay launchd jobs:
+/// There's no public API for this. We use the private calls `lsappinfo(1)` is built on and look them up at run time.
+/// On a macOS without them we read nothing, and apps keep their launchd job as the launched-by parent.
 /// ```c
 /// LSASNRef        _LSASNCreateWithPid(CFAllocatorRef, pid_t);                              // no IPC
-/// CFDictionaryRef _LSCopyApplicationInformation(LSSessionID, LSASNRef, CFArrayRef keys);  // -2: caller's session
+/// CFDictionaryRef _LSCopyApplicationInformation(LSSessionID, LSASNRef, CFArrayRef keys);  // -2: default session
 /// ```
-/// A read asks for the app's record with only the three keys it needs, then for the launcher's `LSAuditToken` and
-/// executable path: LaunchServices keeps the launcher's record a while after it quits, when its pid no longer names
-/// it. The calls are exported in the macOS 26.5 and 27 SDKs and were read on macOS 27; macOS 13 to 15 aren't checked
-/// yet.
+/// Each read asks for the three keys we need from the app's record. Then it reads the launcher's `LSAuditToken` and
+/// executable path from the launcher's own record. Launch Services keeps that record for a while after the launcher
+/// quits, so we can still name it after its pid is gone.
 ///
-/// About 0.03-0.3 ms a read (about 1 ms for the first): never on the main queue. In the app only: the Security
-/// Extension never contains these calls.
+/// Session `-2` isn't limited to the caller's login session. On macOS 27, running as root from an SSH session, it
+/// returned the console user's apps. Passing their audit session ID returned nothing. That's why the Security
+/// Extension can read these records even though it runs outside any login session.
+///
+/// The calls are exported in the macOS 26.5 and 27 SDKs and we've tested them on macOS 27. macOS 13 to 15 haven't been
+/// checked yet. A read takes about 0.03-0.3 ms (about 1 ms the first time), so never call it on a handler queue.
 final class LaunchServicesReader: LaunchServicesReading {
-    /// The reader Mac Monitor gives its upgrader.
+    /// The reader every live capture session uses
     static let shared = LaunchServicesReader()
     
-    /// LaunchServices' record of a process in Mac Monitor's audit session.
+    /// LaunchServices' record of a process.
     ///
     /// - Parameter pid: The process's pid.
     /// - Returns: The record, or `nil` when there's none (yet, or any more), it has no `LSAuditToken`, or the calls
@@ -45,7 +47,7 @@ final class LaunchServicesReader: LaunchServicesReading {
                                     parentPath: parent?[Key.executable] as? String)
     }
     
-    /// Some of a record, in the caller's audit session.
+    /// Read some keys of a record from Launch Services' default session.
     ///
     /// - Parameters:
     ///   - asn: The app's `LSASNRef`.
@@ -83,7 +85,7 @@ final class LaunchServicesReader: LaunchServicesReading {
         /// `_LSCopyApplicationInformation`.
         typealias CopyInformation = @convention(c) (Int32, AnyObject?, CFArray?) -> Unmanaged<CFDictionary>?
         
-        /// `kLSDefaultSessionID`: the caller's audit session.
+        /// `kLSDefaultSessionID`, Launch Services' default session
         static let callerSession: Int32 = -2
         /// CoreServices, which every app has loaded already.
         static let handle = dlopen("/System/Library/Frameworks/CoreServices.framework/CoreServices", RTLD_LAZY)

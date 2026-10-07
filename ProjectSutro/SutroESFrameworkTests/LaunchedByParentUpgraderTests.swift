@@ -18,12 +18,12 @@ private final class FakeLaunchServicesReader: LaunchServicesReading {
     private let records: (pid_t, Int) -> LaunchServicesRecord?
     /// The pids asked about, in order.
     private let asked = OSAllocatedUnfairLock(uncheckedState: [pid_t]())
-    
+
     /// - Parameter records: The record for a pid, given how many times it was asked about before. By default none.
     init(_ records: @escaping (pid_t, Int) -> LaunchServicesRecord? = { _, _ in nil }) {
         self.records = records
     }
-    
+
     /// The scripted record.
     ///
     /// - Parameter pid: The pid.
@@ -35,7 +35,7 @@ private final class FakeLaunchServicesReader: LaunchServicesReading {
         }
         return records(pid, attempt)
     }
-    
+
     /// The pids asked about, in order.
     var askedPIDs: [pid_t] {
         asked.withLockUnchecked { $0 }
@@ -44,10 +44,9 @@ private final class FakeLaunchServicesReader: LaunchServicesReading {
 
 
 // MARK: - Looking up apps' launchers
-/// Pins which execs Mac Monitor asks LaunchServices about after they arrive, how often, and what it hands back.
+/// Tests which execs the Security Extension holds for Launch Services, how often it asks, and what it gets back. Also
+/// checks that a lane's events still leave in order.
 final class LaunchedByParentUpgraderTests: XCTestCase {
-    /// The audit session of eslogger's synthetic processes, which the upgraders here answer for.
-    private let session: Int32 = 100_001
     /// An app's label, as launchd names a LaunchServices instance.
     private let label = XCTestCase.lineageAppLabel
     /// The process that asked LaunchServices to launch the apps.
@@ -55,46 +54,56 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
                                       rgid: 20, egid: 20)
     /// eslogger's exec of `/usr/libexec/exampled` by launchd, which the apps' execs are made from.
     private var exec: Message!
-    /// The answers each upgrader handed back, in order.
-    private let applied = OSAllocatedUnfairLock(uncheckedState: [(UUID, LaunchedByParent)]())
-    
+    /// Events the hold sent, in order
+    private let emitted = OSAllocatedUnfairLock(uncheckedState: [CapturedEvent]())
+
     /// Read the exec the apps' execs are made from.
     ///
     /// - Throws: The error reading the exec.
     override func setUpWithError() throws {
         exec = try importRecord(try esloggerExec(parent: (1, 1)))
     }
-    
-    /// The Security Extension's answer for an app: launchd, starting the app's job.
+
+    /// What the Security Extension first says about an app: launchd started the app's job.
     private var appJob: LaunchedByParent {
         LaunchedByParent(source: .launchdJob, audit_token: .fixture(pid: 1, pidversion: 1),
                          path: LaunchedByParent.launchdPath, launchd_job: .init(label: label),
                          resolved_by: .securityExtension)
     }
-    
-    /// An app's exec, as it arrived.
+
+    /// Launch Services' answer for an app that ``launcher`` launched
+    private var launchedByLauncher: LaunchedByParent {
+        LaunchedByParent(source: .launchServices, audit_token: launcher, path: "/path/of/700",
+                         launchd_job: .init(label: label), resolved_by: .securityExtension)
+    }
+
+    /// An app's exec as the lane built it
     ///
     /// - Parameters:
     ///   - pid: The app's pid. Its pid version is ten times that.
-    ///   - asid: The app's audit session.
-    ///   - age: How long ago it happened, in seconds.
     ///   - answer: Its launched-by parent, by default ``appJob``.
     /// - Returns: The event.
-    private func appExec(pid: Int32, asid: Int32 = 100_001, age: TimeInterval = 0,
-                         answer: LaunchedByParent? = nil) -> Message {
+    private func appExec(pid: Int32, answer: LaunchedByParent? = nil) -> Message {
         var message = exec!
         if case .exec(var event) = message.event {
             event.target.pid = pid
-            event.target.audit_token = AuditToken(pid: pid, pidversion: pid * 10, asid: asid, auid: 501, euid: 501,
+            event.target.audit_token = AuditToken(pid: pid, pidversion: pid * 10, asid: 100_001, auid: 501, euid: 501,
                                                   ruid: 501, rgid: 20, egid: 20)
             message.event = .exec(event)
         }
         message.setLaunchedByParent(answer ?? appJob)
         message.id = UUID()
-        message.message_darwin_time = Date(timeIntervalSinceNow: -age)
         return message
     }
-    
+
+    /// The target token of an exec from ``appExec(pid:answer:)``
+    ///
+    /// - Parameter pid: The app's pid.
+    /// - Returns: The token.
+    private func target(_ pid: Int32) -> AuditToken {
+        AuditToken(pid: pid, pidversion: pid * 10, asid: 100_001, auid: 501, euid: 501, ruid: 501, rgid: 20, egid: 20)
+    }
+
     /// A record of an app's launch by ``launcher``.
     ///
     /// - Parameters:
@@ -107,125 +116,191 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
         return LaunchServicesRecord(token: token, launchedByLaunchServices: true, hasParentASN: true,
                                     parentToken: launcher)
     }
-    
+
     /// An upgrader reading at once, 10 and 20 ms later, naming the launcher `/path/of/<pid>`.
     ///
-    /// - Parameters:
-    ///   - reader: Its reader, if any.
-    ///   - maxPending: The most lookups waiting at a time.
+    /// - Parameter reader: Its reader.
     /// - Returns: The upgrader.
-    private func upgrader(_ reader: FakeLaunchServicesReader?, maxPending: Int = 64) -> LaunchedByParentUpgrader {
-        let upgrader = LaunchedByParentUpgrader(delays: [0, 0.01, 0.02], maxPending: maxPending,
-                                                session: session) { pid, _ in "/path/of/\(pid)" }
-        upgrader.reader = reader
-        return upgrader
+    private func upgrader(_ reader: FakeLaunchServicesReader) -> LaunchedByParentUpgrader {
+        LaunchedByParentUpgrader(reader: reader, delays: [0, 0.01, 0.02]) { pid, _ in "/path/of/\(pid)" }
     }
-    
-    /// Look up these events' apps and wait for every lookup to settle.
+
+    /// Look up who launched an app and wait for the answer.
     ///
     /// - Parameters:
-    ///   - messages: The events.
-    ///   - upgrader: The upgrader.
+    ///   - pid: The app's pid.
+    ///   - reader: The reader.
+    /// - Returns: What the lookup returned.
+    private func lookUp(pid: Int32, with reader: FakeLaunchServicesReader) -> LaunchedByParent? {
+        let done = expectation(description: "Lookup finished")
+        let answer = OSAllocatedUnfairLock<LaunchedByParent?>(uncheckedState: nil)
+        upgrader(reader).lookUp(appJob, of: target(pid)) { better in
+            answer.withLockUnchecked { $0 = better }
+            done.fulfill()
+        }
+        wait(for: [done], timeout: 5)
+        return answer.withLockUnchecked { $0 }
+    }
+
+    /// A hold for the process lane that sends into ``emitted``
+    ///
+    /// - Parameters:
+    ///   - reader: The reader.
+    ///   - maxHeld: The most execs held at a time.
+    /// - Returns: The hold.
+    private func hold(_ reader: FakeLaunchServicesReader, maxHeld: Int = 64) -> LaunchServicesHold {
+        LaunchServicesHold(eventClass: .process, upgrader: upgrader(reader), maxHeld: maxHeld) { event in
+            self.emitted.withLockUnchecked { $0.append(event) }
+        }
+    }
+
+    /// A ready event whose JSON is just its name
+    ///
+    /// - Parameter name: The name.
+    /// - Returns: The event.
+    private func ready(_ name: String) -> CapturedEvent {
+        CapturedEvent(json: Data(name.utf8), eventClass: .process)
+    }
+
+    /// What the hold sent. Ready events show their name, and execs show `exec <pid>` with their launched-by parent.
+    private var emittedEvents: [(name: String, launchedByParent: LaunchedByParent?)] {
+        emitted.withLockUnchecked { $0 }.map { event in
+            guard let message = try? JSONDecoder().decode(Message.self, from: event.json),
+                  case .exec(let exec) = message.event else { return (String(decoding: event.json, as: UTF8.self), nil) }
+            return ("exec \(exec.target.pid)", exec.launched_by_parent)
+        }
+    }
+
+    /// Wait until the hold has sent this many events.
+    ///
+    /// - Parameters:
+    ///   - count: The number of events.
     ///   - line: The caller's line, for a failure.
-    private func lookUp(_ messages: [Message], with upgrader: LaunchedByParentUpgrader, line: UInt = #line) {
-        upgrader.schedule(messages) { id, answer in self.applied.withLockUnchecked { $0.append((id, answer)) } }
+    private func waitForEmitted(_ count: Int, line: UInt = #line) {
         let deadline = Date(timeIntervalSinceNow: 5)
-        while upgrader.pendingCount > 0, Date() < deadline { usleep(2_000) }
-        XCTAssertEqual(upgrader.pendingCount, 0, "Lookups still waiting", line: line)
+        while emitted.withLockUnchecked({ $0.count }) < count, Date() < deadline { usleep(2_000) }
+        XCTAssertEqual(emitted.withLockUnchecked { $0.count }, count, line: line)
     }
-    
-    /// The answers handed back, in order.
-    private var answers: [(id: UUID, launchedByParent: LaunchedByParent)] {
-        applied.withLockUnchecked { $0 }.map { (id: $0.0, launchedByParent: $0.1) }
-    }
-    
-    /// Only an exec whose answer needs LaunchServices, whose target is in Mac Monitor's audit session, and that
-    /// happened in the last ten seconds is looked up: not a fork, another event, the Unix parent, a launchd job that
-    /// isn't an app, an exec without an answer, an app in another session, or one from eleven seconds ago.
+
+    // MARK: Which execs are held
+
+    /// Only app execs with a target token are held. Forks, other events, Unix parents, non-app launchd jobs and execs
+    /// without an answer go straight through.
     ///
     /// - Throws: The error reading a record.
-    func testOnlyFreshAppExecsInThisSessionAreLookedUp() throws {
+    func testOnlyAppExecsAreHeld() throws {
         var fork = try importRecord(try esloggerRecord("fork", type: Int(ES_EVENT_TYPE_NOTIFY_FORK.rawValue), [
             "child": try XCTUnwrap(try fixtureObject("eslogger-exit.jsonl")["process"] as? [String: Any]),
         ]))
         fork.setLaunchedByParent(appJob)
-        fork.message_darwin_time = Date()
         let exit = try importRecord(try fixtureObject("eslogger-exit.jsonl"))
         var unixParent = appJob, agent = appJob
         unixParent.source = .unixParent
         agent.launchd_job = .init(label: "com.example.agent")
         var unanswered = appExec(pid: 603)
         unanswered.setLaunchedByParent(nil)
-        let messages = [fork, exit, appExec(pid: 601, answer: unixParent), appExec(pid: 602, answer: agent), unanswered,
-                        appExec(pid: 604, asid: 100_002), appExec(pid: 605, age: 11), appExec(pid: 606)]
-        
-        let reader = FakeLaunchServicesReader()
-        lookUp(messages, with: upgrader(reader))
-        XCTAssertEqual(reader.askedPIDs, [606, 606, 606])
-        XCTAssertTrue(answers.isEmpty)
+
+        for message in [fork, exit, appExec(pid: 601, answer: unixParent), appExec(pid: 602, answer: agent),
+                        unanswered] {
+            XCTAssertFalse(LaunchServicesHold.holds(message))
+        }
+        XCTAssertTrue(LaunchServicesHold.holds(appExec(pid: 606)))
     }
-    
-    /// A record that appears on the second read is applied once, with the exec's `id`, and ends the lookup.
-    func testRecordOnTheSecondReadIsAppliedOnce() {
+
+    // MARK: Lookups
+
+    /// A record that shows up on the second read ends the lookup with the launcher.
+    func testRecordOnTheSecondReadIsTheAnswer() {
         let reader = FakeLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }
-        let app = appExec(pid: 606)
-        lookUp([app], with: upgrader(reader))
-        
+        XCTAssertEqual(lookUp(pid: 606, with: reader), launchedByLauncher)
         XCTAssertEqual(reader.askedPIDs, [606, 606])
-        XCTAssertEqual(answers.count, 1)
-        XCTAssertEqual(answers.first?.id, app.id)
-        XCTAssertEqual(answers.first?.launchedByParent,
-                       LaunchedByParent(source: .launchServices, audit_token: launcher, path: "/path/of/700",
-                                        launchd_job: .init(label: label), resolved_by: .app))
     }
-    
+
     /// A record of another exec of the app's pid ends the lookup without an answer.
     func testRecordOfAnotherExecEndsTheLookup() {
         let reader = FakeLaunchServicesReader { pid, _ in self.launch(of: pid, pidversion: pid * 10 + 1) }
-        lookUp([appExec(pid: 606)], with: upgrader(reader))
+        XCTAssertNil(lookUp(pid: 606, with: reader))
         XCTAssertEqual(reader.askedPIDs, [606])
-        XCTAssertTrue(answers.isEmpty)
     }
-    
-    /// Without a record by the last delay, the lookup gives up.
+
+    /// Without a record by the last delay, the lookup ends without an answer.
     func testNoRecordIsGivenUpAfterTheLastRead() {
         let reader = FakeLaunchServicesReader()
-        lookUp([appExec(pid: 606)], with: upgrader(reader))
+        XCTAssertNil(lookUp(pid: 606, with: reader))
         XCTAssertEqual(reader.askedPIDs, [606, 606, 606])
-        XCTAssertTrue(answers.isEmpty)
     }
-    
-    /// Past the bound, new lookups are dropped: the 65th app is never asked about.
-    func testLookupsPastTheBoundAreDropped() {
-        let reader = FakeLaunchServicesReader()
-        let apps = (1_000..<1_065).map { appExec(pid: Int32($0)) }
-        lookUp(apps, with: upgrader(reader))
-        XCTAssertEqual(Set(reader.askedPIDs), Set((1_000..<1_064).map { pid_t($0) }))
-        XCTAssertEqual(reader.askedPIDs.count, 64 * 3)
+
+    // MARK: The hold
+
+    /// With nothing held, an event goes out right away.
+    func testNothingHeldEmitsAtOnce() {
+        hold(FakeLaunchServicesReader()).submit(ready("fork"))
+        XCTAssertEqual(emittedEvents.map(\.name), ["fork"])
     }
-    
-    /// Without a reader nothing is looked up, and taking the reader away ends the lookups waiting.
-    func testWithoutReaderNothingIsLookedUp() {
-        let quiet = upgrader(nil)
-        lookUp([appExec(pid: 606)], with: quiet)
-        XCTAssertTrue(answers.isEmpty)
-        
+
+    /// A held exec goes out once with Launch Services' answer, and the events behind it follow in order.
+    func testHeldExecLeavesFirstWithItsAnswer() {
         let reader = FakeLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }
-        let removed = upgrader(reader)
-        removed.schedule([appExec(pid: 607)]) { _, _ in XCTFail("Applied without a reader") }
-        removed.reader = nil
-        lookUp([], with: removed)
-        XCTAssertLessThanOrEqual(reader.askedPIDs.count, 1)
+        let hold = hold(reader)
+        hold.hold(appExec(pid: 606))
+        hold.submit(ready("fork"))
+        hold.submit(ready("exit"))
+        XCTAssertTrue(emittedEvents.isEmpty, "The events behind a held exec wait")
+
+        waitForEmitted(3)
+        XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "fork", "exit"])
+        XCTAssertEqual(emittedEvents.first?.launchedByParent, launchedByLauncher)
     }
-    
-    /// Each answer goes with its own exec's `id`, whatever order the records come in.
-    func testAnswersGoWithTheirExecs() {
+
+    /// Held execs leave in the order they arrived, no matter which lookup finishes first.
+    func testHeldExecsLeaveInOrder() {
         let reader = FakeLaunchServicesReader { pid, attempt in
-            pid == 606 && attempt == 0 ? nil : self.launch(of: pid)
+            pid == 606 && attempt < 2 ? nil : self.launch(of: pid)
         }
-        let first = appExec(pid: 606), second = appExec(pid: 607)
-        lookUp([first, second], with: upgrader(reader))
-        XCTAssertEqual(answers.map(\.id), [second.id, first.id])
-        XCTAssertEqual(Set(answers.map(\.launchedByParent.audit_token)), [launcher])
+        let hold = hold(reader)
+        hold.hold(appExec(pid: 606))
+        hold.submit(ready("fork"))
+        hold.hold(appExec(pid: 607))
+
+        waitForEmitted(3)
+        XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "fork", "exec 607"])
+        XCTAssertEqual(emittedEvents.compactMap(\.launchedByParent).map(\.source), [.launchServices, .launchServices])
+    }
+
+    /// When Launch Services has no record, the exec goes out with the answer it had.
+    func testExecWithoutRecordKeepsItsAnswer() {
+        let hold = hold(FakeLaunchServicesReader())
+        hold.hold(appExec(pid: 606))
+        waitForEmitted(1)
+        XCTAssertEqual(emittedEvents.first?.launchedByParent, appJob)
+    }
+
+    /// Past the limit, an exec isn't held. It goes in line with the answer it has.
+    func testExecsPastTheBoundAreNotHeld() {
+        let reader = FakeLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }
+        let hold = hold(reader, maxHeld: 1)
+        hold.hold(appExec(pid: 606))
+        hold.hold(appExec(pid: 607))
+
+        waitForEmitted(2)
+        XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "exec 607"])
+        XCTAssertEqual(emittedEvents.map(\.launchedByParent), [launchedByLauncher, appJob])
+        XCTAssertEqual(reader.askedPIDs.filter { $0 == 607 }, [], "The exec past the bound isn't looked up")
+    }
+
+    /// Closing sends every held exec and the events behind it right away. Nothing is sent afterwards, even when a
+    /// lookup finishes.
+    func testCloseReleasesEverythingAtOnce() {
+        let reader = FakeLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }
+        let hold = hold(reader)
+        hold.hold(appExec(pid: 606))
+        hold.submit(ready("fork"))
+        hold.close()
+        XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "fork"])
+        XCTAssertEqual(emittedEvents.first?.launchedByParent, appJob)
+
+        hold.submit(ready("late"))
+        usleep(50_000)
+        XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "fork"])
     }
 }

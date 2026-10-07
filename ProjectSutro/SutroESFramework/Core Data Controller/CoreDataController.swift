@@ -134,8 +134,6 @@ public class CoreDataController {
     /// Events inserted but not yet saved. Normally just the current batch; after a failed save the earlier events stay
     /// here and are saved (and announced) with the next batch. Only touched on `privateMOC`'s queue.
     private var unsavedEvents: [ESMessage] = []
-    /// Has a failed save left events unsaved? Only on `privateMOC`'s queue.
-    var hasUnsavedEvents: Bool { !unsavedEvents.isEmpty }
     
     /// The most events kept for another try after failed saves. Past this, saves are failing for good (the disk is full)
     /// and the events are dropped, rather than kept in memory until Mac Monitor runs out of it (#84).
