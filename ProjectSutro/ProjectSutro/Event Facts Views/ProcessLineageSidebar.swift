@@ -149,10 +149,11 @@ struct ProcessLineageSidebar: View {
             eventRow(event, systemImage: source.symbolName, relation: source.title, help: help)
         } else {
             let isLaunchd = answer.isLaunchd
+            let process = answer.pid.map { " It's pid \($0)\(step.path.map { " at \($0)" } ?? "")." } ?? ""
             Label(missingTitle(step), systemImage: source.symbolName)
                 .disabled(true)
                 .foregroundStyle(isLaunchd ? HierarchicalShapeStyle.secondary : .tertiary)
-                .help(isLaunchd ? help : "\(help) It isn't in this trace.")
+                .help(isLaunchd ? help : "\(help)\(process) Its exec isn't in this trace.")
                 .accessibilityValue(Text(isLaunchd ? source.title : "\(source.title), not in this trace"))
         }
     }
@@ -178,8 +179,10 @@ struct ProcessLineageSidebar: View {
             .tag(event)
     }
     
-    /// What a launched-by parent the trace doesn't have is called: launchd with its job's label, LaunchServices without
-    /// a launcher, or the parent's pid and path.
+    /// The title for a launched-by parent that isn't in the trace.
+    ///
+    /// We show launchd with its job's label, or the parent's process name like the other rows. The pid and path are
+    /// in the tooltip.
     ///
     /// - Parameter step: The step.
     /// - Returns: The row's title (Markdown).
@@ -189,7 +192,10 @@ struct ProcessLineageSidebar: View {
             guard let label = answer.launchd_job?.label else { return "**`launchd`**" }
             return "**`launchd`** · `\(label)`"
         }
-        guard let pid = answer.pid else { return "LaunchServices · no launcher recorded" }
-        return "pid `\(String(pid))` · `\(step.path ?? "not in this trace")`"
+        guard let pid = answer.pid else { return "Launch Services · no launcher recorded" }
+        guard let name = step.path.map({ ($0 as NSString).lastPathComponent }), !name.isEmpty else {
+            return "pid `\(String(pid))`"
+        }
+        return "**`\(name)`**"
     }
 }

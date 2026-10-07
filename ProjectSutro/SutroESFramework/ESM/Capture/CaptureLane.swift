@@ -87,6 +87,9 @@ final class CaptureLane {
     private let processPaths = ProcessPathMemory(capacity: ProcessPathMemory.laneCapacity)
     private let serializer: any EventSerializing
     private let emit: (CapturedEvent) -> Void
+    /// Holds app execs until Launch Services answers. Only the lane that handles execs has one, and only with a
+    /// Launch Services reader.
+    private let hold: LaunchServicesHold?
     
     /// A lane that isn't recording and has no client yet.
     ///
@@ -94,14 +97,22 @@ final class CaptureLane {
     ///   - eventClass: The client this lane serves.
     ///   - sensorID: The Sensor ID to stamp on events.
     ///   - serializer: Builds each event's JSON.
-    ///   - emit: Receives each event, on the client's handler queue, under the lane's locks: it must not block or call
-    ///     back into the session.
+    ///   - launchServices: Reads Launch Services' records. The lane that handles execs uses it to hold each app's
+    ///     exec until Launch Services says who launched it. The default is `nil`, which holds nothing.
+    ///   - emit: Receives each event in order, on the client's handler queue or the hold's lookup queue. It's called
+    ///     under the lane's locks, so it must not block or call back into the session.
     init(_ eventClass: EventClass, sensorID: String, serializer: any EventSerializing,
-         emit: @escaping (CapturedEvent) -> Void) {
+         launchServices: LaunchServicesReading? = nil, emit: @escaping (CapturedEvent) -> Void) {
         self.eventClass = eventClass
         self.serializer = serializer
         self.emit = emit
         control = OSAllocatedUnfairLock(initialState: Control(sensorID: sensorID))
+        hold = launchServices.flatMap { reader in
+            EventClassTable.eventClass(of: ES_EVENT_TYPE_NOTIFY_EXEC) == eventClass
+                ? LaunchServicesHold(eventClass: eventClass, upgrader: LaunchedByParentUpgrader(reader: reader),
+                                     emit: emit)
+                : nil
+        }
     }
     
     /// The client's handler: count the message, then, while recording, serialize it and emit it.
@@ -115,17 +126,30 @@ final class CaptureLane {
         gate.withLockUnchecked {
             guard let sensorID = control.withLock({ $0.admit() }) else { return }
             let lane = LaneContext(eventClass: eventClass, sensorID: sensorID, encoder: encoder,
-                                   processPaths: processPaths)
-            guard let json = serializer.serialize(message, in: lane) else {
+                                   processPaths: processPaths, holdsForLaunchServices: hold != nil)
+            guard let serialized = serializer.serializeEvent(message, in: lane) else {
                 counters.withLockUnchecked { $0.serializationFailures &+= 1 }
                 return
             }
-            let event = CapturedEvent(json: json, eventClass: eventClass)
             /// Under the control lock, so an event is never emitted once closing has given up on it.
             control.withLockUnchecked { state in
-                if !state.isAbandoned { emit(event) }
+                guard !state.isAbandoned else { return }
+                switch serialized {
+                case .json(let json):
+                    let event = CapturedEvent(json: json, eventClass: eventClass)
+                    if let hold { hold.submit(event) } else { emit(event) }
+                case .held(let exec):
+                    hold?.hold(exec)
+                }
             }
         }
+    }
+    
+    /// Send every held exec and the events waiting behind it, then stop holding.
+    ///
+    /// Call this while closing, once the lane is idle or we've given up waiting on it.
+    func releaseHeld() {
+        hold?.close()
     }
     
     /// Does this lane's client serve an event?

@@ -25,23 +25,4 @@ extension ESMessage {
         default: nil
         }
     }
-    
-    /// Give a stored exec the launched-by parent Mac Monitor found for its target after storing it (LaunchServices'
-    /// answer, ``LaunchedByParentUpgrader``): its ``ESProcessExecEvent/launched_by_parent``. Nothing is saved.
-    ///
-    /// - Parameters:
-    ///   - launchedByParent: The launched-by parent.
-    ///   - id: The exec's ``id``, found through its index.
-    ///   - context: The context to find and change the exec in. Call on its queue.
-    /// - Returns: The exec, or `nil` when the context has no exec with that `id` (any other event is left alone).
-    @discardableResult
-    static func applyLaunchedByParent(_ launchedByParent: LaunchedByParent, toEventWithID id: UUID,
-                                      in context: NSManagedObjectContext) -> ESMessage? {
-        let request = fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@ AND event_type == %d", id as CVarArg, execEventType)
-        request.fetchLimit = 1
-        guard let message = (try? context.fetch(request))?.first, let exec = message.event.exec else { return nil }
-        exec.launched_by_parent = launchedByParent
-        return message
-    }
 }

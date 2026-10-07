@@ -103,9 +103,6 @@ struct ProjectSutroApp: App {
             .preferredColorScheme(userPrefs.forcedDarkMode ? .dark : nil)
             .onAppear {
                 UserDefaults.standard.set(false, forKey: "lifecycleQuitInternal")
-                /// Name who launched each app Mac Monitor sees exec'd: before recording can start.
-                systemExtensionManager.launchedByParentUpgrader.reader = LaunchServicesReader.shared
-                
                 /// If auto-updates are enabled then check at app launch
                 if userPrefs.autoUpdates && EndpointSecurityManager.supportsUpdates {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {

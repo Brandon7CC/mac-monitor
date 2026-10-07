@@ -12,8 +12,7 @@ public let helpfulProcessColor: Color = Color(cgColor: .init(red: 43/255.0, gree
 
 
 /// Metadata includes:
-/// - The launched-by parent's source, when the launched-by parent isn't the Unix parent: "Launched by parent:
-///   launchd job", for example
+/// - Where the launched-by parent came from (e.g., "Launch Services") when it isn't the Unix parent
 /// - Group Leader
 struct AdditionalProcMetadataView: View {
     var selectedMessage: ESMessage
@@ -22,7 +21,7 @@ struct AdditionalProcMetadataView: View {
     var body: some View {
         if let exec = selectedMessage.event.exec {
             if let parent = exec.launched_by_parent, parent.source != .unixParent {
-                LaunchedByParentBadge(parent, titled: true)
+                LaunchedByParentBadge(parent)
             }
             
             if exec.target.group_id == exec.target.pid {
@@ -222,6 +221,9 @@ struct SystemTargetProcessView: View {
                             InitiatingPIDandGIDView(selectedMessage: selectedMessage)
                                 .frame(alignment: .leading)
                         }.frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        // MARK: Parents
+                        ParentsBox(message: selectedMessage)
                     }
                     
                 }
