@@ -58,6 +58,21 @@ final class StreamPipelineTests: XCTestCase {
         XCTAssertEqual(output, messages.map { exportText($0) + "\n" }.joined())
     }
     
+    /// Pretty prints each record like Export telemetry ▸ JSON (pretty), in order, each ending in a newline.
+    ///
+    /// - Throws: The error reading a fixture or encoding an event.
+    func testPrettyIsThePrettyExport() throws {
+        let messages = try allFixtureMessages()
+        let pipeline = StreamPipeline(formatter: .jsonl([ExportEncoder(model: eventModel, pretty: true)]),
+                                      scope: nobody, forTerminal: true)
+        let output = String(decoding: pipeline.process(try messages.map(wire)), as: UTF8.self)
+        let expected = messages.map { message in
+            withStoredEvent(message) { ProcessHelpers.eventToPrettyJSON(value: $0) } + "\n"
+        }
+        XCTAssertEqual(output, expected.joined())
+        XCTAssertGreaterThan(output.split(separator: "\n").count, messages.count, "Records span several lines")
+    }
+    
     /// The pipeline's own events are left out, but their sequence numbers still count: leaving them out is never a
     /// drop, and a real gap still is.
     ///

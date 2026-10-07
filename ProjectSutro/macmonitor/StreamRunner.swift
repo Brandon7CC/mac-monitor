@@ -38,15 +38,16 @@ final class StreamRunner {
     ///   - client: The connection to the Security Extension: the live one, unless a probe brings its own.
     static func start(_ invocation: StreamInvocation, client: StreamClient = .live()) {
         let isTerminal = isatty(STDOUT_FILENO) == 1
+        let format = invocation.resolvedFormat(isTerminal: isTerminal)
         let formatter: StreamPipeline.Formatter
-        switch invocation.resolvedFormat(isTerminal: isTerminal) {
+        switch format {
         case .text:
             formatter = .text(TextEventFormatter())
-        case .jsonl:
+        case .jsonl, .pretty:
             guard let model = ExportEncoder.model else {
                 CommandLineTool.fail(CommandLineFailure(.software, "Mac Monitor's event model is missing."))
             }
-            formatter = .jsonl(model: model)
+            formatter = .jsonl(model: model, pretty: format == .pretty)
         }
         let pipeline = StreamPipeline(formatter: formatter, scope: .current(includeSelf: invocation.includeSelf),
                                       forTerminal: isTerminal)

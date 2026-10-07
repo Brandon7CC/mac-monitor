@@ -52,21 +52,6 @@ struct CommandLineToolSettingsView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                
-                Divider().padding(.bottom)
-                
-                Text("**Security**").font(.title2)
-                GroupBox {
-                    Text("""
-                        macmonitor works only as root, and the Security Extension checks its code signature. It \
-                        streams every process's command line and environment without Full Disk Access for the \
-                        terminal. The link points into Mac Monitor.app, so whoever can replace Mac Monitor.app can \
-                        replace what sudo macmonitor runs: Mac Monitor links it only when the tool and every folder \
-                        above it belong to root, and only root and admins can change them. Install and Remove change \
-                        /usr/local/bin/macmonitor only when it's Mac Monitor's link, and only as you saw it here.
-                        """)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
             }
         }
         .onAppear { installer.refresh() }

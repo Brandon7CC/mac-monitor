@@ -99,14 +99,31 @@ final class CommandLineParserTests: XCTestCase {
             XCTAssertEqual(try stream(line), expected, line)
         }
         XCTAssertEqual(try stream("--format text").format, .text)
+        XCTAssertEqual(try stream("--format pretty").format, .pretty)
         XCTAssertEqual(usageError("stream -- --no-mutes"),
                        "'--no-mutes' isn't an event macmonitor can stream. Run 'macmonitor events' to list them.")
+    }
+    
+    /// `--json`, `--pretty` and `--text` set the format. Naming the same format twice is fine, but two different ones
+    /// is an error.
+    ///
+    /// - Throws: ``CommandLineUsageError``.
+    func testFormatShorthands() throws {
+        XCTAssertEqual(try stream("exec --json").format, .jsonl)
+        XCTAssertEqual(try stream("--pretty exec").format, .pretty)
+        XCTAssertEqual(try stream("--text").format, .text)
+        XCTAssertEqual(try stream("--json --format jsonl").format, .jsonl)
+        XCTAssertEqual(usageError("stream --json --text"),
+                       "Choose one output format, not both jsonl and text. Run 'macmonitor help stream'.")
+        XCTAssertEqual(usageError("stream --format text --pretty"),
+                       "Choose one output format, not both text and pretty. Run 'macmonitor help stream'.")
+        XCTAssertEqual(usageError("stream --json=yes"), "--json takes no value. Run 'macmonitor help stream'.")
     }
     
     /// Bad option values, missing values, values on flags, and unknown options are usage errors for `stream`.
     func testBadOptions() {
         XCTAssertEqual(usageError("stream --format xml"),
-                       "--format must be text or jsonl, not 'xml'. Run 'macmonitor help stream'.")
+                       "--format must be text, jsonl or pretty, not 'xml'. Run 'macmonitor help stream'.")
         XCTAssertEqual(usageError("stream --format"), "--format needs a value. Run 'macmonitor help stream'.")
         XCTAssertEqual(usageError("stream --format --no-mutes"),
                        "--format needs a value. Run 'macmonitor help stream'.")
