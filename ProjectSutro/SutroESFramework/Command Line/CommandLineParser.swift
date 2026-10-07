@@ -126,11 +126,15 @@ public enum CommandLineParser {
         argument == "-h" || argument == "--help"
     }
     
-    /// `stream [EVENT...] [--format text|jsonl] [--no-mutes] [--include-self]`.
+    /// `stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes] [--include-self]`.
+    ///
+    /// `--json`, `--pretty` and `--text` are short for `--format jsonl`, `--format pretty` and `--format text`. The
+    /// same format can be named twice, but two different formats are an error.
     ///
     /// - Parameter cursor: The arguments.
     /// - Returns: The stream asked for.
-    /// - Throws: ``CommandLineUsageError`` for an event that can't be streamed, a bad format, or an unknown option.
+    /// - Throws: ``CommandLineUsageError`` for an event that can't be streamed, a bad format, two formats, or an
+    ///   unknown option.
     static func stream(_ cursor: inout ArgumentCursor) throws -> StreamInvocation {
         var invocation = StreamInvocation(), seen = Set<UInt32>()
         while let argument = cursor.next() {
@@ -141,20 +145,43 @@ public enum CommandLineParser {
             case .option("--format", let attached):
                 let value = try cursor.value(of: "--format", attached: attached, command: "stream")
                 guard let format = StreamOutputFormat(rawValue: value) else {
-                    throw CommandLineUsageError("--format must be text or jsonl, not '\(value)'.", command: "stream")
+                    let names = StreamOutputFormat.allCases.map(\.rawValue)
+                    throw CommandLineUsageError("--format must be \(names.dropLast().joined(separator: ", ")) or "
+                                                + "\(names.last ?? ""), not '\(value)'.", command: "stream")
                 }
-                invocation.format = format
+                try choose(format, for: &invocation)
+            case .option(let option, nil) where formatShorthands[option] != nil:
+                try choose(formatShorthands[option]!, for: &invocation)
             case .option("--no-mutes", nil):
                 invocation.appliesSavedMutes = false
             case .option("--include-self", nil):
                 invocation.includeSelf = true
-            case .option(let option, .some) where option == "--no-mutes" || option == "--include-self":
+            case .option(let option, .some) where flags.contains(option):
                 throw CommandLineUsageError("\(option) takes no value.", command: "stream")
             case .option(let option, _):
                 throw CommandLineUsageError("Unknown option '\(option)' for stream.", command: "stream")
             }
         }
         return invocation
+    }
+    
+    /// Shorthand options for `stream`'s formats
+    static let formatShorthands: [String: StreamOutputFormat] = ["--json": .jsonl, "--pretty": .pretty, "--text": .text]
+    /// Options for `stream` that take no value
+    static let flags = Set(formatShorthands.keys).union(["--no-mutes", "--include-self"])
+    
+    /// Set a stream's format, unless a different one was already chosen.
+    ///
+    /// - Parameters:
+    ///   - format: The format.
+    ///   - invocation: The stream.
+    /// - Throws: ``CommandLineUsageError`` when the command line names two formats.
+    private static func choose(_ format: StreamOutputFormat, for invocation: inout StreamInvocation) throws {
+        if let chosen = invocation.format, chosen != format {
+            throw CommandLineUsageError("Choose one output format, not both \(chosen.rawValue) and \(format.rawValue).",
+                                        command: "stream")
+        }
+        invocation.format = format
     }
     
     /// The event a name on the command line stands for.

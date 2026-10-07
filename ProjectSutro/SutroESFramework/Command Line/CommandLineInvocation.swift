@@ -52,7 +52,8 @@ public enum CommandLineInvocation: Equatable {
 
 
 // MARK: - Stream
-/// `macmonitor stream [EVENT...] [--format text|jsonl] [--no-mutes] [--include-self]`.
+/// `macmonitor stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes]
+/// [--include-self]`.
 public struct StreamInvocation: Equatable {
     /// The events, each once, in the order named. None means Mac Monitor's defaults.
     public var events: [es_event_type_t] = []

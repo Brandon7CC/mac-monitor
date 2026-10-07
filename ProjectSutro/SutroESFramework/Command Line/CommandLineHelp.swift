@@ -56,17 +56,20 @@ public enum CommandLineHelp {
     public static let commands: [CommandLineCommand] = [
         CommandLineCommand(
             id: .stream, summary: "Stream Endpoint Security events until Ctrl-C.",
-            usage: "sudo macmonitor stream [EVENT...] [--format text|jsonl] [--no-mutes] [--include-self]",
+            usage: "sudo macmonitor stream [EVENT...] [--format text|jsonl|pretty] [--no-mutes] [--include-self]",
             details: """
                 EVENT is a short name (exec), a full name (ES_EVENT_TYPE_NOTIFY_EXEC), or all. With no EVENT, \
                 macmonitor streams the events Mac Monitor records by default. Run 'macmonitor events' to list them.
 
                 Options:
-                  --format text    One line per event: the default on a terminal.
-                  --format jsonl   One record per line, the same as Mac Monitor's Export telemetry > JSONL (lines)
-                                   menu: an eslogger superset. The default when piped or redirected.
-                  --no-mutes       Don't apply the saved mute set that Mac Monitor and macmonitor share.
-                  --include-self   Show the events of macmonitor's own pipeline, such as jq's.
+                  --format text     One line per event: the default on a terminal. --text for short.
+                  --format jsonl    One record per line, the same as Mac Monitor's Export telemetry > JSONL (lines)
+                                    menu: an eslogger superset. The default when piped or redirected. --json for
+                                    short.
+                  --format pretty   The same records pretty-printed, like Export telemetry > JSON (pretty).
+                                    Easier to read in a terminal. --pretty for short.
+                  --no-mutes        Don't apply the saved mute set that Mac Monitor and macmonitor share.
+                  --include-self    Show the events of macmonitor's own pipeline, such as jq's.
 
                 Each stream has its own Endpoint Security clients in Mac Monitor's Security Extension, so Mac Monitor \
                 keeps recording while it runs. At most \(SensorXPC.maxCommandLineStreams) streams run at once. \
