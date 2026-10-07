@@ -658,7 +658,6 @@
 		5C4E00000000000000000045 /* TelemetrySchemaModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000044 /* TelemetrySchemaModel.swift */; };
 		5C4E00000000000000000047 /* TraceValidationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000046 /* TraceValidationSheet.swift */; };
 		5C4E00000000000000000049 /* TelemetrySchemaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000048 /* TelemetrySchemaView.swift */; };
-		5C4E0000000000000000004B /* AttachTelemetrySchemaScriptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000004A /* AttachTelemetrySchemaScriptTests.swift */; };
 		D5A100000000000000000002 /* SchemaCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A100000000000000000001 /* SchemaCommand.swift */; };
 		D5A100000000000000000004 /* ValidateCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A100000000000000000003 /* ValidateCommand.swift */; };
 		D5A100000000000000000006 /* ValidateRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A100000000000000000005 /* ValidateRunner.swift */; };
@@ -1430,7 +1429,6 @@
 		5C4E00000000000000000044 /* TelemetrySchemaModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaModel.swift; sourceTree = "<group>"; };
 		5C4E00000000000000000046 /* TraceValidationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceValidationSheet.swift; sourceTree = "<group>"; };
 		5C4E00000000000000000048 /* TelemetrySchemaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaView.swift; sourceTree = "<group>"; };
-		5C4E0000000000000000004A /* AttachTelemetrySchemaScriptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachTelemetrySchemaScriptTests.swift; sourceTree = "<group>"; };
 		D5A100000000000000000001 /* SchemaCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaCommand.swift; sourceTree = "<group>"; };
 		D5A100000000000000000003 /* ValidateCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidateCommand.swift; sourceTree = "<group>"; };
 		D5A100000000000000000005 /* ValidateRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidateRunner.swift; sourceTree = "<group>"; };
@@ -4166,7 +4164,6 @@
 			children = (
 				5C4E00000000000000000019 /* Source */,
 				5C4E0000000000000000001A /* Synthetic */,
-				5C4E0000000000000000004A /* AttachTelemetrySchemaScriptTests.swift */,
 				5C4E0000000000000000001D /* TelemetrySchemaFileTests.swift */,
 				5C4E0000000000000000001B /* TelemetrySchemaDriftTests.swift */,
 				5C4E0000000000000000003F /* TelemetrySchemaIssueTests.swift */,
@@ -4993,7 +4990,6 @@
 				CA970000000000000000003D /* EndpointSecurityMuteModel.swift in Sources */,
 				CA970000000000000000003B /* MuteListChangesTests.swift in Sources */,
 				CA9700000000000000000039 /* MuteListTests.swift in Sources */,
-				5C4E0000000000000000004B /* AttachTelemetrySchemaScriptTests.swift in Sources */,
 				5C4E00000000000000000040 /* TelemetrySchemaIssueTests.swift in Sources */,
 				5C4E0000000000000000003E /* TelemetrySchemaOriginTests.swift in Sources */,
 				5C4E00000000000000000055 /* TelemetrySchemaRoundTripTests.swift in Sources */,

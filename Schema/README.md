@@ -38,8 +38,7 @@ Telemetry 1.0.0 is the version Mac Monitor 2.2.0 ships. `released-versions.txt` 
 SHA-256 of the file released with it, and a test fails if a released version's file changes. To validate an older
 trace, use the schema attached to the release that wrote it. A trace exported before Mac Monitor 2.2.0 names no
 telemetry version, and no schema describes it: open it with File > Open Trace… and export it again to check it.
-[`RELEASING.md`](../RELEASING.md) says how a release lists its version and attaches the schema after the installer,
-with `ProjectSutro/Scripts/attach-telemetry-schema.sh`.
+Each release attaches its schema beside the installer as `Mac-Monitor.telemetry.schema.json`.
 
 ## Checking a trace
 
