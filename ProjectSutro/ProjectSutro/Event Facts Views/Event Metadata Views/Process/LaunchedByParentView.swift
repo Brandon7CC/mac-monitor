@@ -73,17 +73,43 @@ extension LaunchedByParent.ResolvedBy {
 
 
 // MARK: - Badge
-/// Badge showing where a launched-by parent came from, such as "Launch Services". Styled like ``GroupLeaderView``.
+/// Badge for a launched-by parent, styled like ``GroupLeaderView``. The icon shows where the answer came from.
 ///
-/// VoiceOver reads the badge as "Launched by parent:" plus the source's name, with the source's explanation as the
-/// hint.
+/// By default the badge names the launcher itself, such as "Dock". Beside a "Launched by parent" heading that already
+/// shows the launcher, it names the source instead, such as "Launch Services".
 struct LaunchedByParentBadge: View {
-    /// The source shown.
-    let source: LaunchedByParent.Source
+    /// The launched-by parent
+    let launchedByParent: LaunchedByParent
+    /// Show the source's name instead of the launcher's?
+    let showsSource: Bool
     
-    /// - Parameter launchedByParent: The launched-by parent whose source to show.
-    init(_ launchedByParent: LaunchedByParent) {
-        source = launchedByParent.source
+    /// - Parameters:
+    ///   - launchedByParent: The launched-by parent to show.
+    ///   - showsSource: Show the source's name instead of the launcher's. Defaults to `false`.
+    init(_ launchedByParent: LaunchedByParent, showsSource: Bool = false) {
+        self.launchedByParent = launchedByParent
+        self.showsSource = showsSource
+    }
+    
+    /// Where the answer came from
+    private var source: LaunchedByParent.Source { launchedByParent.source }
+    
+    /// The launcher's process name, else its pid. `nil` when Launch Services recorded no launcher.
+    private var launcherName: String? {
+        if let name = launchedByParent.path.map({ ($0 as NSString).lastPathComponent }), !name.isEmpty { return name }
+        return launchedByParent.pid.map { "pid \($0)" }
+    }
+    
+    /// The badge's text
+    private var text: String {
+        showsSource ? source.title : launcherName ?? source.title
+    }
+    
+    /// What the badge means, such as "Launched by Dock (pid 1350) through Launch Services."
+    private var summary: String {
+        guard let name = launcherName else { return "Launched through \(source.title). No launcher was recorded." }
+        let pid = launchedByParent.pid.map { " (pid \($0))" } ?? ""
+        return "Launched by \(name)\(name.hasPrefix("pid ") ? "" : pid) through \(source.title)."
     }
     
     var body: some View {
@@ -92,13 +118,13 @@ struct LaunchedByParentBadge: View {
                 .symbolRenderingMode(.palette)
                 .foregroundColor(.black)
                 .font(Font.system(size: 15, weight: .bold))
-            Text("**`\(source.title)`**").foregroundColor(.black)
+            Text("**`\(text)`**").foregroundColor(.black)
         }
         .padding(5.0)
         .background(RoundedRectangle(cornerSize: .init(width: 5.0, height: 5.0)).fill(helpfulProcessColor))
-        .help("Launched by parent: \(source.explanation)")
+        .help("\(summary) \(source.explanation)")
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Launched by parent: \(source.title)")
+        .accessibilityLabel(summary)
         .accessibilityHint(source.explanation)
     }
 }
@@ -117,7 +143,7 @@ struct LaunchedByParentFacts: View {
         VStack(alignment: .leading) {
             HStack {
                 Text("**Launched by parent**").font(.title3)
-                if let step { LaunchedByParentBadge(step.launchedByParent) }
+                if let step { LaunchedByParentBadge(step.launchedByParent, showsSource: true) }
             }
             if let subject { Text(subject).foregroundStyle(.secondary) }
             if let step {
