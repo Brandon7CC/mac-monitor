@@ -36,7 +36,7 @@ extension TelemetrySchemaSource {
             addition("responsible_audit_token_string", .string, "`responsible_audit_token` as one line of text."),
             eslogger("codesigning_flags", .integer),
             eslogger("signing_id", .nullable(.string),
-                     "null when Endpoint Security gives none, or in a record from Mac Monitor before 2.2.0, which left "
+                     "null when Endpoint Security gives none, or in a record from Mac Monitor before 3.0.0, which left "
                      + "out an empty one."),
             eslogger("team_id", .nullable(.string)),
             eslogger("cdhash", .pattern(.cdhash)),
@@ -156,7 +156,7 @@ extension TelemetrySchemaSource {
         SchemaObject("A group member: es_od_member_id_t.", [
             eslogger("member_type", .integer, "A user's name (0), a user's UUID (1) or a group's UUID (2)."),
             eslogger("member_value", .nullable(.string),
-                     "The user's name, or the UUID; null in a record from Mac Monitor before 2.2.0."),
+                     "The user's name, or the UUID; null in a record from Mac Monitor before 3.0.0."),
         ])
     }
     

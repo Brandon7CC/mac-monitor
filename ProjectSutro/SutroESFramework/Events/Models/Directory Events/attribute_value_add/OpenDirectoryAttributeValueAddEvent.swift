@@ -41,7 +41,7 @@ public struct OpenDirectoryAttributeValueAddEvent: Identifiable, Codable, Hashab
     /// Error codes defined in: `odconstants.h`. An error code of 0 indicates success.
     public var error_code: Int = 0
     /// The record's type, an `es_od_record_type_t`: a user (0) or a group (1). `nil` only for an event recorded
-    /// before 2.2.0 whose type Mac Monitor didn't know.
+    /// before 3.0.0 whose type Mac Monitor didn't know.
     public var record_type: Int?
     public var record_name: String?
     public var attribute_name: String?
@@ -50,7 +50,7 @@ public struct OpenDirectoryAttributeValueAddEvent: Identifiable, Codable, Hashab
     public var db_path: String?
     
     /// Mac Monitor enrichment: the error's description, the name of the record's type (written in place of
-    /// `record_type` before 2.2.0), and the instigator's name, path, audit token and signing ID.
+    /// `record_type` before 3.0.0), and the instigator's name, path, audit token and signing ID.
     public var error_code_human, record_type_string: String?
     public var instigator_process_name, instigator_process_path: String?
     public var instigator_process_audit_token, instigator_process_signing_id: String?
@@ -77,7 +77,7 @@ public struct OpenDirectoryAttributeValueAddEvent: Identifiable, Codable, Hashab
     }
     
     /// Read the event from eslogger's JSON, an export, or the Security Extension, including those before
-    /// 2.2.0, which wrote the name of the record's type as `record_type`.
+    /// 3.0.0, which wrote the name of the record's type as `record_type`.
     ///
     /// - Parameter decoder: The event's decoder.
     /// - Throws: The error decoding a field.

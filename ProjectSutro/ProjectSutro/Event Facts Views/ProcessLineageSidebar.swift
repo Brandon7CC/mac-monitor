@@ -179,10 +179,7 @@ struct ProcessLineageSidebar: View {
             .tag(event)
     }
     
-    /// The title for a launched-by parent that isn't in the trace.
-    ///
-    /// We show launchd with its job's label, or the parent's process name like the other rows. The pid and path are
-    /// in the tooltip.
+    /// Title for a launched-by parent that isn't in the trace.
     ///
     /// - Parameter step: The step.
     /// - Returns: The row's title (Markdown).

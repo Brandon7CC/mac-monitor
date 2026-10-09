@@ -12,8 +12,7 @@ import Foundation
 /// What LaunchServices knows about an app it launched: which process checked in, and who asked for the launch.
 ///
 /// An app checks in with LaunchServices only once its own code runs, 2-5 ms after Endpoint Security reports its exec,
-/// so the Security Extension can't read this while it handles the exec. Instead it holds the exec and reads the
-/// record a little later (``LaunchServicesHold``, ``LaunchedByParentUpgrader``).
+/// so the Security Extension holds the exec and reads it a little later (``LaunchServicesHold``).
 public struct LaunchServicesRecord: Hashable {
     /// `LSAuditToken`: the process that checked in. Its pid version tells this launch apart from a reused pid.
     public var token: AuditToken
@@ -49,10 +48,9 @@ public struct LaunchServicesRecord: Hashable {
 // MARK: - Reading records
 /// Reads LaunchServices' records of the apps it launched.
 ///
-/// The live reader is ``LaunchServicesReader``, which uses Launch Services' private calls. Tests supply their own
-/// records.
+/// The live reader is ``LaunchServicesReader``.
 public protocol LaunchServicesReading: AnyObject {
-    /// Launch Services' record of a process. Called on the upgrader's queue.
+    /// Launch Services' record of a process
     ///
     /// - Parameter pid: The process's pid.
     /// - Returns: The record, or `nil` when there's none yet (the app hasn't checked in), none any more, or it can't

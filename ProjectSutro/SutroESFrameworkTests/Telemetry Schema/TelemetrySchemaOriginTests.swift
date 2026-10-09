@@ -20,12 +20,12 @@ final class TelemetrySchemaOriginTests: XCTestCase {
     
     /// Where Mac Monitor's value differs in type from eslogger's, and why.
     static let retyped: [String: String] = {
-        let legacy = "null in a record from Mac Monitor before 2.2.0, which didn't keep it"
+        let legacy = "null in a record from Mac Monitor before 3.0.0, which didn't keep it"
         return ["events.od_group_add.member": legacy, "events.od_group_add.member.member_value": legacy,
                 "events.od_group_remove.member": legacy, "events.od_group_remove.member.member_value": legacy,
                 "events.od_modify_password.account_type": legacy, "events.od_attribute_value_add.record_type": legacy,
                 "definitions.process.signing_id": "null for a NULL token, or in a record from Mac Monitor before "
-                    + "2.2.0, which left out an empty one"]
+                    + "3.0.0, which left out an empty one"]
     }()
     
     /// eslogger's keys by scope (`envelope`, `events.exec`, `definitions.process`) and path, each with its type.

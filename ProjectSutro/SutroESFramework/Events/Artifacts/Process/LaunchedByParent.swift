@@ -42,10 +42,9 @@ public struct LaunchedByParent: Codable, Hashable {
     
     /// Who resolved the answer, which also says when.
     public enum ResolvedBy: String, Codable, CaseIterable {
-        /// The Security Extension, while it serialized the event. For an app, the answer comes from Launch Services'
-        /// record of the launch.
+        /// The Security Extension, including Launch Services' answer for apps
         case securityExtension = "security_extension"
-        /// Mac Monitor, for an event from an older Security Extension that didn't name one
+        /// Mac Monitor, for events from an older Security Extension
         case app
         /// Mac Monitor, opening a trace that didn't carry one (eslogger's, Mac Monitor 2.1's), from the trace alone.
         case `import`

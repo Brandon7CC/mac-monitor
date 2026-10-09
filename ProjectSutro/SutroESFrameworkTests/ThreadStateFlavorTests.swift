@@ -11,7 +11,7 @@ import XCTest
 
 // MARK: - Thread state flavor names
 /// Pins the names of thread state flavors: each architecture's table matches its SDK header, a flavor is named on this
-/// Mac's architecture, and a name Mac Monitor wrote before 2.2.0 maps back to its flavor on either architecture.
+/// Mac's architecture, and a name Mac Monitor wrote before 3.0.0 maps back to its flavor on either architecture.
 final class ThreadStateFlavorTests: XCTestCase {
     #if arch(arm64)
     /// Every Apple silicon flavor has the SDK's value.
@@ -70,7 +70,7 @@ final class ThreadStateFlavorTests: XCTestCase {
     #endif
     
     /// The Intel table on any Mac: `x86_AVX_STATE64` has its own name (Mac Monitor named it `x86_THREAD_STATE32`
-    /// before 2.2.0), and the kernel's own 14 has none.
+    /// before 3.0.0), and the kernel's own 14 has none.
     func testX86TableLiterals() {
         XCTAssertEqual(ThreadStateFlavor.x86_64[4], "x86_THREAD_STATE64")
         XCTAssertEqual(ThreadStateFlavor.x86_64[17], "x86_AVX_STATE64")

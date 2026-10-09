@@ -15,7 +15,7 @@ public struct OpenDirectoryMember: Codable, Hashable {
     /// The member's type, an `es_od_member_type_t`: a user's name (0), a user's UUID (1) or a group's UUID (2).
     public var member_type: Int
     /// The user's name, or the user's or group's UUID in uppercase. `nil` for a type the SDK doesn't define (eslogger
-    /// writes no event then), and for a member recorded before 2.2.0, which kept only its type.
+    /// writes no event then), and for a member recorded before 3.0.0, which kept only its type.
     public var member_value: String?
     
     /// A member from its fields.

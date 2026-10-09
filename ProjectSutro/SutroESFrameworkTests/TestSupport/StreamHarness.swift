@@ -34,7 +34,7 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
          refusals: [Int: NewClientResult] = [:], serializer: any EventSerializing = StubSerializer.globalSequence) {
         let (made, releases) = (madeFactories, releaseCount)
         service = StreamService(savedMutes: savedMutes, slots: StreamSlots(capacity: capacity),
-                                sensorVersion: "2.2.0 (1)", admits: { _ in admits },
+                                sensorVersion: "3.0.0 (1)", admits: { _ in admits },
                                 makeCapture: { configuration, emit in
             let factory = FakeEndpointSecurityClientFactory(refusals: refusals)
             made.withLockUnchecked { $0.append(factory) }

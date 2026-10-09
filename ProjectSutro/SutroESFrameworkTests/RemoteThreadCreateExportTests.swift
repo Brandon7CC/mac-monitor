@@ -13,7 +13,7 @@ import EndpointSecurity
 // MARK: - remote_thread_create in eslogger's format
 /// Pins that exports of `remote_thread_create` events have every key eslogger writes, with eslogger's value:
 /// `thread_state` as `{flavor, state: null}`, or `null` for `thread_create`. Mac Monitor adds the state's bytes
-/// (`state_base64`) and the flavor's name (`thread_state_string`), and reads back what it exported before 2.2.0.
+/// (`state_base64`) and the flavor's name (`thread_state_string`), and reads back what it exported before 3.0.0.
 ///
 /// The golden records (`eslogger-remote-thread-create.jsonl`) are eslogger's output on macOS 27 (message version 10)
 /// for a `thread_create_running`, scrubbed, and the same record as a synthetic `thread_create`.
@@ -111,7 +111,7 @@ final class RemoteThreadCreateExportTests: XCTestCase {
                                 ["target": target, "thread_state": threadState])
     }
     
-    /// An event exported before 2.2.0 is exported again in eslogger's shape: the name's flavor with no bytes, and the
+    /// An event exported before 3.0.0 is exported again in eslogger's shape: the name's flavor with no bytes, and the
     /// name kept in `thread_state_string`; `null` for a state it didn't name.
     ///
     /// - Throws: The error reading a record, or an `XCTest` failure if an export has no such event.
@@ -126,7 +126,7 @@ final class RemoteThreadCreateExportTests: XCTestCase {
         assertContains(["thread_state": NSNull(), "thread_state_string": NSNull()], unnamed, "unnamed")
     }
     
-    /// A 2.2.0 export reads back as it was exported, bytes and all.
+    /// A 3.0.0 export reads back as it was exported, bytes and all.
     ///
     /// - Throws: The error reading a record, or an `XCTest` failure if an export isn't a JSON object.
     func testExportsRoundTrip() throws {

@@ -10,13 +10,13 @@ import Foundation
 
 // MARK: - A trace's launched-by parents
 /// Names the launched-by parent of each process a trace's execs and forks create, when the trace doesn't carry one:
-/// eslogger's traces, Mac Monitor 2.1's exports, 2.2's from before the launched-by parent, and events an older Security
+/// eslogger's traces, Mac Monitor 2.1's exports, 3.0's from before the launched-by parent, and events an older Security
 /// Extension sent.
 ///
 /// Each is resolved from the trace's own fields (``LaunchedByParent/ResolvedBy/import``), the way the Security
 /// Extension resolves them. A parent's path is only named from the processes the trace showed before it, matched by pid
 /// and pid version: nothing is read from this Mac, which may not be the one the trace was recorded on. A launched-by
-/// parent the trace carries (Mac Monitor 2.2's, whose LaunchServices answer can't be worked out again) is kept.
+/// parent the trace carries (Mac Monitor 3.0's, whose LaunchServices answer can't be worked out again) is kept.
 ///
 /// ``TraceImporter`` decodes each batch in parallel, then fills it here in file order, so a parent seen in an earlier
 /// batch is still named. The memory is bounded (``ProcessPathMemory/traceCapacity``): a parent first seen very early in

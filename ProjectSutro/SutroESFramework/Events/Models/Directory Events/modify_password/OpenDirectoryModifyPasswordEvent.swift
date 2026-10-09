@@ -16,7 +16,7 @@ public struct OpenDirectoryModifyPasswordEvent: Identifiable, Codable, Hashable,
     /// The instigator's audit token: message version 8 and later.
     public var instigator_token: AuditToken?
     /// The account's type, an `es_od_account_type_t`: a user (0) or a computer (1). `nil` only for an event recorded
-    /// before 2.2.0 whose type Mac Monitor didn't know.
+    /// before 3.0.0 whose type Mac Monitor didn't know.
     public var account_type: Int?
     public var account_name: String?
     public var node_name: String?
@@ -25,7 +25,7 @@ public struct OpenDirectoryModifyPasswordEvent: Identifiable, Codable, Hashable,
     public var error_code: Int = 0
     
     /// Mac Monitor enrichment: the error's description, the name of the account's type (written in place of
-    /// `account_type` before 2.2.0), and the instigator's name, path, audit token and signing ID.
+    /// `account_type` before 3.0.0), and the instigator's name, path, audit token and signing ID.
     public var error_code_human, account_type_string: String?
     public var instigator_process_name, instigator_process_path: String?
     public var instigator_process_audit_token, instigator_process_signing_id: String?
@@ -50,7 +50,7 @@ public struct OpenDirectoryModifyPasswordEvent: Identifiable, Codable, Hashable,
     }
     
     /// Read the event from eslogger's JSON, an export, or the Security Extension, including those before
-    /// 2.2.0, which wrote the name of the account's type as `account_type`.
+    /// 3.0.0, which wrote the name of the account's type as `account_type`.
     ///
     /// - Parameter decoder: The event's decoder.
     /// - Throws: The error decoding a field.

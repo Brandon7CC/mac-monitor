@@ -51,7 +51,7 @@ if [ "$uninstall_success" = true ]; then
         esac
     fi
 
-    # The authorization right Settings > Command Line asks an administrator to approve.
+    # Settings > Command Line's authorization right
     /usr/bin/security authorizationdb remove com.swiftlydetecting.agent.command-line-tool >/dev/null 2>&1 \
         && echo "Command line tool authorization right successfully deleted"
 

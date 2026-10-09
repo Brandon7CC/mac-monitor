@@ -54,7 +54,7 @@ final class StreamSessionTests: XCTestCase {
         
         let started = try XCTUnwrap(connection.send(stream()))
         XCTAssertEqual(started.status, .ok)
-        XCTAssertEqual(started.sensorVersion, "2.2.0 (1)")
+        XCTAssertEqual(started.sensorVersion, "3.0.0 (1)")
         XCTAssertEqual(started.stream?.events, ["ES_EVENT_TYPE_NOTIFY_EXIT"])
         XCTAssertEqual(started.stream?.savedMutes, MuteList.testDefault.count)
         let factory = try XCTUnwrap(harness.factories.first)
@@ -156,7 +156,7 @@ final class StreamSessionTests: XCTestCase {
         XCTAssertEqual(auth?.status, .invalid)
         XCTAssertEqual(auth?.problem, "ES_EVENT_TYPE_AUTH_EXEC isn't an event macmonitor can stream on this Mac.")
         XCTAssertEqual(connection.send(StreamRequest(.hello).encoded()),
-                       StreamReply(.ok, sensorVersion: "2.2.0 (1)"))
+                       StreamReply(.ok, sensorVersion: "3.0.0 (1)"))
         XCTAssertTrue(harness.factories.isEmpty)
         XCTAssertEqual(connection.send(stream())?.status, .ok, "A bad request doesn't use up the stream.")
     }

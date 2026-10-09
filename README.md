@@ -11,7 +11,7 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 
 ## Requirements
 - Processor: We recommend an `Apple Silicon` machine, but `Intel` works too!
-  - (`2.2.0+`) Every binary has `x86_64`, `arm64` and `arm64e` slices. On Apple silicon, Mac Monitor runs its `arm64e` slices: with pointer authentication on macOS 26 and later, and without it on earlier versions.
+  - (`3.0.0+`) Every binary has `x86_64`, `arm64` and `arm64e` slices. On Apple silicon, Mac Monitor runs its `arm64e` slices: with pointer authentication on macOS 26 and later, and without it on earlier versions.
 - System memory: `4GB+` is recommended
 - macOS version: `13.1+` (Ventura)
 
@@ -35,28 +35,28 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 ### Install footprint
 - Event monitor app which establishes an XPC connection to the Security Extension: `/Applications/Mac Monitor.app` w/signing identifier of `com.swiftlydetecting.agent`.
 - Security Extension: `/Library/SystemExtensions/../com.swiftlydetecting.agent.securityextension.systemextension` w/signing identifier of `com.swiftlydetecting.agent.securityextension.systemextension`.
-- (`2.2.0+`) Command line tool: `/Applications/Mac Monitor.app/Contents/MacOS/macmonitor` w/signing identifier of `com.swiftlydetecting.agent.cli` (see [Command line](#command-line)).
-- (`2.2.0+`) Only if you install it from Settings ▸ Command Line: the symbolic link `/usr/local/bin/macmonitor`, pointing at the tool inside the app. The installer package never creates it.
-- (`2.2.0+`) Saved mute set: `/Library/Application Support/com.swiftlydetecting.agent.securityextension/mutes.json`, written by the Security Extension and readable only by `root` (see [Path mutes](#path-mutes)).
+- (`3.0.0+`) Command line tool: `/Applications/Mac Monitor.app/Contents/MacOS/macmonitor` w/signing identifier of `com.swiftlydetecting.agent.cli` (see [Command line](#command-line)).
+- (`3.0.0+`) Only if you install it from Settings ▸ Command Line: the symbolic link `/usr/local/bin/macmonitor`, pointing at the tool inside the app. The installer package never creates it.
+- (`3.0.0+`) Saved mute set: `/Library/Application Support/com.swiftlydetecting.agent.securityextension/mutes.json`, written by the Security Extension and readable only by `root` (see [Path mutes](#path-mutes)).
 
 
 ## Uninstall
 * **From the Finder** delete the app and authenticate to remove the System Extension. You can't do this from the Dock. It's that easy!
 * You can also *just* remove the Security Extension if you want in the app's menu bar or by going into the app settings.
-* (`1.0.3+`) Supports removal using the `../Contents/SharedSupport/uninstall.sh` script. (`2.2.0+`) The script also deletes the saved mute set and, if it's Mac Monitor's, the `/usr/local/bin/macmonitor` link.
-* (`2.2.0+`) If you installed the command line tool, use Settings ▸ Command Line ▸ Remove… before deleting the app from the Finder, or `sudo rm /usr/local/bin/macmonitor` after.
+* (`1.0.3+`) Supports removal using the `../Contents/SharedSupport/uninstall.sh` script. (`3.0.0+`) The script also deletes the saved mute set and, if it's Mac Monitor's, the `/usr/local/bin/macmonitor` link.
+* (`3.0.0+`) If you installed the command line tool, use Settings ▸ Command Line ▸ Remove… before deleting the app from the Finder, or `sudo rm /usr/local/bin/macmonitor` after.
 
 
 ## Path mutes
 Mac Monitor keeps one **saved mute set**. The Security Extension stores it at `/Library/Application Support/com.swiftlydetecting.agent.securityextension/mutes.json` (the directory `0700`, the file `0600`, both owned by `root`) and applies it to every Endpoint Security client it creates for Mac Monitor. It survives app relaunches, Security Extension restarts and reboots, and a change applies right away to a trace that's already running. `sudo macmonitor` uses the same set.
 
 - **Settings ▸ Path Muting** lists the saved set. Right-click mutes in the event tables and the "Add path to mute" sheet add to it.
-- **Import…** reads a mute file (below) or a list exported by Mac Monitor before 2.2 (Export ▸ Current mute set… in 2.1). It shows how many mutes the file holds and what was left out, then replaces the saved set or adds to it. Entries that can't change what Mac Monitor sees are left out with a note: Mac Monitor's clients only subscribe to `NOTIFY` events, so a mute that only names `AUTH` events changes nothing. That's every mute in Apple's default mute sets, such as the files in [`Mute sets/`](./Mute%20sets), so Import reads them but has nothing to add.
+- **Import…** reads a mute file (below) or a list exported by Mac Monitor before 3.0 (Export ▸ Current mute set… in 2.1). It shows how many mutes the file holds and what was left out, then replaces the saved set or adds to it. Entries that can't change what Mac Monitor sees are left out with a note: Mac Monitor's clients only subscribe to `NOTIFY` events, so a mute that only names `AUTH` events changes nothing. That's every mute in Apple's default mute sets, such as the files in [`Mute sets/`](./Mute%20sets), so Import reads them but has nothing to add.
 - **Export ▸ Saved mute set…** writes the saved set as a mute file. **Export ▸ Apple mute set…** writes Endpoint Security's own default mutes, which aren't part of the saved set.
 - **Reset to Default** replaces the saved set with Mac Monitor's default set.
 - **Only an administrator can change it.** On every change the Security Extension checks that the user running Mac Monitor is a member of the `admin` group. A standard user's Mac Monitor shows the saved set read-only: it can view and export the set, and records with it, but Path Muting's controls are off and a mute from an event's menu is refused with a note saying why. `sudo macmonitor` runs as root, so it can change the set.
 
-The first time 2.2 runs, the saved set starts as Mac Monitor's default set. Mutes added in 2.1 only ever lived in the Security Extension's memory, so to keep them, use Export ▸ Current mute set… in 2.1 before updating and import that file in 2.2.
+The first time 3.0 runs, the saved set starts as Mac Monitor's default set. Mutes added in 2.1 only ever lived in the Security Extension's memory, so to keep them, use Export ▸ Current mute set… in 2.1 before updating and import that file in 3.0.
 
 Two of the default set's mutes are per user: files created and renamed in `~/Library/Caches/`, and extended attributes read from files in `~/Library/Biome/streams/`. The Security Extension runs as root, so it uses the home folder of the user logged in at the console when it creates the saved set or resets it (Reset to Default, `macmonitor mute reset`, whose question names that user): `/Users/alice/Library/Caches/`, never root's. If no one is logged in at that moment (the login window, or only SSH sessions), those two mutes are left out and Path Muting says so; reset while you're logged in to add them. A saved set is never rewritten on its own, so after someone else logs in, the mutes stay on the first user's home folder until the next reset.
 
@@ -85,7 +85,7 @@ The mute file is JSON:
 
 
 ## Command line
-(`2.2.0+`) `macmonitor` streams Endpoint Security events from Mac Monitor's Security Extension to a terminal or a pipe, while Mac Monitor keeps recording, and checks traces against Mac Monitor's [telemetry schema](#telemetry-schema). It ships inside the app: `/Applications/Mac Monitor.app/Contents/MacOS/macmonitor`.
+(`3.0.0+`) `macmonitor` streams Endpoint Security events from Mac Monitor's Security Extension to a terminal or a pipe, while Mac Monitor keeps recording, and checks traces against Mac Monitor's [telemetry schema](#telemetry-schema). It ships inside the app: `/Applications/Mac Monitor.app/Contents/MacOS/macmonitor`.
 
 **Install**: Settings ▸ Command Line ▸ Install… links `/usr/local/bin/macmonitor` to the tool inside the app, so `sudo macmonitor` works in any terminal. It asks for an administrator password first; the installer package never links the tool.
 - **Remove…** deletes the link. After you move or rename Mac Monitor, **Update…** or **Repair…** points it at the copy you're running.
@@ -133,7 +133,7 @@ macmonitor validate --eslogger esl.jsonl   # check only eslogger's keys of eslog
 
 ![Artifact filtering overview](./Resources/v1.9.0/lossless-filtering-v1.9.png)
 
-- **Telemetry export**. Right now we support pretty JSON and JSONL (one JSON object per-line) for the full or partial system trace (keyboard shortcuts too). You can access these options in the menu bar under "Export Telemetry". (`2.2.0+`) Every record follows Mac Monitor's [telemetry schema](#telemetry-schema).
+- **Telemetry export**. Right now we support pretty JSON and JSONL (one JSON object per-line) for the full or partial system trace (keyboard shortcuts too). You can access these options in the menu bar under "Export Telemetry". (`3.0.0+`) Every record follows Mac Monitor's [telemetry schema](#telemetry-schema).
 - **Process subtree generation**. When viewing the event facts window for any given event we’ll attempt to generate a process lineage subtree in the left hand sidebar. This tree is intractable – click on any process and you’ll be taken to its event facts. **Similarly, you can right click on any process in the tree to pop out the facts for that event**.
 - **Dynamic event distribution chart**. This is a fun one enabled by the SwiftUI team. The graph shows the distribution of events you're subscribed to, currently in-scope (i.e. not filtered), and have a count of more than nothing. This enables you to *very* quickly identify noisy events. The chart auto-shows/hides itself, but you can bring it back with the: "Mini-chart" button in the toolbar.
 
@@ -147,10 +147,10 @@ macmonitor validate --eslogger esl.jsonl   # check only eslogger's keys of eslog
 
 
 ## Telemetry schema
-(`2.2.0+`) Mac Monitor's telemetry follows a [JSON Schema](https://json-schema.org/draft/2020-12) (draft 2020-12): the JSONL and pretty exports, the Event Facts JSON tab, and `macmonitor`'s JSON output. Every record is eslogger's JSON for the event plus Mac Monitor's additions, and the schema marks each key `x-mac-monitor-origin`: `eslogger` (eslogger's key path and value) or `mac-monitor`. Every record carries the schema's version as `telemetry_version`; eslogger's own `schema_version` is untouched.
+(`3.0.0+`) Mac Monitor's telemetry follows a [JSON Schema](https://json-schema.org/draft/2020-12) (draft 2020-12): the JSONL and pretty exports, the Event Facts JSON tab, and `macmonitor`'s JSON output. Every record is eslogger's JSON for the event plus Mac Monitor's additions, and the schema marks each key `x-mac-monitor-origin`: `eslogger` (eslogger's key path and value) or `mac-monitor`. Every record carries the schema's version as `telemetry_version`; eslogger's own `schema_version` is untouched.
 
 - **Where**: each release attaches it beside the installer as `Mac-Monitor.telemetry.schema.json` (the latest is at https://github.com/Brandon7CC/mac-monitor/releases/latest/download/Mac-Monitor.telemetry.schema.json), and the repository keeps it in [`Schema/`](./Schema) as `mac-monitor-telemetry.schema.json`.
 - **Checking a trace**: Help ▸ Telemetry Schema… shows the schema, saves it, and checks an export with Validate Trace…, reporting each issue with its line and the path of the value. On the command line, `macmonitor schema` prints the schema and `macmonitor validate <trace>` checks a trace (`--eslogger` for eslogger's own JSON), without root: see [Command line](#command-line).
-- **Versions**: the telemetry version is independent of the app's. MAJOR when a key is removed, renamed or retyped, or a value's format changes; MINOR when a key, an event type, or an enum value is added; PATCH when only the schema's text changes. Check an older trace with the schema attached to the release that wrote it. A trace exported before 2.2.0 has no telemetry version and no schema: open it with File > Open Trace… and export it again to check it.
+- **Versions**: the telemetry version is independent of the app's. MAJOR when a key is removed, renamed or retyped, or a value's format changes; MINOR when a key, an event type, or an enum value is added; PATCH when only the schema's text changes. Check an older trace with the schema attached to the release that wrote it. A trace exported before 3.0.0 has no telemetry version and no schema: open it with File > Open Trace… and export it again to check it.
 
 [`Schema/README.md`](./Schema/README.md) covers the keywords the schema uses and how to use it with other validators, such as ajv and Python's `jsonschema`.

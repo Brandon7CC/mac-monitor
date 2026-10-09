@@ -21,7 +21,7 @@ struct LaneContext {
     /// The executables of the processes the lane's events have named, for the launched-by parents it stamps. The lane's
     /// own: only one thread uses it at a time.
     let processPaths: ProcessPathMemory
-    /// Does the lane hold app execs for Launch Services (``LaunchServicesHold``)?
+    /// Does the lane hold app execs (``LaunchServicesHold``)?
     let holdsForLaunchServices: Bool
     
     /// - Parameters:
@@ -29,7 +29,7 @@ struct LaneContext {
     ///   - sensorID: The Sensor ID to stamp on the event.
     ///   - encoder: The lane's own encoder.
     ///   - processPaths: The lane's own process path memory, by default an empty one.
-    ///   - holdsForLaunchServices: Does the lane hold app execs for Launch Services? Defaults to `false`.
+    ///   - holdsForLaunchServices: Does the lane hold app execs?
     init(eventClass: EventClass, sensorID: String, encoder: StreamingJSONEncoder,
          processPaths: ProcessPathMemory = ProcessPathMemory(capacity: ProcessPathMemory.laneCapacity),
          holdsForLaunchServices: Bool = false) {
@@ -42,11 +42,10 @@ struct LaneContext {
 }
 
 
-/// What a serializer returns for one message
+/// A serialized message
 enum SerializedEvent {
-    /// The event's JSON, ready to send
     case json(Data)
-    /// An app exec for the lane to hold until Launch Services answers (``LaunchServicesHold``). It isn't encoded yet.
+    /// An app exec to hold, not encoded yet
     case held(Message)
 }
 
@@ -69,7 +68,7 @@ protocol EventSerializing {
     /// - Parameters:
     ///   - message: The message. Only valid during the call.
     ///   - lane: The lane's context.
-    /// - Returns: The event, or `nil` if it couldn't be encoded. The default returns ``serialize(_:in:)``'s JSON.
+    /// - Returns: The event, or `nil` if it couldn't be encoded.
     func serializeEvent(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> SerializedEvent?
 }
 
@@ -106,7 +105,7 @@ struct MessageSerializer: EventSerializing {
         self.processPath = processPath
     }
     
-    /// Build the message's `Message` (``build(_:in:)``) and encode it.
+    /// Build and encode the message.
     ///
     /// - Parameters:
     ///   - message: The message. Only valid during the call.
@@ -116,7 +115,7 @@ struct MessageSerializer: EventSerializing {
         try? lane.encoder.encode(build(message, in: lane))
     }
     
-    /// Build the message's `Message` (``build(_:in:)``) and encode it, unless it's an app exec the lane should hold.
+    /// Build and encode the message, unless it's an app exec to hold.
     ///
     /// - Parameters:
     ///   - message: The message. Only valid during the call.
@@ -128,10 +127,7 @@ struct MessageSerializer: EventSerializing {
         return (try? lane.encoder.encode(event)).map(SerializedEvent.json)
     }
     
-    /// Build the message's `Message`.
-    ///
-    /// We stamp it with the lane's Sensor ID and this Mac's macOS version. Execs and forks also get the new process's
-    /// launched-by parent.
+    /// Build the `Message` with the Sensor ID, macOS version and, for execs and forks, the launched-by parent.
     ///
     /// - Parameters:
     ///   - message: The message. Only valid during the call.

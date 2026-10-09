@@ -78,7 +78,7 @@ public final class StreamCommand: NSObject {
     private let diagnose: (String) -> Void
     /// Banner and summary: only when standard error is a terminal.
     private let isChatty: Bool
-    /// `macmonitor`'s own version, such as "2.2.0 (1)".
+    /// `macmonitor`'s own version, such as "3.0.0 (1)".
     private let toolVersion: String
     /// Writes batches and handles answers, in order.
     private let queue = DispatchQueue(label: "com.swiftlydetecting.agent.cli.stream")

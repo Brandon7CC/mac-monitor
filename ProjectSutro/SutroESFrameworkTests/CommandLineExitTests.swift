@@ -26,7 +26,7 @@ final class CommandLineExitTests: XCTestCase {
             XCTAssertEqual(failure?.exit, exit, status.rawValue)
         }
         XCTAssertEqual(CommandLineFailure.reply(StreamReply(.sessionLimit, problem: "3 are running.",
-                                                            sensorVersion: "2.2.0 (1)"))?.message, "3 are running.")
+                                                            sensorVersion: "3.0.0 (1)"))?.message, "3 are running.")
         let older = CommandLineFailure.reply(StreamReply(.unsupported, sensorVersion: "2.1.0 (9)"))
         XCTAssertEqual(older?.message, """
             The Security Extension (2.1.0 (9)) is older than macmonitor. Open Mac Monitor to finish updating its \

@@ -62,7 +62,7 @@ public func showMuteSavePanel(title: String = "Save path mute set", name: String
     return response == .OK ? savePanel.url : nil
 }
 
-/// Ask for a mute file to import: a Mac Monitor mute file, or a list exported before 2.2.
+/// Ask for a mute file to import: a Mac Monitor mute file, or a list exported before 3.0.
 ///
 /// - Returns: The file to read, or `nil` if the user cancelled.
 public func showMuteOpenPanel() -> URL? {

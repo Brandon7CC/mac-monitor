@@ -10,9 +10,7 @@ import XCTest
 
 
 // MARK: - The linker the Security Extension runs
-/// Runs the linker against a pretend `/` in a temporary directory, as the user running the tests. Covers every way it
-/// can change `/usr/local/bin/macmonitor`, every way it refuses to, and that Settings' plans predict it. Creating
-/// `/usr/local/bin` as `root:wheel` needs root, so the VM covers that one.
+/// Runs the linker against a pretend `/` in a temporary directory, as the test user.
 final class CommandLineToolLinkerTests: XCTestCase {
     /// Install into an empty directory links the tool. Doing it again changes nothing.
     func testInstallLinksTheTool() throws {
@@ -92,8 +90,7 @@ final class CommandLineToolLinkerTests: XCTestCase {
         XCTAssertEqual(fixture.apply(.install, fixture.tool), .notADirectory)
     }
 
-    /// A tool that isn't an executable file in an app is refused before anything changes, so an Update with a bad
-    /// tool keeps the old link.
+    /// A bad tool is refused before anything changes.
     func testABadToolIsRefusedBeforeAnythingChanges() throws {
         let fixture = try ToolLinkFixture(for: self)
         let old = fixture.root + "/Old/Mac Monitor.app/Contents/MacOS/macmonitor"
@@ -121,8 +118,7 @@ final class CommandLineToolLinkerTests: XCTestCase {
         XCTAssertNil(fixture.linkContents)
     }
 
-    /// Our tool fails the full check outside a root-owned install. The test bundle's temporary directory belongs to
-    /// the user running the tests.
+    /// The full check fails outside a root-owned install.
     func testTheFullCheckNeedsARootOwnedInstall() throws {
         try XCTSkipIf(getuid() == 0, "Root owns everything root creates.")
         let fixture = try ToolLinkFixture(for: self)
@@ -153,8 +149,7 @@ final class CommandLineToolLinkerTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.binDirectory))
     }
 
-    /// A missing link directory is only created in a real directory our user owns. Never through a link, and never
-    /// where someone else could swap in a link while we work.
+    /// A missing directory is only created inside a real directory we own.
     func testAMissingDirectoryIsOnlyCreatedInADirectoryItsUserOwns() throws {
         try XCTSkipIf(getuid() == 0, "Root owns the directory this test needs someone else to own.")
         let fixture = try ToolLinkFixture(for: self)
@@ -171,8 +166,7 @@ final class CommandLineToolLinkerTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: foreign))
     }
 
-    /// Settings' plans predict the linker. Every plan Settings offers succeeds and leaves what it promised. Where
-    /// Settings offers nothing, the linker changes nothing when asked anyway.
+    /// Every plan Settings offers succeeds, and nothing changes where it offers none.
     func testSettingsPlansPredictTheLinker() throws {
         let fixture = try ToolLinkFixture(for: self)
         let other = fixture.root + "/Other/Mac Monitor.app/Contents/MacOS/macmonitor"

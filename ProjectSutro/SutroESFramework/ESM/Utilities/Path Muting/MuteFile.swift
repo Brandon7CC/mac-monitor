@@ -196,7 +196,7 @@ public enum MuteFileError: Error, Equatable, CustomStringConvertible {
     case malformed(String)
     /// A mute that can't be used, by its position (from 0).
     case invalidMute(index: Int, reason: String)
-    /// A line of a list exported before 2.2 that isn't a muted path, by its number (from 1).
+    /// A line of a list exported before 3.0 that isn't a muted path, by its number (from 1).
     case invalidLine(line: Int, reason: String)
     
     /// The problem, as a sentence for Mac Monitor and `macmonitor` to show.

@@ -154,8 +154,7 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// The reply is held until the batch has been saved to Core Data. That's the back-pressure: when inserts fall behind,
     /// the Security Extension stops sending and spools to disk instead of this process growing without bound.
     ///
-    /// An older Security Extension doesn't name launched-by parents, so its execs and forks get theirs here. The current
-    /// one asks Launch Services who launched each app before it sends the exec (``LaunchServicesHold``).
+    /// Execs and forks from an older Security Extension get their launched-by parent here.
     ///
     /// Batches are accepted even after recording stops: the Security Extension stops serializing at the source, so anything
     /// still arriving was recorded before Stop and belongs in the trace. (A Clear discards older events by time instead;

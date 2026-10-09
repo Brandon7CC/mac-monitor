@@ -87,8 +87,7 @@ final class CaptureLane {
     private let processPaths = ProcessPathMemory(capacity: ProcessPathMemory.laneCapacity)
     private let serializer: any EventSerializing
     private let emit: (CapturedEvent) -> Void
-    /// Holds app execs until Launch Services answers. Only the lane that handles execs has one, and only with a
-    /// Launch Services reader.
+    /// Only the exec lane has one
     private let hold: LaunchServicesHold?
     
     /// A lane that isn't recording and has no client yet.
@@ -97,10 +96,8 @@ final class CaptureLane {
     ///   - eventClass: The client this lane serves.
     ///   - sensorID: The Sensor ID to stamp on events.
     ///   - serializer: Builds each event's JSON.
-    ///   - launchServices: Reads Launch Services' records. The lane that handles execs uses it to hold each app's
-    ///     exec until Launch Services says who launched it. The default is `nil`, which holds nothing.
-    ///   - emit: Receives each event in order, on the client's handler queue or the hold's lookup queue. It's called
-    ///     under the lane's locks, so it must not block or call back into the session.
+    ///   - launchServices: Lets the exec lane hold app execs. `nil` holds nothing.
+    ///   - emit: Receives each event in order, under the lane's locks. It must not block.
     init(_ eventClass: EventClass, sensorID: String, serializer: any EventSerializing,
          launchServices: LaunchServicesReading? = nil, emit: @escaping (CapturedEvent) -> Void) {
         self.eventClass = eventClass
@@ -145,9 +142,7 @@ final class CaptureLane {
         }
     }
     
-    /// Send every held exec and the events waiting behind it, then stop holding.
-    ///
-    /// Call this while closing, once the lane is idle or we've given up waiting on it.
+    /// Send any held execs now. Call while closing.
     func releaseHeld() {
         hold?.close()
     }

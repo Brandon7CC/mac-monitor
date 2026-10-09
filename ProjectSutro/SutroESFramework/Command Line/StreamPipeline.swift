@@ -16,7 +16,7 @@ public enum StreamOutputFormat: String, CaseIterable, Sendable {
     case text
     /// One export record per line (``ExportEncoder``), an eslogger superset: the default anywhere else.
     case jsonl
-    /// The same records pretty-printed, like Export telemetry ▸ JSON (pretty). Easier to read in a terminal.
+    /// Pretty-printed records, like Export telemetry ▸ JSON (pretty)
     case pretty
 }
 
@@ -43,7 +43,7 @@ public final class StreamPipeline {
         ///
         /// - Parameters:
         ///   - model: The event model, such as ``ExportEncoder/model``.
-        ///   - pretty: Pretty-print each record (``StreamOutputFormat/pretty``) instead of writing one per line.
+        ///   - pretty: Pretty-print each record.
         /// - Returns: The formatter.
         public static func jsonl(model: NSManagedObjectModel, pretty: Bool = false) -> Formatter {
             let workers = min(4, max(1, ProcessInfo.processInfo.activeProcessorCount / 2))

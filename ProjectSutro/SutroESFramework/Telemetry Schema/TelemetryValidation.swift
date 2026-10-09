@@ -48,7 +48,7 @@ public struct TelemetryValidation: Sendable {
     /// Records that are eslogger's own JSON: eslogger's envelope without Mac Monitor's fields (no telemetry version
     /// and no event name).
     var esloggerRecords = 0
-    /// Records with Mac Monitor's fields but no telemetry version: exported before Mac Monitor 2.2.0.
+    /// Records with Mac Monitor's fields but no telemetry version: exported before Mac Monitor 3.0.0.
     var unversionedRecords = 0
     
     /// Is there a record, is every record valid, and was every record checked? A file with no records isn't a valid
@@ -142,7 +142,7 @@ public struct TelemetryValidation: Sendable {
             return "This looks like eslogger's JSON, without Mac Monitor's fields. \(esloggerAdvice)"
         }
         if telemetryVersions.isEmpty && unversionedRecords > 0 {
-            return "No record names a telemetry version: this looks like an export from before Mac Monitor 2.2.0, "
+            return "No record names a telemetry version: this looks like an export from before Mac Monitor 3.0.0, "
                 + "which no schema describes. Open it in Mac Monitor with File > Open Trace… and export it again "
                 + "to check it."
         }

@@ -43,7 +43,7 @@ public struct StreamReply: XPCReply, Equatable, Sendable {
     public var status: Status
     /// What went wrong, as a sentence, for every status but ``Status-swift.enum/ok``.
     public var problem: String?
-    /// The Security Extension's version, such as "2.2.0 (1)".
+    /// The Security Extension's version, such as "3.0.0 (1)".
     public var sensorVersion: String
     /// The stream that started, for a stream request.
     public var stream: StreamStarted?

@@ -34,9 +34,9 @@ integer) is untouched. The telemetry version is independent of the app's and fol
 - **MINOR** when a key, an event type, or a value of an enum is added.
 - **PATCH** when only the schema's text changes.
 
-Telemetry 1.0.0 is the version Mac Monitor 2.2.0 ships. `released-versions.txt` lists each released version with the
+Telemetry 1.0.0 is the version Mac Monitor 3.0.0 ships. `released-versions.txt` lists each released version with the
 SHA-256 of the file released with it, and a test fails if a released version's file changes. To validate an older
-trace, use the schema attached to the release that wrote it. A trace exported before Mac Monitor 2.2.0 names no
+trace, use the schema attached to the release that wrote it. A trace exported before Mac Monitor 3.0.0 names no
 telemetry version, and no schema describes it: open it with File > Open Trace… and export it again to check it.
 Each release attaches its schema beside the installer as `Mac-Monitor.telemetry.schema.json`.
 

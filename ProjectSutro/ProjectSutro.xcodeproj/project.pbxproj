@@ -5142,7 +5142,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.2.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.cli;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5165,7 +5165,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.2.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.cli;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -5192,7 +5192,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.2.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.cli;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5566,7 +5566,7 @@
 					"$(SDKROOT)/usr/lib/system",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.2.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent;
 				PRODUCT_NAME = "Mac Monitor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5607,7 +5607,7 @@
 					"$(SDKROOT)/usr/lib/system",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.2.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent;
 				PRODUCT_NAME = "Mac Monitor";
 				SKIP_INSTALL = NO;
@@ -5651,7 +5651,7 @@
 					"$(SDKROOT)/usr/lib/system",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.2.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent;
 				PRODUCT_NAME = "Mac Monitor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5691,7 +5691,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.2.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.securityextension;
 				PRODUCT_NAME = "$(inherited)";
 				PROVISIONING_PROFILE_SPECIFIER = "RC Release SE w/Ent";
@@ -5726,7 +5726,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.2.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.securityextension;
 				PRODUCT_NAME = "$(inherited)";
 				SKIP_INSTALL = NO;
@@ -5764,7 +5764,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 2.2.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.securityextension;
 				PRODUCT_NAME = "$(inherited)";
 				PROVISIONING_PROFILE_SPECIFIER = "RC Release SE w/Ent";

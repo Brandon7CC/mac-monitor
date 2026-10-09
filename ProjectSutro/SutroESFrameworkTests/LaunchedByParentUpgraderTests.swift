@@ -44,8 +44,7 @@ private final class FakeLaunchServicesReader: LaunchServicesReading {
 
 
 // MARK: - Looking up apps' launchers
-/// Tests which execs the Security Extension holds for Launch Services, how often it asks, and what it gets back. Also
-/// checks that a lane's events still leave in order.
+/// Tests the Launch Services lookup and the hold.
 final class LaunchedByParentUpgraderTests: XCTestCase {
     /// An app's label, as launchd names a LaunchServices instance.
     private let label = XCTestCase.lineageAppLabel
@@ -184,8 +183,7 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
 
     // MARK: Which execs are held
 
-    /// Only app execs with a target token are held. Forks, other events, Unix parents, non-app launchd jobs and execs
-    /// without an answer go straight through.
+    /// Only app execs with a target token are held.
     ///
     /// - Throws: The error reading a record.
     func testOnlyAppExecsAreHeld() throws {
@@ -288,8 +286,7 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
         XCTAssertEqual(reader.askedPIDs.filter { $0 == 607 }, [], "The exec past the bound isn't looked up")
     }
 
-    /// Closing sends every held exec and the events behind it right away. Nothing is sent afterwards, even when a
-    /// lookup finishes.
+    /// Closing sends everything right away, and nothing after.
     func testCloseReleasesEverythingAtOnce() {
         let reader = FakeLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }
         let hold = hold(reader)

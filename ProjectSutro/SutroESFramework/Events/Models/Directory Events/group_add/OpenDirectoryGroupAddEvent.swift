@@ -42,7 +42,7 @@ public struct OpenDirectoryGroupAddEvent: Identifiable, Codable, Hashable, OpenD
     public var db_path: String?
     
     /// Mac Monitor enrichment: the error's description, the name of the member's type (written in place of `member`
-    /// before 2.2.0), and the instigator's name, path, audit token and signing ID.
+    /// before 3.0.0), and the instigator's name, path, audit token and signing ID.
     public var error_code_human, member_string: String?
     public var instigator_process_name, instigator_process_path: String?
     public var instigator_process_audit_token, instigator_process_signing_id: String?
@@ -63,7 +63,7 @@ public struct OpenDirectoryGroupAddEvent: Identifiable, Codable, Hashable, OpenD
     }
     
     /// Read the event from eslogger's JSON, an export, or the Security Extension, including those before
-    /// 2.2.0, which wrote the name of the member's type as `member`.
+    /// 3.0.0, which wrote the name of the member's type as `member`.
     ///
     /// - Parameter decoder: The event's decoder.
     /// - Throws: The error decoding a field.

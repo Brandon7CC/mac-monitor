@@ -16,7 +16,7 @@ import SutroESFramework
 /// Never from `Bundle.main`: `macmonitor` lives in `Mac Monitor.app/Contents/MacOS`, so `Bundle.main` is the app, and
 /// the framework's own version is 1.
 enum ToolVersion {
-    /// Such as "2.2.0 (1)", in the format the Security Extension reports its own, or "unknown (unknown)" if the
+    /// Such as "3.0.0 (1)", in the format the Security Extension reports its own, or "unknown (unknown)" if the
     /// section can't be read.
     static let current: String = StreamService.version(from: embeddedInfo())
     

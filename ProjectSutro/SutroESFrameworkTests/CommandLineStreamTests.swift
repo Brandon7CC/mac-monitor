@@ -230,7 +230,7 @@ final class CommandLineStreamTests: XCTestCase {
         try deliverExits([1], in: harness, to: run)
         XCTAssertTrue(waitUntil { run.output.lines.count == 1 })
         XCTAssertEqual(run.diagnostics.all.first, """
-            macmonitor: macmonitor is 2.2.1 (2) but the Security Extension is 2.2.0 (1). Open Mac Monitor to finish \
+            macmonitor: macmonitor is 2.2.1 (2) but the Security Extension is 3.0.0 (1). Open Mac Monitor to finish \
             updating.
             """)
         _ = try stop(run)

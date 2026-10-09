@@ -28,7 +28,7 @@ public final class StreamService {
     let savedMutes: SavedMuteSet
     /// The streams running.
     let slots: StreamSlots
-    /// The Security Extension's version, such as "2.2.0 (1)".
+    /// The Security Extension's version, such as "3.0.0 (1)".
     let sensorVersion: String
     /// Is the caller allowed? Asked on the thread delivering each request: root only.
     let admits: (NSXPCConnection?) -> Bool
@@ -93,7 +93,7 @@ public final class StreamService {
     /// A bundle's version as `macmonitor` shows it.
     ///
     /// - Parameter bundle: The bundle, such as the Security Extension's.
-    /// - Returns: Its short version and build, such as "2.2.0 (1)".
+    /// - Returns: Its short version and build, such as "3.0.0 (1)".
     static func version(of bundle: Bundle) -> String {
         version(from: bundle.infoDictionary ?? [:])
     }
@@ -102,7 +102,7 @@ public final class StreamService {
     /// so they only differ when the versions do.
     ///
     /// - Parameter info: An `Info.plist`'s keys.
-    /// - Returns: Its short version and build, such as "2.2.0 (1)", each "unknown" if it's missing.
+    /// - Returns: Its short version and build, such as "3.0.0 (1)", each "unknown" if it's missing.
     public static func version(from info: [String: Any]) -> String {
         let short = info["CFBundleShortVersionString"] as? String ?? "unknown"
         let build = info["CFBundleVersion"] as? String ?? "unknown"

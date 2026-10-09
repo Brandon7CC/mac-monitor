@@ -12,7 +12,7 @@ import OSLog
 
 /// Import… and Export for the saved mute set.
 ///
-/// - **Import…** reads a mute file (version 1, or the list Mac Monitor exported before 2.2), shows what it holds and
+/// - **Import…** reads a mute file (version 1, or the list Mac Monitor exported before 3.0), shows what it holds and
 ///   what was left out, then replaces the saved set or adds to it.
 /// - **Export ▸ Saved mute set…** writes the saved set as a version 1 mute file, exactly as the Security Extension
 ///   keeps it.
@@ -85,7 +85,7 @@ struct MuteFileMenu: View {
     /// - Returns: The confirmation's message.
     private func message(for pending: PendingImport) -> String {
         let format = pending.imported.format == .current ? "A Mac Monitor mute file."
-            : "A mute list exported before Mac Monitor 2.2."
+            : "A mute list exported before Mac Monitor 3.0."
         let choice = pending.imported.list.isEmpty ? ""
             : " Replace makes it the saved mute set; Add merges it into the saved set."
         guard !pending.imported.warnings.isEmpty else { return format + choice }

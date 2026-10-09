@@ -11,7 +11,7 @@ import EndpointSecurity
 
 
 // MARK: - Importing mute files
-/// Pins Import: a version 1 file, or the one `ESMutedPath` per line list Mac Monitor exported before 2.2 (and the
+/// Pins Import: a version 1 file, or the one `ESMutedPath` per line list Mac Monitor exported before 3.0 (and the
 /// files in "Mute sets/"), read leniently with a sentence for each thing left out.
 final class MuteFileReaderTests: XCTestCase {
     /// A legacy line.

@@ -13,7 +13,7 @@ import EndpointSecurity
 // MARK: - Members and enum names
 /// Pins how an `od_group_add` or `od_group_remove` event's member is read and written (eslogger's
 /// `{member_type, member_value}`), and the names Mac Monitor gives Open Directory enums, which were its only record of
-/// them before 2.2.0 and are kept in the `*_string` fields.
+/// them before 3.0.0 and are kept in the `*_string` fields.
 final class OpenDirectoryMemberTests: XCTestCase {
     /// The UUID eslogger wrote for a user in the fixture's `od_group_add` event.
     private static let userUUID = "0A0A0A0A-1B1B-4C2C-8D3D-00000000A001"
@@ -30,7 +30,7 @@ final class OpenDirectoryMemberTests: XCTestCase {
         XCTAssertEqual([ES_OD_ACCOUNT_TYPE_USER, ES_OD_ACCOUNT_TYPE_COMPUTER].map(\.rawValue), [0, 1])
     }
     
-    /// Each value is named as Mac Monitor named it before 2.2.0, and a value the SDK doesn't define as it did then.
+    /// Each value is named as Mac Monitor named it before 3.0.0, and a value the SDK doesn't define as it did then.
     func testNames() {
         let memberType = ODEnumNames.memberType, recordType = ODEnumNames.recordType
         let accountType = ODEnumNames.accountType

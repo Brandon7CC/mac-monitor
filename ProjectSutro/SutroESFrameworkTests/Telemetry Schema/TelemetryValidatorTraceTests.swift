@@ -245,7 +245,7 @@ final class TelemetryValidatorTraceTests: XCTestCase {
         
         let old = try validator.validate(traceAt: try fixtureURL("macmonitor-2.1-exit.jsonl"))
         XCTAssertEqual(old.hint(), "No record names a telemetry version: this looks like an export from before Mac "
-                        + "Monitor 2.2.0, which no schema describes. Open it in Mac Monitor with File > Open Trace… "
+                        + "Monitor 3.0.0, which no schema describes. Open it in Mac Monitor with File > Open Trace… "
                         + "and export it again to check it.")
         
         let newer = try validate(try text([record(1, version: "9.9.9")])[0])

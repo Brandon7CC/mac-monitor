@@ -73,39 +73,33 @@ extension LaunchedByParent.ResolvedBy {
 
 
 // MARK: - Badge
-/// Badge for a launched-by parent, styled like ``GroupLeaderView``. The icon shows where the answer came from.
-///
-/// By default the badge names the launcher itself, such as "Dock". Beside a "Launched by parent" heading that already
-/// shows the launcher, it names the source instead, such as "Launch Services".
+/// Launched-by parent badge, styled like ``GroupLeaderView``. Shows the launcher's name (e.g., "Dock"), or the
+/// source (e.g., "Launch Services") with `showsSource`.
 struct LaunchedByParentBadge: View {
-    /// The launched-by parent
     let launchedByParent: LaunchedByParent
-    /// Show the source's name instead of the launcher's?
     let showsSource: Bool
     
     /// - Parameters:
     ///   - launchedByParent: The launched-by parent to show.
-    ///   - showsSource: Show the source's name instead of the launcher's. Defaults to `false`.
+    ///   - showsSource: Show the source instead of the launcher.
     init(_ launchedByParent: LaunchedByParent, showsSource: Bool = false) {
         self.launchedByParent = launchedByParent
         self.showsSource = showsSource
     }
     
-    /// Where the answer came from
     private var source: LaunchedByParent.Source { launchedByParent.source }
     
-    /// The launcher's process name, else its pid. `nil` when Launch Services recorded no launcher.
+    /// The launcher's name, else its pid. `nil` when no launcher was recorded.
     private var launcherName: String? {
         if let name = launchedByParent.path.map({ ($0 as NSString).lastPathComponent }), !name.isEmpty { return name }
         return launchedByParent.pid.map { "pid \($0)" }
     }
     
-    /// The badge's text
     private var text: String {
         showsSource ? source.title : launcherName ?? source.title
     }
     
-    /// What the badge means, such as "Launched by Dock (pid 1350) through Launch Services."
+    /// e.g., "Launched by Dock (pid 1350) through Launch Services."
     private var summary: String {
         guard let name = launcherName else { return "Launched through \(source.title). No launcher was recorded." }
         let pid = launchedByParent.pid.map { " (pid \($0))" } ?? ""

@@ -77,7 +77,7 @@ final class LaunchedByParentWireTests: XCTestCase {
         try JSONDecoder().decode(Message.self, from: JSONSerialization.data(withJSONObject: object))
     }
     
-    /// From a 2.2 Security Extension to a 2.2 app: the launched-by parent arrives as stamped, on a fork and on an exec.
+    /// From a 3.0 Security Extension to a 3.0 app: the launched-by parent arrives as stamped, on a fork and on an exec.
     ///
     /// - Throws: An `XCTest` failure, or an encoder's or decoder's error.
     func testFromThisVersion() throws {

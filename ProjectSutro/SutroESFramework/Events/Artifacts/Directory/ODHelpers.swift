@@ -148,7 +148,7 @@ public func decodeODErrorCode(_ errorCode: Int) -> String {
 /// The names Mac Monitor gives an Open Directory enum's values, which it writes in a `*_string` field beside
 /// eslogger's number: `member_string`, `record_type_string` and `account_type_string`.
 ///
-/// Before 2.2.0 Mac Monitor wrote these names in place of the numbers, so they also read those events back.
+/// Before 3.0.0 Mac Monitor wrote these names in place of the numbers, so they also read those events back.
 struct ODEnumNames {
     /// The name of each value.
     let names: [Int: String]

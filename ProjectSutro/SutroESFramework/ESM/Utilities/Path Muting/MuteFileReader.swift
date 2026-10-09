@@ -14,9 +14,9 @@ import EndpointSecurity
 public struct MuteImport: Sendable {
     /// How the file was written.
     public enum Format: Sendable {
-        /// A ``MuteFile``, as Mac Monitor 2.2 and later export.
+        /// A ``MuteFile``, as Mac Monitor 3.0 and later export.
         case current
-        /// One `ESMutedPath` JSON object per line, as Mac Monitor exported before 2.2.
+        /// One `ESMutedPath` JSON object per line, as Mac Monitor exported before 3.0.
         case legacy
     }
     
@@ -36,7 +36,7 @@ public struct MuteImport: Sendable {
 /// warning to show before anything is sent. The Security Extension is strict: it refuses any request with an entry it
 /// can't use, and never reads a file itself.
 public enum MuteFileReader {
-    /// One line of a list exported before 2.2: an `ESMutedPath`, of which only these keys matter (`eventCount` and
+    /// One line of a list exported before 3.0: an `ESMutedPath`, of which only these keys matter (`eventCount` and
     /// `id` are ignored).
     private struct Line: Decodable {
         let path: String
@@ -44,7 +44,7 @@ public enum MuteFileReader {
         let events: [String]?
     }
     
-    /// Read a version 1 mute file, or the list Mac Monitor exported before 2.2 (one `ESMutedPath` JSON object per
+    /// Read a version 1 mute file, or the list Mac Monitor exported before 3.0 (one `ESMutedPath` JSON object per
     /// line, such as Export ▸ Current mute set… and the files in "Mute sets/").
     ///
     /// The version 1 reader goes first. If both fail, the error shown is the legacy one only when the first line reads

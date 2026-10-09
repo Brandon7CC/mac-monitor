@@ -78,7 +78,7 @@ enum SyntheticCorpus {
         case ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN:
             /// A parent at message version 10 whose path is NULL.
             all.append(variant("parent without path", absent: [unflagged, "IOKitOpenEvent.parent_path"]))
-            /// A parent at message version 10 that Mac Monitor before 2.2.0 left out, registry ID and all.
+            /// A parent at message version 10 that Mac Monitor before 3.0.0 left out, registry ID and all.
             all.append(variant("parent unrecorded", absent: [unflagged, "IOKitOpenEvent.parent_path",
                                                              "IOKitOpenEvent.parent_registry_id"]))
         case ES_EVENT_TYPE_NOTIFY_CREATE, ES_EVENT_TYPE_NOTIFY_RENAME:

@@ -79,7 +79,6 @@ public struct CommandLineToolLink {
         case unusableDirectory(String)
     }
     
-    /// What Install…, Update… and Remove… ask for
     public enum Action: String, Equatable {
         /// Link this copy's tool, replacing Mac Monitor's link to another copy.
         case install
@@ -87,7 +86,7 @@ public struct CommandLineToolLink {
         case remove
     }
     
-    /// One change, based on what Settings showed
+    /// One change, from what Settings showed
     public struct Plan: Equatable {
         /// Install or remove.
         public let action: Action
@@ -95,8 +94,7 @@ public struct CommandLineToolLink {
         public let tool: String
         /// The link's directory.
         public let binDirectory: String
-        /// What must be at the link's path for the change to go ahead. It's the link's value Settings showed, or empty
-        /// for nothing. If something else is there now, nothing changes.
+        /// The link's value Settings showed, or empty. The change only happens if it still matches.
         public let expected: String
 
         /// - Parameters:

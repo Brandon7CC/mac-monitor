@@ -9,27 +9,14 @@ import Foundation
 
 
 // MARK: - Launch Services reader
-/// Reads Launch Services' records of the apps it launched, so the Security Extension can name who asked for each
-/// launch (``LaunchedByParentUpgrader``).
-///
-/// There's no public API for this. We use the private calls `lsappinfo(1)` is built on and look them up at run time.
-/// On a macOS without them we read nothing, and apps keep their launchd job as the launched-by parent.
+/// Reads Launch Services' records of the apps it launched, using the private calls `lsappinfo(1)` uses.
 /// ```c
 /// LSASNRef        _LSASNCreateWithPid(CFAllocatorRef, pid_t);                              // no IPC
 /// CFDictionaryRef _LSCopyApplicationInformation(LSSessionID, LSASNRef, CFArrayRef keys);  // -2: default session
 /// ```
-/// Each read asks for the three keys we need from the app's record. Then it reads the launcher's `LSAuditToken` and
-/// executable path from the launcher's own record. Launch Services keeps that record for a while after the launcher
-/// quits, so we can still name it after its pid is gone.
-///
-/// Session `-2` isn't limited to the caller's login session. On macOS 27, running as root from an SSH session, it
-/// returned the console user's apps. Passing their audit session ID returned nothing. That's why the Security
-/// Extension can read these records even though it runs outside any login session.
-///
-/// The calls are exported in the macOS 26.5 and 27 SDKs and we've tested them on macOS 27. macOS 13 to 15 haven't been
-/// checked yet. A read takes about 0.03-0.3 ms (about 1 ms the first time), so never call it on a handler queue.
+/// Session `-2` also returns the console user's apps to root, so this works from the Security Extension. Tested on
+/// macOS 27. Each read takes 0.03-0.3 ms.
 final class LaunchServicesReader: LaunchServicesReading {
-    /// The reader every live capture session uses
     static let shared = LaunchServicesReader()
     
     /// LaunchServices' record of a process.

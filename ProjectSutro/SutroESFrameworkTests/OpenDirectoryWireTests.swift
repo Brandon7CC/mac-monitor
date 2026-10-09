@@ -12,7 +12,7 @@ import EndpointSecurity
 
 // MARK: - Open Directory events over XPC
 /// Pins that the app reads the Open Directory events a Security Extension sends it (a `Message` as `JSONEncoder` writes
-/// it), from 2.2.0's and from older ones, which named the member's, record's and account's types in place of eslogger's
+/// it), from 3.0.0's and from older ones, which named the member's, record's and account's types in place of eslogger's
 /// object and numbers, and kept no instigator: the app drops an event it can't decode.
 final class OpenDirectoryWireTests: XCTestCase {
     /// Open Directory events as Mac Monitor up to 2.1.0 sent and exported them.
@@ -91,7 +91,7 @@ final class OpenDirectoryWireTests: XCTestCase {
         }
     }
     
-    /// 2.2.0's Security Extension sends eslogger's fields, and the app reads them all back.
+    /// 3.0.0's Security Extension sends eslogger's fields, and the app reads them all back.
     ///
     /// - Throws: The error encoding or decoding a message, or an `XCTest` failure if a record holds no OD event.
     func testRoundTrip() throws {

@@ -120,7 +120,7 @@ extension OpenDirectoryEvent {
     /// Derive the error's description, and the instigator's name, path, signing ID and audit token.
     ///
     /// Without the instigator's process, its audit token comes from `instigator_token`. An event recorded before
-    /// 2.2.0 has neither (Mac Monitor didn't keep them), so the values it carries are kept.
+    /// 3.0.0 has neither (Mac Monitor didn't keep them), so the values it carries are kept.
     mutating func enrichCommonFields() {
         error_code_human = decodeODErrorCode(error_code)
         guard instigator != nil || instigator_token != nil else { return }
@@ -142,7 +142,7 @@ enum ODGroupMemberKeys: String, CodingKey {
 protocol OpenDirectoryGroupMemberEvent: OpenDirectoryEvent {
     /// The group.
     var group_name: String? { get set }
-    /// The member added or removed: `nil` only for an event recorded before 2.2.0 whose member's type Mac Monitor
+    /// The member added or removed: `nil` only for an event recorded before 3.0.0 whose member's type Mac Monitor
     /// didn't know.
     var member: OpenDirectoryMember? { get set }
     /// Mac Monitor enrichment: the name of the member's type (``ODEnumNames/memberType``).
@@ -179,7 +179,7 @@ extension OpenDirectoryGroupMemberEvent {
         member_string = member.map { ODEnumNames.memberType.name(of: $0.member_type) } ?? member_string
     }
     
-    /// The member for the event's summary: its name or UUID, or, for an event recorded before 2.2.0, the name of its
+    /// The member for the event's summary: its name or UUID, or, for an event recorded before 3.0.0, the name of its
     /// type.
     var memberSummary: String {
         member?.member_value ?? member_string ?? ""
@@ -187,10 +187,10 @@ extension OpenDirectoryGroupMemberEvent {
 }
 
 
-// MARK: - Values Mac Monitor wrote differently before 2.2.0
+// MARK: - Values Mac Monitor wrote differently before 3.0.0
 extension KeyedDecodingContainer {
     /// An Open Directory enum's value and name: eslogger's number, or the name Mac Monitor wrote in its place before
-    /// 2.2.0 (``ODEnumNames``).
+    /// 3.0.0 (``ODEnumNames``).
     ///
     /// The number is tried first: ``TraceDecoder`` reads a number as a string of its digits too.
     ///
@@ -211,7 +211,7 @@ extension KeyedDecodingContainer {
     }
     
     /// An `od_group_add` or `od_group_remove` event's member and the name of its type: eslogger's object, or the
-    /// name Mac Monitor wrote in its place before 2.2.0.
+    /// name Mac Monitor wrote in its place before 3.0.0.
     ///
     /// The name is tried first: ``TraceDecoder`` reads a string as an object holding it, whose fields it defaults.
     ///
