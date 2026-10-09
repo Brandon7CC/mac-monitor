@@ -89,7 +89,7 @@ public enum CommandLineHelp {
                                                           Unmute a path, or only the events named.
                   import FILE|- [--merge] [--yes]         Make a mute file's mutes the saved set, or with --merge add
                                                           them to it. Reads Mac Monitor mute files and the lists Mac
-                                                          Monitor exported before 2.2. - reads standard input.
+                                                          Monitor exported before 3.0. - reads standard input.
                   export                                  Write the saved set as a mute file to standard output.
                   reset [--yes]                           Restore Mac Monitor's default set. Its mutes for a home
                                                           folder's caches and Biome streams are for the user logged

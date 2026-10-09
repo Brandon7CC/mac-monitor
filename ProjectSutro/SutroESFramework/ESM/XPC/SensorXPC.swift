@@ -222,8 +222,7 @@ public enum SensorXPC {
     // MARK: Command line tool
     /// Install or remove `/usr/local/bin/macmonitor` as root.
     ///
-    /// The Security Extension only acts when the authorization holds ``CommandLineToolAuthorization/rightName``, which
-    /// means an administrator approved this change. The link's directory is always `/usr/local/bin`.
+    /// Needs an administrator's approval (``CommandLineToolAuthorization``). The directory is always `/usr/local/bin`.
     ///
     /// - Parameters:
     ///   - action: `install` or `remove` (``CommandLineToolLink/Action``).

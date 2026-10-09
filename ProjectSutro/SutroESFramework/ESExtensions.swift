@@ -164,7 +164,7 @@ enum ESLogger {
     /// Is `time` exactly as eslogger writes it: UTC to the nanosecond, `2026-10-04T00:01:54.394127173Z`?
     ///
     /// - Parameter time: A message's `time`.
-    /// - Returns: `true` for eslogger's format, which Mac Monitor also writes since 2.2.0.
+    /// - Returns: `true` for eslogger's format, which Mac Monitor also writes since 3.0.0.
     static func isESLoggerTime(_ time: String) -> Bool {
         matches(time, timeTemplate)
     }
@@ -185,7 +185,7 @@ enum ESLogger {
         }
     }
     
-    /// `time` from a message, rebuilt when it came from a Security Extension older than 2.2.0.
+    /// `time` from a message, rebuilt when it came from a Security Extension older than 3.0.0.
     ///
     /// Those sent local time to the millisecond with a literal `Z`, which can't be read back exactly. The rebuilt value
     /// comes from `message_darwin_time`, to the microsecond: older Security Extensions and 2.1 exports carry no finer
@@ -217,7 +217,7 @@ enum ESLogger {
     
     /// When an event happened, from its `time` as eslogger or any version of Mac Monitor wrote it.
     ///
-    /// eslogger's `time` (and Mac Monitor's since 2.2.0) is UTC to the nanosecond, and is read exactly. Up to 2.1.0 Mac
+    /// eslogger's `time` (and Mac Monitor's since 3.0.0) is UTC to the nanosecond, and is read exactly. Up to 2.1.0 Mac
     /// Monitor wrote the recording Mac's local time to the millisecond with a literal `Z`; that's read in this Mac's time
     /// zone with the formatter that wrote it, so it's exact to the millisecond when both Macs share a time zone.
     ///

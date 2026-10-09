@@ -7,7 +7,7 @@
 	<key>NSSystemExtensionUsageDescriptionKey</key>
 	<string>Mac Monitor requires a Security Extension to be installed to monitor system events.</string>
 	<key>ProjectSutroBuildName</key>
-	<string>RockHopper</string>
+	<string>Gentoo</string>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict>

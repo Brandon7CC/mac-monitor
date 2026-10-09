@@ -128,8 +128,7 @@ public enum CommandLineParser {
     
     /// `stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes] [--include-self]`.
     ///
-    /// `--json`, `--pretty` and `--text` are short for `--format jsonl`, `--format pretty` and `--format text`. The
-    /// same format can be named twice, but two different formats are an error.
+    /// `--json`, `--pretty` and `--text` are short for `--format jsonl|pretty|text`.
     ///
     /// - Parameter cursor: The arguments.
     /// - Returns: The stream asked for.
@@ -165,17 +164,15 @@ public enum CommandLineParser {
         return invocation
     }
     
-    /// Shorthand options for `stream`'s formats
     static let formatShorthands: [String: StreamOutputFormat] = ["--json": .jsonl, "--pretty": .pretty, "--text": .text]
-    /// Options for `stream` that take no value
     static let flags = Set(formatShorthands.keys).union(["--no-mutes", "--include-self"])
     
-    /// Set a stream's format, unless a different one was already chosen.
+    /// Set the format, refusing a second, different one.
     ///
     /// - Parameters:
     ///   - format: The format.
     ///   - invocation: The stream.
-    /// - Throws: ``CommandLineUsageError`` when the command line names two formats.
+    /// - Throws: ``CommandLineUsageError`` for two formats.
     private static func choose(_ format: StreamOutputFormat, for invocation: inout StreamInvocation) throws {
         if let chosen = invocation.format, chosen != format {
             throw CommandLineUsageError("Choose one output format, not both \(chosen.rawValue) and \(format.rawValue).",

@@ -12,8 +12,8 @@ import EndpointSecurity
 
 // MARK: - Reading remote_thread_create events
 /// Pins that every form of a `remote_thread_create` event's `thread_state` is read, by the app from the Security
-/// Extension (`JSONDecoder`) and by File > Open Trace… (``TraceDecoder``): eslogger's object or `null`, a 2.2.0 export,
-/// and the flavor's name (or nothing) that Mac Monitor wrote before 2.2.0.
+/// Extension (`JSONDecoder`) and by File > Open Trace… (``TraceDecoder``): eslogger's object or `null`, a 3.0.0 export,
+/// and the flavor's name (or nothing) that Mac Monitor wrote before 3.0.0.
 final class RemoteThreadCreateDecodingTests: XCTestCase {
     /// How an event is read.
     private enum Reader: String, CaseIterable {
@@ -25,7 +25,7 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
         case eslogger
     }
     
-    /// The thread state of a 2.2.0 export with bytes.
+    /// The thread state of a 3.0.0 export with bytes.
     private static let exported = ThreadState(flavor: 6, state_base64: "AAEC/w==")
     
     /// A process to create threads in, as the Security Extension sends one: `/bin/sleep`.
@@ -94,7 +94,7 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
     }
     
     /// A flavor neither architecture names is kept, without a name. TraceDecoder bridged `thread_state` to its name
-    /// before 2.2.0, which made such a state `null`.
+    /// before 3.0.0, which made such a state `null`.
     func testUnnamedFlavorIsKept() {
         assertReads(["thread_state": ["flavor": 999, "state": NSNull()]],
                     as: ThreadState(flavor: 999, state_base64: nil), name: nil)
@@ -119,7 +119,7 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
     
     // MARK: Mac Monitor
     
-    /// A 2.2.0 export or message reads back exactly: its bytes and its flavor's name.
+    /// A 3.0.0 export or message reads back exactly: its bytes and its flavor's name.
     func testExportRoundTrips() {
         let thread: [String: Any] = [
             "thread_state": ["flavor": 6, "state": NSNull(), "state_base64": "AAEC/w=="],
@@ -128,7 +128,7 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
         assertReads(thread, by: [.wire, .export], as: Self.exported, name: "ARM_THREAD_STATE64")
     }
     
-    /// The name Mac Monitor wrote before 2.2.0 is read as its flavor, without bytes, on either architecture.
+    /// The name Mac Monitor wrote before 3.0.0 is read as its flavor, without bytes, on either architecture.
     func testLegacyNames() {
         let legacy = [Reader.wire, .export]
         assertReads(["thread_state": "ARM_THREAD_STATE64"], by: legacy, as: ThreadState(flavor: 6, state_base64: nil),
@@ -138,7 +138,7 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
         assertReads(["thread_state": "BOGUS"], by: legacy, as: nil, name: "BOGUS")
     }
     
-    /// Before 2.2.0 an unnamed flavor was written as `null`, or left out.
+    /// Before 3.0.0 an unnamed flavor was written as `null`, or left out.
     func testLegacyMissingThreadState() {
         assertReads(["thread_state": NSNull()], by: [.wire, .export], as: nil, name: nil)
         assertReads([:], as: nil, name: nil)

@@ -45,7 +45,7 @@ public class ESODEvent: NSManagedObject {
     /// fields into the same object.
     ///
     /// `instigator` is `null` when Endpoint Security left it out, as eslogger writes it, and so is `instigator_token`
-    /// before message version 8 and in events recorded before 2.2.0, which Mac Monitor didn't keep.
+    /// before message version 8 and in events recorded before 3.0.0, which Mac Monitor didn't keep.
     ///
     /// - Parameter encoder: The event's encoder.
     /// - Throws: The error encoding a field.

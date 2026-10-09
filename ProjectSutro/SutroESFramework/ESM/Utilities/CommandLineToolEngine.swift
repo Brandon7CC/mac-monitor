@@ -15,8 +15,7 @@ extension EndpointSecurityManager {
     /// - Parameters:
     ///   - plan: The change Settings offered.
     ///   - authorization: An administrator's approval (``CommandLineToolAuthorization/requestApproval(prompt:)``).
-    ///   - completion: Called on the main thread with what happened. We report `.unavailable` if the Security
-    ///     Extension couldn't be reached.
+    ///   - completion: Called on the main thread. `.unavailable` if the Security Extension couldn't be reached.
     public func changeCommandLineTool(_ plan: CommandLineToolLink.Plan, authorization: Data,
                                       completion: @escaping (CommandLineToolLinker.Outcome) -> Void) {
         sensor.call {

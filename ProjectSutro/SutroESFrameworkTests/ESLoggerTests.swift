@@ -104,7 +104,7 @@ final class ESLoggerTests: XCTestCase {
                        "2026-10-04T00:01:54.000000000Z")
     }
     
-    /// A Security Extension older than 2.2.0 sent local time to the millisecond: it's rebuilt from
+    /// A Security Extension older than 3.0.0 sent local time to the millisecond: it's rebuilt from
     /// `message_darwin_time`.
     func testLegacyTimeIsRebuiltFromDarwinTime() {
         let darwinTime = Date(timeIntervalSince1970: TimeInterval(Self.seconds) + 0.5)

@@ -14,7 +14,7 @@ import os
 /// Security Extension's answer.
 ///
 /// The Security Extension never reads a file: `import` reads it here, as root, with ``MuteFileReader`` (Mac Monitor's
-/// mute files and the lists exported before 2.2), says what was left out, and sends the mutes. `export` writes the
+/// mute files and the lists exported before 3.0), says what was left out, and sends the mutes. `export` writes the
 /// saved set to standard output, so the shell creates the file, as the user.
 ///
 /// `import` and `reset` replace or grow the set Mac Monitor and every stream follow, so they say what they'd change

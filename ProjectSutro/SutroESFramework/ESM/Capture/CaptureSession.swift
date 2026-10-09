@@ -24,9 +24,8 @@ import OSLog
 /// arrives unmuted.
 ///
 /// **Order:** each class's events are emitted in the order its client delivers them, so `fork`, `exec`, and `exit`
-/// keep Endpoint Security's order. That holds even while an app's exec waits for Launch Services
-/// (``LaunchServicesHold``). Classes interleave in the order their events are handled. Nothing re-sorts them by
-/// `mach_time`.
+/// keep Endpoint Security's order, including while an app's exec is held (``LaunchServicesHold``). Classes interleave
+/// in the order their events are handled. Nothing re-sorts them by `mach_time`.
 ///
 /// **Threading:** not thread-safe. Create the session and call it on one serial queue. Only the clients' handlers run
 /// elsewhere, and they call `emit`, which must not block or call back into the session.
@@ -84,10 +83,8 @@ public final class CaptureSession {
     ///   - factory: Makes the clients.
     ///   - serializer: Builds each event's JSON.
     ///   - makeSensorID: Computes the Sensor ID stamped on events, now and on ``refreshSensorID()``.
-    ///   - launchServices: Reads Launch Services' records so the exec lane can hold each app's exec until we know
-    ///     who launched it (``LaunchServicesHold``). The default is `nil`, which holds nothing.
-    ///   - emit: Receives each event in its class's order, on the client's handler queue or the hold's lookup queue.
-    ///     It must not block or call back into the session.
+    ///   - launchServices: Lets the exec lane hold app execs (``LaunchServicesHold``). `nil` holds nothing.
+    ///   - emit: Receives each event in its class's order. It must not block or call back into the session.
     /// - Throws: ``CaptureStartError``, once every client already created is deleted.
     init(_ configuration: CaptureConfiguration, clients factory: any EndpointSecurityClientFactory,
          serializer: any EventSerializing, sensorID makeSensorID: @escaping () -> String,

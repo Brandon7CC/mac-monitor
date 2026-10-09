@@ -213,7 +213,7 @@ extension SensorService: SensorProtocol {
     
     func changeCommandLineTool(action: String, tool: String, expected: String, authorization: Data,
                                reply: @escaping (Int) -> Void) {
-        /// Off `queue`, which buffers events. Checking the tool's signature reads it from disk.
+        // Off `queue` since the signature check reads from disk.
         DispatchQueue.global(qos: .userInitiated).async { [logger] in
             guard let action = CommandLineToolLink.Action(rawValue: action) else {
                 return reply(CommandLineToolLinker.Outcome.badTool.rawValue)

@@ -91,7 +91,7 @@ enum CommandLineTool {
     
     /// The Security Extension's version, asked over a fresh connection.
     ///
-    /// - Returns: Such as "2.2.0 (1)", or why it couldn't be asked.
+    /// - Returns: Such as "3.0.0 (1)", or why it couldn't be asked.
     private static func sensorVersion() -> String {
         withConnection { client, finish in
             client.send(StreamRequest(.hello), timeout: .seconds(5)) { result in

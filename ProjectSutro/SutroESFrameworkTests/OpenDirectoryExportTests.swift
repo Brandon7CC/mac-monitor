@@ -13,7 +13,7 @@ import EndpointSecurity
 // MARK: - Open Directory events in eslogger's format
 /// Pins that exports of Open Directory events have every key eslogger writes, with eslogger's value: the instigator's
 /// process (or `null`), `instigator_token`, the member object, numeric record and account types, and `db_path` as
-/// `null` when there's none. Mac Monitor's own fields are added beside them, and events exported before 2.2.0 are read
+/// `null` when there's none. Mac Monitor's own fields are added beside them, and events exported before 3.0.0 are read
 /// back with what they kept.
 ///
 /// The golden records (`eslogger-od.jsonl`) are eslogger's output on macOS 27 (message version 10), scrubbed, plus
@@ -118,7 +118,7 @@ final class OpenDirectoryExportTests: XCTestCase {
         }
     }
     
-    // MARK: Exports before 2.2.0
+    // MARK: Exports before 3.0.0
     
     /// The export of an Open Directory event from a Mac Monitor 2.1 export, which holds the legacy fixture's event.
     ///
@@ -133,7 +133,7 @@ final class OpenDirectoryExportTests: XCTestCase {
         return try event(name, in: try export(try importRecord(record)))
     }
     
-    /// An Open Directory event exported before 2.2.0 is exported again with the numbers its names stand for, the names
+    /// An Open Directory event exported before 3.0.0 is exported again with the numbers its names stand for, the names
     /// kept in the `*_string` fields, and `null` for what it didn't keep.
     ///
     /// - Throws: The error reading a record, or an `XCTest` failure if an export isn't a JSON object.
@@ -157,7 +157,7 @@ final class OpenDirectoryExportTests: XCTestCase {
                        user, "create user")
     }
     
-    /// A 2.2.0 export reads back as it was exported.
+    /// A 3.0.0 export reads back as it was exported.
     ///
     /// - Throws: The error reading a record, or an `XCTest` failure if an export isn't a JSON object.
     func testExportsRoundTrip() throws {

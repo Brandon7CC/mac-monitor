@@ -17,7 +17,7 @@ extension TelemetrySchemaSource {
             directory(type, description, [
                 eslogger("group_name", .string),
                 eslogger("member", .nullable(.ref("od_member")),
-                         "null in a record from Mac Monitor before 2.2.0 whose member's type it didn't know."),
+                         "null in a record from Mac Monitor before 3.0.0 whose member's type it didn't know."),
                 addition("member_string", .nullable(.string), "The name of the member's type."),
             ])
         }

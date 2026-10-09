@@ -27,12 +27,11 @@ public final class ExportEncoder {
     /// Holds each event's rows until ``reset()``.
     private let context: NSManagedObjectContext
     
-    /// Should we pretty-print each record like Export telemetry ▸ JSON (pretty)?
     public let pretty: Bool
     
     /// - Parameters:
     ///   - model: The event model, such as ``model``.
-    ///   - pretty: Pretty-print each record. Defaults to `false`, one record per line.
+    ///   - pretty: Pretty-print each record.
     public init(model: NSManagedObjectModel, pretty: Bool = false) {
         self.pretty = pretty
         context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
@@ -43,7 +42,7 @@ public final class ExportEncoder {
     /// An event's export record.
     ///
     /// - Parameter message: The event, decoded from the wire.
-    /// - Returns: The record's JSON followed by a newline. It's pretty-printed when ``pretty`` is set.
+    /// - Returns: The record's JSON and a newline.
     public func line(for message: Message) -> Data {
         context.performAndWait {
             autoreleasepool {

@@ -1339,12 +1339,12 @@
       "type": "object",
       "properties": {
         "parent_path": {
-          "description": "null when Endpoint Security gives none, or in a record from Mac Monitor before 2.2.0, which left out an empty one. Absent when the message's version is before 10 (macOS 26).",
+          "description": "null when Endpoint Security gives none, or in a record from Mac Monitor before 3.0.0, which left out an empty one. Absent when the message's version is before 10 (macOS 26).",
           "x-mac-monitor-origin": "eslogger",
           "type": ["string", "null"]
         },
         "parent_registry_id": {
-          "description": "Unsigned. null in a record from Mac Monitor before 2.2.0, which left it out with an empty `parent_path`. Absent when the message's version is before 10 (macOS 26).",
+          "description": "Unsigned. null in a record from Mac Monitor before 3.0.0, which left it out with an empty `parent_path`. Absent when the message's version is before 10 (macOS 26).",
           "x-mac-monitor-origin": "eslogger",
           "type": ["integer", "null"]
         },
@@ -2115,7 +2115,7 @@
           ]
         },
         "member": {
-          "description": "null in a record from Mac Monitor before 2.2.0 whose member's type it didn't know.",
+          "description": "null in a record from Mac Monitor before 3.0.0 whose member's type it didn't know.",
           "x-mac-monitor-origin": "eslogger",
           "anyOf": [
             {
@@ -2219,7 +2219,7 @@
           ]
         },
         "member": {
-          "description": "null in a record from Mac Monitor before 2.2.0 whose member's type it didn't know.",
+          "description": "null in a record from Mac Monitor before 3.0.0 whose member's type it didn't know.",
           "x-mac-monitor-origin": "eslogger",
           "anyOf": [
             {
@@ -2267,7 +2267,7 @@
           "type": "integer"
         },
         "member_value": {
-          "description": "The user's name, or the UUID; null in a record from Mac Monitor before 2.2.0.",
+          "description": "The user's name, or the UUID; null in a record from Mac Monitor before 3.0.0.",
           "x-mac-monitor-origin": "eslogger",
           "type": ["string", "null"]
         }
@@ -2668,7 +2668,7 @@
           "type": "integer"
         },
         "signing_id": {
-          "description": "null when Endpoint Security gives none, or in a record from Mac Monitor before 2.2.0, which left out an empty one.",
+          "description": "null when Endpoint Security gives none, or in a record from Mac Monitor before 3.0.0, which left out an empty one.",
           "x-mac-monitor-origin": "eslogger",
           "type": ["string", "null"]
         },

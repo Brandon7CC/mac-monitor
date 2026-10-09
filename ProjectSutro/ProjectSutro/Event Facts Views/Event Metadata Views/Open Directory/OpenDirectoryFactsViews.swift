@@ -129,7 +129,7 @@ struct OpenDirectoryGroupMemberFacts: View {
     
     var body: some View {
         FactRow(name: "Group name", value: event.group_name)
-        /// Events recorded before 2.2.0 kept only the member's type.
+        /// Events recorded before 3.0.0 kept only the member's type.
         if let member = event.member_value {
             FactRow(name: "Member", value: member)
         }

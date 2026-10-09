@@ -28,7 +28,7 @@ public class ESODGroupMemberEvent: ESODEvent {
         member_string = event.member_string
     }
     
-    /// The member, as eslogger writes it: `nil` only for an event recorded before 2.2.0 whose member's type Mac Monitor
+    /// The member, as eslogger writes it: `nil` only for an event recorded before 3.0.0 whose member's type Mac Monitor
     /// didn't know.
     public var member: OpenDirectoryMember? {
         member_type.map { OpenDirectoryMember(member_type: $0.intValue, member_value: member_value) }

@@ -132,7 +132,7 @@ final class LaunchedByParentImportTests: XCTestCase {
         XCTAssertEqual(answer.resolved_by, .import)
     }
     
-    /// A launched-by parent the trace carries (Mac Monitor 2.2's LaunchServices answer, which can't be worked out
+    /// A launched-by parent the trace carries (Mac Monitor 3.0's LaunchServices answer, which can't be worked out
     /// again) is kept as it is.
     ///
     /// - Throws: The error reading a record or encoding the answer.

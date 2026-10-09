@@ -69,7 +69,7 @@ enum ThreadStateFlavor {
     
     /// The flavor a name stands for: this Mac's for `THREAD_STATE_NONE`, otherwise the one architecture's that has it.
     ///
-    /// - Parameter name: A flavor's name, as Mac Monitor wrote `thread_state` before 2.2.0.
+    /// - Parameter name: A flavor's name, as Mac Monitor wrote `thread_state` before 3.0.0.
     /// - Returns: Its value, or `nil` for a name neither architecture has.
     static func flavor(named name: String) -> Int32? {
         flavors[name]

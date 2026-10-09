@@ -90,7 +90,7 @@ final class StreamCommandRun {
     ///   - toolVersion: `macmonitor`'s version.
     ///   - isChatty: Is standard error a terminal?
     init(harness: StreamHarness, formatter: StreamPipeline.Formatter, scope: PipelineScope,
-         toolVersion: String = "2.2.0 (1)", isChatty: Bool = true) {
+         toolVersion: String = "3.0.0 (1)", isChatty: Bool = true) {
         let client = StreamClient(connection: NSXPCConnection(listenerEndpoint: harness.endpoint), requirement: nil)
         let pipeline = StreamPipeline(formatter: formatter, scope: scope, forTerminal: false)
         let (output, diagnostics) = (BufferOutput(), DiagnosticLines())

@@ -12,7 +12,7 @@ public let helpfulProcessColor: Color = Color(cgColor: .init(red: 43/255.0, gree
 
 
 /// Metadata includes:
-/// - The launched-by parent's name (e.g., "Dock") when it isn't the Unix parent
+/// - The launched-by parent (e.g., "Dock") when it isn't the Unix parent
 /// - Group Leader
 struct AdditionalProcMetadataView: View {
     var selectedMessage: ESMessage

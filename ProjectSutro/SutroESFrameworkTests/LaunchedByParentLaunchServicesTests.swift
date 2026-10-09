@@ -52,8 +52,7 @@ final class LaunchedByParentLaunchServicesTests: XCTestCase {
         answer.upgraded(with: record, for: app) { pid, _ in "/path/of/\(pid)" }
     }
     
-    /// We get the launcher Launch Services recorded, with its token and path. The app's label is kept and the Security
-    /// Extension is credited. Only answers that need Launch Services are upgraded, not the Unix parent.
+    /// Only answers that need Launch Services are upgraded, to the recorded launcher.
     ///
     /// - Throws: An `XCTest` failure if the launcher's answer is missing.
     func testOnlyAnswersThatNeedLaunchServicesAreUpgraded() throws {

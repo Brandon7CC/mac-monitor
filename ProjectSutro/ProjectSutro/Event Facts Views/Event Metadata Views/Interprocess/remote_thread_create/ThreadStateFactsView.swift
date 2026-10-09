@@ -34,7 +34,7 @@ struct ThreadStateFactsView: View {
                 }.padding([.leading], 5.0)
             } else {
                 FactRow(name: "Thread state", value: "Not recorded", style: .monospaced)
-                    .help("eslogger doesn't write a thread state's bytes, and Mac Monitor recorded none before 2.2.0.")
+                    .help("eslogger doesn't write a thread state's bytes, and Mac Monitor recorded none before 3.0.0.")
             }
         } else {
             FactRow(name: "Thread state", value: "None", style: .monospaced)

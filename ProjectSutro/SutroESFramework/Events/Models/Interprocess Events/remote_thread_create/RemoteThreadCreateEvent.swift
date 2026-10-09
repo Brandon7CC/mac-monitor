@@ -20,7 +20,7 @@ public struct RemoteThreadCreateEvent: Identifiable, Codable, Hashable {
     public var thread_state: ThreadState?
     
     /// Mac Monitor enrichment: the name of the state's flavor on the architecture of the Mac that recorded it
-    /// (``ThreadStateFlavor``), which Mac Monitor wrote as `thread_state` before 2.2.0.
+    /// (``ThreadStateFlavor``), which Mac Monitor wrote as `thread_state` before 3.0.0.
     public var thread_state_string: String?
     
     /// eslogger's keys, then Mac Monitor's.
@@ -68,7 +68,7 @@ public struct RemoteThreadCreateEvent: Identifiable, Codable, Hashable {
 
 // MARK: - Decoding
 extension RemoteThreadCreateEvent {
-    /// Read the event from eslogger's JSON, an export, or the Security Extension, including those before 2.2.0, which
+    /// Read the event from eslogger's JSON, an export, or the Security Extension, including those before 3.0.0, which
     /// wrote `thread_state` as its flavor's name, or left it out for a flavor they didn't name.
     ///
     /// - Parameter decoder: The event's decoder.

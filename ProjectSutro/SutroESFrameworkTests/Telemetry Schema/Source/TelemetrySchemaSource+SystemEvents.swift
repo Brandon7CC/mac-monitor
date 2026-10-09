@@ -19,11 +19,11 @@ extension TelemetrySchemaSource {
                 eslogger("user_client_type", .integer),
                 eslogger("user_client_class", .string),
                 eslogger("parent_path", .nullable(.string),
-                         "null when Endpoint Security gives none, or in a record from Mac Monitor before 2.2.0, which "
+                         "null when Endpoint Security gives none, or in a record from Mac Monitor before 3.0.0, which "
                          + "left out an empty one.",
                          absent: Absence("the message's version is before 10 (macOS 26)")),
                 eslogger("parent_registry_id", .nullable(.integer),
-                         "Unsigned. null in a record from Mac Monitor before 2.2.0, which left it out with an empty "
+                         "Unsigned. null in a record from Mac Monitor before 3.0.0, which left it out with an empty "
                          + "`parent_path`.",
                          absent: Absence("the message's version is before 10 (macOS 26)")),
             ]),

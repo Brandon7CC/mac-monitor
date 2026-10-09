@@ -10,11 +10,9 @@ import XCTest
 
 
 // MARK: - Approving and reporting a change
-/// Tests what Settings tells the user about a change, and the parts of the administrator approval we can check
-/// without a password. The VM covers the real prompt.
+/// Tests outcome messages and the approval checks that don't need a password.
 final class CommandLineToolInstallTests: XCTestCase {
-    /// Every outcome travels over XPC as its raw value. Every outcome but done and cancelled tells the user something
-    /// about the link.
+    /// Outcomes survive their raw value, and all but done and cancelled have a message.
     func testEveryOutcomeIsReported() {
         let plan = CommandLineToolLink.Plan(action: .install, tool: "/A.app/Contents/MacOS/macmonitor",
                                             binDirectory: "/usr/local/bin", expected: "")

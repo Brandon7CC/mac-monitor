@@ -10,23 +10,14 @@ import Security
 
 
 // MARK: - Command line tool authorization
-/// The administrator approval behind Settings ▸ Command Line's Install… and Remove….
+/// Administrator approval for Settings ▸ Command Line.
 ///
-/// We use Authorization Services and our own right, ``rightName``:
-///   - Mac Monitor asks for the right, which shows the system's password prompt. It sends the authorization's
-///     external form to the Security Extension with the change.
-///   - The Security Extension checks the same right on that authorization without any prompt, then makes the change as
-///     root (``CommandLineToolLinker``).
-///
-/// We can't use `system.privilege.admin` because its rule allows root, so the Security Extension would pass the check
-/// without anyone authenticating. Our rule (``rule``) never allows root and needs an administrator. The Security
-/// Extension adds it to the authorization database at launch.
+/// Mac Monitor asks for ``rightName`` (the password prompt) and sends the external form to the Security Extension,
+/// which checks the same right before making the change. We don't use `system.privilege.admin` since it allows root.
 public enum CommandLineToolAuthorization {
-    /// Our right in the authorization database
     public static let rightName = "com.swiftlydetecting.agent.command-line-tool"
 
-    /// The rule for ``rightName``. An administrator has to authenticate, root gets no free pass, and the credentials
-    /// last 30 seconds within this one authorization.
+    /// Admin only, never root, valid for 30 seconds
     static let rule: [String: Any] = [
         "class": "user", "group": "admin", "authenticate-user": true, "allow-root": false, "session-owner": false,
         "shared": false, "timeout": 30, "version": 1,
@@ -35,18 +26,14 @@ public enum CommandLineToolAuthorization {
 
     // MARK: Mac Monitor
 
-    /// An administrator's approval of one change.
-    ///
-    /// The external form only works while the authorization behind it is alive. Keep the approval until the Security
-    /// Extension replies. Releasing it frees the authorization and throws away its rights.
+    /// An approved authorization. Keep it until the Security Extension replies, since the external form stops working
+    /// once it's freed.
     public final class Approval {
-        /// The authorization the administrator approved
         private let authorization: AuthorizationRef
-        /// The authorization's external form for the Security Extension
         public let externalForm: Data
 
         /// - Parameters:
-        ///   - authorization: The approved authorization. The approval frees it.
+        ///   - authorization: The approved authorization. Freed on deinit.
         ///   - externalForm: Its external form.
         init(_ authorization: AuthorizationRef, externalForm: Data) {
             self.authorization = authorization
@@ -58,8 +45,7 @@ public enum CommandLineToolAuthorization {
         }
     }
 
-    /// Ask an administrator to approve a change. This blocks while the password prompt is up, so never call it on the
-    /// main thread.
+    /// Show the password prompt. Blocks, so don't call it on the main thread.
     ///
     /// - Parameter prompt: What the prompt says Mac Monitor wants to do.
     /// - Returns: The approval, or the outcome to report (cancelled or not authorized).
@@ -88,7 +74,7 @@ public enum CommandLineToolAuthorization {
         return .success(Approval(authorization, externalForm: withUnsafeBytes(of: &external) { Data($0) }))
     }
 
-    /// What the password prompt says Mac Monitor wants to do.
+    /// The password prompt's text.
     ///
     /// - Parameter plan: The plan.
     /// - Returns: A sentence.
@@ -106,8 +92,7 @@ public enum CommandLineToolAuthorization {
 
     // MARK: Security Extension
 
-    /// Add ``rightName`` to the authorization database if it isn't there yet. Only root may, so for anyone else this
-    /// does nothing.
+    /// Add ``rightName`` to the authorization database if it's missing. Root only.
     ///
     /// - Returns: The status from Authorization Services.
     @discardableResult
@@ -121,7 +106,7 @@ public enum CommandLineToolAuthorization {
         return AuthorizationRightSet(authorization, rightName, rule as CFDictionary, nil, nil, nil)
     }
 
-    /// Did an administrator approve this change? Never prompts.
+    /// Did an administrator approve this? Never prompts.
     ///
     /// - Parameter externalForm: The external form Mac Monitor sent.
     /// - Returns: `true` if the authorization holds ``rightName``.
@@ -138,7 +123,7 @@ public enum CommandLineToolAuthorization {
             == errAuthorizationSuccess
     }
 
-    /// Call `body` with a rights set holding only ``rightName``.
+    /// Call `body` with a rights set of just ``rightName``.
     ///
     /// - Parameter body: Uses the rights.
     /// - Returns: What `body` returns.

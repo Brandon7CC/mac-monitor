@@ -14,7 +14,7 @@ import EndpointSecurity
 /// Pins the wire format between `macmonitor` and the Security Extension: version 1's JSON, how either side reads the
 /// other's newer messages, and what a Security Extension refuses before it starts a stream.
 final class StreamRequestTests: XCTestCase {
-    /// Version 1 requests, as `macmonitor` 2.2.0 writes them, read as the values they stand for. A renamed key fails
+    /// Version 1 requests, as `macmonitor` 3.0.0 writes them, read as the values they stand for. A renamed key fails
     /// here.
     ///
     /// - Throws: ``XPCRequestError`` if a request doesn't read.
@@ -79,14 +79,14 @@ final class StreamRequestTests: XCTestCase {
     /// its version, status or Security Extension version doesn't read.
     func testRepliesRead() {
         let started = #"""
-            {"version":1,"status":"ok","sensorVersion":"2.2.0 (1)",\#
+            {"version":1,"status":"ok","sensorVersion":"3.0.0 (1)",\#
             "stream":{"events":["ES_EVENT_TYPE_NOTIFY_EXEC"],"savedMutes":3}}
             """#
         XCTAssertEqual(StreamReply.decode(Data(started.utf8)),
-                       StreamReply(.ok, sensorVersion: "2.2.0 (1)",
+                       StreamReply(.ok, sensorVersion: "3.0.0 (1)",
                                    stream: StreamStarted(events: ["ES_EVENT_TYPE_NOTIFY_EXEC"], savedMutes: 3)))
         let stopped = #"""
-            {"version":1,"status":"ok","sensorVersion":"2.2.0 (1)","summary":{"captured":9,"delivered":8,\#
+            {"version":1,"status":"ok","sensorVersion":"3.0.0 (1)","summary":{"captured":9,"delivered":8,\#
             "droppedByEndpointSecurity":1,"droppedWhileBehind":2,"skippedWhilePaused":5,"pauses":1}}
             """#
         XCTAssertEqual(StreamReply.decode(Data(stopped.utf8))?.summary,
@@ -95,7 +95,7 @@ final class StreamRequestTests: XCTestCase {
         XCTAssertEqual(StreamReply.decode(Data(#"{"version":3,"status":"later","sensorVersion":"3.0 (1)"}"#.utf8))?
                         .status, .unsupported)
         XCTAssertNil(StreamReply.decode(Data(#"{"version":1,"status":"ok"}"#.utf8)))
-        let reply = StreamReply(.sessionLimit, problem: "Three streams are running.", sensorVersion: "2.2.0 (1)")
+        let reply = StreamReply(.sessionLimit, problem: "Three streams are running.", sensorVersion: "3.0.0 (1)")
         XCTAssertEqual(StreamReply.decode(reply.encoded()), reply)
     }
 }

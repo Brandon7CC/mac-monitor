@@ -9,29 +9,18 @@ import Foundation
 
 
 // MARK: - Command line tool linker
-/// Installs or removes `/usr/local/bin/macmonitor` (Security Extension context).
+/// Installs or removes `/usr/local/bin/macmonitor` as root (Security Extension context).
 ///
-/// The Security Extension runs this as root once an administrator has authorized the change
-/// (``CommandLineToolAuthorization``). It doesn't trust what Mac Monitor saw. Before changing anything we check again
-/// that the directory is a real directory, that the entry is Mac Monitor's link and still what Settings showed, and
-/// that the tool is one Mac Monitor would link.
-///
-/// **How we change things:**
-///   - Every change is made relative to an open descriptor for the link's directory, opened with `O_NOFOLLOW`. A
-///     symbolic link swapped in for the directory is refused, never followed.
-///   - We never follow the link we find, and we never replace anything that isn't Mac Monitor's link.
-///   - A missing directory is only created inside a real directory our own user owns, then handed to `root:wheel`.
+/// Everything is checked again before a change, and all changes go through an `O_NOFOLLOW` directory descriptor.
 public struct CommandLineToolLinker {
-    /// The extra check a tool must pass before we link it
     let trusts: (String) -> Bool
 
-    /// - Parameter trusts: The extra check a tool must pass. By default the tool and every directory above it must
-    ///   belong to root, and it must be signed as Mac Monitor's command line tool.
+    /// - Parameter trusts: Extra check on the tool. Defaults to root ownership and Mac Monitor's signature.
     public init(trusts: @escaping (String) -> Bool = CommandLineToolLinker.isTrustedTool) {
         self.trusts = trusts
     }
 
-    /// The full check the Security Extension runs on a tool (``CommandLineToolLink/validate(_:)``).
+    /// The ownership and signature check (``CommandLineToolLink/validate(_:)``).
     ///
     /// - Parameter tool: The tool's path.
     /// - Returns: `true` if Mac Monitor would link it.
@@ -41,7 +30,7 @@ public struct CommandLineToolLinker {
         return (try? link.validate(tool).get()) == tool
     }
 
-    /// Carry out a plan.
+    /// Make the change.
     ///
     /// - Parameter plan: What Settings asked for.
     /// - Returns: What happened.
@@ -72,8 +61,7 @@ public struct CommandLineToolLinker {
         return symlinkat(plan.tool, directory, name) == 0 ? .done : .fileSystemError
     }
 
-    /// Is this a tool we'd link? It must look like an app's command line tool, be a regular executable file and not a
-    /// symbolic link, and pass ``trusts``.
+    /// Is this a regular, executable `….app/Contents/MacOS/macmonitor` that passes ``trusts``?
     ///
     /// - Parameter tool: The tool's path.
     /// - Returns: `true` if we can link it.
@@ -84,12 +72,12 @@ public struct CommandLineToolLinker {
         return trusts(tool)
     }
 
-    /// Open the link's directory, creating it for an install when it's missing.
+    /// Open the link's directory, creating it if needed.
     ///
     /// - Parameters:
     ///   - path: The link's directory.
     ///   - creating: Create it if it's missing?
-    /// - Returns: An open descriptor, or the outcome to report. A missing directory on a removal is `.done`.
+    /// - Returns: A descriptor, or the outcome to report.
     func openDirectory(_ path: String, creating: Bool) -> Result<Int32, Outcome> {
         let descriptor = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW)
         if descriptor >= 0 { return .success(descriptor) }
@@ -98,10 +86,7 @@ public struct CommandLineToolLinker {
         return createDirectory(path)
     }
 
-    /// Create the link's directory, owned by `root:wheel` with mode 0755.
-    ///
-    /// The directory above it is created first if it's missing. It must be a real directory that our own user owns, so
-    /// nobody else can swap anything in while we work. If we can't hand the new directory to root we remove it again.
+    /// Create the link's directory as `root:wheel` 0755, inside a directory we own.
     ///
     /// - Parameter path: The link's directory.
     /// - Returns: An open descriptor for it, or the outcome to report.
@@ -144,33 +129,25 @@ public struct CommandLineToolLinker {
 
 // MARK: - Outcomes
 extension CommandLineToolLinker {
-    /// What a change did. The raw value is what travels over XPC.
+    /// What a change did. The raw value goes over XPC.
     public enum Outcome: Int, Error, Equatable, CaseIterable {
-        /// Done
         case done = 0
-        /// The user cancelled the password prompt.
         case cancelled = 1
-        /// The link's directory couldn't be created.
         case directoryNotCreated = 3
-        /// The link's directory isn't a real directory. Or it's missing and the directory above it isn't one we own.
         case notADirectory = 4
-        /// What's at the link's path isn't Mac Monitor's link.
         case notMacMonitors = 5
-        /// What's at the link's path changed since Settings looked.
+        /// Something changed since Settings looked
         case changed = 6
-        /// The tool isn't one Mac Monitor links.
         case badTool = 7
-        /// The file system refused a change.
         case fileSystemError = 8
-        /// No administrator authorized the change.
         case notAuthorized = 9
-        /// We couldn't reach the Security Extension.
+        /// The Security Extension couldn't be reached
         case unavailable = 10
 
         /// What to tell the user.
         ///
-        /// - Parameter plan: The plan we tried.
-        /// - Returns: A sentence, or `nil` when there's nothing to say (done or cancelled).
+        /// - Parameter plan: The change.
+        /// - Returns: A sentence, or `nil` for done or cancelled.
         public func message(for plan: CommandLineToolLink.Plan) -> String? {
             let link = plan.linkPath
             switch self {

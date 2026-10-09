@@ -10,12 +10,8 @@ import SutroESFramework
 
 
 // MARK: - Parent rows
-/// The Unix parent and launched-by parent of the process an exec or fork created.
-///
-/// These show as rows under "Parent user" in the Parent process details. We only show the launched-by parent when
-/// it's different from the Unix parent.
+/// Unix parent and launched-by parent rows under "Parent user". The launched-by parent only shows when it differs.
 struct ParentsView: View {
-    /// The parents.
     let parents: ProcessParents
 
     var body: some View {
@@ -39,7 +35,7 @@ struct ParentsView: View {
         }
     }
 
-    /// Rows for the launched-by parent: its source, executable and pid, then its launchd job if it has one.
+    /// The launched-by parent's rows.
     ///
     /// - Parameter step: The launched-by parent and the event that created it.
     /// - Returns: The rows.
@@ -71,17 +67,13 @@ struct ParentsView: View {
 
 
 // MARK: - One parent
-/// One parent formatted like the "Parent user" row. Shows the executable path, then the pid and any extra facts.
+/// One parent, formatted like the "Parent user" row.
 private struct ParentRow<Trailing: View>: View {
-    /// The row's label, without a colon.
     let title: String
-    /// The label's SF Symbol.
     let systemImage: String
-    /// The parent's executable, or `nil` for "Unknown".
     let path: String?
-    /// The parent's pid, when known.
     let pid: Int32?
-    /// Extra facts shown after the pid
+    /// Shown after the pid
     @ViewBuilder var trailing: () -> Trailing
 
     /// - Parameters:
@@ -89,7 +81,7 @@ private struct ParentRow<Trailing: View>: View {
     ///   - systemImage: The label's SF Symbol.
     ///   - path: The parent's executable, or `nil` for "Unknown".
     ///   - pid: The parent's pid, when known.
-    ///   - trailing: Extra facts shown after the pid.
+    ///   - trailing: Shown after the pid.
     init(title: String, systemImage: String, path: String?, pid: Int32?,
          @ViewBuilder trailing: @escaping () -> Trailing = { EmptyView() }) {
         self.title = title
@@ -115,7 +107,7 @@ private struct ParentRow<Trailing: View>: View {
 
 
 // MARK: - Looked up
-/// Looks up the parent rows of an exec or fork in the store. Shows nothing for other events.
+/// Parent rows for an exec or fork, from the store.
 struct ParentsBox: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
 

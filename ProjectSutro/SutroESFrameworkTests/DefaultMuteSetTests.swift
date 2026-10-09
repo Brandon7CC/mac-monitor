@@ -184,7 +184,7 @@ final class DefaultMuteSetTests: XCTestCase {
         XCTAssertTrue(notice.hasSuffix(SavedMuteSet.noConsoleUser), notice)
     }
     
-    /// A saved set, even one an earlier 2.2 build made for `/var/root`, is kept as it is whoever logs in; only Reset
+    /// A saved set, even one an earlier 3.0 build made for `/var/root`, is kept as it is whoever logs in; only Reset
     /// makes the default set again, for the console user.
     ///
     /// - Throws: If the file can't be written.
