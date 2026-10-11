@@ -109,9 +109,3 @@ public func pathToJSON(value: Encodable) -> String {
 }
 
 
-
-public func encodePathJSON(path: ESMutedPath) -> String? {
-    guard let data = try? JSONEncoder().encode(path) else { return nil }
-    return String(data: data, encoding: .utf8)
-}
-

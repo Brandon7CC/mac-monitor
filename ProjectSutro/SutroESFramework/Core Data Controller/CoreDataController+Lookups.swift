@@ -13,29 +13,6 @@ import OSLog
 extension CoreDataController {
     // MARK: - Accessors
     
-    ///  Given an entitiy `id` attempt to return its `ESMessage` representation from the store (through the indexed `id`).
-    ///
-    ///  - Parameters:
-    ///     - id: The `UUID` of the entity to fetch from the Core Data store.
-    /// - Returns: The object representation of the entity: `ESMessage?`
-    ///
-    public func getEntityByID(id: UUID) -> ESMessage? {
-        let request = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
-        request.returnsObjectsAsFaults = false
-        request.fetchLimit = 1
-        
-        do {
-            // Fetches on the viewContext, so this must be called from the main thread.
-            let result = try self.container.viewContext.fetch(request)
-            return result.first
-        } catch {
-            CoreDataController.logger.error("Could not find the Core Data record by UUID of: \(id)")
-        }
-        
-        return nil
-    }
-    
     /// Get all `EXEC` events in a given process group.
     ///
     /// - Parameters:

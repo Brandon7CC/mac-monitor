@@ -35,14 +35,6 @@ extension ProcessHelpers {
     }
     
     
-    public static func newIsFileQuarantined(filePath: String) -> Bool {
-        let url = URL(fileURLWithPath: filePath)
-        let resourceValues = try? url.resourceValues(forKeys:[.quarantinePropertiesKey])
-        let quarantineProperties = resourceValues?.quarantineProperties
-        return quarantineProperties != nil
-    }
-    
-    
     // MARK: - LSFileQuarantineEnabled check
     
     /// Which bundle identifiers are forced into File Quarantine?

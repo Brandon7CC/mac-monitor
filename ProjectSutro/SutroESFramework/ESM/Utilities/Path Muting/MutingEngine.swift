@@ -35,8 +35,6 @@ public enum MuteRequestOrigin: Sendable {
 extension EndpointSecurityManager {
     // MARK: - Agent Context
     
-    public func simpleGetAppleMuteSet() -> [String] { Array(appleMuteSet) }
-    
     /// Can this Mac Monitor change the saved mute set? Not while another one owns the event stream
     /// (`.streamOwned`), and never once the Security Extension has said its user isn't an administrator
     /// (``savedMutesNeedAdministrator``): it may still list it. Endpoint Security refusing clients (`.tooManyClients`)

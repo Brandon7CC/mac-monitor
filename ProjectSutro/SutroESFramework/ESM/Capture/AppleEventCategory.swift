@@ -50,10 +50,8 @@ public enum AppleEventCategory: String, CaseIterable, Sendable {
             return .file
         case .memoryMapping:
             return .memory
-        case .socket:
-            return .process
-        case .process, .interprocess, .taskPort, .userAndGroupID, .codeSigning, .clock, .kernel, .pseudoterminal,
-             .uncategorized:
+        case .process, .interprocess, .taskPort, .userAndGroupID, .codeSigning, .socket, .clock, .kernel,
+             .pseudoterminal, .uncategorized:
             return .process
         }
     }

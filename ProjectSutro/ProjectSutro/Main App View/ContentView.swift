@@ -30,18 +30,6 @@ class AgentCloseController: ObservableObject {
     }
 }
 
-// Custom button style for alert
-struct AlertButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding()
-            .background(configuration.isPressed ? Color.red.opacity(0.8) : Color.red)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-    }
-}
-
-
 // MARK: Primary App View
 /// The primary view for Mac Monitor. Consisting of a toolbar and two tables.
 ///
@@ -55,14 +43,12 @@ struct EventView: View {
     
     /// A live recording, or an opened trace (File > Open Trace…).
     @EnvironmentObject var traceSession: TraceSession
-    
-    
-    
+
+
     /// Fetches, filters, and counts the System Events for the event tables, the mini-chart, and the toolbar.
     @StateObject private var eventQueries = EventQueryModel()
-    
-    
-    
+
+
     /// Is a system trace occuring?
     @Binding var recordingEvents: Bool
     
@@ -77,17 +63,15 @@ struct EventView: View {
     ///
     // TODO: Implement long running process filtering
     @Binding var filteringLongRunningProcs: Bool
-    
-    
-    
+
+
     /// The currently selected System Event (i.e. table row)
     @Binding var eventSelection: Set<ESMessage.ID>
     
     /// The text to filter by in the context search field
     @Binding var filterText: String
-    
-    
-    
+
+
     /// Implements our ability to relaunch the app (e.g. after Full Disk Access is granted).
     ///
     /// This is done by ``AgentCloseController``.

@@ -39,40 +39,6 @@ struct SystemDetailsView: View {
         return "Disabled"
     }
     
-    var gatekeeperStatus: String {
-//        var status: Int32 = 0
-//        var size = MemoryLayout.size(ofValue: status)
-//        sysctlbyname("security.mac.asp.policy.gatekeeper_enabled", &status, &size, nil, 0)
-//        if status == 1 {
-//            return "Enabled"
-//        }
-//        return "Disabled"
-        
-        
-        let fileManager = FileManager.default
-        let gatekeeperPath = "/var/db/SystemPolicy-prefs.plist"
-
-        if fileManager.fileExists(atPath: gatekeeperPath) {
-            do {
-                let data = try Data(contentsOf: URL(fileURLWithPath: gatekeeperPath))
-                let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
-
-                let enabled = plist?["enabled"] as? String
-                if enabled == "yes" {
-                    return "Enabled"
-                } else {
-                    return "Disabled"
-                }
-            } catch {
-                os_log("Unknown GK status")
-                return "Disabled"
-            }
-        } else {
-            os_log("Unknown GK status")
-            return "Disabled"
-        }
-    }
-    
     var csrConfig: [String] {
         var ret_config: [String] = []
         let csr_mask_strings = [
@@ -172,7 +138,6 @@ struct SystemDetailsView: View {
         }
     }
 }
-
 
 
 struct AdvancedView: View {

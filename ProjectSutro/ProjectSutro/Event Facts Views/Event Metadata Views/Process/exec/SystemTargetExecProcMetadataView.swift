@@ -24,7 +24,6 @@ struct EntitlementLabelView: View {
 }
 
 
-
 // MARK: - Exec event metadata
 struct SystemTargetExecProcMetadataView: View {
     var selectedMessage: ESMessage
@@ -36,14 +35,6 @@ struct SystemTargetExecProcMetadataView: View {
     
     private var event: ESProcessExecEvent {
         selectedMessage.event.exec!
-    }
-    
-    private var initiatingProc: ESProcess {
-        selectedMessage.process
-    }
-    
-    private var targetProcess: ESProcess {
-        event.target
     }
     
     private var procPath: String {
@@ -110,9 +101,8 @@ struct SystemTargetExecProcMetadataView: View {
                                 .padding([.leading], 5.0)
                             TargetUserView(selectedMessage: selectedMessage)
                         }
-                        
-                        
-                        
+
+
                     }
                 }
             }
@@ -218,9 +208,8 @@ struct SystemTargetExecProcMetadataView: View {
                             }
                         }
                     }
-                    
-                    
-                    
+
+
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }
         }

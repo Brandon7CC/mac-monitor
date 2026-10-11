@@ -24,13 +24,6 @@ extension FileManager {
     }
 }
 
-// @note show something in `Finder.app`
-public func showInFinder(filePath: String) {
-    let url = URL(fileURLWithPath: filePath)
-    NSWorkspace.shared.activateFileViewerSelecting([url])
-}
-
-
 extension URL {
     var isDirectory: Bool {
         (try? resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
@@ -75,13 +68,4 @@ public func showMuteOpenPanel() -> URL? {
     openPanel.message = "Choose a mute file to replace or add to the saved mute set"
     let response = openPanel.runModal()
     return response == .OK ? openPanel.url : nil
-}
-
-func promptFullDiskAccess() -> Bool {
-    let alert = NSAlert()
-    alert.messageText = "Enable Full Disk Access"
-    alert.informativeText = "Monitoring System Events requires Full Disk Access"
-    alert.alertStyle = .warning
-    alert.addButton(withTitle: "Open System Settings")
-    return alert.runModal() == .alertFirstButtonReturn
 }

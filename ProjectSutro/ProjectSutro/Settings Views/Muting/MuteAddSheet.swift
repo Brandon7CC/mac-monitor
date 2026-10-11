@@ -25,7 +25,6 @@ struct MuteAddSheet: View {
     @State private var selectedMuteMode: MuteMode = .globalPathPrefix
     @Binding var pathToMute: String
     @State private var muteType: String = ""
-    @State var eventToggle: Bool = true
     
     @State private var selectableEvents: [SelectableEvent] = getAllEventTypesSelectable()
     private var eventSubscriptions: [String] { systemExtensionManager.getSimpleEventSubscriptions() }
