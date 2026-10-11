@@ -12,7 +12,6 @@ import SutroESFramework
 // MARK: - Initiating process
 struct SystemInitiatingProcessView: View {
     var selectedMessage: ESMessage
-    @State private var initiatingMetadataExpanded: Bool = false
     @State private var showAuditTokens: Bool = false
     
     private var eventTimeStamp: String {

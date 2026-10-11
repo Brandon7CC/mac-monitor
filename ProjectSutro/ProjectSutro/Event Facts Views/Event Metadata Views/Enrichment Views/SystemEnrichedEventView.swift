@@ -79,7 +79,6 @@ struct CustomizableSystemEnrichedTableView: View {
 }
 
 
-
 struct SystemEnrichedTableView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @Environment(\.openWindow) private var openEventJSON
@@ -139,12 +138,6 @@ struct SystemRCCorrelatedEventsView: View {
     private var forkEvents: [ESMessage] {
         correlatedEvents.filter { $0.event.fork != nil }
     }
-    private var childProcs: [ESMessage] {
-        forkEvents
-            .filter(
-                { !$0.correlated_array.filter({ $0.event.exec != nil }).isEmpty
-                })
-    }
     private var fileEvents: [ESMessage] {
         correlatedEvents.filter({ $0.event.create != nil })
     }
@@ -157,20 +150,11 @@ struct SystemRCCorrelatedEventsView: View {
     private var launchItemEvents: [ESMessage] {
         correlatedEvents.filter { $0.event.btm_launch_item_add != nil }
     }
-    private var launchItemRemoveEvents: [ESMessage] {
-        correlatedEvents.filter { $0.event.btm_launch_item_remove != nil }
-    }
     private var xprotectEvents: [ESMessage] {
         correlatedEvents
             .filter {
                 $0.event.xp_malware_detected != nil || $0.event.xp_malware_remediated != nil
             }
-    }
-    private var mountEvents: [ESMessage] {
-        correlatedEvents.filter { $0.event.mount != nil }
-    }
-    private var fileDuplicateEvents: [ESMessage] {
-        correlatedEvents.filter { $0.event.dup != nil }
     }
     private var fileRenameEvents: [ESMessage] {
         correlatedEvents.filter { $0.event.rename != nil }
@@ -181,20 +165,14 @@ struct SystemRCCorrelatedEventsView: View {
                 $0.event.login_login != nil || $0.event.lw_session_login != nil || $0.event.openssh_login != nil
             }
     }
-    private var logoutEvents: [ESMessage] {
-        correlatedEvents.filter { $0.event.openssh_logout != nil }
-    }
     
-    @State private var hideChildProcs: Bool = true
     @State private var hideFileCreate: Bool = true
     @State private var hideFileRename: Bool = true
-    @State private var hideFileDuplicate: Bool = true
     @State private var hideMemoryMappings: Bool = true
     @State private var hideFileMetadata: Bool = true
     @State private var hideBackgroundItems: Bool = true
     @State private var hideXProtectEvents: Bool = true
     @State private var hideLoginEvents: Bool = true
-    @State private var hideLogoutEvents: Bool = true
     
     // TODO: When adding suppport for new ES events an appropriate correlated view might make sense
     var body: some View {

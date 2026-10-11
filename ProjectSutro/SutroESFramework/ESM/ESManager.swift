@@ -67,7 +67,6 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     @Published public var clientConnectDT: Date = Date()
     
     // MARK: Muting Enging properties
-    @Published public var emittedRCEventsByProcess: [Message: [Message]] = [:]
     /// The saved mute set, as the Security Extension last sent it (see ``requestMutes(_:from:completion:)``).
     @Published public var savedMutes: [ESMutedPath] = []
     /// Something to tell the user about the saved mute set: it was recovered, or can't be changed.
@@ -115,21 +114,10 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     private let eventBufferQueue = DispatchQueue(label: "com.swiftlydetecting.agent.eventBufferQueue")
     /// A high-performance GCD timer to periodically flush the event buffer.
     private var flushTimer: DispatchSourceTimer?
-    
-    // MARK: - Dynamic Throttling Properties
-    /// Dynamic throttle manager that adjusts based on event rate
-    private let throttleManager = ThrottleManager()
-    /// Calculate dynamic batch size based on current throttle state
-    private var currentBatchSize: Int {
-        let eventRate = throttleManager.eventRate
-        if eventRate > 2000 {
-            return 4000
-        } else if eventRate > 1000 {
-            return 3000
-        } else {
-            return 2000
-        }
-    }
+    /// How often buffered events are saved
+    private static let flushInterval: TimeInterval = 0.1
+    /// Save early once this many events are buffered
+    private static let flushSize = 2_000
     
     public override init() {
         super.init()
@@ -166,9 +154,6 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     public func receive(events: [Data], reply: @escaping () -> Void) {
         // Quickly decode the JSON.
         let decoded: [Message] = events.compactMap { try? decoder.decode(Message.self, from: $0) }
-        // Track event rate for dynamic throttling
-        throttleManager.registerEvents(decoded.count)
-        
         var messages: [Message] = decoded.filter(shouldInsert)
         guard !messages.isEmpty else { return reply() }
         /// An exec or fork without a launched-by parent (from an older Security Extension) gets one, with its parent's
@@ -179,15 +164,11 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
             self.eventBuffer.append(contentsOf: messages)
             self.pendingReplies.append(reply)
             
-            let hardBufferLimit = 5000
-            if self.eventBuffer.count >= hardBufferLimit {
-                // Force flush at hard limit
+            // Save early when the buffer is full or half the Security Extension's window is waiting on us.
+            if self.eventBuffer.count >= Self.flushSize
+                || self.pendingReplies.count >= SensorXPC.maxBatchesInFlight / 2 {
                 self.flushEvents()
-                self.updateFlushTimer()
-            } else if self.eventBuffer.count >= self.currentBatchSize || self.pendingReplies.count >= SensorXPC.maxBatchesInFlight / 2 {
-                // Normal dynamic batching, or half the Security Extension's window is waiting on us
-                self.flushEvents()
-                self.updateFlushTimer()
+                self.restartFlushTimer()
             }
         }
     }
@@ -213,19 +194,16 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// This runs on a background queue to avoid impacting the main thread.
     private func setupFlushTimer() {
         flushTimer = DispatchSource.makeTimerSource(queue: eventBufferQueue)
-        let initialInterval = throttleManager.saveInterval
-        flushTimer?.schedule(deadline: .now() + initialInterval, repeating: initialInterval)
+        flushTimer?.schedule(deadline: .now() + Self.flushInterval, repeating: Self.flushInterval)
         flushTimer?.setEventHandler { [weak self] in
             self?.flushEvents()
-            self?.updateFlushTimer()
         }
         flushTimer?.resume()
     }
     
-    /// Updates the flush timer interval based on current throttle settings
-    private func updateFlushTimer() {
-        let newInterval = throttleManager.saveInterval
-        flushTimer?.schedule(deadline: .now() + newInterval, repeating: newInterval)
+    /// Start the timer's interval over after an early save.
+    private func restartFlushTimer() {
+        flushTimer?.schedule(deadline: .now() + Self.flushInterval, repeating: Self.flushInterval)
     }
     
     /// Takes the current batch of events from the buffer and sends them to the CoreDataController, then acknowledges the

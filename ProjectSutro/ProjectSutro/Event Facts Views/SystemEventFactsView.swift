@@ -9,27 +9,6 @@ import SwiftUI
 import SutroESFramework
 
 
-
-struct CodeSigningDetailsView: View {
-    var selectedMessage: ESMessage
-    
-    var body: some View {
-        // Exec event code signing information
-        if let exec = selectedMessage.event.exec {
-            Section("**Target process signing status**") {
-                if exec.target.is_adhoc_signed {
-                    Text("  Adhoc Signed  ").background(Capsule().fill(.red).opacity(0.3)).padding(1)
-                } else if let signingID = exec.target.signing_id.nonEmpty {
-                    Text("  \(signingID)  ").background(Capsule().fill(.blue).opacity(0.3)).padding(1)
-                } else {
-                    Text("  Validly signed  ").background(Capsule().fill(.blue).opacity(0.3)).padding(1)
-                }
-            }.textSelection(.enabled)
-        }
-    }
-}
-
-
 struct SystemEventDetailsView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @Environment(\.openWindow) private var openEventJSON
@@ -53,7 +32,6 @@ struct SystemEventFactsView : View {
     
     
     @Binding var allFilters: Filters
-    @State private var viewEnriched: Bool = false
     var selectedMessage: ESMessage
     
     private enum EventTabs: Hashable {
@@ -69,10 +47,6 @@ struct SystemEventFactsView : View {
     private var procSessionGroup: [ESMessage] {
         systemExtensionManager.coreDataContainer
             .getProcSessionGroup(message: selectedMessage)
-    }
-    
-    private var groupsEventCount: Int {
-        procGroup.count + procSessionGroup.count
     }
     
     private var groupToShow: Groups {
@@ -168,7 +142,6 @@ struct AppWrapperForFacts: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @EnvironmentObject var userPrefs: UserPrefs
     @Environment(\.openWindow) private var openEventFacts
-    @Environment(\.managedObjectContext) var moc
     @FetchRequest var coreDataEvents: FetchedResults<ESMessage>
     
     

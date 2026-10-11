@@ -41,16 +41,6 @@ public struct SelectableEvent: Identifiable, Hashable {
 }
 
 // MARK: - Get events
-public func getAllEventTypes() -> [String] {
-    var allEventTypes: [String] = []
-    // We're going to 64 here because there are 64 ES notify events and we're not starting at 0 because that's `ES_EVENT_TYPE_LAST`
-    
-    for index in 0..<Int(ES_EVENT_TYPE_LAST.rawValue) {
-        let eventString: String = eventTypeToString(from: esEventTypeIDToEventType(eventID: index))
-        allEventTypes.append(eventString)
-    }
-    return allEventTypes
-}
 
 // @discussion Returns all ES events
 public func getAllEventTypesSelectable() -> [SelectableEvent] {
@@ -71,14 +61,6 @@ public func getSupportedEventTypesSelectable() -> [SelectableEvent] {
         supportedSelectableEvents.append(SelectableEvent(selected: false, es_event_type: rawEvent, eventString: eventTypeToString(from: rawEvent)))
     }
     return supportedSelectableEvents
-}
-
-
-// Logs all ES event types and their IDs to the unified system log
-public func osLogAllESEvents() {
-    for index in 0..<Int(ES_EVENT_TYPE_LAST.rawValue) {
-        os_log("ES Event Type: (\(eventTypeToString(from: esEventTypeIDToEventType(eventID: index)))) --> Index: (\(index))")
-    }
 }
 
 

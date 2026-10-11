@@ -10,8 +10,6 @@ public import Foundation
 public import CoreData
 
 
-public typealias ESGatekeeperUserOverrideEventCoreDataPropertiesSet = NSSet
-
 extension ESGatekeeperUserOverrideEvent {
 
     @nonobjc public class func fetchRequest() -> NSFetchRequest<ESGatekeeperUserOverrideEvent> {

@@ -10,8 +10,6 @@ public import Foundation
 public import CoreData
 
 
-public typealias ESSignedFileInfoCoreDataPropertiesSet = NSSet
-
 extension ESSignedFileInfo {
 
     @nonobjc public class func fetchRequest() -> NSFetchRequest<ESSignedFileInfo> {

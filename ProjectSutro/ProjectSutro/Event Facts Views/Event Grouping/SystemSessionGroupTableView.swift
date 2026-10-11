@@ -38,16 +38,6 @@ struct SystemEventGroupTableViews: View {
         !processGroup.isEmpty && !sessionGroup.isEmpty
     }
     
-    /// Extract the target process name
-    private var processName: String {
-        if let exec = selectedMessage.event.exec {
-            return exec.target.executable?.name ?? ""
-        } else if let fork = selectedMessage.event.fork {
-            return fork.child.executable?.name ?? ""
-        }
-        return selectedMessage.process.executable?.name ?? ""
-    }
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if bothGroupsAvailable {

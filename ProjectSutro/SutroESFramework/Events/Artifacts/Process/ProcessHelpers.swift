@@ -7,7 +7,6 @@
 
 import Foundation
 import OSLog
-import Compression
 
 
 public class ProcessHelpers {
@@ -67,16 +66,6 @@ public class ProcessHelpers {
     }
     
     // MARK: - Parsing the evnvironment variables of exec events
-    public static func parseExecEnvVars(event: inout es_event_exec_t) -> String {
-        let numberOfVars: Int = Int(es_exec_env_count(&event))
-        var envVars: [String] = []
-        
-        for index in 0..<numberOfVars {
-            let envVarVar: String = es_exec_env(&event, UInt32(index)).string ?? ""
-            envVars.append(envVarVar)
-        }
-        return envVars.joined(separator: "[::]")
-    }
     
     public static func parseExecEnv(event: inout es_event_exec_t) -> [String] {
         let count: Int = Int(es_exec_env_count(&event))
@@ -165,40 +154,6 @@ public class ProcessHelpers {
         return "EVENTS_CLEARED"
     }
     
-    // Compress JSON representation with the Apple recommended compression algo LZFSE
-    // https://developer.apple.com/documentation/compression/algorithm/lzfse
-    public static func getCompressedJSON(from rcEvent: Message) -> Data {
-        let json_representation: String = ProcessHelpers.eventToJSON(value: rcEvent)
-        var sourceBuffer = Array(json_representation.utf8)
-        let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: json_representation.count)
-        let algorithm = COMPRESSION_LZFSE
-        let compressedSize = compression_encode_buffer(destinationBuffer, json_representation.count,
-                                                       &sourceBuffer, json_representation.count,
-                                                       nil,
-                                                       algorithm)
-        if compressedSize == 0 {
-            os_log("Encoding failed.")
-        }
-        
-        return NSData(bytesNoCopy: destinationBuffer, length: compressedSize) as Data
-    }
-    
-    //    public static func decompressJSON(from rcEvent: RCEvent) -> String {
-    //        let json_representation: String = RCProcessHelpers.eventToJSON(value: rcEvent)
-    //        var sourceBuffer = Array(json_representation.utf8)
-    //        let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: json_representation.count)
-    //        let algorithm = COMPRESSION_LZFSE
-    //        let decodedSize = compression_decode_buffer(destinationBuffer,
-    //                                                    inputDataSize,
-    //                                                    &sourceBuffer,
-    //                                                    compressedSize,
-    //                                                    nil,
-    //                                                    algorithm)
-    //        if compressedSize == 0 {
-    //            os_log("Encoding failed.")
-    //        }
-    //    }
-    
     // MARK: - Process event helper functions
     public static func timespecToTimestamp(timespec: timespec) -> Date {
         let unixTimestamp = Double(timespec.tv_sec) + (Double(timespec.tv_nsec) / 1e9)
@@ -216,23 +171,6 @@ public class ProcessHelpers {
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
         return formatter
     }()
-    
-    public static func timevalToTimestamp(timeval: timeval) -> String {
-        let unixTimestamp = Double(timeval.tv_sec) + (Double(timeval.tv_usec) / 1000000)
-        let date = Date(timeIntervalSince1970: unixTimestamp)
-        return timestampFormatter.string(from: date)
-    }
-    
-    public static func procInfoToString(procInfo: proc_uniqidentifierinfo) -> String {
-        // @discussion: Matching Jamf Protect: We're only using UUID from `PROC_PIDUNIQIDENTIFIERINFO`
-        // @note old string: `%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x-%llu-%llu-%d`
-        // This is not the same UUID as the one pulled from `PROC_PIDUNIQIDENTIFIERINFO`
-        return String(format: "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-                      procInfo.p_uuid.0, procInfo.p_uuid.1, procInfo.p_uuid.2, procInfo.p_uuid.3,
-                      procInfo.p_uuid.4, procInfo.p_uuid.5, procInfo.p_uuid.6, procInfo.p_uuid.7,
-                      procInfo.p_uuid.8, procInfo.p_uuid.9, procInfo.p_uuid.10, procInfo.p_uuid.11,
-                      procInfo.p_uuid.12, procInfo.p_uuid.13, procInfo.p_uuid.14, procInfo.p_uuid.15)
-    }
     
     // MARK: - Reading scripts and plists
     /// The most bytes ``getFileContents(at:)`` reads: a longer script or plist is cut there.

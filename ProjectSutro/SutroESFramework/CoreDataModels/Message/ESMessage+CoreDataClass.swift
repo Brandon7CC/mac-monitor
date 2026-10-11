@@ -17,10 +17,6 @@ import Darwin
 import ApplicationServices
 
 
-typealias rpidFunc = @convention(c) (CInt) -> CInt
-let MaxPathLen = Int(4 * MAXPATHLEN)
-let InfoSize = Int32(MemoryLayout<proc_bsdinfo>.stride)
-
 @objc(ESMessage)
 public class ESMessage: NSManagedObject {
     enum CodingKeys: String, CodingKey {

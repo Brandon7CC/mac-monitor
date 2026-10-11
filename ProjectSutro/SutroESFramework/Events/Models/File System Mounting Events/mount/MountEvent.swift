@@ -8,11 +8,6 @@
 import Foundation
 
 
-func charPointerToString(_ pointer: UnsafePointer<Int8>) -> String {
-   return String(cString: UnsafeRawPointer(pointer).assumingMemoryBound(to: CChar.self))
-}
-
-
 // https://developer.apple.com/documentation/endpointsecurity/es_event_mount_t
 public struct MountEvent: Identifiable, Codable, Hashable {
     public var id: UUID = UUID.buffered()
