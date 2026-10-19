@@ -43,7 +43,7 @@ extension CommandLineToolLink {
             case .notCanonical(let path):
                 return "\(path) is reached through a symbolic link inside Mac Monitor."
             case .untrustedChain(let path, let writer):
-                return "\(path) can be changed by \(writer), so \(writer) could replace the tool sudo macmonitor runs "
+                return "\(path) can be changed by \(writer), so \(writer) could change what sudo macmonitor runs "
                     + "as root. Install Mac Monitor with its installer package, which gives it to root."
             case .signatureMismatch(let path):
                 return "\(path) isn't signed as Mac Monitor's command line tool."
@@ -77,7 +77,7 @@ extension CommandLineToolLink {
         guard info.st_mode & S_IFMT == S_IFREG, info.st_mode & S_IXUSR != 0 else {
             return .failure(.toolNotExecutable(tool))
         }
-        if case let (path, writer)? = firstWriter(from: tool) {
+        if case let (path, writer)? = firstWriter(from: tool) ?? firstFrameworksWriter(in: bundle) {
             return .failure(.untrustedChain(path: path, writer: writer))
         }
         return signatureCheck(tool) ? .success(tool) : .failure(.signatureMismatch(tool))
@@ -101,7 +101,7 @@ extension CommandLineToolLink {
     /// owner can change.
     ///
     /// Each must belong to the trusted owner and be writable by no one else, except the admin group (`/Applications`
-    /// is `root:admin 0775`).
+    /// is `root:admin 0775`). That includes anyone an access control entry lets change it.
     ///
     /// - Parameter path: A real path.
     /// - Returns: That path and who else can change it, or `nil` if no one can.
@@ -111,10 +111,29 @@ extension CommandLineToolLink {
         while true {
             var info = stat()
             guard lstat(current, &info) == 0 else { return (current, "someone Mac Monitor can't identify") }
-            if let writer = writer(of: info) { return (current, writer) }
+            if let writer = writer(of: info) ?? Self.entryWriter(of: current) { return (current, writer) }
             guard current != root, current != "/" else { return nil }
             current = (current as NSString).deletingLastPathComponent
         }
+    }
+    
+    /// The first file or directory in the bundle's `Contents/Frameworks` that someone other than the trusted owner can
+    /// change. The tool loads its framework from there, so it runs as root too. The directories above it are on the
+    /// tool's own chain.
+    ///
+    /// - Parameter bundle: The bundle's real path.
+    /// - Returns: That path and who else can change it, or `nil` if no one can or there's no `Contents/Frameworks`.
+    func firstFrameworksWriter(in bundle: String) -> (String, String)? {
+        let frameworks = bundle + "/Contents/Frameworks"
+        guard let walker = FileManager.default.enumerator(atPath: frameworks) else { return nil }
+        var paths = [frameworks]
+        while let relative = walker.nextObject() as? String { paths.append(frameworks + "/" + relative) }
+        for path in paths {
+            var info = stat()
+            guard lstat(path, &info) == 0 else { return (path, "someone Mac Monitor can't identify") }
+            if let writer = writer(of: info) ?? Self.entryWriter(of: path) { return (path, writer) }
+        }
+        return nil
     }
     
     /// Who, besides the trusted owner and the admin group, can change a file or directory.
@@ -128,6 +147,45 @@ extension CommandLineToolLink {
             return "the group \(Self.groupName(info.st_gid))"
         }
         return nil
+    }
+    
+    /// Permissions that let someone change a file, or replace what's in a directory.
+    private static let changePermissions = [ACL_WRITE_DATA, ACL_APPEND_DATA, ACL_DELETE, ACL_DELETE_CHILD,
+                                            ACL_WRITE_SECURITY, ACL_CHANGE_OWNER]
+    
+    /// Who an access control entry lets change a file or directory. `chown` and `chmod` leave entries in place, so a
+    /// user who owned the bundle could keep one after giving it to root.
+    ///
+    /// - Parameter path: A real path.
+    /// - Returns: Such as "brandon" or "the group everyone", or `nil` if no entry allows a change.
+    static func entryWriter(of path: String) -> String? {
+        guard let acl = acl_get_link_np(path, ACL_TYPE_EXTENDED) else { return nil }
+        defer { acl_free(UnsafeMutableRawPointer(acl)) }
+        var entry: acl_entry_t?
+        var position = ACL_FIRST_ENTRY.rawValue
+        while acl_get_entry(acl, position, &entry) == 0, let current = entry {
+            position = ACL_NEXT_ENTRY.rawValue
+            var tag = ACL_UNDEFINED_TAG
+            var permissions: acl_permset_t?
+            guard acl_get_tag_type(current, &tag) == 0, tag == ACL_EXTENDED_ALLOW,
+                  acl_get_permset(current, &permissions) == 0, let permissions,
+                  changePermissions.contains(where: { acl_get_perm_np(permissions, $0) == 1 }) else { continue }
+            return principal(of: current) ?? "someone an access control entry allows"
+        }
+        return nil
+    }
+    
+    /// The user or group an access control entry names.
+    ///
+    /// - Parameter entry: The entry.
+    /// - Returns: Such as "brandon" or "the group everyone", or `nil` if it can't be identified.
+    private static func principal(of entry: acl_entry_t) -> String? {
+        guard let qualifier = acl_get_qualifier(entry) else { return nil }
+        defer { acl_free(qualifier) }
+        var id: id_t = 0
+        var type: Int32 = 0
+        guard mbr_uuid_to_id(qualifier.assumingMemoryBound(to: UInt8.self), &id, &type) == 0 else { return nil }
+        return type == ID_TYPE_UID ? userName(id) : "the group \(groupName(id))"
     }
 }
 

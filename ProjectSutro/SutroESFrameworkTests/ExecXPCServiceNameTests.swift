@@ -38,8 +38,6 @@ final class ExecXPCServiceNameTests: XCTestCase {
     }
     
     /// A stored exec event finds the name in its own environment, as Event Facts read it.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the fixture has no process.
     func testStoredExecEvent() throws {
         var record = try fixtureObject("eslogger-exit.jsonl")
         let exec: [String: Any] = [

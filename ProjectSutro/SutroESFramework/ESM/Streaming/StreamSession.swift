@@ -15,7 +15,7 @@ import OSLog
 /// **Stream:** a stream request reserves a slot, follows the saved mute set (unless `--no-mutes`), and starts a
 /// capture session whose events go through an ``EventBatcher`` with the
 /// ``EventBatcher/Limits-swift.struct/commandLine`` limits. When `macmonitor` falls behind, the batcher pauses capture
-/// rather than buffering without bound; `macmonitor` sees what it missed as `global_seq_num` gaps, and the summary
+/// rather than buffering without bound. `macmonitor` sees what it missed as `global_seq_num` gaps, and the summary
 /// counts it. Each change to the saved set is applied, then told to `macmonitor`
 /// (``StreamReaderProtocol/savedMutesChanged(_:)``), since muted events never show as gaps.
 ///
@@ -71,7 +71,7 @@ final class StreamSession: NSObject {
 // MARK: - StreamProtocol
 extension StreamSession: StreamProtocol {
     func perform(_ request: Data, reply: @escaping (Data) -> Void) {
-        /// The router only hands root's connections here; check again on the thread delivering the message.
+        /// The router only hands root's connections here. Check again on the thread delivering the message.
         guard service.admits(NSXPCConnection.current()) else {
             StreamService.logger.error("\(self.label, privacy: .public): refused a stream request from non-root.")
             return reply(answer(.refused, problem: "Only root can use macmonitor.").encoded())

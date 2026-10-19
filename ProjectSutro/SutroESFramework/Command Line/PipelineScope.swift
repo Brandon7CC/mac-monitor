@@ -42,7 +42,7 @@ public struct PipelineAncestor: Equatable, Sendable {
 ///
 /// Suppression happens in `macmonitor`, after drop accounting: the Security Extension still sends these events, so
 /// every `global_seq_num` gap stays a real drop. Like eslogger's, it's a heuristic: a script without job control
-/// shares its group with `macmonitor`, so the script's own events are hidden too; `--include-self` shows them.
+/// shares its group with `macmonitor`, so the script's own events are hidden too. `--include-self` shows them.
 public struct PipelineScope: Equatable, Sendable {
     /// The path of `sudo`.
     public static let sudoPath = "/usr/bin/sudo"

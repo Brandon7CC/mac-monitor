@@ -145,7 +145,7 @@ extension MuteStore {
             guard errno == ENOENT else { throw MuteStoreError.untrustedDirectory("\(path) can't be examined.") }
             guard creating else { return false }
             guard mkdir(path, 0o700) == 0 || errno == EEXIST else { throw Self.failure("Couldn't create \(path)") }
-            /// New directories take their parent's group (`admin`); 0700 makes it moot, but keep it `wheel`.
+            /// New directories take their parent's group (`admin`). 0700 makes it moot, but keep it `wheel`.
             if owner == 0 { chown(path, 0, 0) }
             guard lstat(path, &info) == 0 else { throw Self.failure("Couldn't examine \(path)") }
         }

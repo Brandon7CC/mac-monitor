@@ -18,8 +18,6 @@ final class ProfileAddTokenTests: XCTestCase {
     private static let pid: Int32 = 7_777
     
     /// A captured event without its instigator keeps the instigator's token.
-    ///
-    /// - Throws: An `XCTest` failure if the export has no profile_add event.
     func testCapturedWithoutInstigator() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_PROFILE_ADD)
         let event = fixture.allocate(es_event_profile_add_t.self)
@@ -32,8 +30,6 @@ final class ProfileAddTokenTests: XCTestCase {
     }
     
     /// An eslogger record without its instigator exports the token eslogger wrote.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no profile_add event.
     func testImportedWithoutInstigator() throws {
         let token = try XCTUnwrap(try fixtureObject("eslogger-exit.jsonl")["process"] as? [String: Any])["audit_token"]
         let record = try esloggerRecord("profile_add", type: 126, [

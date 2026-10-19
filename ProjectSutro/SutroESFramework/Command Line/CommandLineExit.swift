@@ -22,7 +22,7 @@ public enum CommandLineExit: Int32, Sendable {
     /// asks first with no terminal to ask at (`EX_USAGE`).
     case usage = 64
     /// Data `macmonitor` can't use: mutes named on the command line (a relative path, an unknown type or event), in a
-    /// file to import, or refused by the Security Extension; or a trace to validate with a record that doesn't follow
+    /// file to import, or refused by the Security Extension, or a trace to validate with a record that doesn't follow
     /// the telemetry schema or isn't JSON, or with no records (`EX_DATAERR`).
     case dataError = 65
     /// A file to import, or a trace to validate, that can't be read: missing, unreadable, or not a regular file

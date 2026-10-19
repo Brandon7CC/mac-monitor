@@ -38,7 +38,7 @@ public enum MuteLimits {
 ///
 /// Types and events use their Endpoint Security names, and no events (or none listed) means every event. `PREFIX`
 /// and `LITERAL` match the process, `TARGET_PREFIX` and `TARGET_LITERAL` the target. Unknown keys are ignored, so a
-/// later version can add fields; a change in meaning bumps ``version``.
+/// later version can add fields. A change in meaning bumps ``version``.
 public struct MuteFile: Codable, Equatable, Sendable {
     /// The format version this Mac Monitor writes and reads.
     public static let currentVersion: Int = 1

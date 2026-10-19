@@ -141,8 +141,6 @@ final class EventClassTableTests: XCTestCase {
     }
     
     /// Splitting the default subscriptions gives each client its own events, in their order, and loses none.
-    ///
-    /// - Throws: `XCTSkip` before macOS 14, whose defaults have no events for some clients' share to check against.
     func testSplitKeepsOrderAndCoversEveryEvent() throws {
         try XCTSkipUnless(ProcessInfo().isOperatingSystemAtLeast(sonoma), "The defaults grow from macOS 14")
         let events = defaultEventSubscriptions

@@ -78,8 +78,6 @@ final class MuteFileTests: XCTestCase {
     }
     
     /// Mac Monitor's default set writes and reads back as the same list, with nothing to warn about.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
     func testShippedDefaultRoundTrips() throws {
         let (list, warnings) = try read(String(decoding: MuteFile(.testDefault).encoded(), as: UTF8.self))
         XCTAssertEqual(list, .testDefault)
@@ -95,9 +93,7 @@ final class MuteFileTests: XCTestCase {
         XCTAssertEqual(MuteFile(list).encoded(), MuteFile(MuteList(list.mutes.reversed())).encoded())
     }
     
-    /// Missing events and an empty list both mean every event; unknown keys are ignored.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
+    /// Missing events and an empty list both mean every event. Unknown keys are ignored.
     func testMissingEventsMeanEveryEventAndUnknownKeysAreIgnored() throws {
         let json = """
             {"version": 1, "comment": "mine", "mutes": [
@@ -110,8 +106,6 @@ final class MuteFileTests: XCTestCase {
     }
     
     /// Entries for the same path and type merge.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
     func testEntriesForTheSameKeyMerge() throws {
         let json = """
             {"version": 1, "mutes": [
@@ -152,8 +146,6 @@ final class MuteFileTests: XCTestCase {
     
     /// A mute names at most 512 events, duplicates included, and each name counts once: a request repeating names
     /// can't make checking it slow.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
     func testEventNamesAreCappedAndCountedOnce() throws {
         let open = "ES_EVENT_TYPE_NOTIFY_OPEN", auth = "ES_EVENT_TYPE_AUTH_OPEN"
         let crowded = file(events: Array(repeating: open, count: MuteLimits.maxEventsPerMute + 1))
@@ -169,7 +161,7 @@ final class MuteFileTests: XCTestCase {
             """])
     }
     
-    /// A path must be absolute, without a NUL, and at most `PATH_MAX` bytes; a type must be an Endpoint Security name.
+    /// A path must be absolute, without a NUL, and at most `PATH_MAX` bytes. A type must be an Endpoint Security name.
     func testInvalidPathsAndTypesAreRefused() {
         for path in ["", "tmp/x", "/a\0b", "/" + String(repeating: "x", count: MuteLimits.maxPathBytes)] {
             guard case .invalidMute(index: 0, _)? = error(file(path: path)) else {
@@ -185,8 +177,6 @@ final class MuteFileTests: XCTestCase {
     
     /// An unknown event is refused on the wire, and left out of the saved file with a warning, which leaves out an
     /// entry naming no other event.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
     func testUnknownEvents() throws {
         let mixed = file(events: ["ES_EVENT_TYPE_NOTIFY_OPEN", "ES_EVENT_TYPE_NOTIFY_FUTURE"])
         guard case .invalidMute? = error(mixed) else { return XCTFail("an unknown event was accepted") }
@@ -200,8 +190,6 @@ final class MuteFileTests: XCTestCase {
     }
     
     /// AUTH events are left out with a warning, and an entry naming only AUTH events is refused.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
     func testAuthEventsAreLeftOut() throws {
         guard case .invalidMute? = error(file(events: ["ES_EVENT_TYPE_AUTH_OPEN"])) else {
             return XCTFail("an AUTH-only mute was accepted")
@@ -213,8 +201,6 @@ final class MuteFileTests: XCTestCase {
     }
     
     /// A target mute leaves out events Endpoint Security can't mute by target path, and is refused if none is left.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
     func testTargetMutesKeepOnlyTargetableEvents() throws {
         let target = "ES_MUTE_PATH_TYPE_TARGET_PREFIX"
         guard case .invalidMute? = error(file(type: target, events: ["ES_EVENT_TYPE_NOTIFY_EXIT"])) else {
@@ -229,8 +215,6 @@ final class MuteFileTests: XCTestCase {
     
     /// A path under `/tmp`, `/var` or `/etc` warns that Endpoint Security matches resolved paths, except in the saved
     /// file.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
     func testUnresolvedPathsWarn() throws {
         let warnings = try read(file(path: "/tmp/x")).warnings
         XCTAssertEqual(warnings.count, 1)
@@ -242,8 +226,6 @@ final class MuteFileTests: XCTestCase {
     }
     
     /// Lenient reading leaves out what it can't use, with a sentence for each, instead of refusing the file.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
     func testLenientReadingLeavesOutInvalidEntries() throws {
         let entries = [MuteFile.Entry(path: "relative", type: "ES_MUTE_PATH_TYPE_LITERAL"),
                        MuteFile.Entry(path: "/ok", type: "ES_MUTE_PATH_TYPE_LITERAL")]

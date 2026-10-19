@@ -19,8 +19,8 @@ import notify
 ///
 /// **Reconnects:** `onSignal` tells the owner when to re-run the idempotent `start(recording:reply:)` handshake:
 /// - ``Signal/restarted``: the Security Extension lost its Endpoint Security client. Either the connection was
-///   *interrupted* (the extension exited or crashed; the next message relaunches it on demand), or the extension posted
-///   ``SensorXPC/sensorReadyNotification`` once its listener came up. The latter also covers the extension being
+///   *interrupted* (the extension exited or crashed, and the next message relaunches it on demand), or the extension
+///   posted ``SensorXPC/sensorReadyNotification`` once its listener came up. The latter also covers the extension being
 ///   disabled and re-enabled, which *invalidates* our connection and so never interrupts it.
 /// - ``Signal/released``: the Mac Monitor that owned the event stream went away
 ///   (``SensorXPC/sensorReleasedNotification``), so one that was refused can claim it.
@@ -82,8 +82,8 @@ public final class SensorClient {
     
     /// Send one request to the Security Extension.
     ///
-    /// NSXPC guarantees that exactly one of the reply block or the proxy's error handler runs for a message with a reply
-    /// block, so `completion` is always called exactly once.
+    /// NSXPC guarantees that exactly one of the reply block or the proxy's error handler runs for a message with a
+    /// reply block, so `completion` is always called exactly once.
     ///
     /// ```swift
     /// sensor.call { $0.appleMuteSet(reply: $1) } completion: { paths in

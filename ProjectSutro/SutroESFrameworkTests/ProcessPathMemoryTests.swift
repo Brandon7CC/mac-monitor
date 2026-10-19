@@ -36,7 +36,7 @@ final class ProcessPathMemoryTests: XCTestCase {
         XCTAssertNil(memory.path(of: other), "nothing is remembered without a token and a path")
     }
     
-    /// A process's path is read once, then remembered under its token; without a token it's read every time.
+    /// A process's path is read once, then remembered under its token. Without a token it's read every time.
     func testReadsOncePerProcess() {
         let memory = ProcessPathMemory(capacity: 8)
         var reads: [Int32] = []
@@ -69,8 +69,6 @@ final class ProcessPathMemoryTests: XCTestCase {
     
     /// An exec names its new image and a fork its forking process: the processes that can go on to be parents. Other
     /// events name nothing.
-    ///
-    /// - Throws: The error reading a record.
     func testRemembersExecsAndForksOnly() throws {
         let memory = ProcessPathMemory(capacity: 8)
         let exit = try importRecord(try fixtureObject("eslogger-exit.jsonl"))

@@ -79,7 +79,7 @@ extension EndpointSecurityManager {
             self.muteNotice = reply.notice
             if let access = reply.access { self.savedMutesAccess = access }
             /// Refusals and what was left out, shown where the request was made. Each change replaces what the last
-            /// one left, so a refusal never shows up later, out of context; a list only adds to it.
+            /// one left, so a refusal never shows up later, out of context. A list only adds to it.
             let problems = reply.status == .ok || !reply.problems.isEmpty
                 ? reply.problems : ["The Security Extension answered “\(reply.status.rawValue)”."]
             if request.operation != .list || !problems.isEmpty {

@@ -11,9 +11,10 @@ import EndpointSecurity
 
 
 // MARK: - Recording a thread state
-/// Pins what the Security Extension keeps of a `remote_thread_create` event's `es_thread_state_t`: the flavor, and a
-/// bounded copy of the state's bytes in base64 that follows eslogger's `es_token_t` rule (`nil` for a `NULL` `data`,
-/// `""` when empty), and how a thread state is written: eslogger's `{flavor, state: null}` plus `state_base64`.
+/// Pins what the Security Extension keeps of a `remote_thread_create` event's `es_thread_state_t`. That's the flavor,
+/// and a bounded copy of the state's bytes in base64 that follows eslogger's `es_token_t` rule (`nil` for a `NULL`
+/// `data`, `""` when empty). Also pins how a thread state is written: eslogger's `{flavor, state: null}` plus
+/// `state_base64`.
 final class ThreadStateTests: XCTestCase {
     /// A message that owns a test's thread state bytes until the test ends.
     ///
@@ -63,8 +64,6 @@ final class ThreadStateTests: XCTestCase {
     }
     
     /// The bytes are copied: changing the message's memory afterwards doesn't change them.
-    ///
-    /// - Throws: An `XCTest` failure if the state has no bytes.
     func testCopyOutlivesMessageMemory() throws {
         let threadState = fixture().threadState(bytes: [1, 2, 3, 4])
         let state = ThreadState(from: threadState)
@@ -77,8 +76,6 @@ final class ThreadStateTests: XCTestCase {
     ///
     /// On arm64e the SDK makes the pointer registers opaque (`__opaque_sp`, `__opaque_pc` and so on) for its accessor
     /// macros, which sign and authenticate them, in the same layout, so the test sets and reads their bits directly.
-    ///
-    /// - Throws: An `XCTest` failure if the state has no bytes.
     func testArmThreadState64RoundTrips() throws {
         var registers = arm_thread_state64_t()
         registers.__x.0 = 0x1111
@@ -118,8 +115,6 @@ final class ThreadStateTests: XCTestCase {
     // MARK: JSON
     
     /// A thread state is written as eslogger writes it, `state` always `null`, with the bytes in `state_base64`.
-    ///
-    /// - Throws: An `XCTest` failure if the JSON isn't an object.
     func testEncodesEsloggerKeysPlusBytes() throws {
         let json = ProcessHelpers.eventToJSON(value: ThreadState(flavor: 6, state_base64: "AAEC/w=="))
         XCTAssertEqual(json, #"{"flavor":6,"state":null,"state_base64":"AAEC/w=="}"#)
@@ -128,10 +123,7 @@ final class ThreadStateTests: XCTestCase {
     }
     
     /// A trace's bytes are kept to the bound the Security Extension keeps, under either key, so an opened trace's
-    /// state is no larger than a captured one; that many characters that aren't base64 are no bytes.
-    ///
-    /// - Throws: The error decoding a thread state or reading the fixture, or an `XCTest` failure if the record holds
-    ///   no thread state.
+    /// state is no larger than a captured one. That many characters that aren't base64 are no bytes.
     func testDecodedBytesAreBounded() throws {
         let bytes = RawMessageFixture.bytes(ThreadState.maxStateSize + 3)
         let bounded = Data(bytes.prefix(ThreadState.maxStateSize))
@@ -160,8 +152,6 @@ final class ThreadStateTests: XCTestCase {
     }
     
     /// A stored event without a thread state writes `thread_state` and `thread_state_string` as `null`.
-    ///
-    /// - Throws: An `XCTest` failure if the export has no `remote_thread_create` event.
     func testEventEncodesNullThreadState() throws {
         let fixture = fixture()
         fixture.remoteThreadCreate(threadState: nil)

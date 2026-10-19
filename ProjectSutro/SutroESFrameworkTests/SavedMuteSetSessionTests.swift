@@ -12,7 +12,7 @@ import EndpointSecurity
 
 // MARK: - Sessions following the saved mute set
 /// Pins how the saved mute set reaches capture: every session that follows it starts with it and gets exactly each
-/// change on all of its clients, live; a session that doesn't follow it (`--no-mutes`), or no longer does, gets
+/// change on all of its clients, live. A session that doesn't follow it (`--no-mutes`), or no longer does, gets
 /// nothing.
 final class SavedMuteSetSessionTests: XCTestCase {
     /// A session and the factory holding its fake clients.
@@ -97,9 +97,7 @@ final class SavedMuteSetSessionTests: XCTestCase {
         changes.map { .setPathMute($0.mute, muted: $0.muted) }
     }
     
-    /// A following session starts with the saved set on every client; a `--no-mutes` session with none.
-    ///
-    /// - Throws: ``CaptureStartError`` if a session couldn't start.
+    /// A following session starts with the saved set on every client. A `--no-mutes` session starts with none.
     func testSessionsStartWithTheSavedSet() throws {
         let following = try makeFollower(), bare = try makeFollower(following: false)
         let expected = calls(MuteList().changes(to: .testDefault))
@@ -109,8 +107,6 @@ final class SavedMuteSetSessionTests: XCTestCase {
     }
     
     /// An add reaches every client of every following session as one mute, and no other session.
-    ///
-    /// - Throws: ``CaptureStartError`` if a session couldn't start.
     func testAnAddReachesEveryFollowingClient() throws {
         let first = try makeFollower(), second = try makeFollower(), bare = try makeFollower(following: false)
         let starts = [first, second, bare].map { $0.factory.clients.map(\.calls.count) }
@@ -123,8 +119,6 @@ final class SavedMuteSetSessionTests: XCTestCase {
     }
     
     /// A remove reaches every following client as an unmute, live.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testARemoveReachesEveryFollowingClientAsAnUnmute() throws {
         let follower = try makeFollower()
         let start = follower.factory.clients.map(\.calls.count)
@@ -136,8 +130,6 @@ final class SavedMuteSetSessionTests: XCTestCase {
     }
     
     /// A reset from a set of the user's sends exactly the difference back to the default set.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testAResetSendsOnlyTheDifference() throws {
         let follower = try makeFollower()
         let custom = [MuteFile.Entry(path: "/usr/libexec/logd", type: "ES_MUTE_PATH_TYPE_LITERAL"),
@@ -156,9 +148,7 @@ final class SavedMuteSetSessionTests: XCTestCase {
         XCTAssertEqual(follower.session.appliedMutes, .testDefault)
     }
     
-    /// A session whose subscription is released gets no more changes; the others still do.
-    ///
-    /// - Throws: ``CaptureStartError`` if a session couldn't start.
+    /// A session whose subscription is released gets no more changes. The others still do.
     func testAReleasedSubscriptionGetsNothing() throws {
         let kept = try makeFollower()
         var released = try makeFollower()
@@ -170,8 +160,6 @@ final class SavedMuteSetSessionTests: XCTestCase {
     }
     
     /// A refused or invalid change reaches no client.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testRefusedChangesReachNoClient() throws {
         let follower = try makeFollower()
         let start = follower.factory.clients.map(\.calls.count)

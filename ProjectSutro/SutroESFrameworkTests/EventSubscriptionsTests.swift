@@ -18,8 +18,6 @@ final class EventSubscriptionsTests: XCTestCase {
     
     /// Every Open Directory event Mac Monitor records is offered and subscribed to by default from macOS 14, as
     /// `od_group_remove` wasn't.
-    ///
-    /// - Throws: `XCTSkip` before macOS 14, which has no Open Directory events.
     func testOpenDirectoryEvents() throws {
         try XCTSkipUnless(ProcessInfo().isOperatingSystemAtLeast(sonoma), "Open Directory events need macOS 14")
         for event in RawMessageFixture.openDirectoryEvents.map(\.type) {

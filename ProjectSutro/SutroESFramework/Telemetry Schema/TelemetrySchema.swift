@@ -14,13 +14,13 @@ import Foundation
 ///
 /// Every record is eslogger's JSON plus Mac Monitor's own fields, and the schema marks each key with
 /// `x-mac-monitor-origin`: `eslogger` or `mac-monitor`. It's generated from the test target's description of the export
-/// and committed as `Schema/mac-monitor-telemetry.schema.json`; the framework bundles that file, and each release on
+/// and committed as `Schema/mac-monitor-telemetry.schema.json`. The framework bundles that file, and each release on
 /// GitHub attaches it beside the installer, as ``releaseAssetName``. ``TelemetryValidator`` checks records against it.
 ///
 /// Every record carries ``version`` under ``versionKey``, beside eslogger's own `schema_version`.
 public enum TelemetrySchema {
     /// The version of the records' shape, independent of the app's: MAJOR when a key is removed, renamed or retyped,
-    /// or a value's format changes; MINOR when a key, event type or value is added; PATCH when only the schema's text
+    /// or a value's format changes. MINOR when a key, event type or value is added. PATCH when only the schema's text
     /// changes.
     public static let version = "1.0.0"
     /// The key every record carries ``version`` under.

@@ -43,74 +43,70 @@ final class CaptureSessionDrainTests: XCTestCase {
         }
     }
     
+    /// What reached the queue, once it has seen this many drains complete.
+    ///
+    /// - Parameter drains: How many drains to wait for.
+    /// - Returns: The arrivals.
+    private func arrivals(after drains: Int = 1) -> [String] {
+        XCTAssertTrue(waitUntil { arrivals.withLock { $0.filter { $0 == "drained" }.count } >= drains })
+        return queue.sync { arrivals.withLock { $0 } }
+    }
+    
     /// Every client is unsubscribed from everything and then synced, and the drain completes after every event
     /// handled before the markers came up, including one handled after the drain started.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testDrainCompletesAfterEveryEventAheadOfTheMarkers() throws {
         let factory = FakeEndpointSecurityClientFactory()
         let session = try makeSession(factory)
         factory.clients.forEach { $0.holdSyncs() }
-        factory.clients[0].deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 1))
+        factory.client(.process).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 1))
         drain(session)
         for client in factory.clients {
             XCTAssertEqual(Array(client.calls.suffix(2)), [.unsubscribeAll, .sync])
         }
         /// Queued before the marker, handled after the drain started.
-        factory.clients[0].deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 2))
-        factory.clients[1].deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_OPEN, global: 1))
+        factory.client(.process).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 2))
+        factory.client(.file).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_OPEN, global: 1))
         factory.clients.forEach { $0.releaseSyncs() }
-        queue.sync {}
-        XCTAssertEqual(arrivals.withLock { $0 }, ["1", "2", "1", "drained"])
+        XCTAssertEqual(arrivals(), ["1", "2", "1", "drained"])
     }
     
     /// The drain waits for the last client's marker.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testDrainWaitsForEveryClient() throws {
         let factory = FakeEndpointSecurityClientFactory()
         let session = try makeSession(factory)
         factory.clients.forEach { $0.holdSyncs() }
         drain(session)
-        factory.clients[0].releaseSyncs()
-        factory.clients[2].releaseSyncs()
+        factory.client(.process).releaseSyncs()
+        factory.client(.memory).releaseSyncs()
         queue.sync {}
         XCTAssertEqual(arrivals.withLock { $0 }, [])
-        factory.clients[1].releaseSyncs()
-        queue.sync {}
-        XCTAssertEqual(arrivals.withLock { $0 }, ["drained"])
+        factory.client(.file).releaseSyncs()
+        XCTAssertEqual(arrivals(), ["drained"])
     }
     
     /// Without `es_sync_client` (before macOS 27) the drain only unsubscribes, and completes right away.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testDrainWithoutSyncCompletesRightAway() throws {
         let factory = FakeEndpointSecurityClientFactory(refusing: [0: [.sync], 1: [.sync], 2: [.sync]])
         let session = try makeSession(factory)
         drain(session)
-        queue.sync {}
-        XCTAssertEqual(arrivals.withLock { $0 }, ["drained"])
+        XCTAssertEqual(arrivals(), ["drained"])
         XCTAssertTrue(factory.clients.allSatisfy { $0.calls(.unsubscribeAll).count == 1 })
     }
     
     /// A stopped session has nothing to drain. A session stopped mid-drain still completes it: deleting a client
     /// calls its sync blocks.
-    ///
-    /// - Throws: ``CaptureStartError`` if a session couldn't start.
     func testStoppedSessionsComplete() throws {
         let stopped = try makeSession(FakeEndpointSecurityClientFactory())
         queue.sync { stopped.stop() }
         drain(stopped)
-        queue.sync {}
-        XCTAssertEqual(arrivals.withLock { $0 }, ["drained"])
+        XCTAssertEqual(arrivals(), ["drained"])
         
         let factory = FakeEndpointSecurityClientFactory()
         let draining = try makeSession(factory)
         factory.clients.forEach { $0.holdSyncs() }
         drain(draining)
         queue.sync { draining.stop() }
-        queue.sync {}
-        XCTAssertEqual(arrivals.withLock { $0 }, ["drained", "drained"])
+        XCTAssertEqual(arrivals(after: 2), ["drained", "drained"])
     }
     
     /// `es_sync_client` is found on macOS 27, where it was introduced.

@@ -50,10 +50,8 @@ final class MuteFileReaderTests: XCTestCase {
         }
     }
     
-    /// An entry from Apple's default set, which names only AUTH events, is left out with a warning; a 13.3.1 style
-    /// line with an `id` reads; a global entry reads as every event.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
+    /// An entry from Apple's default set, which names only AUTH events, is left out with a warning. A 13.3.1 style
+    /// line with an `id` reads. A global entry reads as every event.
     func testLegacyShapesFromMuteSets() throws {
         let apple = line("/usr/sbin/spindump", "ES_MUTE_PATH_TYPE_TARGET_LITERAL",
                          ["ES_EVENT_TYPE_AUTH_OPEN", "ES_EVENT_TYPE_AUTH_UNLINK"])
@@ -72,8 +70,6 @@ final class MuteFileReaderTests: XCTestCase {
     
     /// Endpoint Security lists a path muted for every event with every type it has, AUTH events and unnamed ones
     /// included: such an entry reads as every event, without warnings.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
     func testAnEntryNamingEveryCapturedEventReadsAsEveryEvent() throws {
         let everything = (0..<ES_EVENT_TYPE_LAST.rawValue).map {
             eventTypeToString(from: es_event_type_t(rawValue: $0))
@@ -90,8 +86,6 @@ final class MuteFileReaderTests: XCTestCase {
     }
     
     /// A target entry naming every event that can be muted by target path reads as every event.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
     func testATargetEntryNamingEveryTargetableEventReadsAsEveryEvent() throws {
         let targetable = MuteFileReader.everyEvent(for: ES_MUTE_PATH_TYPE_TARGET_PREFIX).map {
             eventTypeToString(from: $0)
@@ -100,7 +94,7 @@ final class MuteFileReaderTests: XCTestCase {
         XCTAssertEqual(imported.list.scopes.values.first, .allEvents)
     }
     
-    /// Blank lines and CRLF line ends are fine; a line that isn't a muted path fails the import with its number.
+    /// Blank lines and CRLF line ends are fine. A line that isn't a muted path fails the import with its number.
     func testLineEndsAndBrokenLines() throws {
         let crlf = [line("/a"), "", line("/b"), "   "].joined(separator: "\r\n")
         XCTAssertEqual(try read(crlf).list.count, 2)
@@ -111,9 +105,7 @@ final class MuteFileReaderTests: XCTestCase {
     }
     
     /// Unknown names (and `ES_EVENT_TYPE_LAST`, which Endpoint Security lists for types Mac Monitor can't name) are
-    /// left out and the known ones kept; an entry naming only unknown events is left out.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
+    /// left out and the known ones kept. An entry naming only unknown events is left out.
     func testUnknownEventNamesAreLeftOut() throws {
         let imported = try read([
             line("/a", "ES_MUTE_PATH_TYPE_LITERAL", ["ES_EVENT_TYPE_NOTIFY_OPEN", "ES_EVENT_TYPE_LAST"]),
@@ -125,10 +117,8 @@ final class MuteFileReaderTests: XCTestCase {
         XCTAssertTrue(imported.warnings[1].hasPrefix("Left out “/b”"), imported.warnings[1])
     }
     
-    /// A version 1 file is recognized pretty printed or on one line; a single legacy line is legacy; text that is
+    /// A version 1 file is recognized pretty printed or on one line. A single legacy line is legacy. Text that is
     /// neither gets the version 1 error, and a list that starts as a legacy one gets the legacy error.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
     func testFormatSniffing() throws {
         let list = MuteList([PathMute(path: "/a", type: ES_MUTE_PATH_TYPE_LITERAL)])
         XCTAssertEqual(try MuteFileReader.read(MuteFile(list).encoded()).format, .current)
@@ -143,8 +133,6 @@ final class MuteFileReaderTests: XCTestCase {
     }
     
     /// A version 1 file is imported leniently too: an entry that can't be used is left out with a warning.
-    ///
-    /// - Throws: An unexpected ``MuteFileError``.
     func testVersionOneImportIsLenient() throws {
         let file = MuteFile(mutes: [.init(path: "relative", type: "ES_MUTE_PATH_TYPE_LITERAL"),
                                     .init(path: "/ok", type: "ES_MUTE_PATH_TYPE_LITERAL")])

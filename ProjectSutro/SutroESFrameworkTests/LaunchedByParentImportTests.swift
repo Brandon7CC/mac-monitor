@@ -35,8 +35,6 @@ final class LaunchedByParentImportTests: XCTestCase {
     }
     
     /// Every exec and fork of the fixture, in order, gets the answer its shape calls for.
-    ///
-    /// - Throws: The error reading the fixture, or an `XCTest` failure if an event has no answer.
     func testLineageFixture() throws {
         var messages = try lineageMessages()
         XCTAssertTrue(messages.allSatisfy { $0.createdLaunchedByParent == nil }, "eslogger carries none")
@@ -72,8 +70,6 @@ final class LaunchedByParentImportTests: XCTestCase {
     }
     
     /// Forks name their parent, the forking process, by its executable.
-    ///
-    /// - Throws: The error reading the fixture.
     func testForksAreNamedByTheForkingProcess() throws {
         var forks = try lineageMessages().filter { $0.event_type == Int(ES_EVENT_TYPE_NOTIFY_FORK.rawValue) }
         TraceLaunchedByParents().fill(&forks)
@@ -83,8 +79,6 @@ final class LaunchedByParentImportTests: XCTestCase {
     
     /// A parent's path comes only from an earlier event of the same process image: not from the same pid with
     /// another pid version, and not from this Mac, even for a live process.
-    ///
-    /// - Throws: The error reading a record.
     func testPathsComeOnlyFromTheSameProcessInTheTrace() throws {
         var records = try fixtureRecords(Self.lineageFixture)
         var shell = try XCTUnwrap(records[0]["process"] as? [String: Any])
@@ -102,8 +96,6 @@ final class LaunchedByParentImportTests: XCTestCase {
     }
     
     /// A trace read in batches names a parent seen in an earlier batch.
-    ///
-    /// - Throws: The error reading the fixture.
     func testBatchesShareTheirMemory() throws {
         let messages = try lineageMessages()
         let launchedByParents = TraceLaunchedByParents()
@@ -118,8 +110,6 @@ final class LaunchedByParentImportTests: XCTestCase {
     }
     
     /// Mac Monitor 2.1's export of an exec gets an answer the same way: a job's program, exec'd by `xpcproxy`.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if the fixture has no exec.
     func testMacMonitor21Exec() throws {
         let record = try fixtureRecords(Self.lineageFixture)[4]
         let exec = try XCTUnwrap((record["event"] as? [String: Any])?["exec"])
@@ -134,8 +124,6 @@ final class LaunchedByParentImportTests: XCTestCase {
     
     /// A launched-by parent the trace carries (Mac Monitor 3.0's LaunchServices answer, which can't be worked out
     /// again) is kept as it is.
-    ///
-    /// - Throws: The error reading a record or encoding the answer.
     func testCarriedLaunchedByParentIsKept() throws {
         let finder = LaunchedByParent(source: .launchServices, audit_token: .fixture(pid: 600, pidversion: 6000),
                                       path: "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder",
@@ -153,8 +141,6 @@ final class LaunchedByParentImportTests: XCTestCase {
     }
     
     /// Events that create no process are left as they are.
-    ///
-    /// - Throws: The error reading the fixtures.
     func testOtherEventsAreUntouched() throws {
         var messages = try fixtureRecords("eslogger-open.jsonl").map { try importRecord($0) }
             + [try importRecord(try fixtureObject("eslogger-exit.jsonl"))]

@@ -85,8 +85,6 @@ final class OpenDirectoryMemberTests: XCTestCase {
     }
     
     /// A member without a value is written with `member_value: null`, as eslogger writes every key it has.
-    ///
-    /// - Throws: The error encoding or parsing the member.
     func testMemberEncodesNull() throws {
         let data = try JSONEncoder().encode(OpenDirectoryMember(member_type: 1, member_value: nil))
         let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])

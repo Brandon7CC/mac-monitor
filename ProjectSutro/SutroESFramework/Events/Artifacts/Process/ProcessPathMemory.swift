@@ -13,7 +13,7 @@ import Foundation
 ///
 /// A token's pid and pid version name one process image (the version changes with each exec), whose executable never
 /// changes: a path remembered for a token is exact, where a path read by pid alone can belong to whatever process
-/// reused the pid. A capture lane remembers the parents its execs and forks name, and what it reads for others; a
+/// reused the pid. A capture lane remembers the parents its execs and forks name, and what it reads for others. A
 /// trace import remembers every process the trace names, and reads nothing.
 ///
 /// Bounded like ``RowCache``: two generations of up to ``capacity`` processes each. When the newer one fills up the

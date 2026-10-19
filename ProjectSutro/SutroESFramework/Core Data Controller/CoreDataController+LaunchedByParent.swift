@@ -15,7 +15,7 @@ extension CoreDataController {
     /// thread): its launched-by parent, that parent's, and so on, each with the event that created it when the store
     /// has it.
     ///
-    /// An exec or fork is about the process it created (its target or child); any other event is about the process
+    /// An exec or fork is about the process it created (its target or child). Any other event is about the process
     /// that caused it. The walk ends after launchd, at a parent the store doesn't have, at a LaunchServices answer
     /// that names no launcher, at a parent already walked, or after 64 steps.
     ///

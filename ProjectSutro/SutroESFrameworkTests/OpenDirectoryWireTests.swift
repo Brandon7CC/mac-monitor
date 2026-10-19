@@ -41,9 +41,7 @@ final class OpenDirectoryWireTests: XCTestCase {
         try JSONDecoder().decode(type, from: try JSONSerialization.data(withJSONObject: try legacyEvent(name)))
     }
     
-    /// A group event's member type name is read back as its number, without a value; an unknown one as no member.
-    ///
-    /// - Throws: The error decoding an event.
+    /// A group event's member type name is read back as its number, without a value. An unknown one reads as no member.
     func testLegacyGroupMembers() throws {
         let added = try decodeLegacy(OpenDirectoryGroupAddEvent.self, "od_group_add")
         XCTAssertEqual(added.member, OpenDirectoryMember(member_type: 1, member_value: nil))
@@ -56,8 +54,6 @@ final class OpenDirectoryWireTests: XCTestCase {
     }
     
     /// Record and account type names are read back as their numbers, and kept.
-    ///
-    /// - Throws: The error decoding an event.
     func testLegacyRecordAndAccountTypes() throws {
         let attribute = try decodeLegacy(OpenDirectoryAttributeValueAddEvent.self, "od_attribute_value_add")
         XCTAssertEqual(attribute.record_type, 1)
@@ -72,8 +68,6 @@ final class OpenDirectoryWireTests: XCTestCase {
     
     /// A whole `Message` from an older Security Extension decodes (a new one's JSON with the legacy event in place),
     /// and keeps the instigator's fields it sent, without an instigator or token.
-    ///
-    /// - Throws: The error encoding or decoding a message, or an `XCTest` failure if one holds no OD event.
     func testLegacyMessages() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_OD_CREATE_USER)
         fixture.odEvent(\.od_create_user, eslogger: ["node_name": "/Local/Default"])
@@ -92,8 +86,6 @@ final class OpenDirectoryWireTests: XCTestCase {
     }
     
     /// 3.0.0's Security Extension sends eslogger's fields, and the app reads them all back.
-    ///
-    /// - Throws: The error encoding or decoding a message, or an `XCTest` failure if a record holds no OD event.
     func testRoundTrip() throws {
         for record in try fixtureRecords("eslogger-od.jsonl") {
             let sent = capture(eslogger: record) { $0.fillODEvent(eslogger: record) }

@@ -16,8 +16,6 @@ import CoreData
 final class ProcessParentsTests: XCTestCase {
     /// A shell's child has one parent: the shell, named by its exec, is both. So does the fork that made the child,
     /// whose Unix parent is the forking process exactly.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testShellChildHasOneParent() throws {
         try withEventStore(try lineageTrace(after: [try shellExec()])) { context, stored in
             let lookup = LineageLookup(context)
@@ -37,8 +35,6 @@ final class ProcessParentsTests: XCTestCase {
     }
     
     /// A Unix parent the trace has no exec for is named by the launched-by parent, when that's the same process.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testUnixParentNamedByTheAnswer() throws {
         try withEventStore(try lineageTrace()) { context, stored in
             let parents = try XCTUnwrap(LineageLookup(context).parents(of: stored[1]))
@@ -51,8 +47,6 @@ final class ProcessParentsTests: XCTestCase {
     
     /// An app, an XPC service and a launchd job have launchd as their Unix parent and another launched-by parent beside
     /// it.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testLaunchdChildrenHaveTwoParents() throws {
         var messages = try lineageTrace()
         let launcher = AuditToken(pid: 410, pidversion: 4102, asid: 100_001, auid: 4_294_967_295, euid: 0, ruid: 0,
@@ -80,8 +74,6 @@ final class ProcessParentsTests: XCTestCase {
     
     /// A process launchd adopted before its exec has launchd as its Unix parent and its original parent, by pid, as
     /// its launched-by parent.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testReparentedProcessKeepsItsOriginalParent() throws {
         try withEventStore(try lineageTrace()) { context, stored in
             let parents = try XCTUnwrap(LineageLookup(context).parents(of: stored[7]))
@@ -95,8 +87,6 @@ final class ProcessParentsTests: XCTestCase {
     }
     
     /// Only an exec or a fork has parents to show.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testOtherEventsHaveNone() throws {
         try withEventStore([try exitMessage(of: try shell())]) { context, stored in
             XCTAssertNil(LineageLookup(context).parents(of: stored[0]))

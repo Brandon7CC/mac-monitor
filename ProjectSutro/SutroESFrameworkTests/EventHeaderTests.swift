@@ -14,8 +14,6 @@ import XCTest
 /// `Message`, and the fields Endpoint Security can leave out read as missing.
 final class EventHeaderTests: XCTestCase {
     /// For every fixture event, the header read from the wire equals the one taken from the decoded `Message`.
-    ///
-    /// - Throws: The error reading a fixture, or encoding or decoding an event.
     func testTheWireHeaderIsTheMessagesHeader() throws {
         for message in try allFixtureMessages() {
             let data = try wire(message)
@@ -30,10 +28,8 @@ final class EventHeaderTests: XCTestCase {
         }
     }
     
-    /// Sequence numbers, the user, the executable, the context, and the target path may be missing; the event's type,
+    /// Sequence numbers, the user, the executable, the context, and the target path may be missing. The event's type,
     /// name, time, and process may not.
-    ///
-    /// - Throws: An `XCTest` failure if the minimal header doesn't read.
     func testWhatMayBeMissing() throws {
         let minimal = #"""
             {"event_type":9,"es_event_type":"ES_EVENT_TYPE_NOTIFY_EXEC","time":"2026-10-05T01:02:03.004005006Z",\#

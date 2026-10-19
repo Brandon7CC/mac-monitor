@@ -50,8 +50,6 @@ final class CommandLineParserTests: XCTestCase {
     }
     
     /// `stream` alone: Mac Monitor's default events, the format by terminal, the saved mutes, no pipeline events.
-    ///
-    /// - Throws: ``CommandLineUsageError``.
     func testStreamDefaults() throws {
         let invocation = try stream("")
         XCTAssertEqual(invocation, StreamInvocation())
@@ -65,9 +63,7 @@ final class CommandLineParserTests: XCTestCase {
         XCTAssertTrue(try parse("stream").requiresRoot)
     }
     
-    /// Events by short name in any case or full name, each once in order; `all` is every supported event.
-    ///
-    /// - Throws: ``CommandLineUsageError``.
+    /// Events by short name in any case or full name, each once in order. `all` is every supported event.
     func testEventNames() throws {
         XCTAssertEqual(try stream("exec FORK ES_EVENT_TYPE_NOTIFY_EXIT exec").events,
                        [ES_EVENT_TYPE_NOTIFY_EXEC, ES_EVENT_TYPE_NOTIFY_FORK, ES_EVENT_TYPE_NOTIFY_EXIT])
@@ -86,8 +82,6 @@ final class CommandLineParserTests: XCTestCase {
     }
     
     /// Options before or after events, `--format=` and `--format `, `--` before a name starting with a dash.
-    ///
-    /// - Throws: ``CommandLineUsageError``.
     func testOptionSyntax() throws {
         var expected = StreamInvocation()
         expected.events = [ES_EVENT_TYPE_NOTIFY_EXEC]
@@ -106,8 +100,6 @@ final class CommandLineParserTests: XCTestCase {
     
     /// `--json`, `--pretty` and `--text` set the format. Naming the same format twice is fine, but two different ones
     /// is an error.
-    ///
-    /// - Throws: ``CommandLineUsageError``.
     func testFormatShorthands() throws {
         XCTAssertEqual(try stream("exec --json").format, .jsonl)
         XCTAssertEqual(try stream("--pretty exec").format, .pretty)
@@ -132,10 +124,8 @@ final class CommandLineParserTests: XCTestCase {
         XCTAssertEqual(usageError("stream -x"), "Unknown option '-x' for stream. Run 'macmonitor help stream'.")
     }
     
-    /// `-h` or `--help` anywhere before `--` asks for the command's help, `help`'s included; no arguments, `help`,
+    /// `-h` or `--help` anywhere before `--` asks for the command's help, `help`'s included. No arguments, `help`,
     /// `-h` and `--help` alone ask for the overview.
-    ///
-    /// - Throws: ``CommandLineUsageError``.
     func testHelp() throws {
         XCTAssertEqual(try parse(""), .help(command: nil))
         XCTAssertEqual(try parse("help"), .help(command: nil))
@@ -153,10 +143,8 @@ final class CommandLineParserTests: XCTestCase {
         XCTAssertFalse(try parse("help").requiresRoot)
     }
     
-    /// `version`, `--version`, and `events` need no root and take no arguments; unknown commands and options are
+    /// `version`, `--version`, and `events` need no root and take no arguments. Unknown commands and options are
     /// usage errors.
-    ///
-    /// - Throws: ``CommandLineUsageError``.
     func testOtherCommands() throws {
         XCTAssertEqual(try parse("version"), .version)
         XCTAssertEqual(try parse("--version"), .version)
@@ -171,10 +159,8 @@ final class CommandLineParserTests: XCTestCase {
         XCTAssertEqual(usageError("--verbose"), "Unknown option '--verbose'. Run 'macmonitor help'.")
     }
     
-    /// `schema` takes nothing, and `validate` one trace, with `--eslogger` before or after it; neither needs root.
+    /// `schema` takes nothing, and `validate` one trace, with `--eslogger` before or after it. Neither needs root.
     /// Anything else is a usage error, exit 64, and a file name or option it repeats is escaped for a terminal.
-    ///
-    /// - Throws: ``CommandLineUsageError``.
     func testSchemaAndValidate() throws {
         XCTAssertEqual(try parse("schema"), .schema)
         XCTAssertEqual(try parse("validate trace.jsonl"), .validate(ValidateInvocation(path: "trace.jsonl")))
@@ -209,8 +195,6 @@ final class CommandLineParserTests: XCTestCase {
     
     /// Help describes every command once, every command parses as itself, and the overview names the commands that
     /// need root.
-    ///
-    /// - Throws: ``CommandLineUsageError``.
     func testTheHelpMatchesTheCommands() throws {
         XCTAssertEqual(CommandLineHelp.commands.map(\.id).sorted { $0.rawValue < $1.rawValue },
                        CommandLineCommand.Name.allCases.sorted { $0.rawValue < $1.rawValue })

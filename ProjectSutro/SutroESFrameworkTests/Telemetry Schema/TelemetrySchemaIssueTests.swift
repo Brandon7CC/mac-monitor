@@ -42,8 +42,6 @@ final class TelemetrySchemaIssueTests: XCTestCase {
     // MARK: Valid
     
     /// Every fixture's export, written as a JSONL trace, is valid, and the report says so.
-    ///
-    /// - Throws: The error reading a fixture, or writing or validating the trace.
     func testFixtureExportsValidateAsATrace() throws {
         let exports = try fixtureExports()
         let url = try temporaryFile(containing: exports.map(\.json).joined(separator: "\n") + "\n",
@@ -62,8 +60,6 @@ final class TelemetrySchemaIssueTests: XCTestCase {
     
     /// A value of the wrong type or format is reported at its own path: in an event's process, its arguments, the
     /// envelope, and a nullable object.
-    ///
-    /// - Throws: The error reading a fixture.
     func testBrokenValuesNameTheirPath() throws {
         let records = try exportedRecords()
         let exec = try first("exec", in: records)
@@ -100,8 +96,6 @@ final class TelemetrySchemaIssueTests: XCTestCase {
     
     /// A missing key, a key the schema doesn't have, an event Mac Monitor doesn't record, two events, and a value
     /// that's none of a key's alternatives are each reported at their own path.
-    ///
-    /// - Throws: The error reading a fixture.
     func testBrokenObjectsNameTheirPath() throws {
         let records = try exportedRecords()
         let exec = try first("exec", in: records) { $0["launched_by_parent"] is [String: Any] }
@@ -129,8 +123,6 @@ final class TelemetrySchemaIssueTests: XCTestCase {
     
     /// In a trace, each broken record's issue names the line it starts on, a record cut short is malformed, and the
     /// report counts records and issues by kind: in JSONL and in pretty-printed records alike.
-    ///
-    /// - Throws: The error reading a fixture, or writing or validating the trace.
     func testBrokenTraceCountsIssuesByLine() throws {
         var records = try exportedRecords()
         XCTAssertGreaterThan(records.count, 5)
@@ -173,8 +165,6 @@ final class TelemetrySchemaIssueTests: XCTestCase {
     
     /// eslogger's own records are valid in eslogger mode, and its issues there are a Mac Monitor field that's present
     /// and an eslogger field that's missing. Checking every key, they get the hint to use eslogger mode.
-    ///
-    /// - Throws: The error reading the fixture, or loading or validating with the schema.
     func testESLoggerRecordsInESLoggerMode() throws {
         let url = try fixtureURL("eslogger-od.jsonl"), version = TelemetrySchema.version
         let eslogger = try TelemetryValidator.bundled(mode: .eslogger)

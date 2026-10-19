@@ -33,8 +33,6 @@ final class MessageThreadTests: XCTestCase {
     }
     
     /// A `NULL` thread is captured as none and exported as `null`, as eslogger writes it.
-    ///
-    /// - Throws: The error reading the exit fixture, or an `XCTest` failure if an export isn't a JSON object.
     func testCapturedNullThread() throws {
         for fixture in try messagesWithoutThread() {
             let message = Message(from: fixture.raw)
@@ -46,8 +44,6 @@ final class MessageThreadTests: XCTestCase {
     }
     
     /// A thread Endpoint Security names is exported with its ID.
-    ///
-    /// - Throws: An `XCTest` failure if the export isn't a JSON object.
     func testCapturedThread() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_CS_INVALIDATED)
         fixture.message.pointee.thread = fixture.pointer(es_thread_t(thread_id: 0x1234_5678))
@@ -63,8 +59,6 @@ final class MessageThreadTests: XCTestCase {
     }
     
     /// The Security Extension's JSON reaches Mac Monitor with the thread, or without one, as captured.
-    ///
-    /// - Throws: The error encoding or decoding the message.
     func testWireRoundTrip() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_CS_INVALIDATED)
         let none = try JSONDecoder().decode(Message.self, from: try JSONEncoder().encode(Message(from: fixture.raw)))
@@ -74,9 +68,7 @@ final class MessageThreadTests: XCTestCase {
         XCTAssertEqual(some.thread?.thread_id, 42)
     }
     
-    /// An eslogger record with `"thread": null` reads back as none and exports `null` again; a thread is kept.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export isn't a JSON object.
+    /// An eslogger record with `"thread": null` reads back as none and exports `null` again. A thread is kept.
     func testImportedThread() throws {
         var record = try esloggerRecord("cs_invalidated", type: 94, [:])
         record["thread"] = NSNull()

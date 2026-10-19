@@ -211,7 +211,7 @@ public class ProcessHelpers {
     /// Open a file for reading, only if it's a regular file, without waiting.
     ///
     /// An exec's arguments can name anything. Opening a FIFO that has no writer waits until something opens it for
-    /// writing, and the capture lane building the event waited with it; opening a device can have side effects. So the
+    /// writing, and the capture lane building the event waited with it. Opening a device can have side effects. So the
     /// path is `stat`ed first, opened with `O_NONBLOCK`, and checked again with `fstat` in case it was replaced in
     /// between.
     ///

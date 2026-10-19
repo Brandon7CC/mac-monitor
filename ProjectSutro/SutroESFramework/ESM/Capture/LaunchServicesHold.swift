@@ -11,12 +11,15 @@ import os
 
 
 // MARK: - Launch Services hold
-/// Holds an app's exec until Launch Services says who launched it (at most 250 ms).
+/// Holds an app's exec until Launch Services says who launched it, usually within 250 ms.
 ///
-/// Events behind a held exec wait so the lane stays in Endpoint Security's order.
+/// Events behind a held exec wait so the lane stays in Endpoint Security's order. A lookup that takes longer than
+/// ``maxWait`` is given up, so a stuck Launch Services read never stops the lane.
 final class LaunchServicesHold {
     /// The most execs held at a time
     static let defaultMaxHeld = 64
+    /// The longest an exec is held. Twice the upgrader's last read.
+    static let defaultMaxWait: TimeInterval = 0.5
     static let logger = Logger(subsystem: "com.swiftlydetecting.agent.securityextension",
                                category: "LaunchServicesHold")
 
@@ -47,6 +50,7 @@ final class LaunchServicesHold {
 
     let eventClass: EventClass
     let maxHeld: Int
+    let maxWait: TimeInterval
     private let upgrader: LaunchedByParentUpgrader
     private let emit: (CapturedEvent) -> Void
     private let state = OSAllocatedUnfairLock(uncheckedState: State())
@@ -57,11 +61,13 @@ final class LaunchServicesHold {
     ///   - eventClass: The lane's event class.
     ///   - upgrader: Looks up each held exec.
     ///   - maxHeld: The most execs held at a time.
+    ///   - maxWait: The longest an exec is held.
     ///   - emit: Called in order, under the hold's lock.
     init(eventClass: EventClass, upgrader: LaunchedByParentUpgrader, maxHeld: Int = LaunchServicesHold.defaultMaxHeld,
-         emit: @escaping (CapturedEvent) -> Void) {
+         maxWait: TimeInterval = LaunchServicesHold.defaultMaxWait, emit: @escaping (CapturedEvent) -> Void) {
         self.eventClass = eventClass
         self.maxHeld = maxHeld
+        self.maxWait = maxWait
         self.upgrader = upgrader
         self.emit = emit
     }
@@ -103,6 +109,10 @@ final class LaunchServicesHold {
         upgrader.lookUp(answer, of: target) { [weak self] better in
             self?.settle(held, with: better)
         }
+        // Not on the upgrader's queue, which a stuck read would block.
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + maxWait) { [weak self] in
+            self?.settle(held, with: nil)
+        }
     }
 
     /// Send everything in line and stop. Lookups still running are ignored.
@@ -115,14 +125,14 @@ final class LaunchServicesHold {
         }
     }
 
-    /// Finish a lookup and send whatever is ready.
+    /// Finish a lookup and send whatever is ready. Only the first call for an exec counts.
     ///
     /// - Parameters:
     ///   - held: The exec.
     ///   - better: Launch Services' answer, or `nil` to keep the current one.
     private func settle(_ held: Held, with better: LaunchedByParent?) {
         state.withLockUnchecked { state in
-            guard !state.isClosed else { return }
+            guard !state.isClosed, !held.isSettled else { return }
             if let better { held.message.setLaunchedByParent(better) }
             held.isSettled = true
             release(&state)

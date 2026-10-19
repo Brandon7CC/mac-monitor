@@ -27,7 +27,7 @@ public struct SchemaCommand {
     
     /// Write the schema.
     ///
-    /// - Returns: Success, also when the reader closed the pipe (`| head`); or the failure: 70 when the schema can't
+    /// - Returns: Success, also when the reader closed the pipe (`| head`). Otherwise 70 when the schema can't
     ///   be read, 74 when standard output can't be written.
     public func run() -> Result<Void, CommandLineFailure> {
         let data: Data

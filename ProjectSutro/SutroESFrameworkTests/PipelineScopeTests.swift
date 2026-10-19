@@ -11,7 +11,8 @@ import XCTest
 
 // MARK: - Pipeline scope
 /// Pins which events `macmonitor` leaves out as its own pipeline's: its own process always, and with `--include-self`
-/// only that; otherwise its group and every consecutive `sudo` ancestor's, never the shell's, never 0 or launchd's.
+/// only that. Without it, also its group and every consecutive `sudo` ancestor's, never the shell's, never 0 or
+/// launchd's.
 final class PipelineScopeTests: XCTestCase {
     private let sudo = PipelineScope.sudoPath
     
@@ -55,7 +56,7 @@ final class PipelineScopeTests: XCTestCase {
         XCTAssertEqual(rootShell.groups, [900])
     }
     
-    /// Nested sudo walks through every sudo; a sudo above another program doesn't count.
+    /// Nested sudo walks through every sudo. A sudo above another program doesn't count.
     func testOnlyConsecutiveSudosCount() {
         let scope = PipelineScope(ancestry: [PipelineAncestor(pid: 900, groupID: 900, path: "/x/macmonitor"),
                                              PipelineAncestor(pid: 899, groupID: 899, path: sudo),

@@ -32,8 +32,9 @@ struct SystemMMAPMetadataView: View {
         event.flags
     }
     
-    private var filePos: Int64 {
-        event.file_pos
+    /// Stored by bit pattern, shown unsigned as Endpoint Security reports it
+    private var filePos: UInt64 {
+        UInt64(bitPattern: event.file_pos)
     }
     
     var body: some View {

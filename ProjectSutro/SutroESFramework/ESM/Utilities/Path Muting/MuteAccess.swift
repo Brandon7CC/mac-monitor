@@ -52,7 +52,7 @@ public enum MuteAccess: String, Codable, Sendable {
 
 // MARK: - Administrators
 /// Decides whether a user is an administrator: a member of the `admin` group. Only an administrator's Mac Monitor may
-/// change the saved mute set; `macmonitor` runs as root.
+/// change the saved mute set. `macmonitor` runs as root.
 ///
 /// The Security Extension asks about the effective user the kernel recorded for a connection, on every request about
 /// the saved set. Tests pass their own answer, so they need no real accounts.

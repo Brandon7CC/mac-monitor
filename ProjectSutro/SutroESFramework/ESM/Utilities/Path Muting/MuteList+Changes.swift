@@ -67,7 +67,7 @@ extension MuteList {
     /// - Some events to every event: mute every event and nothing else. Unmuting the old events afterwards would
     ///   subtract them from every event.
     /// - Every event to some: unmute every event, then mute the new ones. The only change that briefly unmutes what
-    ///   both lists mute; a list only narrows that way when it's replaced or reset.
+    ///   both lists mute. A list only narrows that way when it's replaced or reset.
     ///
     /// - Parameter target: The list the client should end up with.
     /// - Returns: The calls, in order. None if the lists are equal.

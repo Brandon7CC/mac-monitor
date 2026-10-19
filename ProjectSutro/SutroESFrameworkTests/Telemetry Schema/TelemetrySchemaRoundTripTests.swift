@@ -90,8 +90,6 @@ final class TelemetrySchemaRoundTripTests: XCTestCase {
     }
     
     /// Each record exports `null` where it has no value, as eslogger writes a NULL token.
-    ///
-    /// - Throws: The error reading a fixture or a record, or an `XCTest` failure if an export isn't an object.
     func testExportsWriteNull() throws {
         for item in try cases() {
             XCTAssertTrue(value(at: item.path, in: try export(try importRecord(item.record))) is NSNull, item.label)
@@ -99,8 +97,6 @@ final class TelemetrySchemaRoundTripTests: XCTestCase {
     }
     
     /// Each record's export, as the command line encodes it, follows the schema.
-    ///
-    /// - Throws: The error reading a fixture or a record, or compiling the schema.
     func testExportsFollowSchema() throws {
         let exports = try cases().map { ($0.label, exportText(try importRecord($0.record))) }
         assertValid(exports, with: try generatedValidator())
@@ -109,8 +105,6 @@ final class TelemetrySchemaRoundTripTests: XCTestCase {
     /// The records opened as one trace (launched-by parents named) and exported with "Export all", in JSONL and pretty
     /// JSON, follow the schema Mac Monitor ships, as `macmonitor validate` checks them. Each record's missing value,
     /// read back from the saved store, is still `null`.
-    ///
-    /// - Throws: The error reading a record, building the store, exporting it, or validating the files.
     func testExportedTraceFollowsSchema() throws {
         let cases = try cases()
         var messages = try cases.map { try importRecord($0.record) }

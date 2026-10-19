@@ -16,7 +16,7 @@ public struct RemoteThreadCreateEvent: Identifiable, Codable, Hashable {
     
     /// The process the thread was created in.
     public var target: Process
-    /// The new thread's state for `thread_create_running`, as eslogger writes it; `nil` for `thread_create`.
+    /// The new thread's state for `thread_create_running`, as eslogger writes it. `nil` for `thread_create`.
     public var thread_state: ThreadState?
     
     /// Mac Monitor enrichment: the name of the state's flavor on the architecture of the Mac that recorded it

@@ -53,8 +53,6 @@ final class ValidationCategoryTests: XCTestCase {
     }
     
     /// Before message version 10 the bytes aren't a category, so none is exported.
-    ///
-    /// - Throws: An `XCTest` failure if the export has no process.
     func testCapturedBeforeVersion10() throws {
         let process = try capturedProcess(version: 9)
         XCTAssertNil(process["cs_validation_category"])
@@ -62,8 +60,6 @@ final class ValidationCategoryTests: XCTestCase {
     }
     
     /// From message version 10 the category is exported with its name.
-    ///
-    /// - Throws: An `XCTest` failure if the export has no process.
     func testCapturedFromVersion10() throws {
         let process = try capturedProcess(version: 10)
         XCTAssertEqual(process["cs_validation_category"] as? Int, Int(ES_CS_VALIDATION_CATEGORY_PLATFORM.rawValue))
@@ -72,8 +68,6 @@ final class ValidationCategoryTests: XCTestCase {
     
     /// An eslogger record before message version 10 has no category, and neither has its export. Nor has a Mac
     /// Monitor 2.1 export of one, which wrote 0.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export has no process.
     func testImportedBeforeVersion10() throws {
         let eslogger = try record(try fixtureObject("eslogger-exit.jsonl"), version: 9, category: nil)
         XCTAssertNil(try importedProcess(eslogger)["cs_validation_category"])
@@ -85,8 +79,6 @@ final class ValidationCategoryTests: XCTestCase {
     }
     
     /// From message version 10 an opened trace's category is exported as it was recorded.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export has no process.
     func testImportedFromVersion10() throws {
         let eslogger = try record(try fixtureObject("eslogger-exit.jsonl"), version: 10, category: 0)
         XCTAssertEqual(try importedProcess(eslogger)["cs_validation_category"] as? Int, 0)

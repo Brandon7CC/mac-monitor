@@ -65,7 +65,7 @@ final class TelemetryExporter {
                 request.fetchLimit = 1
                 _ = try context.fetch(request)
             } catch {
-                /// Unpinned, the export still works; it just sees changes made while it runs.
+                /// Unpinned, the export still works. It just sees changes made while it runs.
             }
         }
     }
@@ -76,7 +76,7 @@ final class TelemetryExporter {
     ///
     /// - Parameters:
     ///   - url: The destination, from the save panel.
-    ///   - writeIfEmpty: Write an empty file when no events are chosen (the full trace does; a selection doesn't).
+    ///   - writeIfEmpty: Write an empty file when no events are chosen (the full trace does, but a selection doesn't).
     ///   - choose: Returns the events in file order. Runs on the exporter's context.
     ///   - completion: Called on the exporter's queue with the number of events written.
     func run(to url: URL, writeIfEmpty: Bool, choose: @escaping (TelemetryExporter) throws -> [NSManagedObjectID],

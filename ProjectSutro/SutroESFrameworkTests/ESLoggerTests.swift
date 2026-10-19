@@ -140,8 +140,6 @@ final class ESLoggerTests: XCTestCase {
     
     /// A 2.1 time read as local time and rebuilt is eslogger's UTC time of the same instant, whatever this Mac's time
     /// zone, and reads back as that instant.
-    ///
-    /// - Throws: An `XCTest` failure if a time isn't read.
     func testLegacyTimeRoundTrip() throws {
         let legacy = "2026-10-03T17:01:54.394Z"
         let date = try XCTUnwrap(ESLogger.date(fromTime: legacy, legacy: true))
@@ -164,8 +162,6 @@ final class ESLoggerTests: XCTestCase {
     // MARK: Reading times back
     
     /// eslogger's `time` is read exactly, to the nanosecond.
-    ///
-    /// - Throws: An `XCTest` failure if a time isn't read.
     func testUTCTimespecReadsNanoseconds() throws {
         let time = try XCTUnwrap(ESLogger.utcTimespec(from: "2026-10-04T00:01:54.394127173Z"))
         XCTAssertEqual(time.tv_sec, Self.seconds)
@@ -173,8 +169,6 @@ final class ESLoggerTests: XCTestCase {
     }
     
     /// Shorter fractions (``TimeVal/humanFormat()``'s six digits) and none at all are read too.
-    ///
-    /// - Throws: An `XCTest` failure if a time isn't read.
     func testUTCTimespecReadsShorterFractions() throws {
         let microseconds = try XCTUnwrap(ESLogger.utcTimespec(from: "2026-10-04T00:01:54.123456Z"))
         XCTAssertEqual(microseconds.tv_sec, Self.seconds)
@@ -193,8 +187,6 @@ final class ESLoggerTests: XCTestCase {
     }
     
     /// An eslogger `time` is the same instant as its timespec.
-    ///
-    /// - Throws: An `XCTest` failure if a time isn't read.
     func testDateFromEsloggerTime() throws {
         let date = try XCTUnwrap(ESLogger.date(fromTime: "2026-10-04T00:01:54.394127173Z", legacy: false))
         let expected = timespec(tv_sec: Self.seconds, tv_nsec: 394_127_173)
@@ -202,8 +194,6 @@ final class ESLoggerTests: XCTestCase {
     }
     
     /// A `time` of 2.1's shape from Mac Monitor 2.1.0 or older is local time, read with the formatter that wrote it.
-    ///
-    /// - Throws: An `XCTest` failure if a time isn't read.
     func testDateFromLegacyTimeIsLocalTime() throws {
         let written = Date(timeIntervalSince1970: 1_791_072_119.285)
         let time = ProcessHelpers.timestampFormatter.string(from: written)
@@ -213,16 +203,12 @@ final class ESLoggerTests: XCTestCase {
     }
     
     /// The same shape from eslogger (not legacy) is UTC.
-    ///
-    /// - Throws: An `XCTest` failure if a time isn't read.
     func testDateFromShortTimeIsUTCWhenNotLegacy() throws {
         let read = try XCTUnwrap(ESLogger.date(fromTime: "2026-10-04T00:01:59.285Z", legacy: false))
         XCTAssertEqual(read.timeIntervalSince1970, 1_791_072_119.285, accuracy: 1e-6)
     }
     
     /// eslogger's `time` is never read as local time, even in a record that could come from Mac Monitor 2.1.
-    ///
-    /// - Throws: An `XCTest` failure if a time isn't read.
     func testDateFromEsloggerTimeIsUTCWhenLegacy() throws {
         let read = try XCTUnwrap(ESLogger.date(fromTime: "2026-10-04T00:01:54.394127173Z", legacy: true))
         XCTAssertEqual(read.timeIntervalSince1970, 1_791_072_114.394127173, accuracy: 1e-6)

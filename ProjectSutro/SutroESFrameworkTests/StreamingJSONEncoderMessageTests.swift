@@ -17,7 +17,7 @@ final class StreamingJSONEncoderMessageTests: XCTestCase {
     /// One encoder for every message, as a capture lane reuses its own.
     private let encoder = StreamingJSONEncoder()
     
-    /// Encode a message with both encoders and require the same bytes in canonical form; then decode the streamed
+    /// Encode a message with both encoders and require the same bytes in canonical form. Then decode the streamed
     /// JSON as the app does and require that `JSONEncoder` writes the decoded message the same way.
     ///
     /// - Parameters:
@@ -34,8 +34,6 @@ final class StreamingJSONEncoderMessageTests: XCTestCase {
     
     /// Every event of the eslogger and Mac Monitor 2.1 fixtures, read as File > Open Trace… reads them: exit, open,
     /// the Open Directory events, and remote_thread_create.
-    ///
-    /// - Throws: The error reading a fixture, or an encoder's or the decoder's error.
     func testImportedEventsMatchJSONEncoder() throws {
         var count = 0
         for name in ["eslogger-exit.jsonl", "eslogger-open.jsonl", "eslogger-od.jsonl",
@@ -51,8 +49,6 @@ final class StreamingJSONEncoderMessageTests: XCTestCase {
     
     /// Events captured from raw messages as the Security Extension captures them: Open Directory events, a
     /// remote_thread_create, and events whose unions name an arm Mac Monitor doesn't know.
-    ///
-    /// - Throws: The error reading a fixture, or an encoder's or the decoder's error.
     func testCapturedEventsMatchJSONEncoder() throws {
         for record in try fixtureRecords("eslogger-od.jsonl") {
             let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_EXIT)

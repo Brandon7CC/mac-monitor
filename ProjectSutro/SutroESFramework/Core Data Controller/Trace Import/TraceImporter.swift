@@ -246,7 +246,7 @@ public final class TraceImporter {
     /// - Throws: A `TraceImportError` or `DecodingError` if it isn't an event Mac Monitor can show.
     public static func message(from json: Data) throws -> Message {
         let object = try event(in: try JSONSerialization.jsonObject(with: json))
-        /// Mac Monitor names every event it records or exports; eslogger doesn't.
+        /// Mac Monitor names every event it records or exports. eslogger doesn't.
         let enriching = object["es_event_type"] == nil
         var message: Message
         do {
@@ -257,7 +257,7 @@ public final class TraceImporter {
         }
         /// Every key is optional to the decoder: a record that's an event in name only isn't shown.
         if case .unknown = message.event { throw TraceImportError.incomplete("no event type") }
-        /// The Security Extension's own `Message` carries its time as seconds since 2001; one that isn't a time (more
+        /// The Security Extension's own `Message` carries its time as seconds since 2001. One that isn't a time (more
         /// than about 3,000 years away) is read from `time` instead.
         let darwinTime = (object["message_darwin_time"] as? NSNumber)?.doubleValue
         if !(darwinTime.map { abs($0) < Self.maxDarwinTime } ?? false) {

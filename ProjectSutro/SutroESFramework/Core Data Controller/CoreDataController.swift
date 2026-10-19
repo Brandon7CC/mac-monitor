@@ -32,7 +32,7 @@ public class CoreDataController {
     let privateMOC: NSManagedObjectContext
     
     /// The rows `privateMOC`'s events share: one `ESProcess` (with its tokens and files) per process rather than one per
-    /// event, and one `ESFile` per file and stat (#84). Kept in `privateMOC.userInfo`; only touched on its queue.
+    /// event, and one `ESFile` per file and stat (#84). Kept in `privateMOC.userInfo`. Only touched on its queue.
     private let rowCaches = EventRowCaches()
     
 
@@ -131,7 +131,7 @@ public class CoreDataController {
     public var lastInsertBatch: Int64 { savedBatch.withLock { $0 } }
     private let savedBatch = OSAllocatedUnfairLock(initialState: Int64(0))
     
-    /// Events inserted but not yet saved. Normally just the current batch; after a failed save the earlier events stay
+    /// Events inserted but not yet saved. Normally just the current batch. After a failed save the earlier events stay
     /// here and are saved (and announced) with the next batch. Only touched on `privateMOC`'s queue.
     private var unsavedEvents: [ESMessage] = []
     
@@ -279,7 +279,7 @@ public class CoreDataController {
     ///  2) On the next turn of the run loop, create a batch delete request per entity and execute them on the private context
     ///  3) Merge the deletions into the `container.viewContext` connected to the UI, and post ``eventsDidClear``
     ///
-    ///  The delete runs in the background (about two minutes at a million events) behind inserts already queued; inserts
+    ///  The delete runs in the background (about two minutes at a million events) behind inserts already queued. Inserts
     ///  that come after it wait for it. Events that happened before this call are discarded even if they arrive later.
     ///
     ///  A Clear also closes any trace: a trace still being read stops, and its batches still on their way are dropped.
@@ -385,7 +385,7 @@ public class CoreDataController {
     /// Replace the store's events with a trace file's, read in the background (see ``TraceImporter``), like opening a
     /// saved Process Monitor log (#38).
     ///
-    /// Clears the store first (``eventsWillClear`` and ``eventsDidClear``); then the trace's events arrive the way a
+    /// Clears the store first (``eventsWillClear`` and ``eventsDidClear``). Then the trace's events arrive the way a
     /// recording's do (``eventsInserted``), so the tables fill in as the file is read. Recorded events are dropped until
     /// the next ``clearSystemEvents(source:)`` closes the trace. Call on the main thread, once
     /// ``TraceImporter/preflight(_:)`` has accepted the file.

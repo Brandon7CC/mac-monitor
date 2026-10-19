@@ -59,8 +59,6 @@ final class TelemetrySchemaOriginTests: XCTestCase {
     
     /// Every eslogger key is in the schema, at eslogger's path, marked eslogger's: the envelope, each event, and the
     /// shared process, file, stat and audit token.
-    ///
-    /// - Throws: The error reading the fixture.
     func testESLoggerKeysAreMarkedESLogger() throws {
         let schema = schemaKeys
         var wrong: [String] = []
@@ -77,8 +75,6 @@ final class TelemetrySchemaOriginTests: XCTestCase {
     }
     
     /// Every key the schema marks eslogger's is one of eslogger's, and no Mac Monitor addition is.
-    ///
-    /// - Throws: The error reading the fixture.
     func testAdditionsAreNotESLoggers() throws {
         let fixture = try esloggerKeys().mapValues { Set($0.keys.map { plain($0).path }) }
         let schema = schemaKeys
@@ -101,8 +97,6 @@ final class TelemetrySchemaOriginTests: XCTestCase {
     /// Each eslogger key has eslogger's type, `null` where eslogger writes it, and is required where eslogger always
     /// writes it: `null` is also allowed for a key eslogger leaves out by message version, which Mac Monitor writes as
     /// `null`, and a key may be optional where the schema says when it's absent.
-    ///
-    /// - Throws: The error reading the fixture.
     func testESLoggerTypesAgree() throws {
         let schema = schemaKeys
         var wrong: [String] = [], compared = 0
@@ -128,8 +122,6 @@ final class TelemetrySchemaOriginTests: XCTestCase {
     /// Every record of eslogger's fixtures follows the schema's eslogger fields: no eslogger key is marked Mac
     /// Monitor's, and every key the schema requires of eslogger is there. An event of a type Mac Monitor doesn't
     /// record is only that. (`eslogger-lineage.jsonl` isn't eslogger's output: its execs' `cwd` has no `stat`.)
-    ///
-    /// - Throws: The error reading a fixture or compiling the schema.
     func testESLoggerFixturesMatchESLoggerFields() throws {
         let validator = try generatedValidator(mode: .eslogger)
         let recorded = Set(TelemetrySchemaSource.events.map(\.name))

@@ -43,6 +43,56 @@ private final class FakeLaunchServicesReader: LaunchServicesReading {
 }
 
 
+// MARK: - A reader that waits
+/// A Launch Services reader whose reads wait until the test lets them through, then find nothing.
+private final class WaitingLaunchServicesReader: LaunchServicesReading {
+    private let gate = DispatchSemaphore(value: 0)
+    
+    /// Let every read waiting now, and every read after, through.
+    func open() {
+        for _ in 0..<64 { gate.signal() }
+    }
+    
+    /// Wait for ``open()``.
+    ///
+    /// - Parameter pid: The pid.
+    /// - Returns: `nil`.
+    func record(forPID pid: pid_t) -> LaunchServicesRecord? {
+        gate.wait()
+        gate.signal()
+        return nil
+    }
+}
+
+
+// MARK: - A serializer that holds execs
+/// Holds every exec as the app exec a test builds from its `global_seq_num`, and writes anything else as its
+/// `global_seq_num`, as ``StubSerializer/globalSequence`` does.
+private struct HoldingSerializer: EventSerializing {
+    /// Builds the held exec for a pid.
+    let exec: (Int32) -> Message
+    
+    /// - Parameters:
+    ///   - message: The message.
+    ///   - lane: The lane's context.
+    /// - Returns: The message's `global_seq_num`.
+    func serialize(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> Data? {
+        Data("\(message.pointee.global_seq_num)".utf8)
+    }
+    
+    /// - Parameters:
+    ///   - message: The message.
+    ///   - lane: The lane's context.
+    /// - Returns: A held exec on a lane that holds them, otherwise the message's `global_seq_num`.
+    func serializeEvent(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> SerializedEvent? {
+        guard lane.holdsForLaunchServices, message.pointee.event_type == ES_EVENT_TYPE_NOTIFY_EXEC else {
+            return serialize(message, in: lane).map(SerializedEvent.json)
+        }
+        return .held(exec(Int32(message.pointee.global_seq_num)))
+    }
+}
+
+
 // MARK: - Looking up apps' launchers
 /// Tests the Launch Services lookup and the hold.
 final class LaunchedByParentUpgraderTests: XCTestCase {
@@ -120,7 +170,7 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     ///
     /// - Parameter reader: Its reader.
     /// - Returns: The upgrader.
-    private func upgrader(_ reader: FakeLaunchServicesReader) -> LaunchedByParentUpgrader {
+    private func upgrader(_ reader: LaunchServicesReading) -> LaunchedByParentUpgrader {
         LaunchedByParentUpgrader(reader: reader, delays: [0, 0.01, 0.02]) { pid, _ in "/path/of/\(pid)" }
     }
 
@@ -146,9 +196,12 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     /// - Parameters:
     ///   - reader: The reader.
     ///   - maxHeld: The most execs held at a time.
+    ///   - maxWait: The longest an exec is held.
     /// - Returns: The hold.
-    private func hold(_ reader: FakeLaunchServicesReader, maxHeld: Int = 64) -> LaunchServicesHold {
-        LaunchServicesHold(eventClass: .process, upgrader: upgrader(reader), maxHeld: maxHeld) { event in
+    private func hold(_ reader: LaunchServicesReading, maxHeld: Int = 64,
+                      maxWait: TimeInterval = 5) -> LaunchServicesHold {
+        LaunchServicesHold(eventClass: .process, upgrader: upgrader(reader), maxHeld: maxHeld,
+                           maxWait: maxWait) { event in
             self.emitted.withLockUnchecked { $0.append(event) }
         }
     }
@@ -184,8 +237,6 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     // MARK: Which execs are held
 
     /// Only app execs with a target token are held.
-    ///
-    /// - Throws: The error reading a record.
     func testOnlyAppExecsAreHeld() throws {
         var fork = try importRecord(try esloggerRecord("fork", type: Int(ES_EVENT_TYPE_NOTIFY_FORK.rawValue), [
             "child": try XCTUnwrap(try fixtureObject("eslogger-exit.jsonl")["process"] as? [String: Any]),
@@ -286,6 +337,72 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
         XCTAssertEqual(reader.askedPIDs.filter { $0 == 607 }, [], "The exec past the bound isn't looked up")
     }
 
+    /// A lookup that never comes back doesn't hold the lane: the exec goes out with the answer it had.
+    func testAStuckLookupIsGivenUp() {
+        let reader = WaitingLaunchServicesReader()
+        defer { reader.open() }
+        let hold = hold(reader, maxWait: 0.05)
+        hold.hold(appExec(pid: 606))
+        hold.submit(ready("fork"))
+        waitForEmitted(2)
+        XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "fork"])
+        XCTAssertEqual(emittedEvents.first?.launchedByParent, appJob)
+    }
+    
+    /// Once a held exec goes out, its place is free for the next one.
+    func testAReleasedExecFreesItsPlace() {
+        let reader = FakeLaunchServicesReader { pid, _ in self.launch(of: pid) }
+        let hold = hold(reader, maxHeld: 1)
+        hold.hold(appExec(pid: 606))
+        waitForEmitted(1)
+        hold.hold(appExec(pid: 607))
+        waitForEmitted(2)
+        XCTAssertEqual(emittedEvents.map(\.launchedByParent), [launchedByLauncher, launchedByLauncher])
+        XCTAssertEqual(reader.askedPIDs, [606, 607])
+    }
+    
+    // MARK: Through a capture session
+    
+    /// A capture session whose exec lane holds app execs, emitting onto `queue` as a stream does.
+    ///
+    /// - Parameters:
+    ///   - factory: Makes the fake clients.
+    ///   - reader: The Launch Services reader.
+    ///   - queue: The queue each event hops onto before it's collected.
+    ///   - emitted: Collects the events.
+    /// - Returns: The session, recording.
+    /// - Throws: ``CaptureStartError`` if the session couldn't start.
+    private func holdingSession(_ factory: FakeEndpointSecurityClientFactory, reader: LaunchServicesReading,
+                                queue: DispatchQueue, emitted: EmittedEvents) throws -> CaptureSession {
+        let session = try CaptureSession(CaptureConfiguration(label: "Test"), clients: factory,
+                                         serializer: HoldingSerializer { self.appExec(pid: $0) },
+                                         sensorID: { "SENSOR" }, launchServices: reader) { event in
+            queue.async { emitted.append(event) }
+        }
+        session.isRecording = true
+        return session
+    }
+    
+    /// Draining a stream sends a held exec, and the events waiting behind it, before it says it's done.
+    func testDrainSendsHeldExecs() throws {
+        let reader = WaitingLaunchServicesReader()
+        defer { reader.open() }
+        let factory = FakeEndpointSecurityClientFactory(), queue = DispatchQueue(label: "Test"), emitted = EmittedEvents()
+        let session = try holdingSession(factory, reader: reader, queue: queue, emitted: emitted)
+        defer { session.stop() }
+        factory.client(.process).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXEC, global: 606))
+        factory.client(.process).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 2))
+        
+        let drained = expectation(description: "Drained")
+        let atCompletion = OSAllocatedUnfairLock(uncheckedState: 0)
+        session.drain(on: queue) {
+            atCompletion.withLockUnchecked { $0 = emitted.all.count }
+            drained.fulfill()
+        }
+        wait(for: [drained], timeout: 5)
+        XCTAssertEqual(atCompletion.withLockUnchecked { $0 }, 2, "The held exec and the exit behind it")
+    }
+    
     /// Closing sends everything right away, and nothing after.
     func testCloseReleasesEverythingAtOnce() {
         let reader = FakeLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }

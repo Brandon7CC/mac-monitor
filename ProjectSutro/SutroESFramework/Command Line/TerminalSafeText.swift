@@ -15,7 +15,7 @@ import Foundation
 /// Any process can put control characters in its arguments or file names, and `macmonitor` writes them to root's
 /// terminal. So text output escapes every C0 control (newlines and tabs included, so each event stays one line), DEL,
 /// every C1 control, and the bidirectional formatting characters. JSON written to a terminal escapes DEL, C1 and the
-/// bidirectional characters as `\uXXXX`; `JSONEncoder` already escapes C0. JSON piped elsewhere is left byte for byte
+/// bidirectional characters as `\uXXXX`. `JSONEncoder` already escapes C0. JSON piped elsewhere is left byte for byte
 /// as the export writes it.
 public enum TerminalSafeText {
     /// The bidirectional formatting characters: ALM, LRM, RLM, LRE to RLO, and LRI to PDI.

@@ -17,8 +17,10 @@ extension CaptureSession {
     /// 1. `es_unsubscribe_all` on each client: Endpoint Security queues no more messages for it.
     /// 2. `es_sync_client` on each client: its marker reaches the front of the client's queue once every message
     ///    before it has been handled, and so emitted.
-    /// 3. Once every client's marker has, `completion` runs on `queue`. Each event a handler emitted hopped onto
-    ///    `queue` before its marker came up, so `completion` runs after all of them.
+    /// 3. Once every client's marker has, any held app execs go out with the answer they have, along with the events
+    ///    waiting behind them. A lookup still running is ignored.
+    /// 4. Then `completion` runs on `queue`. Every event emitted so far hopped onto `queue` first, so `completion`
+    ///    runs after all of them.
     ///
     /// Before macOS 27 there's no `es_sync_client`: the clients only stop queueing messages, and those still queued
     /// are dropped by ``stop()``.
@@ -34,6 +36,9 @@ extension CaptureSession {
             synced.enter()
             if lane.client?.sync({ synced.leave() }) != true { synced.leave() }
         }
-        synced.notify(queue: queue, execute: completion)
+        synced.notify(queue: queue) { [lanes] in
+            lanes.forEach { $0.releaseHeld() }
+            queue.async(execute: completion)
+        }
     }
 }

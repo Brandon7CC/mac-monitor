@@ -20,7 +20,7 @@ extension CaptureSession {
     /// events, which these clients never subscribe to.
     ///
     /// - Parameter list: The mutes every client should have, such as the saved mute set.
-    /// - Returns: `true` if every client accepted every call. Refusals are logged; ``appliedMutes`` becomes `list`
+    /// - Returns: `true` if every client accepted every call. Refusals are logged. ``appliedMutes`` becomes `list`
     ///   either way, so the next change is worked out from what was asked. `false` after ``stop()``, with nothing
     ///   sent.
     @discardableResult

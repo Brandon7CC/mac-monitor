@@ -11,8 +11,8 @@ import EndpointSecurity
 
 
 // MARK: - Drop meter
-/// Pins how `macmonitor` counts what a stream lost: gaps per client, so interleaved clients are never drops; which
-/// types were lost; regressions apart from drops; and each report holding only what's new.
+/// Pins how `macmonitor` counts what a stream lost. Gaps are counted per client, so interleaved clients are never
+/// drops. Lost types are named, regressions are counted apart from drops, and each report holds only what's new.
 final class StreamDropMeterTests: XCTestCase {
     /// A header with sequence numbers.
     ///
@@ -41,7 +41,7 @@ final class StreamDropMeterTests: XCTestCase {
         XCTAssertEqual(meter.takeReport().map(\.eventClass), [.file])
     }
     
-    /// A gap is reported by client and, from `seq_num`, by type; each report holds only the drops since the last.
+    /// A gap is reported by client and, from `seq_num`, by type. Each report holds only the drops since the last.
     func testReportsAreByClientAndTypeAndOnlyNew() {
         let meter = StreamDropMeter()
         meter.observe(header(ES_EVENT_TYPE_NOTIFY_EXEC, seq: 1, global: 1))

@@ -12,9 +12,10 @@ import EndpointSecurity
 
 // MARK: - Values eslogger writes
 /// Pins exported values Mac Monitor used to write differently from eslogger: an `st_ino` of 2^63 or more (written
-/// negative), a rename's new path `mode` (written 0; a rename has none), `iokit_open`'s parent fields before message
-/// version 10 (written 0 and `null`; Endpoint Security has neither), a login's `uid` (written 0 without one, and lost
-/// from eslogger's records, which have no `has_uid`), and a petition's `right_count` (written 0).
+/// negative), a rename's new path `mode` (written 0, though a rename has none), `iokit_open`'s parent fields before
+/// message version 10 (written 0 and `null`, though Endpoint Security has neither), a login's `uid` (written 0 without
+/// one, and lost from eslogger's records, which have no `has_uid`), a petition's `right_count` (written 0), and an mmap
+/// `file_pos` of 2^63 or more (a trap when captured, negative when imported).
 final class ExportValueTests: XCTestCase {
     /// The `st_ino` in the open fixture's file.
     private static let fixtureInode = #""st_ino":2002"#
@@ -33,8 +34,6 @@ final class ExportValueTests: XCTestCase {
     }
     
     /// An inode number of 2^63 or more is kept by bit pattern and exported unsigned, as eslogger writes it.
-    ///
-    /// - Throws: The error reading the record.
     func testLargeInodeRoundTrip() throws {
         for inode in ["9223372036854775813", "18446744073709551615", "1152921500312605282"] {
             let message = try importRecord(try openRecord(inode: inode))
@@ -45,8 +44,6 @@ final class ExportValueTests: XCTestCase {
     }
     
     /// Mac Monitor used to export such an inode as a negative number: it's read back and exported unsigned.
-    ///
-    /// - Throws: The error reading the record.
     func testNegativeInodeIsExportedUnsigned() throws {
         let message = try importRecord(try openRecord(inode: "-9223372036854775803"))
         XCTAssertTrue(exportText(message).contains(#""st_ino":9223372036854775813"#))
@@ -59,6 +56,29 @@ final class ExportValueTests: XCTestCase {
         file.pointee.stat.st_ino = 9_223_372_036_854_775_813
         fixture.message.pointee.event.open.file = file
         XCTAssertTrue(exportText(Message(from: fixture.raw)).contains(#""st_ino":9223372036854775813"#))
+    }
+    
+    // MARK: mmap offset
+    
+    /// An mmap offset of 2^63 or more (Endpoint Security's `file_pos` is a `uint64_t`) is captured without trapping
+    /// and exported unsigned.
+    func testCapturedLargeMapOffset() {
+        let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_MMAP)
+        fixture.message.pointee.event.mmap.source = fixture.file("/usr/lib/libexample.dylib")
+        fixture.message.pointee.event.mmap.file_pos = 9_223_372_036_854_775_808
+        XCTAssertTrue(exportText(Message(from: fixture.raw)).contains(#""file_pos":9223372036854775808"#))
+    }
+    
+    /// eslogger's large mmap offsets read back and export as eslogger wrote them.
+    func testLargeMapOffsetRoundTrip() throws {
+        let open = try XCTUnwrap(try fixtureObject("eslogger-open.jsonl")["event"] as? [String: Any])
+        let file = try XCTUnwrap((open["open"] as? [String: Any])?["file"])
+        for offset in ["9223372036854775808", "18446744073709551615"] {
+            let message = try importRecord(try esloggerRecord("mmap", type: Int(ES_EVENT_TYPE_NOTIFY_MMAP.rawValue), [
+                "protection": 1, "max_protection": 7, "flags": 2, "file_pos": UInt64(offset)!, "source": file
+            ]))
+            XCTAssertTrue(exportText(message).contains(#""file_pos":"# + offset), offset)
+        }
     }
     
     // MARK: New path mode
@@ -87,8 +107,6 @@ final class ExportValueTests: XCTestCase {
     }
     
     /// A rename's new path has no `mode`, so none is exported.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no rename event.
     func testRenameNewPathHasNoMode() throws {
         let rename: [String: Any] = [
             "source": ["path": "/private/tmp/example/a.txt", "path_truncated": false, "stat": [:]],
@@ -99,8 +117,6 @@ final class ExportValueTests: XCTestCase {
     }
     
     /// Mac Monitor up to 2.1.0 wrote a rename's `mode` as 0: it's dropped.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no rename event.
     func testMacMonitor21RenameModeIsDropped() throws {
         let record = try legacyRecord("rename", type: ES_EVENT_TYPE_NOTIFY_RENAME, [
             "source": ["path": "/private/tmp/example/a.txt", "path_truncated": false, "stat": [:]],
@@ -111,8 +127,6 @@ final class ExportValueTests: XCTestCase {
     }
     
     /// A create's new path keeps its `mode`.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no create event.
     func testCreateNewPathKeepsMode() throws {
         let create: [String: Any] = ["destination_type": 1, "destination": ["new_path": newPath(mode: 420)],
                                      "acl": NSNull()]
@@ -153,8 +167,6 @@ final class ExportValueTests: XCTestCase {
     }
     
     /// Before message version 10 there are no parent fields, so none are exported.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export has no `iokit_open` event.
     func testIOKitParentBeforeVersion10() throws {
         let event = try exportedIOKitOpen(version: 9)
         XCTAssertNil(event["parent_registry_id"])
@@ -166,8 +178,6 @@ final class ExportValueTests: XCTestCase {
     }
     
     /// From message version 10 both are exported, a `NULL` parent path as `null`.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export has no `iokit_open` event.
     func testIOKitParentFromVersion10() throws {
         let event = try exportedIOKitOpen(version: 10, parent: [
             "parent_registry_id": 4_294_968_147, "parent_path": "IOService:/AppleARMPE/example",
@@ -210,8 +220,6 @@ final class ExportValueTests: XCTestCase {
     
     /// A login's `uid` in an eslogger record is read back and exported as eslogger wrote it: a number, one of 2^31 or
     /// more included, or `null`.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export has no such event.
     func testLoginUIDRoundTrip() throws {
         for (name, type, event) in Self.logins {
             for uid: Any in [501, 4_294_967_294, NSNull()] {
@@ -227,8 +235,6 @@ final class ExportValueTests: XCTestCase {
     
     /// The Security Extension's `login_login` without a user ID exports `null`, as eslogger writes it, not root's 0;
     /// and so does an older Security Extension's, which sent -1 in its place.
-    ///
-    /// - Throws: The error encoding or decoding the message, or an `XCTest` failure if an export has no such event.
     func testLoginWithoutUID() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN)
         var login = es_event_login_login_t()
@@ -256,8 +262,6 @@ final class ExportValueTests: XCTestCase {
     
     /// A petition's `right_count` is exported as eslogger writes it, the number of rights, whether the petition was
     /// read from eslogger's record or captured.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if an export has no petition.
     func testPetitionRightCount() throws {
         let rights = ["system.privilege.admin", "system.preferences"]
         let type = ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_PETITION

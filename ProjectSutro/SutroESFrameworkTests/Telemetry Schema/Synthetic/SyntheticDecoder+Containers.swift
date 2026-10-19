@@ -23,7 +23,7 @@ struct SyntheticKeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
         return [key]
     }
     
-    /// Every key is there; `decodeNil(forKey:)` says which are `nil`.
+    /// Every key is there. `decodeNil(forKey:)` says which are `nil`.
     func contains(_ key: Key) -> Bool { true }
     /// Is `key`'s value `nil` (see ``SyntheticDecoder/isNil(_:)``)?
     func decodeNil(forKey key: Key) throws -> Bool { decoder.isNil(key.stringValue) }

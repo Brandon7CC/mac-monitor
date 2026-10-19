@@ -41,7 +41,7 @@ final class StreamSessionTests: XCTestCase {
     ///   - sequences: Their `global_seq_num`s.
     ///   - factory: The stream's client factory.
     private func deliverExits(_ sequences: ClosedRange<UInt64>, to factory: FakeEndpointSecurityClientFactory) {
-        sequences.forEach { factory.clients[0].deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: $0)) }
+        sequences.forEach { factory.client(.process).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: $0)) }
     }
     
     /// A stream subscribes to what it asked for, delivers its events, and a stop answers with the summary, deletes the
@@ -58,7 +58,7 @@ final class StreamSessionTests: XCTestCase {
         XCTAssertEqual(started.stream?.events, ["ES_EVENT_TYPE_NOTIFY_EXIT"])
         XCTAssertEqual(started.stream?.savedMutes, MuteList.testDefault.count)
         let factory = try XCTUnwrap(harness.factories.first)
-        XCTAssertEqual(factory.clients[0].calls(.subscribe), [.subscribe([ES_EVENT_TYPE_NOTIFY_EXIT])])
+        XCTAssertEqual(factory.client(.process).calls(.subscribe), [.subscribe([ES_EVENT_TYPE_NOTIFY_EXIT])])
         
         deliverExits(1...3, to: factory)
         XCTAssertTrue(waitUntil { reader.events == ["1", "2", "3"] })
@@ -171,7 +171,7 @@ final class StreamSessionTests: XCTestCase {
         XCTAssertTrue(harness.factories.isEmpty)
     }
     
-    /// A `--no-mutes` stream starts with no path mutes and ignores changes; a stream with them gets each change, made
+    /// A `--no-mutes` stream starts with no path mutes and ignores changes. A stream with them gets each change, made
     /// through `macmonitor`'s own mute requests, and is told who made it and how.
     func testTheSavedMutesReachStreamsThatAskForThem() throws {
         let harness = StreamHarness(savedMutes: savedMutes)
@@ -199,7 +199,7 @@ final class StreamSessionTests: XCTestCase {
         XCTAssertEqual(bareReader.changes, [])
     }
     
-    /// A reader that stops replying makes the stream pause capture instead of buffering without bound; what was
+    /// A reader that stops replying makes the stream pause capture instead of buffering without bound. What was
     /// dropped and skipped is counted, and once the reader catches up the stream carries on.
     func testABehindReaderPausesTheStream() throws {
         let harness = StreamHarness(savedMutes: savedMutes)

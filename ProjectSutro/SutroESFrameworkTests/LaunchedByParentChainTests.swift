@@ -36,8 +36,6 @@ final class LaunchedByParentChainTests: XCTestCase {
     
     /// A shell's child, the fork that made it and its exit all walk up to the shell's exec, then to a parent the trace
     /// doesn't have. A launchd job's child walks up to the job, then to launchd.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testShellExecForkChain() throws {
         try withEventStore(try lineageTrace(after: [try shellExec()])) { context, stored in
             let lookup = LineageLookup(context)
@@ -57,8 +55,6 @@ final class LaunchedByParentChainTests: XCTestCase {
     
     /// An app LaunchServices launched walks up to its launcher's exec, then the launcher's own launched-by parent.
     /// Without a launcher recorded, the walk ends there.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testAppStepNamesItsLauncher() throws {
         var messages = try lineageTrace()
         let launcher = AuditToken(pid: 410, pidversion: 4102, asid: 100_001, auid: 4_294_967_295, euid: 0, ruid: 0,
@@ -85,8 +81,6 @@ final class LaunchedByParentChainTests: XCTestCase {
     }
     
     /// An XPC service walks up to its host app, then to launchd, which started the app.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testXPCServiceStepsToItsHost() throws {
         try withEventStore(try lineageTrace()) { context, stored in
             let steps = LineageLookup(context).launchedByParents(of: stored[6])
@@ -100,8 +94,6 @@ final class LaunchedByParentChainTests: XCTestCase {
     }
     
     /// launchd ends the walk, named with its job's label when it has one.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testLaunchdEndsTheWalk() throws {
         try withEventStore(try lineageTrace()) { context, stored in
             let lookup = LineageLookup(context)
@@ -118,8 +110,6 @@ final class LaunchedByParentChainTests: XCTestCase {
     }
     
     /// A parent the trace doesn't have ends the walk, still named by what the trace says about it.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testParentMissingFromTheTrace() throws {
         try withEventStore(try lineageTrace()) { context, stored in
             let steps = LineageLookup(context).launchedByParents(of: stored[1])
@@ -131,8 +121,6 @@ final class LaunchedByParentChainTests: XCTestCase {
     
     /// A process launchd adopted before its exec names its original parent by pid alone. The walk finds that parent's
     /// exec back through the process's earlier image to the fork that created it, and only for a fork by that pid.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testReparentedParentIsFoundThroughTheFork() throws {
         let child = try esloggerProcess(pid: 430, pidversion: 4299, path: "/bin/zsh", parent: (401, 4010))
         let image = try esloggerProcess(pid: 430, pidversion: 4300, path: "/bin/zsh", parent: (401, 4010))
@@ -155,8 +143,6 @@ final class LaunchedByParentChainTests: XCTestCase {
     }
     
     /// A parent already walked ends the walk, and so do 64 steps or the caller's limit.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testWalkEndsAtARepeatAndAfter64Steps() throws {
         let first = try esloggerProcess(pid: 501, pidversion: 5010, path: "/usr/bin/true", parent: (502, 5020))
         let second = try esloggerProcess(pid: 502, pidversion: 5020, path: "/bin/zsh", parent: (501, 5010))
@@ -186,8 +172,6 @@ final class LaunchedByParentChainTests: XCTestCase {
     }
     
     /// Any other event starts from the process that caused it: its first step is that process's launched-by parent.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testOtherEventsStartFromTheirProcess() throws {
         let job = try esloggerProcess(pid: 410, pidversion: 4102, path: "/usr/libexec/exampled", parent: (1, 1))
         let unknown = try esloggerProcess(pid: 490, pidversion: 4900, path: "/usr/bin/true", parent: (1, 1))
@@ -205,8 +189,6 @@ final class LaunchedByParentChainTests: XCTestCase {
     
     /// A parent that changed its ids after its exec (`sudo`) names itself to the processes it makes by other ids than
     /// its exec gave it. The walk finds that exec by its pid and pid version, for a fork's child and its exec alike.
-    ///
-    /// - Throws: The error reading or storing the events, or an `XCTest` failure if a token is missing.
     func testParentWithChangedIDsIsFoundByImage() throws {
         let forked = try esloggerProcess(pid: 600, pidversion: 6000, path: "/bin/zsh", parent: (401, 4010))
         /// `sudo` as it forks, with group IDs 0, and as its exec made it, with 20.
@@ -235,8 +217,6 @@ final class LaunchedByParentChainTests: XCTestCase {
     
     /// A process's creator is its exec when the store has one, else its fork, whatever their order, as
     /// `findParentProc` has always found it.
-    ///
-    /// - Throws: The error reading or storing the events.
     func testCreatorPrefersTheExec() throws {
         let child = try esloggerProcess(pid: 470, pidversion: 4700, path: "/bin/zsh", parent: (401, 4010))
         let before = try esloggerProcess(pid: 470, pidversion: 4699, path: "/bin/zsh", parent: (401, 4010))

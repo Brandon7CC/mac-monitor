@@ -34,9 +34,7 @@ final class ScriptInterpreterTests: XCTestCase {
         }
     }
     
-    /// `bun app.ts` and `bun run app.ts` find the script in the working directory; a binary argument isn't a script.
-    ///
-    /// - Throws: The error writing the temporary files.
+    /// `bun app.ts` and `bun run app.ts` find the script in the working directory. A binary argument isn't a script.
     func testBunScriptFromArguments() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -57,8 +55,6 @@ final class ScriptInterpreterTests: XCTestCase {
     /// Only a regular file can be the script: a FIFO, a directory or a missing file among the arguments isn't one, and
     /// looking never waits. A FIFO with no writer (`bash -c : /tmp/fifo`) used to block the lane building the exec
     /// until something wrote to it.
-    ///
-    /// - Throws: The error making the temporary directory or the FIFO's folder.
     func testOnlyRegularFilesAreScripts() throws {
         let directory = try makeTemporaryDirectory()
         let fifo = directory.appendingPathComponent("fifo").path
@@ -87,8 +83,6 @@ final class ScriptInterpreterTests: XCTestCase {
     }
     
     /// A script's content is its UTF-8 text, cut at the limit back to the end of a whole character.
-    ///
-    /// - Throws: The error writing the temporary files.
     func testScriptContentStopsAtTheLimit() throws {
         let limit = ProcessHelpers.fileContentsLimit
         let short = try temporaryFile(containing: "echo hi\n", named: "short.sh")

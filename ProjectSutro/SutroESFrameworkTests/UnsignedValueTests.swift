@@ -18,8 +18,6 @@ final class UnsignedValueTests: XCTestCase {
     private static let nobody: UInt32 = 4_294_967_294
     
     /// An OpenSSH logout by a user ID of 2^31 or more.
-    ///
-    /// - Throws: An `XCTest` failure if the export isn't a JSON object.
     func testOpenSSHLogoutUID() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGOUT)
         var logout = es_event_openssh_logout_t()
@@ -44,8 +42,6 @@ final class UnsignedValueTests: XCTestCase {
     }
     
     /// eslogger's unsigned user ID reads back and exports as it was written.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no such event.
     func testImportedOpenSSHLogoutUID() throws {
         let record = try esloggerRecord("openssh_logout", type: 121, [
             "source_address_type": 1, "source_address": "192.0.2.1", "username": "testuser", "uid": Self.nobody,
@@ -104,8 +100,6 @@ final class UnsignedValueTests: XCTestCase {
     }
     
     /// Mac Monitor 2.1 wrote a pointer as `hex_address`: it's derived again from the address when stored.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no `mprotect` event.
     func testMacMonitor21MProtectHexAddress() throws {
         let record = try legacyRecord("mprotect", type: ES_EVENT_TYPE_NOTIFY_MPROTECT, [
             "protection": 1, "address": 4_374_282_240, "size": 16_384, "hex_address": "0x7542c64030", "kb_size": 16,

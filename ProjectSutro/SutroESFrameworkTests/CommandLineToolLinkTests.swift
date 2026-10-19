@@ -15,8 +15,6 @@ import XCTest
 /// is ever linked.
 final class CommandLineToolLinkTests: XCTestCase {
     /// Nothing there: Install links this copy's tool, and there's nothing to remove.
-    ///
-    /// - Throws: An unexpected error.
     func testNothingThereCanBeInstalled() throws {
         let fixture = try ToolLinkFixture(for: self)
         let inspection = fixture.linker().inspect()
@@ -29,8 +27,6 @@ final class CommandLineToolLinkTests: XCTestCase {
     }
     
     /// No link directory yet is nothing there: the script creates it.
-    ///
-    /// - Throws: An unexpected error.
     func testNoDirectoryIsNothingThere() throws {
         let fixture = try ToolLinkFixture(for: self)
         try FileManager.default.removeItem(atPath: fixture.binDirectory)
@@ -41,8 +37,6 @@ final class CommandLineToolLinkTests: XCTestCase {
     }
     
     /// Mac Monitor's link to this copy: nothing to install, and Remove expects exactly that link.
-    ///
-    /// - Throws: An unexpected error.
     func testALinkToThisCopyIsCurrent() throws {
         let fixture = try ToolLinkFixture(for: self)
         try fixture.symlink(fixture.link, to: fixture.tool)
@@ -54,8 +48,6 @@ final class CommandLineToolLinkTests: XCTestCase {
     }
     
     /// Mac Monitor's link to another copy, or to one that's gone: Update or Repair replaces exactly that link.
-    ///
-    /// - Throws: An unexpected error.
     func testALinkToAnotherCopyOrToNothingCanBeReplaced() throws {
         let fixture = try ToolLinkFixture(for: self)
         let other = fixture.root + "/Users/Shared/Mac Monitor.app/Contents/MacOS/macmonitor"
@@ -73,8 +65,6 @@ final class CommandLineToolLinkTests: XCTestCase {
     }
     
     /// A file, a directory, another program's link (absolute or relative, as Homebrew's are): never touched.
-    ///
-    /// - Throws: An unexpected error.
     func testForeignEntriesAreNeverTouched() throws {
         let fixture = try ToolLinkFixture(for: self)
         let entries: [(make: () throws -> Void, state: CommandLineToolLink.LinkState)] = [
@@ -95,8 +85,6 @@ final class CommandLineToolLinkTests: XCTestCase {
     }
     
     /// A link directory that's a file, or a symbolic link: nothing may be done there.
-    ///
-    /// - Throws: An unexpected error.
     func testALinkDirectoryThatIsntOneIsUnusable() throws {
         let fixture = try ToolLinkFixture(for: self)
         try FileManager.default.removeItem(atPath: fixture.binDirectory)
@@ -111,8 +99,6 @@ final class CommandLineToolLinkTests: XCTestCase {
     }
     
     /// A bundle reached through a symbolic link links the real tool, not the path through the link.
-    ///
-    /// - Throws: An unexpected error.
     func testTheRealPathIsLinked() throws {
         let fixture = try ToolLinkFixture(for: self)
         let alias = fixture.root + "/Mac Monitor.app"
@@ -122,8 +108,6 @@ final class CommandLineToolLinkTests: XCTestCase {
     
     /// A tool that can't be linked: missing, not an executable file, behind a link, not in an app, or translocated.
     /// Install is refused, but Remove still works on Mac Monitor's link.
-    ///
-    /// - Throws: An unexpected error.
     func testAToolThatIsntAnExecutableInAnAppIsRefused() throws {
         let fixture = try ToolLinkFixture(for: self)
         try fixture.symlink(fixture.link, to: fixture.tool)
@@ -151,8 +135,6 @@ final class CommandLineToolLinkTests: XCTestCase {
     
     /// A tool someone other than root can change, or that sits in a directory they can change, is refused: sudo would
     /// run it as root.
-    ///
-    /// - Throws: An unexpected error.
     func testAToolOthersCanChangeIsRefused() throws {
         let fixture = try ToolLinkFixture(for: self)
         let me = CommandLineToolLink.userName(getuid())
@@ -179,19 +161,71 @@ final class CommandLineToolLinkTests: XCTestCase {
                        .failure(.untrustedChain(path: fixture.tool, writer: "everyone")))
     }
     
-    /// A tool not signed as `macmonitor` is refused.
+    /// The framework the tool loads from `Contents/Frameworks` runs as root too, so a framework, or anything in or
+    /// above it in the bundle, that someone else can change is refused.
+    func testAFrameworkOthersCanChangeIsRefused() throws {
+        let fixture = try ToolLinkFixture(for: self)
+        let frameworks = fixture.bundle + "/Contents/Frameworks"
+        let binary = frameworks + "/SutroESFramework.framework/Versions/A/SutroESFramework"
+        try fixture.makeTool(at: binary)
+        XCTAssertEqual(fixture.linker().inspect().tool, .success(fixture.tool))
+        
+        chmod(binary, 0o757)
+        XCTAssertEqual(fixture.linker().inspect().tool,
+                       .failure(.untrustedChain(path: binary, writer: "everyone")))
+        chmod(binary, 0o755)
+        chmod(frameworks, 0o777)
+        XCTAssertEqual(fixture.linker().inspect().tool,
+                       .failure(.untrustedChain(path: frameworks, writer: "everyone")))
+        chmod(frameworks, 0o755)
+        try Self.changeAccess(["+a", "everyone allow write", binary])
+        XCTAssertEqual(fixture.linker().inspect().tool,
+                       .failure(.untrustedChain(path: binary, writer: "the group everyone")))
+        try Self.changeAccess(["-N", binary])
+    }
+    
+    /// An access control entry that lets someone else change the tool, or a directory above it, is refused too.
+    /// `chown` and `chmod` leave such entries in place.
+    func testAnAccessControlEntryThatLetsOthersChangeTheToolIsRefused() throws {
+        let fixture = try ToolLinkFixture(for: self)
+        let macOS = (fixture.tool as NSString).deletingLastPathComponent
+        try Self.changeAccess(["+a", "everyone allow write", fixture.tool])
+        XCTAssertEqual(fixture.linker().inspect().tool,
+                       .failure(.untrustedChain(path: fixture.tool, writer: "the group everyone")))
+        try Self.changeAccess(["-N", fixture.tool])
+        
+        try Self.changeAccess(["+a", "everyone allow delete_child", macOS])
+        XCTAssertEqual(fixture.linker().inspect().tool,
+                       .failure(.untrustedChain(path: macOS, writer: "the group everyone")))
+        try Self.changeAccess(["-N", macOS])
+        
+        try Self.changeAccess(["+a", "everyone deny delete", fixture.tool])
+        XCTAssertEqual(fixture.linker().inspect().tool, .success(fixture.tool), "An entry that denies is fine")
+        try Self.changeAccess(["-N", fixture.tool])
+    }
+    
+    /// Run `/bin/chmod`.
     ///
-    /// - Throws: An unexpected error.
+    /// - Parameter arguments: Its arguments.
+    /// - Throws: An `XCTest` failure if it fails.
+    private static func changeAccess(_ arguments: [String]) throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/chmod")
+        process.arguments = arguments
+        try process.run()
+        process.waitUntilExit()
+        XCTAssertEqual(process.terminationStatus, 0, arguments.joined(separator: " "))
+    }
+    
+    /// A tool not signed as `macmonitor` is refused.
     func testAnUnsignedToolIsRefused() throws {
         let fixture = try ToolLinkFixture(for: self)
         XCTAssertEqual(fixture.linker(signed: false).inspect().tool, .failure(.signatureMismatch(fixture.tool)))
         XCTAssertNil(fixture.linker(signed: false).inspect().plan(.install))
     }
     
-    /// A link directory others can change gets a warning, not a refusal; so does the nearest directory above a missing
+    /// A link directory others can change gets a warning, not a refusal. So does the nearest directory above a missing
     /// one.
-    ///
-    /// - Throws: An unexpected error.
     func testALinkDirectoryOthersCanChangeIsAWarning() throws {
         let fixture = try ToolLinkFixture(for: self)
         chmod(fixture.binDirectory, 0o777)
@@ -206,10 +240,8 @@ final class CommandLineToolLinkTests: XCTestCase {
         XCTAssertTrue(fixture.linker().inspect().binDirectoryWarning?.hasPrefix(fixture.root + "/usr/local ") == true)
     }
     
-    /// The live signature check: an Apple tool satisfies its own requirement and not `macmonitor`'s; an unsigned file
+    /// The live signature check: an Apple tool satisfies its own requirement and not `macmonitor`'s. An unsigned file
     /// and a missing one satisfy nothing.
-    ///
-    /// - Throws: An unexpected error.
     func testTheSignatureCheckReadsTheRealSignature() throws {
         let ls = "anchor apple and identifier \"com.apple.ls\""
         XCTAssertTrue(CommandLineToolLink.signature(of: "/bin/ls", satisfies: ls))
@@ -221,8 +253,6 @@ final class CommandLineToolLinkTests: XCTestCase {
     }
     
     /// Every state has a sentence for Settings that names the link, and a hint only for what may be done.
-    ///
-    /// - Throws: An unexpected error.
     func testEverySummaryNamesTheLinkAndHintsOnlyAtWhatMayBeDone() throws {
         let fixture = try ToolLinkFixture(for: self)
         let other = "/a.app/Contents/MacOS/macmonitor"

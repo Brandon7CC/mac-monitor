@@ -18,8 +18,6 @@ final class TCCModifyTokenTests: XCTestCase {
     private static let pid: Int32 = 7_777
     
     /// A captured event without its responsible process keeps the responsible token.
-    ///
-    /// - Throws: An `XCTest` failure if the export has no tcc_modify event.
     func testCapturedWithoutResponsible() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_TCC_MODIFY)
         let event = fixture.allocate(es_event_tcc_modify_t.self)
@@ -33,8 +31,6 @@ final class TCCModifyTokenTests: XCTestCase {
     }
     
     /// An eslogger record without its responsible process exports the token eslogger wrote.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no tcc_modify event.
     func testImportedWithoutResponsible() throws {
         let token = try XCTUnwrap(try fixtureObject("eslogger-exit.jsonl")["process"] as? [String: Any])["audit_token"]
         let record = try esloggerRecord("tcc_modify", type: Int(ES_EVENT_TYPE_NOTIFY_TCC_MODIFY.rawValue), [

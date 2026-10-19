@@ -66,7 +66,7 @@ struct TraceKeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
     /// Does the object hold `key` (see ``value(of:)``)?
     func contains(_ key: Key) -> Bool { value(of: key) != nil }
     
-    /// `key`'s value: under its own name or its export spelling; for `_0`, the object itself; for an enum flattened
+    /// `key`'s value: under its own name or its export spelling. For `_0`, the object itself. For an enum flattened
     /// into its parent, its payload.
     private func value(of key: Key) -> AnyObject? {
         let name = key.stringValue

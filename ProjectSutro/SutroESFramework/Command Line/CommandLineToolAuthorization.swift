@@ -54,14 +54,17 @@ public enum CommandLineToolAuthorization {
         guard AuthorizationCreate(nil, nil, [], &created) == errAuthorizationSuccess,
               let authorization = created else { return .failure(.notAuthorized) }
 
+        // The item's name and value must outlive AuthorizationCopyRights, so both come from withCString.
         let status = prompt.withCString { promptText in
-            withRights { rights in
-                var item = AuthorizationItem(name: kAuthorizationEnvironmentPrompt, valueLength: strlen(promptText),
-                                             value: UnsafeMutableRawPointer(mutating: promptText), flags: 0)
-                return withUnsafeMutablePointer(to: &item) { item in
-                    var environment = AuthorizationEnvironment(count: 1, items: item)
-                    return AuthorizationCopyRights(authorization, rights, &environment,
-                                                   [.interactionAllowed, .extendRights, .preAuthorize], nil)
+            kAuthorizationEnvironmentPrompt.withCString { promptName in
+                withRights { rights in
+                    var item = AuthorizationItem(name: promptName, valueLength: strlen(promptText),
+                                                 value: UnsafeMutableRawPointer(mutating: promptText), flags: 0)
+                    return withUnsafeMutablePointer(to: &item) { item in
+                        var environment = AuthorizationEnvironment(count: 1, items: item)
+                        return AuthorizationCopyRights(authorization, rights, &environment,
+                                                       [.interactionAllowed, .extendRights, .preAuthorize], nil)
+                    }
                 }
             }
         }
@@ -92,13 +95,38 @@ public enum CommandLineToolAuthorization {
 
     // MARK: Security Extension
 
-    /// Add ``rightName`` to the authorization database if it's missing. Root only.
+    /// Keys Authorization Services adds to a stored right. They don't change who may hold it.
+    private static let bookkeepingKeys: Set<String> = ["comment", "created", "modified", "identifier", "requirement",
+                                                       "tries"]
+
+    /// Does a stored definition grant exactly what ``rule`` grants?
+    ///
+    /// Anyone may add a right (`config.add.` is `allow`), so a user could add ours first with a weaker rule.
+    ///
+    /// - Parameter stored: The right's definition, from `AuthorizationRightGet`.
+    /// - Returns: `true` if it has every key of ``rule`` with the same value, and no others besides bookkeeping.
+    static func matches(_ stored: [String: Any]) -> Bool {
+        let keys = Set(stored.keys).subtracting(bookkeepingKeys)
+        guard keys == Set(rule.keys).subtracting(bookkeepingKeys) else { return false }
+        return keys.allSatisfy { (stored[$0] as? NSObject)?.isEqual(rule[$0]) == true }
+    }
+
+    /// ``rightName``'s definition in the authorization database.
+    ///
+    /// - Returns: The definition, or `nil` if the right isn't there.
+    static func storedRule() -> [String: Any]? {
+        var definition: CFDictionary?
+        guard AuthorizationRightGet(rightName, &definition) == errAuthorizationSuccess else { return nil }
+        return definition as? [String: Any]
+    }
+
+    /// Add ``rightName`` to the authorization database, or replace it if its rule isn't ours. Root only.
     ///
     /// - Returns: The status from Authorization Services.
     @discardableResult
     public static func registerRight() -> OSStatus {
         guard geteuid() == 0 else { return errAuthorizationDenied }
-        guard AuthorizationRightGet(rightName, nil) != errAuthorizationSuccess else { return errAuthorizationSuccess }
+        if let stored = storedRule(), matches(stored) { return errAuthorizationSuccess }
         var authorization: AuthorizationRef?
         guard AuthorizationCreate(nil, nil, [], &authorization) == errAuthorizationSuccess,
               let authorization else { return errAuthorizationInternal }
@@ -109,10 +137,11 @@ public enum CommandLineToolAuthorization {
     /// Did an administrator approve this? Never prompts.
     ///
     /// - Parameter externalForm: The external form Mac Monitor sent.
-    /// - Returns: `true` if the authorization holds ``rightName``.
+    /// - Returns: `true` if the authorization holds ``rightName`` and the right still has our rule.
     public static func isApproved(_ externalForm: Data) -> Bool {
         guard externalForm.count == MemoryLayout<AuthorizationExternalForm>.size else { return false }
         registerRight()
+        guard let stored = storedRule(), matches(stored) else { return false }
         var external = AuthorizationExternalForm()
         _ = withUnsafeMutableBytes(of: &external) { externalForm.copyBytes(to: $0) }
         var authorization: AuthorizationRef?

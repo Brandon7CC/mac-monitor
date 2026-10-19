@@ -12,7 +12,7 @@ import EndpointSecurity
 // MARK: - Configuration
 /// What a ``CaptureSession`` subscribes to and mutes.
 public struct CaptureConfiguration {
-    /// The events to subscribe to. Only the NOTIFY events Mac Monitor models (`supportedEvents`) are kept; anything
+    /// The events to subscribe to. Only the NOTIFY events Mac Monitor models (`supportedEvents`) are kept. Anything
     /// else (an AUTH event, an unknown name read as `ES_EVENT_TYPE_LAST`) is left out and logged.
     public var events: [es_event_type_t]
     /// The path mutes for every client: the saved mute set, or none. Endpoint Security's own default mutes come with

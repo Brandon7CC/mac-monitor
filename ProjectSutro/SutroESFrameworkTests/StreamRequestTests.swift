@@ -16,8 +16,6 @@ import EndpointSecurity
 final class StreamRequestTests: XCTestCase {
     /// Version 1 requests, as `macmonitor` 3.0.0 writes them, read as the values they stand for. A renamed key fails
     /// here.
-    ///
-    /// - Throws: ``XPCRequestError`` if a request doesn't read.
     func testVersion1RequestsRead() throws {
         XCTAssertEqual(try StreamRequest.decode(Data(#"{"version":1,"kind":"hello"}"#.utf8)), StreamRequest(.hello))
         XCTAssertEqual(try StreamRequest.decode(Data(#"{"version":1,"kind":"stop"}"#.utf8)), StreamRequest(.stop))
@@ -29,10 +27,8 @@ final class StreamRequestTests: XCTestCase {
                                                                      appliesSavedMutes: false)))
     }
     
-    /// Missing options mean the default events with the saved mutes; unknown fields, such as one a later version adds,
+    /// Missing options mean the default events with the saved mutes. Unknown fields, such as one a later version adds,
     /// are ignored.
-    ///
-    /// - Throws: ``XPCRequestError`` if a request doesn't read.
     func testMissingFieldsTakeTheirDefaultsAndUnknownOnesAreIgnored() throws {
         let request = try StreamRequest.decode(Data(#"{"version":1,"kind":"stream","options":{},"later":7}"#.utf8))
         XCTAssertEqual(request.options, StreamOptions())
@@ -40,8 +36,6 @@ final class StreamRequestTests: XCTestCase {
     }
     
     /// Every request survives a round trip.
-    ///
-    /// - Throws: ``XPCRequestError`` if a request doesn't read.
     func testRequestsRoundTrip() throws {
         for request in [StreamRequest(.hello), StreamRequest(.stop),
                         StreamRequest(.stream, options: StreamOptions(events: ["ES_EVENT_TYPE_NOTIFY_FORK"]))] {
@@ -75,7 +69,7 @@ final class StreamRequestTests: XCTestCase {
         }
     }
     
-    /// A version 1 reply reads; a reply with a status this build doesn't know reads as unsupported; a reply without
+    /// A version 1 reply reads. A reply with a status this build doesn't know reads as unsupported. A reply without
     /// its version, status or Security Extension version doesn't read.
     func testRepliesRead() {
         let started = #"""

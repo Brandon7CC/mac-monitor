@@ -96,10 +96,8 @@ final class MuteCommandTests: XCTestCase {
         XCTAssertEqual(notRoot.exit, .noPermission)
     }
     
-    /// `export` writes exactly the saved file, as `list --format json` does; importing it back changes nothing, so it
-    /// doesn't ask; `reset` restores the default.
-    ///
-    /// - Throws: The error writing the exported file.
+    /// `export` writes exactly the saved file, as `list --format json` does. Importing it back changes nothing, so it
+    /// doesn't ask. `reset` restores the default.
     func testExportImportAndReset() throws {
         _ = run(.add(MuteFile.Entry(path: "/usr/bin/yes", type: "ES_MUTE_PATH_TYPE_PREFIX")))
         let exported = run(.export).output
@@ -119,9 +117,7 @@ final class MuteCommandTests: XCTestCase {
     }
     
     /// `import` and `reset` say what they'd change and ask first. With no one to ask they need `--yes` (64), and a no
-    /// is 1, both leaving the saved set as it was; a yes goes ahead. A change that changes nothing isn't asked about.
-    ///
-    /// - Throws: The error writing the file to import.
+    /// is 1, both leaving the saved set as it was. A yes goes ahead. A change that changes nothing isn't asked about.
     func testImportAndResetAskFirst() throws {
         let count = MuteList.testDefault.count
         _ = run(.add(MuteFile.Entry(path: "/usr/bin/yes", type: "ES_MUTE_PATH_TYPE_LITERAL")))
@@ -165,8 +161,6 @@ final class MuteCommandTests: XCTestCase {
     
     /// A saved set from a newer Mac Monitor is only reset after asking, with its notice said first, though the set
     /// applied now is already the default: a no keeps the newer file, and with no one to ask, `--yes` is needed.
-    ///
-    /// - Throws: The error writing the newer file.
     func testResettingANewerSavedSetAsksFirst() throws {
         let store = try makeMuteStore()
         try writeSavedFile(#"{"version": 2, "mutes": []}"#, in: store)
@@ -190,8 +184,6 @@ final class MuteCommandTests: XCTestCase {
     
     /// A file with only Apple's AUTH mutes has nothing to import: each left-out entry is on standard error, and the
     /// saved set is unchanged (65). A file that can't be read is 66.
-    ///
-    /// - Throws: The error writing the file.
     func testImportsThatCantHappen() throws {
         let appleOnly = [
             #"{"path":"/usr/libexec/opendirectoryd","type":"ES_MUTE_PATH_TYPE_LITERAL","#

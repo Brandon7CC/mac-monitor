@@ -38,9 +38,7 @@ final class QuarantineEnabledTests: XCTestCase {
         XCTAssertFalse(ProcessHelpers.hasAppBytes("\u{FF0E}app"))
     }
     
-    /// A path outside an app bundle isn't File Quarantine-aware; one inside a bundle is what its Info.plist says.
-    ///
-    /// - Throws: The error writing the bundles.
+    /// A path outside an app bundle isn't File Quarantine-aware. One inside a bundle is what its Info.plist says.
     func testAppBundlesAreStillRead() throws {
         let directory = try makeTemporaryDirectory()
         for (name, enabled) in [("OptIn", true), ("OptOut", false)] {

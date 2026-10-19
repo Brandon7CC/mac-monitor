@@ -60,8 +60,6 @@ final class OpenDirectoryCaptureTests: XCTestCase {
     
     /// An instigator Endpoint Security left out is `nil`, with its audit token read from `instigator_token`, for every
     /// Open Directory event.
-    ///
-    /// - Throws: An `XCTest` failure if an event isn't recorded as an Open Directory event.
     func testInstigatorLeftOut() throws {
         for (name, type, place) in RawMessageFixture.openDirectoryEvents {
             let fixture = rawMessage(version: 10, type: type)
@@ -77,8 +75,6 @@ final class OpenDirectoryCaptureTests: XCTestCase {
     }
     
     /// The instigator's process is kept, and Mac Monitor's instigator fields come from it.
-    ///
-    /// - Throws: An `XCTest` failure if an event isn't recorded as an Open Directory event.
     func testInstigatorKept() throws {
         var object = Self.localNode
         object["instigator"] = [
@@ -101,8 +97,6 @@ final class OpenDirectoryCaptureTests: XCTestCase {
     }
     
     /// `instigator_token` is read from message version 8, and not before: an older event ends before it.
-    ///
-    /// - Throws: An `XCTest` failure if an event isn't recorded as an Open Directory event.
     func testInstigatorTokenFromVersion8() throws {
         for (name, type, place) in RawMessageFixture.openDirectoryEvents {
             for version: UInt32 in [7, 8] {
@@ -115,10 +109,8 @@ final class OpenDirectoryCaptureTests: XCTestCase {
         }
     }
     
-    /// An instigator whose path is empty has an empty name, not the name of the current directory; and a `NULL` node
+    /// An instigator whose path is empty has an empty name, not the name of the current directory. And a `NULL` node
     /// name reads as "".
-    ///
-    /// - Throws: An `XCTest` failure if the event isn't recorded as an Open Directory event.
     func testInstigatorWithEmptyPath() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_OD_CREATE_USER)
         fixture.odEvent(\.od_create_user).pointee.instigator = fixture.process(path: "", signingID: "com.example.dscl")
@@ -131,8 +123,6 @@ final class OpenDirectoryCaptureTests: XCTestCase {
     // MARK: Strings and numbers
     
     /// A `NULL` database path is `nil` (eslogger's `null`), and an empty one "".
-    ///
-    /// - Throws: An `XCTest` failure if an event isn't recorded as an Open Directory event.
     func testDatabasePath() throws {
         for path in [nil, "", "/var/db/dslocal/nodes/Default"] {
             let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD)
@@ -216,8 +206,6 @@ final class OpenDirectoryCaptureTests: XCTestCase {
     }
     
     /// The error code is kept, and described.
-    ///
-    /// - Throws: An `XCTest` failure if the event isn't recorded as an Open Directory event.
     func testErrorCode() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_OD_CREATE_USER)
         var object = Self.localNode

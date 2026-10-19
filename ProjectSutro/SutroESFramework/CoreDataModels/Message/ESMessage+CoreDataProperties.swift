@@ -36,7 +36,7 @@ extension ESMessage {
     /// relationship, so a table can render or query millions of events. `nil` wherever the source is `nil`.
     ///
     /// - `initiating_*`: `process` (the instigating process) and its `executable`.
-    /// - `created_*`: the process this event created: the `EXEC` target, or the `FORK` child.
+    /// - `created_*`: the process this event created, which is the `EXEC` target or the `FORK` child.
     @NSManaged public var initiating_path, initiating_name, initiating_euid_human, initiating_signing_id: String?
     @NSManaged public var initiating_pid, initiating_ppid: Int32
     /// `process.parent_audit_token_string`, for process lineage.
@@ -111,7 +111,7 @@ extension ESMessage {
         let process = message.process
         let exec = message.event.exec
         let created: Process? = exec?.target ?? message.event.fork?.child
-        /// `ESProcess` stores a token string only when it has the token; reading an unset one returned "".
+        /// `ESProcess` stores a token string only when it has the token. Reading an unset one returned "".
         created_audit_token = created.map { $0.audit_token?.toString() ?? "" }
         
         initiating_path = process.executable?.path

@@ -141,8 +141,6 @@ final class OptionalStringTests: XCTestCase {
     }
     
     /// `xp_malware_remediated.remediated_path`.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export has no such event.
     func testRemediatedPathRoundTrip() throws {
         try assertKeepsNullAndEmpty("xp_malware_remediated", type: 113, at: ["remediated_path"]) {
             ["signature_version": "1", "malware_identifier": "Example", "incident_identifier": "0",
@@ -152,8 +150,6 @@ final class OptionalStringTests: XCTestCase {
     }
     
     /// `btm_launch_item_add.executable_path` and `btm_launch_item_add.item.app_url`.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export has no such event.
     func testLaunchItemRoundTrip() throws {
         func item(appURL: Any) -> [String: Any] {
             ["item_type": 2, "legacy": false, "managed": false, "uid": 0, "app_url": appURL,
@@ -168,8 +164,6 @@ final class OptionalStringTests: XCTestCase {
     }
     
     /// `login_login.failure_message`.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export has no such event.
     func testLoginFailureMessageRoundTrip() throws {
         try assertKeepsNullAndEmpty("login_login", type: 122, at: ["failure_message"]) {
             ["success": false, "failure_message": $0, "username": "testuser", "uid": NSNull()]
@@ -177,8 +171,6 @@ final class OptionalStringTests: XCTestCase {
     }
     
     /// `od_create_user.db_path`.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export has no such event.
     func testOpenDirectoryDatabasePathRoundTrip() throws {
         try assertKeepsNullAndEmpty("od_create_user", type: 141, at: ["db_path"]) {
             ["instigator": NSNull(), "error_code": 0, "user_name": "testuser", "node_name": "/Local/Default",
@@ -187,8 +179,6 @@ final class OptionalStringTests: XCTestCase {
     }
     
     /// `gatekeeper_user_override.signing_info.team_id`.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export has no such event.
     func testGatekeeperTeamIDRoundTrip() throws {
         try assertKeepsNullAndEmpty("gatekeeper_user_override", type: 146, at: ["signing_info", "team_id"]) {
             ["file_type": 0, "file": "/Applications/Example.app", "sha256": NSNull(),
@@ -198,8 +188,6 @@ final class OptionalStringTests: XCTestCase {
     }
     
     /// `process.team_id`.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export isn't a JSON object.
     func testProcessTeamIDRoundTrip() throws {
         for value in [NSNull(), "" as Any] {
             var record = try fixtureObject("eslogger-exit.jsonl")

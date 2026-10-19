@@ -32,8 +32,6 @@ final class MuteConfirmationTests: XCTestCase {
     }
     
     /// Only y or yes, in any case and with spaces around it, is yes: an empty line, no answer, or anything else is no.
-    ///
-    /// - Throws: The error closing a pipe.
     func testOnlyYesIsYes() throws {
         for answer in ["y\n", "YES\n", "  yes \r\n", "Y"] {
             XCTAssertTrue(try ask(typing: answer).isYes, answer)
@@ -45,8 +43,6 @@ final class MuteConfirmationTests: XCTestCase {
     }
     
     /// One line is read, and no more than its first 256 bytes: the rest stays for whoever reads next.
-    ///
-    /// - Throws: The error closing a pipe.
     func testOneLineIsRead() throws {
         XCTAssertEqual(try ask(typing: "y\nmore\n").unread, "more\n")
         let long = try ask(typing: String(repeating: "y", count: 300) + "\n")

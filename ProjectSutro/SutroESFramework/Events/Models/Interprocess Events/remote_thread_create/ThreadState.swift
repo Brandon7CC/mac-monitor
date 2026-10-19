@@ -85,7 +85,7 @@ extension ThreadState {
     /// Bytes in base64, kept to at most ``maxStateSize``.
     ///
     /// - Parameter base64: The bytes in base64.
-    /// - Returns: `base64` when it's no longer than ``maxBase64Length``; otherwise its first ``maxStateSize`` bytes in
+    /// - Returns: `base64` when it's no longer than ``maxBase64Length``. Otherwise its first ``maxStateSize`` bytes in
     ///   base64, or `nil` if it isn't base64.
     private static func bounded(_ base64: String) -> String? {
         guard base64.utf8.count > maxBase64Length else { return base64 }

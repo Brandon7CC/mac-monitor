@@ -19,7 +19,7 @@ import os
 /// and libinfo's user cache's behind `getpwuid`.
 ///
 /// **Control:** whether to record, and the Sensor ID, are read under a lock of their own as each message is handled.
-/// So turning recording on or off, or changing the Sensor ID, never waits for an event being built; one already being
+/// So turning recording on or off, or changing the Sensor ID, never waits for an event being built. One already being
 /// built still goes out.
 ///
 /// **Gate:** the gate's lock is held while a message is serialized and emitted. Once ``close()`` has marked the lane

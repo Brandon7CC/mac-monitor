@@ -34,8 +34,6 @@ final class TelemetrySchemaDriftTests: XCTestCase {
     }
     
     /// Every full variant has every field filled: the synthetic decoder missed nothing, new fields included.
-    ///
-    /// - Throws: The error making up a record.
     func testSyntheticVariantsAreComplete() throws {
         for record in try SyntheticCorpus.records() where record.variant.full {
             let gaps = SyntheticCorpus.gaps(in: record.message, absent: record.variant.absent)
@@ -59,8 +57,6 @@ final class TelemetrySchemaDriftTests: XCTestCase {
     }
     
     /// Every synthetic record, of every event type and variant, follows the schema.
-    ///
-    /// - Throws: The error making up a record or compiling the schema.
     func testSyntheticExportsMatchSchema() throws {
         let exports = try syntheticExports()
         XCTAssertGreaterThan(exports.count, TelemetrySchemaSource.events.count * 2)
@@ -69,8 +65,6 @@ final class TelemetrySchemaDriftTests: XCTestCase {
     
     /// The synthetic records exercise every part of the schema: every key, every type a key allows, every alternative,
     /// every array's elements, and every optional key left out, unless a test machine can't leave it out.
-    ///
-    /// - Throws: The error making up a record or compiling the schema.
     func testSchemaIsExercised() throws {
         let coverage = CoverageRecorder()
         assertValid(try syntheticExports(), with: try generatedValidator(), coverage: coverage)
@@ -101,8 +95,6 @@ final class TelemetrySchemaDriftTests: XCTestCase {
     
     /// eslogger's records and Mac Monitor 2.1's exports, opened as File > Open Trace… opens them (launched-by parents
     /// named) and exported, follow the schema.
-    ///
-    /// - Throws: The error reading a fixture or compiling the schema.
     func testImportedFixturesMatchSchema() throws {
         let exports = try fixtureExports()
         XCTAssertGreaterThan(exports.count, 20)
@@ -111,8 +103,6 @@ final class TelemetrySchemaDriftTests: XCTestCase {
     
     /// Events captured from Endpoint Security's structs, as the Security Extension captures them, follow the schema:
     /// Open Directory events, remote thread creation, and forks whose launched-by parents the serializer stamps.
-    ///
-    /// - Throws: The error reading a fixture, serializing a fork, or compiling the schema.
     func testCapturedMessagesMatchSchema() throws {
         var exports: [(label: String, json: String)] = []
         for (index, record) in try fixtureRecords("eslogger-od.jsonl").enumerated() {
@@ -146,8 +136,6 @@ final class TelemetrySchemaDriftTests: XCTestCase {
     }
     
     /// "Export all" of a store holding the synthetic records writes JSONL and pretty files that follow the schema.
-    ///
-    /// - Throws: The error making up records, building the store, exporting it, or validating the files.
     func testExporterFilesMatchSchema() throws {
         let messages = try SyntheticCorpus.records().map(\.message)
         let store = try makeExportStore(messages)

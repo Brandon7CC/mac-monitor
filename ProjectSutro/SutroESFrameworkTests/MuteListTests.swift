@@ -28,7 +28,7 @@ final class MuteListTests: XCTestCase {
         PathMute(path: path, type: type, events: events)
     }
     
-    /// Adding merges events by path and type; the same path with another type is another entry.
+    /// Adding merges events by path and type. The same path with another type is another entry.
     func testAddingMergesEventsByPathAndType() {
         var list = MuteList()
         XCTAssertTrue(list.add(mute([open])))
@@ -55,8 +55,6 @@ final class MuteListTests: XCTestCase {
     }
     
     /// Removing with no events removes the path, whatever its scope.
-    ///
-    /// - Throws: An unexpected ``MuteListError``.
     func testRemovingWithNoEventsRemovesThePath() throws {
         var list = MuteList([mute([open, close]), mute(path: "/b")])
         XCTAssertTrue(try list.remove(mute()))
@@ -65,8 +63,6 @@ final class MuteListTests: XCTestCase {
     }
     
     /// Removing events subtracts them, and removing the last one removes the path.
-    ///
-    /// - Throws: An unexpected ``MuteListError``.
     func testRemovingEventsSubtractsThem() throws {
         var list = MuteList([mute([open, close, exec])])
         XCTAssertTrue(try list.remove(mute([open, exec])))
@@ -87,8 +83,6 @@ final class MuteListTests: XCTestCase {
     }
     
     /// Removing what isn't muted changes nothing.
-    ///
-    /// - Throws: An unexpected ``MuteListError``.
     func testRemovingWhatIsNotMutedChangesNothing() throws {
         var list = MuteList([mute([open])])
         let before = list
