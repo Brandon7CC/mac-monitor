@@ -30,7 +30,7 @@ public class ESMMapEvent: NSManagedObject {
         self.protection = mmapEvent.protection
         self.max_protection = mmapEvent.max_protection
         self.flags = mmapEvent.flags
-        self.file_pos = Int64(mmapEvent.file_pos)
+        self.file_pos = mmapEvent.file_pos
         attach(ESFile.row(for: mmapEvent.source, in: context), to: #keyPath(ESMMapEvent.source))
     }
 }
@@ -43,7 +43,7 @@ extension ESMMapEvent: Encodable {
         try container.encode(protection, forKey: .protection)
         try container.encode(max_protection, forKey: .max_protection)
         try container.encode(flags, forKey: .flags)
-        try container.encode(file_pos, forKey: .file_pos)
+        try container.encode(UInt64(bitPattern: file_pos), forKey: .file_pos)
         try container.encode(source, forKey: .source)
     }
 }

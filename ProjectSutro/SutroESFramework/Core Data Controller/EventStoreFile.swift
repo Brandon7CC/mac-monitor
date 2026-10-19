@@ -69,7 +69,7 @@ struct EventStoreFile {
         let path = directory.appendingPathComponent(name + ".lock").path
         let lock = open(path, O_RDWR | O_CREAT | O_CLOEXEC, 0o600)
         guard lock >= 0 else { return nil }
-        /// Another launch may have deleted the lock file between `open` and `flock`; a lock on a deleted file guards nothing.
+        /// Another launch may have deleted the lock file between `open` and `flock`. A lock on a deleted file guards nothing.
         var held = stat(), current = stat()
         guard flock(lock, LOCK_EX | LOCK_NB) == 0, fstat(lock, &held) == 0, stat(path, &current) == 0,
               held.st_dev == current.st_dev, held.st_ino == current.st_ino else {

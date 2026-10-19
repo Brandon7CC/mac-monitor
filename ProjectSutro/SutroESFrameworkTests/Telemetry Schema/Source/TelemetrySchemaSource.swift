@@ -14,7 +14,7 @@ import Foundation
 /// ``SchemaGenerator`` writes as `Schema/mac-monitor-telemetry.schema.json`.
 ///
 /// Every key is eslogger's or one of Mac Monitor's additions. Every object is closed and every key always written is
-/// required, so a key added to or dropped from the export fails the drift tests; values come only from Swift sources
+/// required, so a key added to or dropped from the export fails the drift tests. Values come only from Swift sources
 /// (`CaseIterable` types and the SDK's event list), and nothing here depends on the Mac it runs on, so the schema is
 /// the same wherever it's generated.
 enum TelemetrySchemaSource {

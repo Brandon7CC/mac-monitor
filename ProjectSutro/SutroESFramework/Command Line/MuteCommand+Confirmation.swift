@@ -12,7 +12,7 @@ import Foundation
 /// `macmonitor mute import` and `mute reset` replace or grow the saved mute set that Mac Monitor and every stream
 /// follow, so before they do, they read the set, say what the change would do to it, and ask. A change that would
 /// change nothing isn't asked about, unless the Security Extension has a notice about the set (it was written by a
-/// newer Mac Monitor, say), which is said first. `--yes` skips the question; without a terminal to ask at, it's
+/// newer Mac Monitor, say), which is said first. `--yes` skips the question. Without a terminal to ask at, it's
 /// required.
 extension MuteCommand {
     /// A change asked about first.
@@ -85,7 +85,7 @@ extension MuteCommand {
             if let failure = CommandLineFailure.reply(reply) { return completion(.failure(failure)) }
             /// A notice means the set applied isn't the one on disk, so the change matters whatever the numbers say.
             say(reply.notice)
-            /// The Security Extension's own entries always read; if they somehow don't, ask without the numbers.
+            /// The Security Extension's own entries always read. If they somehow don't, ask without the numbers.
             let effect = (try? MuteFile.list(from: reply.mutes, .saved).list).map { current in
                 MuteListChange(from: current, to: change.result(current))
             }

@@ -14,11 +14,11 @@ import Foundation
 /// A byte scanner that tracks strings (and their escapes) and object and array nesting, so it finds each top-level object
 /// whatever separates them: newlines (JSONL), "\n" between pretty-printed objects, or the brackets and commas of a JSON
 /// array. Text before an object on the object's own line is a prefix, such as the timestamp and process that `log show`
-/// writes before each message, and is dropped; a line of text without an object is a malformed record.
+/// writes before each message, and is dropped. A line of text without an object is a malformed record.
 ///
 /// A record cut short is skipped as soon as the next one starts, so one bad line doesn't swallow the rest of the file:
 /// a raw newline can't occur inside a JSON string, and a `{` at the start of a line only starts an event (JSONL lines and
-/// pretty events written by any JSON encoder start there; their nested objects are indented). The exception is an
+/// pretty events written by any JSON encoder start there, and their nested objects are indented). The exception is an
 /// element of an array inside a JSON array file, which an encoder that doesn't indent (Python's `indent=0`) also starts
 /// at the start of a line. A file whose first object follows text on its line is a text log: each object is on one line
 /// (a message the unified log cut at its size limit ends with its line), so a newline also ends a record.
@@ -36,7 +36,7 @@ final class TraceRecordReader {
     /// Bytes read at a time.
     static let chunkSize = 1 << 20
     /// The longest record kept, strings included: an Endpoint Security event is at most a few megabytes, even
-    /// pretty-printed. Anything longer is corrupt; it's skipped up to the next line starting with `{`.
+    /// pretty-printed. Anything longer is corrupt. It's skipped up to the next line starting with `{`.
     static let maxRecordSize = 32 << 20
     /// The bytes the scanner looks for.
     private static let (openBrace, closeBrace, openBracket, closeBracket, quote, backslash, comma, newline) =

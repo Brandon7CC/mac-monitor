@@ -39,8 +39,6 @@ final class MountDispositionTests: XCTestCase {
     }
     
     /// Before message version 8 there's no disposition: it's unknown.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no mount event.
     func testImportedBeforeVersion8() throws {
         let mount = try exportedMount(version: 7, disposition: nil)
         XCTAssertEqual(mount["disposition"] as? Int, Int(ES_MOUNT_DISPOSITION_UNKNOWN.rawValue))
@@ -49,8 +47,6 @@ final class MountDispositionTests: XCTestCase {
     }
     
     /// From message version 8 the trace's disposition is kept, an external device (0) included.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no mount event.
     func testImportedFromVersion8() throws {
         let mount = try exportedMount(version: 8, disposition: Int(ES_MOUNT_DISPOSITION_EXTERNAL.rawValue))
         XCTAssertEqual(mount["disposition"] as? Int, Int(ES_MOUNT_DISPOSITION_EXTERNAL.rawValue))
@@ -58,8 +54,6 @@ final class MountDispositionTests: XCTestCase {
     }
     
     /// The Security Extension's JSON reaches Mac Monitor with the disposition it recorded.
-    ///
-    /// - Throws: The error encoding or decoding the message.
     func testWireRoundTrip() throws {
         let fixture = rawMessage(version: 8, type: ES_EVENT_TYPE_NOTIFY_MOUNT)
         fixture.message.pointee.event.mount.statfs = fixture.allocate(Darwin.statfs.self)

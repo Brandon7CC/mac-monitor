@@ -13,7 +13,7 @@ import EndpointSecurity
 // MARK: - The default set's per-user mutes
 /// Pins whose home folder Mac Monitor's default mute set mutes: the console user's, never the root Security
 /// Extension's own `/var/root`, when the saved set is created or reset. With no one logged in those mutes are left out
-/// and the user is told; a saved set is never rewritten except by Reset.
+/// and the user is told. A saved set is never rewritten except by Reset.
 final class DefaultMuteSetTests: XCTestCase {
     private let alice = ConsoleUser(name: "alice", uid: 502, home: "/Users/alice")
     /// Who the saved set under test finds at the console.
@@ -87,6 +87,37 @@ final class DefaultMuteSetTests: XCTestCase {
         XCTAssertFalse(list.keys.contains { $0.path.hasPrefix("/Users/") && programMutes.contains($0.type) })
     }
     
+    /// Xcode's tools are muted only when root owns Xcode. An Xcode expanded from a `.xip` belongs to whoever expanded
+    /// it, so a program they put inside would run unseen. Its mutes end in `/`, so they never cover a sibling folder.
+    func testXcodeIsMutedOnlyWhenRootOwnsIt() {
+        let xcode = { (set: MuteSet) in set.pathMutes.filter { $0.path.hasPrefix("/Applications/Xcode") } }
+        XCTAssertEqual(xcode(MuteSet.default(home: nil, mutesXcode: false)).map(\.path), [])
+        let muted = xcode(MuteSet.default(home: nil, mutesXcode: true))
+        XCTAssertEqual(muted.count, 3)
+        for mute in muted {
+            XCTAssertEqual(mute.type, ES_MUTE_PATH_TYPE_PREFIX, mute.path)
+            XCTAssertTrue(mute.path.hasSuffix("/"), mute.path)
+        }
+    }
+    
+    /// Xcode counts as root's only when root owns every folder its mutes cover, and the folders above them in the
+    /// bundle, and no one else can change them.
+    func testOnlyAnXcodeItsOwnerAloneCanChangeCounts() throws {
+        let base = try XCTUnwrap(CommandLineToolLink.realPath(NSTemporaryDirectory()))
+            + "/MuteSetTests-\(UUID().uuidString)"
+        addTeardownBlock { try? FileManager.default.removeItem(atPath: base) }
+        let xcode = base + "/Xcode.app", toolchain = xcode + "/Contents/Developer/Toolchains/XcodeDefault.xctoolchain"
+        for folder in [toolchain, xcode + "/Contents/SharedFrameworks"] {
+            try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true,
+                                                    attributes: [.posixPermissions: 0o755])
+        }
+        XCTAssertTrue(MuteSet.ownsXcode(getuid(), at: xcode))
+        XCTAssertFalse(MuteSet.ownsXcode(0, at: xcode), "Owned by the user running the tests")
+        XCTAssertFalse(MuteSet.ownsXcode(getuid(), at: base + "/Missing.app"))
+        chmod(toolchain, 0o775)
+        XCTAssertFalse(MuteSet.ownsXcode(getuid(), at: xcode), "The group can change the toolchain")
+    }
+    
     /// With no one logged in, the default set is the same less the two per-user mutes. A home folder too long to
     /// mute in is left out the same way.
     func testWithoutAConsoleUserThePerUserMutesAreLeftOut() {
@@ -105,7 +136,7 @@ final class DefaultMuteSetTests: XCTestCase {
         XCTAssertNil(send(MuteRequest(.list), to: saved)?.notice)
     }
     
-    /// A first run with no one logged in leaves the per-user mutes out and says so until the next change; a Reset
+    /// A first run with no one logged in leaves the per-user mutes out and says so until the next change. A Reset
     /// once someone is logged in adds them. A Reset with no one logged in says what it left out.
     func testWithNoOneLoggedInResetAddsThemLater() {
         consoleUser = nil
@@ -131,8 +162,6 @@ final class DefaultMuteSetTests: XCTestCase {
     /// A Reset with no one logged in, such as `macmonitor mute reset` over SSH at the login window, takes the
     /// per-user mutes out of a set that had them, and Path Muting keeps saying so until the next change, as after a
     /// first run.
-    ///
-    /// - Throws: If the set can't be saved.
     func testAResetWithNoOneLoggedInSaysSoUntilTheNextChange() throws {
         try store.save(.shippedDefault(for: alice))
         consoleUser = nil
@@ -151,8 +180,6 @@ final class DefaultMuteSetTests: XCTestCase {
     /// A newer file or an untrusted directory found with no one logged in, as at boot, applies the default set without
     /// the per-user mutes, and the notice says so: Reset adds them to a newer file's place, and nothing can change a
     /// set that can't be kept, so its notice says they come with the next start.
-    ///
-    /// - Throws: If the file can't be written.
     func testTheFallbackWithNoOneLoggedInSaysSo() throws {
         consoleUser = nil
         try writeSavedFile(#"{"version": 2, "mutes": []}"#, in: store)
@@ -174,8 +201,6 @@ final class DefaultMuteSetTests: XCTestCase {
     }
     
     /// A damaged file restored with no one logged in says both.
-    ///
-    /// - Throws: If the file can't be written.
     func testADamagedFileRestoredWithNoOneLoggedInSaysSo() throws {
         try writeSavedFile("nope", in: store)
         consoleUser = nil
@@ -184,10 +209,8 @@ final class DefaultMuteSetTests: XCTestCase {
         XCTAssertTrue(notice.hasSuffix(SavedMuteSet.noConsoleUser), notice)
     }
     
-    /// A saved set, even one an earlier 3.0 build made for `/var/root`, is kept as it is whoever logs in; only Reset
+    /// A saved set, even one an earlier 3.0 build made for `/var/root`, is kept as it is whoever logs in. Only Reset
     /// makes the default set again, for the console user.
-    ///
-    /// - Throws: If the file can't be written.
     func testASavedSetIsOnlyRewrittenByReset() throws {
         let rootDefault = MuteFile(MuteList.shippedDefault(for: ConsoleUser(name: "root", uid: 0, home: "/var/root")))
         let earlier = String(decoding: rootDefault.encoded(), as: UTF8.self)

@@ -158,7 +158,7 @@ indirect enum InstancePath: Equatable {
     /// An element of an array.
     case index(InstancePath, Int)
     
-    /// The path as text: `event.exec.args[2]`; a key that isn't a short identifier is written `["key"]`.
+    /// The path as text: `event.exec.args[2]`. A key that isn't a short identifier is written `["key"]`.
     var rendered: String { render(generalized: false) }
     /// The path as text with every index generalized: `event.exec.args[]`.
     var generalized: String { render(generalized: true) }

@@ -52,7 +52,7 @@ extension MuteFile {
                 if strictness != .saved, let advice = entry.resolvedPathAdvice { warnings.append(advice) }
                 list.add(checked.mute)
             } catch let problem as EntryProblem {
-                /// The saved file only leaves out what a newer Mac Monitor wrote; anything else means it's damaged.
+                /// The saved file only leaves out what a newer Mac Monitor wrote. Anything else means it's damaged.
                 guard strictness == .lenient || problem.isFromNewerMacMonitor else {
                     throw MuteFileError.invalidMute(index: index, reason: "\(entry.label) \(problem.reason)")
                 }
@@ -81,7 +81,7 @@ extension MuteFile.Entry {
     
     /// The entry as a mute Endpoint Security and Mac Monitor's clients can use.
     ///
-    /// 1. The type must be one of the four `ES_MUTE_PATH_TYPE_*` names; files never use short names.
+    /// 1. The type must be one of the four `ES_MUTE_PATH_TYPE_*` names. Files never use short names.
     /// 2. The path must be absolute, without a NUL, and at most ``MuteLimits/maxPathBytes``.
     /// 3. At most ``MuteLimits/maxEventsPerMute`` event names, each counted once. Unknown event names are refused, or
     ///    left out with a warning. An entry that names only unknown events is refused either way: no events would mean

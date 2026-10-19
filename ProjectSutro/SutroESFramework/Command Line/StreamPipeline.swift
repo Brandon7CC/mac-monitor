@@ -27,7 +27,7 @@ public enum StreamOutputFormat: String, CaseIterable, Sendable {
 ///
 /// Every event is observed by the ``StreamDropMeter``, in order, before ``PipelineScope`` can suppress it, so
 /// suppression never looks like a drop. Text output decodes only each event's header. JSONL decodes the whole
-/// `Message` once and takes the header from it; at about 190 µs an event it's the slow part of a stream, so a batch of
+/// `Message` once and takes the header from it. At about 190 µs an event it's the slow part of a stream, so a batch of
 /// at least ``parallelThreshold`` events is split across the formatter's encoders and encoded in parallel (measured
 /// on 21,768 real events: 5,100 events a second with one encoder, 10,800 with four), then joined in order. Not
 /// thread-safe: one batch at a time.

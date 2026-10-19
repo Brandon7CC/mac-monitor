@@ -52,15 +52,11 @@ final class TelemetryExporterOrderTests: XCTestCase {
     }
     
     /// A live recording is exported by `mach_time`, ties in the order the events reached the store.
-    ///
-    /// - Throws: The error building the store or exporting it.
     func testLiveRecordingIsExportedByMachTime() throws {
         XCTAssertEqual(try exportedOrder(try makeStore(), from: .live), [4, 1, 2, 3, 0])
     }
     
     /// An opened trace is exported in its file order, which is the order its events reached the store.
-    ///
-    /// - Throws: The error building the store or exporting it.
     func testOpenedTraceKeepsItsFileOrder() throws {
         let trace = CoreDataController.EventSource.trace(URL(fileURLWithPath: "/tmp/trace.jsonl"))
         XCTAssertEqual(try exportedOrder(try makeStore(), from: trace), [0, 1, 2, 3, 4])

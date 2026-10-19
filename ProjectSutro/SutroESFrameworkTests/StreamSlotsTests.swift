@@ -26,7 +26,7 @@ final class StreamSlotsTests: XCTestCase {
         XCTAssertEqual(slots.count, 3)
     }
     
-    /// A second reserve by a stream holding a slot keeps its one slot; a second release frees nothing more.
+    /// A second reserve by a stream holding a slot keeps its one slot. A second release frees nothing more.
     func testReservingAndReleasingAreIdempotent() {
         let slots = StreamSlots(capacity: 2)
         XCTAssertTrue(slots.reserve(1))

@@ -16,7 +16,7 @@ import CoreData
 /// saved), and is encoded with the same ``ProcessHelpers/eventToJSON(value:)``: one record per line, an eslogger
 /// superset. It never touches `CoreDataController.shared`, the user's caches, or their preferences.
 ///
-/// **Threading:** not thread-safe; one per thread. Every call waits on its private-queue context.
+/// **Threading:** not thread-safe. One per thread. Every call waits on its private-queue context.
 public final class ExportEncoder {
     /// The event model, loaded once per process from the framework: Core Data complains when two copies of a model
     /// claim the same classes. `nil` if the framework's `SystemEvents.momd` is missing.

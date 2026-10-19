@@ -14,7 +14,7 @@ extension Message {
     ///
     /// - Exports from 2.0.0 to 2.1.0 wrote ``ESNewPath``'s `dir` only when it was already loaded, which it rarely was,
     ///   so an imported event's directory would be empty: it's restored from the event's full destination path (its
-    ///   path and name are what the create event's Event Facts show; its `stat` is lost).
+    ///   path and name are what the create event's Event Facts show, but its `stat` is lost).
     /// - Exports from 2.0.0 to 2.1.0 wrote a rename's new path with `mode` 0, which a rename doesn't have (only a
     ///   create's new path does): it's dropped, as eslogger has none.
     mutating func repairNewPath() {

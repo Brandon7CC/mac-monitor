@@ -56,7 +56,7 @@ final class SequenceGapCounterTests: XCTestCase {
         XCTAssertEqual(counter.last, 5)
     }
     
-    /// Interleaved types with contiguous numbers have no drops; a drop shows in the global stream and in its type's.
+    /// Interleaved types with contiguous numbers have no drops. A drop shows in the global stream and in its type's.
     func testDropsAreNamedByType() {
         let exec = Int(ES_EVENT_TYPE_NOTIFY_EXEC.rawValue), open = Int(ES_EVENT_TYPE_NOTIFY_OPEN.rawValue)
         var tracker = ClientSequenceTracker()

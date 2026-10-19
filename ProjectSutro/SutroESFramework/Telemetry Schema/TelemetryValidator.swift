@@ -119,7 +119,7 @@ public struct TelemetryValidator: @unchecked Sendable {
     /// - Parameters:
     ///   - json: The record's JSON text.
     ///   - line: The line it starts on, or `nil` for a record on its own.
-    ///   - limit: The most issues kept in full; the rest are counted.
+    ///   - limit: The most issues kept in full. The rest are counted.
     /// - Returns: What the check found.
     func check(_ json: Data, line: Int?, keeping limit: Int = .max) -> RecordCheck {
         let record: Any

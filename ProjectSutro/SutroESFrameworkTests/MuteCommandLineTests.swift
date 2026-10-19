@@ -49,9 +49,7 @@ final class MuteCommandLineTests: XCTestCase {
         }
     }
     
-    /// `export` takes nothing, `list` only its format, and `reset` only `--yes`; every mute command needs root.
-    ///
-    /// - Throws: ``CommandLineUsageError``.
+    /// `export` takes nothing, `list` only its format, and `reset` only `--yes`. Every mute command needs root.
     func testCommandsWithoutArguments() throws {
         XCTAssertEqual(try parse("list"), .mute(.list(format: .text)))
         XCTAssertEqual(try parse("list --format json"), .mute(.list(format: .json)))
@@ -73,8 +71,6 @@ final class MuteCommandLineTests: XCTestCase {
     
     /// `add` and `remove`: a path, literal unless a type is given (by short or full name), and events by short or full
     /// name, any NOTIFY event Mac Monitor knows.
-    ///
-    /// - Throws: ``CommandLineUsageError``.
     func testAddAndRemove() throws {
         XCTAssertEqual(try parse("add /usr/bin/yes"),
                        .mute(.add(MuteFile.Entry(path: "/usr/bin/yes", type: "ES_MUTE_PATH_TYPE_LITERAL"))))
@@ -91,7 +87,7 @@ final class MuteCommandLineTests: XCTestCase {
     }
     
     /// What `add` and `remove` refuse: a mute that can't be used exits 65, as the Security Extension's refusal of one
-    /// does; a command line that can't be read exits 64.
+    /// does. A command line that can't be read exits 64.
     func testBadEntries() {
         XCTAssertEqual(usageError("add"), "mute add needs a path.")
         XCTAssertEqual(usageError("add usr/bin/yes"), "'usr/bin/yes' isn't an absolute path.")
@@ -113,8 +109,6 @@ final class MuteCommandLineTests: XCTestCase {
     }
     
     /// `import FILE|- [--merge] [--yes]`.
-    ///
-    /// - Throws: ``CommandLineUsageError``.
     func testImport() throws {
         XCTAssertEqual(try parse("import mutes.json"),
                        .mute(.importFile(path: "mutes.json", merge: false, confirmed: false)))

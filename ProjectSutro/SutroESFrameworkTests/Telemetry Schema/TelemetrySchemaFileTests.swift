@@ -34,8 +34,6 @@ final class TelemetrySchemaFileTests: XCTestCase {
     }
     
     /// The committed schema is what the source generates, byte for byte. With `MM_WRITE_SCHEMA=1` it's written instead.
-    ///
-    /// - Throws: The error reading or writing the file.
     func testCommittedSchemaIsGenerated() throws {
         let generated = TelemetrySchemaSource.text
         if ProcessInfo.processInfo.environment[Self.writeVariable] == "1" {
@@ -58,16 +56,12 @@ final class TelemetrySchemaFileTests: XCTestCase {
     }
     
     /// The framework bundles the committed schema: a missing or stale resource fails.
-    ///
-    /// - Throws: The error reading the schema.
     func testBundledSchemaIsCommitted() throws {
         XCTAssertEqual(try TelemetrySchema.data(), try Data(contentsOf: Self.schemaFileURL))
     }
     
     /// The schema's `$id`, title and `telemetry_version` constant name the framework's version, and every record must
     /// carry it.
-    ///
-    /// - Throws: The error reading the schema.
     func testVersionAgrees() throws {
         let schema = try committedSchema()
         XCTAssertEqual(schema["$id"] as? String, TelemetrySchema.identifier)
@@ -81,8 +75,6 @@ final class TelemetrySchemaFileTests: XCTestCase {
     
     /// A released version's schema never changes: if `Schema/released-versions.txt` lists the current version, the
     /// file must have the hash it was released with. No version listed is newer than the current one.
-    ///
-    /// - Throws: The error reading the files.
     func testReleasedSchemasAreFrozen() throws {
         let text = (try? String(contentsOf: Self.releasedVersionsURL, encoding: .utf8)) ?? ""
         let hash = try Self.schemaSHA256
@@ -106,10 +98,8 @@ final class TelemetrySchemaFileTests: XCTestCase {
         XCTAssertNoThrow(try TelemetryValidator.bundled(mode: .eslogger))
     }
     
-    /// Every property says whose it is, and every one of Mac Monitor's says what it holds; every object is closed.
+    /// Every property says whose it is, and every one of Mac Monitor's says what it holds. Every object is closed.
     /// Every object is checked, nested in a property of any name (`type` included), an array or an alternative.
-    ///
-    /// - Throws: The error reading the schema.
     func testEveryKeyIsMarkedAndEveryObjectClosed() throws {
         var unmarked: [String] = [], undescribed: [String] = [], open: [String] = []
         let parts = SchemaParts(try committedSchema())
@@ -130,9 +120,7 @@ final class TelemetrySchemaFileTests: XCTestCase {
     }
     
     /// The walk reaches every object's schema, however it's nested: in a property named like a keyword, an array's
-    /// items, an alternative, or a definition; a keyword's value that isn't a schema is never walked.
-    ///
-    /// - Throws: The error parsing the schema.
+    /// items, an alternative, or a definition. A keyword's value that isn't a schema is never walked.
     func testSchemaPartsReachEveryObject() throws {
         let schema = """
             {"properties": {"type": {"type": "object", "properties": {"a": {}}},
@@ -145,8 +133,6 @@ final class TelemetrySchemaFileTests: XCTestCase {
     }
     
     /// The writer's text parses back to the document it wrote, and writing twice gives the same bytes.
-    ///
-    /// - Throws: The error parsing the text.
     func testWriterRoundTrips() throws {
         let document = TelemetrySchemaSource.generate().document
         let text = SchemaJSONWriter.text(document)

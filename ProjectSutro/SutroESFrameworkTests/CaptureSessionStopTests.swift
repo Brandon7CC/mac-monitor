@@ -14,9 +14,7 @@ import EndpointSecurity
 /// Pins how a capture session stops: every client is unsubscribed, then deleted once no event is being built, so
 /// `es_delete_client` never overlaps another call on its client.
 final class CaptureSessionStopTests: XCTestCase {
-    /// Stopping unsubscribes every client and then deletes it, once; stopping again does nothing.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
+    /// Stopping unsubscribes every client and then deletes it, once. Stopping again does nothing.
     func testStopUnsubscribesThenDeletesOnce() throws {
         let factory = FakeEndpointSecurityClientFactory()
         let session = try makeSession(factory: factory)
@@ -30,8 +28,6 @@ final class CaptureSessionStopTests: XCTestCase {
     }
     
     /// Stopping waits for an event being built before it deletes any client, and nothing is emitted once it returns.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testStopWaitsForAnEventBeingBuilt() throws {
         let factory = FakeEndpointSecurityClientFactory()
         let emitted = EmittedEvents()
@@ -46,7 +42,7 @@ final class CaptureSessionStopTests: XCTestCase {
         session.isRecording = true
         session.closeTimeout = .seconds(30)
         let exit = sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 1)
-        let process = factory.clients[0]
+        let process = factory.client(.process)
         DispatchQueue.global().async { process.deliver(exit) }
         XCTAssertEqual(building.wait(timeout: .now() + 5), .success)
         
@@ -66,8 +62,6 @@ final class CaptureSessionStopTests: XCTestCase {
     
     /// An event that outlasts the deadline doesn't hold up stopping: the other clients are deleted at once, the slow
     /// lane's client once its event is done, and that event is dropped rather than emitted after the session stopped.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testStopGivesUpOnASlowEvent() throws {
         let factory = FakeEndpointSecurityClientFactory()
         let emitted = EmittedEvents()
@@ -82,7 +76,7 @@ final class CaptureSessionStopTests: XCTestCase {
         session.isRecording = true
         session.closeTimeout = .milliseconds(100)
         let exit = sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 1)
-        let process = factory.clients[0]
+        let process = factory.client(.process)
         let delivered = DispatchSemaphore(value: 0)
         DispatchQueue.global().async {
             process.deliver(exit)
@@ -102,8 +96,6 @@ final class CaptureSessionStopTests: XCTestCase {
     }
     
     /// A message Endpoint Security still hands over after the session stopped is ignored.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testMessagesAfterStopAreIgnored() throws {
         let factory = FakeEndpointSecurityClientFactory()
         let emitted = EmittedEvents()
@@ -111,7 +103,7 @@ final class CaptureSessionStopTests: XCTestCase {
         let serializer = StubSerializer { _, _ in serialized += 1; return Data() }
         let session = try makeSession(factory: factory, serializer: serializer, emitted: emitted)
         session.isRecording = true
-        let handler = try XCTUnwrap(factory.clients[0].handler)
+        let handler = try XCTUnwrap(factory.client(.process).handler)
         session.stop()
         session.isRecording = true
         handler(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 1).raw)
@@ -120,8 +112,6 @@ final class CaptureSessionStopTests: XCTestCase {
     }
     
     /// After stopping, control calls fail without reaching Endpoint Security.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testControlCallsAfterStopDoNothing() throws {
         let factory = FakeEndpointSecurityClientFactory()
         let session = try makeSession(factory: factory)
@@ -135,8 +125,6 @@ final class CaptureSessionStopTests: XCTestCase {
     }
     
     /// A session released without being stopped still unsubscribes and deletes every client.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testReleasingASessionStopsIt() throws {
         let factory = FakeEndpointSecurityClientFactory()
         var session: CaptureSession? = try makeSession(factory: factory)

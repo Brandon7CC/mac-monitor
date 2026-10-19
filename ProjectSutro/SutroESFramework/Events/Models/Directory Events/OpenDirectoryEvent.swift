@@ -198,7 +198,7 @@ extension KeyedDecodingContainer {
     ///   - key: The value's key, such as `record_type`.
     ///   - nameKey: The name's key, such as `record_type_string`.
     ///   - names: The enum's names.
-    /// - Returns: The value, `nil` when it's missing or names no value; and the name, `nil` when it's missing.
+    /// - Returns: The value, `nil` when it's missing or names no value. And the name, `nil` when it's missing.
     /// - Throws: The error decoding a value that's neither a number nor a string.
     func decodeODEnum(_ key: Key, name nameKey: Key, names: ODEnumNames) throws -> (Int?, String?) {
         if let value = try? decodeIfPresent(Int.self, forKey: key) {

@@ -120,8 +120,6 @@ final class StreamingJSONEncoderStructureTests: XCTestCase {
     
     /// Objects, optionals left out or written, nested values, empty arrays and objects, a dictionary, an enum with
     /// associated values and one without, and arrays of arrays.
-    ///
-    /// - Throws: Either encoder's error.
     func testSynthesizedConformancesMatch() throws {
         try assertSameJSON(Sample())
         try assertSameJSON([Sample(), Sample(missing: "now set", present: nil, nested: [], table: [:])])
@@ -131,8 +129,6 @@ final class StreamingJSONEncoderStructureTests: XCTestCase {
     }
     
     /// Members come out in the order `encode(to:)` encodes them: a synthesized conformance's declaration order.
-    ///
-    /// - Throws: The encoder's error.
     func testMembersKeepTheirEncodingOrder() throws {
         let json = String(decoding: try StreamingJSONEncoder().encode(TwoContainers()), as: UTF8.self)
         XCTAssertEqual(json, #"{"a":1,"b":2}"#)
@@ -140,8 +136,6 @@ final class StreamingJSONEncoderStructureTests: XCTestCase {
     
     /// What can't be streamed is encoded by `JSONEncoder`: a container used again after a later one, and
     /// `superEncoder()`.
-    ///
-    /// - Throws: Either encoder's error.
     func testUnstreamableValuesFallBackToJSONEncoder() throws {
         try assertSameJSON(Interleaved())
         try assertSameJSON(WithSuper())
@@ -152,8 +146,6 @@ final class StreamingJSONEncoderStructureTests: XCTestCase {
     }
     
     /// A value that encodes nothing is refused at the top, as `JSONEncoder` refuses it, and is `{}` inside another.
-    ///
-    /// - Throws: Either encoder's error.
     func testSilentValues() throws {
         XCTAssertThrowsError(try JSONEncoder().encode(Silent()))
         XCTAssertThrowsError(try StreamingJSONEncoder().encode(Silent()))
@@ -162,8 +154,6 @@ final class StreamingJSONEncoderStructureTests: XCTestCase {
     }
     
     /// One encoder encodes value after value, including one far larger than its buffer, each as a new encoder would.
-    ///
-    /// - Throws: Either encoder's error.
     func testEncoderIsReusable() throws {
         let encoder = StreamingJSONEncoder()
         let large = Sample(name: String(repeating: "x/\"", count: 1_000_000))

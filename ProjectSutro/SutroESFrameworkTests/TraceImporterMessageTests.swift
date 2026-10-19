@@ -59,8 +59,6 @@ final class TraceImporterMessageTests: XCTestCase {
     // MARK: eslogger
     
     /// eslogger's Endpoint Security fields are read as written.
-    ///
-    /// - Throws: The error reading the fixture, or decoding an event that should decode.
     func testEsloggerExit() throws {
         let message = try TraceImporter.message(from: try fixture(Self.esloggerExit))
         guard case .exit(let exit) = message.event else { return XCTFail("Expected an exit event: \(message.event)") }
@@ -80,8 +78,6 @@ final class TraceImporterMessageTests: XCTestCase {
     }
     
     /// eslogger's `time` is kept, and `message_darwin_time` is read from it to the nanosecond.
-    ///
-    /// - Throws: The error reading the fixture, or decoding an event that should decode.
     func testEsloggerTimeIsKeptAndRead() throws {
         let message = try TraceImporter.message(from: try fixture(Self.esloggerExit))
         XCTAssertEqual(message.time, "2026-10-04T00:01:55.281215406Z")
@@ -89,8 +85,6 @@ final class TraceImporterMessageTests: XCTestCase {
     }
     
     /// eslogger doesn't write Mac Monitor's fields: they're derived the way the Security Extension derives them.
-    ///
-    /// - Throws: The error reading the fixture, or decoding an event that should decode.
     func testEsloggerEventIsEnriched() throws {
         let message = try TraceImporter.message(from: try fixture(Self.esloggerExit))
         XCTAssertEqual(message.es_event_type, "ES_EVENT_TYPE_NOTIFY_EXIT")
@@ -107,8 +101,6 @@ final class TraceImporterMessageTests: XCTestCase {
     }
     
     /// An event's own file is read, its stat times included, and becomes its context and target path.
-    ///
-    /// - Throws: The error reading the fixture, or decoding an event that should decode.
     func testEsloggerOpen() throws {
         let message = try TraceImporter.message(from: try fixture(Self.esloggerOpen))
         guard case .open(let open) = message.event else { return XCTFail("Expected an open event: \(message.event)") }
@@ -123,8 +115,6 @@ final class TraceImporterMessageTests: XCTestCase {
     }
     
     /// eslogger `--oslog` events read back with `log show --style json` carry the event as their `eventMessage`.
-    ///
-    /// - Throws: The error reading the fixture, or decoding an event that should decode.
     func testUnifiedLogEntry() throws {
         let event = String(decoding: try fixture(Self.esloggerExit), as: UTF8.self)
         let entry = ["timestamp": "2026-10-04 00:01:55.281", "eventMessage": "eslogger: " + event]
@@ -136,8 +126,6 @@ final class TraceImporterMessageTests: XCTestCase {
     // MARK: Security Extension time
     
     /// The Security Extension's own `Message` carries `message_darwin_time` (seconds since 2001), which is used as is.
-    ///
-    /// - Throws: The error reading the fixture, or decoding an event that should decode.
     func testWireDarwinTimeIsUsed() throws {
         var object = try fixtureObject(Self.esloggerExit)
         object["message_darwin_time"] = 812_764_915.25
@@ -147,8 +135,6 @@ final class TraceImporterMessageTests: XCTestCase {
     }
     
     /// A `message_darwin_time` that isn't a time (more than about 3,000 years from 2001) is read from `time` instead.
-    ///
-    /// - Throws: The error reading the fixture, or decoding an event that should decode.
     func testDarwinTimeThatIsNoTimeFallsBackToTime() throws {
         var object = try fixtureObject(Self.esloggerExit)
         object["message_darwin_time"] = 1e12
@@ -159,8 +145,6 @@ final class TraceImporterMessageTests: XCTestCase {
     // MARK: Mac Monitor 2.1
     
     /// A 2.1 export names its event, so its own fields are read as written rather than derived.
-    ///
-    /// - Throws: The error reading the fixture, or decoding an event that should decode.
     func testMacMonitor21KeepsItsOwnFields() throws {
         let message = try TraceImporter.message(from: try fixture(Self.macMonitor21Exit))
         guard case .exit(let exit) = message.event else { return XCTFail("Expected an exit event: \(message.event)") }
@@ -180,8 +164,6 @@ final class TraceImporterMessageTests: XCTestCase {
     
     /// 2.1 wrote local time to the millisecond with a literal `Z`: it's read in this Mac's time zone with the formatter
     /// that wrote it, and `time` is rebuilt in eslogger's format from the result.
-    ///
-    /// - Throws: The error reading the fixture, or decoding an event that should decode.
     func testMacMonitor21TimeIsLocalTime() throws {
         let legacy = "2026-10-03T17:01:57.289Z"
         let written = try XCTUnwrap(ProcessHelpers.timestampFormatter.date(from: legacy))
@@ -216,8 +198,6 @@ final class TraceImporterMessageTests: XCTestCase {
     }
     
     /// An event without a time it can be read from isn't shown.
-    ///
-    /// - Throws: The error reading the fixture, or decoding an event that should decode.
     func testEventWithoutTimeIsIncomplete() throws {
         var object = try fixtureObject(Self.esloggerExit)
         object["time"] = nil

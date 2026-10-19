@@ -26,7 +26,7 @@ final class FileQuarantinedTests: XCTestCase {
     ///
     /// - Parameters:
     ///   - path: Its path.
-    ///   - value: The attribute's value; empty for an attribute with no bytes.
+    ///   - value: The attribute's value. Empty for an attribute with no bytes.
     /// - Throws: The `POSIXError` setting it.
     private func quarantine(_ path: String, value: String = "0083;66ff0000;Safari;") throws {
         let result = value.withCString { setxattr(path, "com.apple.quarantine", $0, strlen($0), 0, 0) }
@@ -36,8 +36,6 @@ final class FileQuarantinedTests: XCTestCase {
     /// Files with and without the attribute, an empty attribute, directories, symbolic links (to a quarantined file,
     /// broken, and in a loop), missing files, a file used as a directory, a directory that can't be searched, and odd
     /// paths all get the answer they got before.
-    ///
-    /// - Throws: The error making the files.
     func testEveryPathShapeAnswersAsBefore() throws {
         let directory = try makeTemporaryDirectory().path
         let manager = FileManager.default

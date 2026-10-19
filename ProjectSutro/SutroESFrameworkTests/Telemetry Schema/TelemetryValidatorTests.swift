@@ -64,8 +64,6 @@ final class TelemetryValidatorTests: XCTestCase {
     // MARK: Types
     
     /// Each type name accepts its own values and no other.
-    ///
-    /// - Throws: The error compiling a schema.
     func testEachTypeName() throws {
         let samples = ["null": "null", "boolean": "false", "integer": "-3", "number": "2.5", "string": "\"s\"",
                        "array": "[1]", "object": "{\"a\": 1}"]
@@ -82,16 +80,12 @@ final class TelemetryValidatorTests: XCTestCase {
     }
     
     /// A Boolean is never an integer, and an integer is never a Boolean.
-    ///
-    /// - Throws: The error compiling a schema.
     func testBooleanIsNeverAnInteger() throws {
         XCTAssertEqual(try issues(of: "true", against: "{\"type\": \"integer\"}"), ["v: expected integer, found true"])
         XCTAssertEqual(try issues(of: "1", against: "{\"type\": \"boolean\"}"), ["v: expected boolean, found 1"])
     }
     
     /// A number without a fraction is an integer, however it's written or however large it is.
-    ///
-    /// - Throws: The error compiling a schema.
     func testIntegersByValue() throws {
         let integer = "{\"type\": \"integer\"}"
         for value in ["1.0", "1e3", "18446744073709551615", "1152921500312603095", "100000000000000000000000000000"] {
@@ -103,8 +97,6 @@ final class TelemetryValidatorTests: XCTestCase {
     // MARK: Values
     
     /// `enum` and `const` compare by value and JSON type: `1` isn't `true`.
-    ///
-    /// - Throws: The error compiling a schema.
     func testEnumAndConstAreTypeAware() throws {
         XCTAssertEqual(try issues(of: "true", against: "{\"enum\": [1, 2]}"),
                        ["v: true isn't one of the schema's values"])
@@ -118,8 +110,6 @@ final class TelemetryValidatorTests: XCTestCase {
     }
     
     /// A pattern is searched for anywhere in the string unless it's anchored, as JSON Schema says.
-    ///
-    /// - Throws: The error compiling a schema.
     func testPatternSearchesUnlessAnchored() throws {
         XCTAssertEqual(try issues(of: "\"abbc\"", against: "{\"pattern\": \"b+\"}"), [])
         let cdhash = "{\"pattern\": \"^[0-9A-F]{40}$\"}", hex = String(repeating: "0A", count: 20)
@@ -130,8 +120,6 @@ final class TelemetryValidatorTests: XCTestCase {
     
     /// `$` matches only at the end of the string, as in ECMA-262, which JSON Schema's patterns follow: never before a
     /// final line break, as ICU's would. A `$` in a character class or escaped is the character.
-    ///
-    /// - Throws: The error compiling a schema.
     func testDollarMatchesOnlyAtTheEnd() throws {
         let cdhash = "{\"pattern\": \"^[0-9A-F]{40}$\"}", hex = String(repeating: "0A", count: 20)
         XCTAssertEqual(try issues(of: "\"\(hex)\\n\"", against: cdhash),
@@ -148,8 +136,6 @@ final class TelemetryValidatorTests: XCTestCase {
     // MARK: Objects and arrays
     
     /// A missing key's path is the key's own, and so is a key the schema doesn't have.
-    ///
-    /// - Throws: The error compiling the schema.
     func testRequiredAndClosedObjects() throws {
         let schema = """
             {"properties": {"a": {"type": "object", "properties": {"b": {"type": "string"}, "c": {"type": "string"}},
@@ -161,8 +147,6 @@ final class TelemetryValidatorTests: XCTestCase {
     }
     
     /// A required key that `properties` doesn't describe must be there too, whatever its value.
-    ///
-    /// - Throws: The error compiling a schema.
     func testRequiredKeysWithoutSchemas() throws {
         XCTAssertEqual(try issues("{}", against: "{\"type\": \"object\", \"required\": [\"a\"]}"), ["a: missing"])
         let described = "{\"properties\": {\"b\": {}}, \"required\": [\"a\", \"b\"]}"
@@ -174,8 +158,6 @@ final class TelemetryValidatorTests: XCTestCase {
     
     /// An element's path carries its index, and keys that aren't identifiers are quoted, as are identifiers longer
     /// than a quoted value, which are cut.
-    ///
-    /// - Throws: The error compiling the schema.
     func testPathsCarryIndexesAndQuotedKeys() throws {
         XCTAssertEqual(try issues(of: "[\"a\", \"b\", 3]", against: "{\"items\": {\"type\": \"string\"}}"),
                        ["v[2]: expected string, found 3"])
@@ -188,8 +170,6 @@ final class TelemetryValidatorTests: XCTestCase {
     }
     
     /// The event dispatcher holds exactly one event, and an event Mac Monitor doesn't record is named as such.
-    ///
-    /// - Throws: The error compiling the schema.
     func testEventDispatcher() throws {
         let schema = """
             {"properties": {"event": {"$ref": "#/$defs/event"}}, "$defs": {"event": {"type": "object",
@@ -213,10 +193,8 @@ final class TelemetryValidatorTests: XCTestCase {
     
     // MARK: Alternatives and references
     
-    /// A nullable object accepts `null`; a broken object reports what's wrong inside it; a value of neither type
+    /// A nullable object accepts `null`. A broken object reports what's wrong inside it. A value of neither type
     /// lists the types allowed.
-    ///
-    /// - Throws: The error compiling the schema.
     func testAnyOf() throws {
         let schema = """
             {"properties": {"v": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/thing"}]}},
@@ -230,8 +208,6 @@ final class TelemetryValidatorTests: XCTestCase {
     
     /// References resolve, a reference to nothing or a loop of references fails to load, and a schema that recurses
     /// into its value checks every level.
-    ///
-    /// - Throws: The error compiling a schema.
     func testReferences() throws {
         XCTAssertEqual(loadError("{\"properties\": {\"v\": {\"$ref\": \"#/$defs/nope\"}}}"),
                        .unresolvedReference("#/$defs/nope", at: "#/properties/v"))
@@ -286,8 +262,6 @@ final class TelemetryValidatorTests: XCTestCase {
     }
     
     /// Annotations and `x-` keywords load, and don't constrain anything.
-    ///
-    /// - Throws: The error compiling the schema.
     func testAnnotationsAreAccepted() throws {
         let schema = """
             {"$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "urn:example", "title": "t",
@@ -300,8 +274,6 @@ final class TelemetryValidatorTests: XCTestCase {
     // MARK: eslogger mode
     
     /// In eslogger mode Mac Monitor's keys aren't required, and one that's present is an issue.
-    ///
-    /// - Throws: The error compiling the schema.
     func testESLoggerMode() throws {
         let schema = """
             {"properties": {"a": {"type": "integer", "x-mac-monitor-origin": "eslogger"},

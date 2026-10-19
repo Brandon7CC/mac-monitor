@@ -184,8 +184,6 @@ final class SavedMuteSetTests: XCTestCase {
     }
     
     /// A request that changes nothing writes nothing.
-    ///
-    /// - Throws: If the file's attributes can't be read.
     func testAnUnchangedSetWritesNothing() throws {
         follow()
         let attributes = { try FileManager.default.attributesOfItem(atPath: self.store.fileURL.path) }
@@ -213,8 +211,6 @@ final class SavedMuteSetTests: XCTestCase {
     
     /// A file from a newer Mac Monitor is kept: the default set applies, changes are refused, and Reset overwrites
     /// it with Mac Monitor's default set.
-    ///
-    /// - Throws: If the file can't be written.
     func testANewerFileIsReadOnlyUntilReset() throws {
         let newer = #"{"version": 2, "mutes": []}"#
         try writeSavedFile(newer, in: store)
@@ -233,8 +229,6 @@ final class SavedMuteSetTests: XCTestCase {
     }
     
     /// A damaged file is moved aside, the default set restored and saved, and the notice stays until the next change.
-    ///
-    /// - Throws: If the file can't be written.
     func testADamagedFileIsRecoveredWithANotice() throws {
         try writeSavedFile("nope", in: store)
         XCTAssertEqual(follow(), .testDefault)

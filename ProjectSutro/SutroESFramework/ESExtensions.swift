@@ -45,7 +45,7 @@ func cdhashToString(cdhash: es_cdhash_t) -> String {
 // MARK: - eslogger format
 /// The rules Mac Monitor's exports and CLI follow so that every field `eslogger(1)` writes has eslogger's key path and value.
 ///
-/// Mac Monitor's JSON is eslogger's JSON plus Mac Monitor's own fields. `eslogger` has no published schema; these rules were
+/// Mac Monitor's JSON is eslogger's JSON plus Mac Monitor's own fields. `eslogger` has no published schema. These rules were
 /// verified against its output on macOS 27.0 (26A5353q):
 /// * `time` is UTC with nine fractional digits (``time(_:)``).
 /// * Hashes are uppercase hex (``hex(_:)``).
@@ -61,8 +61,8 @@ enum ESLogger {
     
     /// The shape of an eslogger `time`, for example `2026-10-04T00:01:54.394127173Z`: `0` stands for any digit.
     private static let timeTemplate = Array("0000-00-00T00:00:00.000000000Z".utf8)
-    /// The seconds from 1970 to 2001 (a `Date`'s reference date), in microseconds.
-    private static let referenceDateMicroseconds: Int64 = 978_307_200 * 1_000_000
+    /// The time from 1970 to 2001 (a `Date`'s reference date), in microseconds.
+    private static let referenceDateMicroseconds = Int64(Date.timeIntervalBetween1970AndReferenceDate) * 1_000_000
     /// Hex digits in ASCII: uppercase, then lowercase.
     private static let hexDigits = Array("0123456789ABCDEF0123456789abcdef".utf8)
     
@@ -76,7 +76,7 @@ enum ESLogger {
     
     /// Bytes in hex, two digits per byte, from a lookup table.
     ///
-    /// Not `String(format: "%02X")` per byte, which parses the format and makes a `CFString` for every byte: that took
+    /// Not `String(format: "%02X")` per byte, which parses the format and makes a `CFString` for every byte. That took
     /// ~9 µs for a code directory hash, most of the cost of modeling a process.
     ///
     /// - Parameters:
@@ -218,13 +218,13 @@ enum ESLogger {
     /// When an event happened, from its `time` as eslogger or any version of Mac Monitor wrote it.
     ///
     /// eslogger's `time` (and Mac Monitor's since 3.0.0) is UTC to the nanosecond, and is read exactly. Up to 2.1.0 Mac
-    /// Monitor wrote the recording Mac's local time to the millisecond with a literal `Z`; that's read in this Mac's time
+    /// Monitor wrote the recording Mac's local time to the millisecond with a literal `Z`. That's read in this Mac's time
     /// zone with the formatter that wrote it, so it's exact to the millisecond when both Macs share a time zone.
     ///
     /// - Parameters:
     ///   - time: An event's `time`.
     ///   - legacy: Could the event come from Mac Monitor 2.1.0 or older (it's Mac Monitor's, not eslogger's)? Only then
-    ///     is a `time` of that shape local time; anywhere else it's UTC.
+    ///     is a `time` of that shape local time. Anywhere else it's UTC.
     /// - Returns: The time, or `nil` if `time` isn't one.
     static func date(fromTime time: String, legacy: Bool) -> Date? {
         if legacy, matches(time, legacyTimeTemplate) { return legacyFormatter.date(from: time) }

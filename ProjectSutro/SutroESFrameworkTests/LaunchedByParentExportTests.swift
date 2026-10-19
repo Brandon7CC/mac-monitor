@@ -56,8 +56,6 @@ final class LaunchedByParentExportTests: XCTestCase {
     }
     
     /// An exec's and a fork's launched-by parents are exported beside eslogger's fields, as their own JSON.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export lacks one.
     func testExportsTheLaunchedByParent() throws {
         var exec = try importRecord(try execRecord())
         exec.setLaunchedByParent(shellAnswer)
@@ -74,8 +72,6 @@ final class LaunchedByParentExportTests: XCTestCase {
     }
     
     /// Every key path and value eslogger wrote is still in the export.
-    ///
-    /// - Throws: The error reading a record.
     func testEsloggerFieldsAreUnchanged() throws {
         for (record, name) in [(try execRecord(), "exec"), (try forkRecord(), "fork")] {
             var message = try importRecord(record)
@@ -86,8 +82,6 @@ final class LaunchedByParentExportTests: XCTestCase {
     }
     
     /// The stored exec and fork keep their launched-by parent, and can be given another or none.
-    ///
-    /// - Throws: The error reading a record.
     func testStoredLaunchedByParent() throws {
         var exec = try importRecord(try execRecord())
         exec.setLaunchedByParent(shellAnswer)
@@ -125,8 +119,6 @@ final class LaunchedByParentExportTests: XCTestCase {
     }
     
     /// An exec or fork without a launched-by parent exports `"launched_by_parent": null`: the key is always there.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export lacks the key.
     func testWithoutOneExportsNull() throws {
         for (record, name) in [(try execRecord(), "exec"), (try forkRecord(), "fork")] {
             let message = try importRecord(record)

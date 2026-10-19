@@ -49,8 +49,6 @@ final class FileCreateQuarantineTests: XCTestCase {
     }
     
     /// A new path's quarantine is read from the created file itself.
-    ///
-    /// - Throws: The error making the files.
     func testNewPath() throws {
         let directory = try makeTemporaryDirectory()
         try makeFile("Download.zip", in: directory, quarantined: true)
@@ -61,8 +59,6 @@ final class FileCreateQuarantineTests: XCTestCase {
     }
     
     /// An existing file's quarantine is read from its path, as before.
-    ///
-    /// - Throws: The error making the file.
     func testExistingFile() throws {
         let directory = try makeTemporaryDirectory()
         try makeFile("Download.zip", in: directory, quarantined: true)

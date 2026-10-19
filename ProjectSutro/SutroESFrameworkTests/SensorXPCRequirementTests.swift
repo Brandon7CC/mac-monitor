@@ -79,8 +79,6 @@ final class SensorXPCRequirementTests: XCTestCase {
     /// Evaluated against signed code, the listener's requirement admits a program signed as Mac Monitor or as
     /// `macmonitor`, and nothing else: not one signed as the Security Extension, and not an Apple tool. Ad-hoc copies
     /// stand in for a Community build's programs, which only the Community variant admits.
-    ///
-    /// - Throws: If a copy can't be made.
     func testTheListenerAdmitsMacMonitorAndTheCommandLineToolOnly() throws {
         let copies = try identifiers.map { try adHocCopy(signedAs: $0) }
         let community = SensorXPC.either(SensorXPC.communityRequirement(for: identifiers[0]),

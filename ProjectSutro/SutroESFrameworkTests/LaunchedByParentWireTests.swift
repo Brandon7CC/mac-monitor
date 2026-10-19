@@ -78,8 +78,6 @@ final class LaunchedByParentWireTests: XCTestCase {
     }
     
     /// From a 3.0 Security Extension to a 3.0 app: the launched-by parent arrives as stamped, on a fork and on an exec.
-    ///
-    /// - Throws: An `XCTest` failure, or an encoder's or decoder's error.
     func testFromThisVersion() throws {
         let fork = try received(try sentFork())
         XCTAssertEqual(fork.createdLaunchedByParent, shellAnswer(by: .securityExtension))
@@ -92,8 +90,6 @@ final class LaunchedByParentWireTests: XCTestCase {
     }
     
     /// From an older Security Extension: no launched-by parent, which the app then resolves itself.
-    ///
-    /// - Throws: An `XCTest` failure, or the decoder's error.
     func testFromAnOlderSecurityExtension() throws {
         var fork = try received(try replacingLaunchedByParent(in: try sentFork(), with: nil))
         XCTAssertNil(fork.createdLaunchedByParent)
@@ -105,8 +101,6 @@ final class LaunchedByParentWireTests: XCTestCase {
     }
     
     /// To an older app: the only change is the added `event.fork._0.launched_by_parent`, which its decoder ignores.
-    ///
-    /// - Throws: An `XCTest` failure, or an encoder's or decoder's error.
     func testToAnOlderApp() throws {
         let stamped = try received(try sentFork())
         var unstamped = stamped
@@ -124,8 +118,6 @@ final class LaunchedByParentWireTests: XCTestCase {
     
     /// A launched-by parent from a newer writer, with a source or resolver this version doesn't know, reads as none,
     /// and the event still reads, from the Security Extension and from a trace.
-    ///
-    /// - Throws: An `XCTest` failure, or a decoder's error.
     func testUnknownValuesReadAsNone() throws {
         let sent = try sentFork()
         let fork = try XCTUnwrap(try event("fork", in: sent)["_0"] as? [String: Any])
@@ -140,8 +132,6 @@ final class LaunchedByParentWireTests: XCTestCase {
     }
     
     /// A launched-by parent of the wrong JSON type reads as none rather than costing the event.
-    ///
-    /// - Throws: An `XCTest` failure, or a decoder's error.
     func testWrongTypeReadsAsNone() throws {
         let sent = try sentFork()
         for value: Any in ["unix_parent", 42, [Any](), NSNull()] {

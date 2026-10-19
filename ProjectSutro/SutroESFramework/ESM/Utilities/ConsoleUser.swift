@@ -79,7 +79,7 @@ public struct ConsoleUserSource: Sendable {
     /// - Returns: `pw_dir`, or `nil` if there's no such user or the lookup fails.
     static func homeFolder(of uid: uid_t) -> String? {
         var size = max(sysconf(_SC_GETPW_R_SIZE_MAX), 4_096)
-        /// `getpwuid_r` asks for a larger buffer with `ERANGE`; a record never needs more than 1 MiB.
+        /// `getpwuid_r` asks for a larger buffer with `ERANGE`. A record never needs more than 1 MiB.
         while size <= 1 << 20 {
             var entry = passwd(), found: UnsafeMutablePointer<passwd>?
             var buffer = [CChar](repeating: 0, count: size)

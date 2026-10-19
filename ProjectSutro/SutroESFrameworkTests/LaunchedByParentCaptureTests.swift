@@ -58,8 +58,6 @@ final class LaunchedByParentCaptureTests: XCTestCase {
     }
     
     /// A fork's child is stamped with its Unix parent, the forking process, named by its executable: no path is read.
-    ///
-    /// - Throws: An `XCTest` failure if the event has no launched-by parent, or the error parsing it.
     func testSerializerStampsFork() throws {
         let object = try serialize(shellFork(), with: MessageSerializer(processPath: noPaths()))
         let fork = try XCTUnwrap(try event("fork", in: object)["_0"] as? [String: Any])
@@ -76,8 +74,6 @@ final class LaunchedByParentCaptureTests: XCTestCase {
     
     /// A lane names a launched-by parent from the processes its execs and forks named before, and reads the path of one
     /// it hasn't seen only once.
-    ///
-    /// - Throws: An `XCTest` failure if an event wasn't serialized or has no launched-by parent.
     func testLaneRemembersProcessPaths() throws {
         var reads: [Int32] = []
         let serializer = MessageSerializer(processPath: { pid, _ in
@@ -111,8 +107,6 @@ final class LaunchedByParentCaptureTests: XCTestCase {
     }
     
     /// Events that create no process carry no launched-by parent at all.
-    ///
-    /// - Throws: An `XCTest` failure if an event wasn't serialized.
     func testOtherEventsHaveNone() throws {
         let exit = rawMessage(type: ES_EVENT_TYPE_NOTIFY_EXIT)
         let open = rawMessage(type: ES_EVENT_TYPE_NOTIFY_OPEN)
@@ -125,8 +119,6 @@ final class LaunchedByParentCaptureTests: XCTestCase {
     }
     
     /// Through a capture session, the process client's fork reaches `emit` stamped.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start, or the error decoding the event.
     func testThroughASession() throws {
         let factory = FakeEndpointSecurityClientFactory()
         let emitted = EmittedEvents()
@@ -134,15 +126,13 @@ final class LaunchedByParentCaptureTests: XCTestCase {
                                          serializer: MessageSerializer(processPath: noPaths()),
                                          sensorID: { "SENSOR" }, emit: emitted.append)
         session.isRecording = true
-        factory.clients[0].deliver(shellFork())
+        factory.client(.process).deliver(shellFork())
         let event = try XCTUnwrap(emitted.all.first)
         XCTAssertEqual(event.eventClass, .process)
         XCTAssertEqual(try JSONDecoder().decode(Message.self, from: event.json).createdLaunchedByParent, shellAnswer)
     }
     
     /// A message with a launched-by parent, named or not, streams exactly as `JSONEncoder` writes it.
-    ///
-    /// - Throws: The error reading the exec record, or an encoder's error.
     func testStreamsLikeJSONEncoder() throws {
         let unnamed = LaunchedByParent(source: .launchServices, audit_token: nil, path: nil, resolved_by: .app)
         let job = LaunchedByParent(source: .launchdJob, audit_token: .fixture(pid: 1, pidversion: 1),
@@ -167,8 +157,6 @@ final class LaunchedByParentCaptureTests: XCTestCase {
     
     /// An exec (read from eslogger's JSON: a test can't build one from a raw message) gets its answer from the same
     /// resolution, and keeps the answer it has.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if it isn't an exec.
     func testExecIsResolvedOnce() throws {
         var exec = try importRecord(try esloggerExec(parent: (401, 4010), env: ["XPC_SERVICE_NAME=com.example.agent"]))
         XCTAssertNil(exec.createdLaunchedByParent, "eslogger's exec carries none")
@@ -188,8 +176,6 @@ final class LaunchedByParentCaptureTests: XCTestCase {
     
     /// A direct launchd child names its job only when launchd's `xpcproxy` exec'd it: a job's program that execs
     /// again, or a copy of `xpcproxy` that isn't a platform binary, set the label themselves.
-    ///
-    /// - Throws: The error reading the record.
     func testOnlyXPCProxyNamesAJob() throws {
         let record = try esloggerExec(parent: (1, 1), env: ["XPC_SERVICE_NAME=com.example.agent"])
         let execs = [(try execedByXPCProxy(record), true), (record, false),

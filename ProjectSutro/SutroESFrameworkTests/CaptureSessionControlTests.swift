@@ -22,14 +22,6 @@ final class CaptureSessionControlTests: XCTestCase {
         factory = FakeEndpointSecurityClientFactory()
     }
     
-    /// Each fake client by its class.
-    ///
-    /// - Parameter eventClass: A class.
-    /// - Returns: Its client.
-    private func client(_ eventClass: EventClass) -> FakeEndpointSecurityClient {
-        factory.clients[EventClass.allCases.firstIndex(of: eventClass) ?? 0]
-    }
-    
     /// Calls made after the session started.
     ///
     /// - Parameters:
@@ -41,22 +33,19 @@ final class CaptureSessionControlTests: XCTestCase {
     }
     
     /// A runtime (un)subscription reaches only the client of the event's class.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testSubscriptionGoesToItsClassClient() throws {
         let session = try makeSession(factory: factory)
-        let started = factory.clients.map(\.calls.count)
+        let process = factory.client(.process), file = factory.client(.file), memory = factory.client(.memory)
+        let processStart = process.calls.count, fileStart = file.calls.count, memoryStart = memory.calls.count
         XCTAssertTrue(session.setSubscription(ES_EVENT_TYPE_NOTIFY_OPEN, enabled: true))
         XCTAssertTrue(session.setSubscription(ES_EVENT_TYPE_NOTIFY_EXEC, enabled: false))
         XCTAssertTrue(session.setSubscription(ES_EVENT_TYPE_NOTIFY_MPROTECT, enabled: true))
-        XCTAssertEqual(callsSince(started[0], on: client(.process)), [.unsubscribe([ES_EVENT_TYPE_NOTIFY_EXEC])])
-        XCTAssertEqual(callsSince(started[1], on: client(.file)), [.subscribe([ES_EVENT_TYPE_NOTIFY_OPEN])])
-        XCTAssertEqual(callsSince(started[2], on: client(.memory)), [.subscribe([ES_EVENT_TYPE_NOTIFY_MPROTECT])])
+        XCTAssertEqual(callsSince(processStart, on: process), [.unsubscribe([ES_EVENT_TYPE_NOTIFY_EXEC])])
+        XCTAssertEqual(callsSince(fileStart, on: file), [.subscribe([ES_EVENT_TYPE_NOTIFY_OPEN])])
+        XCTAssertEqual(callsSince(memoryStart, on: memory), [.subscribe([ES_EVENT_TYPE_NOTIFY_MPROTECT])])
     }
     
     /// Subscribing adds an event once, unsubscribing removes it, and a refused request changes nothing.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testSubscriptionBookkeeping() throws {
         var configuration = CaptureConfiguration(label: "Test")
         configuration.events = [ES_EVENT_TYPE_NOTIFY_EXEC, ES_EVENT_TYPE_NOTIFY_FORK]
@@ -67,16 +56,14 @@ final class CaptureSessionControlTests: XCTestCase {
         XCTAssertTrue(session.setSubscription(ES_EVENT_TYPE_NOTIFY_EXEC, enabled: false))
         XCTAssertEqual(session.subscribedEvents, [ES_EVENT_TYPE_NOTIFY_FORK, ES_EVENT_TYPE_NOTIFY_OPEN])
         
-        client(.file).setRefusing(.subscribe, true)
+        factory.client(.file).setRefusing(.subscribe, true)
         XCTAssertFalse(session.setSubscription(ES_EVENT_TYPE_NOTIFY_CLOSE, enabled: true))
-        client(.process).setRefusing(.unsubscribe, true)
+        factory.client(.process).setRefusing(.unsubscribe, true)
         XCTAssertFalse(session.setSubscription(ES_EVENT_TYPE_NOTIFY_FORK, enabled: false))
         XCTAssertEqual(session.subscribedEvents, [ES_EVENT_TYPE_NOTIFY_FORK, ES_EVENT_TYPE_NOTIFY_OPEN])
     }
     
     /// Events Mac Monitor doesn't model are refused without a call to Endpoint Security.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testUnmodeledSubscriptionsAreRefused() throws {
         let session = try makeSession(factory: factory)
         let started = factory.clients.map(\.calls.count)
@@ -89,8 +76,6 @@ final class CaptureSessionControlTests: XCTestCase {
     
     /// Applying a list sends every client only what changed since the last one: new events muted first, then old
     /// ones unmuted, key by key in canonical order.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testApplyMutesSendsOnlyTheDifference() throws {
         let session = try makeSession(factory: factory)
         let open = ES_EVENT_TYPE_NOTIFY_OPEN, close = ES_EVENT_TYPE_NOTIFY_CLOSE
@@ -116,12 +101,10 @@ final class CaptureSessionControlTests: XCTestCase {
     
     /// One client's refusal is reported, the others still take the change, and the session counts the list as
     /// applied, so the same list again sends nothing.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testApplyMutesReportsAPartialRefusal() throws {
         let session = try makeSession(factory: factory)
         let started = factory.clients.map(\.calls.count)
-        client(.memory).setRefusing(.setPathMute, true)
+        factory.client(.memory).setRefusing(.setPathMute, true)
         let mute = PathMute(path: "/tmp/x", type: ES_MUTE_PATH_TYPE_LITERAL)
         XCTAssertFalse(session.applyMutes(MuteList([mute])))
         XCTAssertTrue(session.applyMutes(MuteList([mute])))
@@ -131,8 +114,6 @@ final class CaptureSessionControlTests: XCTestCase {
     }
     
     /// Applying Mac Monitor's default set to a session without mutes mutes each of its events on every client.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testApplyingTheDefaultSetGoesToEveryClient() throws {
         let session = try makeSession(factory: factory)
         let started = factory.clients.map(\.calls.count)
@@ -146,8 +127,6 @@ final class CaptureSessionControlTests: XCTestCase {
     }
     
     /// The muted paths are the union of what the clients list.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testMutedPathsAreTheUnionOfTheClients() throws {
         let shared = ESMutedPath(type: "ES_MUTE_PATH_TYPE_PREFIX", events: [], path: "/shared")
         let fileOnly = ESMutedPath(type: "ES_MUTE_PATH_TYPE_LITERAL", events: ["ES_EVENT_TYPE_NOTIFY_OPEN"],
@@ -159,8 +138,6 @@ final class CaptureSessionControlTests: XCTestCase {
     
     /// Events are serialized only while recording, each tagged with its lane's class and stamped with the current
     /// Sensor ID.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testRecordingGateAndSensorID() throws {
         let emitted = EmittedEvents()
         var sensorIDs = ["S1", "S2"].makeIterator()
@@ -171,11 +148,11 @@ final class CaptureSessionControlTests: XCTestCase {
         let open = sequencedMessage(ES_EVENT_TYPE_NOTIFY_OPEN, global: 1)
         
         session.isRecording = true
-        client(.process).deliver(exit)
+        factory.client(.process).deliver(exit)
         session.refreshSensorID()
-        client(.file).deliver(open)
+        factory.client(.file).deliver(open)
         session.isRecording = false
-        client(.process).deliver(exit)
+        factory.client(.process).deliver(exit)
         
         let events = emitted.all
         XCTAssertEqual(events.map(\.eventClass), [.process, .file])
@@ -184,8 +161,6 @@ final class CaptureSessionControlTests: XCTestCase {
     
     /// Turning recording off and on and changing the Sensor ID don't wait for an event being built, which still goes
     /// out with the Sensor ID it started with.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testControlNeverWaitsForAnEventBeingBuilt() throws {
         let emitted = EmittedEvents()
         let building = DispatchSemaphore(value: 0)
@@ -200,7 +175,7 @@ final class CaptureSessionControlTests: XCTestCase {
                                       emitted: emitted)
         session.isRecording = true
         let exit = sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 1)
-        let process = client(.process)
+        let process = factory.client(.process)
         let delivered = DispatchSemaphore(value: 0)
         DispatchQueue.global().async {
             process.deliver(exit)
@@ -222,8 +197,6 @@ final class CaptureSessionControlTests: XCTestCase {
     }
     
     /// Delivered from three threads at once, each class's events leave its lane in its client's order.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testLanesKeepTheirOrderUnderConcurrentDelivery() throws {
         let emitted = EmittedEvents()
         let session = try makeSession(factory: factory, emitted: emitted)
@@ -243,8 +216,6 @@ final class CaptureSessionControlTests: XCTestCase {
     }
     
     /// An event that can't be serialized is skipped, and the next one still goes out.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testUnserializableEventsAreSkipped() throws {
         let emitted = EmittedEvents()
         let serializer = StubSerializer { message, _ in
@@ -252,8 +223,8 @@ final class CaptureSessionControlTests: XCTestCase {
         }
         let session = try makeSession(factory: factory, serializer: serializer, emitted: emitted)
         session.isRecording = true
-        client(.process).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 1))
-        client(.process).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 2))
+        factory.client(.process).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 1))
+        factory.client(.process).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 2))
         XCTAssertEqual(emitted.globalSequences(of: .process), [2])
     }
 }

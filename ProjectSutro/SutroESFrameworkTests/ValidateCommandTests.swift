@@ -70,8 +70,6 @@ final class ValidateCommandTests: XCTestCase {
     
     /// Mac Monitor's exports of the fixtures are valid, as JSON Lines and as pretty records: exit 0, and a report of
     /// one line named by the path as typed.
-    ///
-    /// - Throws: The error reading a fixture or writing a trace.
     func testAValidExportExits0() throws {
         let records = try exportedRecords(), version = TelemetrySchema.version
         for pretty in [false, true] {
@@ -86,8 +84,6 @@ final class ValidateCommandTests: XCTestCase {
     
     /// A record with a value of the wrong type makes the trace invalid: exit 65, and the report names the line the
     /// record starts on, the path of the value, and what's wrong with it.
-    ///
-    /// - Throws: The error reading a fixture or writing the trace.
     func testAnInvalidRecordExits65() throws {
         var records = try exportedRecords()
         var process = try XCTUnwrap(records[1]["process"] as? [String: Any])
@@ -111,8 +107,6 @@ final class ValidateCommandTests: XCTestCase {
     }
     
     /// A record cut short is malformed, on the line it starts: exit 65.
-    ///
-    /// - Throws: The error reading a fixture or writing the trace.
     func testAMalformedLineExits65() throws {
         let lines = try fixtureExports().prefix(3).map(\.json)
         let path = try temporaryFile(containing: [lines[0], String(lines[1].prefix(40)), lines[2]]
@@ -126,8 +120,6 @@ final class ValidateCommandTests: XCTestCase {
     
     /// A trace with no records (an empty file, blank lines, or an empty array) isn't valid: exit 65, so an export
     /// that came out empty fails a check.
-    ///
-    /// - Throws: The error writing a trace.
     func testATraceWithNoRecordsExits65() throws {
         for contents in ["", "\n \n", "[]"] {
             let path = try temporaryFile(containing: contents, named: "empty.jsonl").path
@@ -139,10 +131,8 @@ final class ValidateCommandTests: XCTestCase {
         }
     }
     
-    /// eslogger's own JSON isn't Mac Monitor's, and the hint names `--eslogger`; with it, only eslogger's keys are
+    /// eslogger's own JSON isn't Mac Monitor's, and the hint names `--eslogger`. With it, only eslogger's keys are
     /// checked, and the trace is valid.
-    ///
-    /// - Throws: An `XCTest` failure if the fixture is missing.
     func testESLoggerJSONWithAndWithoutTheOption() throws {
         let path = try fixtureURL("eslogger-od.jsonl").path, version = TelemetrySchema.version
         let full = try validate(path)
@@ -164,8 +154,6 @@ final class ValidateCommandTests: XCTestCase {
     
     /// A folder, a pipe, a device, standard input, a missing file, an unreadable one and an empty path (which names no
     /// file, not the current folder) exit 66, saying why, and write nothing to standard output. None of them blocks.
-    ///
-    /// - Throws: The error making the files.
     func testTracesThatCantBeReadExit66() throws {
         let folder = try makeTemporaryDirectory()
         let fifo = folder.appendingPathComponent("fifo").path
@@ -196,8 +184,6 @@ final class ValidateCommandTests: XCTestCase {
     
     /// A check that's cancelled stops before its next record and still writes the report so far, which says so: it
     /// has no exit status of its own, as `macmonitor` exits by the signal that stopped it.
-    ///
-    /// - Throws: The error reading a fixture or writing the trace.
     func testACancelledCheckStops() throws {
         let path = try trace(try exportedRecords())
         var asked = 0
@@ -213,8 +199,6 @@ final class ValidateCommandTests: XCTestCase {
     
     /// A closed pipe (`| head -1`) doesn't change the verdict: 0 for a valid trace, 65 for an invalid one. Any other
     /// write error exits 74. A schema that can't be read exits 70.
-    ///
-    /// - Throws: The error reading a fixture or writing a trace.
     func testOutputAndSchemaFailures() throws {
         let valid = try trace(try exportedRecords()), invalid = try fixtureURL("eslogger-exit.jsonl").path
         for (path, outcome) in [(valid, ValidateCommand.Outcome.valid), (invalid, .invalid)] {
@@ -237,8 +221,6 @@ final class ValidateCommandTests: XCTestCase {
     /// What a trace says is anyone's text, and so is its name: a telemetry version, an event's name or a file name
     /// that would drive a terminal is escaped in the report, and a newline in one can't start a line of its own, such
     /// as a forged summary.
-    ///
-    /// - Throws: The error reading a fixture or writing the trace.
     func testTheReportIsSafeForATerminal() throws {
         var records = try exportedRecords()
         let forged = "\nforged.jsonl: 1 record, all valid (Mac Monitor telemetry \(TelemetrySchema.version))."
@@ -264,8 +246,6 @@ final class ValidateCommandTests: XCTestCase {
     
     /// Text a trace chooses is cut before the report keeps it: a megabyte telemetry version, event name (an
     /// identifier or not) and key give a report of a few lines, not megabytes.
-    ///
-    /// - Throws: The error reading a fixture or writing the trace.
     func testLongTraceTextIsCut() throws {
         var records = try exportedRecords()
         let long = String(repeating: "a", count: 1 << 20)

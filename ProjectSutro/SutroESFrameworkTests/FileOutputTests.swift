@@ -25,8 +25,6 @@ final class FileOutputTests: XCTestCase {
     }
     
     /// More than a pipe holds at once is written whole, while a reader drains it.
-    ///
-    /// - Throws: An `XCTest` failure or the write's error.
     func testWritesEverything() throws {
         let (reader, writer) = try makePipe()
         defer { close(reader) }
@@ -46,9 +44,7 @@ final class FileOutputTests: XCTestCase {
         XCTAssertEqual(read, data)
     }
     
-    /// A reader that went away is a closed pipe, not a failure; a bad descriptor fails with its `errno`.
-    ///
-    /// - Throws: An `XCTest` failure.
+    /// A reader that went away is a closed pipe, not a failure. A bad descriptor fails with its `errno`.
     func testClosedAndFailed() throws {
         let (reader, writer) = try makePipe()
         close(reader)

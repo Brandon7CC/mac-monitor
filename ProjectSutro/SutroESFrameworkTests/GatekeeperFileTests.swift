@@ -29,8 +29,6 @@ final class GatekeeperFileTests: XCTestCase {
     }
     
     /// eslogger's path arm is read as the path and exported under `file`, as eslogger writes it.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no such event.
     func testPathArm() throws {
         let (export, gatekeeper) = try exported(["file_type": 0, "file": Self.path, "sha256": NSNull(),
                                                  "signing_info": NSNull()])
@@ -43,8 +41,6 @@ final class GatekeeperFileTests: XCTestCase {
     }
     
     /// The file arm is an `es_file_t` object under `file`, with no `file_path`.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no such event.
     func testFileArm() throws {
         let executable = Self.path + "/Contents/MacOS/Example"
         let (_, gatekeeper) = try exported(["file_type": 1, "sha256": NSNull(), "signing_info": NSNull(),
@@ -54,8 +50,6 @@ final class GatekeeperFileTests: XCTestCase {
     }
     
     /// A path arm whose path is `NULL` is `null` under `file`, as eslogger writes it.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no such event.
     func testNullPathArm() throws {
         let (_, gatekeeper) = try exported(["file_type": 0, "file": NSNull(), "sha256": NSNull(),
                                             "signing_info": NSNull()])
@@ -64,8 +58,6 @@ final class GatekeeperFileTests: XCTestCase {
     }
     
     /// A `file_type` that names neither arm exports no `file`: eslogger has no value to match.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no such event.
     func testUnknownFileType() throws {
         let (_, gatekeeper) = try exported(["file_type": 7, "file": [:], "sha256": NSNull(), "signing_info": NSNull()])
         XCTAssertNil(gatekeeper["file"])
@@ -73,8 +65,6 @@ final class GatekeeperFileTests: XCTestCase {
     }
     
     /// Mac Monitor 2.1 wrote the path arm as `file_path` beside the union: it's read and exported under `file` too.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no such event.
     func testMacMonitor21PathArm() throws {
         let record = try legacyRecord("gatekeeper_user_override", type: ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE, [
             "file_type": 0, "file_path": Self.path, "sha256": "NULL",
@@ -86,8 +76,6 @@ final class GatekeeperFileTests: XCTestCase {
     }
     
     /// The Security Extension's path arm exports the same way.
-    ///
-    /// - Throws: An `XCTest` failure if the export has no Gatekeeper event.
     func testCapturedPathArm() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE)
         let override = fixture.allocate(es_event_gatekeeper_user_override_t.self)

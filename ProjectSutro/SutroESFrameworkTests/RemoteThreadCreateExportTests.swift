@@ -32,8 +32,6 @@ final class RemoteThreadCreateExportTests: XCTestCase {
     // MARK: eslogger parity
     
     /// Each eslogger record, opened and exported, has every value eslogger wrote, at eslogger's key path.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if its export isn't a JSON object.
     func testImportedRecordsMatchESLogger() throws {
         let records = try fixtureRecords(Self.esloggerFixture)
         XCTAssertEqual(records.count, 2)
@@ -44,18 +42,14 @@ final class RemoteThreadCreateExportTests: XCTestCase {
     }
     
     /// Each eslogger record, captured from Endpoint Security's structs and exported, has every value eslogger wrote.
-    ///
-    /// - Throws: An `XCTest` failure if an export isn't a JSON object.
     func testCapturedRecordsMatchESLogger() throws {
         for (index, record) in try fixtureRecords(Self.esloggerFixture).enumerated() {
             assertContains(record, try export(capture(record)), ignoring: Self.esloggerSequenceNumbers, "\(index)")
         }
     }
     
-    /// `thread_create_running`: eslogger's `{flavor, state: null}`, then Mac Monitor's `state_base64` (`null`, as
-    /// eslogger records no bytes) and the flavor's name.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no such event.
+    /// `thread_create_running` exports eslogger's `{flavor, state: null}`, then Mac Monitor's `state_base64` (`null`,
+    /// as eslogger records no bytes) and the flavor's name.
     func testThreadStateExport() throws {
         let record = try XCTUnwrap(try fixtureRecords(Self.esloggerFixture).first)
         for message in [try importRecord(record), capture(record)] {
@@ -69,8 +63,6 @@ final class RemoteThreadCreateExportTests: XCTestCase {
     }
     
     /// `thread_create`: `thread_state` is written as `null`, as eslogger writes it, not left out.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no such event.
     func testThreadCreateExportsNull() throws {
         let record = try fixtureRecords(Self.esloggerFixture)[1]
         for message in [try importRecord(record), capture(record)] {
@@ -81,8 +73,6 @@ final class RemoteThreadCreateExportTests: XCTestCase {
     }
     
     /// The bytes the Security Extension records are kept in the store and exported in `state_base64`.
-    ///
-    /// - Throws: An `XCTest` failure if the export has no such event.
     func testCapturedBytesSurviveStore() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE)
         let bytes = RawMessageFixture.bytes(272)
@@ -112,9 +102,7 @@ final class RemoteThreadCreateExportTests: XCTestCase {
     }
     
     /// An event exported before 3.0.0 is exported again in eslogger's shape: the name's flavor with no bytes, and the
-    /// name kept in `thread_state_string`; `null` for a state it didn't name.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export has no such event.
+    /// name kept in `thread_state_string`. `null` for a state it didn't name.
     func testLegacyExportReexportsEsloggerShape() throws {
         let named = try event("remote_thread_create",
                               in: try export(try importRecord(try legacyRecord(threadState: "ARM_THREAD_STATE64"))))
@@ -127,8 +115,6 @@ final class RemoteThreadCreateExportTests: XCTestCase {
     }
     
     /// A 3.0.0 export reads back as it was exported, bytes and all.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export isn't a JSON object.
     func testExportsRoundTrip() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE)
         fixture.remoteThreadCreate(threadState: fixture.threadState(flavor: 6, bytes: RawMessageFixture.bytes(272)))

@@ -45,8 +45,6 @@ final class ExecCommandLineTests: XCTestCase {
     }
     
     /// No arguments, empty and whitespace-only ones (spaces, tabs, Unicode spaces), newlines, and Unicode.
-    ///
-    /// - Throws: The error reading a record.
     func testEdgeArgumentsMatchTheConcatenation() throws {
         let cases: [[String]] = [
             [], [""], ["", ""], [" "], [" ", " ", " "], ["\t", "ls"], ["ls", ""], ["ls", "", "-l"],
@@ -59,8 +57,6 @@ final class ExecCommandLineTests: XCTestCase {
     }
     
     /// Random arguments drawn from letters, spaces of every kind, and line breaks.
-    ///
-    /// - Throws: The error reading a record.
     func testRandomArgumentsMatchTheConcatenation() throws {
         let alphabet: [Character] = ["a", "-", "/", " ", "\t", "\n", "\u{00A0}", "\u{2003}", "\u{3000}", "é", "😀"]
         for _ in 0..<200 {

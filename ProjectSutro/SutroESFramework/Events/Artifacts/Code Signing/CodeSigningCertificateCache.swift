@@ -24,7 +24,7 @@ import os
 /// unseen. A path that can't be `stat`ed, or a signature that can't be read, isn't remembered.
 ///
 /// **Threading:** safe on any thread. Every capture lane of every session shares ``shared``. Certificates are read
-/// outside the lock, so a lane never waits for another's read; two lanes missing the same file at once both read it.
+/// outside the lock, so a lane never waits for another's read. Two lanes missing the same file at once both read it.
 final class CodeSigningCertificateCache {
     /// A file at a path, as `stat(2)` describes it: any change to the file's contents changes its identity.
     struct FileIdentity: Hashable {
@@ -81,7 +81,7 @@ final class CodeSigningCertificateCache {
     ///   - lifetime: How long an entry is used after its file was read, in seconds.
     ///   - capacity: How many files' certificates to keep before emptying the table.
     ///   - read: Reads a file's certificates, returning `nil` if its signature can't be read.
-    ///   - clock: The time now in nanoseconds; uptime by default.
+    ///   - clock: The time now in nanoseconds. Uptime by default.
     init(lifetime: TimeInterval = 600, capacity: Int = 1_024,
          read: @escaping (String) -> [X509Cert]? = ProcessHelpers.readCodeSigningCerts(forBinaryAt:),
          clock: @escaping () -> UInt64 = { clock_gettime_nsec_np(CLOCK_UPTIME_RAW) }) {

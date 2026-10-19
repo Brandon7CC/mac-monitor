@@ -15,7 +15,7 @@ extension ProcessHelpers {
     /// (``CodeSigningCertificateCache``).
     ///
     /// - Parameter path: The executable's path.
-    /// - Returns: Each certificate's subject summary and SHA-1 thumbprint, as new values; none if they can't be read.
+    /// - Returns: Each certificate's subject summary and SHA-1 thumbprint, as new values. None if they can't be read.
     public static func getCodeSigningCerts(forBinaryAt path: String) -> [X509Cert] {
         CodeSigningCertificateCache.shared.certificates(at: path).map {
             X509Cert(summary: $0.summary, thumbprint: $0.thumbprint)

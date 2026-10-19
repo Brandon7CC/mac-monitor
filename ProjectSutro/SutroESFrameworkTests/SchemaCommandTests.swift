@@ -15,8 +15,6 @@ import XCTest
 final class SchemaCommandTests: XCTestCase {
     /// `schema` writes exactly the bytes the framework bundles, which are the committed
     /// `Schema/mac-monitor-telemetry.schema.json`, and needs no root.
-    ///
-    /// - Throws: The error reading either file, or an `XCTest` failure.
     func testItWritesTheBundledSchemaByteForByte() throws {
         XCTAssertEqual(try CommandLineParser.parse(["schema"]), .schema)
         XCTAssertFalse(try CommandLineParser.parse(["schema"]).requiresRoot)
@@ -28,9 +26,7 @@ final class SchemaCommandTests: XCTestCase {
     }
     
     /// A reader that closes the pipe (`macmonitor schema | head`) before the schema is written is a success, through a
-    /// real pipe and with more than a pipe holds; any other write error exits 74.
-    ///
-    /// - Throws: An `XCTest` failure.
+    /// real pipe and with more than a pipe holds. Any other write error exits 74.
     func testOutputThatCantBeWritten() throws {
         var descriptors: [Int32] = [0, 0]
         XCTAssertEqual(pipe(&descriptors), 0)

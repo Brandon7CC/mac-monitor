@@ -13,7 +13,7 @@ import Foundation
 /// Makes up a value of any `Decodable` type, so the drift tests can export every field of every event without anyone
 /// writing a fixture: a field added to a model is filled automatically and reaches the export.
 ///
-/// A full variant fills every optional and gives every array one element; an empty one leaves every optional `nil`
+/// A full variant fills every optional and gives every array one element. An empty one leaves every optional `nil`
 /// (but those Endpoint Security never leaves out: ``SyntheticValues/neverNil``) and every array empty. Values come from
 /// ``SyntheticValues`` by type and key, and each value that's ``ESEnrichable`` derives Mac Monitor's fields from its
 /// Endpoint Security ones as it's decoded, as File > Open Trace… derives them.

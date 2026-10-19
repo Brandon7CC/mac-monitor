@@ -40,8 +40,6 @@ final class StreamingJSONEncoderTests: XCTestCase {
     
     /// Strings: every control character, quotes, backslashes, slashes, DEL, line and paragraph separators, accents,
     /// emoji, and random strings drawn from all of them.
-    ///
-    /// - Throws: Either encoder's error.
     func testStringsMatchByteForByte() throws {
         let controls = (0..<0x20).map { String(UnicodeScalar(UInt8($0))) }
         let specials = ["", "\"", "\\", "/", "</script>", "\u{7F}", "\u{2028}", "\u{2029}", "é", "e\u{301}", "😀",
@@ -56,8 +54,6 @@ final class StreamingJSONEncoderTests: XCTestCase {
     }
     
     /// Integers of every width at their ends and in between, and booleans.
-    ///
-    /// - Throws: Either encoder's error.
     func testIntegersAndBooleansMatchByteForByte() throws {
         try assertSameBytes([Int.min, -1, 0, 1, Int.max] + (0..<200).map { _ in Int.random(in: .min ... .max) })
         try assertSameBytes([Int8.min, -1, 0, Int8.max])
@@ -74,8 +70,6 @@ final class StreamingJSONEncoderTests: XCTestCase {
     
     /// Doubles and floats: zeros, whole numbers (written without `.0`), fractions, exponents, extremes, and random bit
     /// patterns.
-    ///
-    /// - Throws: Either encoder's error.
     func testNumbersMatchByteForByte() throws {
         let doubles: [Double] = [0, -0.0, 1, -1, 1.5, -2.25, 0.1, 1e-7, 1e15, 1e16, 1e21, 1e300, .pi,
                                  .leastNonzeroMagnitude, .leastNormalMagnitude, .greatestFiniteMagnitude,
@@ -88,8 +82,6 @@ final class StreamingJSONEncoderTests: XCTestCase {
     }
     
     /// Dates (seconds since 2001), UUIDs (uppercase), data (base64), URLs (absolute strings), and decimals.
-    ///
-    /// - Throws: Either encoder's error.
     func testFoundationValuesMatchByteForByte() throws {
         try assertSameBytes([Date(timeIntervalSinceReferenceDate: 0), Date(timeIntervalSince1970: 0),
                              Date(timeIntervalSince1970: 1_791_072_114.394_127)]

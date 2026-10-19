@@ -22,9 +22,15 @@ public struct MuteSet {
     /// files in `~/Library/Biome/streams/`. The Security Extension runs as root, so it passes the console user's home
     /// (``ConsoleUser``), never its own.
     ///
-    /// - Parameter home: The home folder those two rules mute, or `nil` to leave them out (no one is logged in).
+    /// Xcode's tools are muted only when root owns Xcode (``ownsXcode(_:at:)``). An Xcode expanded from a `.xip`
+    /// belongs to whoever expanded it, so a program they put inside would run unseen.
+    ///
+    /// - Parameters:
+    ///   - home: The home folder those two rules mute, or `nil` to leave them out (no one is logged in).
+    ///   - mutesXcode: Mute Xcode's tools. By default, if root owns Xcode.
     /// - Returns: The rules.
-    public static func `default`(home: String?) -> MuteSet {
+    public static func `default`(home: String?, mutesXcode: Bool? = nil) -> MuteSet {
+        let mutesXcode = mutesXcode ?? ownsXcode()
         let caches = homePaths("Library/Caches", in: home)
         let biomeStreams = homePaths("Library/Biome/streams", in: home)
         
@@ -145,7 +151,6 @@ public struct MuteSet {
             ]),
             (eventType: ES_EVENT_TYPE_NOTIFY_PROC_CHECK, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
                 "/usr/libexec/sysmond",
-                "/Applications/Xcode.app",
                 "/usr/sbin/systemstats",
                 "/System/Library/PrivateFrameworks/CoreDuetContext.framework",
                 "/System/Library/PrivateFrameworks/CoreAnalytics.framework",
@@ -180,9 +185,6 @@ public struct MuteSet {
             (eventType: ES_EVENT_TYPE_NOTIFY_SETMODE, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
                 "/System/Library/PrivateFrameworks/StreamingExtractor.framework"
             ]),
-            (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
-                "/Applications/Xcode.app/Contents/SharedFrameworks"
-            ]),
             (eventType: ES_EVENT_TYPE_NOTIFY_EXIT, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
                 "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework"
             ]),
@@ -203,6 +205,14 @@ public struct MuteSet {
             ])
         ]
         
+        if mutesXcode {
+            eventRules += [
+                (eventType: ES_EVENT_TYPE_NOTIFY_PROC_CHECK, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [xcode + "/"]),
+                (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_PREFIX,
+                 paths: [xcode + "/Contents/SharedFrameworks/"])
+            ]
+        }
+        
         if #available(macOS 14, *) {
             let sonomaRules = [
                 (ES_EVENT_TYPE_NOTIFY_XPC_CONNECT, ES_MUTE_PATH_TYPE_LITERAL, [
@@ -214,7 +224,7 @@ public struct MuteSet {
         }
         
         // MARK: - Global Mute Rules
-        let globalRules = [
+        var globalRules = [
             (pathType: ES_MUTE_PATH_TYPE_LITERAL, paths: [
                 "/usr/libexec/logd",
                 "/System/Library/CoreServices/Diagnostics Reporter.app/Contents/MacOS/Diagnostics Reporter",
@@ -226,7 +236,6 @@ public struct MuteSet {
                 "/System/Library/PrivateFrameworks/HelpData.framework/Versions/A/Resources/helpd"
             ]),
             (pathType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
-                "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain",
                 "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework"
             ]),
             (pathType: ES_MUTE_PATH_TYPE_TARGET_LITERAL, paths: [
@@ -237,7 +246,40 @@ public struct MuteSet {
             ])
         ]
         
+        if mutesXcode {
+            globalRules.append((pathType: ES_MUTE_PATH_TYPE_PREFIX, paths: [xcodeToolchain(xcode) + "/"]))
+        }
+        
         return MuteSet(eventSpecificRules: eventRules, globalRules: globalRules)
+    }
+    
+    /// Where Xcode is installed.
+    static let xcode = "/Applications/Xcode.app"
+    
+    /// Xcode's default toolchain, whose compilers and linkers a build runs thousands of times.
+    ///
+    /// - Parameter xcode: Xcode's bundle.
+    /// - Returns: The toolchain's path.
+    static func xcodeToolchain(_ xcode: String) -> String {
+        xcode + "/Contents/Developer/Toolchains/XcodeDefault.xctoolchain"
+    }
+    
+    /// Can only `owner` change the folders Xcode's mutes cover, and the folders above them in the bundle?
+    ///
+    /// - Parameters:
+    ///   - owner: Who must own them. Root, except in tests.
+    ///   - xcode: Xcode's bundle.
+    /// - Returns: `true` if each is a directory `owner` owns, that neither its group, others, nor an access control
+    ///   entry lets anyone else change.
+    static func ownsXcode(_ owner: uid_t = 0, at xcode: String = xcode) -> Bool {
+        let folders = [xcode, xcode + "/Contents", xcode + "/Contents/SharedFrameworks", xcode + "/Contents/Developer",
+                       xcode + "/Contents/Developer/Toolchains", xcodeToolchain(xcode)]
+        return folders.allSatisfy { folder in
+            var info = stat()
+            guard lstat(folder, &info) == 0, info.st_mode & S_IFMT == S_IFDIR, info.st_uid == owner,
+                  info.st_mode & (S_IWGRP | S_IWOTH) == 0 else { return false }
+            return CommandLineToolLink.entryWriter(of: folder) == nil
+        }
     }
     
     /// A folder in a home folder, as a prefix rule's paths.

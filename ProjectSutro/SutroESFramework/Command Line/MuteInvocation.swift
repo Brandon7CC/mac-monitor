@@ -90,7 +90,7 @@ extension CommandLineParser {
     /// - Returns: The entry: the path, its type (literal unless given: the narrowest), and its events (none for every
     ///   event).
     /// - Throws: ``CommandLineUsageError``: for no path or more than one, an unknown option, or an option without its
-    ///   value (64); for a relative path, an unknown type, or an event that isn't a NOTIFY event (65, as the Security
+    ///   value (64). For a relative path, an unknown type, or an event that isn't a NOTIFY event (65, as the Security
     ///   Extension's refusal of a mute that can't be used is).
     static func muteEntry(_ cursor: inout ArgumentCursor, subcommand: String) throws -> MuteFile.Entry {
         var path: String?, type = ES_MUTE_PATH_TYPE_LITERAL, events: [String] = []

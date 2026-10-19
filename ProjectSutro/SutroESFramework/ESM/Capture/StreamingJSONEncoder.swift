@@ -118,7 +118,7 @@ final class StreamingJSONEncoder {
     /// - Parameters:
     ///   - value: The value.
     ///   - isTopLevel: The value being encoded rather than one inside it. A top-level value that writes nothing is
-    ///     left to `JSONEncoder`, which throws for it; a nested one is written as `{}`, as `JSONEncoder` writes it.
+    ///     left to `JSONEncoder`, which throws for it. A nested one is written as `{}`, as `JSONEncoder` writes it.
     /// - Throws: When the value can't be encoded.
     func write<T: Encodable>(_ value: T, isTopLevel: Bool = false) throws {
         if T.self == String.self { return write(string: value as! String) }
@@ -158,7 +158,7 @@ final class StreamingJSONEncoder {
     /// - Parameters:
     ///   - depth: How many frames were open when the value started.
     ///   - start: Where in the buffer the value started.
-    /// - Returns: `true` if it has written nothing yet; otherwise `false`, and the value is left to `JSONEncoder`.
+    /// - Returns: `true` if it has written nothing yet. Otherwise `false`, and the value is left to `JSONEncoder`.
     func beginScalar(depth: Int, start: Int) -> Bool {
         guard depth == state.pointee.frames.count, state.pointee.count == start else {
             state.pointee.isUnstreamable = true

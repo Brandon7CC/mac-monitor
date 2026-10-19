@@ -37,8 +37,6 @@ final class StreamPipelineTests: XCTestCase {
     }
     
     /// Text: one line per event, each the formatter's line for the event's header.
-    ///
-    /// - Throws: The error reading a fixture or encoding an event.
     func testTextIsOneLinePerEvent() throws {
         let messages = try allFixtureMessages()
         let pipeline = StreamPipeline(formatter: .text(utc), scope: nobody, forTerminal: true)
@@ -48,8 +46,6 @@ final class StreamPipelineTests: XCTestCase {
     }
     
     /// JSONL: each event's export record, in order, byte for byte.
-    ///
-    /// - Throws: The error reading a fixture or encoding an event.
     func testJSONLIsTheExport() throws {
         let messages = try allFixtureMessages()
         let pipeline = StreamPipeline(formatter: .jsonl([ExportEncoder(model: eventModel)]), scope: nobody,
@@ -59,8 +55,6 @@ final class StreamPipelineTests: XCTestCase {
     }
     
     /// Pretty prints each record like Export telemetry ▸ JSON (pretty), in order, each ending in a newline.
-    ///
-    /// - Throws: The error reading a fixture or encoding an event.
     func testPrettyIsThePrettyExport() throws {
         let messages = try allFixtureMessages()
         let pipeline = StreamPipeline(formatter: .jsonl([ExportEncoder(model: eventModel, pretty: true)]),
@@ -75,8 +69,6 @@ final class StreamPipelineTests: XCTestCase {
     
     /// The pipeline's own events are left out, but their sequence numbers still count: leaving them out is never a
     /// drop, and a real gap still is.
-    ///
-    /// - Throws: The error reading the fixture or encoding an event.
     func testOwnEventsAreLeftOutButStillCounted() throws {
         let scope = PipelineScope(ancestry: [PipelineAncestor(pid: 900, groupID: 900, path: "/x/macmonitor")],
                                   includeSelf: false)
@@ -90,9 +82,7 @@ final class StreamPipelineTests: XCTestCase {
         }
     }
     
-    /// An event that can't be read is counted and skipped; the rest of the batch is written.
-    ///
-    /// - Throws: The error reading the fixture or encoding an event.
+    /// An event that can't be read is counted and skipped. The rest of the batch is written.
     func testUnreadableEventsAreSkipped() throws {
         for format in [StreamPipeline.Formatter.text(utc), .jsonl([ExportEncoder(model: eventModel)])] {
             let pipeline = StreamPipeline(formatter: format, scope: nobody, forTerminal: false)
@@ -102,9 +92,7 @@ final class StreamPipelineTests: XCTestCase {
         }
     }
     
-    /// JSONL for a terminal escapes C1 and bidirectional characters; piped JSONL keeps the export's bytes.
-    ///
-    /// - Throws: The error reading the fixture or encoding an event.
+    /// JSONL for a terminal escapes C1 and bidirectional characters. Piped JSONL keeps the export's bytes.
     func testJSONLIsEscapedOnlyForATerminal() throws {
         var message = try exits([1])[0]
         message.process.executable?.path = "/tmp/\u{9B}2J\u{202E}gnp.exe"
@@ -119,8 +107,6 @@ final class StreamPipelineTests: XCTestCase {
     
     /// A batch split across several encoders is written exactly as one encoder writes it, in order, and accounted for
     /// in order.
-    ///
-    /// - Throws: The error reading a fixture or encoding an event.
     func testParallelEncodersWriteWhatOneWrites() throws {
         let messages = try allFixtureMessages()
         let batch = try (0..<10).flatMap { _ in messages }.map(wire)

@@ -12,7 +12,7 @@ import EndpointSecurity
 
 // MARK: - Crash guards
 /// Pins that the Security Extension records events whose values it used to trap on: a user this Mac doesn't know,
-/// union types a newer macOS adds, and code signing flags with bit 31 set; and that an authorization event keeps the
+/// union types a newer macOS adds, and code signing flags with bit 31 set. And that an authorization event keeps the
 /// processes and tokens Endpoint Security gives. Open Directory events without their instigator are pinned in
 /// ``OpenDirectoryCaptureTests``.
 final class CaptureCrashGuardTests: XCTestCase {
@@ -59,8 +59,6 @@ final class CaptureCrashGuardTests: XCTestCase {
     // MARK: Unions
     
     /// A Gatekeeper override whose `file_type` names neither arm of its union is recorded and exported without one.
-    ///
-    /// - Throws: An `XCTest` failure if the export has no Gatekeeper event.
     func testGatekeeperUnknownFileType() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE)
         let override = fixture.allocate(es_event_gatekeeper_user_override_t.self)
@@ -77,8 +75,6 @@ final class CaptureCrashGuardTests: XCTestCase {
     }
     
     /// A create event whose `destination_type` names neither arm of its union is recorded, and its file has no name.
-    ///
-    /// - Throws: An `XCTest` failure if the export has no create event.
     func testCreateWithUnknownDestinationType() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_CREATE)
         fixture.message.pointee.event.create.destination_type = es_destination_type_t(rawValue: 9)
@@ -117,8 +113,6 @@ final class CaptureCrashGuardTests: XCTestCase {
     }
     
     /// A trace's create event with an empty destination reads as one that can't be read, rather than being skipped.
-    ///
-    /// - Throws: The error reading the record, or an `XCTest` failure if the export has no create event.
     func testImportedCreateWithEmptyDestination() throws {
         let record = try esloggerRecord("create", type: 13, ["destination_type": 9, "destination": [:]])
         let message = try importRecord(record)
@@ -179,12 +173,12 @@ final class CaptureCrashGuardTests: XCTestCase {
         return try self.event(name, in: try export(Message(from: fixture.raw)))
     }
     
-    /// The pid of each process or audit token of an exported event.
+    /// The pid in each of an exported event's process or audit token fields.
     ///
     /// - Parameters:
     ///   - event: The exported event.
-    ///   - keys: The processes' or tokens' keys.
-    /// - Returns: Each one's pid, or `nil` where it's `null`.
+    ///   - keys: Field names, like `"instigator"` (a process) or `"instigator_token"` (an audit token).
+    /// - Returns: Each field's pid, or `nil` where the field is `null`.
     private static func pids(_ event: [String: Any], _ keys: String...) -> [Int?] {
         keys.map { key in
             let object = event[key] as? [String: Any]
@@ -194,8 +188,6 @@ final class CaptureCrashGuardTests: XCTestCase {
     
     /// An authorization event keeps each process and token Endpoint Security gives, apart: a process left out
     /// (`NULL`) keeps its token, and before message version 8 a process is kept without one.
-    ///
-    /// - Throws: An `XCTest` failure if an export has no such event.
     func testAuthorizationProcessesAndTokens() throws {
         for version: UInt32 in [7, 8] {
             for processes in [true, false] {
@@ -215,6 +207,23 @@ final class CaptureCrashGuardTests: XCTestCase {
                 }
             }
         }
+    }
+    
+    // MARK: Joined paths
+    
+    /// A link or a socket bind into a folder with a space in its name targets the path as written, never with percent
+    /// escapes.
+    func testJoinedTargetPathsKeepSpaces() {
+        let link = rawMessage(type: ES_EVENT_TYPE_NOTIFY_LINK)
+        link.message.pointee.event.link.source = link.file("/private/tmp/a")
+        link.message.pointee.event.link.target_dir = link.file("/private/tmp/My Folder")
+        link.message.pointee.event.link.target_filename = link.token("b c.txt")
+        XCTAssertEqual(Message(from: link.raw).target_path, "/private/tmp/My Folder/b c.txt")
+        
+        let bind = rawMessage(type: ES_EVENT_TYPE_NOTIFY_UIPC_BIND)
+        bind.message.pointee.event.uipc_bind.dir = bind.file("/private/tmp/My Folder")
+        bind.message.pointee.event.uipc_bind.filename = bind.token("my socket")
+        XCTAssertEqual(Message(from: bind.raw).target_path, "/private/tmp/My Folder/my socket")
     }
     
     // MARK: Fixed-size strings

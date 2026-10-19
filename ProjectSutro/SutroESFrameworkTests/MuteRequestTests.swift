@@ -14,8 +14,6 @@ import XCTest
 /// and what an older or newer peer makes of the other's messages.
 final class MuteRequestTests: XCTestCase {
     /// A request and a reply read back as they were written.
-    ///
-    /// - Throws: An unexpected ``XPCRequestError``.
     func testRequestAndReplyRoundTrip() throws {
         let request = MuteRequest(.add, [MuteFile.Entry(path: "/a", type: "ES_MUTE_PATH_TYPE_LITERAL",
                                                         events: ["ES_EVENT_TYPE_NOTIFY_OPEN"])])
@@ -40,9 +38,7 @@ final class MuteRequestTests: XCTestCase {
         XCTAssertNil(renamed?.access)
     }
     
-    /// A newer version or an unknown operation is unsupported; missing mutes mean none.
-    ///
-    /// - Throws: An unexpected ``XPCRequestError``.
+    /// A newer version or an unknown operation is unsupported. Missing mutes mean none.
     func testNewerRequestsAreUnsupported() throws {
         let newer = Data(#"{"version": 2, "operation": "list"}"#.utf8)
         XCTAssertThrowsError(try MuteRequest.decode(newer)) { error in

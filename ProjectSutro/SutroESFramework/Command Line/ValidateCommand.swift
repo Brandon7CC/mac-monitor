@@ -40,7 +40,7 @@ public struct ValidateCommand {
         }
     }
     
-    /// The most issues a report lists, as in the app; every issue is counted.
+    /// The most issues a report lists, as in the app. Every issue is counted.
     public static let issueLimit = 100
     /// How the report's hint for eslogger's own JSON says to check only eslogger's keys.
     public static let esloggerAdvice = "Add --eslogger to check only the keys eslogger writes."
@@ -72,8 +72,8 @@ public struct ValidateCommand {
                 validate reads a trace from a file, not standard input. Save it to a file, then validate that.
                 """))
         }
-        /// `URL(fileURLWithPath: "")` is the current folder, but an empty path names no file: `open("")`, and so
-        /// `mute import ""`, fail with ENOENT.
+        /// `URL(fileURLWithPath: "")` is the current folder, but an empty path names no file. `open("")` and
+        /// `mute import ""` fail with ENOENT.
         guard !invocation.path.isEmpty else {
             return .failed(.unreadable(TerminalSafeText.quoted(""), because: POSIXError(.ENOENT)))
         }

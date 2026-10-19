@@ -78,8 +78,6 @@ final class TextOutputTests: XCTestCase {
     }
     
     /// JSON escapes only DEL, C1 and the bidirectional controls, stays valid, and reads back as the same value.
-    ///
-    /// - Throws: The error encoding or parsing the JSON.
     func testJSONEscapesAndStillParses() throws {
         let value = ["path": "x\u{7F}y\u{9B}z\u{202E}é\u{1B}\n✓"]
         var line = try JSONEncoder().encode(value)

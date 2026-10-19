@@ -55,8 +55,6 @@ final class OpenDirectoryExportTests: XCTestCase {
     // MARK: eslogger parity
     
     /// Each eslogger record, opened and exported, has every value eslogger wrote, at eslogger's key path.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if its export isn't a JSON object.
     func testImportedRecordsMatchESLogger() throws {
         let records = try fixtureRecords(Self.esloggerFixture)
         XCTAssertEqual(records.count, 11)
@@ -67,8 +65,6 @@ final class OpenDirectoryExportTests: XCTestCase {
     }
     
     /// Each eslogger record, captured from Endpoint Security's structs and exported, has every value eslogger wrote.
-    ///
-    /// - Throws: An `XCTest` failure if an export isn't a JSON object.
     func testCapturedRecordsMatchESLogger() throws {
         for record in try fixtureRecords(Self.esloggerFixture) {
             let name = try onlyEvent(record).name
@@ -78,8 +74,6 @@ final class OpenDirectoryExportTests: XCTestCase {
     
     /// Mac Monitor's own fields are exported beside eslogger's: the instigator's name, path and signing ID are `null`
     /// only when Endpoint Security left the instigator out.
-    ///
-    /// - Throws: An `XCTest` failure if an export isn't a JSON object.
     func testAdditions() throws {
         for record in try fixtureRecords(Self.esloggerFixture) {
             let (name, object) = try onlyEvent(try export(try importRecord(record)))
@@ -94,8 +88,6 @@ final class OpenDirectoryExportTests: XCTestCase {
     }
     
     /// An instigator Endpoint Security left out is exported as `null`, as eslogger writes it, with its token.
-    ///
-    /// - Throws: An `XCTest` failure if the export isn't a JSON object.
     func testInstigatorLeftOut() throws {
         let record = try XCTUnwrap(try fixtureRecords(Self.esloggerFixture).first)
         for message in [try importRecord(record), capture(record)] {
@@ -109,8 +101,6 @@ final class OpenDirectoryExportTests: XCTestCase {
     }
     
     /// Before message version 8 Endpoint Security has no `instigator_token`: it's exported as `null`.
-    ///
-    /// - Throws: An `XCTest` failure if the export isn't a JSON object.
     func testVersion7HasNoInstigatorToken() throws {
         for record in try fixtureRecords(Self.esloggerFixture) {
             let (name, object) = try onlyEvent(try export(capture(record, version: 7)))
@@ -135,8 +125,6 @@ final class OpenDirectoryExportTests: XCTestCase {
     
     /// An Open Directory event exported before 3.0.0 is exported again with the numbers its names stand for, the names
     /// kept in the `*_string` fields, and `null` for what it didn't keep.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export isn't a JSON object.
     func testLegacyExportsAreReadBack() throws {
         let attribute = try reexportLegacy("od_attribute_value_add")
         assertContains(["record_type": 1, "record_type_string": "GROUP", "instigator": NSNull(),
@@ -158,8 +146,6 @@ final class OpenDirectoryExportTests: XCTestCase {
     }
     
     /// A 3.0.0 export reads back as it was exported.
-    ///
-    /// - Throws: The error reading a record, or an `XCTest` failure if an export isn't a JSON object.
     func testExportsRoundTrip() throws {
         for record in try fixtureRecords(Self.esloggerFixture) {
             let exported = try export(try importRecord(record))

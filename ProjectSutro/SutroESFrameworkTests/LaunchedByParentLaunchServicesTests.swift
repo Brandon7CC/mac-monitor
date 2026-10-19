@@ -53,8 +53,6 @@ final class LaunchedByParentLaunchServicesTests: XCTestCase {
     }
     
     /// Only answers that need Launch Services are upgraded, to the recorded launcher.
-    ///
-    /// - Throws: An `XCTest` failure if the launcher's answer is missing.
     func testOnlyAnswersThatNeedLaunchServicesAreUpgraded() throws {
         let launched = record(parentASN: true, parent: launcher)
         let answer = try XCTUnwrap(upgrade(appJob, with: launched))
@@ -83,8 +81,6 @@ final class LaunchedByParentLaunchServicesTests: XCTestCase {
     
     /// The launcher's path comes from its own record when that holds one: the launcher may have quit, and another
     /// process may have its pid. Without one, it's read by pid.
-    ///
-    /// - Throws: An `XCTest` failure if the launcher's answer is missing.
     func testLauncherPathFromItsRecord() throws {
         let path = "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder"
         let launched = LaunchServicesRecord(token: app, launchedByLaunchServices: true, hasParentASN: true,
@@ -104,9 +100,7 @@ final class LaunchedByParentLaunchServicesTests: XCTestCase {
     }
     
     /// `open` from a shell: LaunchServices launched the app and recorded no launcher. The launchd job becomes a
-    /// LaunchServices launch without a process, keeping the label; a responsible process stays.
-    ///
-    /// - Throws: An `XCTest` failure if the answer is missing.
+    /// LaunchServices launch without a process, keeping the label. A responsible process stays.
     func testLaunchWithoutLauncher() throws {
         let answer = try XCTUnwrap(upgrade(appJob, with: record(parentASN: false, parent: nil)))
         XCTAssertEqual(answer, LaunchedByParent(source: .launchServices, audit_token: nil, pid: nil, path: nil,
@@ -125,8 +119,6 @@ final class LaunchedByParentLaunchServicesTests: XCTestCase {
     }
     
     /// `LSAuditToken` is `audit_token_t`'s 32 bytes: read with a zeroed `id`, any other size refused.
-    ///
-    /// - Throws: An `XCTest` failure if the token isn't read.
     func testAuditTokenData() throws {
         let raw = RawMessageFixture.auditToken(pid: 501, euid: 501, pidversion: 5010, asid: 100_002)
         let data = withUnsafeBytes(of: raw) { Data($0) }

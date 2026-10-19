@@ -39,7 +39,7 @@ public final class MuteSubscription {
 ///
 /// **Threading:** all state lives on ``queue``. Followers are called on it in change order and must hop to their
 /// session's own queue. Nothing here ever waits on a session's queue, so a session may call ``follow(_:)``
-/// synchronously from its own; a follower must never call back in synchronously.
+/// synchronously from its own. A follower must never call back in synchronously.
 public final class SavedMuteSet {
     /// Receives each new saved set, and who changed it how.
     public typealias Follower = (MuteList, MuteSetChange) -> Void
@@ -247,7 +247,7 @@ extension SavedMuteSet {
     /// Read the saved set once. Call on ``queue``.
     ///
     /// - Missing: start from Mac Monitor's default set and save it (first run). Say so if no one was logged in.
-    /// - Unreadable: it was moved aside; start from the default set, save it, and say so.
+    /// - Unreadable: it was moved aside. Start from the default set, save it, and say so.
     /// - Newer: keep the file, apply the default set, and refuse changes other than Reset.
     /// - Untrusted directory: apply the default set and refuse every change, rather than write through it.
     ///
@@ -299,7 +299,7 @@ extension SavedMuteSet {
         }
     }
     
-    /// Start from Mac Monitor's default set and save it. A failed save is logged; the next change tries again.
+    /// Start from Mac Monitor's default set and save it. A failed save is logged. The next change tries again.
     ///
     /// - Returns: What the default set leaves out because no one is logged in, as a sentence, if anything.
     private func startFromDefault() -> String? {

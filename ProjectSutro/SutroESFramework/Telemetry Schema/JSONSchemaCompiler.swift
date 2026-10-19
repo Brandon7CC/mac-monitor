@@ -13,7 +13,7 @@ import Foundation
 /// constraint is never silently ignored.
 ///
 /// Supported: `type`, `enum`, `const`, `pattern`, `properties`, `required`, `additionalProperties` (a Boolean),
-/// `minProperties`, `maxProperties`, `items` (one schema), `anyOf`, and `$ref` to the root's `$defs`; the
+/// `minProperties`, `maxProperties`, `items` (one schema), `anyOf`, and `$ref` to the root's `$defs`. The
 /// annotations `$comment`, `title`, `description`, `examples`, `default`, `deprecated` and `format` (not checked), any
 /// `x-` keyword, and `$schema` (draft 2020-12), `$id` and `$defs` at the root. A subschema may also be `true`.
 ///

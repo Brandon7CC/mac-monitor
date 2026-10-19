@@ -148,8 +148,6 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
     
     /// The Security Extension records the thread state and the flavor's name, and the app reads them back over XPC;
     /// a `thread_create` sends neither key.
-    ///
-    /// - Throws: The error encoding or decoding an event.
     func testWireRoundTrip() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE)
         let threadState = fixture.threadState(bytes: [0, 1, 2, 0xFF])
@@ -170,8 +168,6 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
     
     /// A whole `Message` from Endpoint Security goes over XPC with its thread state, and one from an older Security
     /// Extension, which sent the flavor's name, still decodes.
-    ///
-    /// - Throws: The error encoding or decoding a message.
     func testMessages() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE)
         fixture.remoteThreadCreate(threadState: fixture.threadState(bytes: [0, 1, 2, 0xFF]))

@@ -65,8 +65,6 @@ final class CommandLineStreamTests: XCTestCase {
     }
     
     /// Text: one line per event as it arrives, then a stop that ends with the summary, a banner before it.
-    ///
-    /// - Throws: An `XCTest` failure.
     func testATextStream() throws {
         let harness = makeHarness()
         let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody)
@@ -89,8 +87,6 @@ final class CommandLineStreamTests: XCTestCase {
     }
     
     /// JSONL: one export record per event, in order, without the saved mutes when asked.
-    ///
-    /// - Throws: An `XCTest` failure, or the error parsing a record.
     func testAJSONLStreamWithoutMutes() throws {
         let harness = makeHarness()
         let run = StreamCommandRun(harness: harness, formatter: .jsonl([ExportEncoder(model: eventModel)]),
@@ -113,8 +109,6 @@ final class CommandLineStreamTests: XCTestCase {
     }
     
     /// A stop writes everything captured before it, including messages still queued in Endpoint Security.
-    ///
-    /// - Throws: An `XCTest` failure.
     func testAStopWritesEverythingCapturedBeforeIt() throws {
         let harness = makeHarness()
         let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody)
@@ -133,8 +127,6 @@ final class CommandLineStreamTests: XCTestCase {
     }
     
     /// Lost events are reported as they're seen, by type, and the summary says Endpoint Security lost them.
-    ///
-    /// - Throws: An `XCTest` failure.
     func testLostEventsAreReported() throws {
         let harness = makeHarness()
         let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody)
@@ -149,8 +141,6 @@ final class CommandLineStreamTests: XCTestCase {
     }
     
     /// The pipeline's own events are counted but not written.
-    ///
-    /// - Throws: An `XCTest` failure.
     func testThePipelinesOwnEventsAreLeftOut() throws {
         let harness = makeHarness()
         let ownScope = PipelineScope(ancestry: [PipelineAncestor(pid: 123, groupID: 0, path: "/x/macmonitor")],
@@ -164,8 +154,6 @@ final class CommandLineStreamTests: XCTestCase {
     }
     
     /// A reader that closes the pipe ends the stream as a success, and the Security Extension frees the stream.
-    ///
-    /// - Throws: An `XCTest` failure.
     func testAClosedPipeIsASuccess() throws {
         let harness = makeHarness()
         let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody)
@@ -179,8 +167,6 @@ final class CommandLineStreamTests: XCTestCase {
     }
     
     /// A failed write ends the stream with exit 74.
-    ///
-    /// - Throws: An `XCTest` failure.
     func testAFailedWriteIsAnOutputError() throws {
         let harness = makeHarness()
         let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody)
@@ -205,8 +191,6 @@ final class CommandLineStreamTests: XCTestCase {
     }
     
     /// A Security Extension that goes away mid-stream ends it with exit 69, once.
-    ///
-    /// - Throws: An `XCTest` failure.
     func testTheSecurityExtensionGoingAwayEndsTheStream() throws {
         let harness = makeHarness()
         let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody)
@@ -221,8 +205,6 @@ final class CommandLineStreamTests: XCTestCase {
     }
     
     /// A Security Extension of another version gets a warning, and the stream goes on.
-    ///
-    /// - Throws: An `XCTest` failure.
     func testAVersionMismatchIsAWarning() throws {
         let harness = makeHarness()
         let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody, toolVersion: "2.2.1 (2)")
@@ -237,9 +219,7 @@ final class CommandLineStreamTests: XCTestCase {
     }
     
     /// A change to the saved mute set while a stream follows it is said on standard error, terminal or not, with who
-    /// made it; a `--no-mutes` stream says nothing.
-    ///
-    /// - Throws: An `XCTest` failure.
+    /// made it. A `--no-mutes` stream says nothing.
     func testSavedMuteChangesAreSaid() throws {
         let harness = makeHarness()
         let following = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody, isChatty: false)

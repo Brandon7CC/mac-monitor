@@ -28,7 +28,7 @@ final class MuteAccessTests: XCTestCase {
         func setCodeSigningRequirement(_ requirement: String) {}
     }
     
-    /// An administrator's Mac Monitor may change the set while it controls the stream, and only list it otherwise; a
+    /// An administrator's Mac Monitor may change the set while it controls the stream, and only list it otherwise. A
     /// standard user's may only ever list it.
     func testAppAccess() {
         XCTAssertEqual(MuteAccess.app(isAdministrator: true, controlsStream: true), .write)
@@ -37,7 +37,7 @@ final class MuteAccessTests: XCTestCase {
         XCTAssertEqual(MuteAccess.app(isAdministrator: false, controlsStream: false), .standardUser)
     }
     
-    /// Each read-only access refuses with its own status and says why; write refuses nothing.
+    /// Each read-only access refuses with its own status and says why. Write refuses nothing.
     func testRefusals() {
         XCTAssertNil(MuteAccess.write.refusal)
         XCTAssertEqual(MuteAccess.read.refusal?.status, .refused)

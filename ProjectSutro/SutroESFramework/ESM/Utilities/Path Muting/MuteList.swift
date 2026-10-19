@@ -62,8 +62,8 @@ public struct MuteList: Equatable, Sendable {
         mutes.forEach { add($0) }
     }
     
-    /// Mac Monitor's default mute set (``MuteSet/default(home:)``) for a console user: what Reset restores and a new
-    /// saved set starts from.
+    /// Mac Monitor's default mute set (``MuteSet/default(home:mutesXcode:)``) for a console user: what Reset restores
+    /// and a new saved set starts from.
     ///
     /// - Parameter user: Whose home folder's caches and Biome streams are muted. Without one, those mutes are left out.
     /// - Returns: The list.
@@ -136,7 +136,7 @@ public struct MuteList: Equatable, Sendable {
         list.mutes.reduce(false) { changed, mute in add(mute) || changed }
     }
     
-    /// Unmute: no events removes the path; events remove only those, and the path once none is left. Unmuting what
+    /// Unmute: no events removes the path. Events remove only those, and the path once none is left. Unmuting what
     /// isn't muted changes nothing, as in Endpoint Security.
     ///
     /// - Parameter mute: The path, its type, and the events to unmute (none for every event).

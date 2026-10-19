@@ -13,7 +13,7 @@ import XCTest
 /// Pins what `macmonitor` tells the user and how it exits for every answer the Security Extension can give and every
 /// way the connection can fail.
 final class CommandLineExitTests: XCTestCase {
-    /// Every reply status maps to its exit status; only `ok` is no failure, and the Security Extension's own words
+    /// Every reply status maps to its exit status. Only `ok` is no failure, and the Security Extension's own words
     /// are kept where they're the clearest.
     func testEveryReplyStatus() {
         let expected: [(StreamReply.Status, CommandLineExit?)] = [
@@ -34,7 +34,7 @@ final class CommandLineExitTests: XCTestCase {
             """)
     }
     
-    /// Every mute reply status maps to its exit status, as the README lists them; the Security Extension's own words
+    /// Every mute reply status maps to its exit status, as the README lists them. The Security Extension's own words
     /// are kept, and a reply without any still says what happened.
     func testEveryMuteReplyStatus() {
         let expected: [(MuteReply.Status, CommandLineExit?)] = [
@@ -64,7 +64,7 @@ final class CommandLineExitTests: XCTestCase {
         XCTAssertEqual(CommandLineFailure.parsing(CocoaError(.fileReadUnknown)).exit, .usage)
     }
     
-    /// XPC errors before the first answer tell "not running" from "refused" from "wrong signature"; after it, the
+    /// XPC errors before the first answer tell "not running" from "refused" from "wrong signature". After it, the
     /// Security Extension stopped. Every connection failure exits 69.
     func testConnectionErrors() {
         func failure(_ code: Int, started: Bool, domain: String = NSCocoaErrorDomain) -> CommandLineFailure {

@@ -75,8 +75,6 @@ final class TelemetryValidatorTraceTests: XCTestCase {
     
     /// JSON Lines, pretty records joined by "\n", compact and pretty JSON arrays, and a byte order mark all give the
     /// same report, but for the lines the issues are on.
-    ///
-    /// - Throws: The error writing or validating a trace.
     func testEveryShapeGivesTheSameReport() throws {
         let records = [record(1), record("two"), record(3)]
         let array = try JSONSerialization.data(withJSONObject: records, options: [.sortedKeys])
@@ -98,8 +96,6 @@ final class TelemetryValidatorTraceTests: XCTestCase {
     
     /// A record cut short, a line that isn't JSON, and braces around text that isn't JSON are malformed, each on its
     /// own line.
-    ///
-    /// - Throws: The error writing or validating the trace.
     func testMalformedRecordsAreNumberedByLine() throws {
         let good = try text([record(1)])[0]
         let report = try validate([good, "not a record", good, "{\"n\": tru}", good, "{\"n\":"].joined(separator: "\n"))
@@ -114,8 +110,6 @@ final class TelemetryValidatorTraceTests: XCTestCase {
     /// A record that isn't JSON is reported on the line where reading it stopped, without the place the parser names,
     /// which counts from the record's first line: the same mistake in two records is one kind of issue. A record on
     /// its own keeps the place.
-    ///
-    /// - Throws: The error writing or validating the trace.
     func testNotJSONIsOnTheLineItStops() throws {
         let good = try text([record(1)], pretty: true)[0], broken = "{\n  \"n\" : 1,\n  \"b\" : ,\n  \"c\" : 2\n}"
         let report = try validate([good, broken, "{\"n\": tru}", "{\"nn\": tru}"].joined(separator: "\n"))
@@ -131,8 +125,6 @@ final class TelemetryValidatorTraceTests: XCTestCase {
     
     /// A file with no records, empty or only blank lines, has no issues but isn't a valid trace: an export that came
     /// out empty mustn't pass.
-    ///
-    /// - Throws: The error writing or validating the trace.
     func testEmptyFileIsNotValid() throws {
         for contents in ["", "\n \n\t\n", "[]"] {
             let report = try validate(contents)
@@ -144,8 +136,6 @@ final class TelemetryValidatorTraceTests: XCTestCase {
     }
     
     /// Only files are validated: a folder is refused.
-    ///
-    /// - Throws: The error making the folder.
     func testFolderIsNotAFile() throws {
         XCTAssertThrowsError(try validator.validate(traceAt: try makeTemporaryDirectory())) { error in
             guard case TraceImporter.Failure.notAFile = error else {
@@ -157,8 +147,6 @@ final class TelemetryValidatorTraceTests: XCTestCase {
     // MARK: Reports
     
     /// A thousand records with the same problem keep the first issues, count every one, and are one kind of issue.
-    ///
-    /// - Throws: The error writing or validating the trace.
     func testIssueLimitAndKinds() throws {
         var seen = 0
         let url = try temporaryFile(containing: try text((0..<1_000).map { record("\($0)") }).joined(separator: "\n"))
@@ -176,8 +164,6 @@ final class TelemetryValidatorTraceTests: XCTestCase {
     
     /// A record's issues past those kept are counted by kind without being made, so a record of millions of broken
     /// values can't take gigabytes: the report counts every one, and `onIssue` gets the ones kept.
-    ///
-    /// - Throws: The error writing or validating the trace.
     func testIssuesPastTheKeptOnesAreCounted() throws {
         let broken = record(1).merging(["list": Array(repeating: "x", count: 100_000)]) { $1 }
         let url = try temporaryFile(containing: try text([broken, record("two")]).joined(separator: "\n"))
@@ -194,8 +180,6 @@ final class TelemetryValidatorTraceTests: XCTestCase {
     
     /// Text a trace chooses is cut before it's kept: a megabyte telemetry version, and a megabyte key that's an
     /// identifier or isn't, take no more of the report than short ones, so the report's size doesn't follow the file's.
-    ///
-    /// - Throws: The error writing or validating the trace.
     func testTraceTextIsCut() throws {
         let long = String(repeating: "a", count: 1 << 20)
         let cut = String(repeating: "a", count: JSONText.maxQuoted) + "…", quoted = "\"\(cut)\""
@@ -210,9 +194,7 @@ final class TelemetryValidatorTraceTests: XCTestCase {
         XCTAssertLessThan(report.report(fileName: "trace.jsonl").utf8.count, 2_048)
     }
     
-    /// Cancelling stops before the next record, and the report says it stopped; progress ends at the file's size.
-    ///
-    /// - Throws: The error writing or validating the trace.
+    /// Cancelling stops before the next record, and the report says it stopped. Progress ends at the file's size.
     func testCancellationAndProgress() throws {
         let url = try temporaryFile(containing: try text((0..<5).map { record($0) }).joined(separator: "\n"))
         var asked = 0
@@ -229,11 +211,9 @@ final class TelemetryValidatorTraceTests: XCTestCase {
         XCTAssertEqual(reports.last?.1, size)
     }
     
-    /// eslogger's own JSON gets a hint to check its eslogger fields, ending with the front end's own advice; an export
-    /// from before telemetry versions a hint to export it again; and another telemetry version a hint to use its own
-    /// schema. JSON that's neither eslogger's nor Mac Monitor's gets none.
-    ///
-    /// - Throws: The error reading a fixture, or writing or validating a trace.
+    /// eslogger's own JSON gets a hint to check its eslogger fields, ending with the front end's own advice. An export
+    /// from before telemetry versions gets a hint to export it again. Another telemetry version gets a hint to use its
+    /// own schema. JSON that's neither eslogger's nor Mac Monitor's gets none.
     func testHints() throws {
         let eslogger = try validate(try text([esloggerJSON(1), esloggerJSON(2)]).joined(separator: "\n"))
         let esloggerHint = "This looks like eslogger's JSON, without Mac Monitor's fields."
@@ -263,8 +243,6 @@ final class TelemetryValidatorTraceTests: XCTestCase {
     /// A trace looks like eslogger's when every record that's JSON has eslogger's envelope without Mac Monitor's
     /// fields: the app then offers to check its eslogger fields, which never looks like eslogger's again. An empty or
     /// malformed trace, JSON without eslogger's envelope, or one record with Mac Monitor's fields, doesn't.
-    ///
-    /// - Throws: The error writing or validating a trace.
     func testLooksLikeESLogger() throws {
         let eslogger = try text([esloggerJSON(1), esloggerJSON(2)]).joined(separator: "\n")
         XCTAssertTrue(try validate(eslogger).looksLikeESLogger)
@@ -285,8 +263,6 @@ final class TelemetryValidatorTraceTests: XCTestCase {
     
     /// The report is the summary, the hint, then its details: the kinds of issue and the issues kept, which are empty
     /// for a valid trace.
-    ///
-    /// - Throws: The error writing or validating a trace.
     func testReportDetails() throws {
         let valid = try validate(try text([record(1)])[0])
         XCTAssertEqual(valid.details, "")
@@ -309,8 +285,6 @@ final class TelemetryValidatorTraceTests: XCTestCase {
     }
     
     /// Records checked a batch at a time in parallel give the same report, in file order, as one at a time.
-    ///
-    /// - Throws: The error writing or validating the trace.
     func testParallelBatchesKeepFileOrder() throws {
         let records = (0..<1_200).map { $0 % 7 == 0 ? record("\($0)") : record($0) }
         let url = try temporaryFile(containing: try text(records).joined(separator: "\n"))

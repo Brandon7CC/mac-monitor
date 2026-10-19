@@ -72,7 +72,7 @@ final class EventBatcherTests: XCTestCase {
         XCTAssertEqual(delivery.events, ["1", "2", "3", "4", "5"])
     }
     
-    /// No more batches await a reply than the window allows; each reply sends the next, in order.
+    /// No more batches await a reply than the window allows. Each reply sends the next, in order.
     func testTheWindowLimitsBatchesInFlight() {
         let batcher = makeBatcher(limits(batch: 1, window: 2, memory: 100), overflow: .pause { _ in })
         enqueue(1...5, to: batcher)

@@ -31,8 +31,6 @@ final class CaptureSessionStartTests: XCTestCase {
     }
     
     /// One client is made per class, in ``EventClass/allCases`` order, and each subscribes only to its class's share.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testEachClassGetsItsOwnClient() throws {
         let factory = FakeEndpointSecurityClientFactory()
         let session = try makeSession(configuration, factory: factory)
@@ -47,8 +45,6 @@ final class CaptureSessionStartTests: XCTestCase {
     }
     
     /// Every client mutes this process before it subscribes.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testEveryClientMutesThisProcessBeforeSubscribing() throws {
         let factory = FakeEndpointSecurityClientFactory()
         _ = try makeSession(configuration, factory: factory)
@@ -66,8 +62,6 @@ final class CaptureSessionStartTests: XCTestCase {
     
     /// Every client gets the configuration's path mutes, one call per event, before it subscribes, and the session
     /// records them as applied.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testEveryClientGetsTheSameMutesBeforeSubscribing() throws {
         let factory = FakeEndpointSecurityClientFactory()
         let session = try makeSession(configuration, factory: factory)
@@ -83,8 +77,6 @@ final class CaptureSessionStartTests: XCTestCase {
     }
     
     /// No mutes, as `macmonitor stream --no-mutes` asks, sends no path mutes.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testNoMutesSendNoPathMutes() throws {
         var bare = configuration
         bare.mutes = MuteList()
@@ -95,14 +87,12 @@ final class CaptureSessionStartTests: XCTestCase {
     }
     
     /// Endpoint Security's default mutes are read from the first client before any of Mac Monitor's are applied.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testAppleMuteSetIsReadBeforeMacMonitorsMutes() throws {
         let apple = [ESMutedPath(type: "ES_MUTE_PATH_TYPE_LITERAL", events: [], path: "/usr/libexec/apple")]
         let factory = FakeEndpointSecurityClientFactory(mutedPaths: [0: apple])
         let session = try makeSession(configuration, factory: factory)
         XCTAssertEqual(session.appleMuteSet, Set(apple.map { pathToJSON(value: $0) }))
-        let calls = factory.clients[0].calls
+        let calls = factory.client(.process).calls
         let read = try XCTUnwrap(calls.firstIndex(of: .mutedPaths))
         let firstMute = try XCTUnwrap(calls.firstIndex { $0.kind == .setPathMute })
         XCTAssertLessThan(read, firstMute)
@@ -116,7 +106,7 @@ final class CaptureSessionStartTests: XCTestCase {
             XCTAssertEqual((error as? CaptureStartError)?.clientResult, .tooManyClients)
         }
         XCTAssertEqual(factory.clients.count, 1)
-        XCTAssertEqual(factory.clients[0].calls, [.delete])
+        XCTAssertEqual(factory.client(.process).calls, [.delete])
     }
     
     /// A refused third client throws, and the first two are deleted.
@@ -142,13 +132,11 @@ final class CaptureSessionStartTests: XCTestCase {
             XCTAssertEqual(client.calls.suffix(2), [.unsubscribeAll, .delete])
             XCTAssertEqual(client.calls(.delete).count, 1)
         }
-        XCTAssertTrue(factory.clients[2].calls(.subscribe).isEmpty)
+        XCTAssertTrue(factory.client(.memory).calls(.subscribe).isEmpty)
     }
     
-    /// AUTH events, unknown names, events Mac Monitor doesn't model, and repeats are left out; the rest keep their
+    /// AUTH events, unknown names, events Mac Monitor doesn't model, and repeats are left out. The rest keep their
     /// order.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testUnmodeledEventsAreLeftOut() throws {
         var requested = configuration
         requested.events = [ES_EVENT_TYPE_NOTIFY_EXEC, ES_EVENT_TYPE_AUTH_OPEN, ES_EVENT_TYPE_LAST,
@@ -156,34 +144,30 @@ final class CaptureSessionStartTests: XCTestCase {
         let factory = FakeEndpointSecurityClientFactory()
         let session = try makeSession(requested, factory: factory)
         XCTAssertEqual(session.subscribedEvents, [ES_EVENT_TYPE_NOTIFY_EXEC, ES_EVENT_TYPE_NOTIFY_OPEN])
-        XCTAssertEqual(factory.clients[0].calls(.subscribe), [.subscribe([ES_EVENT_TYPE_NOTIFY_EXEC])])
-        XCTAssertEqual(factory.clients[1].calls(.subscribe), [.subscribe([ES_EVENT_TYPE_NOTIFY_OPEN])])
-        XCTAssertEqual(factory.clients[2].calls(.subscribe), [.subscribe([])])
+        XCTAssertEqual(factory.client(.process).calls(.subscribe), [.subscribe([ES_EVENT_TYPE_NOTIFY_EXEC])])
+        XCTAssertEqual(factory.client(.file).calls(.subscribe), [.subscribe([ES_EVENT_TYPE_NOTIFY_OPEN])])
+        XCTAssertEqual(factory.client(.memory).calls(.subscribe), [.subscribe([])])
     }
     
     /// A class with no events starts even though its client would refuse a subscription: an empty share succeeds
     /// without asking Endpoint Security, as the live client's does.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testAClassWithNoEventsNeedsNoSubscription() throws {
         var requested = configuration
         requested.events = [ES_EVENT_TYPE_NOTIFY_EXEC, ES_EVENT_TYPE_NOTIFY_OPEN]
         let factory = FakeEndpointSecurityClientFactory(refusing: [2: [.subscribe]])
         let session = try makeSession(requested, factory: factory)
         XCTAssertEqual(session.subscribedEvents, [ES_EVENT_TYPE_NOTIFY_EXEC, ES_EVENT_TYPE_NOTIFY_OPEN])
-        XCTAssertEqual(factory.clients[2].calls(.subscribe), [.subscribe([])])
+        XCTAssertEqual(factory.client(.memory).calls(.subscribe), [.subscribe([])])
     }
     
     /// A new session serializes nothing until it's told to record.
-    ///
-    /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func testNewSessionIsNotRecording() throws {
         let factory = FakeEndpointSecurityClientFactory()
         let emitted = EmittedEvents()
         var serialized = 0
         let serializer = StubSerializer { _, _ in serialized += 1; return Data() }
         let session = try makeSession(configuration, factory: factory, serializer: serializer, emitted: emitted)
-        factory.clients[0].deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 1))
+        factory.client(.process).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 1))
         XCTAssertFalse(session.isRecording)
         XCTAssertEqual(serialized, 0)
         XCTAssertTrue(emitted.all.isEmpty)

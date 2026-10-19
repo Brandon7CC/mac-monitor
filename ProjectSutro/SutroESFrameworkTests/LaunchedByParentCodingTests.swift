@@ -31,8 +31,6 @@ final class LaunchedByParentCodingTests: XCTestCase {
     }
     
     /// Every key is written, `null` when unknown, and a token has eslogger's eight keys and no `id`.
-    ///
-    /// - Throws: The encoder's error.
     func testEveryKeyIsWritten() throws {
         let keys: Set = ["source", "audit_token", "pid", "path", "launchd_job", "resolved_by"]
         let named = try object(shellChild)
@@ -50,8 +48,6 @@ final class LaunchedByParentCodingTests: XCTestCase {
     }
     
     /// What's written reads back equal, and so does a token with Mac Monitor's `id`.
-    ///
-    /// - Throws: The encoder's or decoder's error.
     func testRoundTrip() throws {
         for value in [shellChild, unnamed] {
             XCTAssertEqual(try JSONDecoder().decode(LaunchedByParent.self, from: JSONEncoder().encode(value)), value)
@@ -65,8 +61,6 @@ final class LaunchedByParentCodingTests: XCTestCase {
     }
     
     /// An export's sorted keys give one fixed text, and an answer stays small.
-    ///
-    /// - Throws: The encoder's error.
     func testSortedShape() throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
@@ -86,8 +80,6 @@ final class LaunchedByParentCodingTests: XCTestCase {
     }
     
     /// Read as a member, one that can't be read is no launched-by parent, and the object holding it still reads.
-    ///
-    /// - Throws: The decoder's error for the object holding it.
     func testReadingAsMemberIsLenient() throws {
         /// An object with a launched-by parent, decoded the way an exec or fork event decodes its own.
         struct Holder: Decodable {

@@ -78,7 +78,7 @@ final class ThreadStateFlavorTests: XCTestCase {
         XCTAssertNil(ThreadStateFlavor.x86_64[14])
     }
     
-    /// Every name maps back to its flavor, on either architecture; `THREAD_STATE_NONE`, in both, to this Mac's.
+    /// Every name maps back to its flavor, on either architecture. `THREAD_STATE_NONE` maps to this Mac's in both.
     func testReverseLookup() {
         for table in [ThreadStateFlavor.arm64, ThreadStateFlavor.x86_64] {
             for (flavor, name) in table where name != "THREAD_STATE_NONE" {

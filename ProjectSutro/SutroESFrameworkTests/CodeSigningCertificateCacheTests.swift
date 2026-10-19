@@ -12,12 +12,12 @@ import os
 
 // MARK: - Code signing certificate cache
 /// Pins ``CodeSigningCertificateCache``: a file's certificates are read once and remembered until the file changes,
-/// the entry expires, or the table fills up; anything that can't be `stat`ed or read is read again every time.
+/// the entry expires, or the table fills up. Anything that can't be `stat`ed or read is read again every time.
 final class CodeSigningCertificateCacheTests: XCTestCase {
     /// Counts reads, and answers each with a certificate naming the path and how many reads came before.
     private final class Reader {
         private let reads = OSAllocatedUnfairLock(initialState: 0)
-        /// What a read returns; `nil` stands for a signature that can't be read.
+        /// What a read returns. `nil` stands for a signature that can't be read.
         var fails = false
         
         /// How many reads there were.
@@ -80,8 +80,6 @@ final class CodeSigningCertificateCacheTests: XCTestCase {
     }
     
     /// The second lookup of an unchanged file returns the first read's certificates without reading.
-    ///
-    /// - Throws: The error writing the file.
     func testHitReturnsRememberedCertificates() throws {
         let path = try write("tool", in: try makeTemporaryDirectory(), "binary")
         let cache = makeCache()
@@ -92,8 +90,6 @@ final class CodeSigningCertificateCacheTests: XCTestCase {
     }
     
     /// A file rewritten in place (same inode, new size or times) is read again.
-    ///
-    /// - Throws: The error writing the file.
     func testRewrittenFileIsReadAgain() throws {
         let directory = try makeTemporaryDirectory()
         let path = try write("tool", in: directory, "binary")
@@ -111,8 +107,6 @@ final class CodeSigningCertificateCacheTests: XCTestCase {
     }
     
     /// A file replaced by another (a new inode) with the same size and modification time is read again.
-    ///
-    /// - Throws: The error writing the files.
     func testReplacedFileIsReadAgain() throws {
         let directory = try makeTemporaryDirectory()
         let path = try write("tool", in: directory, "binary")
@@ -127,8 +121,6 @@ final class CodeSigningCertificateCacheTests: XCTestCase {
     }
     
     /// An entry is used for its lifetime, then the file is read again.
-    ///
-    /// - Throws: The error writing the file.
     func testEntriesExpire() throws {
         let path = try write("tool", in: try makeTemporaryDirectory(), "binary")
         let cache = makeCache(lifetime: 10)
@@ -141,8 +133,6 @@ final class CodeSigningCertificateCacheTests: XCTestCase {
     }
     
     /// At capacity, the table is emptied before the next file is added.
-    ///
-    /// - Throws: The error writing the files.
     func testTableEmptiesAtCapacity() throws {
         let directory = try makeTemporaryDirectory()
         let paths = try (0..<3).map { try write("tool\($0)", in: directory, "binary") }
@@ -168,8 +158,6 @@ final class CodeSigningCertificateCacheTests: XCTestCase {
     }
     
     /// A signature that can't be read gives no certificates and isn't remembered, so the next event tries again.
-    ///
-    /// - Throws: The error writing the file.
     func testFailedReadIsNotRemembered() throws {
         let path = try write("tool", in: try makeTemporaryDirectory(), "binary")
         let cache = makeCache()
@@ -181,8 +169,6 @@ final class CodeSigningCertificateCacheTests: XCTestCase {
     }
     
     /// Lanes looking up the same files at once all get their certificates.
-    ///
-    /// - Throws: The error writing the files.
     func testConcurrentLookups() throws {
         let directory = try makeTemporaryDirectory()
         let paths = try (0..<8).map { try write("tool\($0)", in: directory, "binary") }
@@ -197,8 +183,6 @@ final class CodeSigningCertificateCacheTests: XCTestCase {
     
     /// Through ``ProcessHelpers``, a real executable's certificates are the ones a fresh read finds, each time as new
     /// values.
-    ///
-    /// - Throws: An `XCTest` failure if the signature can't be read.
     func testProcessHelpersMatchAFreshRead() throws {
         let fresh = try XCTUnwrap(ProcessHelpers.readCodeSigningCerts(forBinaryAt: "/usr/bin/true"))
         let first = ProcessHelpers.getCodeSigningCerts(forBinaryAt: "/usr/bin/true")

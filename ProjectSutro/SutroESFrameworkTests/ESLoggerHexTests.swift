@@ -99,8 +99,6 @@ final class ESLoggerHexTests: XCTestCase {
     }
     
     /// A certificate's thumbprint is its SHA-1 in lowercase hex, as `%02hhx` wrote it.
-    ///
-    /// - Throws: An `XCTest` failure if the signature can't be read.
     func testCertificateThumbprintsMatchStringFormat() throws {
         let chain = ProcessHelpers.getCodeSigningCerts(forBinaryAt: "/usr/bin/true")
         XCTAssertFalse(chain.isEmpty)

@@ -47,7 +47,7 @@ struct LineageLookup {
     /// ``ESMessage/created_audit_token``.
     ///
     /// - Parameter token: The image's audit token, in ``AuditToken/toString()``'s format.
-    /// - Returns: The image's exec, or without one its fork; `nil` when the store has neither, or `token` is empty.
+    /// - Returns: The image's exec, or without one its fork. `nil` when the store has neither, or `token` is empty.
     /// - Throws: The fetch's error.
     func creator(ofImage token: String) throws -> ESMessage? {
         if let creator = try creator(ofToken: token) { return creator }

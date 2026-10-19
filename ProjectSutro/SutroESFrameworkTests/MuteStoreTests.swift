@@ -30,8 +30,6 @@ final class MuteStoreTests: XCTestCase {
     }
     
     /// No file, or no directory, is a first run.
-    ///
-    /// - Throws: An unexpected error.
     func testNothingSavedIsMissing() throws {
         let store = try makeMuteStore()
         XCTAssertEqual(try store.load(), .missing)
@@ -39,9 +37,7 @@ final class MuteStoreTests: XCTestCase {
         XCTAssertEqual(try unborn.load(), .missing)
     }
     
-    /// Saving writes the canonical file, owner-only, and nothing else; it reads back as the same list.
-    ///
-    /// - Throws: An unexpected error.
+    /// Saving writes the canonical file, owner-only, and nothing else. It reads back as the same list.
     func testSaveWritesTheCanonicalFile() throws {
         let store = try makeMuteStore()
         try store.save(list)
@@ -52,8 +48,6 @@ final class MuteStoreTests: XCTestCase {
     }
     
     /// Saving creates a missing directory, 0700.
-    ///
-    /// - Throws: An unexpected error.
     func testSaveCreatesTheDirectory() throws {
         let parent = try makeMuteDirectory()
         let store = MuteStore(directory: parent.appendingPathComponent("store"), owner: getuid())
@@ -63,8 +57,6 @@ final class MuteStoreTests: XCTestCase {
     }
     
     /// A temporary file a crash left behind is removed on load.
-    ///
-    /// - Throws: An unexpected error.
     func testLeftoversAreRemoved() throws {
         let store = try makeMuteStore()
         try store.save(list)
@@ -74,8 +66,6 @@ final class MuteStoreTests: XCTestCase {
     }
     
     /// A save that fails keeps the old file and leaves no temporary file.
-    ///
-    /// - Throws: An unexpected error.
     func testFailedSaveKeepsTheOldFile() throws {
         let store = try makeMuteStore()
         try store.save(list)
@@ -89,8 +79,6 @@ final class MuteStoreTests: XCTestCase {
     }
     
     /// Corrupt JSON, or a file over 1 MiB, is moved aside and reported.
-    ///
-    /// - Throws: An unexpected error.
     func testUnreadableFilesAreMovedAside() throws {
         let store = try makeMuteStore()
         for contents in ["nope", String(repeating: " ", count: MuteLimits.maxFileBytes + 1)] {
@@ -103,8 +91,6 @@ final class MuteStoreTests: XCTestCase {
     }
     
     /// A FIFO named `mutes.json` is moved aside without being opened, so loading never waits for a writer.
-    ///
-    /// - Throws: An unexpected error.
     func testAFIFOIsNeverOpened() throws {
         let store = try makeMuteStore()
         XCTAssertEqual(mkfifo(store.fileURL.path, 0o600), 0)
@@ -115,9 +101,7 @@ final class MuteStoreTests: XCTestCase {
         XCTAssertEqual(namesInDirectory(of: store), [MuteStore.unreadableFileName])
     }
     
-    /// A link named `mutes.json` is moved aside itself; what it points to is never read or touched.
-    ///
-    /// - Throws: An unexpected error.
+    /// A link named `mutes.json` is moved aside itself. What it points to is never read or touched.
     func testALinkIsNeverFollowed() throws {
         let store = try makeMuteStore()
         let target = try makeMuteDirectory().appendingPathComponent("elsewhere.json")
@@ -131,8 +115,6 @@ final class MuteStoreTests: XCTestCase {
     }
     
     /// A file from a newer Mac Monitor is reported and left byte for byte as it was.
-    ///
-    /// - Throws: An unexpected error.
     func testANewerFileIsLeftAlone() throws {
         let store = try makeMuteStore()
         let newer = #"{"version": 2, "mutes": [], "rules": []}"#
@@ -142,8 +124,6 @@ final class MuteStoreTests: XCTestCase {
     }
     
     /// Event names only a newer Mac Monitor knows are left out with a warning, not treated as damage.
-    ///
-    /// - Throws: An unexpected error.
     func testUnknownEventsAreLeftOut() throws {
         let store = try makeMuteStore()
         try writeSavedFile("""
@@ -159,8 +139,6 @@ final class MuteStoreTests: XCTestCase {
     }
     
     /// A directory others can write, or one owned by someone else, is neither read nor written.
-    ///
-    /// - Throws: An unexpected error.
     func testAnUntrustedDirectoryIsRefused() throws {
         let store = try makeMuteStore()
         try store.save(list)

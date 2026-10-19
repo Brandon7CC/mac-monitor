@@ -69,8 +69,6 @@ final class ExportEncoderTests: XCTestCase {
     
     /// Every fixture's events, encoded one per line, are byte for byte the export of the same events saved in a store
     /// on disk (which joins records with newlines and ends without one).
-    ///
-    /// - Throws: The error reading a fixture, building the store, or exporting it.
     func testRecordsMatchTheStoresExport() throws {
         let messages = try allFixtureMessages()
         let encoder = ExportEncoder(model: eventModel)
@@ -82,8 +80,6 @@ final class ExportEncoderTests: XCTestCase {
     
     /// After the trip over the wire (the capture lane's encoder, then `JSONDecoder`), a record is still exactly the
     /// export of the original event, and ends in exactly one newline.
-    ///
-    /// - Throws: The error reading a fixture, or encoding or decoding an event.
     func testTheWireChangesNothing() throws {
         let encoder = ExportEncoder(model: eventModel)
         for message in try allFixtureMessages() {
@@ -96,8 +92,6 @@ final class ExportEncoderTests: XCTestCase {
     
     /// Many events through one encoder, reset after each batch as the pipeline does, stay byte for byte what a fresh
     /// encoder writes: no rows leak from one event or batch into the next.
-    ///
-    /// - Throws: The error reading a fixture.
     func testManyEventsDontLeakIntoEachOther() throws {
         let messages = try allFixtureMessages()
         let expected = messages.map { ExportEncoder(model: eventModel).line(for: $0) }

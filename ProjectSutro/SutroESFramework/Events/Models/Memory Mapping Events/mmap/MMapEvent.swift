@@ -13,7 +13,8 @@ public struct MMapEvent: Identifiable, Codable, Hashable {
     public var id: UUID = UUID.buffered()
     
     public var protection, max_protection, flags: Int32
-    public var file_pos: Int
+    /// Endpoint Security's `uint64_t`, kept by bit pattern as `Stat`'s `st_ino` is.
+    public var file_pos: Int64
     public var source: File
     
     public func hash(into hasher: inout Hasher) {
@@ -30,7 +31,7 @@ public struct MMapEvent: Identifiable, Codable, Hashable {
         self.protection = mmapEvent.protection
         self.max_protection = mmapEvent.max_protection
         self.flags = mmapEvent.flags
-        self.file_pos = Int(mmapEvent.file_pos)
+        self.file_pos = Int64(bitPattern: mmapEvent.file_pos)
         self.source = File(from: mmapEvent.source.pointee)
     }
 }
