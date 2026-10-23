@@ -28,6 +28,10 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
     public var command_line: String?
     public var script_content: String?
     public var resolved_script_path: String?
+    /// Milliseconds from the target executable's birth (its `stat`'s `st_birthtimespec`) to the exec: a binary that
+    /// runs seconds after it was written is new, as a dropper's payload is. `nil` when the birth time is unknown. Set
+    /// with the message's time (``Message/deriveExecutableAge()``).
+    public var executable_age_ms: Int?
     /// Mac Monitor's launched-by parent of ``target`` (``LaunchedByParent``): stamped by the Security Extension's
     /// serializer from the message's own fields, not by ``enrich()``, which also runs on traces recorded on other Macs,
     /// where no process's path may be read. `nil` until it's resolved.

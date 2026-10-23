@@ -26,6 +26,8 @@ extension ESProcessExecEvent {
     /// The `id` ``target`` had in this event (and exports). A shared row keeps the `id` of the first event that stored it.
     @NSManaged public var target_id: UUID?
     @NSManaged public var dyld_exec_path: String?
+    /// Milliseconds from the executable's birth to the exec (``ProcessExecEvent/executable_age_ms``), or `nil`.
+    @NSManaged public var executable_age_ms: NSNumber?
     @NSManaged public var script: ESFile?
     @NSManaged public var cwd: ESFile?
     @NSManaged public var last_fd: Int64

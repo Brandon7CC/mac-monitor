@@ -100,6 +100,27 @@ final class TraceImporterMessageTests: XCTestCase {
         XCTAssertEqual(message.process.cs_validation_category_string, "ES_CS_VALIDATION_CATEGORY_PLATFORM")
     }
     
+    /// The code signing flags are named, and an exec's executable is dated against the exec: 3.25 s old here.
+    func testEsloggerExecIsEnriched() throws {
+        let exit = try TraceImporter.message(from: try fixture(Self.esloggerExit))
+        XCTAssertEqual(exit.process.codesigning_flag_names,
+                       ["CS_VALID", "CS_KILL", "CS_RESTRICT", "CS_ENTITLEMENTS_VALIDATED", "CS_RUNTIME",
+                        "CS_NO_UNTRUSTED_HELPERS", "CS_PLATFORM_BINARY", "CS_SIGNED"])
+        XCTAssertEqual(ProcessHelpers.codeSigningFlagNames(0x0002_0002), ["CS_ADHOC", "CS_LINKER_SIGNED"])
+        XCTAssertEqual(ProcessHelpers.codeSigningFlagNames(0x8000_0000), ["CS_DATAVAULT_CONTROLLER"])
+        
+        var target = try shell()
+        var executable = try XCTUnwrap(target["executable"] as? [String: Any])
+        var stat = try XCTUnwrap(executable["stat"] as? [String: Any])
+        stat["st_birthtimespec"] = "2026-10-04T00:01:52.031215406Z"
+        executable["stat"] = stat
+        target["executable"] = executable
+        guard case .exec(let exec) = try execMessage(by: try shell(), of: target).event else {
+            return XCTFail("Not an exec")
+        }
+        XCTAssertEqual(exec.executable_age_ms, 3250)
+    }
+    
     /// An event's own file is read, its stat times included, and becomes its context and target path.
     func testEsloggerOpen() throws {
         let message = try TraceImporter.message(from: try fixture(Self.esloggerOpen))

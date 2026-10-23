@@ -161,6 +161,7 @@ public struct Message: Identifiable, Codable, Hashable {
         
         /// Mac Monitor enrichment: `es_event_type`, `action_type_string`, `context` and `target_path`.
         enrich()
+        deriveExecutableAge()
     }
 }
 
@@ -191,5 +192,15 @@ extension Message: ESEnrichable {
         default: "UNKNOWN_ACTION"
         }
         (context, target_path) = event.summary(initiatingPath: process.executable?.path ?? "")
+    }
+    
+    /// Derive an exec's ``ProcessExecEvent/executable_age_ms`` from the message's time, unless it has one. Not part
+    /// of ``enrich()``: a trace's message gets its time after it's decoded (``TraceImporter/message(from:)``).
+    mutating func deriveExecutableAge() {
+        guard case .exec(var exec) = event, exec.executable_age_ms == nil,
+              let birth = exec.target.executable?.stat.st_birthtimespec, birth.tv_sec > 0 else { return }
+        let born = Date(timeIntervalSince1970: TimeInterval(birth.tv_sec) + TimeInterval(birth.tv_nsec) / 1e9)
+        exec.executable_age_ms = Int((message_darwin_time.timeIntervalSince(born) * 1000).rounded())
+        event = .exec(exec)
     }
 }

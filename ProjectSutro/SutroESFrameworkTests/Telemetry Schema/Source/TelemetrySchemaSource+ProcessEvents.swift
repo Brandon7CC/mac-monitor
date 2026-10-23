@@ -75,6 +75,9 @@ extension TelemetrySchemaSource {
             eslogger("dyld_exec_path", .nullable(.string), "null before message version 7.",
                      absent: Absence("the Mac that wrote the record ran macOS 13.0 to 13.2", observable: false)),
             enrichment("command_line", .string, "`args` joined by spaces."),
+            enrichment("executable_age_ms", .nullable(.integer),
+                       "Milliseconds from the target's executable's birth (its stat's st_birthtimespec) to the exec. "
+                       + "null when the birth time is unknown."),
             enrichment("certificate_chain", .array(.object(certificate)),
                      "The target's signing certificates, leaf first.",
                      absent: Absence("the target has none")),

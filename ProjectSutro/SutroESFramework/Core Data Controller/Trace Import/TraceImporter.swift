@@ -265,6 +265,7 @@ public final class TraceImporter {
             message.message_darwin_time = date
         }
         message.time = ESLogger.time(message.time, darwinTime: message.message_darwin_time)
+        message.deriveExecutableAge()
         message.repairNewPath()
         return message
     }

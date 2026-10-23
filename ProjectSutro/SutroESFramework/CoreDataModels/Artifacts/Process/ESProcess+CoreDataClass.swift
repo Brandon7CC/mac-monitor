@@ -136,6 +136,7 @@ struct ESProcessRecord: Encodable {
 extension ESProcess: Encodable {
     enum CodingKeys: String, CodingKey {
         case id, start_time, pid, ppid, original_ppid, group_id, session_id, audit_token, audit_token_string, parent_audit_token, parent_audit_token_string, responsible_audit_token, responsible_audit_token_string, codesigning_flags, cdhash, signing_id, team_id, is_adhoc_signed, is_platform_binary, is_es_client, cs_validation_category, cs_validation_category_string, executable, file_quarantine_type, codesigning_type, tty, euid, euid_human, ruid, ruid_human
+        case codesigning_flag_names
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -171,6 +172,8 @@ extension ESProcess: Encodable {
         try container.encode(team_id, forKey: .team_id)
         try container.encodeIfPresent(cdhash, forKey: .cdhash)
         try container.encode(is_adhoc_signed, forKey: .is_adhoc_signed)
+        /// Derived when written, from the flags: not stored.
+        try container.encode(ProcessHelpers.codeSigningFlagNames(codesigning_flags), forKey: .codesigning_flag_names)
         
         /// Endpoint Security's from message version 10 (`ESMessageCore.h`), and stored with its name only then: before
         /// it eslogger writes no category, and the attribute's default (0) would read as
@@ -193,5 +196,20 @@ extension ESProcess: Encodable {
         try container.encode(ruid, forKey: .ruid)
         try container.encodeIfPresent(euid_human, forKey: .euid_human)
         try container.encodeIfPresent(ruid_human, forKey: .ruid_human)
+    }
+}
+
+
+// MARK: - Code signing flags
+extension ESProcess {
+    /// The names of the flags set in ``codesigning_flags`` (``ProcessHelpers/codeSigningFlagNames(_:)``).
+    public var codesigningFlagNames: [String] {
+        ProcessHelpers.codeSigningFlagNames(codesigning_flags)
+    }
+
+    /// Is the process ad hoc signed by the linker, as a freshly compiled binary is?
+    public var isLinkerSignedAdhoc: Bool {
+        let names = codesigningFlagNames
+        return names.contains("CS_ADHOC") && names.contains("CS_LINKER_SIGNED")
     }
 }

@@ -41,6 +41,9 @@ extension TelemetrySchemaSource {
             eslogger("team_id", .nullable(.string)),
             eslogger("cdhash", .pattern(.cdhash)),
             enrichment("is_adhoc_signed", .boolean, "Whether `codesigning_flags` has CS_ADHOC."),
+            enrichment("codesigning_flag_names", .array(.string),
+                       "The names of the flags `codesigning_flags` sets, from cs_blobs.h, in bit order: CS_VALID, "
+                       + "CS_RUNTIME (the hardened runtime), CS_LINKER_SIGNED."),
             eslogger("cs_validation_category", .integer,
                      absent: Absence("the message's version is before 10 (macOS 26)")),
             enrichment("cs_validation_category_string", .string, "The name of `cs_validation_category`.",

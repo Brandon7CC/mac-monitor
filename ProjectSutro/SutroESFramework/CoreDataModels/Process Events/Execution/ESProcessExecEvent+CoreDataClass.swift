@@ -49,6 +49,7 @@ public class ESProcessExecEvent: NSManagedObject {
         case env
         case script_content
         case launched_by_parent
+        case executable_age_ms
     }
     
     public var args: [String] {
@@ -153,6 +154,7 @@ public class ESProcessExecEvent: NSManagedObject {
         self.command_line = execEvent.command_line ?? ""
         self.certificate_chain = execEvent.certificate_chain
         self.launched_by_parent = execEvent.launched_by_parent
+        self.executable_age_ms = execEvent.executable_age_ms.map { NSNumber(value: $0) }
     }
 }
 
@@ -181,6 +183,8 @@ extension ESProcessExecEvent: Encodable {
         }
         
         try container.encode(command_line, forKey: .command_line)
+        /// `null` when the executable's birth time is unknown, so the key is always there.
+        try container.encode(executable_age_ms?.intValue, forKey: .executable_age_ms)
         
         // @note don't include the cert chain in json if there is none
         if !self.certificate_chain.isEmpty && self.certificate_chain.count != 0 {
@@ -189,5 +193,23 @@ extension ESProcessExecEvent: Encodable {
         
         /// Mac Monitor's enrichment beside eslogger's fields: `null` when there's none, so the key is always there.
         try container.encode(launched_by_parent, forKey: .launched_by_parent)
+    }
+}
+
+
+// MARK: - Executable age
+extension ESProcessExecEvent {
+    /// An executable created less than this many seconds before it ran is new, as a dropper's payload is.
+    public static let newExecutableAge: TimeInterval = 300
+
+    /// Seconds from the executable's birth to the exec (``executable_age_ms``), or `nil` when it's unknown or the
+    /// birth time is after the exec.
+    public var executableAge: TimeInterval? {
+        executable_age_ms.map { $0.doubleValue / 1000 }.flatMap { $0 >= 0 ? $0 : nil }
+    }
+
+    /// Was the executable created just before it ran (``newExecutableAge``)?
+    public var isNewExecutable: Bool {
+        executableAge.map { $0 < Self.newExecutableAge } ?? false
     }
 }

@@ -6,406 +6,315 @@
 //
 
 import SwiftUI
-import OSLog
+import CoreData
 import SutroESFramework
 
 
-@available(macOS 14, *)
-struct CustomizableSystemEnrichedTableView: View {
-    @SceneStorage("SystemEnrichedTableConfig")
-    private var columnCustomization: TableColumnCustomization<ESMessage>
-    
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @Environment(\.openWindow) private var openEventJSON
-    
-    @EnvironmentObject var userPrefs: UserPrefs
-    
-    var eventsInScope: [ESMessage]
-    @State private var unifiedEventSelection = Set<Message.ID>()
-    
-    
-    @Binding var allFilters: Filters
-    
-    var body: some View {
-        Table(of: ESMessage.self, selection: $unifiedEventSelection, columnCustomization: $columnCustomization) {
-            TableColumn("Timestamp") { event in
-                Text("`\(eventTimeStamp(for: event))`")
-            }
-            .width(min: 100, ideal: 100, max: 100)
-            .customizationID("Timestamp")
-            
-            TableColumn("Event type") { event in
-                SystemEventTypeLabel(message: event)
-            }
-            .width(min: 150, ideal: 200, max: 300)
-            .customizationID("Event type")
-            .disabledCustomizationBehavior(.visibility)
-            
-            TableColumn("Context") { event in
-                Text(event.context!)
-            }
-            .width(min: 80, ideal: 200, max: 2000)
-            .customizationID("Context")
-            
-            TableColumn("Source Process path") { event in
-                let path = event.process.executable?.path ?? ""
-                Text("`\(path)`")
-            }
-            .width(min: 50, ideal: 200, max: 2000)
-            .customizationID("Source Process path")
-            .defaultVisibility(.hidden)
-            
-            TableColumn("Source Signing ID") { event in
-                Text(event.process.signing_id ?? "")
-            }
-            .width(min: 80, ideal: 100, max: 200)
-            .customizationID("Source Signing ID")
-        } rows: {
-            ForEach(eventsInScope) { (message: ESMessage) in
-                TableRow(message).contextMenu {
-                    if message.event.exec != nil {
-                        TableExecEventContextMenu(allFilters: $allFilters, message: message)
-                            .environmentObject(systemExtensionManager)
-                            .environmentObject(userPrefs)
-                    } else {
-                        TableNonExecContextMenus(allFilters: $allFilters, message: message)
-                            .environmentObject(systemExtensionManager)
-                            .environmentObject(userPrefs)
-                    }
-                }
-              }
-        }
-    }
-}
-
-
-struct SystemEnrichedTableView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @Environment(\.openWindow) private var openEventJSON
-    
-    @EnvironmentObject var userPrefs: UserPrefs
-    
-    var eventsInScope: [ESMessage]
-    @State private var unifiedEventSelection = Set<Message.ID>()
-    
-    
-    @Binding var allFilters: Filters
-    
-    var body: some View {
-        Table(of: ESMessage.self, selection: $unifiedEventSelection) {
-            TableColumn("Timestamp") { event in
-                Text("`\(eventTimeStamp(for: event))`")
-            }.width(min: 100, ideal: 100, max: 100)
-            TableColumn("Event type") { event in
-                SystemEventTypeLabel(message: event)
-            }.width(min: 150, ideal: 200, max: 300)
-            TableColumn("Context") { event in
-                Text(event.context!)
-            }.width(min: 80, ideal: 200, max: 2000)
-            TableColumn("Source Signing ID") { event in
-                Text(event.process.signing_id ?? "")
-            }.width(min: 80, ideal: 100, max: 200)
-        } rows: {
-            ForEach(eventsInScope) { message in
-                TableRow(message).contextMenu {
-                    if message.event.exec != nil {
-                        TableExecEventContextMenu(allFilters: $allFilters, message: message)
-                            .environmentObject(systemExtensionManager)
-                            .environmentObject(userPrefs)
-                    } else {
-                        TableNonExecContextMenus(allFilters: $allFilters, message: message)
-                            .environmentObject(systemExtensionManager)
-                            .environmentObject(userPrefs)
-                    }
-                }
-              }
-        }
-    }
-}
-
-
-struct SystemRCCorrelatedEventsView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    
-    @EnvironmentObject var userPrefs: UserPrefs
-    
-    var correlatedEvents: [ESMessage]
-    
-    @Binding var allFilters: Filters
-    
-    @State private var eventSelection = Set<Message.ID>()
-    
-    private var forkEvents: [ESMessage] {
-        correlatedEvents.filter { $0.event.fork != nil }
-    }
-    private var fileEvents: [ESMessage] {
-        correlatedEvents.filter({ $0.event.create != nil })
-    }
-    private var memoryEvents: [ESMessage] {
-        correlatedEvents.filter { $0.event.mmap != nil }
-    }
-    private var fileMetadataEvents: [ESMessage] {
-        correlatedEvents.filter({ $0.event.deleteextattr != nil })
-    }
-    private var launchItemEvents: [ESMessage] {
-        correlatedEvents.filter { $0.event.btm_launch_item_add != nil }
-    }
-    private var xprotectEvents: [ESMessage] {
-        correlatedEvents
-            .filter {
-                $0.event.xp_malware_detected != nil || $0.event.xp_malware_remediated != nil
-            }
-    }
-    private var fileRenameEvents: [ESMessage] {
-        correlatedEvents.filter { $0.event.rename != nil }
-    }
-    private var loginEvents: [ESMessage] {
-        correlatedEvents
-            .filter {
-                $0.event.login_login != nil || $0.event.lw_session_login != nil || $0.event.openssh_login != nil
-            }
-    }
-    
-    @State private var hideFileCreate: Bool = true
-    @State private var hideFileRename: Bool = true
-    @State private var hideMemoryMappings: Bool = true
-    @State private var hideFileMetadata: Bool = true
-    @State private var hideBackgroundItems: Bool = true
-    @State private var hideXProtectEvents: Bool = true
-    @State private var hideLoginEvents: Bool = true
-    
-    // TODO: When adding suppport for new ES events an appropriate correlated view might make sense
-    var body: some View {
-        if !loginEvents.isEmpty {
-            
-            Divider()
-            Section {
-                HStack {
-                    Text("**Login events (\(loginEvents.count))**")
-                    Spacer()
-                    Button(hideLoginEvents ? "Show" : "Hide") {
-                        withAnimation {
-                            hideLoginEvents.toggle()
-                        }
-                    }
-                }
-                if !hideLoginEvents {
-                    SystemLoginEventTableView(loginEvents: loginEvents, eventSelection: $eventSelection, allFilters: $allFilters)
-                        .environmentObject(userPrefs)
-                }
-            }
-        }
-        
-        // MARK: File modifications (NOTIFY_CREATE)
-        if fileEvents.count > 0 {
-            // MARK: Event introspection
-            let dangerousFiles: Int = 0
-            let totalNonQuarantinedFiles: Int = fileEvents.filter({ $0.event.create != nil && $0.event.create!.is_quarantined == 0 }).count + fileRenameEvents.filter(
-                { $0.event.rename != nil && $0.event.rename!.is_quarantined == 0
-                }).count + dangerousFiles
-            
-            Divider()
-            Section {
-                HStack {
-                    if totalNonQuarantinedFiles > 0 {
-                        Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .orange).help("\(totalNonQuarantinedFiles) files are not quarantined")
-                    }
-                    
-                    Text("**File creations (\(fileEvents.count))**")
-                    Spacer()
-                    Button(hideFileCreate ? "Show" : "Hide") {
-                        withAnimation {
-                            hideFileCreate.toggle()
-                        }
-                    }
-                }
-                if !hideFileCreate {
-                    SystemFileEventTableView(fileEvents: fileEvents, eventSelection: $eventSelection, allFilters: $allFilters)
-                        .environmentObject(systemExtensionManager)
-                        .environmentObject(userPrefs)
-                        .textSelection(.enabled)
-                }
-            }
-        }
-        
-        // MARK: File modifications (NOTIFY_RENAME)
-        if fileRenameEvents.count > 0 {
-            Divider()
-            Section {
-                HStack {
-                    Text("**File renames (\(fileRenameEvents.count))**")
-                    Spacer()
-                    Button(hideFileRename ? "Show" : "Hide") {
-                        withAnimation {
-                            hideFileRename.toggle()
-                        }
-                    }
-                }
-                if !hideFileRename {
-                    SystemFileRenameEventTableView(fileEvents: fileRenameEvents, eventSelection: $eventSelection, allFilters: $allFilters)
-                        .environmentObject(systemExtensionManager)
-                        .environmentObject(userPrefs)
-                        .textSelection(.enabled)
-                }
-            }
-        }
-        
-        
-        // MARK: File modifications (NOTIFY_MMAP)
-        if memoryEvents.count > 0 {
-            Divider()
-            Section {
-                HStack {
-                    if memoryEvents.first(where: { pathIsOSAComponent(filePath: $0.event.mmap!.source.path!) }) != nil {
-                        Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .orange).help("Process mapped an OSA (Open Scripting Architecture) component into memory")
-                    }
-                    
-                    Text("**Memory mappings (\(memoryEvents.count))**")
-                    Spacer()
-                    Button(hideMemoryMappings ? "Show" : "Hide") {
-                        withAnimation {
-                            hideMemoryMappings.toggle()
-                        }
-                    }
-                }
-                if !hideMemoryMappings {
-                    SystemMMAPEventTableView(mmapEvents: memoryEvents, eventSelection: $eventSelection, allFilters: $allFilters, simple: true)
-                        .environmentObject(userPrefs)
-                }
-            }
-        }
-        
-        // MARK: xattr events (NOTIFY_DELETE_XATTR, etc.)
-        if fileMetadataEvents.count > 0 {
-            Divider()
-            Section {
-                HStack {
-                    Text("**Extended attributes (\(fileMetadataEvents.count))**")
-                    Spacer()
-                    Button(hideFileMetadata ? "Show" : "Hide") {
-                        withAnimation {
-                            hideFileMetadata.toggle()
-                        }
-                    }
-                }
-                if !hideFileMetadata {
-                    SystemFileMetadataEventTableViews(eventsInScope: fileMetadataEvents, eventSelection: $eventSelection, allFilters: $allFilters)
-                        .environmentObject(userPrefs)
-                        .textSelection(.enabled)
-                }
-            }
-        }
-        
-        // MARK: Service Management Framework background items (ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD)
-        if launchItemEvents.count > 0 {
-            Divider()
-            Section {
-                HStack {
-                   Text("**Background Items (\(launchItemEvents.count))**")
-                    Spacer()
-                    Button(hideBackgroundItems ? "Show" : "Hide") {
-                        withAnimation {
-                            hideBackgroundItems.toggle()
-                        }
-                    }
-                }
-                if !hideBackgroundItems {
-                    SystemLaunchItemEventTableView(launchItemEvents: launchItemEvents, eventSelection: $eventSelection, allFilters: $allFilters)
-                        .environmentObject(userPrefs)
-                }
-            }
-        }
-        
-        // MARK: XProtect malware events (ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED or ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED)
-        if xprotectEvents.count > 0 {
-            Divider()
-            Section {
-                HStack {
-                    Text("**XProtect events (\(xprotectEvents.count))**")
-                    Spacer()
-                    Button(hideXProtectEvents ? "Show" : "Hide") {
-                        withAnimation {
-                            hideXProtectEvents.toggle()
-                        }
-                    }
-                }
-                if !hideXProtectEvents {
-                    SystemXProtectEventTableView(xprotectEvents: xprotectEvents, eventSelection: $eventSelection, allFilters: $allFilters)
-                        .environmentObject(userPrefs)
-                }
-            }
-        }
-
-    }
-}
-
+// MARK: - Correlation tab
+/// Event Facts' Correlation tab: the events the exec's process instigated, as a dashboard. A summary and a bar of
+/// their kinds sit above cards for the findings worth a look, then a search, a chip for each event type, and the
+/// events as a list or a timeline, with the selected one's details beside them. A kind, a finding or a chip keeps
+/// only its events.
 struct SystemEnrichedEventView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    
     @EnvironmentObject var userPrefs: UserPrefs
-    
-    
+    @Environment(\.openWindow) private var openEventFacts
+
     @Binding var allFilters: Filters
-    
+    /// The exec whose process's events are shown.
     var selectedMessage: ESMessage
-    @State private var hideUnifiedEnrichments: Bool = false
-    
-    private var event: ESProcessExecEvent {
-        selectedMessage.event.exec!
+
+    /// How the events are shown.
+    enum Presentation: String, CaseIterable, Identifiable {
+        case list = "List", timeline = "Timeline"
+        var id: Self { self }
     }
-    
+
+    @State private var summary: CorrelationSummary?
+    @State private var presentation = Presentation.list
+    @State private var query = ""
+    /// The kind kept, by title.
+    @State private var kind: String?
+    @State private var finding: Finding?
+    /// The event types whose chips are on, by short name.
+    @State private var types: Set<String> = []
+    @State private var selection: NSManagedObjectID?
+
     var body: some View {
-        /// One fetch per update: `correlated_array` queries the store each time it's read.
-        let correlated = selectedMessage.correlated_array
-        Form {
-            VStack(alignment: .leading) {
-                Section {
-                    HStack {
-                        Text("**Unified correlated events (\(correlated.count))**")
-                        Spacer()
-                        Button(hideUnifiedEnrichments ? "Show" : "Hide") {
-                            withAnimation {
-                                hideUnifiedEnrichments.toggle()
-                            }
-                        }
-                    }
-                    GroupBox {
-                        VStack(alignment: .leading) {
-                            HStack {
-                                Image(systemName: "info.square")
-                                Text("All events we've successfully **correlated to `\(event.target.executable?.name ?? "")`** will show in this unified table. Additionally, and if the events exist we've partitioned out some high value events.")
-                            }.frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                    
-                    // Event correlation table
-                    if !hideUnifiedEnrichments {
-                        if #available(macOS 14, *) {
-                            CustomizableSystemEnrichedTableView(
-                                eventsInScope: correlated,
-                                allFilters: $allFilters
-                            )
-                            .environmentObject(systemExtensionManager)
-                            .environmentObject(userPrefs)
-                        } else {
-                            SystemEnrichedTableView(
-                                eventsInScope: correlated,
-                                allFilters: $allFilters
-                            )
-                            .environmentObject(systemExtensionManager)
-                            .environmentObject(userPrefs)
+        Group {
+            if let summary {
+                dashboard(summary)
+            } else {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        /// One fetch per exec: `correlated_array` queries the store each time it's read.
+        .task(id: selectedMessage.objectID) {
+            summary = CorrelationSummary(exec: selectedMessage)
+            (query, kind, finding, types, selection) = ("", nil, nil, [], nil)
+        }
+    }
+
+    /// - Parameter summary: The process's events.
+    /// - Returns: The dashboard.
+    private func dashboard(_ summary: CorrelationSummary) -> some View {
+        let rows = shown(summary)
+        return VStack(alignment: .leading, spacing: 12) {
+            header(summary)
+            BreakdownBar(segments: summary.kinds.map { BreakdownSegment(title: $0.kind.title, color: $0.kind.color,
+                                                                        count: $0.count) },
+                         selection: $kind)
+            if !summary.findings.isEmpty {
+                InsightGrid {
+                    ForEach(summary.findings, id: \.finding) { item in
+                        let files = item.rows.map { ($0.target as NSString).lastPathComponent }
+                        InsightCard(symbol: item.finding.symbol, tint: item.finding.tint,
+                                    title: item.finding.title(item.rows.count), detail: InsightCard.detail(files),
+                                    explanation: item.finding.explanation, isOn: finding == item.finding) {
+                            finding = finding == item.finding ? nil : item.finding
                         }
                     }
                 }
-                
-                SystemRCCorrelatedEventsView(
-                    correlatedEvents: correlated,
-                     allFilters: $allFilters
-                )
-                .environmentObject(systemExtensionManager)
-                .environmentObject(userPrefs)
-            }.padding([.top, .leading, .trailing])
-        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        
+            }
+            DashboardSearchRow(query: $query, prompt: "Search paths, signing IDs and details", shown: rows.count,
+                               total: summary.rows.count) {
+                if let kind {
+                    let color = summary.kinds.first { $0.kind.title == kind }?.kind.color ?? .gray
+                    FilterToken(title: kind, color: color) { self.kind = nil }
+                }
+                if let finding {
+                    FilterToken(title: finding.title(summary.findings.first { $0.finding == finding }?.rows.count ?? 0),
+                                color: finding.tint) { self.finding = nil }
+                }
+            }
+            FilterChips(chips: FilterChips.chips(summary.rows.map { ($0.type, $0.symbol) }), selection: $types)
+            HStack(spacing: 0) {
+                switch presentation {
+                case .list:
+                    table(rows)
+                case .timeline:
+                    CorrelationTimeline(summary: summary, shown: Set(rows.map(\.id)), selection: $selection)
+                }
+                if let row = summary.rows.first(where: { $0.id == selection }) {
+                    Divider()
+                    inspector(row)
+                }
+            }
+            .dashboardPanel()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    /// The events that pass the kind, the finding, the chips and the search.
+    ///
+    /// - Parameter summary: The process's events.
+    /// - Returns: The rows to show, oldest first.
+    private func shown(_ summary: CorrelationSummary) -> [CorrelationSummary.Row] {
+        let query = query.trimmingCharacters(in: .whitespaces).lowercased()
+        return summary.rows.filter { row in
+            (kind == nil || row.kind.title == kind) && (finding?.matches(row.message) ?? true)
+                && (types.isEmpty || types.contains(row.type)) && (query.isEmpty || row.mentions(query))
+        }
+    }
+
+    // MARK: Header
+    /// The title, the summary line, and List or Timeline.
+    ///
+    /// - Parameter summary: The process's events.
+    /// - Returns: The header.
+    private func header(_ summary: CorrelationSummary) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                (Text(summary.processName).font(.headline.monospaced()) + Text(" correlated events").font(.headline))
+                Text("\(summary.rows.count) events in \(Self.seconds(summary.duration, sign: false)) · "
+                     + "\(summary.kinds.count) \(summary.kinds.count == 1 ? "kind" : "kinds")")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Picker("Show as", selection: $presentation) {
+                ForEach(Presentation.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+        }
+    }
+
+    // MARK: List
+    /// The events as a table, oldest first. Double-click one for its Event Facts, or Control-click it for the event
+    /// tables' menu.
+    ///
+    /// - Parameter rows: The events.
+    /// - Returns: The table.
+    private func table(_ rows: [CorrelationSummary.Row]) -> some View {
+        Table(rows, selection: $selection) {
+            TableColumn("Since exec") { row in
+                Text(Self.seconds(row.seconds)).monospacedDigit().foregroundStyle(.secondary)
+            }
+            .width(min: 64, ideal: 72, max: 90)
+            /// A finding's dot after the type: the card above says what it found.
+            TableColumn("Event") { row in
+                HStack(spacing: 6) {
+                    Label(row.type, systemImage: row.symbol).font(.body.monospaced())
+                    if let finding = row.finding {
+                        Circle().fill(finding.tint).frame(width: 7, height: 7).help(finding.title(1))
+                    }
+                }
+            }
+            .width(min: 100, ideal: 130, max: 180)
+            /// The rest of the width. Cut in the middle, which keeps both who it's about (an XPC connection's
+            /// service) and where (a path's file name).
+            /// No column for the detail, which the context mostly says: the inspector shows it.
+            TableColumn("Context") { row in
+                Text(row.context).font(.body.monospaced()).lineLimit(1).truncationMode(.middle).help(row.context)
+            }
+        }
+        .contextMenu(forSelectionType: NSManagedObjectID.self) { ids in
+            if let row = rows.first(where: { $0.id == ids.first }) { menu(row.message) }
+        } primaryAction: { ids in
+            if let row = rows.first(where: { $0.id == ids.first }) { openEventFacts(value: row.message.id) }
+        }
+        .overlay {
+            if rows.isEmpty { Text("No correlated events match.").foregroundStyle(.secondary) }
+        }
+    }
+
+    /// - Parameter message: An event.
+    /// - Returns: The event tables' menu for it.
+    private func menu(_ message: ESMessage) -> FactsRowMenu {
+        FactsRowMenu(allFilters: $allFilters, message: message, manager: systemExtensionManager, prefs: userPrefs)
+    }
+
+    // MARK: Inspector
+    /// - Parameter row: The selected event.
+    /// - Returns: Its details: why it's worth a look, its facts, and what to do with it.
+    private func inspector(_ row: CorrelationSummary.Row) -> some View {
+        let process = row.message.process
+        return EventInspector(
+            symbol: row.symbol, color: row.kind.color, title: row.type,
+            subtitle: "\(Self.seconds(row.seconds)) since exec",
+            note: row.finding.map { ($0.explanation, $0.symbol, $0.tint) },
+            facts: [("Context", row.context), ("Target", row.target), ("Detail", row.detail),
+                    ("Event", row.message.es_event_type ?? ""),
+                    ("Instigator", "\(process.executable?.name ?? "") (pid \(process.pid))"),
+                    ("Signing ID", process.signing_id ?? "")],
+            message: row.message, menu: menu(row.message)) { selection = nil }
+    }
+
+    // MARK: Formatting
+    /// - Parameters:
+    ///   - seconds: Seconds since the exec.
+    ///   - sign: Start with "+".
+    /// - Returns: Such as "+0.118 s", "+3.38 s" or "+2:05".
+    static func seconds(_ seconds: Double, sign: Bool = true) -> String {
+        let text = seconds < 1 ? String(format: "%.3f s", seconds)
+            : seconds < 60 ? String(format: "%.2f s", seconds)
+            : String(format: "%d:%02d", Int(seconds) / 60, Int(seconds) % 60)
+        return sign ? "+" + text : text
+    }
+}
+
+
+// MARK: - Timeline
+/// The events as dots in a lane per kind, along a square-root scale of the time since the exec, so the burst right
+/// after it spreads out. Events the filters leave out are faint. Click a dot to select its event.
+private struct CorrelationTimeline: View {
+    let summary: CorrelationSummary
+    /// The events that pass the filters.
+    let shown: Set<NSManagedObjectID>
+    @Binding var selection: NSManagedObjectID?
+
+    /// The labels' width.
+    private let labelWidth: CGFloat = 150
+    /// A dot's radius.
+    private let radius: CGFloat = 6
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(summary.kinds, id: \.kind) { item in
+                    HStack(spacing: 10) {
+                        HStack(spacing: 6) {
+                            RoundedRectangle(cornerRadius: 2).fill(item.kind.color).frame(width: 8, height: 8)
+                            Text(item.kind.title).lineLimit(1)
+                            Text("\(item.count)").foregroundStyle(.secondary)
+                        }
+                        .font(.callout)
+                        .frame(width: labelWidth, alignment: .leading)
+                        lane(summary.rows.filter { $0.kind == item.kind }, color: item.kind.color)
+                    }
+                }
+                HStack(spacing: 10) {
+                    Text("Since exec, √ scale").font(.caption).foregroundStyle(.secondary)
+                        .frame(width: labelWidth, alignment: .leading)
+                    ticks
+                }
+            }
+            .padding(12)
+        }
+    }
+
+    /// One kind's dots.
+    ///
+    /// - Parameters:
+    ///   - rows: Its events.
+    ///   - color: Its color.
+    /// - Returns: The lane.
+    private func lane(_ rows: [CorrelationSummary.Row], color: Color) -> some View {
+        GeometryReader { geometry in
+            Canvas { context, size in
+                context.fill(Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 6),
+                             with: .color(.primary.opacity(0.06)))
+                for row in rows {
+                    let dot = CGRect(x: x(row.seconds, in: size.width) - radius, y: size.height / 2 - radius,
+                                     width: radius * 2, height: radius * 2)
+                    context.fill(Path(ellipseIn: dot), with: .color(color.opacity(shown.contains(row.id) ? 1 : 0.18)))
+                    if row.id == selection {
+                        context.stroke(Path(ellipseIn: dot.insetBy(dx: -2.5, dy: -2.5)), with: .color(.primary),
+                                       lineWidth: 2)
+                    }
+                }
+            }
+            .gesture(SpatialTapGesture().onEnded { tap in
+                let nearest = rows.min { abs(x($0.seconds, in: geometry.size.width) - tap.location.x)
+                    < abs(x($1.seconds, in: geometry.size.width) - tap.location.x) }
+                if let nearest, abs(x(nearest.seconds, in: geometry.size.width) - tap.location.x) <= radius + 3 {
+                    selection = nearest.id
+                }
+            })
+            .help(rows.count == 1 ? "1 event" : "\(rows.count) events")
+        }
+        .frame(height: 24)
+    }
+
+    /// Labels along the scale, leaving out any that would crowd the one before.
+    private var ticks: some View {
+        GeometryReader { geometry in
+            let candidates = [0, 0.05, 0.25, 1, 2, 5, 10, 30, 60, 300, 1800].filter { $0 < summary.duration * 0.85 }
+                + [summary.duration]
+            let placed = candidates.reduce(into: [(seconds: Double, x: CGFloat)]()) { placed, seconds in
+                let position = x(seconds, in: geometry.size.width)
+                if placed.last.map({ position - $0.x >= 44 }) ?? true { placed.append((seconds, position)) }
+            }
+            ForEach(placed, id: \.seconds) { tick in
+                Text(tick.seconds == 0 ? "0" : SystemEnrichedEventView.seconds(tick.seconds, sign: false))
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                    .position(x: tick.x, y: 8)
+            }
+        }
+        .frame(height: 16)
+    }
+
+    /// - Parameters:
+    ///   - seconds: Seconds since the exec.
+    ///   - width: The lane's width.
+    /// - Returns: Where along the lane a dot goes.
+    private func x(_ seconds: Double, in width: CGFloat) -> CGFloat {
+        let share = summary.duration > 0 ? (seconds / summary.duration).squareRoot() : 0
+        return radius + 1 + CGFloat(share) * (width - 2 * (radius + 1))
     }
 }
