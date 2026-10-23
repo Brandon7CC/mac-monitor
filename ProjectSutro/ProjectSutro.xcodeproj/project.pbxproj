@@ -83,7 +83,11 @@
 		284BAED92A4D0C96007F1193 /* SystemOpenDirectoryAttrAddMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284BAED82A4D0C96007F1193 /* SystemOpenDirectoryAttrAddMetadataView.swift */; };
 		284BAEDB2A4DE047007F1193 /* ODHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284BAEDA2A4DE047007F1193 /* ODHelpers.swift */; };
 		284CFE152A16EDEA00D0038B /* UserSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284CFE142A16EDEA00D0038B /* UserSettingsView.swift */; };
-		284CFE172A16EE1900D0038B /* AdvancedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284CFE162A16EE1900D0038B /* AdvancedSettingsView.swift */; };
+		284CFE172A16EE1900D0038B /* SystemDetailsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284CFE162A16EE1900D0038B /* SystemDetailsSettingsView.swift */; };
+		F17E00000000000000000018 /* EventCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000017 /* EventCatalog.swift */; };
+		F17E0000000000000000001E /* ContextMenuSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000001D /* ContextMenuSettingsView.swift */; };
+		F17E0000000000000000001C /* ReleaseNotesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000001B /* ReleaseNotesSheet.swift */; };
+		F17E0000000000000000001A /* TelemetrySchemaSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000019 /* TelemetrySchemaSettingsView.swift */; };
 		284CFE1B2A16F03200D0038B /* PathMutingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284CFE1A2A16F03200D0038B /* PathMutingSettingsView.swift */; };
 		284CFE1D2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284CFE1C2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift */; };
 		284F855D2E7210B4001542E3 /* MuteTypeBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284F855C2E7210B1001542E3 /* MuteTypeBadgeView.swift */; };
@@ -367,6 +371,7 @@
 		C11D00000000000000000008 /* CommandLineToolAuthorization.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000007 /* CommandLineToolAuthorization.swift */; };
 		C11D00000000000000000012 /* CommandLineToolInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000011 /* CommandLineToolInstaller.swift */; };
 		C11D00000000000000000014 /* CommandLineToolSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000013 /* CommandLineToolSettingsView.swift */; };
+		F17E00000000000000000016 /* SettingsComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000015 /* SettingsComponents.swift */; };
 		CA4CE59B2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE59A2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift */; };
 		CA4CE59E2E53DB7900C057EB /* GatekeeperUserOverrideEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE59D2E53DB6C00C057EB /* GatekeeperUserOverrideEvent.swift */; };
 		CA4CE5A12E53E0CB00C057EB /* FilePathUnion.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE5A02E53E0C400C057EB /* FilePathUnion.swift */; };
@@ -722,7 +727,11 @@
 		284BAED82A4D0C96007F1193 /* SystemOpenDirectoryAttrAddMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemOpenDirectoryAttrAddMetadataView.swift; sourceTree = "<group>"; };
 		284BAEDA2A4DE047007F1193 /* ODHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ODHelpers.swift; sourceTree = "<group>"; };
 		284CFE142A16EDEA00D0038B /* UserSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSettingsView.swift; sourceTree = "<group>"; };
-		284CFE162A16EE1900D0038B /* AdvancedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettingsView.swift; sourceTree = "<group>"; };
+		284CFE162A16EE1900D0038B /* SystemDetailsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemDetailsSettingsView.swift; sourceTree = "<group>"; };
+		F17E00000000000000000017 /* EventCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCatalog.swift; sourceTree = "<group>"; };
+		F17E0000000000000000001D /* ContextMenuSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextMenuSettingsView.swift; sourceTree = "<group>"; };
+		F17E0000000000000000001B /* ReleaseNotesSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotesSheet.swift; sourceTree = "<group>"; };
+		F17E00000000000000000019 /* TelemetrySchemaSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaSettingsView.swift; sourceTree = "<group>"; };
 		284CFE1A2A16F03200D0038B /* PathMutingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathMutingSettingsView.swift; sourceTree = "<group>"; };
 		284CFE1C2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSubscriptionsSettingsView.swift; sourceTree = "<group>"; };
 		284F855C2E7210B1001542E3 /* MuteTypeBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteTypeBadgeView.swift; sourceTree = "<group>"; };
@@ -1006,6 +1015,7 @@
 		C11D00000000000000000007 /* CommandLineToolAuthorization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolAuthorization.swift; sourceTree = "<group>"; };
 		C11D00000000000000000011 /* CommandLineToolInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolInstaller.swift; sourceTree = "<group>"; };
 		C11D00000000000000000013 /* CommandLineToolSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolSettingsView.swift; sourceTree = "<group>"; };
+		F17E00000000000000000015 /* SettingsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsComponents.swift; sourceTree = "<group>"; };
 		CA4CE59A2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemTCCModifyMetadataView.swift; sourceTree = "<group>"; };
 		CA4CE59D2E53DB6C00C057EB /* GatekeeperUserOverrideEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatekeeperUserOverrideEvent.swift; sourceTree = "<group>"; };
 		CA4CE5A02E53E0C400C057EB /* FilePathUnion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePathUnion.swift; sourceTree = "<group>"; };
@@ -2837,10 +2847,15 @@
 				28FFA9B5290F0D0000977D3F /* AgentSettingsView.swift */,
 				284CFE142A16EDEA00D0038B /* UserSettingsView.swift */,
 				7E5A1C900000000000000003 /* ProcessTreePrefsView.swift */,
-				284CFE162A16EE1900D0038B /* AdvancedSettingsView.swift */,
+				284CFE162A16EE1900D0038B /* SystemDetailsSettingsView.swift */,
+				F17E00000000000000000017 /* EventCatalog.swift */,
+				F17E0000000000000000001D /* ContextMenuSettingsView.swift */,
+				F17E0000000000000000001B /* ReleaseNotesSheet.swift */,
+				F17E00000000000000000019 /* TelemetrySchemaSettingsView.swift */,
 				284CFE1C2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift */,
 				C11D00000000000000000011 /* CommandLineToolInstaller.swift */,
 				C11D00000000000000000013 /* CommandLineToolSettingsView.swift */,
+				F17E00000000000000000015 /* SettingsComponents.swift */,
 				F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */,
 			);
 			path = "Settings Views";
@@ -4497,7 +4512,11 @@
 				28B9A94129DC9578006619FF /* SystemCodeSigningInvalidatedMetadataView.swift in Sources */,
 				CA4CE59B2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift in Sources */,
 				CA4CE6462E59041400C057EB /* SystemGatekeeperUserOverrideMetadataView.swift in Sources */,
-				284CFE172A16EE1900D0038B /* AdvancedSettingsView.swift in Sources */,
+				284CFE172A16EE1900D0038B /* SystemDetailsSettingsView.swift in Sources */,
+				F17E00000000000000000018 /* EventCatalog.swift in Sources */,
+				F17E0000000000000000001E /* ContextMenuSettingsView.swift in Sources */,
+				F17E0000000000000000001C /* ReleaseNotesSheet.swift in Sources */,
+				F17E0000000000000000001A /* TelemetrySchemaSettingsView.swift in Sources */,
 				28CEF0FF29776D64003057D2 /* SystemForkProcMetadataView.swift in Sources */,
 				2881CE1C294D0B2300F97F99 /* TableContextMenus.swift in Sources */,
 				CADD9D842E8DC73C009EC919 /* SystemUIPCConnectMetadataView.swift in Sources */,
@@ -4509,6 +4528,7 @@
 				28CEF0FD29776D31003057D2 /* SystemProcExitMetadataView.swift in Sources */,
 				C11D00000000000000000012 /* CommandLineToolInstaller.swift in Sources */,
 				C11D00000000000000000014 /* CommandLineToolSettingsView.swift in Sources */,
+				F17E00000000000000000016 /* SettingsComponents.swift in Sources */,
 				F17E00000000000000000012 /* SecurityExtensionSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

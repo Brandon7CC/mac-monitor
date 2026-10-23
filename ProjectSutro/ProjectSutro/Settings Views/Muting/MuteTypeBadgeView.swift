@@ -8,41 +8,98 @@
 import SwiftUI
 import SutroESFramework
 
-struct MuteTypeBadgeView: View {
-    var path: ESMutedPath
 
-    private var humanType: String {
-        switch path.type {
-        case "ES_MUTE_PATH_TYPE_PREFIX":
-            return "Initiating prefix"
-        case "ES_MUTE_PATH_TYPE_LITERAL":
-            return "Initiating literal"
-        case "ES_MUTE_PATH_TYPE_TARGET_PREFIX":
-            return "Target prefix"
-        case "ES_MUTE_PATH_TYPE_TARGET_LITERAL":
-            return "Target literal"
-        default:
-            return "Unknown"
+// MARK: - Mute kinds
+/// How a mute matches its path: Endpoint Security's four `es_mute_path_type_t` values, in the order their names sort,
+/// which is the order Path Muting lists them in.
+enum MuteKind: String, CaseIterable, Identifiable {
+    case literal = "ES_MUTE_PATH_TYPE_LITERAL"
+    case prefix = "ES_MUTE_PATH_TYPE_PREFIX"
+    case targetLiteral = "ES_MUTE_PATH_TYPE_TARGET_LITERAL"
+    case targetPrefix = "ES_MUTE_PATH_TYPE_TARGET_PREFIX"
+
+    var id: String { rawValue }
+
+    /// The kind a saved mute's type name names, if any.
+    ///
+    /// - Parameter type: The `ES_MUTE_PATH_TYPE_*` name.
+    init?(type: String) {
+        self.init(rawValue: type)
+    }
+
+    /// The kind for what a mute matches, and how.
+    ///
+    /// - Parameters:
+    ///   - target: The target path, or the process's.
+    ///   - prefix: Anything under the path, or the path exactly.
+    init(target: Bool, prefix: Bool) {
+        switch (target, prefix) {
+        case (false, false): self = .literal
+        case (false, true): self = .prefix
+        case (true, false): self = .targetLiteral
+        case (true, true): self = .targetPrefix
         }
     }
 
-    private var badgeColor: Color {
-        switch path.type {
-        case "ES_MUTE_PATH_TYPE_PREFIX":
-            return .red
-        case "ES_MUTE_PATH_TYPE_LITERAL":
-            return .orange
-        case "ES_MUTE_PATH_TYPE_TARGET_PREFIX":
-            return .green
-        case "ES_MUTE_PATH_TYPE_TARGET_LITERAL":
-            return .blue
-        default:
-            return .black
+    /// Its name in Path Muting.
+    var title: String {
+        switch self {
+        case .literal: return "Initiating literal"
+        case .prefix: return "Initiating prefix"
+        case .targetLiteral: return "Target literal"
+        case .targetPrefix: return "Target prefix"
         }
+    }
+
+    /// Does it match the event's target, rather than the process that caused it?
+    var isTarget: Bool { self == .targetLiteral || self == .targetPrefix }
+
+    /// Does it match anything under its path, rather than the path exactly?
+    var isPrefix: Bool { self == .prefix || self == .targetPrefix }
+
+    /// Its color: orange, red, blue, or green.
+    var color: Color {
+        switch self {
+        case .literal: return .orange
+        case .prefix: return .red
+        case .targetLiteral: return .blue
+        case .targetPrefix: return .green
+        }
+    }
+
+    /// Endpoint Security's value for it.
+    var esType: es_mute_path_type_t {
+        switch self {
+        case .literal: return ES_MUTE_PATH_TYPE_LITERAL
+        case .prefix: return ES_MUTE_PATH_TYPE_PREFIX
+        case .targetLiteral: return ES_MUTE_PATH_TYPE_TARGET_LITERAL
+        case .targetPrefix: return ES_MUTE_PATH_TYPE_TARGET_PREFIX
+        }
+    }
+}
+
+
+// MARK: - Badge
+/// A mute kind's badge: its name on a soft tint of its color, as Finder draws tags, so it reads in light and dark.
+struct MuteTypeBadgeView: View {
+    let kind: MuteKind?
+
+    /// - Parameter path: A saved mute.
+    init(path: ESMutedPath) {
+        kind = MuteKind(type: path.type)
+    }
+
+    /// - Parameter kind: The kind.
+    init(kind: MuteKind) {
+        self.kind = kind
     }
 
     var body: some View {
-        Text(" **\(humanType)** ")
-            .background(RoundedRectangle(cornerRadius: 5).fill(badgeColor.opacity(0.3)))
+        Text(kind?.title ?? "Unknown")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(kind?.color ?? .secondary)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 1)
+            .background((kind?.color ?? .gray).opacity(0.15), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
     }
 }

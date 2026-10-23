@@ -27,7 +27,9 @@ struct ProjectSutroApp: App {
     /// The main window's identifier, to open one for a trace when none is open.
     private static let mainWindow = "main"
     /// The Telemetry Schema window's identifier: Help > Telemetry Schema….
-    private static let schemaWindow = "telemetry-schema"
+    static let schemaWindow = "telemetry-schema"
+    /// The Settings window's identifier: Mac Monitor ▸ Settings… (⌘,).
+    static let settingsWindow = "settings"
     
     /// Track everything going on with System Events and the Security Extension
     @StateObject var systemExtensionManager: EndpointSecurityManager = EndpointSecurityManager()
@@ -59,7 +61,7 @@ struct ProjectSutroApp: App {
     @State private var filteringLongRunningProcs: Bool = false
     
     @AppStorage("forcedDarkMode") private var forcedDarkMode = false
-    /// Which parents Event Facts' process tree follows: View > Process tree, and Settings > User Preferences.
+    /// Which parents Event Facts' process tree follows: View > Process tree, and Settings > General.
     @AppStorage(ProcessLineageMode.storageKey) private var processLineageMode = ProcessLineageMode.defaultMode
     
     // MARK: - Update Check State
@@ -100,8 +102,8 @@ struct ProjectSutroApp: App {
                 .padding(.bottom)
                 .frame(minWidth: 1200, minHeight: 750)
             }
-            .preferredColorScheme(userPrefs.forcedDarkMode ? .dark : nil)
             .onAppear {
+                ForcedDarkMode.follow()
                 UserDefaults.standard.set(false, forKey: "lifecycleQuitInternal")
                 /// If auto-updates are enabled then check at app launch
                 if userPrefs.autoUpdates && EndpointSecurityManager.supportsUpdates {
@@ -148,6 +150,11 @@ struct ProjectSutroApp: App {
                 .disabled(traceSession.recents.isEmpty)
             }
             
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") { openEventJSON(id: Self.settingsWindow) }
+                    .keyboardShortcut(",", modifiers: .command)
+            }
+
             CommandGroup(replacing: .appInfo) {
                 Button("About Mac Monitor") {
                     NSApplication.shared.orderFrontStandardAboutPanel(
@@ -285,13 +292,21 @@ struct ProjectSutroApp: App {
             }
         }
         
-        Settings {
+        /// Settings, as a window rather than a `Settings` scene, which has no toolbar for the sidebar to run under or
+        /// for the pane's name and Back and Forward. ⌘, opens it (the app menu's Settings… below).
+        Window("Settings", id: Self.settingsWindow) {
             AgentSettingsView(pathToMute: $pathToMute, allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled)
                 .environmentObject(systemExtensionManager)
                 .environmentObject(userPrefs)
-                .preferredColorScheme(userPrefs.forcedDarkMode ? .dark : nil)
+                .onAppear { ForcedDarkMode.follow() }
         }
-        
+        .windowToolbarStyle(.unified)
+        /// Wide enough for Path Muting's search, its grouping, and its inspector beside the table.
+        .defaultSize(width: 1000, height: 720)
+        /// Resizable down to the sidebar layout's smallest size, as System Settings is.
+        .windowResizability(.contentMinSize)
+        .commandsRemoved()
+
         WindowGroup("Event Facts", for: ESMessage.ID.self) { $eventID in
             if let id = eventID {
                 AppWrapperForFacts(id: id, allFilters: $allFilters)
@@ -309,7 +324,6 @@ struct ProjectSutroApp: App {
         /// Help > Telemetry Schema…: the schema of Mac Monitor's exports, and traces checked against it. One window.
         Window("Telemetry Schema", id: Self.schemaWindow) {
             TelemetrySchemaView()
-                .preferredColorScheme(userPrefs.forcedDarkMode ? .dark : nil)
         }
         .defaultSize(width: 820, height: 720)
         /// Never the window a trace opens in.

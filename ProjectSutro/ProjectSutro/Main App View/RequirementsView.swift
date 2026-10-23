@@ -70,6 +70,8 @@ struct RequirementRows: View {
 struct RequirementRow: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     let row: SetupRequirements.Row
+    /// Pad the row itself: in a list of its own, not in a form, whose rows are padded already.
+    var padded = true
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -87,8 +89,8 @@ struct RequirementRow: View {
                 }
             }
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 14)
+        .padding(.vertical, padded ? 12 : 2)
+        .padding(.horizontal, padded ? 14 : 0)
     }
 }
 

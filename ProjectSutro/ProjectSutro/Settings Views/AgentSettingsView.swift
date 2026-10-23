@@ -82,48 +82,153 @@ class UserPrefs: ObservableObject {
 }
 
 
+// MARK: - Force dark mode
+/// Force dark mode, for every window at once. A window's `preferredColorScheme` only takes when the window opens, so
+/// switching it in Settings changed only windows opened afterwards. The app's appearance changes them all.
+enum ForcedDarkMode {
+    /// Where the preference is kept.
+    static let key = "forcedDarkMode"
+    /// Watches the preference, once it's being followed.
+    private static var observer: NSObjectProtocol?
+
+    /// Apply the preference now, and again whenever it changes, from Settings or the app menu.
+    static func follow() {
+        apply()
+        guard observer == nil else { return }
+        observer = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil,
+                                                          queue: .main) { _ in apply() }
+    }
+
+    /// Dark when the preference is on, and otherwise whatever the system is.
+    private static func apply() {
+        let name: NSAppearance.Name? = UserDefaults.standard.bool(forKey: key) ? .darkAqua : nil
+        guard NSApp.appearance?.name != name else { return }
+        NSApp.appearance = name.flatMap { NSAppearance(named: $0) }
+    }
+}
+
+
+// MARK: - Settings window
+/// Mac Monitor's Settings, laid out as System Settings: a full-height sidebar with its search field and the Security
+/// Extension's status card above the panes, and the pane's name in the toolbar beside Back and Forward.
 struct AgentSettingsView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @EnvironmentObject var userPrefs: UserPrefs
     @Binding var pathToMute: String
     @Binding var allFilters: Filters
     @Binding var eventMaskEnabled: Bool
-    
-    private enum Tabs: Hashable {
-        case esMuting, esEventSubscriptions, advanced, streamTelemetry, userSettings, commandLine, securityExtension
-    }
-    
+
+    /// The pane showing: General whenever Settings opens.
+    @State private var selection: SettingsPane = .general
+    /// What's typed in the sidebar's search field.
+    @State private var query = ""
+    /// The panes Back and Forward return to, most recent last.
+    @State private var history = (back: [SettingsPane](), forward: [SettingsPane]())
+
     var body: some View {
-        TabView {
-            ESSubscriptionsView(allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled)
-                .tabItem{
-                    Label("Subscriptions", systemImage: "square.and.arrow.down.on.square")
-                }.tag(Tabs.esEventSubscriptions)
-            ESMutingTabView(pathToMute: $pathToMute)
-                .environmentObject(systemExtensionManager)
-                .tabItem{
-                    Label("Path Muting", systemImage: "firewall")
-                }.tag(Tabs.esMuting)
-            CommandLineToolSettingsView()
-                .tabItem {
-                    Label("Command Line", systemImage: "terminal").tag(Tabs.commandLine)
+        NavigationSplitView {
+            List(selection: Binding(get: { selection }, set: { $0.map(show) })) {
+                if SettingsPane.securityExtension.matches(query) {
+                    SettingsStatusCard().tag(SettingsPane.securityExtension)
                 }
-            SecurityExtensionSettingsView()
-                .environmentObject(systemExtensionManager)
-                .tabItem {
-                    Label("Security Extension", systemImage: "checkmark.shield").tag(Tabs.securityExtension)
+                ForEach(SettingsPane.groups.indices, id: \.self) { index in
+                    let panes = SettingsPane.groups[index].filter { $0.matches(query) }
+                    if !panes.isEmpty {
+                        Section {
+                            ForEach(panes) { pane in
+                                Label { Text(pane.title) } icon: { SettingsIconTile(pane: pane) }.tag(pane)
+                            }
+                        }
+                    }
                 }
-            UserSettingsView()
-                .environmentObject(systemExtensionManager)
-                .tabItem {
-                    Label("User Preferences", systemImage: "slider.vertical.3").tag(Tabs.userSettings)
-                }
-            AdvancedView()
-                .environmentObject(systemExtensionManager)
-                .tabItem {
-                    Label("Advanced", systemImage: "gearshape.2").tag(Tabs.advanced)
+            }
+            .listStyle(.sidebar)
+            /// The minimum as well: with the sidebar button removed, SwiftUI otherwise opens the sidebar at 144 points
+            /// on first launch and saves that width.
+            .frame(minWidth: 240)
+            .navigationSplitViewColumnWidth(240)
+            .modifier(NoSidebarToggle())
+        } detail: {
+            pane(selection)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .navigationTitle(selection.title)
+                .toolbar {
+                    ToolbarItem(placement: .navigation) {
+                        ControlGroup {
+                            Button(action: goBack) { Label("Back", systemImage: "chevron.left") }
+                                .disabled(history.back.isEmpty)
+                                .keyboardShortcut("[", modifiers: .command)
+                                .help("Back")
+                            Button(action: goForward) { Label("Forward", systemImage: "chevron.right") }
+                                .disabled(history.forward.isEmpty)
+                                .keyboardShortcut("]", modifiers: .command)
+                                .help("Forward")
+                        }
+                        .controlGroupStyle(.navigation)
+                    }
                 }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).padding(20).frame(width: 900, height: 700)
+        .searchable(text: $query, placement: .sidebar, prompt: "Search")
+        /// The window can keep its view when it closes, so start over at General each time it opens.
+        .onAppear {
+            selection = .general
+            history = ([], [])
+        }
+        .frame(minWidth: 820, idealWidth: 1000, maxWidth: .infinity, minHeight: 560, idealHeight: 720,
+               maxHeight: .infinity)
+    }
+
+    /// Show a pane, remembering the one it replaces for Back.
+    ///
+    /// - Parameter pane: The pane.
+    private func show(_ pane: SettingsPane) {
+        guard pane != selection else { return }
+        history.back.append(selection)
+        history.forward.removeAll()
+        selection = pane
+    }
+
+    /// Return to the pane shown before this one.
+    private func goBack() {
+        guard let pane = history.back.popLast() else { return }
+        history.forward.append(selection)
+        selection = pane
+    }
+
+    /// Return to the pane Back left.
+    private func goForward() {
+        guard let pane = history.forward.popLast() else { return }
+        history.back.append(selection)
+        selection = pane
+    }
+
+    /// A pane's view.
+    ///
+    /// - Parameter pane: The pane.
+    /// - Returns: Its view.
+    @ViewBuilder
+    private func pane(_ pane: SettingsPane) -> some View {
+        switch pane {
+        case .securityExtension: SecurityExtensionSettingsView()
+        case .general: GeneralSettingsView()
+        case .systemDetails: SystemDetailsSettingsView()
+        case .subscriptions: SubscriptionsSettingsView(allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled)
+        case .pathMuting: PathMutingSettingsView(pathToMute: $pathToMute)
+        case .commandLine: SettingsPage(pane: pane) { CommandLineToolSettingsView() }
+        case .telemetrySchema: TelemetrySchemaSettingsView()
+        case .eventTables: ContextMenuSettingsView()
+        }
+    }
+}
+
+
+/// System Settings' sidebar can't be hidden, so neither can this one: no sidebar button in the toolbar (macOS 14+).
+private struct NoSidebarToggle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 14, *) {
+            content.toolbar(removing: .sidebarToggle)
+        } else {
+            content
+        }
     }
 }

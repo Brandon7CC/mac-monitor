@@ -10,7 +10,7 @@ import SwiftUI
 
 // MARK: - Process tree mode
 /// Which parents the process tree in Event Facts' sidebar follows: one preference, chosen in the View menu
-/// (``ProcessTreeCommands``) and in Settings > User Preferences (``ProcessTreePrefsView``). Each reads it through
+/// (``ProcessTreeCommands``) and in Settings ▸ General (``ProcessTreePrefsView``). Each reads it through
 /// `@AppStorage` under ``storageKey``, so the sidebar follows a change from either at once.
 enum ProcessLineageMode: String, CaseIterable, Identifiable {
     /// Each process's Unix parent: the default.
