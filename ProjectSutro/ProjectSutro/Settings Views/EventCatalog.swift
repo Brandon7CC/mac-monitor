@@ -25,9 +25,10 @@ enum EventCatalog {
         var shortName: String { String(name.dropFirst(Self.prefix.count)).lowercased() }
         /// Its SF Symbol (``eventStringToImage(from:)``).
         var symbol: String { eventStringToImage(from: name) }
-        /// Apple's documentation for it.
+        /// Apple's documentation for it: a page per event, named in lowercase, such as
+        /// `endpointsecurity/es_event_type_notify_exec`.
         var documentation: URL {
-            URL(string: "https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/\(name)")!
+            URL(string: "https://developer.apple.com/documentation/endpointsecurity/\(name.lowercased())")!
         }
 
         /// What every name starts with.
