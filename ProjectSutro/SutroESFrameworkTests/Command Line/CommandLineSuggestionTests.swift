@@ -73,7 +73,7 @@ final class CommandLineSuggestionTests: XCTestCase {
 
     /// Every option suggestions and completion offer parses, with a value of the kind it says it takes.
     func testEveryListedOptionParses() throws {
-        let texts = ["--for": "30s", "--count": "10", "--pid": "1", "--where": "event_type == 9"]
+        let texts = ["--for": "30s", "--count": "10", "--pid": "1", "--predicate": "event_type == 9"]
         /// An option and a value of its kind.
         func arguments(_ option: CommandLineOption) -> [String] {
             switch option.value {

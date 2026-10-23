@@ -8,6 +8,7 @@
 import AppKit
 import CoreData
 import OSLog
+import os
 import SutroESFramework
 
 
@@ -37,6 +38,10 @@ final class EventQueryModel: ObservableObject {
     @Published private(set) var filteredCount = 0
     /// Filtered events per mini-chart label (see ``EventChartLabels``).
     @Published private(set) var chartCounts: [String: Int] = [:]
+    /// The events the search's predicate couldn't be checked on, which aren't shown.
+    @Published private(set) var unchecked = Unchecked()
+    /// Is a reload checking every event against the search's predicate?
+    @Published private(set) var isSearching = false
     
     /// The "System Security Unified" table.
     let unified = EventTableQuery(execOnly: false)
@@ -51,7 +56,11 @@ final class EventQueryModel: ObservableObject {
     
     private var spec: EventFilterSpec?
     /// Bumped whenever results already being computed should be thrown away (a reload is due, or Clear).
-    private var generation = 0
+    private var generation = 0 {
+        didSet { latestGeneration.withLock { [value = generation] in $0 = value } }
+    }
+    /// ``generation`` for the worker, which stops a job that's been thrown away (``Worker/Snapshot/isCurrent``).
+    private let latestGeneration = OSAllocatedUnfairLock(initialState: 0)
     private var isWorking = false
     private var needsReload = false
     /// Events saved since the last job started, waiting to be merged in.
@@ -154,6 +163,7 @@ final class EventQueryModel: ObservableObject {
         totalCount = 0
         filteredCount = 0
         chartCounts = [:]
+        unchecked = Unchecked()
     }
     
     // MARK: Selection
@@ -224,11 +234,15 @@ final class EventQueryModel: ObservableObject {
     private func pump() {
         guard !observers.isEmpty, !isWorking, !controller.isClearing, Date() >= retryAt, let spec else { return }
         let snapshot = Worker.Snapshot(spec: spec, through: lastBatch,
-                                       unified: .init(query: unified), exec: .init(query: exec))
+                                       unified: .init(query: unified), exec: .init(query: exec),
+                                       isCurrent: { [latest = latestGeneration, started = generation] in
+                                           latest.withLock { $0 } == started
+                                       })
         if needsReload {
             /// A reload covers every batch received so far.
             needsReload = false
             pendingInserts = []
+            isSearching = spec.recordPredicate != nil
             run({ try $0.reload(snapshot) }, then: apply(reload:))
         } else if !pendingInserts.isEmpty {
             let ids = pendingInserts
@@ -248,10 +262,14 @@ final class EventQueryModel: ObservableObject {
         worker.perform(work) { [weak self] result in
             guard let self else { return }
             self.isWorking = false
+            self.isSearching = false
             switch result {
             case .success(let value):
                 self.retryDelay = 0
                 if started == self.generation { apply(value) }
+            case .failure(is CancellationError):
+                /// Thrown away for a newer job, which `pump` starts.
+                break
             case .failure(let error):
                 Self.logger.error("Unable to query events: \(error.localizedDescription, privacy: .public)")
                 /// Try again from scratch (unless a reload is already due) after a growing pause, so a lasting failure
@@ -272,15 +290,45 @@ final class EventQueryModel: ObservableObject {
         totalCount = result.total
         filteredCount = unified.rows.count
         chartCounts = result.chart
+        unchecked = result.unchecked
     }
     
     /// - Parameter result: A finished insert.
     private func apply(insert result: Worker.Insert) {
-        guard !result.lineageChanged else { return reload() }
+        guard !result.needsReload else { return reload() }
         unified.insert(result.unified.rows, at: result.unified.inserted)
         exec.insert(result.exec.rows, at: result.exec.inserted)
         totalCount += result.added
         filteredCount = unified.rows.count
         if !result.chart.isEmpty { chartCounts.merge(result.chart, uniquingKeysWith: +) }
+        if result.unchecked.count > 0 { unchecked.add(result.unchecked) }
+    }
+}
+
+
+// MARK: - Unchecked events
+extension EventQueryModel {
+    /// Events the search's predicate couldn't be evaluated on, such as `MATCHES` on a number. They aren't shown.
+    struct Unchecked: Equatable {
+        /// How many.
+        var count = 0
+        /// Why the first one couldn't be, as `NSPredicate` says.
+        var reason: String?
+
+        /// Count one more.
+        ///
+        /// - Parameter error: Why it couldn't be checked.
+        mutating func add(_ error: Error) {
+            count += 1
+            reason = reason ?? ((error as? StreamFilterError)?.reason ?? error.localizedDescription)
+        }
+
+        /// Count others.
+        ///
+        /// - Parameter other: More unchecked events.
+        mutating func add(_ other: Unchecked) {
+            count += other.count
+            reason = reason ?? other.reason
+        }
     }
 }

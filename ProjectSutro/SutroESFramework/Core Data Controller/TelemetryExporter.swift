@@ -43,7 +43,7 @@ final class TelemetryExporter {
     init(container: NSPersistentContainer, pretty: Bool) {
         context = container.newBackgroundContext()
         self.pretty = pretty
-        prefetch = container.managedObjectModel.entitiesByName["ESMessage"].map { Self.prefetchKeyPaths(from: $0) } ?? []
+        prefetch = ESMessage.recordPrefetchKeyPaths(in: container.managedObjectModel)
     }
     
     /// Stop after the current batch, leaving the destination untouched.
@@ -228,23 +228,31 @@ final class TelemetryExporter {
         }
         guard rename(temporary.path, url.path) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
     }
-    
-    /// Every to-one relationship path from `entity`, up to `depth` deep, derived from the model so new event types are
-    /// prefetched too.
+}
+
+
+// MARK: - Records
+public extension ESMessage {
+    /// Every to-one relationship an event's record encodes, for `relationshipKeyPathsForPrefetching`: derived from the
+    /// model, so new event types are prefetched too.
     ///
     /// Six deep reaches the deepest path an event encodes, `event.rename.destination.new_path.dir.stat` (and `create`'s).
     ///
-    /// - Parameters:
-    ///   - entity: The entity to start from.
-    ///   - prefix: The path to `entity`.
-    ///   - depth: How many relationships deep to go.
-    /// - Returns: Key paths for `relationshipKeyPathsForPrefetching`.
-    private static func prefetchKeyPaths(from entity: NSEntityDescription, prefix: String = "", depth: Int = 6) -> [String] {
-        guard depth > 0 else { return [] }
-        return entity.relationshipsByName.sorted { $0.key < $1.key }.flatMap { name, relationship -> [String] in
-            guard !relationship.isToMany, let destination = relationship.destinationEntity else { return [] }
-            let path = prefix.isEmpty ? name : "\(prefix).\(name)"
-            return [path] + prefetchKeyPaths(from: destination, prefix: path, depth: depth - 1)
+    /// - Parameter model: The event store's model.
+    /// - Returns: The key paths, or none if the model has no `ESMessage`.
+    static func recordPrefetchKeyPaths(in model: NSManagedObjectModel) -> [String] {
+        /// - Parameters:
+        ///   - entity: The entity to start from.
+        ///   - prefix: The path to `entity`.
+        ///   - depth: How many relationships deep to go.
+        func paths(from entity: NSEntityDescription, prefix: String = "", depth: Int = 6) -> [String] {
+            guard depth > 0 else { return [] }
+            return entity.relationshipsByName.sorted { $0.key < $1.key }.flatMap { name, relationship -> [String] in
+                guard !relationship.isToMany, let destination = relationship.destinationEntity else { return [] }
+                let path = prefix.isEmpty ? name : "\(prefix).\(name)"
+                return [path] + paths(from: destination, prefix: path, depth: depth - 1)
+            }
         }
+        return model.entitiesByName["ESMessage"].map { paths(from: $0) } ?? []
     }
 }

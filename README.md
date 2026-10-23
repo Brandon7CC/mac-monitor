@@ -92,7 +92,7 @@ sudo macmonitor stream exec --process curl --grep '(?i)token'
 
 # an osascript script asking for a password, as macOS stealers do
 sudo macmonitor stream exec --target '/osascript$' \
-    --where 'event.exec.script_content CONTAINS[c] "display dialog" AND event.exec.script_content CONTAINS[c] "password"'
+    --predicate 'event.exec.script_content CONTAINS[c] "display dialog" AND event.exec.script_content CONTAINS[c] "password"'
 
 sudo macmonitor mute list                  # the saved mute set
 macmonitor validate trace.jsonl            # check an export against the schema
@@ -101,7 +101,7 @@ macmonitor completion zsh                  # shell completion (or bash)
 
 - **Output**: text on a terminal, JSONL when piped. The JSONL is the same as Export telemetry, an eslogger superset.
 - **Root**: `stream` and `mute` need `sudo`. Each stream has its own Endpoint Security clients, so it never changes what Mac Monitor records. Up to 3 run at once.
-- **Filters**: `--pid`, `--process`, `--signing-id`, `--target` and `--grep` take a regular expression. `--where` takes an NSPredicate on the record. For an exec, `--target` is the program it runs.
+- **Filters**: `--pid`, `--process`, `--signing-id`, `--target` and `--grep` take a regular expression. `--predicate` takes an NSPredicate on the record. For an exec, `--target` is the program it runs.
 - **Stopping**: Ctrl-C, `--for` or `--count`. Every event captured before the stop is written. Lost events are reported on standard error.
 - **Installing**: `sudo` runs the tool as root, so Settings only links a copy owned by `root`, as the installer package installs it. Without the link, run it by its full path.
 - `macmonitor help <command>` covers every option and exit status.

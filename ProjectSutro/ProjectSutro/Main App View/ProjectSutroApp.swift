@@ -30,11 +30,15 @@ struct ProjectSutroApp: App {
     static let schemaWindow = "telemetry-schema"
     /// The Settings window's identifier: Mac Monitor ▸ Settings… (⌘,).
     static let settingsWindow = "settings"
+    /// The predicate editor's own window, when it's popped out of the main window.
+    static let predicateEditorWindow = "predicate-editor"
     
     /// Track everything going on with System Events and the Security Extension
     @StateObject var systemExtensionManager: EndpointSecurityManager = EndpointSecurityManager()
     /// What the windows show: a live recording, or a trace opened with File > Open Trace… (#38).
     @StateObject private var traceSession = TraceSession()
+    /// The main window's predicate search, shared with the predicate editor's own window.
+    @StateObject private var predicateSearch = EventSearchController()
     /// Track all filters offered by Mac Monitor
     @State private var allFilters: Filters = Filters()
     /// Load user preferences from ``UserDefaults``
@@ -93,6 +97,7 @@ struct ProjectSutroApp: App {
                     filteringLongRunningProcs: $filteringLongRunningProcs,
                     eventSelection: $eventSelection,
                     filterText: $filterText,
+                    search: predicateSearch,
                     allFilters: $allFilters,
                     eventMaskEnabled: $eventMaskEnabled
                 )
@@ -226,6 +231,18 @@ struct ProjectSutroApp: App {
                 }.keyboardShortcut("0")
             }
             
+            /// The main window's search field and predicate editor (``EventSearchField``, ``PredicateEditorPane``).
+            CommandGroup(after: .sidebar) {
+                Button("Predicate Editor") {
+                    NotificationCenter.default.post(name: .togglePredicateEditor, object: nil)
+                }
+                    .keyboardShortcut("f", modifiers: [.command, .option])
+            }
+            CommandGroup(after: .textEditing) {
+                Button("Find Events") { NotificationCenter.default.post(name: .focusEventSearch, object: nil) }
+                    .keyboardShortcut("f")
+            }
+            
             ProcessTreeCommands(mode: $processLineageMode)
             
             CommandMenu("Security Extension") {
@@ -319,6 +336,13 @@ struct ProjectSutroApp: App {
         }
         .defaultPosition(.topLeading).defaultSize(width: 1000, height: 900)
         /// Never the window a trace opens in.
+        .handlesExternalEvents(matching: [])
+        
+        /// The predicate editor, popped out of the main window. One window.
+        Window("Predicate Editor", id: Self.predicateEditorWindow) {
+            PredicateEditorWindow(search: predicateSearch)
+        }
+        .defaultSize(width: 520, height: 760)
         .handlesExternalEvents(matching: [])
         
         /// Help > Telemetry Schema…: the schema of Mac Monitor's exports, and traces checked against it. One window.

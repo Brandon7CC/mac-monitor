@@ -60,7 +60,7 @@ final class CommandLineCompletionTests: XCTestCase {
         XCTAssertEqual(try bashCompletions("macmonitor", "stream", "--f"), ["--for", "--format"])
         XCTAssertEqual(try bashCompletions("macmonitor", "stream", "--format", ""), ["jsonl", "pretty", "text"])
         XCTAssertEqual(try bashCompletions("macmonitor", "stream", "exe"), ["exec"])
-        XCTAssertEqual(try bashCompletions("macmonitor", "stream", "--where", ""), [])
+        XCTAssertEqual(try bashCompletions("macmonitor", "stream", "--predicate", ""), [])
         XCTAssertEqual(try bashCompletions("macmonitor", "mute", "re"), ["remove", "reset"])
         XCTAssertEqual(try bashCompletions("macmonitor", "mute", "add", "/x", "--type", "target-"),
                        ["target-literal", "target-prefix"])

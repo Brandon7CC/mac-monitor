@@ -316,6 +316,7 @@
 		5C4E0000000000000000000D /* TelemetryValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000000C /* TelemetryValidation.swift */; };
 		5C4E0000000000000000000F /* TelemetryValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000000E /* TelemetryValidator.swift */; };
 		5C4E00000000000000000011 /* TelemetrySchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000010 /* TelemetrySchema.swift */; };
+		F17E0000000000000000002E /* RecordKeyPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002D /* RecordKeyPaths.swift */; };
 		5C4E0000000000000000003C /* mac-monitor-telemetry.schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000003B /* mac-monitor-telemetry.schema.json */; };
 		5C4E00000000000000000043 /* ReadOnlyTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000042 /* ReadOnlyTextView.swift */; };
 		5C4E00000000000000000045 /* TelemetrySchemaModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000044 /* TelemetrySchemaModel.swift */; };
@@ -360,6 +361,8 @@
 		BA9522552886CFB700CF6222 /* SutroESFramework.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = BA33689E287620FD00794525 /* SutroESFramework.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		BA97AFD02875471D0099C035 /* ProjectSutroApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA97AFCF2875471D0099C035 /* ProjectSutroApp.swift */; };
 		BA97AFD22875471D0099C035 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA97AFD12875471D0099C035 /* ContentView.swift */; };
+		F17E00000000000000000020 /* EventSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000001F /* EventSearch.swift */; };
+		F17E00000000000000000028 /* PredicateEditorPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000027 /* PredicateEditorPane.swift */; };
 		BA97AFD42875471E0099C035 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BA97AFD32875471E0099C035 /* Assets.xcassets */; };
 		BA97AFD72875471E0099C035 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BA97AFD62875471E0099C035 /* Preview Assets.xcassets */; };
 		BA97AFEA28754ABF0099C035 /* libEndpointSecurity.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = BA97AFE928754ABF0099C035 /* libEndpointSecurity.tbd */; };
@@ -534,6 +537,9 @@
 		F17E00000000000000000008 /* CommandLineOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000007 /* CommandLineOptions.swift */; };
 		F17E0000000000000000000A /* CommandLineCompletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000009 /* CommandLineCompletion.swift */; };
 		F17E0000000000000000000C /* StreamFilter+Predicates.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000B /* StreamFilter+Predicates.swift */; };
+		F17E00000000000000000030 /* StreamFilter+Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002F /* StreamFilter+Store.swift */; };
+		F17E0000000000000000002C /* PredicateText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002B /* PredicateText.swift */; };
+		F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000029 /* StreamFilter+Relations.swift */; };
 		F17E0000000000000000000E /* SetupRequirements.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000D /* SetupRequirements.swift */; };
 		F17E00000000000000000010 /* RequirementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000F /* RequirementsView.swift */; };
 		F17E00000000000000000012 /* SecurityExtensionSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */; };
@@ -963,6 +969,7 @@
 		5C4E0000000000000000000C /* TelemetryValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryValidation.swift; sourceTree = "<group>"; };
 		5C4E0000000000000000000E /* TelemetryValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryValidator.swift; sourceTree = "<group>"; };
 		5C4E00000000000000000010 /* TelemetrySchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchema.swift; sourceTree = "<group>"; };
+		F17E0000000000000000002D /* RecordKeyPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordKeyPaths.swift; sourceTree = "<group>"; };
 		5C4E0000000000000000003B /* mac-monitor-telemetry.schema.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = "mac-monitor-telemetry.schema.json"; path = "../../../Schema/mac-monitor-telemetry.schema.json"; sourceTree = "<group>"; };
 		5C4E00000000000000000042 /* ReadOnlyTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadOnlyTextView.swift; sourceTree = "<group>"; };
 		5C4E00000000000000000044 /* TelemetrySchemaModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaModel.swift; sourceTree = "<group>"; };
@@ -1006,6 +1013,8 @@
 		BA97AFCC2875471D0099C035 /* Mac Monitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Mac Monitor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA97AFCF2875471D0099C035 /* ProjectSutroApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectSutroApp.swift; sourceTree = "<group>"; };
 		BA97AFD12875471D0099C035 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		F17E0000000000000000001F /* EventSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSearch.swift; sourceTree = "<group>"; };
+		F17E00000000000000000027 /* PredicateEditorPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateEditorPane.swift; sourceTree = "<group>"; };
 		BA97AFD32875471E0099C035 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BA97AFD62875471E0099C035 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		BA97AFDD2875471E0099C035 /* ProjectSutro.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ProjectSutro.entitlements; sourceTree = "<group>"; };
@@ -1180,6 +1189,9 @@
 		F17E00000000000000000007 /* CommandLineOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineOptions.swift; sourceTree = "<group>"; };
 		F17E00000000000000000009 /* CommandLineCompletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineCompletion.swift; sourceTree = "<group>"; };
 		F17E0000000000000000000B /* StreamFilter+Predicates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Predicates.swift"; sourceTree = "<group>"; };
+		F17E0000000000000000002F /* StreamFilter+Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Store.swift"; sourceTree = "<group>"; };
+		F17E0000000000000000002B /* PredicateText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateText.swift; sourceTree = "<group>"; };
+		F17E00000000000000000029 /* StreamFilter+Relations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Relations.swift"; sourceTree = "<group>"; };
 		F17E0000000000000000000D /* SetupRequirements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupRequirements.swift; sourceTree = "<group>"; };
 		F17E0000000000000000000F /* RequirementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequirementsView.swift; sourceTree = "<group>"; };
 		F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityExtensionSettingsView.swift; sourceTree = "<group>"; };
@@ -2822,6 +2834,8 @@
 			children = (
 				BA97AFCF2875471D0099C035 /* ProjectSutroApp.swift */,
 				BA97AFD12875471D0099C035 /* ContentView.swift */,
+				F17E0000000000000000001F /* EventSearch.swift */,
+				F17E00000000000000000027 /* PredicateEditorPane.swift */,
 				F17E0000000000000000000F /* RequirementsView.swift */,
 				D15C00000000000000000105 /* TraceSession.swift */,
 				D15C0000000000000000012A /* TraceSessionViews.swift */,
@@ -2927,6 +2941,7 @@
 			isa = PBXGroup;
 			children = (
 				5C4E00000000000000000010 /* TelemetrySchema.swift */,
+				F17E0000000000000000002D /* RecordKeyPaths.swift */,
 				5C4E0000000000000000000E /* TelemetryValidator.swift */,
 				5C4E0000000000000000000C /* TelemetryValidation.swift */,
 				5C4E0000000000000000000A /* TelemetryIssue.swift */,
@@ -3721,6 +3736,9 @@
 				CB1C00000000000000000033 /* PipelineScope.swift */,
 				F17E00000000000000000005 /* StreamFilter.swift */,
 				F17E0000000000000000000B /* StreamFilter+Predicates.swift */,
+				F17E0000000000000000002F /* StreamFilter+Store.swift */,
+				F17E0000000000000000002B /* PredicateText.swift */,
+				F17E00000000000000000029 /* StreamFilter+Relations.swift */,
 				F17E00000000000000000009 /* CommandLineCompletion.swift */,
 				F17E00000000000000000007 /* CommandLineOptions.swift */,
 				CB1C00000000000000000035 /* StreamDropMeter.swift */,
@@ -4067,6 +4085,9 @@
 				CB1C00000000000000000034 /* PipelineScope.swift in Sources */,
 				F17E00000000000000000006 /* StreamFilter.swift in Sources */,
 				F17E0000000000000000000C /* StreamFilter+Predicates.swift in Sources */,
+				F17E00000000000000000030 /* StreamFilter+Store.swift in Sources */,
+				F17E0000000000000000002C /* PredicateText.swift in Sources */,
+				F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */,
 				F17E0000000000000000000A /* CommandLineCompletion.swift in Sources */,
 				F17E00000000000000000008 /* CommandLineOptions.swift in Sources */,
 				CB1C00000000000000000032 /* EventHeader.swift in Sources */,
@@ -4095,6 +4116,7 @@
 				CA9700000000000000000037 /* MuteList+Changes.swift in Sources */,
 				CA9700000000000000000035 /* MuteList.swift in Sources */,
 				5C4E00000000000000000011 /* TelemetrySchema.swift in Sources */,
+				F17E0000000000000000002E /* RecordKeyPaths.swift in Sources */,
 				5C4E0000000000000000000F /* TelemetryValidator.swift in Sources */,
 				5C4E0000000000000000000D /* TelemetryValidation.swift in Sources */,
 				5C4E0000000000000000000B /* TelemetryIssue.swift in Sources */,
@@ -4442,6 +4464,8 @@
 				28CEF0DF29776B51003057D2 /* SystemTargetExecProcMetadataView.swift in Sources */,
 				28EC62EF2925A1B100EAC8AD /* MMAPSystemEventsViews.swift in Sources */,
 				BA97AFD22875471D0099C035 /* ContentView.swift in Sources */,
+				F17E00000000000000000020 /* EventSearch.swift in Sources */,
+				F17E00000000000000000028 /* PredicateEditorPane.swift in Sources */,
 				F17E00000000000000000010 /* RequirementsView.swift in Sources */,
 				D15C00000000000000000106 /* TraceSession.swift in Sources */,
 				D15C0000000000000000012B /* TraceSessionViews.swift in Sources */,

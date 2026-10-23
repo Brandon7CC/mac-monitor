@@ -130,7 +130,7 @@ public enum CommandLineParser {
     }
     
     /// `stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes] [--include-self]
-    /// [--for DURATION] [--count N] [--pid PID] [--process|--signing-id|--target|--grep REGEX] [--where PREDICATE]`.
+    /// [--for DURATION] [--count N] [--pid PID] [--process|--signing-id|--target|--grep REGEX] [--predicate PREDICATE]`.
     ///
     /// `--json`, `--pretty` and `--text` are short for `--format jsonl|pretty|text`. Each filter option may be given
     /// more than once (``StreamFilter``).
@@ -179,8 +179,8 @@ public enum CommandLineParser {
                 let pattern = try StreamFilter.Pattern(cursor.value(of: option, attached: attached, command: "stream"),
                                                        option: option)
                 invocation.filter[keyPath: patternOptions[option]!].append(pattern)
-            case .option("--where", let attached):
-                let value = try cursor.value(of: "--where", attached: attached, command: "stream")
+            case .option("--predicate", let attached):
+                let value = try cursor.value(of: "--predicate", attached: attached, command: "stream")
                 invocation.filter.predicates.append(try StreamFilter.Predicate(value))
             case .option(let option, .some) where flags.contains(option):
                 throw CommandLineUsageError("\(option) takes no value.", command: "stream")

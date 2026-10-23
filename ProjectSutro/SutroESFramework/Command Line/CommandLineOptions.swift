@@ -45,7 +45,7 @@ public struct CommandLineOption: Equatable {
         CommandLineOption("--json"), CommandLineOption("--pretty"), CommandLineOption("--text"),
         CommandLineOption("--no-mutes"), CommandLineOption("--include-self"),
         CommandLineOption("--for", .text), CommandLineOption("--count", .text), CommandLineOption("--pid", .text)
-    ] + ["--process", "--signing-id", "--target", "--grep", "--where"].map { CommandLineOption($0, .text) }
+    ] + ["--process", "--signing-id", "--target", "--grep", "--predicate"].map { CommandLineOption($0, .text) }
 
     /// `validate`'s options.
     static let validate = [CommandLineOption("--eslogger")]

@@ -80,7 +80,7 @@ public final class StreamPipeline {
     public private(set) var suppressed: Int = 0
     /// Events the filter left out so far.
     public private(set) var filtered: Int = 0
-    /// Events a `--where` predicate couldn't be evaluated on so far, which aren't written.
+    /// Events a `--predicate` couldn't be evaluated on so far, which aren't written.
     public private(set) var unchecked: Int = 0
     /// Why the first of them couldn't be.
     public private(set) var uncheckedReason: String?
@@ -214,7 +214,7 @@ extension StreamPipeline {
         private(set) var suppressed: Int = 0
         /// Events the filter left out.
         private(set) var filtered: Int = 0
-        /// Events a `--where` predicate couldn't be evaluated on.
+        /// Events a `--predicate` couldn't be evaluated on.
         private(set) var unchecked: Int = 0
         /// Why the first of them couldn't be.
         private(set) var uncheckedReason: String?

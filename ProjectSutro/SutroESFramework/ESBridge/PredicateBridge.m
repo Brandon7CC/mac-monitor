@@ -43,4 +43,46 @@ static NSError *PredicateBridgeError(NSException *exception) {
     }
 }
 
++ (BOOL)evaluate:(NSPredicate *)predicate withObject:(nullable id)object
+       variables:(NSDictionary<NSString *, id> *)variables matches:(BOOL *)matches error:(NSError **)error {
+    @try {
+        *matches = [predicate evaluateWithObject:object substitutionVariables:variables];
+        return YES;
+    } @catch (NSException *exception) {
+        if (error) *error = PredicateBridgeError(exception);
+        return NO;
+    }
+}
+
++ (nullable NSArray *)filter:(NSArray *)candidates withPredicate:(NSPredicate *)predicate object:(nullable id)object
+                    variable:(NSString *)variable error:(NSError **)error {
+    @try {
+        // One dictionary for every candidate: a search compares up to a million pairs.
+        NSMutableArray *matching = [NSMutableArray array];
+        NSMutableDictionary *variables = [NSMutableDictionary dictionaryWithCapacity:1];
+        for (id candidate in candidates) {
+            variables[variable] = candidate;
+            if ([predicate evaluateWithObject:object substitutionVariables:variables]) [matching addObject:candidate];
+        }
+        return matching;
+    } @catch (NSException *exception) {
+        if (error) *error = PredicateBridgeError(exception);
+        return nil;
+    }
+}
+
++ (BOOL)evaluateExpression:(NSExpression *)expression withObject:(nullable id)object
+                 variables:(nullable NSDictionary<NSString *, id> *)variables value:(id _Nullable * _Nonnull)value
+                     error:(NSError **)error {
+    @try {
+        // An expression reads its variables from the context.
+        NSMutableDictionary *context = variables ? [variables mutableCopy] : nil;
+        *value = [expression expressionValueWithObject:object context:context];
+        return YES;
+    } @catch (NSException *exception) {
+        if (error) *error = PredicateBridgeError(exception);
+        return NO;
+    }
+}
+
 @end
