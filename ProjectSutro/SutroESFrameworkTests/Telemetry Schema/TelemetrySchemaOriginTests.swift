@@ -12,7 +12,7 @@ import XCTest
 // MARK: - eslogger's keys and Mac Monitor's
 /// Checks the schema's `x-mac-monitor-origin` marks against eslogger's own keys (`Fixtures/eslogger-keys.json`): every
 /// eslogger key is marked eslogger's, with eslogger's type, every key marked eslogger's is one of eslogger's, and no
-/// Mac Monitor addition is. eslogger's own records then validate in eslogger mode.
+/// Mac Monitor enrichment is. eslogger's own records then validate in eslogger mode.
 final class TelemetrySchemaOriginTests: XCTestCase {
     /// eslogger keys Mac Monitor doesn't write, and why.
     static let unwritten = ["events.exec.entitlements":
@@ -74,8 +74,8 @@ final class TelemetrySchemaOriginTests: XCTestCase {
         XCTAssertEqual(wrong.sorted(), [])
     }
     
-    /// Every key the schema marks eslogger's is one of eslogger's, and no Mac Monitor addition is.
-    func testAdditionsAreNotESLoggers() throws {
+    /// Every key the schema marks eslogger's is one of eslogger's, and no Mac Monitor enrichment is.
+    func testEnrichmentsAreNotESLoggers() throws {
         let fixture = try esloggerKeys().mapValues { Set($0.keys.map { plain($0).path }) }
         let schema = schemaKeys
         XCTAssertEqual(Set(schema.scopes.keys), Set(fixture.keys),

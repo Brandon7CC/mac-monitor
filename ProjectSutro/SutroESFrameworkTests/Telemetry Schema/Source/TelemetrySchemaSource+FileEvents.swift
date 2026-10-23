@@ -49,9 +49,9 @@ extension TelemetrySchemaSource {
             eslogger("protection", .integer),
             eslogger("address", .integer, "Unsigned."),
             eslogger("size", .integer, "Unsigned."),
-            addition("hex_address", .string, "`address` in hex."),
-            addition("kb_size", .integer, "`size` in kilobytes."),
-            addition("flags", .array(.string), "The names of the flags `protection` has: PROT_READ."),
+            enrichment("hex_address", .string, "`address` in hex."),
+            enrichment("kb_size", .integer, "`size` in kilobytes."),
+            enrichment("flags", .array(.string), "The names of the flags `protection` has: PROT_READ."),
          ]),
          mount,
         ]
@@ -79,9 +79,9 @@ extension TelemetrySchemaSource {
     }
     
     /// Mac Monitor's keys of a create or rename: the destination type's name, and File Quarantine.
-    private static var destinationAdditions: [SchemaKey] {
-        [addition("destination_type_string", .string, "The name of `destination_type`."),
-         addition("is_quarantined", .integer,
+    private static var destinationEnrichments: [SchemaKey] {
+        [enrichment("destination_type_string", .string, "The name of `destination_type`."),
+         enrichment("is_quarantined", .integer,
                   "Whether the file was quarantined when the event was recorded: 1 if it had a "
                   + "com.apple.quarantine attribute, 0 if not, 2 if it wasn't found.")]
     }
@@ -95,7 +95,7 @@ extension TelemetrySchemaSource {
             eslogger("destination_type", .integer),
             eslogger("destination", .object(destination(newPath))),
             eslogger("acl", .nullable(.string)),
-        ] + destinationAdditions)
+        ] + destinationEnrichments)
     }
     
     /// A file renamed: `es_event_rename_t`.
@@ -107,8 +107,8 @@ extension TelemetrySchemaSource {
             eslogger("source", .ref("file")),
             eslogger("destination_type", .integer),
             eslogger("destination", .object(destination(newPath))),
-            addition("destination_path", .string, "The destination's full path."),
-        ] + destinationAdditions)
+            enrichment("destination_path", .string, "The destination's full path."),
+        ] + destinationEnrichments)
     }
     
     /// A file system mounted: `es_event_mount_t`.

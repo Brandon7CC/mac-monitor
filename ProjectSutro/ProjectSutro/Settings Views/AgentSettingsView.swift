@@ -35,7 +35,6 @@ class UserPrefs: ObservableObject {
     @AppStorage("lifecycleWarnBeforeClear") var lifecycleWarnBeforeClear = true  // Warn the user before clearing events
     
     // MARK: - Process tree
-    @AppStorage("forksAsParent") var forksAsParent = false
     // Which parents Event Facts' process tree follows is kept under ProcessLineageMode.storageKey: the View menu,
     // Settings and the tree each read it through their own @AppStorage, so each follows the others' changes.
     

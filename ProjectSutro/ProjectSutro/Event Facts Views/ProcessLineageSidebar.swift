@@ -15,7 +15,6 @@ import SutroESFramework
 /// header names the choice. Choosing a row shows that event.
 struct ProcessLineageSidebar: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @EnvironmentObject var userPrefs: UserPrefs
     @Environment(\.openWindow) private var openEventFacts
     /// Which parents the tree follows.
     @AppStorage(ProcessLineageMode.storageKey) private var mode = ProcessLineageMode.defaultMode
@@ -52,19 +51,15 @@ struct ProcessLineageSidebar: View {
     
     
     // MARK: Unix parents
-    /// The selected event's ancestors, nearest first (forks only if they count as parents).
+    /// The selected event's ancestors, nearest first. Forks are left out. A fork is usually followed by an exec of the
+    /// same process, and a fork that never execs runs its parent's program.
     ///
     /// - Parameter event: The selected event.
     /// - Returns: Its process tree, looked up in the store.
     private func procTree(for event: ESMessage) -> [ESMessage] {
-        systemExtensionManager.coreDataContainer.getProcTree(targetEvent: event).filter({
-            /// Forks as parent
-            if userPrefs.forksAsParent {
-                true
-            } else {
-                $0.es_event_type != "ES_EVENT_TYPE_NOTIFY_FORK"
-            }
-        })
+        systemExtensionManager.coreDataContainer.getProcTree(targetEvent: event).filter {
+            $0.event_type != ESMessage.forkEventType
+        }
     }
     
     /// The process tree by Unix parents.

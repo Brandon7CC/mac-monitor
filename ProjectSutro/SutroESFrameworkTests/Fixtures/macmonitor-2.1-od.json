@@ -1,5 +1,5 @@
 {
-  "_comment": "Open Directory events as Mac Monitor 2.0.0 to 2.1.0 (and 3.0.0 before eslogger's format) exported them, and, with an id, sent them from the Security Extension: the name of the member's type in place of eslogger's member object, the names of the record and account types in place of their numbers, and no instigator or instigator_token.",
+  "_comment": "Open Directory events as Mac Monitor 2.0.0 to 2.1.0 exported them, and, with an id, sent them from the Security Extension: the name of the member's type in place of eslogger's member object, the names of the record and account types in place of their numbers, and no instigator or instigator_token.",
   "events": {
     "od_attribute_value_add": {
       "attribute_name": "dsAttrTypeStandard:Comment",

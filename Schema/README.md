@@ -11,16 +11,16 @@ release's assets by name), and the latest is at
 
 ## eslogger's keys and Mac Monitor's
 
-A record is eslogger's JSON for an Endpoint Security message (`es_message_t`) plus Mac Monitor's additions. Every
+A record is eslogger's JSON for an Endpoint Security message (`es_message_t`) plus Mac Monitor's enrichments. Every
 eslogger key keeps eslogger's key path and value; Mac Monitor's keys sit beside them. The schema marks every property
 with `x-mac-monitor-origin`:
 
 - `eslogger`: eslogger writes the key, at the same path, with the same value.
-- `mac-monitor`: Mac Monitor adds it. Every addition has a `description` saying what it holds and how it's derived.
+- `mac-monitor`: one of Mac Monitor's enrichments, with a `description` saying what it holds and how it's derived.
 
 The mark describes the key itself. Everything under a Mac Monitor key is Mac Monitor's, even where it reuses one of
 eslogger's shapes: `launched_by_parent.audit_token` is written the way eslogger writes an audit token, but it's an
-addition.
+enrichment.
 
 Two of eslogger's integers that Mac Monitor can't reproduce keep eslogger's keys: `seq_num` and `global_seq_num` count
 the messages of the Endpoint Security client that received them, so Mac Monitor's numbers never match eslogger's.

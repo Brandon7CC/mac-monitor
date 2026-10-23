@@ -149,7 +149,7 @@ func eslogger(_ name: String, _ value: SchemaValue, _ description: String? = nil
     SchemaKey(name: name, origin: .eslogger, value: value, description: description, absence: absent)
 }
 
-/// One of Mac Monitor's additions beside eslogger's keys, which must say what it holds and how it's derived.
+/// One of Mac Monitor's enrichments beside eslogger's keys, which must say what it holds and how it's derived.
 ///
 /// - Parameters:
 ///   - name: The key.
@@ -157,7 +157,7 @@ func eslogger(_ name: String, _ value: SchemaValue, _ description: String? = nil
 ///   - description: What it holds and how it's derived.
 ///   - absent: When it's left out, for a key that isn't always written.
 /// - Returns: The key.
-func addition(_ name: String, _ value: SchemaValue, _ description: String, absent: Absence? = nil) -> SchemaKey {
+func enrichment(_ name: String, _ value: SchemaValue, _ description: String, absent: Absence? = nil) -> SchemaKey {
     SchemaKey(name: name, origin: .macMonitor, value: value, description: description, absence: absent)
 }
 
@@ -181,5 +181,5 @@ func event(_ type: es_event_type_t, _ description: String, _ keys: [SchemaKey]) 
 /// - Returns: The two keys.
 func named(_ name: String, suffix: String = "_string", _ description: String) -> [SchemaKey] {
     [eslogger(name, .integer, description),
-     addition(name + suffix, .string, "The name of `\(name)`, from the SDK's constants.")]
+     enrichment(name + suffix, .string, "The name of `\(name)`, from the SDK's constants.")]
 }

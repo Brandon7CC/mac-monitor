@@ -47,7 +47,7 @@ extension AuditToken {
 // MARK: - eslogger's shape
 /// An audit token as eslogger writes one: its eight values, without Mac Monitor's `id`.
 ///
-/// Mac Monitor's own ``AuditToken`` encodes its random `id` too. Mac Monitor's additions write tokens this way, and
+/// Mac Monitor's own ``AuditToken`` encodes its random `id` too. Mac Monitor's enrichments write tokens this way, and
 /// read either shape (an `id` is ignored).
 struct ESLoggerAuditToken: Codable {
     let pid, pidversion, asid: Int32

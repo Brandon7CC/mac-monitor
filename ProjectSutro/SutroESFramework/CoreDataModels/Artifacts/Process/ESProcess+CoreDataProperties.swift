@@ -56,10 +56,6 @@ extension ESProcess {
     @NSManaged public var ruid_human: String?
     @NSManaged public var codesigning_type: String
     @NSManaged public var is_adhoc_signed: Bool
-    @NSManaged public var get_task_allow: Bool
-    @NSManaged public var allow_jit: Bool
-    @NSManaged public var rootless: Bool
-    @NSManaged public var skip_lv: Bool
     @NSManaged public var file_quarantine_type: String
     // @NSManaged public var command_line: String?
 }

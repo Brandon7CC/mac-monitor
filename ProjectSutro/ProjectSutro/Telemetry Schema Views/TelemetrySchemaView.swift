@@ -18,7 +18,7 @@ struct TelemetrySchemaView: View {
     
     /// What the schema's origin mark means, in Markdown.
     private static let origins: LocalizedStringKey = """
-        Every record Mac Monitor exports is eslogger's JSON plus Mac Monitor's additions. Each key's \
+        Every record Mac Monitor exports is eslogger's JSON plus Mac Monitor's enrichments. Each key's \
         `x-mac-monitor-origin` says which: `eslogger` or `mac-monitor`.
         """
     

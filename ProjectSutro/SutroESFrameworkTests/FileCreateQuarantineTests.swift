@@ -11,7 +11,7 @@ import EndpointSecurity
 
 
 // MARK: - Quarantine of created files
-/// Pins `is_quarantined` (Mac Monitor's addition) on create events: 1 when the created file has a
+/// Pins `is_quarantined` (Mac Monitor's enrichment) on create events: 1 when the created file has a
 /// `com.apple.quarantine` extended attribute, 0 when it has none, 2 when there's no such file. A new path (of a create
 /// or a rename) is the directory and the file name joined by one "/".
 final class FileCreateQuarantineTests: XCTestCase {

@@ -9,21 +9,6 @@ import SwiftUI
 import SutroESFramework
 
 
-struct EntitlementLabelView: View {
-    var keyString: String
-    
-    var body: some View {
-        Group {
-            HStack {
-                Text("**`\(keyString)`**")
-            }.padding(5.0)
-        }.background(
-            RoundedRectangle(cornerSize: .init(width: 5.0, height: 5.0)).fill(.red).opacity(0.4)
-        )
-    }
-}
-
-
 // MARK: - Exec event metadata
 struct SystemTargetExecProcMetadataView: View {
     var selectedMessage: ESMessage
@@ -189,26 +174,6 @@ struct SystemTargetExecProcMetadataView: View {
                             }
                         }
                     }
-                    
-                    
-                    // MARK: Entitlements
-                    if event.target.allow_jit || event.target.get_task_allow || event.target.rootless {
-                        Divider().padding(.top)
-                        ScrollView(.horizontal) {
-                            HStack {
-                                if event.target.allow_jit {
-                                    EntitlementLabelView(keyString: "com.apple.security.cs.allow-jit")
-                                }
-                                if event.target.get_task_allow {
-                                    EntitlementLabelView(keyString: "com.apple.security.get-task-allow")
-                                }
-                                if event.target.rootless {
-                                    EntitlementLabelView(keyString: "com.apple.rootless.restricted-nvram-variables.heritable")
-                                }
-                            }
-                        }
-                    }
-
 
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }

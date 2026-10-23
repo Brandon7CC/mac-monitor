@@ -9,10 +9,9 @@ import SwiftUI
 
 
 // MARK: - Process tree preferences
-/// User Preferences' process tree settings: which parents Event Facts' process tree follows, the same choice the View
-/// menu makes (``ProcessTreeCommands``), and whether forks count as Unix parents.
+/// User Preferences' process tree setting: which parents Event Facts' process tree follows, the same choice the View
+/// menu makes (``ProcessTreeCommands``).
 struct ProcessTreePrefsView: View {
-    @EnvironmentObject var userPrefs: UserPrefs
     /// Which parents the tree follows.
     @AppStorage(ProcessLineageMode.storageKey) private var mode = ProcessLineageMode.defaultMode
     
@@ -30,16 +29,6 @@ struct ProcessTreePrefsView: View {
             .fixedSize()
             
             Text("\(mode.explanation) The View menu chooses it too.")
-            
-            Divider()
-            
-            HStack {
-                Toggle("Forks as parents", isOn: userPrefs.$forksAsParent)
-                    .bold()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            
-            Text("Show forks as parents in process subtrees by Unix parent.")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

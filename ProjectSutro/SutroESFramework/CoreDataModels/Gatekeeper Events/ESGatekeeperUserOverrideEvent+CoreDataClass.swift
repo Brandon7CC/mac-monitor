@@ -64,7 +64,7 @@ extension ESGatekeeperUserOverrideEvent: Encodable {
     ///
     /// eslogger writes either arm of the `file` union under `file`: the `es_file_t` as an object, or the path itself as
     /// a string (`null` when it's `NULL`). Which one is decided by the stored `file_type`, as eslogger decides it.
-    /// Mac Monitor's own `file_path` spelling of the path arm is kept as an addition.
+    /// Mac Monitor's own `file_path` spelling of the path arm is kept as an enrichment.
     ///
     /// - Parameter encoder: The encoder.
     /// - Throws: The encoder's error.

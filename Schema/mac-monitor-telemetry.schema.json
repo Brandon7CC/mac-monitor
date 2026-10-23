@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:mac-monitor:telemetry:1.0.0",
   "title": "Mac Monitor telemetry 1.0.0",
-  "description": "The records Mac Monitor writes: its JSONL and pretty exports, and the macmonitor command line's output. Each record is eslogger's JSON for an Endpoint Security event plus Mac Monitor's additions; every key is marked x-mac-monitor-origin: eslogger or mac-monitor, and everything under a Mac Monitor key is Mac Monitor's. Each GitHub release attaches the schema as Mac-Monitor.telemetry.schema.json, and the latest is at https://github.com/Brandon7CC/mac-monitor/releases/latest/download/Mac-Monitor.telemetry.schema.json.",
+  "description": "The records Mac Monitor writes: its JSONL and pretty exports, and the macmonitor command line's output. Each record is eslogger's JSON for an Endpoint Security event plus Mac Monitor's enrichments; every key is marked x-mac-monitor-origin: eslogger or mac-monitor, and everything under a Mac Monitor key is Mac Monitor's. Each GitHub release attaches the schema as Mac-Monitor.telemetry.schema.json, and the latest is at https://github.com/Brandon7CC/mac-monitor/releases/latest/download/Mac-Monitor.telemetry.schema.json.",
   "type": "object",
   "properties": {
     "action": {
@@ -2542,7 +2542,7 @@
       "additionalProperties": false
     },
     "process": {
-      "description": "A process: es_process_t, as eslogger writes it, with Mac Monitor's additions.",
+      "description": "A process: es_process_t, as eslogger writes it, with Mac Monitor's enrichments.",
       "type": "object",
       "properties": {
         "audit_token": {

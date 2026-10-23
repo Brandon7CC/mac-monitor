@@ -18,7 +18,7 @@ extension TelemetrySchemaSource {
                 eslogger("group_name", .string),
                 eslogger("member", .nullable(.ref("od_member")),
                          "null in a record from Mac Monitor before 3.0.0 whose member's type it didn't know."),
-                addition("member_string", .nullable(.string), "The name of the member's type."),
+                enrichment("member_string", .nullable(.string), "The name of the member's type."),
             ])
         }
         return [
@@ -34,7 +34,7 @@ extension TelemetrySchemaSource {
                       "An account's password changed: es_event_od_modify_password_t.", [
                 eslogger("account_type", .nullable(.integer), "The es_od_account_type_t."),
                 eslogger("account_name", .string),
-                addition("account_type_string", .nullable(.string), "The name of `account_type`."),
+                enrichment("account_type_string", .nullable(.string), "The name of `account_type`."),
             ]),
             directory(ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_VALUE_ADD,
                       "A value added to a record's attribute: es_event_od_attribute_value_add_t.", [
@@ -42,7 +42,7 @@ extension TelemetrySchemaSource {
                 eslogger("record_name", .string),
                 eslogger("attribute_name", .string),
                 eslogger("attribute_value", .string),
-                addition("record_type_string", .nullable(.string), "The name of `record_type`."),
+                enrichment("record_type_string", .nullable(.string), "The name of `record_type`."),
             ]),
         ]
     }
@@ -67,11 +67,11 @@ extension TelemetrySchemaSource {
             eslogger("node_name", .string),
             eslogger("db_path", .nullable(.string)),
             eslogger("instigator_token", .nullable(.ref("audit_token")), "null before message version 8."),
-            addition("error_code_human", .string, "The name and description of `error_code`."),
-            addition("instigator_process_name", .nullable(.string), String(format: instigator, "executable's name")),
-            addition("instigator_process_path", .nullable(.string), String(format: instigator, "executable's path")),
-            addition("instigator_process_signing_id", .nullable(.string), String(format: instigator, "signing ID")),
-            addition("instigator_process_audit_token", .nullable(.string),
+            enrichment("error_code_human", .string, "The name and description of `error_code`."),
+            enrichment("instigator_process_name", .nullable(.string), String(format: instigator, "executable's name")),
+            enrichment("instigator_process_path", .nullable(.string), String(format: instigator, "executable's path")),
+            enrichment("instigator_process_signing_id", .nullable(.string), String(format: instigator, "signing ID")),
+            enrichment("instigator_process_audit_token", .nullable(.string),
                      String(format: instigator, "audit token as one line of text")),
         ]
     }

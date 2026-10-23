@@ -12,7 +12,7 @@ import EndpointSecurity
 
 // MARK: - Storing and exporting the launched-by parent
 /// Pins how the event store keeps an exec's or fork's launched-by parent, and how exports write it: as Mac Monitor's
-/// addition at `event.exec.launched_by_parent` and `event.fork.launched_by_parent`, with every eslogger key path and
+/// enrichment at `event.exec.launched_by_parent` and `event.fork.launched_by_parent`, with every eslogger key path and
 /// value unchanged.
 final class LaunchedByParentExportTests: XCTestCase {
     /// The shell, as eslogger names it in ``XCTestCase/esloggerExec(parent:originalPPID:env:)``.

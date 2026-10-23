@@ -209,8 +209,8 @@ final class DefaultMuteSetTests: XCTestCase {
         XCTAssertTrue(notice.hasSuffix(SavedMuteSet.noConsoleUser), notice)
     }
     
-    /// A saved set, even one an earlier 3.0 build made for `/var/root`, is kept as it is whoever logs in. Only Reset
-    /// makes the default set again, for the console user.
+    /// A saved set is kept as it is whoever logs in, even one whose per-user mutes name another home folder. Only
+    /// Reset makes the default set again, for the console user.
     func testASavedSetIsOnlyRewrittenByReset() throws {
         let rootDefault = MuteFile(MuteList.shippedDefault(for: ConsoleUser(name: "root", uid: 0, home: "/var/root")))
         let earlier = String(decoding: rootDefault.encoded(), as: UTF8.self)
