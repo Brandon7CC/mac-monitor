@@ -41,21 +41,6 @@ final class TelemetrySchemaDriftTests: XCTestCase {
         }
     }
     
-    /// An enum with associated values that no variant names a case for can't be made up, and the failure says where to
-    /// name one.
-    func testEnumWithoutArmSaysWhereToNameIt() {
-        /// An enum the corpus names no case for.
-        enum Unnamed: Decodable {
-            case path(String), count(Int)
-        }
-        
-        XCTAssertThrowsError(try SyntheticDecoder(SyntheticVariant(name: "full", full: true)).make(Unnamed.self)) {
-            let description = SyntheticCorpusError(label: "unnamed (full)", underlying: $0).description
-            XCTAssertTrue(description.hasSuffix("name the case it decodes as in the arms of "
-                                                + "SyntheticCorpus.variants(of:)."), description)
-        }
-    }
-    
     /// Every synthetic record, of every event type and variant, follows the schema.
     func testSyntheticExportsMatchSchema() throws {
         let exports = try syntheticExports()

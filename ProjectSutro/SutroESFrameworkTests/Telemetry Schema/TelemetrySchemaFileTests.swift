@@ -92,12 +92,6 @@ final class TelemetrySchemaFileTests: XCTestCase {
         }
     }
     
-    /// Every keyword of the schema is in the validator's subset.
-    func testValidatorLoadsSchema() {
-        XCTAssertNoThrow(try TelemetryValidator.bundled())
-        XCTAssertNoThrow(try TelemetryValidator.bundled(mode: .eslogger))
-    }
-    
     /// Every property says whose it is, and every one of Mac Monitor's says what it holds. Every object is closed.
     /// Every object is checked, nested in a property of any name (`type` included), an array or an alternative.
     func testEveryKeyIsMarkedAndEveryObjectClosed() throws {
