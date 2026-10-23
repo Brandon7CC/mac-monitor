@@ -125,13 +125,12 @@ struct LaunchedByParentBadge: View {
 
 
 // MARK: - Launched-by parent facts
-/// A launched-by parent's facts: its source, its pid and executable, its launchd job, and who named it.
+/// A launched-by parent's facts: its source, its pid and executable, and its launchd job. Who named it, and whether
+/// its exec is in the trace, are in the heading's tooltip.
 struct LaunchedByParentFacts: View {
     /// The launched-by parent and the event that created it, or `nil` when the store doesn't have the process's
     /// creator.
     let step: LaunchedByParentStep?
-    /// The process whose launched-by parent this is (Markdown), when the facts don't sit beside it.
-    var subject: LocalizedStringKey? = nil
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -139,30 +138,32 @@ struct LaunchedByParentFacts: View {
                 Text("**Launched by parent**").font(.title3)
                 if let step { LaunchedByParentBadge(step.launchedByParent, showsSource: true) }
             }
-            if let subject { Text(subject).foregroundStyle(.secondary) }
+            .help(details ?? "")
             if let step {
                 let answer = step.launchedByParent
                 if let pid = answer.pid {
                     FactRow(name: "PID", value: String(pid))
                     FactRow(name: "Path", value: step.path, stacked: true)
-                    if step.event == nil && !answer.isLaunchd {
-                        Text("Its exec isn't in this trace.").font(.caption).foregroundStyle(.secondary)
-                    }
                 } else {
                     Text("Launch Services recorded no launcher, as for `open` run from a shell.")
                 }
                 if let label = answer.launchd_job?.label {
                     FactRow(name: "launchd job", value: label, stacked: true)
                 }
-                Text(answer.resolved_by.caption)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .help(answer.resolved_by.explanation)
             } else {
                 Text("Not in this trace").foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    /// Who named the launched-by parent and how, and whether its exec is in the trace, for the heading's tooltip.
+    private var details: String? {
+        guard let step else { return nil }
+        let answer = step.launchedByParent
+        let notInTrace = answer.pid != nil && step.event == nil && !answer.isLaunchd
+        return "\(answer.resolved_by.caption). \(answer.resolved_by.explanation)"
+            + (notInTrace ? " Its exec isn't in this trace." : "")
     }
 }
 
@@ -176,16 +177,10 @@ struct LaunchedByParentBox: View {
     /// The event.
     let message: ESMessage
     
-    /// The process the event is about, by name and pid.
-    private var subject: LocalizedStringKey {
-        let name = message.created_name ?? message.initiating_name ?? "Unknown"
-        return "Of `\(name)` (pid `\(String(message.created_pid?.int32Value ?? message.initiating_pid))`)"
-    }
-    
     var body: some View {
         GroupBox {
             let container = systemExtensionManager.coreDataContainer
-            LaunchedByParentFacts(step: container.launchedByParents(of: message, limit: 1).first, subject: subject)
+            LaunchedByParentFacts(step: container.launchedByParents(of: message, limit: 1).first)
         }
     }
 }

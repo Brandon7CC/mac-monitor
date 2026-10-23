@@ -98,6 +98,7 @@ struct AppKitEventTable: NSViewRepresentable {
         tableView.menu = rowMenu
         tableView.target = context.coordinator
         tableView.doubleAction = #selector(Coordinator.openEventFacts(_:))
+        tableView.selectedEventsJSON = { [weak coordinator = context.coordinator] in coordinator?.selectedEventsJSON() }
         tableView.registerForDraggedTypes([.fileURL])
         
         /// Before the data source is set, so restoring the sort doesn't trigger a refetch.
@@ -237,6 +238,19 @@ struct AppKitEventTable: NSViewRepresentable {
                 /// Rows inserted meanwhile shift the indexes; rows replaced meanwhile mean looking again.
                 guard let current = query.current(indexes, from: version) else { return self.syncSelection(force: true) }
                 query.select(current, showing: wanted)
+            }
+        }
+        
+        /// The selected events' JSON records, in table order, for ⌘C.
+        ///
+        /// - Returns: One pretty-printed record per event, or `nil` without a table.
+        func selectedEventsJSON() -> [String]? {
+            guard let tableView = parent.query.tableView else { return nil }
+            let rows = parent.query.rows, context = parent.model.viewContext
+            return tableView.selectedRowIndexes.compactMap { index -> String? in
+                guard index < rows.count, let message = try? context.existingObject(with: rows[index]) as? ESMessage,
+                      !message.isDeleted else { return nil }
+                return ProcessHelpers.eventToPrettyJSON(value: message)
             }
         }
         

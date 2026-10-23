@@ -25,6 +25,9 @@ struct SystemEventDetailsView: View {
 
 
 // MARK: - Event Facts tab view
+/// An event's facts, a tab at a time. The tabs sit centered in the window's title bar, leaving the window's height to
+/// the facts, whenever they fit there. When the window is too narrow, they move to the top of the facts instead: macOS
+/// would otherwise hide them in the toolbar's overflow menu.
 struct SystemEventFactsView : View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     
@@ -34,9 +37,18 @@ struct SystemEventFactsView : View {
     @Binding var allFilters: Filters
     var selectedMessage: ESMessage
     
-    private enum EventTabs: Hashable {
-        case metadata, telemetry, enrichment, initiating, plist, script
+    /// The facts' tabs, in order. Only Metadata, Parent, and JSON are always there.
+    private enum FactsTab: String, CaseIterable, Identifiable {
+        case metadata = "Metadata", script = "Script", plist = "PLIST", correlation = "Correlation", groups = "Groups"
+        case parent = "Parent", json = "JSON"
+        
+        var id: String { rawValue }
     }
+    
+    /// The tab showing. One the event doesn't have shows Metadata instead.
+    @State private var tab: FactsTab = .metadata
+    /// The facts' width, which decides where the tabs fit.
+    @State private var width: CGFloat = 0
     
     /// Process groups:
     /// - `gid`
@@ -49,91 +61,109 @@ struct SystemEventFactsView : View {
             .getProcSessionGroup(message: selectedMessage)
     }
     
-    private var groupToShow: Groups {
-        !procGroup.isEmpty ? Groups.process : Groups.session
+    /// The script an interpreter ran, if Mac Monitor read it.
+    private var script: (path: String, content: String)? {
+        guard let exec = selectedMessage.event.exec, let content = exec.script_content,
+              let path = exec.resolved_script_path, !content.isEmpty else { return nil }
+        return (path, content)
+    }
+    
+    /// A launch item's property list, if Mac Monitor read it.
+    private var plist: (path: String, content: String)? {
+        guard let event = selectedMessage.event.btm_launch_item_add, let plist = event.item.plist_contents,
+              !plist.isEmpty else { return nil }
+        return (event.item.item_path, plist)
     }
     
     var body: some View {
         /// One lookup each per update (they query the store each time they're read).
         let procGroup = self.procGroup, procSessionGroup = self.procSessionGroup
-        TabView {
-            // MARK: Event Facts tab view metadata view
-            VStack(alignment: .leading) {
-                SystemEventDetailsView(selectedMessage: selectedMessage)
-            }
-            .padding(.bottom)
-            .tabItem{ Text("Metadata") }
-            .tag(EventTabs.metadata)
-            
-            // MARK: Script Tab
-            if let exec = selectedMessage.event.exec,
-               let content = exec.script_content,
-               let path = exec.resolved_script_path,
-               !content.isEmpty {
-                VStack(alignment: .leading) {
-                    FileContentView(path: path, content: content)
-                }
-                .tabItem{ Text("Script") }
-                .tag(EventTabs.script)
-            }
-            
-            // MARK: PLIST Tab
-            if let event = selectedMessage.event.btm_launch_item_add,
-               let plist = event.item.plist_contents {
-                if !plist.isEmpty {
-                    VStack(alignment: .leading) {
-                        FileContentView(
-                            path: event.item.item_path,
-                            content: plist
-                        )
-                    }
-                    .tabItem{ Text("PLIST") }
-                    .tag(EventTabs.plist)
-                }
-            }
-            
-            // MARK: Enrichment view
+        let tabs = FactsTab.allCases.filter { tab in
+            switch tab {
+            case .script: return script != nil
+            case .plist: return plist != nil
             /// EXEC only: the enrichment view describes the exec target, and FORK events can have correlated events too.
-            if selectedMessage.event.exec != nil && selectedMessage.correlatedCount() > 1 {
-                VStack(alignment: .leading) {
-                    SystemEnrichedEventView(allFilters: $allFilters, selectedMessage: selectedMessage)
-                        .environmentObject(systemExtensionManager)
-                        .environmentObject(userPrefs)
-                }
-                .tabItem{ Text("Correlation") }
-                .tag(EventTabs.enrichment)
+            case .correlation: return selectedMessage.event.exec != nil && selectedMessage.correlatedCount() > 1
+            case .groups: return !procSessionGroup.isEmpty || !procGroup.isEmpty
+            case .metadata, .parent, .json: return true
             }
-            
-            // MARK: Process Groups
-            if !procSessionGroup.isEmpty || !procGroup.isEmpty {
-                VStack(alignment: .leading) {
-                    SystemEventGroupTableViews(
-                        allFilters: $allFilters,
-                        selectedMessage: selectedMessage,
-                        processGroup: procGroup,
-                        sessionGroup: procSessionGroup
-                    )
-                }
-                .tabItem{ Text("Groups") }
-                .tag(EventTabs.enrichment)
+        }
+        let shown = tabs.contains(tab) ? tab : .metadata
+        let inTitleBar = width >= Self.titleBarWidth(tabs: tabs.count)
+        VStack(alignment: .leading, spacing: 12) {
+            if !inTitleBar {
+                picker(tabs, shown).frame(maxWidth: .infinity)
             }
-            
-            // MARK: Initating process view
-            VStack(alignment: .leading) {
-                SystemInitiatingProcessView(selectedMessage: selectedMessage)
-                    .environmentObject(systemExtensionManager)
-                    .textSelection(.enabled)
+            facts(shown, procGroup: procGroup, procSessionGroup: procSessionGroup)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .padding(.all)
+        .background(GeometryReader { proxy in
+            Color.clear
+                .onAppear { width = proxy.size.width }
+                .onChange(of: proxy.size.width) { width = $0 }
+        })
+        .toolbar {
+            if inTitleBar {
+                ToolbarItem(placement: .principal) { picker(tabs, shown) }
             }
-            .tabItem{ Text("Parent") }
-            .tag(EventTabs.initiating)
-            
-            // MARK: JSON view
-            VStack(alignment: .leading) {
-                SystemEventJSONView(selectedMessage: selectedMessage)
-            }
-            .tabItem{ Text("JSON") }
-            .tag(EventTabs.telemetry)
-        }.padding(.all)
+        }
+    }
+    
+    /// The tabs, as a segmented control at its full width.
+    ///
+    /// - Parameters:
+    ///   - tabs: The event's tabs.
+    ///   - shown: The tab showing.
+    /// - Returns: The control.
+    private func picker(_ tabs: [FactsTab], _ shown: FactsTab) -> some View {
+        Picker("Facts", selection: Binding { shown } set: { tab = $0 }) {
+            ForEach(tabs) { Text($0.rawValue).tag($0) }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+    }
+    
+    /// The narrowest facts the title bar holds the tabs centered over. macOS 26 gives each tab about 90 points there,
+    /// and centered, they need the process button's width (up to 14 characters) clear on both sides.
+    ///
+    /// - Parameter tabs: How many tabs.
+    /// - Returns: The width, in points.
+    private static func titleBarWidth(tabs: Int) -> CGFloat {
+        310 + 90 * CGFloat(tabs)
+    }
+    
+    /// A tab's facts.
+    ///
+    /// - Parameters:
+    ///   - tab: The tab.
+    ///   - procGroup: The event's process group.
+    ///   - procSessionGroup: The event's session.
+    /// - Returns: Its view.
+    @ViewBuilder
+    private func facts(_ tab: FactsTab, procGroup: [ESMessage], procSessionGroup: [ESMessage]) -> some View {
+        switch tab {
+        case .metadata:
+            SystemEventDetailsView(selectedMessage: selectedMessage).padding(.bottom)
+        case .script:
+            if let script { FileContentView(path: script.path, content: script.content) }
+        case .plist:
+            if let plist { FileContentView(path: plist.path, content: plist.content) }
+        case .correlation:
+            SystemEnrichedEventView(allFilters: $allFilters, selectedMessage: selectedMessage)
+                .environmentObject(systemExtensionManager)
+                .environmentObject(userPrefs)
+        case .groups:
+            SystemEventGroupTableViews(allFilters: $allFilters, selectedMessage: selectedMessage,
+                                       processGroup: procGroup, sessionGroup: procSessionGroup)
+        case .parent:
+            SystemInitiatingProcessView(selectedMessage: selectedMessage)
+                .environmentObject(systemExtensionManager)
+                .textSelection(.enabled)
+        case .json:
+            SystemEventJSONView(selectedMessage: selectedMessage)
+        }
     }
 }
 
@@ -176,13 +206,22 @@ struct AppWrapperForFacts: View {
         .toolbar {
             if let firstMessage = coreDataEvents.first,
                let tree = selectedEventTree {
-                Button(action: {
-                    self.selectedEventTree = firstMessage
-                }, label: {
-                    Label("`\(ProcessHelpers.getTargetProcessName(message: firstMessage).prefix(14))`", systemImage: "scope")
-                        .labelStyle(.titleAndIcon)
-                }).disabled(selectedEventTree != nil && firstMessage.id != tree.id ? false : true)
+                ToolbarItem(placement: .navigation) {
+                    Button(action: {
+                        self.selectedEventTree = firstMessage
+                    }, label: {
+                        Label("`\(ProcessHelpers.getTargetProcessName(message: firstMessage).prefix(14))`",
+                              systemImage: "scope")
+                            .labelStyle(.titleAndIcon)
+                    }).disabled(selectedEventTree != nil && firstMessage.id != tree.id ? false : true)
+                }
             }
+        }
+        .modifier(NoWindowTitle())
+        /// ⌘C copies the event's JSON, unless text is selected, which the text copies first.
+        .onCopyCommand {
+            guard let tree = selectedEventTree else { return [] }
+            return [NSItemProvider(object: ProcessHelpers.eventToPrettyJSON(value: tree) as NSString)]
         }
     }
     
@@ -190,5 +229,18 @@ struct AppWrapperForFacts: View {
     init(id: UUID, allFilters: Binding<Filters>) {
         _coreDataEvents = FetchRequest<ESMessage>(sortDescriptors: [], predicate: NSPredicate(format: "id == %@", id as CVarArg))
         _allFilters = allFilters
+    }
+}
+
+
+/// Leaves the window's title out of its toolbar, giving the facts' tabs its room (macOS 15+). The process button
+/// names the process, and the Window menu still lists the window as Event Facts.
+private struct NoWindowTitle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 15, *) {
+            content.toolbar(removing: .title)
+        } else {
+            content
+        }
     }
 }
