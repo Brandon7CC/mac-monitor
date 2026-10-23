@@ -26,7 +26,7 @@ public struct CommandLineToolLinker {
     /// - Returns: `true` if Mac Monitor would link it.
     public static func isTrustedTool(_ tool: String) -> Bool {
         let bundle = URL(fileURLWithPath: String(tool.dropLast(CommandLineToolLink.toolInBundle.count)))
-        let link = CommandLineToolLink(layout: CommandLineToolLink.Layout(bundle: bundle))
+        let link = CommandLineToolLink(layout: .installed(bundle))
         return (try? link.validate(tool).get()) == tool
     }
 

@@ -109,6 +109,59 @@ final class CommandLineStreamTests: XCTestCase {
         _ = try stop(run)
     }
     
+    /// `--count` writes that many events, then stops the stream itself: a stop, not a failure, so `macmonitor`
+    /// exits 0. The banner says how it ends.
+    func testACountStopsTheStream() throws {
+        let harness = makeHarness()
+        let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody, limit: 2)
+        var invocation = StreamInvocation()
+        invocation.events = [ES_EVENT_TYPE_NOTIFY_EXIT]
+        invocation.limit = 2
+        run.start(invocation)
+        try deliverExits([1, 2, 3], in: harness, to: run)
+        XCTAssertTrue(waitUntil { !run.reported.isEmpty })
+        guard case .stopped = run.reported.first else { return XCTFail("\(run.reported)") }
+        XCTAssertEqual(run.output.lines.count, 2)
+        XCTAssertEqual(run.diagnostics.all.first?.hasSuffix(" Stops after 2 events, or press Ctrl-C."), true)
+        XCTAssertEqual(run.diagnostics.all.last?.hasPrefix("macmonitor: wrote 2 events, lost 0"), true)
+        run.command.stop()
+        XCTAssertTrue(waitUntil { harness.service.slots.count == 0 })
+        XCTAssertEqual(run.reported.count, 1)
+    }
+    
+    /// `--for` stops the stream itself once the time is up, with every event captured before then written.
+    func testATimeStopsTheStream() throws {
+        let harness = makeHarness()
+        let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody)
+        var invocation = StreamInvocation()
+        invocation.events = [ES_EVENT_TYPE_NOTIFY_EXIT]
+        invocation.duration = 1
+        run.start(invocation)
+        try deliverExits([1, 2], in: harness, to: run)
+        XCTAssertTrue(waitUntil { !run.reported.isEmpty })
+        guard case .stopped(let summary?) = run.reported.first else { return XCTFail("\(run.reported)") }
+        XCTAssertEqual(summary.delivered, 2)
+        XCTAssertEqual(run.output.lines.count, 2)
+        XCTAssertEqual(run.diagnostics.all.first?.hasSuffix(" Stops after 1 second, or press Ctrl-C."), true)
+        XCTAssertEqual(StreamCommand.describe(5_400), "1 hour, 30 minutes")
+        XCTAssertEqual(StreamCommand.describe(30), "30 seconds")
+    }
+    
+    /// The closing line says how many events the filter left out.
+    func testTheSummarySaysWhatWasFiltered() throws {
+        let harness = makeHarness()
+        var filter = StreamFilter()
+        filter.pids = [999]
+        let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody, filter: filter)
+        run.start()
+        try deliverExits([1, 2], in: harness, to: run)
+        _ = try stop(run)
+        XCTAssertEqual(run.output.data, Data())
+        XCTAssertEqual(run.diagnostics.all.last,
+                       "macmonitor: wrote 0 events (2 filtered out), lost 0 (0 by Endpoint Security, 0 while "
+                       + "macmonitor was behind).")
+    }
+    
     /// A stop writes everything captured before it, including messages still queued in Endpoint Security.
     func testAStopWritesEverythingCapturedBeforeIt() throws {
         let harness = makeHarness()

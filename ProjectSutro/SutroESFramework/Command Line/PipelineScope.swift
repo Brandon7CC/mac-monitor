@@ -40,9 +40,12 @@ public struct PipelineAncestor: Equatable, Sendable {
 /// and launchd's group 1 are never suppressed. `macmonitor`'s own process is always suppressed, even with
 /// `--include-self`, so writing to a file can't feed back into the stream.
 ///
+/// A shell without job control, such as a script's, runs everything in its own group: the script's commands and the
+/// pipeline together. Hiding that group would hide the script's own commands, so a group the shell shares is never
+/// suppressed (``sharesTheShellsGroup``). The rest of the pipeline then shows, as it would with `--include-self`.
+///
 /// Suppression happens in `macmonitor`, after drop accounting: the Security Extension still sends these events, so
-/// every `global_seq_num` gap stays a real drop. Like eslogger's, it's a heuristic: a script without job control
-/// shares its group with `macmonitor`, so the script's own events are hidden too. `--include-self` shows them.
+/// every `global_seq_num` gap stays a real drop.
 public struct PipelineScope: Equatable, Sendable {
     /// The path of `sudo`.
     public static let sudoPath = "/usr/bin/sudo"
@@ -53,6 +56,9 @@ public struct PipelineScope: Equatable, Sendable {
     public let ownPID: pid_t
     /// The process groups suppressed.
     public let groups: Set<pid_t>
+    /// Does the shell share a group with the pipeline, as it does without job control? That group isn't suppressed,
+    /// so the pipeline's other programs show.
+    public let sharesTheShellsGroup: Bool
     
     /// The scope for an ancestry.
     ///
@@ -64,10 +70,15 @@ public struct PipelineScope: Equatable, Sendable {
         ownPID = ancestry.first?.pid ?? getpid()
         guard !includeSelf, let own = ancestry.first else {
             groups = []
+            sharesTheShellsGroup = false
             return
         }
         let sudos = ancestry.dropFirst().prefix { $0.path == Self.sudoPath }
-        groups = Set(([own] + sudos).map(\.groupID).filter { $0 > 1 })
+        var groups = Set(([own] + sudos).map(\.groupID).filter { $0 > 1 })
+        // The first ancestor that isn't sudo is the shell.
+        let shell = ancestry.dropFirst(1 + sudos.count).first
+        sharesTheShellsGroup = shell.map { groups.remove($0.groupID) != nil } ?? false
+        self.groups = groups
     }
     
     /// The scope for this process, from its live ancestry.

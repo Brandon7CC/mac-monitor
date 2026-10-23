@@ -54,7 +54,8 @@ public enum StreamOutputError: Error, Equatable {
 /// Each batch is written on one serial queue, then replied to: the reply is the stream's back-pressure, so a slow
 /// reader slows the Security Extension's batches for this stream only, and past its buffer the stream pauses. A stop
 /// is answered only once every batch before it has been replied to, so by the time the answer is handled here every
-/// event captured before the stop has been written.
+/// event captured before the stop has been written. A stream stops itself the same way once it has written its
+/// `--count` of events or run for its `--for` time.
 ///
 /// Diagnostics go to standard error: a drop notice at most once a second, a version mismatch, each change to the
 /// saved mute set the stream follows, and (when standard error is a terminal) a banner and a summary.
@@ -86,6 +87,12 @@ public final class StreamCommand: NSObject {
     private var completion: ((Outcome) -> Void)?
     /// When the last drop notice was written (uptime nanoseconds).
     private var lastNotice: UInt64 = 0
+    /// How long the stream runs before it stops itself, if it does.
+    private var duration: TimeInterval?
+    /// Has a stop been asked for? Only the first is sent.
+    private var isStopping = false
+    /// Has the first `--where` predicate that couldn't be evaluated been reported?
+    private var saidUnchecked = false
     
     /// - Parameters:
     ///   - client: The connection to the Security Extension, not yet activated.
@@ -110,7 +117,10 @@ public final class StreamCommand: NSObject {
     ///   - invocation: The stream asked for.
     ///   - completion: Called once, on the command's queue, with how the stream ended.
     public func run(_ invocation: StreamInvocation, completion: @escaping (Outcome) -> Void) {
-        queue.sync { self.completion = completion }
+        queue.sync {
+            self.completion = completion
+            duration = invocation.duration
+        }
         client.activate(receiving: self) { [weak self] failure in
             self?.queue.async { self?.end(.failed(failure)) }
         }
@@ -127,15 +137,20 @@ public final class StreamCommand: NSObject {
         }
     }
     
-    /// Stop: no new events, write every event already captured, then end with the summary.
+    /// Stop: no new events, write every event already captured, then end with the summary. Once a stop has been asked
+    /// for, or the stream has ended, this does nothing.
     ///
     /// - Parameter timeout: How long to wait for the Security Extension's answer.
     public func stop(timeout: DispatchTimeInterval = .seconds(2)) {
-        client.send(StreamRequest(.stop), timeout: timeout) { [self] result in
-            queue.async { [self] in
-                switch result {
-                case .success(let reply): end(.stopped(reply.summary))
-                case .failure(let failure): end(.failed(failure))
+        queue.async { [self] in
+            guard completion != nil, !isStopping else { return }
+            isStopping = true
+            client.send(StreamRequest(.stop), timeout: timeout) { [self] result in
+                queue.async { [self] in
+                    switch result {
+                    case .success(let reply): end(.stopped(reply.summary))
+                    case .failure(let failure): end(.failed(failure))
+                    }
                 }
             }
         }
@@ -164,6 +179,11 @@ extension StreamCommand: StreamReaderProtocol {
                 return end(.failed(.output(EIO)))
             }
             noticeDrops()
+            if let reason = pipeline.uncheckedReason, !saidUnchecked {
+                saidUnchecked = true
+                diagnose("macmonitor: \(reason)")
+            }
+            if pipeline.isFull { stop() }
         }
     }
     
@@ -186,6 +206,9 @@ extension StreamCommand {
     ///
     /// - Parameter reply: The stream request's answer.
     private func started(_ reply: StreamReply) {
+        if let duration {
+            queue.asyncAfter(deadline: .now() + duration) { [weak self] in self?.stop() }
+        }
         if reply.sensorVersion != toolVersion {
             diagnose("""
                 macmonitor: macmonitor is \(toolVersion) but the Security Extension is \(reply.sensorVersion). Open \
@@ -197,7 +220,26 @@ extension StreamCommand {
         let mutes = stream.savedMutes.map { "with \($0) saved mutes (--no-mutes shows everything)" }
             ?? "without the saved mutes"
         let events = String.counted(stream.events.count, "event")
-        diagnose("macmonitor: streaming \(events) \(mutes). Press Ctrl-C to stop.")
+        diagnose("macmonitor: streaming \(events) \(mutes). \(ending)")
+    }
+    
+    /// How the stream ends, for the banner.
+    ///
+    /// - Returns: "Press Ctrl-C to stop.", or such as "Stops after 100 events or 5 minutes, or press Ctrl-C."
+    private var ending: String {
+        let limits = [pipeline.limit.map { String.counted($0, "event") }, duration.map(Self.describe)].compactMap { $0 }
+        guard !limits.isEmpty else { return "Press Ctrl-C to stop." }
+        return "Stops after \(limits.joined(separator: " or ")), or press Ctrl-C."
+    }
+    
+    /// A time in words.
+    ///
+    /// - Parameter seconds: The time.
+    /// - Returns: Such as "30 seconds", "5 minutes" or "1 hour, 30 minutes".
+    static func describe(_ seconds: TimeInterval) -> String {
+        Duration.milliseconds(Int64((seconds * 1_000).rounded()))
+            .formatted(.units(allowed: [.hours, .minutes, .seconds, .milliseconds], width: .wide)
+                .locale(Locale(identifier: "en_US")))
     }
     
     /// Write a notice for events lost since the last one, at most once every ``noticeInterval``. Call on ``queue``.
@@ -241,7 +283,6 @@ extension StreamCommand {
             """
     }
     
-    /// End the stream once: write the summary when there is one and it's wanted, complete, and close the connection.
     /// What a stream lost, for its closing line.
     ///
     /// `macmonitor` sees most losses as gaps in `global_seq_num`. A loss at the very end of a stream leaves no gap,
@@ -258,6 +299,7 @@ extension StreamCommand {
         return (total, min(total, byEndpointSecurity))
     }
     
+    /// End the stream once: write the summary when there is one and it's wanted, complete, and close the connection.
     /// Call on ``queue``.
     ///
     /// - Parameter outcome: How the stream ended.
@@ -266,10 +308,15 @@ extension StreamCommand {
         self.completion = nil
         if case .stopped(let summary?) = outcome, isChatty {
             let lost = Self.losses(seen: pipeline.meter.dropped, summary: summary)
+            let filtered = pipeline.filtered > 0 ? " (\(pipeline.filtered) filtered out)" : ""
             diagnose("""
-                macmonitor: wrote \(pipeline.written) events, lost \(lost.total) (\(lost.byEndpointSecurity) by \
-                Endpoint Security, \(lost.total - lost.byEndpointSecurity) while macmonitor was behind).
+                macmonitor: wrote \(pipeline.written) events\(filtered), lost \(lost.total) \
+                (\(lost.byEndpointSecurity) by Endpoint Security, \(lost.total - lost.byEndpointSecurity) while \
+                macmonitor was behind).
                 """)
+        }
+        if pipeline.unchecked > 0 {
+            diagnose("macmonitor: --where couldn't be checked on \(String.counted(pipeline.unchecked, "event")).")
         }
         if pipeline.unreadable > 0 {
             diagnose("macmonitor: \(pipeline.unreadable) events couldn't be read.")

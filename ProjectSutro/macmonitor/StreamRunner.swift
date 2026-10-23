@@ -15,7 +15,8 @@ import SutroESFramework
 ///
 /// **Stopping:** the first `SIGINT`, `SIGTERM` or `SIGHUP` asks the Security Extension to stop, and batches keep being
 /// written until it answers; then `macmonitor` exits by that signal. If the answer doesn't come within the stop timeout
-/// (standard output is stalled, say), a watchdog exits anyway, and so does a second signal.
+/// (standard output is stalled, say), a watchdog exits anyway, and so does a second signal. A stream that stops itself
+/// at its `--count` or `--for` exits 0.
 final class StreamRunner {
     /// How long a stop may take before the watchdog exits.
     static let stopDeadline: DispatchTimeInterval = .seconds(3)
@@ -40,17 +41,18 @@ final class StreamRunner {
         let isTerminal = isatty(STDOUT_FILENO) == 1
         let format = invocation.resolvedFormat(isTerminal: isTerminal)
         let formatter: StreamPipeline.Formatter
-        switch format {
-        case .text:
+        if format == .text && !invocation.filter.readsRecords {
             formatter = .text(TextEventFormatter())
-        case .jsonl, .pretty:
+        } else {
+            /// JSONL, or text with a filter that reads each event's record.
             guard let model = ExportEncoder.model else {
                 CommandLineTool.fail(CommandLineFailure(.software, "Mac Monitor's event model is missing."))
             }
-            formatter = .jsonl(model: model, pretty: format == .pretty)
+            let encoders = StreamPipeline.Formatter.encoders(model: model, pretty: format == .pretty)
+            formatter = format == .text ? .text(TextEventFormatter(), records: encoders) : .jsonl(encoders)
         }
         let pipeline = StreamPipeline(formatter: formatter, scope: .current(includeSelf: invocation.includeSelf),
-                                      forTerminal: isTerminal)
+                                      forTerminal: isTerminal, filter: invocation.filter, limit: invocation.limit)
         let command = StreamCommand(client: client, pipeline: pipeline, output: FileOutput(descriptor: STDOUT_FILENO),
                                     toolVersion: ToolVersion.current, isChatty: isatty(STDERR_FILENO) == 1,
                                     diagnose: FileOutput.writeError)

@@ -230,6 +230,12 @@
 		28C6DF1F2A46CDA200E97922 /* ESXPCConnectEvent+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C6DF1D2A46CDA200E97922 /* ESXPCConnectEvent+CoreDataProperties.swift */; };
 		28C8E27029197C4B00449AE0 /* ESBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 28C8E26E29197C4B00449AE0 /* ESBridge.h */; };
 		28C8E27129197C4B00449AE0 /* ESBridge.c in Sources */ = {isa = PBXBuildFile; fileRef = 28C8E26F29197C4B00449AE0 /* ESBridge.c */; };
+		F17E00000000000000000002 /* PredicateBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000001 /* PredicateBridge.h */; };
+		F17E00000000000000000004 /* PredicateBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000003 /* PredicateBridge.m */; };
+		F17E00000000000000000006 /* StreamFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000005 /* StreamFilter.swift */; };
+		F17E0000000000000000000C /* StreamFilter+Predicates.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000B /* StreamFilter+Predicates.swift */; };
+		F17E0000000000000000000A /* CommandLineCompletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000009 /* CommandLineCompletion.swift */; };
+		F17E00000000000000000008 /* CommandLineOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000007 /* CommandLineOptions.swift */; };
 		28CEF0D929775941003057D2 /* MountEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0D829775941003057D2 /* MountEvent.swift */; };
 		28CEF0DC2977634C003057D2 /* ESMountEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0DA2977634C003057D2 /* ESMountEvent+CoreDataClass.swift */; };
 		28CEF0DD2977634C003057D2 /* ESMountEvent+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0DB2977634C003057D2 /* ESMountEvent+CoreDataProperties.swift */; };
@@ -862,6 +868,12 @@
 		28C6DF1D2A46CDA200E97922 /* ESXPCConnectEvent+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESXPCConnectEvent+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		28C8E26E29197C4B00449AE0 /* ESBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESBridge.h; sourceTree = "<group>"; };
 		28C8E26F29197C4B00449AE0 /* ESBridge.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ESBridge.c; sourceTree = "<group>"; };
+		F17E00000000000000000001 /* PredicateBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PredicateBridge.h; sourceTree = "<group>"; };
+		F17E00000000000000000003 /* PredicateBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PredicateBridge.m; sourceTree = "<group>"; };
+		F17E00000000000000000005 /* StreamFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamFilter.swift; sourceTree = "<group>"; };
+		F17E0000000000000000000B /* StreamFilter+Predicates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Predicates.swift"; sourceTree = "<group>"; };
+		F17E00000000000000000009 /* CommandLineCompletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineCompletion.swift; sourceTree = "<group>"; };
+		F17E00000000000000000007 /* CommandLineOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineOptions.swift; sourceTree = "<group>"; };
 		28CEF0D829775941003057D2 /* MountEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MountEvent.swift; sourceTree = "<group>"; };
 		28CEF0DA2977634C003057D2 /* ESMountEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESMountEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28CEF0DB2977634C003057D2 /* ESMountEvent+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESMountEvent+CoreDataProperties.swift"; sourceTree = "<group>"; };
@@ -938,7 +950,7 @@
 		5C4E0000000000000000000C /* TelemetryValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryValidation.swift; sourceTree = "<group>"; };
 		5C4E0000000000000000000E /* TelemetryValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryValidator.swift; sourceTree = "<group>"; };
 		5C4E00000000000000000010 /* TelemetrySchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchema.swift; sourceTree = "<group>"; };
-		5C4E0000000000000000003B /* mac-monitor-telemetry.schema.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = "mac-monitor-telemetry.schema.json"; path = "../../Schema/mac-monitor-telemetry.schema.json"; sourceTree = "<group>"; };
+		5C4E0000000000000000003B /* mac-monitor-telemetry.schema.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = "mac-monitor-telemetry.schema.json"; path = "../../../Schema/mac-monitor-telemetry.schema.json"; sourceTree = "<group>"; };
 		5C4E00000000000000000042 /* ReadOnlyTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadOnlyTextView.swift; sourceTree = "<group>"; };
 		5C4E00000000000000000044 /* TelemetrySchemaModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaModel.swift; sourceTree = "<group>"; };
 		5C4E00000000000000000046 /* TraceValidationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceValidationSheet.swift; sourceTree = "<group>"; };
@@ -2478,6 +2490,8 @@
 			children = (
 				28C8E26F29197C4B00449AE0 /* ESBridge.c */,
 				28C8E26E29197C4B00449AE0 /* ESBridge.h */,
+				F17E00000000000000000001 /* PredicateBridge.h */,
+				F17E00000000000000000003 /* PredicateBridge.m */,
 			);
 			path = ESBridge;
 			sourceTree = "<group>";
@@ -2884,6 +2898,7 @@
 				5C4E00000000000000000006 /* JSONSchemaCompiler.swift */,
 				5C4E00000000000000000004 /* JSONSchema+Checking.swift */,
 				5C4E00000000000000000002 /* JSONValue.swift */,
+				5C4E0000000000000000003B /* mac-monitor-telemetry.schema.json */,
 			);
 			path = "Telemetry Schema";
 			sourceTree = "<group>";
@@ -2912,7 +2927,6 @@
 		BA33689F287620FD00794525 /* SutroESFramework */ = {
 			isa = PBXGroup;
 			children = (
-				5C4E0000000000000000003B /* mac-monitor-telemetry.schema.json */,
 				5C4E00000000000000000001 /* Telemetry Schema */,
 				BA3368A1287620FD00794525 /* SutroESFramework.docc */,
 				28AF164C2922C66C00AA75A5 /* SystemEvents.xcdatamodeld */,
@@ -3669,6 +3683,10 @@
 				CB1C0000000000000000002F /* CommandLineEvents.swift */,
 				CB1C00000000000000000031 /* EventHeader.swift */,
 				CB1C00000000000000000033 /* PipelineScope.swift */,
+				F17E00000000000000000005 /* StreamFilter.swift */,
+				F17E0000000000000000000B /* StreamFilter+Predicates.swift */,
+				F17E00000000000000000009 /* CommandLineCompletion.swift */,
+				F17E00000000000000000007 /* CommandLineOptions.swift */,
 				CB1C00000000000000000035 /* StreamDropMeter.swift */,
 				CB1C00000000000000000037 /* TerminalSafeText.swift */,
 				CB1C00000000000000000039 /* TextEventFormatter.swift */,
@@ -3771,6 +3789,7 @@
 			files = (
 				BA3368A3287620FD00794525 /* SutroESFramework.h in Headers */,
 				28C8E27029197C4B00449AE0 /* ESBridge.h in Headers */,
+				F17E00000000000000000002 /* PredicateBridge.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4010,6 +4029,10 @@
 				CB1C00000000000000000038 /* TerminalSafeText.swift in Sources */,
 				CB1C00000000000000000036 /* StreamDropMeter.swift in Sources */,
 				CB1C00000000000000000034 /* PipelineScope.swift in Sources */,
+				F17E00000000000000000006 /* StreamFilter.swift in Sources */,
+				F17E0000000000000000000C /* StreamFilter+Predicates.swift in Sources */,
+				F17E0000000000000000000A /* CommandLineCompletion.swift in Sources */,
+				F17E00000000000000000008 /* CommandLineOptions.swift in Sources */,
 				CB1C00000000000000000032 /* EventHeader.swift in Sources */,
 				CB1C00000000000000000030 /* CommandLineEvents.swift in Sources */,
 				CB1C00000000000000000023 /* StreamSession.swift in Sources */,
@@ -4131,6 +4154,7 @@
 				2852BB8329D83C9F00AA833C /* FileDeleteEvent.swift in Sources */,
 				2881CE1A294AFFC700F97F99 /* ESLaunchItemRemoveEvent+CoreDataProperties.swift in Sources */,
 				28C8E27129197C4B00449AE0 /* ESBridge.c in Sources */,
+				F17E00000000000000000004 /* PredicateBridge.m in Sources */,
 				CA59365E2E8B51A0008A115D /* FDPipe.swift in Sources */,
 				28CEF1162978CBF1003057D2 /* ESLWLoginEvent+CoreDataClass.swift in Sources */,
 				CAE9E44D2E4FE2DD001143C2 /* TCCModifyEvent.swift in Sources */,
@@ -4758,7 +4782,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG ALLOW_CHANGEABLE_TOOL_LINK";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;

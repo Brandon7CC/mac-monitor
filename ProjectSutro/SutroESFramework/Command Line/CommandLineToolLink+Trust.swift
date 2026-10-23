@@ -77,10 +77,31 @@ extension CommandLineToolLink {
         guard info.st_mode & S_IFMT == S_IFREG, info.st_mode & S_IXUSR != 0 else {
             return .failure(.toolNotExecutable(tool))
         }
-        if case let (path, writer)? = firstWriter(from: tool) ?? firstFrameworksWriter(in: bundle) {
+        if case let (path, writer)? = changeable(tool), !layout.allowsChangeableTool {
             return .failure(.untrustedChain(path: path, writer: writer))
         }
         return signatureCheck(tool) ? .success(tool) : .failure(.signatureMismatch(tool))
+    }
+    
+    /// The first of the tool, the directories above it and the bundle's frameworks that someone other than the
+    /// trusted owner can change.
+    ///
+    /// - Parameter tool: The tool, by its real path.
+    /// - Returns: That path and who else can change it, or `nil` if no one can.
+    func changeable(_ tool: String) -> (String, String)? {
+        firstWriter(from: tool) ?? firstFrameworksWriter(in: String(tool.dropLast(Self.toolInBundle.count)))
+    }
+    
+    /// Who else can change a tool a Debug build links anyway.
+    ///
+    /// - Parameter candidate: This copy's tool, by its real path, if the bundle is there.
+    /// - Returns: A sentence for Settings, or `nil` when this build refuses such a tool or no one else can change it.
+    func changeableToolWarning(_ candidate: String?) -> String? {
+        guard layout.allowsChangeableTool, let tool = candidate, case let (path, writer)? = changeable(tool) else {
+            return nil
+        }
+        return "Debug build: \(path) can be changed by \(writer), who could change what sudo macmonitor runs as "
+            + "root. A release build refuses to link it."
     }
     
     /// Who else can change the link's directory, or the nearest directory above it that's there.
