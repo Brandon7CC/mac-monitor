@@ -36,28 +36,47 @@ extension EventQueryModel {
             /// The newest ``ESMessage/insert_batch`` received: what a reload covers.
             let through: Int64
             let unified, exec: Table
+            /// Is the job still wanted? A search predicate's job stops once it isn't.
+            let isCurrent: () -> Bool
         }
         
         struct Reload {
             let total: Int
             let unified, exec: (rows: [NSManagedObjectID], selection: IndexSet, shown: Set<UUID>)
             let chart: [String: Int]
+            let unchecked: Unchecked
         }
         
         struct Insert {
-            /// The process trees changed in a way that affects older events, so only a reload is correct.
-            var lineageChanged = false
+            /// The process trees changed in a way that affects older events, or the search predicate relates events
+            /// (a new one can change which older ones match), so only a reload is correct.
+            var needsReload = false
             var added = 0
             var unified: (rows: [NSManagedObjectID], inserted: IndexSet) = ([], [])
             var exec: (rows: [NSManagedObjectID], inserted: IndexSet) = ([], [])
             var chart: [String: Int] = [:]
+            var unchecked = Unchecked()
         }
+        
+        /// The events that pass a search predicate.
+        struct Found {
+            var ids: Set<NSManagedObjectID> = []
+            /// Per mini-chart label.
+            var chart: [String: Int] = [:]
+            var unchecked = Unchecked()
+        }
+        
+        /// Events loaded and checked against a search predicate at a time.
+        static let batchSize = 500
         
         private let context: NSManagedObjectContext
         /// The process trees, while "↕ Full tree" is on.
         private var lineage: ProcessLineageIndex?
         /// The audit tokens in the selected trees.
         private var tokens: Set<String>?
+        /// Every to-one relationship a record encodes, prefetched for a search predicate.
+        private lazy var prefetch: [String] = context.persistentStoreCoordinator
+            .map { ESMessage.recordPrefetchKeyPaths(in: $0.managedObjectModel) } ?? []
         
         /// - Parameter context: A background context of the event store, used only to read.
         init(context: NSManagedObjectContext) {
@@ -96,14 +115,19 @@ extension EventQueryModel {
             }
             
             let filter = and(covered, snapshot.spec.predicate(lineage: tokens))
+            let found = try snapshot.spec.recordPredicate.map {
+                try search(filter, for: $0.copy, relatedAmong: covered, snapshot)
+            }
             func table(_ table: Snapshot.Table) throws -> (rows: [NSManagedObjectID], selection: IndexSet, shown: Set<UUID>) {
-                let rows = try ids(matching: predicate(filter, for: table), sortedBy: table.sort)
+                var rows = try ids(matching: predicate(filter, for: table), sortedBy: table.sort)
+                if let found { rows = rows.filter(found.ids.contains) }
                 return (rows, try EventQueryModel.indexes(of: table.selection, in: rows, context: context), table.selection)
             }
             return Reload(total: try count(covered),
                           unified: try table(snapshot.unified),
                           exec: try table(snapshot.exec),
-                          chart: try chartCounts(filter))
+                          chart: try found?.chart ?? chartCounts(filter),
+                          unchecked: found?.unchecked ?? Unchecked())
         }
         
         // MARK: Insert
@@ -116,6 +140,10 @@ extension EventQueryModel {
         func insert(_ ids: [NSManagedObjectID], _ snapshot: Snapshot) throws -> Insert {
             let new = NSPredicate(format: "self IN %@", ids)
             var result = Insert()
+            guard snapshot.spec.recordPredicate?.relatesEvents != true else {
+                result.needsReload = true
+                return result
+            }
             
             if var index = lineage, let old = tokens {
                 let fresh = index.add(try context.fetch(ProcessLineageIndex.fetchRequest(new)))
@@ -125,12 +153,17 @@ extension EventQueryModel {
                 /// Older events only reference processes they've already seen, so they stay in or out of the trees as long
                 /// as no tree lost a process and every process that joined one is new.
                 guard current.isSuperset(of: old), current.subtracting(old).isSubset(of: fresh) else {
-                    result.lineageChanged = true
+                    result.needsReload = true
                     return result
                 }
             }
             
-            let filter = and(new, snapshot.spec.predicate(lineage: tokens))
+            var filter = and(new, snapshot.spec.predicate(lineage: tokens))
+            if let recordPredicate = snapshot.spec.recordPredicate {
+                let found = try search(filter, for: recordPredicate.copy, relatedAmong: new, snapshot)
+                filter = and(filter, NSPredicate(format: "self IN %@", Array(found.ids)))
+                result.unchecked = found.unchecked
+            }
             result.added = try count(new)
             result.unified = try merge(filter, into: snapshot.unified)
             result.exec = try merge(filter, into: snapshot.exec)
@@ -194,6 +227,71 @@ extension EventQueryModel {
             }
             merged.append(contentsOf: rows[next...])
             return (merged, inserted)
+        }
+        
+        // MARK: Search
+        /// Check each event that passes the filters against the search's predicate, on its record.
+        ///
+        /// Core Data can't evaluate the predicate, so each event is loaded and encoded, a batch at a time: about as
+        /// slow as exporting them. SQLite first narrows them by the columns the predicate's comparisons name
+        /// (``StreamFilter/Predicate/storePredicate``), so only events that might match are read. A predicate that
+        /// relates events first collects them from every event, filtered or not, which takes as long again.
+        ///
+        /// - Parameters:
+        ///   - filter: The events that pass the filters.
+        ///   - recordPredicate: The search's predicate, parsed for this thread.
+        ///   - covered: Every event its `SUBQUERY`s may relate.
+        ///   - snapshot: Whether the job is still wanted.
+        /// - Returns: The events whose records match, and their chart counts.
+        /// - Throws: `CancellationError` once the job isn't wanted, or the fetch's error.
+        private func search(_ filter: NSPredicate, for recordPredicate: StreamFilter.Predicate,
+                            relatedAmong covered: NSPredicate, _ snapshot: Snapshot) throws -> Found {
+            var found = Found()
+            if recordPredicate.relatesEvents {
+                let related = recordPredicate.relatedStorePredicate.map { and(covered, $0) } ?? covered
+                try forEachEvent(matching: related, snapshot) { message in
+                    do { try recordPredicate.collect(message) } catch { found.unchecked.add(error) }
+                }
+            }
+            let candidates = recordPredicate.storePredicate.map { and(filter, $0) } ?? filter
+            try forEachEvent(matching: candidates, snapshot) { message in
+                do {
+                    guard try recordPredicate.evaluate(on: message) else { return }
+                    found.ids.insert(message.objectID)
+                    guard let type = message.es_event_type else { return }
+                    found.chart[EventChartLabels.label(for: type), default: 0] += 1
+                } catch {
+                    found.unchecked.add(error)
+                }
+            }
+            return found
+        }
+        
+        /// Load each event matching a predicate, with what its record encodes, a batch at a time.
+        ///
+        /// - Parameters:
+        ///   - predicate: The events.
+        ///   - snapshot: Whether the job is still wanted.
+        ///   - body: Called with each event, on the context's queue.
+        /// - Throws: `CancellationError` once the job isn't wanted, or the fetch's error.
+        private func forEachEvent(matching predicate: NSPredicate, _ snapshot: Snapshot,
+                                  _ body: (ESMessage) throws -> Void) throws {
+            let ids = try sqliteSorted(matching: predicate, sortedBy: [])
+            for start in stride(from: 0, to: ids.count, by: Self.batchSize) {
+                try autoreleasepool {
+                    let request = ESMessage.fetchRequest()
+                    let batch = ids[start..<min(start + Self.batchSize, ids.count)]
+                    request.predicate = NSPredicate(format: "self IN %@", Array(batch))
+                    request.returnsObjectsAsFaults = false
+                    request.relationshipKeyPathsForPrefetching = prefetch
+                    for message in try context.fetch(request) {
+                        /// Each event can take a while: a `MATCHES` has up to `BoundedMatches.limit` for each value.
+                        guard snapshot.isCurrent() else { throw CancellationError() }
+                        try body(message)
+                    }
+                    context.reset()
+                }
+            }
         }
         
         // MARK: Helpers

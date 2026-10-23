@@ -27,6 +27,7 @@ struct EventView: View {
     
     /// A live recording, or an opened trace (File > Open Trace…).
     @EnvironmentObject var traceSession: TraceSession
+    @Environment(\.openWindow) private var openWindow
 
 
     /// Fetches, filters, and counts the System Events for the event tables, the mini-chart, and the toolbar.
@@ -52,9 +53,14 @@ struct EventView: View {
     /// The currently selected System Event (i.e. table row)
     @Binding var eventSelection: Set<ESMessage.ID>
     
-    /// The text to filter by in the context search field
+    /// The search field's text: a context to find.
     @Binding var filterText: String
+    /// The predicate the tables are filtered by, and the predicate editor's, shared with the editor's own window.
+    @ObservedObject var search: EventSearchController
 
+
+    /// Did opening the predicate editor beside the tables hide the mini chart, to show it again once it's gone?
+    @State private var chartHiddenForEditor = false
 
     /// Is the requirements checklist showing?
     @State private var showsRequirements = false
@@ -91,6 +97,7 @@ struct EventView: View {
         EventFilterSpec(
             filters: allFilters,
             searchText: filterText,
+            recordPredicate: search.applied,
             filteringLongRunningProcs: filteringLongRunningProcs,
             /// Every event in a trace is older than this launch: the filter means nothing there.
             clientConnectDT: traceSession.isLive ? systemExtensionManager.clientConnectDT : .distantPast
@@ -102,7 +109,8 @@ struct EventView: View {
     
     /// The string displaying the number of System Events collected over the course of the trace
     private var eventCountString: AttributedString {
-        let hasActiveFilters = allFilters.totalFilters() + (filteringLongRunningProcs ? 1 : 0) > 0
+        let searching = !filterSpec.searchText.isEmpty || filterSpec.recordPredicate != nil
+        let hasActiveFilters = allFilters.totalFilters() + (filteringLongRunningProcs ? 1 : 0) > 0 || searching
         
         if !hasActiveFilters {
             return try! AttributedString(markdown: "**Events** `\(totalEventCount)`")
@@ -144,8 +152,48 @@ struct EventView: View {
         traceSession.open(url, recording: $recordingEvents, esm: systemExtensionManager)
     }
     
+    /// The predicate editor, beside the tables while it's showing.
+    private var predicateEditor: some View {
+        PredicateEditorPane(search: search, model: eventQueries) { openWindow(id: ProjectSutroApp.schemaWindow) }
+    }
+    
+    /// Show or hide the predicate editor (View ▸ Predicate Editor, ⌥⌘F), or bring its window forward.
+    private func togglePredicateEditor() {
+        if search.isPoppedOut { return openWindow(id: ProjectSutroApp.predicateEditorWindow) }
+        if search.showsEditor { search.showsEditor = false } else { search.showEditor() }
+    }
+    
     var body: some View {
-        VStack(alignment: .leading) {
+        /// A pane beside the tables, not an inspector: on macOS 26 an inspector puts the toolbar's blurred edge over
+        /// the top of the window's content, the Unified table's title and headers.
+        HStack(spacing: 0) {
+            tables
+            if search.showsEditor && !search.isPoppedOut {
+                Divider()
+                predicateEditor.frame(width: 440)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .togglePredicateEditor)) { _ in togglePredicateEditor() }
+        .onAppear { search.queries = eventQueries }
+        /// The editor beside the tables takes the mini chart's room, which comes back when the editor goes, unless
+        /// it was shown again meanwhile.
+        .onChange(of: search.showsEditor && !search.isPoppedOut) { beside in
+            if beside, viewMiniChart {
+                viewMiniChart = false
+                chartHiddenForEditor = true
+            } else if !beside, chartHiddenForEditor {
+                viewMiniChart = true
+                chartHiddenForEditor = false
+            }
+        }
+        .onChange(of: viewMiniChart) { shown in
+            if shown { chartHiddenForEditor = false }
+        }
+    }
+    
+    /// The event tables.
+    private var tables: some View {
+        VStack(alignment: .leading, spacing: 0) {
             AppKitEventTablesView(
                 model: eventQueries,
                 allFilters: $allFilters,
@@ -254,11 +302,32 @@ struct EventView: View {
                     .animation(.linear(duration: 0.3), value: recordingEvents)
                     .help(recordingEvents ? "Recording system events" : "Not recording system events")
                     .padding(.trailing)
-                
-                Spacer()
             }
         }
-        .searchable(text: $filterText, prompt: "Filter by context")
+        .toolbar {
+            /// Puts the search field and the predicate editor's button at the trailing edge. macOS 13 centers the
+            /// principal and status items together, a status group's own spacer with them, and lays what follows
+            /// right after them.
+            ToolbarItemGroup(placement: .primaryAction) { Spacer() }
+            /// The context search field, which narrows a predicate's matches.
+            ToolbarItem(placement: .primaryAction) {
+                EventSearchField(text: $filterText, narrowsPredicate: search.applied != nil)
+                    .frame(width: 300)
+            }
+            /// Its own glass, apart from the search field's.
+            if #available(macOS 26.0, *) {
+                ToolbarSpacer(.fixed, placement: .primaryAction)
+            }
+            /// The predicate editor's button, right of the search field.
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: togglePredicateEditor) {
+                    Label("Predicate Editor", systemImage: "sidebar.right")
+                }
+                .help(search.applied.map {
+                    "Predicate Editor (⌥⌘F): filtering by \(EventSearchController.oneLine($0.source))"
+                } ?? "Predicate Editor (⌥⌘F)")
+            }
+        }
         .navigationTitle(traceSession.title)
         .navigationSubtitle(traceSession.subtitle)
         .background { TraceDocument(url: traceSession.url) }

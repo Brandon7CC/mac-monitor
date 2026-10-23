@@ -41,6 +41,47 @@ FOUNDATION_EXPORT NSErrorDomain const PredicateBridgeErrorDomain;
 + (BOOL)evaluate:(NSPredicate *)predicate withObject:(nullable id)object matches:(BOOL *)matches
            error:(NSError **)error;
 
+/// Evaluate a predicate on an object, with its variables (`$e`) bound.
+///
+/// - Parameters:
+///   - predicate: The predicate.
+///   - object: What it's evaluated on.
+///   - variables: Each variable's value, by name.
+///   - matches: Set to whether the object matches.
+///   - error: Why it couldn't be evaluated.
+/// - Returns: `YES` if it was evaluated, else `NO` with `error` set.
++ (BOOL)evaluate:(NSPredicate *)predicate withObject:(nullable id)object
+       variables:(NSDictionary<NSString *, id> *)variables matches:(BOOL *)matches error:(NSError **)error
+    NS_SWIFT_NAME(evaluate(_:with:variables:matches:));
+
+/// The values a predicate matches with its variable bound to each, evaluated on one object: a `SUBQUERY`'s related
+/// events that its conditions on both events match.
+///
+/// - Parameters:
+///   - candidates: The values.
+///   - predicate: The predicate.
+///   - object: What it's evaluated on.
+///   - variable: The variable's name, `e` for `$e`.
+///   - error: Why it couldn't be evaluated.
+/// - Returns: The values it matches, in order, or `nil` with `error` set.
++ (nullable NSArray *)filter:(NSArray *)candidates withPredicate:(NSPredicate *)predicate object:(nullable id)object
+                    variable:(NSString *)variable error:(NSError **)error
+    NS_SWIFT_NAME(filter(_:with:object:variable:));
+
+/// Evaluate an expression on an object, such as a comparison's key path.
+///
+/// - Parameters:
+///   - expression: The expression.
+///   - object: What it's evaluated on.
+///   - variables: Each variable's value, by name, or `nil` for none.
+///   - value: Set to the expression's value, which may be `nil`.
+///   - error: Why it couldn't be evaluated.
+/// - Returns: `YES` if it was evaluated, else `NO` with `error` set.
++ (BOOL)evaluateExpression:(NSExpression *)expression withObject:(nullable id)object
+                 variables:(nullable NSDictionary<NSString *, id> *)variables value:(id _Nullable * _Nonnull)value
+                     error:(NSError **)error
+    NS_SWIFT_NAME(evaluate(_:with:variables:value:));
+
 @end
 
 NS_ASSUME_NONNULL_END

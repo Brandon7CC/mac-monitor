@@ -75,22 +75,22 @@ public enum CommandLineHelp {
                   --count N         Stop after writing N events.
 
                 Filters:
-                  --pid PID            The initiating process's ID.
-                  --process REGEX      The initiating process's executable path. For an exec, that's the
-                                       program that called exec: --target is the one it runs.
-                  --signing-id REGEX   The initiating process's signing ID.
-                  --target REGEX       The event's target path, such as the program an exec runs or the file an
-                                       open opens.
-                  --grep REGEX         Any string in the event's record.
-                  --where PREDICATE    An NSPredicate on the event's record, by its JSON key paths:
-                                         'process.executable.path ENDSWITH "/curl"'
-                                         'ANY event.exec.args CONTAINS[c] "token"'
-                                         'process.audit_token.euid == 0 AND event_type == 9'
+                  --pid PID               The initiating process's ID.
+                  --process REGEX         The initiating process's executable path. For an exec, that's the
+                                          program that called exec: --target is the one it runs.
+                  --signing-id REGEX      The initiating process's signing ID.
+                  --target REGEX          The event's target path, such as the program an exec runs or the
+                                          file an open opens.
+                  --grep REGEX            Any string in the event's record.
+                  --predicate PREDICATE   An NSPredicate on the event's record, by its JSON key paths:
+                                          'process.executable.path ENDSWITH "/curl"'
+                                          'ANY event.exec.args CONTAINS[c] "token"'
+                                          'process.audit_token.euid == 0 AND event_type == 9'
 
                 A filter given more than once matches any of its values, and an event is written only if every \
                 filter given matches it. REGEX is found anywhere in the value unless anchored with ^ or $, and is \
                 case-sensitive unless it starts with (?i). The record is what --format jsonl writes ('macmonitor \
-                schema' describes it). --signing-id, --grep and --where read it, so they make text output as slow \
+                schema' describes it). --signing-id, --grep and --predicate read it, so they make text output as slow \
                 as JSONL. Filtered events are never counted as lost, and --count counts only events written.
 
                 A stream stops at Ctrl-C, or at --for or --count, whichever comes first. Either way it writes every \

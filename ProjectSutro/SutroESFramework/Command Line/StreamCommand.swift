@@ -91,7 +91,7 @@ public final class StreamCommand: NSObject {
     private var duration: TimeInterval?
     /// Has a stop been asked for? Only the first is sent.
     private var isStopping = false
-    /// Has the first `--where` predicate that couldn't be evaluated been reported?
+    /// Has the first `--predicate` that couldn't be evaluated been reported?
     private var saidUnchecked = false
     
     /// - Parameters:
@@ -316,7 +316,7 @@ extension StreamCommand {
                 """)
         }
         if pipeline.unchecked > 0 {
-            diagnose("macmonitor: --where couldn't be checked on \(String.counted(pipeline.unchecked, "event")).")
+            diagnose("macmonitor: --predicate couldn't be checked on \(String.counted(pipeline.unchecked, "event")).")
         }
         if pipeline.unreadable > 0 {
             diagnose("macmonitor: \(pipeline.unreadable) events couldn't be read.")

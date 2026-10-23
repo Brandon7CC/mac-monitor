@@ -70,7 +70,7 @@ public struct StreamInvocation: Equatable {
     public var duration: TimeInterval?
     /// Stop after writing this many events. `--count`.
     public var limit: Int?
-    /// Which events are written: `--pid`, `--process`, `--signing-id`, `--target`, `--grep` and `--where`.
+    /// Which events are written: `--pid`, `--process`, `--signing-id`, `--target`, `--grep` and `--predicate`.
     public var filter = StreamFilter()
     
     /// The defaults: Mac Monitor's events, the format by terminal, the saved mutes, without the pipeline's events,

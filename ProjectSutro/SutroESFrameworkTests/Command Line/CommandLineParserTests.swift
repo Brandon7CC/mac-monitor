@@ -149,7 +149,7 @@ final class CommandLineParserTests: XCTestCase {
     func testFilters() throws {
         let arguments = ["stream", "exec", "--pid", "1", "--pid=2", "--process", "curl", "--process=^/bin/",
                          "--signing-id", "^com\\.apple\\.", "--target", "\\.plist$", "--grep", "(?i)token",
-                         "--where", "process.audit_token.euid == 0", "--where=event_type == 9"]
+                         "--predicate", "process.audit_token.euid == 0", "--predicate=event_type == 9"]
         guard case .stream(let invocation) = try CommandLineParser.parse(arguments) else { return XCTFail() }
         let filter = invocation.filter
         XCTAssertEqual(filter.pids, [1, 2])
@@ -165,8 +165,8 @@ final class CommandLineParserTests: XCTestCase {
                        "--pid needs a process ID, not 'curl'. Run 'macmonitor help stream'.")
         XCTAssertEqual(usageError("stream --target=["),
                        "--target needs a regular expression, not '['. Run 'macmonitor help stream'.")
-        XCTAssertEqual(usageError("stream --where"), "--where needs a value. Run 'macmonitor help stream'.")
-        XCTAssertTrue(usageError("stream --where=pid==")?.hasPrefix("--where can't read 'pid==': ") == true)
+        XCTAssertEqual(usageError("stream --predicate"), "--predicate needs a value. Run 'macmonitor help stream'.")
+        XCTAssertTrue(usageError("stream --predicate=pid==")?.hasPrefix("--predicate can't read 'pid==': ") == true)
     }
     
     /// `-h` or `--help` anywhere before `--` asks for the command's help, `help`'s included. No arguments, `help`,

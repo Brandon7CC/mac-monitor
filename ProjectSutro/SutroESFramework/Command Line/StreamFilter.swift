@@ -9,15 +9,16 @@ import Foundation
 
 
 // MARK: - Stream filter
-/// Which events `macmonitor stream` writes: `--pid`, `--process`, `--signing-id`, `--target`, `--grep` and `--where`.
+/// Which events `macmonitor stream` writes: `--pid`, `--process`, `--signing-id`, `--target`, `--grep` and
+/// `--predicate`.
 ///
 /// An option given more than once matches an event if any of its values does, and an event is written only if every
 /// option given matches it: `--process curl --process wget --signing-id '^com\.apple\.'` writes Apple's curl and
 /// wget. A pattern is a regular expression (`NSRegularExpression`), found anywhere in the value unless it's anchored,
-/// and case-sensitive unless it starts with `(?i)`. `--where` is an `NSPredicate` on the event's record.
+/// and case-sensitive unless it starts with `(?i)`. `--predicate` is an `NSPredicate` on the event's record.
 ///
 /// `--pid`, `--process` and `--target` read the event's header, which every format decodes. `--signing-id`, `--grep`
-/// and `--where` read its export record, the line `--format jsonl` writes, so text output with one of them encodes
+/// and `--predicate` read its export record, the line `--format jsonl` writes, so text output with one of them encodes
 /// every event's record too, as JSONL output does. Events filtered out were captured and read, so they're never lost.
 public struct StreamFilter: Equatable {
     /// A regular expression, as typed.
@@ -55,43 +56,92 @@ public struct StreamFilter: Equatable {
 
     /// An `NSPredicate`, as typed, that only compares the record's values (``PredicateGuard``).
     public struct Predicate: Equatable {
+        /// The longest predicate taken, in characters.
+        public static let maxLength = 4096
         /// What was typed.
         public let source: String
+        /// Who its errors are for.
+        private let audience: PredicateAudience
+        /// As parsed and checked, before `MATCHES` and `SUBQUERY` are rewritten: what the store can narrow by
+        /// (``storePredicate``).
+        let parsed: NSPredicate
         private let predicate: NSPredicate
+        /// Its `MATCHES` comparisons, which note why one failed.
+        private let matches: BoundedMatches
+        /// Its `SUBQUERY`s of related events, and the events they kept.
+        let related: RelatedEvents
 
-        /// - Parameter source: The predicate's format.
-        /// - Throws: ``CommandLineUsageError`` if `NSPredicate` can't read it, or it does more than compare values.
-        public init(_ source: String) throws {
+        /// - Parameters:
+        ///   - source: The predicate's format.
+        ///   - audience: Who its errors are for.
+        /// - Throws: ``CommandLineUsageError`` if it's too long, `NSPredicate` can't read it, or it does more than
+        ///   compare values.
+        public init(_ source: String, for audience: PredicateAudience = .commandLine) throws {
+            guard source.count <= Self.maxLength else {
+                throw CommandLineUsageError("\(audience.name) can't be longer than \(Self.maxLength) characters.",
+                                            command: audience.command)
+            }
+            let parsed: NSPredicate
             do {
-                predicate = try PredicateBridge.predicate(withFormat: source)
+                /// A boolean key path alone, as in `is_adhoc_signed AND …`, compared so `NSPredicate` can read it.
+                parsed = try PredicateBridge.predicate(withFormat: PredicateText.comparingBooleans(source))
             } catch {
                 /// `NSPredicate` ends some reasons with a period and not others.
                 let reason = error.localizedDescription.hasSuffix(".") ? error.localizedDescription
                     : error.localizedDescription + "."
-                throw CommandLineUsageError("--where can't read '\(source)': \(reason)", command: "stream")
+                throw CommandLineUsageError("\(audience.name) can't read '\(source)': \(reason)",
+                                            command: audience.command)
             }
-            try PredicateGuard.check(predicate)
+            try PredicateGuard.check(parsed, for: audience)
+            self.parsed = parsed
+            matches = BoundedMatches()
+            related = RelatedEvents(matches: matches)
+            predicate = try matches.rewrite(related.rewrite(parsed, for: audience), for: audience)
             self.source = source
+            self.audience = audience
+        }
+
+        /// Does it compare events with related ones, in a `SUBQUERY`? Then give ``collect(_:)`` every event before
+        /// evaluating it on any.
+        public var relatesEvents: Bool { !related.isEmpty }
+
+        /// Keep an event its `SUBQUERY`s pick as a related event.
+        ///
+        /// - Parameter record: An event's record.
+        /// - Throws: ``StreamFilterError`` if a `SUBQUERY`'s conditions can't be evaluated on it.
+        public func collect(_ record: NSDictionary) throws {
+            do {
+                try related.collect(record)
+            } catch {
+                throw StreamFilterError(predicate: source, reason: "\(error)")
+            }
         }
 
         /// Evaluate the predicate on a record.
         ///
         /// - Parameter record: The record.
         /// - Returns: Does the record match?
-        /// - Throws: ``StreamFilterError`` if the predicate can't be evaluated on it, such as `MATCHES` on a number.
-        func evaluate(on record: NSDictionary) throws -> Bool {
-            var matches = ObjCBool(false)
+        /// - Throws: ``StreamFilterError`` if the predicate can't be evaluated on it, such as `MATCHES` on a number,
+        ///   or on a value it gave up on (``BoundedMatches``).
+        public func evaluate(on record: NSDictionary) throws -> Bool {
+            var result = ObjCBool(false)
+            matches.failure = nil
+            related.failure = nil
             do {
-                try PredicateBridge.evaluate(predicate, with: PredicateRecord(record), matches: &matches)
+                try PredicateBridge.evaluate(predicate, with: PredicateRecord(record), matches: &result)
             } catch {
                 throw StreamFilterError(predicate: source, reason: error.localizedDescription)
             }
-            return matches.boolValue
+            if let failure = related.failure ?? matches.failure {
+                throw StreamFilterError(predicate: source, reason: failure)
+            }
+            return result.boolValue
         }
 
-        /// The same predicate, parsed again, for another thread: `NSPredicate` doesn't say it's thread-safe.
-        var copy: Predicate {
-            (try? Predicate(source)) ?? self
+        /// The same predicate, parsed again, for another thread: `NSPredicate` doesn't say it's thread-safe. It has
+        /// no related events yet.
+        public var copy: Predicate {
+            (try? Predicate(source, for: audience)) ?? self
         }
 
         /// Two predicates are the same if they were typed the same.
@@ -110,7 +160,7 @@ public struct StreamFilter: Equatable {
     public var targets: [Pattern] = []
     /// `--grep`: any string in the event's record.
     public var greps: [Pattern] = []
-    /// `--where`: the event's record.
+    /// `--predicate`: the event's record.
     public var predicates: [Predicate] = []
 
     /// No filter: every event is written.
@@ -138,11 +188,11 @@ public struct StreamFilter: Equatable {
             && Self.any(targets) { $0.matches(header.targetPath ?? "") }
     }
 
-    /// Does an event's record pass `--signing-id`, `--grep` and `--where`?
+    /// Does an event's record pass `--signing-id`, `--grep` and `--predicate`?
     ///
     /// - Parameter record: The event's export record.
     /// - Returns: `true` if it does.
-    /// - Throws: ``StreamFilterError`` if a `--where` predicate can't be evaluated on it.
+    /// - Throws: ``StreamFilterError`` if a `--predicate` can't be evaluated on it.
     public func admits(record: NSDictionary) throws -> Bool {
         let signingID = record.value(forKeyPath: "process.signing_id") as? String ?? ""
         guard Self.any(signingIDs, { $0.matches(signingID) }),
@@ -185,15 +235,15 @@ public struct StreamFilter: Equatable {
 }
 
 
-/// A `--where` predicate that can't be evaluated on an event, which isn't written.
+/// A `--predicate` that can't be evaluated on an event, which isn't written.
 public struct StreamFilterError: Error, Equatable, CustomStringConvertible {
     /// The predicate, as typed.
     public let predicate: String
     /// Why, as `NSPredicate` says.
     public let reason: String
 
-    /// Such as "--where 'path MATCHES "x"' can't be checked on some events: Can't do regex matching on object 1."
+    /// Such as "--predicate 'path MATCHES "x"' can't be checked on some events: Can't do regex matching on object 1."
     public var description: String {
-        "--where '\(predicate)' can't be checked on some events, which aren't written: \(reason)"
+        "--predicate '\(predicate)' can't be checked on some events, which aren't written: \(reason)"
     }
 }

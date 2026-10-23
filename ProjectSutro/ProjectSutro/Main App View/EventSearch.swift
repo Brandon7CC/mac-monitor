@@ -1,0 +1,218 @@
+//
+//  EventSearch.swift
+//  ProjectSutro
+//
+//  Created by Brandon Dalton on 10/23/26.
+//
+
+import SwiftUI
+import AppKit
+import SutroESFramework
+
+
+// MARK: - Search
+/// The event tables' predicate search: the predicate the tables are filtered by, and the predicate editor's draft,
+/// saved predicates and recent ones. The search field's context narrows the predicate's matches.
+@MainActor
+final class EventSearchController: ObservableObject {
+    /// A predicate kept under a name, in the predicate editor's Saved list.
+    struct SavedPredicate: Codable, Hashable, Identifiable {
+        var name: String
+        var source: String
+        var id: String { name }
+    }
+
+    /// The predicate the event tables are filtered by.
+    @Published private(set) var applied: StreamFilter.Predicate?
+    /// Is the predicate editor showing, beside the tables or in its own window?
+    @Published var showsEditor = false
+    /// Is the predicate editor in its own window (``PredicateEditorWindow``) rather than beside the tables?
+    @Published var isPoppedOut = false
+    /// The main window's queries, for the editor's footer wherever it is.
+    weak var queries: EventQueryModel?
+    /// The predicate editor's text.
+    @Published var draft = ""
+    /// Applied predicates, newest first.
+    @Published private(set) var recents: [String]
+    @Published private(set) var saved: [SavedPredicate]
+
+    /// The most recent predicates kept.
+    private static let recentLimit = 10
+    private enum Key {
+        static let recents = "recentSearchPredicates", saved = "savedSearchPredicates"
+    }
+
+    /// What Saved holds until a predicate is saved.
+    static let starterPredicates = [
+        SavedPredicate(name: "curl and wget", source: "process.executable.path ENDSWITH \"/curl\" "
+                       + "OR process.executable.path ENDSWITH \"/wget\""),
+        SavedPredicate(name: "Fake password prompts",
+                       source: "event.exec.script_content CONTAINS[c] \"hidden answer\""),
+        SavedPredicate(name: "Freshly compiled",
+                       source: "ANY event.exec.target.codesigning_flag_names == \"CS_LINKER_SIGNED\""),
+        SavedPredicate(name: "New executables", source: "event.exec.executable_age_ms < 300000"),
+        SavedPredicate(name: "Reflective loading", source: "es_event_type == \"ES_EVENT_TYPE_NOTIFY_EXEC\" AND "
+                       + "SUBQUERY(correlated, $e, $e.target_path CONTAINS \"NSCreateObjectFileImageFromMemory\")"
+                       + ".@count > 0"),
+    ]
+
+    init(defaults: UserDefaults = .standard) {
+        /// Read the schema's keys now, off the main thread, so the editor opens without reading them.
+        DispatchQueue.global(qos: .utility).async {
+            _ = RecordKeyLibrary.groups
+            _ = StreamFilter.Predicate.recordKeys
+        }
+        recents = defaults.stringArray(forKey: Key.recents) ?? []
+        saved = defaults.data(forKey: Key.saved).flatMap { try? JSONDecoder().decode([SavedPredicate].self, from: $0) }
+            ?? Self.starterPredicates
+    }
+
+    /// Show the predicate editor with the predicate applied, or the draft left in it.
+    func showEditor() {
+        if let applied { draft = applied.source }
+        showsEditor = true
+    }
+
+    /// Why a predicate can't be applied.
+    ///
+    /// - Parameter source: The predicate.
+    /// - Returns: The reason, or `nil` if it can be.
+    func problem(with source: String) -> String? {
+        do {
+            _ = try StreamFilter.Predicate(source.trimmingCharacters(in: .whitespacesAndNewlines), for: .search)
+            return nil
+        } catch {
+            return (error as? CommandLineUsageError)?.message ?? error.localizedDescription
+        }
+    }
+
+    /// Filter the tables by a predicate, or by none when it's empty. A predicate that can't be applied changes
+    /// nothing: the editor says why.
+    ///
+    /// - Parameter source: The predicate.
+    func apply(_ source: String) {
+        let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return applied = nil }
+        guard let predicate = try? StreamFilter.Predicate(trimmed, for: .search) else { return }
+        applied = predicate
+        remember(trimmed)
+    }
+
+    /// Stop filtering by a predicate.
+    func clear() {
+        applied = nil
+    }
+
+    /// Keep a predicate under a name in Saved, replacing one of the same name.
+    ///
+    /// - Parameters:
+    ///   - name: Its name.
+    ///   - source: The predicate.
+    func save(_ name: String, source: String) {
+        saved.removeAll { $0.name == name }
+        saved.insert(SavedPredicate(name: name, source: source), at: 0)
+        UserDefaults.standard.set(try? JSONEncoder().encode(saved), forKey: Key.saved)
+    }
+
+    /// - Parameter predicate: A saved predicate to forget.
+    func delete(_ predicate: SavedPredicate) {
+        saved.removeAll { $0 == predicate }
+        UserDefaults.standard.set(try? JSONEncoder().encode(saved), forKey: Key.saved)
+    }
+
+    func clearRecents() {
+        recents = []
+        UserDefaults.standard.removeObject(forKey: Key.recents)
+    }
+
+    /// - Parameter source: A predicate just applied, to put first in Recent.
+    private func remember(_ source: String) {
+        recents.removeAll { $0 == source }
+        recents.insert(source, at: 0)
+        recents = Array(recents.prefix(Self.recentLimit))
+        UserDefaults.standard.set(recents, forKey: Key.recents)
+    }
+
+    /// - Parameter source: A predicate, perhaps on several lines.
+    /// - Returns: It on one line, its runs of white space as single spaces.
+    static func oneLine(_ source: String) -> String {
+        source.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+}
+
+
+// MARK: - Search field
+extension Notification.Name {
+    /// Asks the main window's search field to take the keyboard focus (Edit ▸ Find Events).
+    static let focusEventSearch = Notification.Name("com.swiftlydetecting.agent.focusEventSearch")
+    /// Asks the main window to show or hide the predicate editor (View ▸ Predicate Editor).
+    static let togglePredicateEditor = Notification.Name("com.swiftlydetecting.agent.togglePredicateEditor")
+}
+
+/// The event tables' search field, AppKit's own, which filters by each event's context as you type, and with a
+/// predicate applied narrows its matches.
+struct EventSearchField: NSViewRepresentable {
+    @Binding var text: String
+    /// Is a predicate applied?
+    let narrowsPredicate: Bool
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeNSView(context: Context) -> NSSearchField {
+        let field = FixedWidthSearchField()
+        field.delegate = context.coordinator
+        field.sendsSearchStringImmediately = true
+        field.maximumRecents = 0
+        field.lineBreakMode = .byTruncatingTail
+        context.coordinator.field = field
+        context.coordinator.observeFocusRequests()
+        return field
+    }
+
+    func updateNSView(_ field: NSSearchField, context: Context) {
+        context.coordinator.parent = self
+        if field.stringValue != text { field.stringValue = text }
+        field.placeholderString = narrowsPredicate ? "Filter matches by context" : "Filter by context"
+        field.toolTip = narrowsPredicate ? "Narrow the predicate's matches to events whose context contains this" : nil
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, NSSearchFieldDelegate {
+        var parent: EventSearchField
+        weak var field: NSSearchField?
+        private var observer: NSObjectProtocol?
+
+        init(_ parent: EventSearchField) {
+            self.parent = parent
+        }
+
+        deinit {
+            if let observer { NotificationCenter.default.removeObserver(observer) }
+        }
+
+        /// Take the focus when Edit ▸ Find Events asks, in this field's window.
+        func observeFocusRequests() {
+            observer = NotificationCenter.default.addObserver(forName: .focusEventSearch, object: nil, queue: .main) {
+                [weak self] _ in
+                Task { @MainActor in
+                    guard let field = self?.field, let window = field.window, window.isKeyWindow
+                    else { return }
+                    window.makeFirstResponder(field)
+                }
+            }
+        }
+
+        func controlTextDidChange(_ notification: Notification) {
+            guard let field else { return }
+            parent.text = field.stringValue
+        }
+    }
+}
+
+/// A search field with no natural width: one that isn't editable asks for its whole text's, which pushes its
+/// magnifying glass and clear button out of a toolbar item.
+final class FixedWidthSearchField: NSSearchField {
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: super.intrinsicContentSize.height)
+    }
+}
