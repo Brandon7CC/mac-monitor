@@ -129,6 +129,7 @@
 		2852BBC829DBA05500AA833C /* ESProcessTraceEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BBC629DBA05500AA833C /* ESProcessTraceEvent+CoreDataClass.swift */; };
 		2852BBC929DBA05500AA833C /* ESProcessTraceEvent+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BBC729DBA05500AA833C /* ESProcessTraceEvent+CoreDataProperties.swift */; };
 		2854A54B2E6DE836004149AF /* SystemSessionGroupTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2854A54A2E6DE82E004149AF /* SystemSessionGroupTableView.swift */; };
+		F17E00000000000000000026 /* GroupSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000025 /* GroupSummary.swift */; };
 		285932562A379C2000B9C7A6 /* EventSubscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 285932552A379C2000B9C7A6 /* EventSubscriptions.swift */; };
 		287EAAA32A42C79E007E00C4 /* SystemOpenDirectoryCreateUserMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 287EAAA22A42C79E007E00C4 /* SystemOpenDirectoryCreateUserMetadataView.swift */; };
 		2881CE17294AFFC700F97F99 /* ESOpenSSHLoginEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2881CE13294AFFC700F97F99 /* ESOpenSSHLoginEvent+CoreDataClass.swift */; };
@@ -294,8 +295,10 @@
 		28EC62F12925A3B100EAC8AD /* FileMetadataSystemEventViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62F02925A3B100EAC8AD /* FileMetadataSystemEventViews.swift */; };
 		28EC62F32925A4DA00EAC8AD /* LaunchItemSystemEventViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62F22925A4DA00EAC8AD /* LaunchItemSystemEventViews.swift */; };
 		28EC62F62925AA7100EAC8AD /* SystemEventFactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62F52925AA7100EAC8AD /* SystemEventFactsView.swift */; };
+		F17E00000000000000000024 /* FactsDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000023 /* FactsDashboard.swift */; };
 		28EC62F82927081C00EAC8AD /* FileSystemEventViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62F72927081C00EAC8AD /* FileSystemEventViews.swift */; };
 		28EC62FA29280F8A00EAC8AD /* SystemEnrichedEventView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62F929280F8A00EAC8AD /* SystemEnrichedEventView.swift */; };
+		F17E00000000000000000022 /* CorrelationSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000021 /* CorrelationSummary.swift */; };
 		28EF8F042D7E47D600223464 /* Process.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EF8F032D7E47D600223464 /* Process.swift */; };
 		28EF8F0B2D7EA45400223464 /* ESFile+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EF8F052D7EA45400223464 /* ESFile+CoreDataClass.swift */; };
 		28EF8F0C2D7EA45400223464 /* ESFile+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EF8F062D7EA45400223464 /* ESFile+CoreDataProperties.swift */; };
@@ -775,6 +778,7 @@
 		2852DCE42DB2DB5B00910979 /* ESThread+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESThread+CoreDataClass.swift"; sourceTree = "<group>"; };
 		2852DCE52DB2DB5B00910979 /* ESThread+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESThread+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		2854A54A2E6DE82E004149AF /* SystemSessionGroupTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSessionGroupTableView.swift; sourceTree = "<group>"; };
+		F17E00000000000000000025 /* GroupSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupSummary.swift; sourceTree = "<group>"; };
 		285932552A379C2000B9C7A6 /* EventSubscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSubscriptions.swift; sourceTree = "<group>"; };
 		287EAAA22A42C79E007E00C4 /* SystemOpenDirectoryCreateUserMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemOpenDirectoryCreateUserMetadataView.swift; sourceTree = "<group>"; };
 		2881CE13294AFFC700F97F99 /* ESOpenSSHLoginEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESOpenSSHLoginEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -938,8 +942,10 @@
 		28EC62F02925A3B100EAC8AD /* FileMetadataSystemEventViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileMetadataSystemEventViews.swift; sourceTree = "<group>"; };
 		28EC62F22925A4DA00EAC8AD /* LaunchItemSystemEventViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchItemSystemEventViews.swift; sourceTree = "<group>"; };
 		28EC62F52925AA7100EAC8AD /* SystemEventFactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventFactsView.swift; sourceTree = "<group>"; };
+		F17E00000000000000000023 /* FactsDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactsDashboard.swift; sourceTree = "<group>"; };
 		28EC62F72927081C00EAC8AD /* FileSystemEventViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemEventViews.swift; sourceTree = "<group>"; };
 		28EC62F929280F8A00EAC8AD /* SystemEnrichedEventView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEnrichedEventView.swift; sourceTree = "<group>"; };
+		F17E00000000000000000021 /* CorrelationSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrelationSummary.swift; sourceTree = "<group>"; };
 		28EF8F032D7E47D600223464 /* Process.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Process.swift; sourceTree = "<group>"; };
 		28EF8F052D7EA45400223464 /* ESFile+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESFile+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28EF8F062D7EA45400223464 /* ESFile+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESFile+CoreDataProperties.swift"; sourceTree = "<group>"; };
@@ -1877,6 +1883,7 @@
 				28CEF0E429776BE0003057D2 /* SystemEventJSONView.swift */,
 				28CEF0E229776BC7003057D2 /* FileContentView.swift */,
 				28EC62F929280F8A00EAC8AD /* SystemEnrichedEventView.swift */,
+				F17E00000000000000000021 /* CorrelationSummary.swift */,
 				28CEF0E629776C05003057D2 /* SystemInitatingProcessView.swift */,
 			);
 			path = "Enrichment Views";
@@ -1954,6 +1961,7 @@
 			isa = PBXGroup;
 			children = (
 				2854A54A2E6DE82E004149AF /* SystemSessionGroupTableView.swift */,
+				F17E00000000000000000025 /* GroupSummary.swift */,
 			);
 			path = "Event Grouping";
 			sourceTree = "<group>";
@@ -2833,6 +2841,7 @@
 				28A169CC2DA206E600CA630B /* EventViewProvider.swift */,
 				28CEF10629776E46003057D2 /* SystemTargetProcessView.swift */,
 				28EC62F52925AA7100EAC8AD /* SystemEventFactsView.swift */,
+				F17E00000000000000000023 /* FactsDashboard.swift */,
 				0D0D0D00000000000000001D /* FactRow.swift */,
 				7E5A1C30000000000000000D /* ProcessLineageSidebar.swift */,
 				28B9A93929DC8AC7006619FF /* Event Metadata Views */,
@@ -4453,6 +4462,7 @@
 				28A2501F29A35D5F007B0753 /* SystemFDDuplicateMetadataView.swift in Sources */,
 				28B865C72A2FF5EF00F06441 /* SystemProfileAddMetadataView.swift in Sources */,
 				2854A54B2E6DE836004149AF /* SystemSessionGroupTableView.swift in Sources */,
+				F17E00000000000000000026 /* GroupSummary.swift in Sources */,
 				D15C00000000000000000072 /* EventFilterSpec.swift in Sources */,
 				D15C00000000000000000074 /* EventQueryModel.swift in Sources */,
 				D15C00000000000000000123 /* EventTableQuery.swift in Sources */,
@@ -4473,6 +4483,7 @@
 				284CFE1D2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift in Sources */,
 				28B9A93F29DC93A7006619FF /* SystemIOKitOpenMetadataView.swift in Sources */,
 				28EC62F62925AA7100EAC8AD /* SystemEventFactsView.swift in Sources */,
+				F17E00000000000000000024 /* FactsDashboard.swift in Sources */,
 				28CEF1212978D45E003057D2 /* SystemLWLoginMetadataView.swift in Sources */,
 				28B865CD2A31016500F06441 /* TerminationDelegate.swift in Sources */,
 				CAC48AF42E24720700260C5F /* ProcessView.swift in Sources */,
@@ -4500,6 +4511,7 @@
 				28CEF10929776E86003057D2 /* SystemMountMetadataView.swift in Sources */,
 				28823F3E2ECC2A3D000B7F5C /* SystemSetExtattrMetadataView.swift in Sources */,
 				28EC62FA29280F8A00EAC8AD /* SystemEnrichedEventView.swift in Sources */,
+				F17E00000000000000000022 /* CorrelationSummary.swift in Sources */,
 				28B9A92D29DBE836006619FF /* SystemUnlinkEventMetadataView.swift in Sources */,
 				28EC62F82927081C00EAC8AD /* FileSystemEventViews.swift in Sources */,
 				28B9A93129DBE9E1006619FF /* SystemFileWriteMetadataView.swift in Sources */,

@@ -36,6 +36,8 @@ struct SystemEventFactsView : View {
     
     @Binding var allFilters: Filters
     var selectedMessage: ESMessage
+    /// Is the Correlation tab showing? Then ⌘C copies the event's correlated events too.
+    @Binding var showsCorrelation: Bool
     
     /// The facts' tabs, in order. Only Metadata, Parent, and JSON are always there.
     private enum FactsTab: String, CaseIterable, Identifiable {
@@ -103,6 +105,8 @@ struct SystemEventFactsView : View {
                 .onAppear { width = proxy.size.width }
                 .onChange(of: proxy.size.width) { width = $0 }
         })
+        .onAppear { showsCorrelation = shown == .correlation }
+        .onChange(of: shown == .correlation) { showsCorrelation = $0 }
         .toolbar {
             if inTitleBar {
                 ToolbarItem(placement: .principal) { picker(tabs, shown) }
@@ -178,6 +182,8 @@ struct AppWrapperForFacts: View {
     @Binding var allFilters: Filters
     
     @State private var selectedEventTree: ESMessage?
+    /// Is the Correlation tab showing?
+    @State private var showsCorrelation = false
     @State private var visibility: NavigationSplitViewVisibility = .all
     
     var body: some View {
@@ -186,7 +192,8 @@ struct AppWrapperForFacts: View {
             ProcessLineageSidebar(selection: $selectedEventTree)
         } detail: {
             if let tree = selectedEventTree {
-                SystemEventFactsView(allFilters: $allFilters, selectedMessage: tree)
+                SystemEventFactsView(allFilters: $allFilters, selectedMessage: tree,
+                                     showsCorrelation: $showsCorrelation)
                     .environmentObject(systemExtensionManager)
                     .environmentObject(userPrefs)
             } else {
@@ -218,10 +225,21 @@ struct AppWrapperForFacts: View {
             }
         }
         .modifier(NoWindowTitle())
-        /// ⌘C copies the event's JSON, unless text is selected, which the text copies first.
+        /// ⌘C copies the event's JSON, unless text is selected, which the text copies first. On the Correlation tab
+        /// it copies the event's correlated events after it, oldest first, as Export telemetry writes them.
         .onCopyCommand {
             guard let tree = selectedEventTree else { return [] }
-            return [NSItemProvider(object: ProcessHelpers.eventToPrettyJSON(value: tree) as NSString)]
+            let events = showsCorrelation ? [tree] + tree.correlated_array.reversed() : [tree]
+            guard events.count <= EventTableView.copyLimit else {
+                let alert = NSAlert()
+                alert.messageText = "Too many events to copy"
+                alert.informativeText = "⌘C copies up to \(EventTableView.copyLimit.formatted()) events, and this "
+                    + "event and its correlated events are \(events.count.formatted())."
+                alert.runModal()
+                return []
+            }
+            let json = events.map { ProcessHelpers.eventToPrettyJSON(value: $0) }.joined(separator: "\n")
+            return [NSItemProvider(object: json as NSString)]
         }
     }
     

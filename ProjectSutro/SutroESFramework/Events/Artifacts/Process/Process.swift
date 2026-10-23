@@ -62,6 +62,8 @@ public struct Process: Identifiable, Codable, Hashable {
     // public var command_line: String?
     public var is_adhoc_signed = false
     public var cs_validation_category_string: String?
+    /// The names of the flags set in ``codesigning_flags`` (``ProcessHelpers/codeSigningFlagNames(_:)``).
+    public var codesigning_flag_names: [String] = []
     
     public init(from process: es_process_t, version: Int, isExecMessage: Bool = false) {
         self.start_time = TimeVal(from: process.start_time)
@@ -144,6 +146,7 @@ extension Process: ESEnrichable {
         // Code Signing Blobs: Exposes Kernel/kern/cs_blobs.h header file
         func flag(_ mask: Int32) -> Bool { (Int(codesigning_flags) & Int(mask)) == Int(mask) }
         is_adhoc_signed = flag(CS_ADHOC)
+        codesigning_flag_names = ProcessHelpers.codeSigningFlagNames(codesigning_flags)
         if is_platform_binary {
             codesigning_type = .platform
         } else if is_adhoc_signed {

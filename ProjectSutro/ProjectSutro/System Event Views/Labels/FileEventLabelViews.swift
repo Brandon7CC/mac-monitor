@@ -9,6 +9,24 @@ import SwiftUI
 import SutroESFramework
 
 
+/// Is a file the image `NSCreateObjectFileImageFromMemory` writes to load a Mach-O from memory? It writes the image to
+/// `$TMPDIR/NSCreateObjectFileImageFromMemory-XXXXXXXX` and loads that file, so creating or mapping one marks
+/// reflective code loading (T1620).
+///
+/// - Parameter path: A file's path.
+/// - Returns: `true` for such a file.
+func pathIsReflectiveLoadingImage(_ path: String) -> Bool {
+    (path as NSString).lastPathComponent.hasPrefix("NSCreateObjectFileImageFromMemory-")
+}
+
+/// The warning before an event that creates or maps an image for reflective loading.
+private var reflectiveLoadingWarning: some View {
+    Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .red)
+        .help("NSCreateObjectFileImageFromMemory's image of a Mach-O loaded from memory: reflective code loading "
+              + "(T1620)")
+}
+
+
 struct FileCreateEventLabelView: View {
     var message: ESMessage
     
@@ -19,7 +37,11 @@ struct FileCreateEventLabelView: View {
     var body: some View {
         if let eventType: String = message.es_event_type {
             HStack {
-                if (message.process.file_quarantine_type != "DISABLED" || (message.process.executable?.name == "ArchiveService" && !event.targetPath.hasPrefix("/private/var/folders/"))) && event.is_quarantined == 0 {
+                if pathIsReflectiveLoadingImage(event.targetPath) {
+                    // MARK: Reflective loading
+                    reflectiveLoadingWarning
+                    Label("**`\(eventType)`**", systemImage: "doc.plaintext").foregroundStyle(.red)
+                } else if (message.process.file_quarantine_type != "DISABLED" || (message.process.executable?.name == "ArchiveService" && !event.targetPath.hasPrefix("/private/var/folders/"))) && event.is_quarantined == 0 {
                     // MARK: Unquarantiened file
                     Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow).help("Unquarantined file created")
                     Label("**`\(eventType)`**", systemImage: "doc.plaintext").symbolRenderingMode(.palette).foregroundStyle(.red)
@@ -48,8 +70,14 @@ struct MMAPEventLabelView: View {
     var body: some View {
         if let eventType: String = message.es_event_type {
             let filePath: String = event.source.path!
-            // MARK: MMAP OSA
-            if pathIsOSAComponent(filePath: filePath) {
+            if pathIsReflectiveLoadingImage(filePath) {
+                // MARK: Reflective loading
+                HStack {
+                    reflectiveLoadingWarning
+                    Label("**`\(eventType)`**", systemImage: "memorychip").foregroundStyle(.red)
+                }
+            } else if pathIsOSAComponent(filePath: filePath) {
+                // MARK: MMAP OSA
                 HStack {
                     Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow).help("This file is an OSA (Open Scripting Architecture) component")
                     Label("**`\(eventType)`**", systemImage: "memorychip").foregroundStyle(.orange)

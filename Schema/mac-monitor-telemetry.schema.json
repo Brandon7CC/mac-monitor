@@ -1089,6 +1089,11 @@
             "type": "string"
           }
         },
+        "executable_age_ms": {
+          "description": "Milliseconds from the target's executable's birth (its stat's st_birthtimespec) to the exec. null when the birth time is unknown.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["integer", "null"]
+        },
         "fds": {
           "x-mac-monitor-origin": "eslogger",
           "type": "array",
@@ -1182,6 +1187,7 @@
         "command_line",
         "cwd",
         "env",
+        "executable_age_ms",
         "fds",
         "image_cpusubtype",
         "image_cputype",
@@ -2573,6 +2579,14 @@
           "type": "string",
           "pattern": "^[0-9A-F]{40}$"
         },
+        "codesigning_flag_names": {
+          "description": "The names of the flags `codesigning_flags` sets, from cs_blobs.h, in bit order: CS_VALID, CS_RUNTIME (the hardened runtime), CS_LINKER_SIGNED.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "codesigning_flags": {
           "x-mac-monitor-origin": "eslogger",
           "type": "integer"
@@ -2711,6 +2725,7 @@
         "audit_token",
         "audit_token_string",
         "cdhash",
+        "codesigning_flag_names",
         "codesigning_flags",
         "codesigning_type",
         "euid",

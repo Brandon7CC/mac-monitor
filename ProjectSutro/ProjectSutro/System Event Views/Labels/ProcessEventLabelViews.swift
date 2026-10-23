@@ -9,6 +9,21 @@ import SwiftUI
 import SutroESFramework
 
 
+// MARK: - Executable age
+extension ESProcessExecEvent {
+    /// How long before the exec its executable was created, such as "3.25 s", "4 min" or "12 days", or `nil`.
+    var executableAgeText: String? {
+        guard let age = executableAge else { return nil }
+        switch age {
+        case ..<60: return String(format: "%.2f s", age)
+        case ..<3600: return "\(Int(age) / 60) min"
+        case ..<86_400: return "\(Int(age) / 3600) h"
+        default: return "\(Int(age) / 86_400) days"
+        }
+    }
+}
+
+
 struct ExecEventLabelView: View {
     var message: ESMessage
     
@@ -22,6 +37,20 @@ struct ExecEventLabelView: View {
     
     var body: some View {
         HStack {
+            // MARK: New executable
+            if event.isNewExecutable, let age = event.executableAgeText {
+                Image(systemName: "clock.badge.exclamationmark").symbolRenderingMode(.palette)
+                    .foregroundStyle(.orange, .primary)
+                    .help("Its executable was created \(age) before it ran.")
+            }
+            
+            // MARK: Script
+            /// An interpreter that ran a script Mac Monitor read: its content is in Event Facts' Script tab.
+            if let content = event.script_content, !content.isEmpty {
+                Image(systemName: "scroll.fill").foregroundStyle(.purple)
+                    .help("Ran \(event.resolved_script_path ?? "a script"). Event Facts' Script tab shows its content.")
+            }
+            
             // MARK: Dyld Exec Path
             if event.dyld_exec_path != nil && event.dyld_exec_path != procPath {
                 Image(systemName: "curlybraces.square").help("Dyld exec path does not match the process path.")
@@ -44,6 +73,8 @@ struct ExecEventLabelView: View {
             // MARK: ADHOC
             if event.target.is_adhoc_signed {
                 Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow)
+                    .help(event.target.isLinkerSignedAdhoc
+                          ? "Ad hoc signed by the linker, as a freshly compiled binary is." : "Ad hoc signed.")
                 Label("**`\(message.es_event_type!)`**", systemImage: "xmark.seal").symbolRenderingMode(.palette).foregroundStyle(.orange)
             } else if let signingID = event.target.signing_id.nonEmpty, signingID != "Unknown" {
                 // MARK: Signed

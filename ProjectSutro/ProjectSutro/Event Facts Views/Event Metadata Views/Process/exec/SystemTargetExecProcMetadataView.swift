@@ -145,6 +145,18 @@ struct SystemTargetExecProcMetadataView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     
+                    // MARK: Executable age
+                    if let age = event.executableAgeText {
+                        HStack {
+                            Text("\u{2022} **Executable age:**")
+                            GroupBox {
+                                Label("Created \(age) before it ran",
+                                      systemImage: event.isNewExecutable ? "clock.badge.exclamationmark" : "clock")
+                                    .foregroundStyle(event.isNewExecutable ? .orange : .primary)
+                            }
+                        }
+                    }
+                    
                     // MARK: Script
                     if let script = event.resolved_script_path {
                         Text("\u{2022} **Script:**")
@@ -194,6 +206,17 @@ struct SystemTargetExecProcMetadataView: View {
                             Text("\u{2022} **Code signing type:**")
                             GroupBox {
                                 Text("`\(codesigning_type)`")
+                            }
+                        }
+                        
+                        // MARK: Code signing flags
+                        HStack(alignment: .top) {
+                            Text("\u{2022} **Code signing flags:**")
+                            GroupBox {
+                                Text(event.target.codesigningFlagNames.joined(separator: ", "))
+                                    .monospaced()
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
                         

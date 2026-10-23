@@ -450,6 +450,7 @@
         <attribute name="envData" optional="YES" attributeType="Binary"/>
         <attribute name="euid" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="euid_human" optional="YES" attributeType="String"/>
+        <attribute name="executable_age_ms" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
         <attribute name="fdsData" optional="YES" attributeType="Binary"/>
         <attribute name="file_quarantine_type" optional="YES" attributeType="Integer 16" usesScalarValueType="YES"/>
         <attribute name="group_id" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
