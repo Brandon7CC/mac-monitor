@@ -18,15 +18,13 @@ public class ESProcessExecEvent: NSManagedObject {
         case target_proc_audit_token_string
         case target_proc_parent_audit_token_string
         case target_proc_responsible_audit_token_string
-        case allow_jit, command_line, get_task_allow
+        case command_line
         case is_adhoc_signed
         case is_es_client
         case is_platform_binary
         case process_name
         case process_path
-        case rootless
         case signing_id
-        case skip_lv
         case team_id
         case start_time
         case cdhash
@@ -189,7 +187,7 @@ extension ESProcessExecEvent: Encodable {
             try container.encode(certificate_chain, forKey: .certificate_chain)
         }
         
-        /// Mac Monitor's addition beside eslogger's fields: `null` when there's none, so the key is always there.
+        /// Mac Monitor's enrichment beside eslogger's fields: `null` when there's none, so the key is always there.
         try container.encode(launched_by_parent, forKey: .launched_by_parent)
     }
 }

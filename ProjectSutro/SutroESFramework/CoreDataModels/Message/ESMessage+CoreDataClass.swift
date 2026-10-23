@@ -25,7 +25,7 @@ public class ESMessage: NSManagedObject {
         /// Version and sequence
         case version
         case schema_version
-        /// Mac Monitor's addition beside eslogger's `schema_version`: the telemetry schema the record follows
+        /// Mac Monitor's enrichment beside eslogger's `schema_version`: the telemetry schema the record follows
         /// (``TelemetrySchema/version``).
         case telemetry_version
         case seq_num

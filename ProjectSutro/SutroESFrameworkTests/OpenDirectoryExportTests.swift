@@ -23,10 +23,10 @@ final class OpenDirectoryExportTests: XCTestCase {
     /// eslogger's records.
     private static let esloggerFixture = "eslogger-od.jsonl"
     /// Mac Monitor's own fields of every Open Directory event.
-    private static let commonAdditions = ["error_code_human", "instigator_process_name", "instigator_process_path",
+    private static let commonEnrichments = ["error_code_human", "instigator_process_name", "instigator_process_path",
                                           "instigator_process_signing_id", "instigator_process_audit_token"]
-    /// Mac Monitor's own fields of each event, besides ``commonAdditions``.
-    private static let additions = ["od_group_add": "member_string", "od_group_remove": "member_string",
+    /// Mac Monitor's own fields of each event, besides ``commonEnrichments``.
+    private static let enrichments = ["od_group_add": "member_string", "od_group_remove": "member_string",
                                     "od_attribute_value_add": "record_type_string",
                                     "od_modify_password": "account_type_string"]
     
@@ -74,13 +74,13 @@ final class OpenDirectoryExportTests: XCTestCase {
     
     /// Mac Monitor's own fields are exported beside eslogger's: the instigator's name, path and signing ID are `null`
     /// only when Endpoint Security left the instigator out.
-    func testAdditions() throws {
+    func testEnrichments() throws {
         for record in try fixtureRecords(Self.esloggerFixture) {
             let (name, object) = try onlyEvent(try export(try importRecord(record)))
             let hasInstigator = !(try onlyEvent(record).object["instigator"] is NSNull)
-            for key in Self.commonAdditions + [Self.additions[name]].compactMap({ $0 }) {
+            for key in Self.commonEnrichments + [Self.enrichments[name]].compactMap({ $0 }) {
                 let nullable = !hasInstigator && key != "error_code_human" && key != "instigator_process_audit_token"
-                    && Self.commonAdditions.contains(key)
+                    && Self.commonEnrichments.contains(key)
                 XCTAssertNotNil(object[key], "\(name).\(key)")
                 XCTAssertEqual(object[key] is NSNull, nullable, "\(name).\(key)")
             }

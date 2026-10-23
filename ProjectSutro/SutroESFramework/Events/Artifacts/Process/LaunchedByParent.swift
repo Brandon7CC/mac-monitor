@@ -9,7 +9,7 @@ import Foundation
 
 
 // MARK: - Launched by parent
-/// The process that really caused another one to run: a Mac Monitor addition beside eslogger's fields.
+/// The process that really caused another one to run: a Mac Monitor enrichment beside eslogger's fields.
 ///
 /// On macOS launchd (pid 1) starts most processes, whoever asked for them, so the Unix parent often hides the cause.
 /// Mac Monitor names the launched-by parent from the strongest signal it has (``Source``), only on the two events that

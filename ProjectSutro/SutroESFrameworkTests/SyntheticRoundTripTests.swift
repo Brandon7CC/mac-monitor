@@ -25,11 +25,8 @@ final class SyntheticRoundTripTests: XCTestCase {
     /// Fields the round trip doesn't compare, because they're derived rather than recorded:
     /// - `id`: each import makes new ones.
     /// - `message_darwin_time`: read back from `time`, to the nanosecond the synthetic `Date` doesn't have.
-    /// - `get_task_allow`: the store doesn't keep it, so it isn't exported.
     /// - `argc`: not exported. eslogger has only `args`.
-    /// - `authorizationFlags`: a petition's table of flag names, not a field of the event.
-    private static let derived: Set<String> = ["id", "message_darwin_time", "get_task_allow", "argc",
-                                               "authorizationFlags"]
+    private static let derived: Set<String> = ["id", "message_darwin_time", "argc"]
     
     /// Each synthetic event exported, then imported, is the event it was.
     func testEveryEventSurvivesExportAndImport() throws {

@@ -76,6 +76,7 @@ struct AppKitEventTablesView: View {
                         }
                     }
                 }
+                .padding(.bottom, 6)
                 .frame(minHeight: Self.minimumPaneHeight, maxHeight: .infinity)
             }
             
@@ -89,6 +90,8 @@ struct AppKitEventTablesView: View {
                         }
                     }
                 }
+                // Room between the divider and the header
+                .padding(.top, 12)
                 .frame(minHeight: Self.minimumPaneHeight, maxHeight: .infinity)
             }
         }

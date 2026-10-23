@@ -399,7 +399,6 @@
         <attribute name="username" optional="YES" attributeType="String"/>
     </entity>
     <entity name="ESProcess" representedClassName="ESProcess" syncable="YES">
-        <attribute name="allow_jit" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="audit_token_string" optional="YES" attributeType="String"/>
         <attribute name="cdhash" optional="YES" attributeType="String"/>
         <attribute name="codesigning_flags" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
@@ -409,7 +408,6 @@
         <attribute name="euid" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="euid_human" optional="YES" attributeType="String"/>
         <attribute name="file_quarantine_type" optional="YES" attributeType="String"/>
-        <attribute name="get_task_allow" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="group_id" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="is_adhoc_signed" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
@@ -421,12 +419,10 @@
         <attribute name="pid" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="ppid" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="responsible_audit_token_string" optional="YES" attributeType="String"/>
-        <attribute name="rootless" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="ruid" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="ruid_human" optional="YES" attributeType="String"/>
         <attribute name="session_id" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="signing_id" optional="YES" attributeType="String"/>
-        <attribute name="skip_lv" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="start_time" optional="YES" attributeType="String"/>
         <attribute name="team_id" optional="YES" attributeType="String"/>
         <relationship name="audit_token" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESAuditToken"/>
@@ -444,7 +440,6 @@
         <relationship name="target" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcess"/>
     </entity>
     <entity name="ESProcessExecEvent" representedClassName="ESProcessExecEvent" syncable="YES">
-        <attribute name="allow_jit" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="argsData" optional="YES" attributeType="Binary"/>
         <attribute name="cdhash" optional="YES" attributeType="String"/>
         <attribute name="certificateChainData" optional="YES" attributeType="Binary"/>
@@ -456,7 +451,6 @@
         <attribute name="euid_human" optional="YES" attributeType="String"/>
         <attribute name="fdsData" optional="YES" attributeType="Binary"/>
         <attribute name="file_quarantine_type" optional="YES" attributeType="Integer 16" usesScalarValueType="YES"/>
-        <attribute name="get_task_allow" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="group_id" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="image_cpusubtype" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
@@ -475,12 +469,10 @@
         <attribute name="process_name" optional="YES" attributeType="String"/>
         <attribute name="process_path" optional="YES" attributeType="String"/>
         <attribute name="resolved_script_path" optional="YES" attributeType="String"/>
-        <attribute name="rootless" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="ruid" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="ruid_human" optional="YES" attributeType="String"/>
         <attribute name="script_content" optional="YES" attributeType="String"/>
         <attribute name="signing_id" optional="YES" attributeType="String"/>
-        <attribute name="skip_lv" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="start_time" optional="YES" attributeType="String"/>
         <attribute name="submitted_by_audit_token" optional="YES" attributeType="String"/>
         <attribute name="target_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>

@@ -72,9 +72,9 @@ extension TelemetrySchemaSource {
                 eslogger("success", .boolean),
                 eslogger("failure_message", .nullable(.string)),
                 eslogger("username", .string),
-                addition("has_uid", .boolean, "Whether `uid` is known."),
+                enrichment("has_uid", .boolean, "Whether `uid` is known."),
                 eslogger("uid", .nullable(.integer)),
-                addition("uid_human", .string, "The name of `uid`, or Unknown."),
+                enrichment("uid_human", .string, "The name of `uid`, or Unknown."),
             ]),
             session(ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN, "A login window login: es_event_lw_session_login_t."),
             session(ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK, "A login window unlock: es_event_lw_session_unlock_t."),
@@ -84,7 +84,7 @@ extension TelemetrySchemaSource {
               + named("source_address_type", "The es_address_type_t.") + [
                 eslogger("source_address", .string),
                 eslogger("username", .string),
-                addition("has_uid", .boolean, "Whether `uid` is known."),
+                enrichment("has_uid", .boolean, "Whether `uid` is known."),
                 eslogger("uid", .nullable(.integer), "Unsigned."),
             ]),
             event(ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGOUT, "An OpenSSH logout: es_event_openssh_logout_t.",
@@ -99,7 +99,7 @@ extension TelemetrySchemaSource {
     /// Authorization, MDM, TCC and Gatekeeper events.
     private static var securityEvents: [SchemaEvent] {
         let result = SchemaObject("A right's result: es_authorization_result_t.", [
-            addition("id", .pattern(.uuid), "Mac Monitor's identifier for the result."),
+            enrichment("id", .pattern(.uuid), "Mac Monitor's identifier for the result."),
             eslogger("right_name", .string),
         ] + named("rule_class", "The es_authorization_rule_class_t.") + [eslogger("granted", .boolean)])
         let profile = SchemaObject("A configuration profile: es_profile_t.", [
@@ -111,7 +111,7 @@ extension TelemetrySchemaSource {
                   "A process asked for authorization rights: es_event_authorization_petition_t.", [
                 eslogger("instigator", .nullable(.ref("process"))),
                 eslogger("petitioner", .nullable(.ref("process"))),
-                addition("flags_array", .array(.string), "The names of the flags `flags` has."),
+                enrichment("flags_array", .array(.string), "The names of the flags `flags` has."),
                 eslogger("flags", .integer),
                 eslogger("right_count", .integer),
                 eslogger("rights", .array(.string)),
@@ -178,7 +178,7 @@ extension TelemetrySchemaSource {
             eslogger("file", .either([.string, .ref("file"), .null]),
                      "The file's path, or the file, as `file_type` says; null when the path is NULL.",
                      absent: Absence("`file_type` names neither")),
-            addition("file_path", .string, "The file's path, when `file_type` names a path.",
+            enrichment("file_path", .string, "The file's path, when `file_type` names a path.",
                      absent: Absence("`file_type` doesn't name a path")),
             eslogger("sha256", .nullable(.pattern(.sha256)),
                      "The file's SHA-256 in uppercase hex, given for a file under 100 MB. Mac Monitor writes NULL when "

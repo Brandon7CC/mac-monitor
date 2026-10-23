@@ -10,7 +10,7 @@ import XCTest
 
 
 // MARK: - Exec command line
-/// Pins an exec event's `command_line` (Mac Monitor's addition): its arguments joined by spaces and trimmed, by
+/// Pins an exec event's `command_line` (Mac Monitor's enrichment): its arguments joined by spaces and trimmed, by
 /// `ProcessExecEvent.enrich()`, exactly as the Security Extension used to build it by appending each argument after a
 /// space.
 final class ExecCommandLineTests: XCTestCase {

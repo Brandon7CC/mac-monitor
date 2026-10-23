@@ -42,7 +42,7 @@ extension ESProcessForkEvent: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(ESProcessRecord(process: child, id: child_id ?? child.id), forKey: .child)
-        /// Mac Monitor's addition beside eslogger's fields: `null` when there's none, so the key is always there.
+        /// Mac Monitor's enrichment beside eslogger's fields: `null` when there's none, so the key is always there.
         try container.encode(launched_by_parent, forKey: .launched_by_parent)
     }
 }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 import SutroESFramework
 
 
@@ -15,45 +16,42 @@ import SutroESFramework
 struct CommandLineToolSettingsView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @StateObject private var installer = CommandLineToolInstaller()
-    
+
     /// The tool inside this copy of Mac Monitor, which works without the link.
     private let toolPath = Bundle.main.bundlePath + CommandLineToolLink.toolInBundle
-    
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading) {
-                Text("**Command line tool**").font(.title2)
-                GroupBox {
+            VStack(alignment: .leading, spacing: 22) {
+                SettingsSection("Command line tool") {
                     if let inspection = installer.inspection {
-                        VStack(alignment: .leading, spacing: 10) {
-                            CommandLineToolStatusView(inspection: inspection)
-                            Divider()
-                            actions(for: inspection).frame(maxWidth: .infinity, alignment: .center)
+                        CommandLineToolStatusView(inspection: inspection, bundlePath: Bundle.main.bundlePath) {
+                            actions(for: inspection)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     } else {
-                        ProgressView().controlSize(.small).frame(maxWidth: .infinity)
+                        ProgressView().controlSize(.small).frame(maxWidth: .infinity).padding()
                     }
                 }
-                
-                Divider().padding(.bottom)
-                
-                Text("**Usage**").font(.title2)
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 6) {
-                        usage("sudo macmonitor stream", "Mac Monitor's default events, as text")
-                        usage("sudo macmonitor stream exec | jq -c .", "Only exec events, as JSONL")
-                        usage("sudo macmonitor mute list", "The saved mute set Mac Monitor and macmonitor share")
-                        usage("macmonitor help", "Every command and option")
-                        Divider()
-                        Text("Without the link, run the tool by its full path:")
-                        Text(verbatim: "sudo \"\(toolPath)\" stream")
-                            .font(.system(.body, design: .monospaced))
-                            .textSelection(.enabled)
+                if installer.inspection.map({ $0.link != .current }) ?? false {
+                    SettingsSection("Run it without installing") {
+                        CommandRow(command: "sudo \"\(toolPath)\" stream")
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                SettingsSection("Usage") {
+                    VStack(spacing: 0) {
+                        CommandRow(command: "sudo macmonitor stream", meaning: "Mac Monitor's default events, as text")
+                        Divider()
+                        CommandRow(command: "sudo macmonitor stream exec | jq -c .",
+                                   meaning: "Only exec events, as JSONL")
+                        Divider()
+                        CommandRow(command: "sudo macmonitor mute list",
+                                   meaning: "The saved mute set Mac Monitor and macmonitor share")
+                        Divider()
+                        CommandRow(command: "macmonitor help", meaning: "Every command and option")
+                    }
                 }
             }
+            .padding(.vertical, 4)
         }
         .onAppear { installer.refresh() }
         .alert("Command line tool", isPresented: Binding(get: { installer.failure != nil },
@@ -61,28 +59,37 @@ struct CommandLineToolSettingsView: View {
                actions: { Button("OK", role: .cancel, action: {}) },
                message: { Text(installer.failure ?? "") })
     }
-    
-    /// The buttons for what may be done now: Install…, Update… or Repair…, and Remove….
+
+    /// The buttons for what may be done now: look again, Remove…, and Install…, Update… or Repair….
+    ///
+    /// Install… stays visible, disabled, when this copy's tool can't be linked, so it's clear what's missing.
     ///
     /// - Parameter inspection: What's there.
     /// - Returns: The buttons, disabled while a change waits on the password prompt.
     private func actions(for inspection: CommandLineToolLink.Inspection) -> some View {
-        HStack {
-            if inspection.plan(.install) != nil {
-                Button(installTitle(for: inspection.link)) { installer.perform(.install, through: systemExtensionManager) }
-                    .help("Asks for an administrator password, then links \(inspection.linkPath) to this copy's tool.")
-            }
+        HStack(spacing: 8) {
+            if installer.isChanging { ProgressView().controlSize(.small) }
+            Button { installer.refresh() } label: { Image(systemName: "arrow.clockwise") }
+                .help("Look again")
+                .accessibilityLabel("Look again")
             if inspection.plan(.remove) != nil {
                 Button("Remove…") { installer.perform(.remove, through: systemExtensionManager) }
-                    .buttonStyle(.borderedProminent).tint(.pink).opacity(0.8)
                     .help("Asks for an administrator password, then removes Mac Monitor's link.")
             }
-            if installer.isChanging { ProgressView().controlSize(.small) }
-            Button("Look Again") { installer.refresh() }
+            if inspection.plan(.install) != nil {
+                Button(installTitle(for: inspection.link)) {
+                    installer.perform(.install, through: systemExtensionManager)
+                }
+                    .buttonStyle(.borderedProminent)
+                    .help("Asks for an administrator password, then links \(inspection.linkPath) to this copy's tool.")
+            } else if inspection.link == .absent {
+                Button("Install…") {}.disabled(true)
+            }
         }
+        .controlSize(.large)
         .disabled(installer.isChanging)
     }
-    
+
     /// What Install is called for what's there.
     ///
     /// - Parameter link: What's at the link's path.
@@ -94,77 +101,196 @@ struct CommandLineToolSettingsView: View {
         default: return "Install…"
         }
     }
-    
-    /// One usage example.
+}
+
+
+// MARK: - Status
+/// What's at `/usr/local/bin/macmonitor`, as a title with an icon and the path, the actions beside it, and below it
+/// the details, why Install isn't offered, and any warning about the link's directory.
+struct CommandLineToolStatusView<Actions: View>: View {
+    let inspection: CommandLineToolLink.Inspection
+    /// This copy of Mac Monitor.
+    let bundlePath: String
+    @ViewBuilder let actions: Actions
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 12) {
+                icon.font(.system(size: 24)).frame(width: 28)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title).font(.title3.weight(.semibold))
+                    Text(verbatim: inspection.link == .current ? "\(inspection.linkPath) → this copy"
+                                                                : inspection.linkPath)
+                        .font(.system(.callout, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+                Spacer(minLength: 12)
+                actions
+            }
+            .padding(14)
+
+            if let details {
+                Divider()
+                details
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                    .padding(EdgeInsets(top: 10, leading: 54, bottom: 12, trailing: 14))
+            }
+            if case .failure(let refusal) = inspection.tool {
+                Callout(title: inspection.link == .current ? "The linked tool can't be trusted"
+                                                            : "Can't install from this copy",
+                        text: refusal.description)
+            }
+            if let warning = inspection.binDirectoryWarning {
+                Callout(title: "Others can change \(inspection.binDirectory)", text: warning)
+            }
+        }
+    }
+
+    /// The status, in a few words.
+    private var title: String {
+        switch inspection.link {
+        case .absent: return "Not installed"
+        case .current: return "Installed"
+        case .elsewhere: return "Points at another copy"
+        case .broken: return "Points at a missing copy"
+        case .foreign: return "Something else is there"
+        case .unusableDirectory: return "Can't use \(inspection.binDirectory)"
+        }
+    }
+
+    /// The status icon.
+    @ViewBuilder private var icon: some View {
+        switch inspection.link {
+        case .current:
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+        case .absent:
+            Image(systemName: "circle.dashed").foregroundStyle(.secondary)
+        case .elsewhere, .broken:
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+        case .foreign, .unusableDirectory:
+            Image(systemName: "xmark.octagon.fill").foregroundStyle(.secondary)
+        }
+    }
+
+    /// What the status means here: where the link points, what the action would do, or why nothing can be done.
+    private var details: AnyView? {
+        switch inspection.link {
+        case .current:
+            let code = Font.system(.body, design: .monospaced)
+            return AnyView(Text("sudo macmonitor").font(code) + Text(" runs the tool in ")
+                           + Text(verbatim: bundlePath).font(code) + Text(", in any terminal."))
+        case .elsewhere(let value), .broken(let value):
+            return AnyView(Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 6) {
+                GridRow {
+                    Text("Links to")
+                    Text(verbatim: Self.bundle(of: value)).monospaced().foregroundStyle(.primary)
+                }
+                GridRow {
+                    Text("This copy")
+                    Text(verbatim: bundlePath).monospaced().foregroundStyle(.primary)
+                }
+                if let hint = inspection.hint {
+                    GridRow {
+                        Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+                        Text(hint)
+                    }
+                }
+            })
+        case .absent:
+            return inspection.hint.map { AnyView(Text($0)) }
+        case .foreign, .unusableDirectory:
+            return AnyView(Text(inspection.summary + (inspection.hint.map { " " + $0 } ?? "")))
+        }
+    }
+
+    /// The app a link's tool belongs to, or the link's value when it isn't a tool in an app.
     ///
+    /// - Parameter tool: A link's value.
+    /// - Returns: Such as `/Applications/Mac Monitor.app`.
+    static func bundle(of tool: String) -> String {
+        tool.hasSuffix(CommandLineToolLink.toolInBundle) ? String(tool.dropLast(CommandLineToolLink.toolInBundle.count))
+                                                        : tool
+    }
+}
+
+
+// MARK: - Pieces
+/// A titled group, as in System Settings.
+struct SettingsSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
     /// - Parameters:
-    ///   - command: What's typed.
-    ///   - meaning: What it does.
-    /// - Returns: The row.
-    private func usage(_ command: String, _ meaning: String) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(verbatim: command).font(.system(.body, design: .monospaced)).textSelection(.enabled)
-                .frame(width: 330, alignment: .leading)
-            Text(meaning).foregroundStyle(.secondary)
+    ///   - title: The section's title.
+    ///   - content: Its rows.
+    init(_ title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.headline).foregroundStyle(.secondary).padding(.leading, 4)
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.separator))
         }
     }
 }
 
 
-// MARK: - Status
-/// What's at `/usr/local/bin/macmonitor`, why Install isn't offered, and any warning about the link's directory.
-struct CommandLineToolStatusView: View {
-    let inspection: CommandLineToolLink.Inspection
-    
+/// A warning inside a section: a title and an explanation on a tinted ground.
+struct Callout: View {
+    let title: String
+    let text: String
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label {
-                Text(inspection.summary).fixedSize(horizontal: false, vertical: true)
-            } icon: {
-                Image(systemName: icon.name).foregroundStyle(icon.color)
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.multicolor)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).fontWeight(.semibold)
+                Text(text).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
-            .font(.title3)
             .textSelection(.enabled)
-            if let hint = inspection.hint {
-                Text(hint).foregroundStyle(.secondary)
-            }
-            
-            if inspection.link == .current, case .success(let tool) = inspection.tool {
-                Text(verbatim: "\(inspection.linkPath) → \(tool)")
-                    .font(.system(.body, design: .monospaced))
-                    .textSelection(.enabled)
-            }
-            if case .failure(let refusal) = inspection.tool {
-                warning(inspection.link == .current ? "The linked tool can't be trusted. \(refusal)"
-                        : "Install is unavailable. \(refusal)")
-            }
-            if let binDirectoryWarning = inspection.binDirectoryWarning {
-                warning(binDirectoryWarning)
-            }
+            Spacer(minLength: 0)
         }
+        .padding(12)
+        .background(.yellow.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+        .padding([.horizontal, .bottom], 12)
     }
-    
-    /// The status icon and its color.
-    private var icon: (name: String, color: Color) {
-        switch inspection.link {
-        case .current: return ("checkmark.circle.fill", .green)
-        case .absent: return ("circle.dashed", .secondary)
-        case .elsewhere, .broken: return ("exclamationmark.triangle.fill", .yellow)
-        case .foreign, .unusableDirectory: return ("xmark.octagon.fill", .secondary)
+}
+
+
+/// A command to type, with what it does and a button that copies it.
+struct CommandRow: View {
+    let command: String
+    var meaning: String?
+    @State private var copied = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(verbatim: command).monospaced().textSelection(.enabled)
+                if let meaning { Text(meaning).foregroundStyle(.secondary) }
+            }
+            Spacer(minLength: 8)
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(command, forType: .string)
+                copied = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
+            } label: {
+                Image(systemName: copied ? "checkmark" : "doc.on.doc")
+            }
+            .buttonStyle(.borderless)
+            .help(copied ? "Copied" : "Copy")
+            .accessibilityLabel("Copy \(command)")
         }
-    }
-    
-    /// A warning line.
-    ///
-    /// - Parameter text: What to say.
-    /// - Returns: The line.
-    private func warning(_ text: String) -> some View {
-        Label {
-            Text(text).fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette)
-                .foregroundStyle(.black, .yellow)
-        }
-        .textSelection(.enabled)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
     }
 }

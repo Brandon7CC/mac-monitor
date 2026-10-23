@@ -60,8 +60,7 @@ public struct Process: Identifiable, Codable, Hashable {
     public var codesigning_type: CodeSigningType = .unknown
     public var file_quarantine_type: FileQuarantineType = .disabled
     // public var command_line: String?
-    // Inc. dangerous entitlements
-    public var is_adhoc_signed = false, get_task_allow = false, allow_jit = false, rootless = false, skip_lv = false
+    public var is_adhoc_signed = false
     public var cs_validation_category_string: String?
     
     public init(from process: es_process_t, version: Int, isExecMessage: Bool = false) {
@@ -145,13 +144,6 @@ extension Process: ESEnrichable {
         // Code Signing Blobs: Exposes Kernel/kern/cs_blobs.h header file
         func flag(_ mask: Int32) -> Bool { (Int(codesigning_flags) & Int(mask)) == Int(mask) }
         is_adhoc_signed = flag(CS_ADHOC)
-        get_task_allow = flag(CS_GET_TASK_ALLOW)
-        //` com.apple.security.cs.allow-jit`
-        allow_jit = flag(CS_EXECSEG_JIT)
-        // `com.apple.rootless.restricted-nvram-variables.heritable entitlement`
-        rootless = flag(CS_NVRAM_UNRESTRICTED)
-        // Skip library validation
-        skip_lv = flag(CS_EXECSEG_SKIP_LV)
         if is_platform_binary {
             codesigning_type = .platform
         } else if is_adhoc_signed {
