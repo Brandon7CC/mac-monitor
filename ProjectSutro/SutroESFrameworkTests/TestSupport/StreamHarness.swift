@@ -28,13 +28,15 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
     ///   - savedMutes: The saved mute set.
     ///   - capacity: The most streams at once.
     ///   - admits: Treat every caller as root?
+    ///   - admitting: Decides who's admitted instead, such as ``StreamService/rootOnly``.
     ///   - refusals: `es_new_client` refusals for every stream, by client: `[0: .tooManyClients]` refuses the first.
     ///   - serializer: Builds each event's JSON.
     init(savedMutes: SavedMuteSet, capacity: Int = SensorXPC.maxCommandLineStreams, admits: Bool = true,
-         refusals: [Int: NewClientResult] = [:], serializer: any EventSerializing = StubSerializer.globalSequence) {
+         admitting: ((NSXPCConnection?) -> Bool)? = nil, refusals: [Int: NewClientResult] = [:],
+         serializer: any EventSerializing = StubSerializer.globalSequence) {
         let (made, releases) = (madeFactories, releaseCount)
         service = StreamService(savedMutes: savedMutes, slots: StreamSlots(capacity: capacity),
-                                sensorVersion: "3.0.0 (1)", admits: { _ in admits },
+                                sensorVersion: "3.0.0 (1)", admits: admitting ?? { _ in admits },
                                 makeCapture: { configuration, emit in
             let factory = FakeEndpointSecurityClientFactory(refusals: refusals)
             made.withLockUnchecked { $0.append(factory) }

@@ -98,4 +98,32 @@ final class CommandLineExitTests: XCTestCase {
         XCTAssertEqual(CommandLineExit.usage.rawValue, 64)
         XCTAssertEqual(CommandLineExit.temporaryFailure.rawValue, 75)
     }
+    
+    /// A stream's closing line counts losses at its very end, which leave no gap for `macmonitor` to see, from the
+    /// Security Extension's summary.
+    func testLossesAtTheEndOfAStreamAreCounted() {
+        let summary = StreamSummary(captured: 100, delivered: 90, droppedByEndpointSecurity: 2, droppedWhileBehind: 3,
+                                    skippedWhilePaused: 5, pauses: 1)
+        XCTAssertTrue(StreamCommand.losses(seen: 4, summary: summary) == (10, 2), "Lost at the end, after the gaps")
+        XCTAssertTrue(StreamCommand.losses(seen: 12, summary: summary) == (12, 2), "Gaps the summary doesn't count")
+        XCTAssertTrue(StreamCommand.losses(seen: 1, summary: StreamSummary(
+            captured: 1, delivered: 1, droppedByEndpointSecurity: 3, droppedWhileBehind: 0, skippedWhilePaused: 0,
+            pauses: 0)) == (3, 3))
+    }
+    
+    /// The Security Extension's own words reach the terminal escaped, so they can't move the cursor, clear the screen,
+    /// or reverse text.
+    func testTheSecurityExtensionsWordsAreEscaped() throws {
+        let hostile = "a\u{1B}[2J\u{202E}b"
+        let failures = [
+            CommandLineFailure.reply(MuteReply(status: .invalid, mutes: [], problems: [hostile])),
+            CommandLineFailure.reply(StreamReply(.failed, problem: hostile, sensorVersion: "3.0.0 (1)")),
+            CommandLineFailure.reply(StreamReply(.invalid, problem: hostile, sensorVersion: "3.0.0 (1)")),
+        ]
+        for failure in failures {
+            let message = try XCTUnwrap(failure).message
+            XCTAssertFalse(message.unicodeScalars.contains(where: TerminalSafeText.needsEscape), message)
+            XCTAssertTrue(message.contains(#"a\x1B[2J\u{202E}b"#), message)
+        }
+    }
 }

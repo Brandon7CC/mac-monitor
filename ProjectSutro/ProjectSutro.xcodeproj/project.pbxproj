@@ -78,6 +78,8 @@
 		CB1C0000000000000000000F /* StreamReply.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000000E /* StreamReply.swift */; };
 		CB1C0000000000000000000D /* StreamProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000000C /* StreamProtocol.swift */; };
 		CB1C0000000000000000000B /* EventBatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000000A /* EventBatcherTests.swift */; };
+		E5F000000000000000000004 /* SyntheticRoundTripTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F000000000000000000003 /* SyntheticRoundTripTests.swift */; };
+		E5F000000000000000000002 /* EventSpoolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F000000000000000000001 /* EventSpoolTests.swift */; };
 		CB1C00000000000000000009 /* FakeBatchDelivery.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000008 /* FakeBatchDelivery.swift */; };
 		CB1C00000000000000000007 /* XPCBatchDelivery.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000006 /* XPCBatchDelivery.swift */; };
 		CB1C00000000000000000005 /* EventBatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000004 /* EventBatcher.swift */; };
@@ -844,6 +846,8 @@
 		CB1C0000000000000000000E /* StreamReply.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamReply.swift; sourceTree = "<group>"; };
 		CB1C0000000000000000000C /* StreamProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamProtocol.swift; sourceTree = "<group>"; };
 		CB1C0000000000000000000A /* EventBatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventBatcherTests.swift; sourceTree = "<group>"; };
+		E5F000000000000000000003 /* SyntheticRoundTripTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntheticRoundTripTests.swift; sourceTree = "<group>"; };
+		E5F000000000000000000001 /* EventSpoolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSpoolTests.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000008 /* FakeBatchDelivery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeBatchDelivery.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000006 /* XPCBatchDelivery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCBatchDelivery.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000004 /* EventBatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventBatcher.swift; sourceTree = "<group>"; };
@@ -1530,6 +1534,7 @@
 			children = (
 				CB1C00000000000000000002 /* EventBatching.swift */,
 				CB1C00000000000000000004 /* EventBatcher.swift */,
+				D15C00000000000000000065 /* EventSpool.swift */,
 				CB1C00000000000000000006 /* XPCBatchDelivery.swift */,
 				CB1C0000000000000000001E /* StreamSlots.swift */,
 				CB1C00000000000000000020 /* StreamService.swift */,
@@ -2334,7 +2339,6 @@
 		28822E1A2A329EE100C34879 /* XPC */ = {
 			isa = PBXGroup;
 			children = (
-				D15C00000000000000000065 /* EventSpool.swift */,
 				D15C00000000000000000006 /* SensorService.swift */,
 				CB1C00000000000000000024 /* SensorListener.swift */,
 			);
@@ -4064,6 +4068,8 @@
 				DA2200000000000000000009 /* DefaultMuteSetTests.swift */,
 				CA9700000000000000000058 /* SavedMuteSetSessionTests.swift */,
 				CB1C0000000000000000000A /* EventBatcherTests.swift */,
+				E5F000000000000000000003 /* SyntheticRoundTripTests.swift */,
+				E5F000000000000000000001 /* EventSpoolTests.swift */,
 				CB1C00000000000000000014 /* CaptureSessionDrainTests.swift */,
 				CB1C00000000000000000016 /* StreamRequestTests.swift */,
 				CB1C00000000000000000018 /* StreamPlanTests.swift */,
@@ -4456,6 +4462,7 @@
 				CB1C00000000000000000007 /* XPCBatchDelivery.swift in Sources */,
 				CB1C00000000000000000005 /* EventBatcher.swift in Sources */,
 				CB1C00000000000000000003 /* EventBatching.swift in Sources */,
+				D15C00000000000000000066 /* EventSpool.swift in Sources */,
 				CA9700000000000000000057 /* CaptureSession+Mutes.swift in Sources */,
 				CA970000000000000000004D /* MuteRequest.swift in Sources */,
 				CD0F00000000000000000002 /* XPCMessage.swift in Sources */,
@@ -4910,7 +4917,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				CB1C00000000000000000025 /* SensorListener.swift in Sources */,
-				D15C00000000000000000066 /* EventSpool.swift in Sources */,
 				D15C0000000000000000000A /* UpdateInstaller.swift in Sources */,
 				D15C00000000000000000007 /* SensorService.swift in Sources */,
 				28EC62DE29245D1A00EAC8AD /* SystemEvents.xcdatamodeld in Sources */,
@@ -4949,6 +4955,8 @@
 				CB1C00000000000000000017 /* StreamRequestTests.swift in Sources */,
 				CB1C00000000000000000015 /* CaptureSessionDrainTests.swift in Sources */,
 				CB1C0000000000000000000B /* EventBatcherTests.swift in Sources */,
+				E5F000000000000000000004 /* SyntheticRoundTripTests.swift in Sources */,
+				E5F000000000000000000002 /* EventSpoolTests.swift in Sources */,
 				CB1C00000000000000000009 /* FakeBatchDelivery.swift in Sources */,
 				CA9700000000000000000059 /* SavedMuteSetSessionTests.swift in Sources */,
 				CA9700000000000000000055 /* XCTestCase+MuteStore.swift in Sources */,

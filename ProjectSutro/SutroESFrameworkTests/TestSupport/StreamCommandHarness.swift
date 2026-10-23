@@ -89,9 +89,11 @@ final class StreamCommandRun {
     ///   - scope: Which events are the pipeline's own.
     ///   - toolVersion: `macmonitor`'s version.
     ///   - isChatty: Is standard error a terminal?
+    ///   - requirement: The code signing requirement `macmonitor` pins on the Security Extension, if any.
     init(harness: StreamHarness, formatter: StreamPipeline.Formatter, scope: PipelineScope,
-         toolVersion: String = "3.0.0 (1)", isChatty: Bool = true) {
-        let client = StreamClient(connection: NSXPCConnection(listenerEndpoint: harness.endpoint), requirement: nil)
+         toolVersion: String = "3.0.0 (1)", isChatty: Bool = true, requirement: String? = nil) {
+        let client = StreamClient(connection: NSXPCConnection(listenerEndpoint: harness.endpoint),
+                                  requirement: requirement)
         let pipeline = StreamPipeline(formatter: formatter, scope: scope, forTerminal: false)
         let (output, diagnostics) = (BufferOutput(), DiagnosticLines())
         self.output = output

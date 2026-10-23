@@ -197,4 +197,56 @@ final class CommandLineToolLinkerTests: XCTestCase {
             }
         }
     }
+    
+    // MARK: The Security Extension's request handler
+    
+    /// The Security Extension's handler.
+    ///
+    /// - Parameters:
+    ///   - fixture: The pretend `/`.
+    ///   - action: The request's action.
+    ///   - tool: The request's tool.
+    ///   - expected: What Settings saw.
+    ///   - approved: Did an administrator approve?
+    /// - Returns: What happened.
+    private func handle(_ fixture: ToolLinkFixture, _ action: String, tool: String, expected: String = "",
+                        approved: Bool) -> CommandLineToolLinker.Outcome {
+        CommandLineToolLinker { _ in true }.handle(action: action, tool: tool, expected: expected,
+                                                   binDirectory: fixture.binDirectory) { approved }.outcome
+    }
+    
+    /// Without an administrator's approval nothing changes, whatever the request asks.
+    func testARequestWithoutApprovalChangesNothing() throws {
+        let fixture = try ToolLinkFixture(for: self)
+        XCTAssertEqual(handle(fixture, "install", tool: fixture.tool, approved: false), .notAuthorized)
+        XCTAssertNil(fixture.linkContents)
+        try fixture.symlink(fixture.link, to: fixture.tool)
+        XCTAssertEqual(handle(fixture, "remove", tool: "", expected: fixture.tool, approved: false), .notAuthorized)
+        XCTAssertEqual(fixture.linkContents, fixture.tool)
+    }
+    
+    /// An action the handler doesn't know is refused before the approval is even checked.
+    func testAnUnknownActionIsRefusedFirst() throws {
+        let fixture = try ToolLinkFixture(for: self)
+        var asked = false
+        let outcome = CommandLineToolLinker { _ in true }.handle(action: "chmod", tool: fixture.tool, expected: "",
+                                                                 binDirectory: fixture.binDirectory) {
+            asked = true
+            return true
+        }.outcome
+        XCTAssertEqual(outcome, .badTool)
+        XCTAssertFalse(asked)
+    }
+    
+    /// With approval, an install links the tool and a removal ignores any tool the request names.
+    func testAnApprovedRequestMakesTheChange() throws {
+        let fixture = try ToolLinkFixture(for: self)
+        XCTAssertEqual(handle(fixture, "install", tool: fixture.tool, approved: true), .done)
+        XCTAssertEqual(fixture.linkContents, fixture.tool)
+        let plan = CommandLineToolLinker { _ in true }.handle(action: "remove", tool: "/usr/bin/true",
+                                                              expected: fixture.tool,
+                                                              binDirectory: fixture.binDirectory) { true }.plan
+        XCTAssertEqual(plan?.tool, "")
+        XCTAssertNil(fixture.linkContents)
+    }
 }

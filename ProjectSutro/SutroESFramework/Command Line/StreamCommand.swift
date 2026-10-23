@@ -242,6 +242,22 @@ extension StreamCommand {
     }
     
     /// End the stream once: write the summary when there is one and it's wanted, complete, and close the connection.
+    /// What a stream lost, for its closing line.
+    ///
+    /// `macmonitor` sees most losses as gaps in `global_seq_num`. A loss at the very end of a stream leaves no gap,
+    /// since no later event follows it, so the Security Extension's own count is used when it's larger.
+    ///
+    /// - Parameters:
+    ///   - seen: The losses `macmonitor` saw as gaps.
+    ///   - summary: The Security Extension's summary.
+    /// - Returns: Every loss, and how many of them Endpoint Security dropped.
+    static func losses(seen: UInt64, summary: StreamSummary) -> (total: UInt64, byEndpointSecurity: UInt64) {
+        let byEndpointSecurity = UInt64(summary.droppedByEndpointSecurity)
+        let counted = byEndpointSecurity + UInt64(summary.droppedWhileBehind + summary.skippedWhilePaused)
+        let total = max(seen, counted)
+        return (total, min(total, byEndpointSecurity))
+    }
+    
     /// Call on ``queue``.
     ///
     /// - Parameter outcome: How the stream ended.
@@ -249,10 +265,10 @@ extension StreamCommand {
         guard let completion else { return }
         self.completion = nil
         if case .stopped(let summary?) = outcome, isChatty {
-            let lost = pipeline.meter.dropped, byEndpointSecurity = UInt64(summary.droppedByEndpointSecurity)
+            let lost = Self.losses(seen: pipeline.meter.dropped, summary: summary)
             diagnose("""
-                macmonitor: wrote \(pipeline.written) events, lost \(lost) (\(min(lost, byEndpointSecurity)) by \
-                Endpoint Security, \(lost - min(lost, byEndpointSecurity)) while macmonitor was behind).
+                macmonitor: wrote \(pipeline.written) events, lost \(lost.total) (\(lost.byEndpointSecurity) by \
+                Endpoint Security, \(lost.total - lost.byEndpointSecurity) while macmonitor was behind).
                 """)
         }
         if pipeline.unreadable > 0 {

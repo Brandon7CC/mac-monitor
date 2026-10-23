@@ -80,6 +80,100 @@ final class SensorListenerRouterTests: XCTestCase {
 }
 
 
+// MARK: - The pin, enforced
+/// A one-call interface for checking the router's pin on a real connection.
+@objc private protocol Ping {
+    /// Answer.
+    ///
+    /// - Parameter reply: Called with `true`.
+    func ping(reply: @escaping (Bool) -> Void)
+}
+
+
+/// Answers pings and counts them.
+private final class Pinger: NSObject, Ping, NSXPCListenerDelegate {
+    private var router: SensorListenerRouter<NSXPCConnection>?
+    private let calls = NSLock()
+    private var count = 0
+    
+    /// How many pings reached the endpoint.
+    var pings: Int { calls.withLock { count } }
+    
+    /// - Parameter routes: Route each connection through ``SensorListenerRouter``, or serve it unpinned.
+    init(routes: Bool) {
+        super.init()
+        guard routes else { return }
+        router = SensorListenerRouter<NSXPCConnection>(app: { [weak self] in self?.serve($0) },
+                                                       commandLine: { [weak self] in self?.serve($0) })
+    }
+    
+    /// Answer pings on a connection.
+    ///
+    /// - Parameter connection: The connection.
+    private func serve(_ connection: NSXPCConnection) {
+        connection.exportedInterface = NSXPCInterface(with: Ping.self)
+        connection.exportedObject = self
+        connection.activate()
+    }
+    
+    /// - Parameter reply: Called with `true`.
+    func ping(reply: @escaping (Bool) -> Void) {
+        calls.withLock { count += 1 }
+        reply(true)
+    }
+    
+    /// Route the connection, as the Security Extension's listener does.
+    ///
+    /// - Parameters:
+    ///   - listener: The listener.
+    ///   - newConnection: The connection.
+    /// - Returns: `true`.
+    func listener(_ listener: NSXPCListener, shouldAcceptNewConnection newConnection: NSXPCConnection) -> Bool {
+        if let router { _ = router.route(newConnection) } else { serve(newConnection) }
+        return true
+    }
+}
+
+
+extension SensorListenerRouterTests {
+    /// Ping an endpoint once.
+    ///
+    /// - Parameter pinger: The endpoint.
+    /// - Returns: `true` if it answered, `false` if the connection failed.
+    private func ping(_ pinger: Pinger) -> Bool {
+        let listener = NSXPCListener.anonymous()
+        listener.delegate = pinger
+        listener.activate()
+        defer { listener.invalidate() }
+        let connection = NSXPCConnection(listenerEndpoint: listener.endpoint)
+        connection.remoteObjectInterface = NSXPCInterface(with: Ping.self)
+        connection.activate()
+        defer { connection.invalidate() }
+        
+        let done = expectation(description: "Answered or failed")
+        let answered = NSLock()
+        var result = false
+        let proxy = connection.remoteObjectProxyWithErrorHandler { _ in done.fulfill() } as? Ping
+        proxy?.ping { _ in
+            answered.withLock { result = true }
+            done.fulfill()
+        }
+        wait(for: [done], timeout: 5)
+        return answered.withLock { result }
+    }
+    
+    /// The router's pin is enforced, not just set: this test process isn't signed as Mac Monitor, so its message
+    /// never reaches the endpoint. The same endpoint without the router answers it.
+    func testAnUnsignedCallerNeverReachesTheEndpoint() {
+        let unpinned = Pinger(routes: false)
+        XCTAssertTrue(ping(unpinned), "Without the router the endpoint answers")
+        let routed = Pinger(routes: true)
+        XCTAssertFalse(ping(routed))
+        XCTAssertEqual(routed.pings, 0)
+    }
+}
+
+
 // MARK: - A listener that routes
 /// Routes each connection its listener accepts, records the role, and drops the connection.
 private final class RoutingDelegate: NSObject, NSXPCListenerDelegate {

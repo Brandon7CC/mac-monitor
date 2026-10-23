@@ -33,32 +33,22 @@ public struct AuthorizationPetitionEvent: Identifiable, Codable, Hashable {
     // Available in msg versions >= 8.
     public var instigator_token, petitioner_token: AuditToken?
     
-    // Authorization flag map
-    // Flags associated with the petition. Defined Security framework `Authorization/Authorization.h`
-    /*!
-        @typedef AuthorizationFlags
-        Optional flags passed in to several Authorization APIs.
-        See the description of AuthorizationCreate, AuthorizationCopyRights and AuthorizationFree for a description of how they affect those calls.
-    */
-    var authorizationFlags: [UInt32: String] = [
-        0: "kAuthorizationFlagDefaults",
-        1 << 0: "kAuthorizationFlagInteractionAllowed",
-        1 << 1: "kAuthorizationFlagExtendRights",
-        1 << 2: "kAuthorizationFlagPartialRights",
-        1 << 3: "kAuthorizationFlagDestroyRights",
-        1 << 4: "kAuthorizationFlagPreAuthorize",
-        1 << 20: "kAuthorizationFlagNoData"
+    /// The names of the petition's flags (`AuthorizationFlags` in `Authorization/Authorization.h`), in bit order.
+    private static let flagNames: [(flag: UInt32, name: String)] = [
+        (1 << 0, "kAuthorizationFlagInteractionAllowed"),
+        (1 << 1, "kAuthorizationFlagExtendRights"),
+        (1 << 2, "kAuthorizationFlagPartialRights"),
+        (1 << 3, "kAuthorizationFlagDestroyRights"),
+        (1 << 4, "kAuthorizationFlagPreAuthorize"),
+        (1 << 20, "kAuthorizationFlagNoData"),
     ]
     
-    // Function to translate flags to their string representation
-    private func translateFlags(_ rawFlags: UInt32) -> [String] {
-        var result = [String]()
-        for (flagValue, flagString) in authorizationFlags {
-            if rawFlags & flagValue != 0 {
-                result.append(flagString)
-            }
-        }
-        return result
+    /// The names of the flags that are set.
+    ///
+    /// - Parameter rawFlags: The petition's flags.
+    /// - Returns: Each set flag's name, in bit order. None for `kAuthorizationFlagDefaults` (0).
+    static func flagNames(_ rawFlags: UInt32) -> [String] {
+        flagNames.filter { rawFlags & $0.flag != 0 }.map(\.name)
     }
     
     public func hash(into hasher: inout Hasher) {
@@ -100,6 +90,6 @@ public struct AuthorizationPetitionEvent: Identifiable, Codable, Hashable {
 extension AuthorizationPetitionEvent: ESEnrichable {
     /// Derive the flags' names.
     public mutating func enrich() {
-        flags_array = translateFlags(UInt32(truncatingIfNeeded: flags))
+        flags_array = Self.flagNames(UInt32(truncatingIfNeeded: flags))
     }
 }
