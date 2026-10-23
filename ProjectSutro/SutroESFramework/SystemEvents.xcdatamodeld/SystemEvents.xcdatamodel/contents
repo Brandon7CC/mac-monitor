@@ -267,6 +267,7 @@
         <attribute name="instigator_audit_token" optional="YES" attributeType="String"/>
         <attribute name="instigator_parent_audit_token" optional="YES" attributeType="String"/>
         <attribute name="macOS" optional="YES" attributeType="String"/>
+        <attribute name="sip_status" optional="YES" attributeType="String"/>
         <attribute name="mach_time" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="message_darwin_time" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="process_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>

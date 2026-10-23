@@ -104,6 +104,7 @@ enum SyntheticValues {
         case "uuid", "member_value": return uuid.uuidString
         case "sha256": return String(repeating: "AB", count: 32)
         case "state_base64": return "AAECAwQFBgc="
+        case "sip_status": return "disabled"
         case _ where key.hasSuffix("_url"): return "file:///synthetic/\(key)"
         case _ where key.hasSuffix("path") || key == "dir" || key == "file_path": return "/synthetic/\(key)"
         default: return "synthetic \(key)"

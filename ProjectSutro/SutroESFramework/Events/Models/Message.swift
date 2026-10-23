@@ -32,6 +32,9 @@ public struct Message: Identifiable, Codable, Hashable {
     
     /// Platform -- Mac Monitor enrichment
     public var macOS: String
+    /// System Integrity Protection's status on the Mac that recorded the event (``SIPStatus``), or `nil` when the
+    /// trace didn't record it.
+    public var sip_status: String?
     public var sensor_id: String
     
     /// Initiating process
@@ -98,12 +101,14 @@ public struct Message: Identifiable, Codable, Hashable {
     ///   - rawMessage: The message. Only read during the call.
     ///   - sensorID: The Sensor ID to stamp on the event.
     ///   - macOS: The macOS version to stamp on the event.
+    ///   - sipStatus: System Integrity Protection's status to stamp on the event.
     ///   - archivedFiles: Not used.
     ///   - forcedQuarantineSigningIDs: Signing IDs Apple forces into File Quarantine.
     init(
         from rawMessage: UnsafePointer<es_message_t>,
         sensorID: String = "SENSOR-ID-NOT-SET",
         macOS: String = Message.currentMacOSVersion(),
+        sipStatus: SIPStatus? = SIPStatus.current,
         archivedFiles: [String] = [],
         forcedQuarantineSigningIDs: [String] = []
     ) {
@@ -127,6 +132,7 @@ public struct Message: Identifiable, Codable, Hashable {
         /// Platform -- Mac Monitor enrichment
         self.sensor_id = sensorID
         self.macOS = macOS
+        self.sip_status = sipStatus?.rawValue
         
         /// Initiating process
         if message.event_type == ES_EVENT_TYPE_NOTIFY_EXEC {

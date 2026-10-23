@@ -62,6 +62,7 @@ extension ESMessage {
     
     /// Platform -- Mac Monitor enrichment
     @NSManaged public var macOS: String?
+    @NSManaged public var sip_status: String?
     @NSManaged public var sensor_id: String?
     
     /// Initiating process. The row may be shared with other events of the same process.

@@ -90,7 +90,7 @@ struct AgentSettingsView: View {
     @Binding var eventMaskEnabled: Bool
     
     private enum Tabs: Hashable {
-        case esMuting, esEventSubscriptions, advanced, streamTelemetry, userSettings, commandLine
+        case esMuting, esEventSubscriptions, advanced, streamTelemetry, userSettings, commandLine, securityExtension
     }
     
     var body: some View {
@@ -107,6 +107,11 @@ struct AgentSettingsView: View {
             CommandLineToolSettingsView()
                 .tabItem {
                     Label("Command Line", systemImage: "terminal").tag(Tabs.commandLine)
+                }
+            SecurityExtensionSettingsView()
+                .environmentObject(systemExtensionManager)
+                .tabItem {
+                    Label("Security Extension", systemImage: "checkmark.shield").tag(Tabs.securityExtension)
                 }
             UserSettingsView()
                 .environmentObject(systemExtensionManager)

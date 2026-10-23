@@ -90,18 +90,22 @@ struct MessageSerializer: EventSerializing {
     private let forcedQuarantineSigningIDs: [String]
     /// This Mac's macOS version, read when the session starts rather than per event.
     private let macOSVersion: String
+    /// This Mac's System Integrity Protection status, read when the session starts: it changes only at a restart.
+    private let sipStatus: SIPStatus?
     /// Reads a live process's executable, for a launched-by parent the lane hasn't seen.
     private let processPath: (Int32, AuditToken?) -> String?
     
     /// - Parameters:
     ///   - forcedQuarantineSigningIDs: Signing IDs Apple forces into File Quarantine.
     ///   - macOSVersion: The macOS version to stamp on events.
+    ///   - sipStatus: The System Integrity Protection status to stamp on events.
     ///   - processPath: Reads a live process's executable from its pid (``ProcessPath/live``).
     init(forcedQuarantineSigningIDs: [String] = ProcessHelpers.forcedQuarantineSigningIDs,
-         macOSVersion: String = Message.currentMacOSVersion(),
+         macOSVersion: String = Message.currentMacOSVersion(), sipStatus: SIPStatus? = SIPStatus.current,
          processPath: @escaping (Int32, AuditToken?) -> String? = ProcessPath.live) {
         self.forcedQuarantineSigningIDs = forcedQuarantineSigningIDs
         self.macOSVersion = macOSVersion
+        self.sipStatus = sipStatus
         self.processPath = processPath
     }
     
@@ -127,14 +131,15 @@ struct MessageSerializer: EventSerializing {
         return (try? lane.encoder.encode(event)).map(SerializedEvent.json)
     }
     
-    /// Build the `Message` with the Sensor ID, macOS version and, for execs and forks, the launched-by parent.
+    /// Build the `Message` with the Sensor ID, macOS version, SIP status and, for execs and forks, the launched-by
+    /// parent.
     ///
     /// - Parameters:
     ///   - message: The message. Only valid during the call.
     ///   - lane: The lane's context.
     /// - Returns: The event.
     private func build(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> Message {
-        var event = Message(from: message, sensorID: lane.sensorID, macOS: macOSVersion,
+        var event = Message(from: message, sensorID: lane.sensorID, macOS: macOSVersion, sipStatus: sipStatus,
                             forcedQuarantineSigningIDs: forcedQuarantineSigningIDs)
         let paths = lane.processPaths
         event.resolveLaunchedByParent(by: .securityExtension) { pid, token in

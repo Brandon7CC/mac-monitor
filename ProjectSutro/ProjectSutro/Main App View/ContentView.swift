@@ -14,22 +14,6 @@ import AppKit
 import UniformTypeIdentifiers
 
 
-/// Handles requesting app reboots and showing a TCC access alert.
-class AgentCloseController: ObservableObject {
-    @Published var showAlert = false
-    
-    /// Should the TCC alert be shown?
-    func toggleQuitAlert() {
-        showAlert.toggle()
-    }
-    
-    /// Request that the app be re-launched once it has quit
-    func quitAgent(esm: EndpointSecurityManager) {
-        esm.requestAgentRelaunch()
-        NSApp.terminate(nil)
-    }
-}
-
 // MARK: Primary App View
 /// The primary view for Mac Monitor. Consisting of a toolbar and two tables.
 ///
@@ -72,11 +56,12 @@ struct EventView: View {
     @Binding var filterText: String
 
 
-    /// Implements our ability to relaunch the app (e.g. after Full Disk Access is granted).
-    ///
-    /// This is done by ``AgentCloseController``.
-    @StateObject private var agentTerminate = AgentCloseController()
-    
+    /// Is the requirements checklist showing?
+    @State private var showsRequirements = false
+    /// Has the checklist shown on its own? Only once a launch: after that, the toolbar says what's missing.
+    @State private var requirementsShownOnce = false
+    /// Was Mac Monitor launched only to deactivate the Security Extension? Then it never checks or activates it.
+    private let deactivating = CommandLine.arguments.contains("--deactivate-security-extension")
     
     @State private var filterSelection = Set<String>()
     @State private var filteredTelemetryShown: Bool = false
@@ -92,11 +77,7 @@ struct EventView: View {
     
     /// Should we filter out *most* events initiated by a platform binary?
     @State private var filterPlatform: Bool = false
-    
-    /// This more *rare* alert will be displayed when the the user launches the app.
-    ///
-    /// Usually what we'll do is check on app-launch and disable the start button.
-    @State private var tccAlert: Bool = false
+
     
     /// Shows, right away, what the Security Extension refused or left out of a mute asked for from an event's menu.
     private var showsEventMuteProblems: Binding<Bool> {
@@ -186,13 +167,11 @@ struct EventView: View {
                 if #unavailable(macOS 14) {
                     VenturaStartButton(recordingEvents: $recordingEvents, confirmClear: $confirmClear)
                         .environmentObject(systemExtensionManager)
-                        .environmentObject(agentTerminate)
                         .environmentObject(userPrefs)
                         .environmentObject(traceSession)
                 } else {
                     SonomaStartButton(recordingEvents: $recordingEvents, confirmClear: $confirmClear)
                         .environmentObject(systemExtensionManager)
-                        .environmentObject(agentTerminate)
                         .environmentObject(userPrefs)
                         .environmentObject(traceSession)
                 }
@@ -296,50 +275,25 @@ struct EventView: View {
         /// Counted so a trace opened from the File menu with no main window open gets one.
         .onAppear { traceSession.mainWindows += 1 }
         .onDisappear { traceSession.mainWindows -= 1 }
+        /// Activates the Security Extension only if it's running: otherwise the checklist's Install button does, when
+        /// macOS's prompt to open System Settings follows from it.
         .onAppear {
-            if !CommandLine.arguments.contains("--deactivate-security-extension") {
-                systemExtensionManager.activateSystemExtension()
-                
-                switch(systemExtensionManager.connectionResult) {
-                case .notPermitted:
-                    os_log("💾 [ES new client result] TCC FDA required!")
-                    tccAlert = true
-                    break
-                case .internalSubsystem:
-                    os_log("😥 [ES new client result] internalSubsystem error!")
-                    break
-                case .invalidArgument:
-                    os_log("🤔 [ES new client result] invalidArgument error!")
-                    break
-                case .notEntitled:
-                    os_log("🔒 [ES new client result] ES entitlement not found!")
-                    break
-                case .tooManyClients:
-                    os_log("🍬 [ES new client result] tooManyClients error!")
-                    break
-                case .streamOwned:
-                    os_log("[ES new client result] Another Mac Monitor owns the event stream.")
-                    break
-                case .success:
-                    os_log("⚡️ [ES new client result] Success!")
-                    break
-                case .notPrivileged:
-                    os_log("😬 [ES new client result] notPrivileged!")
-                    break
-                case .waiting:
-                    os_log("🥱 [ES new client result] waiting...")
-                    break
-                default:
-                    os_log("🤔 [ES new client result] Unknown error!")
-                    break
-                }
-            }
+            guard !deactivating else { return }
+            systemExtensionManager.checkExtensionAtLaunch()
         }
-        .alert("The Security Extension does not have full disk access!", isPresented: $tccAlert) {
-            Button("Open System Settings") {
-                tccAlert = false
-                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
-            }
+        /// Look again whenever Mac Monitor comes to the front, such as back from System Settings.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            guard !deactivating else { return }
+            systemExtensionManager.refreshRequirements()
+        }
+        /// Show the checklist on its own once, as soon as it's known that something is missing.
+        .onChange(of: systemExtensionManager.requirements) { requirements in
+            guard !deactivating, !requirementsShownOnce, requirements.isSettled, !requirements.isReady else { return }
+            requirementsShownOnce = true
+            showsRequirements = true
+        }
+        .sheet(isPresented: $showsRequirements) {
+            RequirementsView().environmentObject(systemExtensionManager)
         }
         .alert("Saved mute set", isPresented: showsEventMuteProblems,
                actions: { Button("OK", role: .cancel, action: {}) },
