@@ -184,7 +184,6 @@ struct AppWrapperForFacts: View {
                 }).disabled(selectedEventTree != nil && firstMessage.id != tree.id ? false : true)
             }
         }
-        .preferredColorScheme(userPrefs.forcedDarkMode ? .dark : nil)
     }
     
     

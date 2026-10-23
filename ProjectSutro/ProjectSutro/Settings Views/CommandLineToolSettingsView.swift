@@ -44,6 +44,15 @@ struct CommandLineToolSettingsView: View {
                         CommandRow(command: "sudo macmonitor stream exec | jq -c .",
                                    meaning: "Only exec events, as JSONL")
                         Divider()
+                        CommandRow(command: #"sudo macmonitor stream exec --target '/osascript$' --where 'event.exec.script_content CONTAINS[c] "display dialog" AND event.exec.script_content CONTAINS[c] "password"'"#,
+                                   meaning: "An osascript script asking for a password, as macOS stealers do")
+                        Divider()
+                        CommandRow(command: #"sudo macmonitor stream exec --where 'process.audit_token.euid == 0 AND NOT event.exec.target.signing_id BEGINSWITH "com.apple."'"#,
+                                   meaning: "Programs root runs that Apple didn't sign")
+                        Divider()
+                        CommandRow(command: #"sudo macmonitor stream open --where 'target_path CONTAINS "/Library/Keychains/"'"#,
+                                   meaning: "Anything opening a keychain")
+                        Divider()
                         CommandRow(command: "sudo macmonitor mute list",
                                    meaning: "The saved mute set Mac Monitor and macmonitor share")
                         Divider()

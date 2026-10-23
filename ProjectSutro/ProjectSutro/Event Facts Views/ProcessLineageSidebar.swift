@@ -11,7 +11,7 @@ import SutroESFramework
 
 // MARK: - Process tree sidebar
 /// Event Facts' sidebar: the selected event's process tree, by Unix parents or by launched-by parents, as chosen in
-/// the View menu or in Settings > User Preferences (``ProcessLineageMode``). It follows a change at once, and its
+/// the View menu or in Settings > General (``ProcessLineageMode``). It follows a change at once, and its
 /// header names the choice. Choosing a row shows that event.
 struct ProcessLineageSidebar: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
@@ -46,7 +46,7 @@ struct ProcessLineageSidebar: View {
         }
         .foregroundStyle(.secondary)
         .accessibilityElement(children: .combine)
-        .help("\(mode.explanation) Change it in the View menu or in Settings > User Preferences.")
+        .help("\(mode.explanation) Change it in the View menu or in Settings > General.")
     }
     
     

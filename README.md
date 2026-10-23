@@ -90,9 +90,9 @@ sudo macmonitor stream exec --for 30s      # 30 seconds of execs
 sudo macmonitor stream open --count 100    # the next 100 opens
 sudo macmonitor stream exec --process curl --grep '(?i)token'
 
-# osascript asking for a password, as macOS stealers do
+# an osascript script asking for a password, as macOS stealers do
 sudo macmonitor stream exec --target '/osascript$' \
-    --where 'ANY event.exec.args CONTAINS[c] "display dialog" AND ANY event.exec.args CONTAINS[c] "password"'
+    --where 'event.exec.script_content CONTAINS[c] "display dialog" AND event.exec.script_content CONTAINS[c] "password"'
 
 sudo macmonitor mute list                  # the saved mute set
 macmonitor validate trace.jsonl            # check an export against the schema

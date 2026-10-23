@@ -17,27 +17,30 @@ struct SecurityExtensionSettingsView: View {
     @State private var confirmsUninstall = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                VStack(alignment: .trailing, spacing: 10) {
-                    RequirementRows(rows: systemExtensionManager.requirements.rows)
+        SettingsForm(pane: .securityExtension) {
+            Section {
+                ForEach(systemExtensionManager.requirements.rows) { row in
+                    RequirementRow(row: row, padded: false)
+                }
+            } footer: {
+                HStack {
+                    Spacer()
                     Button("Check Again") { systemExtensionManager.refreshRequirements() }
                 }
-                SettingsSection("Reinstall or uninstall") {
-                    VStack(spacing: 0) {
-                        ActionRow(title: "Reinstall",
-                                  detail: "Asks macOS to activate this copy's Security Extension again.") {
-                            Button("Reinstall") { systemExtensionManager.activateSystemExtension() }
-                        }
-                        Divider().padding(.leading, 14)
-                        ActionRow(title: "Uninstall",
-                                  detail: "Stops all monitoring. macOS asks for an administrator's password.") {
-                            Button("Uninstall…", role: .destructive) { confirmsUninstall = true }
-                        }
-                    }
+            }
+            Section {
+                LabeledContent {
+                    Button("Reinstall") { systemExtensionManager.activateSystemExtension() }
+                } label: {
+                    SettingsLabel("Reinstall", detail: "Asks macOS to activate this copy's Security Extension again.")
+                }
+                LabeledContent {
+                    Button("Uninstall…", role: .destructive) { confirmsUninstall = true }
+                } label: {
+                    SettingsLabel("Uninstall",
+                                  detail: "Stops all monitoring. macOS asks for an administrator's password.")
                 }
             }
-            .padding(.vertical, 4)
         }
         .onAppear { systemExtensionManager.refreshRequirements() }
         .confirmationDialog("Uninstall the Security Extension?", isPresented: $confirmsUninstall) {
@@ -49,22 +52,23 @@ struct SecurityExtensionSettingsView: View {
 }
 
 
-/// A row with a title, what it does, and its button at the trailing edge.
-struct ActionRow<Control: View>: View {
+/// A row's label: its name, and what it does underneath.
+struct SettingsLabel: View {
     let title: String
     let detail: String
-    @ViewBuilder let control: Control
+
+    /// - Parameters:
+    ///   - title: The row's name.
+    ///   - detail: What it does.
+    init(_ title: String, detail: String) {
+        self.title = title
+        self.detail = detail
+    }
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title).fontWeight(.semibold)
-                Text(detail).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 8)
-            control
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+            Text(detail).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 14)
     }
 }
