@@ -160,6 +160,23 @@ final class CommandLineToolLinkTests: XCTestCase {
         XCTAssertEqual(fixture.linker(staffIsAdmin).inspect().tool,
                        .failure(.untrustedChain(path: fixture.tool, writer: "everyone")))
     }
+
+    /// A Debug build links a tool others can change, saying who, but still only a signed one. Only its own layout
+    /// allows it, and only the Debug configuration makes a Debug build.
+    func testADebugBuildLinksAToolOthersCanChangeWithAWarning() throws {
+        let fixture = try ToolLinkFixture(for: self)
+        chmod(fixture.tool, 0o757)
+        var debug = fixture.layout()
+        debug.allowsChangeableTool = true
+        let inspection = fixture.linker(debug).inspect()
+        XCTAssertEqual(inspection.tool, .success(fixture.tool))
+        XCTAssertEqual(inspection.toolWarning, "Debug build: \(fixture.tool) can be changed by everyone, who could "
+                       + "change what sudo macmonitor runs as root. A release build refuses to link it.")
+        XCTAssertEqual(fixture.linker(debug, signed: false).inspect().tool, .failure(.signatureMismatch(fixture.tool)))
+        XCTAssertNil(fixture.linker().inspect().toolWarning)
+        XCTAssertEqual(CommandLineToolLink.Layout.installed(fixture.layout().bundle).allowsChangeableTool,
+                       CommandLineToolLink.isDevelopmentBuild)
+    }
     
     /// The framework the tool loads from `Contents/Frameworks` runs as root too, so a framework, or anything in or
     /// above it in the bundle, that someone else can change is refused.

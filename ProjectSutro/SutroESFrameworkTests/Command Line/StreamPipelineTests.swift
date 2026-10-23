@@ -105,6 +105,88 @@ final class StreamPipelineTests: XCTestCase {
         XCTAssertNotEqual(terminal, piped)
     }
     
+    /// A limit cuts the batch at the last event it allows, inside any part of a batch split across encoders, and
+    /// later batches write nothing. The pipeline's own events don't count toward it.
+    func testALimitStopsAtTheLastEventItAllows() throws {
+        let scope = PipelineScope(ancestry: [PipelineAncestor(pid: 900, groupID: 900, path: "/x/macmonitor")],
+                                  includeSelf: false)
+        let encoders = (0..<4).map { _ in ExportEncoder(model: eventModel) }
+        for format in [StreamPipeline.Formatter.text(utc), .jsonl(encoders)] {
+            for limit in [1, 3, 40, 99] {
+                let pipeline = StreamPipeline(formatter: format, scope: scope, forTerminal: false, limit: limit)
+                let batch = try (exits([1]) + exits([2], pid: 900) + exits(Array(3...100))).map(wire)
+                let lines = String(decoding: pipeline.process(batch), as: UTF8.self).split(separator: "\n")
+                XCTAssertEqual(lines.count, limit)
+                XCTAssertEqual(pipeline.written, limit)
+                XCTAssertTrue(pipeline.isFull)
+                XCTAssertEqual(pipeline.process(try exits([101]).map(wire)), Data())
+            }
+        }
+        let unlimited = StreamPipeline(formatter: .text(utc), scope: nobody, forTerminal: false)
+        _ = unlimited.process(try exits(Array(1...100)).map(wire))
+        XCTAssertFalse(unlimited.isFull)
+    }
+    
+    /// The filter leaves events out, but they're still counted for drops: never lost.
+    func testTheFilterLeavesEventsOutWithoutLosingThem() throws {
+        var filter = StreamFilter()
+        filter.pids = [321]
+        let batch = try (exits([1, 2]) + exits([3, 4], pid: 7) + exits([6])).map(wire)
+        for format in [StreamPipeline.Formatter.text(utc), .jsonl([ExportEncoder(model: eventModel)])] {
+            let pipeline = StreamPipeline(formatter: format, scope: nobody, forTerminal: false, filter: filter)
+            XCTAssertEqual(String(decoding: pipeline.process(batch), as: UTF8.self).split(separator: "\n").count, 3)
+            XCTAssertEqual(pipeline.written, 3)
+            XCTAssertEqual(pipeline.filtered, 2)
+            XCTAssertEqual(pipeline.meter.dropped, 1, "Only 5 is missing.")
+        }
+    }
+    
+    /// Filters on the record work for text too, from each event's record. A predicate that can't be evaluated on an
+    /// event leaves it out, and says why.
+    func testRecordFilters() throws {
+        var other = try exits([3])[0]
+        other.process.signing_id = "com.example.other"
+        let batch = try (exits([1, 2]) + [other]).map(wire)
+        var filter = StreamFilter()
+        filter.signingIDs = [try StreamFilter.Pattern("exampled$", option: "--signing-id")]
+        let text = StreamPipeline(formatter: .text(utc, records: [ExportEncoder(model: eventModel)]), scope: nobody,
+                                  forTerminal: false, filter: filter)
+        let expected = try exits([1, 2]).map { utc.line(for: EventHeader($0)) }.joined()
+        XCTAssertEqual(String(decoding: text.process(batch), as: UTF8.self), expected)
+        XCTAssertEqual(text.filtered, 1)
+        
+        filter = StreamFilter()
+        filter.predicates = [try StreamFilter.Predicate("process.signing_id ENDSWITH 'other'")]
+        let jsonl = StreamPipeline(formatter: .jsonl([ExportEncoder(model: eventModel)]), scope: nobody,
+                                   forTerminal: false, filter: filter)
+        XCTAssertEqual(String(decoding: jsonl.process(batch), as: UTF8.self), exportText(other) + "\n")
+        
+        filter.predicates = [try StreamFilter.Predicate("global_seq_num MATCHES '1'")]
+        let unchecked = StreamPipeline(formatter: .jsonl([ExportEncoder(model: eventModel)]), scope: nobody,
+                                       forTerminal: false, filter: filter)
+        XCTAssertEqual(unchecked.process(batch), Data())
+        XCTAssertEqual(unchecked.unchecked, 3)
+        XCTAssertEqual(unchecked.filtered, 0)
+        XCTAssertEqual(unchecked.uncheckedReason?.hasPrefix("--where 'global_seq_num MATCHES '1'' can't be checked"),
+                       true)
+    }
+    
+    /// A large batch filtered across several encoders, each with its own copy of the predicate, is filtered as one
+    /// encoder filters it.
+    func testParallelEncodersFilterAsOneDoes() throws {
+        var filter = StreamFilter()
+        filter.predicates = [try StreamFilter.Predicate("global_seq_num > 50 AND global_seq_num <= 90")]
+        let batch = try exits(Array(1...100)).map(wire)
+        let one = StreamPipeline(formatter: .jsonl([ExportEncoder(model: eventModel)]), scope: nobody,
+                                 forTerminal: false, filter: filter)
+        let four = StreamPipeline(formatter: .jsonl((0..<4).map { _ in ExportEncoder(model: eventModel) }),
+                                  scope: nobody, forTerminal: false, filter: filter)
+        let output = four.process(batch)
+        XCTAssertEqual(output, one.process(batch))
+        XCTAssertEqual(String(decoding: output, as: UTF8.self).split(separator: "\n").count, 40)
+        XCTAssertEqual(four.filtered, 60)
+    }
+    
     /// A batch split across several encoders is written exactly as one encoder writes it, in order, and accounted for
     /// in order.
     func testParallelEncodersWriteWhatOneWrites() throws {

@@ -67,7 +67,9 @@ extension CommandLineParser {
             throw CommandLineUsageError("mute needs one of \(MuteInvocation.Name.listed).", command: "mute")
         }
         guard let name = MuteInvocation.Name(rawValue: subcommand) else {
-            throw CommandLineUsageError("Unknown mute command '\(subcommand)'.", command: "mute")
+            let names = MuteInvocation.Name.allCases.map(\.rawValue)
+            let suggestion = CommandLineSuggestion.didYouMean(subcommand, among: names)
+            throw CommandLineUsageError("Unknown mute command '\(subcommand)'.\(suggestion)", command: "mute")
         }
         /// Every command, and no default: a new one doesn't build until it's parsed here.
         switch name {
@@ -116,11 +118,14 @@ extension CommandLineParser {
             case .option("--event", let attached):
                 let value = try cursor.value(of: "--event", attached: attached, command: "mute")
                 guard let event = CommandLineEvents.notifyEvent(named: value) else {
-                    throw CommandLineUsageError.unusableMute("'\(value)' isn't a NOTIFY event Mac Monitor knows.")
+                    let names = CommandLineEvents.catalog().map(\.name)
+                    let suggestion = CommandLineSuggestion.didYouMean(value, among: names)
+                    throw CommandLineUsageError.unusableMute(
+                        "'\(value)' isn't a NOTIFY event Mac Monitor knows.\(suggestion)")
                 }
                 events.append(eventTypeToString(from: event))
             case .option(let option, _):
-                throw CommandLineUsageError("Unknown option '\(option)' for mute \(subcommand).", command: "mute")
+                throw unknownOption(option, for: "mute \(subcommand)", among: CommandLineOption.mute(.add))
             }
         }
         guard let path else { throw CommandLineUsageError("mute \(subcommand) needs a path.", command: "mute") }
@@ -143,7 +148,7 @@ extension CommandLineParser {
                 }
                 format = named
             case .option(let option, _):
-                throw CommandLineUsageError("Unknown option '\(option)' for mute list.", command: "mute")
+                throw unknownOption(option, for: "mute list", among: CommandLineOption.mute(.list))
             case .positional(let value):
                 throw CommandLineUsageError("mute list takes no arguments, not '\(value)'.", command: "mute")
             }
@@ -211,6 +216,7 @@ extension CommandLineParser {
         guard value == nil || !flags.contains(option) else {
             return CommandLineUsageError("\(option) takes no value.", command: "mute")
         }
-        return CommandLineUsageError("Unknown option '\(option)' for mute \(subcommand).", command: "mute")
+        let options = MuteInvocation.Name(rawValue: subcommand).map(CommandLineOption.mute) ?? []
+        return unknownOption(option, for: "mute \(subcommand)", among: options)
     }
 }

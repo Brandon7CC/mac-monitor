@@ -56,6 +56,29 @@ final class PipelineScopeTests: XCTestCase {
         XCTAssertEqual(rootShell.groups, [900])
     }
     
+    /// A script has no job control, so its shell, its commands and the pipeline share one group. Hiding that group
+    /// would hide the script's own commands, so it's left visible: only `macmonitor`'s own session stays hidden.
+    func testAShellWithoutJobControlKeepsItsGroup() {
+        let script = PipelineScope(ancestry: [
+            PipelineAncestor(pid: 900, groupID: 900, path: "/x/macmonitor"),
+            PipelineAncestor(pid: 899, groupID: 899, path: sudo),
+            PipelineAncestor(pid: 898, groupID: 500, path: sudo),
+            PipelineAncestor(pid: 500, groupID: 500, path: "/bin/zsh")
+        ], includeSelf: false)
+        XCTAssertEqual(script.groups, [900, 899])
+        XCTAssertTrue(script.sharesTheShellsGroup)
+        XCTAssertFalse(script.suppresses(event(pid: 901, group: 500)), "ls, run by the script")
+        
+        let rootScript = PipelineScope(ancestry: [PipelineAncestor(pid: 900, groupID: 500, path: "/x/macmonitor"),
+                                                  PipelineAncestor(pid: 500, groupID: 500, path: "/bin/sh")],
+                                       includeSelf: false)
+        XCTAssertEqual(rootScript.groups, [])
+        XCTAssertTrue(rootScript.suppresses(event(pid: 900, group: 500)), "macmonitor itself")
+        XCTAssertFalse(PipelineScope(ancestry: [PipelineAncestor(pid: 900, groupID: 900, path: "/x/macmonitor"),
+                                                PipelineAncestor(pid: 500, groupID: 500, path: "/bin/zsh")],
+                                     includeSelf: false).sharesTheShellsGroup)
+    }
+    
     /// Nested sudo walks through every sudo. A sudo above another program doesn't count.
     func testOnlyConsecutiveSudosCount() {
         let scope = PipelineScope(ancestry: [PipelineAncestor(pid: 900, groupID: 900, path: "/x/macmonitor"),
@@ -94,7 +117,8 @@ final class PipelineScopeTests: XCTestCase {
         XCTAssertEqual(own.groupID, getpgrp())
         XCTAssertFalse(own.path.isEmpty)
         XCTAssertEqual(ancestry.dropFirst().dropLast().filter { $0.path != PipelineScope.sudoPath }, [])
-        XCTAssertTrue(PipelineScope.current(includeSelf: false).groups.contains(getpgrp()) || getpgrp() <= 1)
+        let scope = PipelineScope.current(includeSelf: false)
+        XCTAssertTrue(scope.groups.contains(getpgrp()) || scope.sharesTheShellsGroup || getpgrp() <= 1)
         XCTAssertEqual(PipelineScope.current(includeSelf: true).ownPID, getpid())
     }
 }

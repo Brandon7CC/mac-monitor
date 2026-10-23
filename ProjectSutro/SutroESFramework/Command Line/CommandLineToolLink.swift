@@ -22,7 +22,8 @@ import Foundation
 /// **What can be linked:** this copy's own tool, by its real path, when the tool and every directory from it up to `/`
 /// can be changed only by root (and, for a directory such as `/Applications`, admins), and its code signature
 /// satisfies ``SensorXPC/commandLineRequirement``. `sudo macmonitor` runs the tool as root, so a tool anyone else can
-/// replace is never linked.
+/// replace is never linked, except by a Debug build (``isDevelopmentBuild``), which links it with a warning: a test
+/// Mac runs builds from a user's folder.
 public struct CommandLineToolLink {
     /// The tool's name, in the bundle and in the link's directory.
     public static let toolName = "macmonitor"
@@ -43,6 +44,9 @@ public struct CommandLineToolLink {
         public var trustedOwner: uid_t
         /// The group that may also write a directory or file on the way: admin.
         public var adminGroup: gid_t
+        /// Link a tool someone other than the trusted owner can change, with a warning? Only a Debug build's own
+        /// layout does.
+        public var allowsChangeableTool: Bool
         
         /// - Parameters:
         ///   - bundle: Mac Monitor's bundle.
@@ -50,13 +54,24 @@ public struct CommandLineToolLink {
         ///   - root: Where the ownership checks stop.
         ///   - trustedOwner: Who must own the tool and the directories above it.
         ///   - adminGroup: The group that may also write them.
+        ///   - allowsChangeableTool: Link a tool others can change, with a warning: `false` unless given.
         public init(bundle: URL, binDirectory: String = "/usr/local/bin", root: String = "/", trustedOwner: uid_t = 0,
-                    adminGroup: gid_t = 80) {
+                    adminGroup: gid_t = 80, allowsChangeableTool: Bool = false) {
             self.bundle = bundle
             self.binDirectory = binDirectory
             self.root = root
             self.trustedOwner = trustedOwner
             self.adminGroup = adminGroup
+            self.allowsChangeableTool = allowsChangeableTool
+        }
+        
+        /// A bundle's layout as this build checks it: `/usr/local/bin`, owned by root, and in a Debug build a tool
+        /// others can change is linked with a warning.
+        ///
+        /// - Parameter bundle: Mac Monitor's bundle.
+        /// - Returns: The layout.
+        public static func installed(_ bundle: URL) -> Layout {
+            Layout(bundle: bundle, allowsChangeableTool: CommandLineToolLink.isDevelopmentBuild)
         }
         
         /// The link's path, such as `/usr/local/bin/macmonitor`.
@@ -126,11 +141,21 @@ public struct CommandLineToolLink {
         self.signatureCheck = signatureCheck
     }
     
+    /// Is this a Debug build, which links a tool others can change? The Debug configuration alone sets
+    /// `ALLOW_CHANGEABLE_TOOL_LINK`: Release and Community builds never do.
+    public static let isDevelopmentBuild: Bool = {
+        #if ALLOW_CHANGEABLE_TOOL_LINK
+        return true
+        #else
+        return false
+        #endif
+    }()
+    
     /// The link for the running copy of Mac Monitor: its bundle, `/usr/local/bin`, owned by root.
     ///
     /// - Returns: The link.
     public static func forThisApp() -> CommandLineToolLink {
-        CommandLineToolLink(layout: Layout(bundle: Bundle.main.bundleURL))
+        CommandLineToolLink(layout: .installed(Bundle.main.bundleURL))
     }
     
     /// Is a link's value Mac Monitor's? It must be an absolute path ending in ``toolSuffix``.
@@ -148,7 +173,8 @@ public struct CommandLineToolLink {
         let candidate = toolCandidate()
         let (link, value) = linkState(comparedWith: candidate)
         return Inspection(link: link, linkValue: value, tool: validate(candidate), linkPath: layout.linkPath,
-                          binDirectory: layout.binDirectory, binDirectoryWarning: binDirectoryWarning())
+                          binDirectory: layout.binDirectory, binDirectoryWarning: binDirectoryWarning(),
+                          toolWarning: changeableToolWarning(candidate))
     }
     
     /// What's at the link's path, and the link's value when it's a symbolic link.
@@ -201,6 +227,8 @@ extension CommandLineToolLink {
         /// Who else can change the link's directory, if anyone: they could put another program there for `sudo` to
         /// run. A warning, not a refusal (Homebrew gives `/usr/local/bin` to the user on Intel Macs).
         public let binDirectoryWarning: String?
+        /// Who else can change the tool, when a Debug build links it anyway.
+        public var toolWarning: String? = nil
         
         /// The plan for an action, if it may be done now.
         ///

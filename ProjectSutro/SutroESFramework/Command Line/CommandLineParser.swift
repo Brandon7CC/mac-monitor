@@ -99,7 +99,9 @@ public enum CommandLineParser {
         if isHelp(name) { return .help(command: nil) }
         guard let command = CommandLineHelp.command(named: name) else {
             let kind = name.hasPrefix("-") ? "option" : "command"
-            throw CommandLineUsageError("Unknown \(kind) '\(name)'.")
+            let names = kind == "option" ? ["--help", "--version"] : CommandLineHelp.commands.map(\.name)
+            let suggestion = CommandLineSuggestion.didYouMean(name, among: names)
+            throw CommandLineUsageError("Unknown \(kind) '\(name)'.\(suggestion)")
         }
         let rest = arguments.dropFirst()
         if rest.prefix(while: { $0 != "--" }).contains(where: isHelp), command.id != .help {
@@ -112,6 +114,7 @@ public enum CommandLineParser {
         case .mute: return .mute(try mute(&cursor))
         case .validate: return .validate(try validate(&cursor))
         case .help: return .help(command: try help(&cursor))
+        case .completion: return .completion(try completion(&cursor))
         case .events: return try takingNothing(&cursor, .events)
         case .schema: return try takingNothing(&cursor, .schema)
         case .version: return try takingNothing(&cursor, .version)
@@ -126,14 +129,16 @@ public enum CommandLineParser {
         argument == "-h" || argument == "--help"
     }
     
-    /// `stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes] [--include-self]`.
+    /// `stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes] [--include-self]
+    /// [--for DURATION] [--count N] [--pid PID] [--process|--signing-id|--target|--grep REGEX] [--where PREDICATE]`.
     ///
-    /// `--json`, `--pretty` and `--text` are short for `--format jsonl|pretty|text`.
+    /// `--json`, `--pretty` and `--text` are short for `--format jsonl|pretty|text`. Each filter option may be given
+    /// more than once (``StreamFilter``).
     ///
     /// - Parameter cursor: The arguments.
     /// - Returns: The stream asked for.
-    /// - Throws: ``CommandLineUsageError`` for an event that can't be streamed, a bad format, two formats, or an
-    ///   unknown option.
+    /// - Throws: ``CommandLineUsageError`` for an event that can't be streamed, a bad format, two formats, a bad
+    ///   duration, count, process ID, regular expression or predicate, or an unknown option.
     static func stream(_ cursor: inout ArgumentCursor) throws -> StreamInvocation {
         var invocation = StreamInvocation(), seen = Set<UInt32>()
         while let argument = cursor.next() {
@@ -155,10 +160,32 @@ public enum CommandLineParser {
                 invocation.appliesSavedMutes = false
             case .option("--include-self", nil):
                 invocation.includeSelf = true
+            case .option("--for", let attached):
+                invocation.duration = try duration(cursor.value(of: "--for", attached: attached, command: "stream"))
+            case .option("--count", let attached):
+                let value = try cursor.value(of: "--count", attached: attached, command: "stream")
+                guard let count = Int(value), count > 0 else {
+                    throw CommandLineUsageError("--count must be a whole number above 0, not '\(value)'.",
+                                                command: "stream")
+                }
+                invocation.limit = count
+            case .option("--pid", let attached):
+                let value = try cursor.value(of: "--pid", attached: attached, command: "stream")
+                guard let pid = Int32(value), pid >= 0 else {
+                    throw CommandLineUsageError("--pid needs a process ID, not '\(value)'.", command: "stream")
+                }
+                invocation.filter.pids.append(pid)
+            case .option(let option, let attached) where patternOptions[option] != nil:
+                let pattern = try StreamFilter.Pattern(cursor.value(of: option, attached: attached, command: "stream"),
+                                                       option: option)
+                invocation.filter[keyPath: patternOptions[option]!].append(pattern)
+            case .option("--where", let attached):
+                let value = try cursor.value(of: "--where", attached: attached, command: "stream")
+                invocation.filter.predicates.append(try StreamFilter.Predicate(value))
             case .option(let option, .some) where flags.contains(option):
                 throw CommandLineUsageError("\(option) takes no value.", command: "stream")
             case .option(let option, _):
-                throw CommandLineUsageError("Unknown option '\(option)' for stream.", command: "stream")
+                throw unknownOption(option, for: "stream", among: CommandLineOption.stream)
             }
         }
         return invocation
@@ -166,6 +193,28 @@ public enum CommandLineParser {
     
     static let formatShorthands: [String: StreamOutputFormat] = ["--json": .jsonl, "--pretty": .pretty, "--text": .text]
     static let flags = Set(formatShorthands.keys).union(["--no-mutes", "--include-self"])
+    /// The filter options that take a regular expression, and where each keeps them.
+    static let patternOptions: [String: WritableKeyPath<StreamFilter, [StreamFilter.Pattern]>] = [
+        "--process": \.processes, "--signing-id": \.signingIDs, "--target": \.targets, "--grep": \.greps
+    ]
+    
+    /// The units `--for` takes, longest first so `ms` isn't read as `m`.
+    static let durationUnits: [(suffix: String, seconds: TimeInterval)] = [("ms", 0.001), ("s", 1), ("m", 60),
+                                                                          ("h", 3_600)]
+    
+    /// A `--for` value in seconds.
+    ///
+    /// - Parameter value: A number of seconds, or a number with a unit: 500ms, 30s, 5m, 1.5h.
+    /// - Returns: The seconds.
+    /// - Throws: ``CommandLineUsageError`` for anything else, or a time that isn't above 0.
+    static func duration(_ value: String) throws -> TimeInterval {
+        let unit = durationUnits.first { value.hasSuffix($0.suffix) }
+        guard let amount = Double(value.dropLast(unit?.suffix.count ?? 0)), amount.isFinite, amount > 0 else {
+            throw CommandLineUsageError("--for must be a time such as 30s, 5m or 1h, not '\(value)'.",
+                                        command: "stream")
+        }
+        return amount * (unit?.seconds ?? 1)
+    }
     
     /// Set the format, refusing a second, different one.
     ///
@@ -188,7 +237,10 @@ public enum CommandLineParser {
     /// - Throws: ``CommandLineUsageError`` for an AUTH event, one Mac Monitor doesn't model, or a name that isn't one.
     static func event(named name: String) throws -> es_event_type_t {
         guard let event = CommandLineEvents.event(named: name) else {
-            throw CommandLineUsageError("'\(name)' isn't an event macmonitor can stream.",
+            let catalog = CommandLineEvents.catalog()
+            let names = name.hasPrefix(CommandLineEvents.notifyPrefix) ? catalog.map(\.fullName) : catalog.map(\.name)
+            let suggestion = CommandLineSuggestion.didYouMean(name, among: names)
+            throw CommandLineUsageError("'\(name)' isn't an event macmonitor can stream.\(suggestion)",
                                         hint: "Run 'macmonitor events' to list them.")
         }
         return event
@@ -215,8 +267,7 @@ public enum CommandLineParser {
             case .option("--eslogger", .some):
                 throw CommandLineUsageError("--eslogger takes no value.", command: "validate")
             case .option(let option, _):
-                throw CommandLineUsageError("Unknown option '\(TerminalSafeText.text(option))' for validate.",
-                                            command: "validate")
+                throw unknownOption(option, for: "validate", among: CommandLineOption.validate)
             }
         }
         guard let path else { throw CommandLineUsageError("validate needs a trace.", command: "validate") }
@@ -236,11 +287,32 @@ public enum CommandLineParser {
                 throw CommandLineUsageError("help takes one command at most.", command: "help")
             }
             guard CommandLineHelp.command(named: name) != nil else {
-                throw CommandLineUsageError("Unknown command '\(name)'.")
+                let suggestion = CommandLineSuggestion.didYouMean(name, among: CommandLineHelp.commands.map(\.name))
+                throw CommandLineUsageError("Unknown command '\(name)'.\(suggestion)")
             }
             topic = name
         }
         return topic
+    }
+    
+    /// `completion zsh|bash`.
+    ///
+    /// - Parameter cursor: The arguments.
+    /// - Returns: The shell.
+    /// - Throws: ``CommandLineUsageError`` for no shell, one it doesn't know, or anything more.
+    static func completion(_ cursor: inout ArgumentCursor) throws -> CommandLineShell {
+        let names = CommandLineShell.allCases.map(\.rawValue)
+        guard case .positional(let name)? = cursor.next() else {
+            throw CommandLineUsageError("completion needs a shell: \(names.joined(separator: " or ")).",
+                                        command: "completion")
+        }
+        guard let shell = CommandLineShell(rawValue: name) else {
+            let suggestion = CommandLineSuggestion.didYouMean(name, among: names)
+            throw CommandLineUsageError("macmonitor has no completion for '\(name)'.\(suggestion)",
+                                        command: "completion")
+        }
+        try cursor.expectEnd(of: "completion \(name)", command: "completion")
+        return shell
     }
     
     /// A command that takes no arguments.

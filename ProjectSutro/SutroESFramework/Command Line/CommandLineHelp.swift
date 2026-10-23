@@ -19,13 +19,13 @@ public struct CommandLineCommand: Equatable {
     /// which the tests check. A command that needs neither root nor the Security Extension, as `schema` and `validate`
     /// don't, runs entirely in `macmonitor`.
     public enum Name: String, CaseIterable, Sendable {
-        case stream, mute, events, schema, validate, version, help
+        case stream, mute, events, schema, validate, completion, version, help
         
         /// Does the command need root? Only what talks to the Security Extension does.
         public var requiresRoot: Bool {
             switch self {
             case .stream, .mute: return true
-            case .events, .schema, .validate, .version, .help: return false
+            case .events, .schema, .validate, .completion, .version, .help: return false
             }
         }
     }
@@ -55,8 +55,9 @@ public enum CommandLineHelp {
     /// Every command, in the order help lists them: one for each ``CommandLineCommand/Name-swift.enum``.
     public static let commands: [CommandLineCommand] = [
         CommandLineCommand(
-            id: .stream, summary: "Stream Endpoint Security events until Ctrl-C.",
-            usage: "sudo macmonitor stream [EVENT...] [--format text|jsonl|pretty] [--no-mutes] [--include-self]",
+            id: .stream, summary: "Stream Endpoint Security events until Ctrl-C, or for a time or a count.",
+            usage: "sudo macmonitor stream [EVENT...] [--format text|jsonl|pretty] [--no-mutes] [--include-self] "
+                + "[--for DURATION] [--count N] [FILTER...]",
             details: """
                 EVENT is a short name (exec), a full name (ES_EVENT_TYPE_NOTIFY_EXEC), or all. With no EVENT, \
                 macmonitor streams the events Mac Monitor records by default. Run 'macmonitor events' to list them.
@@ -70,6 +71,30 @@ public enum CommandLineHelp {
                                     Easier to read in a terminal. --pretty for short.
                   --no-mutes        Don't apply the saved mute set that Mac Monitor and macmonitor share.
                   --include-self    Show the events of macmonitor's own pipeline, such as jq's.
+                  --for DURATION    Stop after DURATION: seconds, or with a unit, such as 500ms, 30s, 5m or 1h.
+                  --count N         Stop after writing N events.
+
+                Filters:
+                  --pid PID            The initiating process's ID.
+                  --process REGEX      The initiating process's executable path. For an exec, that's the
+                                       program that called exec: --target is the one it runs.
+                  --signing-id REGEX   The initiating process's signing ID.
+                  --target REGEX       The event's target path, such as the program an exec runs or the file an
+                                       open opens.
+                  --grep REGEX         Any string in the event's record.
+                  --where PREDICATE    An NSPredicate on the event's record, by its JSON key paths:
+                                         'process.executable.path ENDSWITH "/curl"'
+                                         'ANY event.exec.args CONTAINS[c] "token"'
+                                         'process.audit_token.euid == 0 AND event_type == 9'
+
+                A filter given more than once matches any of its values, and an event is written only if every \
+                filter given matches it. REGEX is found anywhere in the value unless anchored with ^ or $, and is \
+                case-sensitive unless it starts with (?i). The record is what --format jsonl writes ('macmonitor \
+                schema' describes it). --signing-id, --grep and --where read it, so they make text output as slow \
+                as JSONL. Filtered events are never counted as lost, and --count counts only events written.
+
+                A stream stops at Ctrl-C, or at --for or --count, whichever comes first. Either way it writes every \
+                event captured before it stopped, up to N, and exits 0 unless it was interrupted.
 
                 Each stream has its own Endpoint Security clients in Mac Monitor's Security Extension, so Mac Monitor \
                 keeps recording while it runs. At most \(SensorXPC.maxCommandLineStreams) streams run at once. \
@@ -108,7 +133,10 @@ public enum CommandLineHelp {
                 """),
         CommandLineCommand(id: .events, summary: "List the events macmonitor can stream.",
                            usage: "macmonitor events",
-                           details: "Events marked * are streamed when no EVENT is given."),
+                           details: """
+                            Each event's short name, then its full name. Events marked * are streamed when no EVENT \
+                            is given. On a terminal, a line at the end says so.
+                            """),
         CommandLineCommand(
             id: .schema, summary: "Print Mac Monitor's telemetry schema.", usage: "macmonitor schema",
             details: """
@@ -131,6 +159,18 @@ public enum CommandLineHelp {
                 on and the path of the value. macmonitor exits 0 when every record follows the schema, 65 when a \
                 record doesn't or isn't JSON or TRACE has no records, and 66 when TRACE can't be read. Ctrl-C stops \
                 checking, prints the report so far, and exits 130.
+                """),
+        CommandLineCommand(
+            id: .completion, summary: "Print a shell completion script.", usage: "macmonitor completion zsh|bash",
+            details: """
+                Completes commands, options, their values, and the events this Mac's macmonitor streams. Write it \
+                again after updating Mac Monitor.
+
+                  zsh    Save it as _macmonitor in a folder on $fpath, before compinit runs:
+                           macmonitor completion zsh > ~/.zsh/completions/_macmonitor
+                         with fpath=(~/.zsh/completions $fpath) in ~/.zshrc. Or add
+                         eval "$(macmonitor completion zsh)" to ~/.zshrc, after compinit.
+                  bash   Add eval "$(macmonitor completion bash)" to ~/.bash_profile.
                 """),
         CommandLineCommand(id: .version, summary: "Show macmonitor's version.", usage: "macmonitor version",
                            details: ""),
@@ -181,13 +221,16 @@ public enum CommandLineHelp {
     
     /// The `events` listing: each event's short and full name, defaults marked `*`.
     ///
+    /// - Parameter legend: End with a line saying what `*` means: for a terminal, where no script reads the list.
     /// - Returns: The text, one event a line.
-    public static func eventList() -> String {
+    public static func eventList(legend: Bool = false) -> String {
         let catalog = CommandLineEvents.catalog()
         let width = catalog.map(\.name.count).max() ?? 0
-        return catalog.map { event in
+        let lines = catalog.map { event in
             "\(event.isDefault ? "*" : " ") \(event.name)\(String(repeating: " ", count: width - event.name.count))  "
                 + event.fullName
-        }.joined(separator: "\n") + "\n"
+        }
+        return (lines + (legend ? ["", "* streamed by 'sudo macmonitor stream' with no EVENT"] : []))
+            .joined(separator: "\n") + "\n"
     }
 }

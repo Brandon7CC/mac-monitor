@@ -120,8 +120,53 @@ final class CommandLineParserTests: XCTestCase {
         XCTAssertEqual(usageError("stream --format --no-mutes"),
                        "--format needs a value. Run 'macmonitor help stream'.")
         XCTAssertEqual(usageError("stream --no-mutes=yes"), "--no-mutes takes no value. Run 'macmonitor help stream'.")
-        XCTAssertEqual(usageError("stream --pid 7"), "Unknown option '--pid' for stream. Run 'macmonitor help stream'.")
+        XCTAssertEqual(usageError("stream --frobnicate 7"),
+                       "Unknown option '--frobnicate' for stream. Run 'macmonitor help stream'.")
         XCTAssertEqual(usageError("stream -x"), "Unknown option '-x' for stream. Run 'macmonitor help stream'.")
+    }
+    
+    /// `--for` takes seconds or a number with a unit, `--count` a whole number. Both must be above 0.
+    func testDurationAndCount() throws {
+        let times = ["90": 90, "500ms": 0.5, "30s": 30, "5m": 300, "1.5h": 5_400, "0.25s": 0.25]
+        for (value, seconds) in times {
+            XCTAssertEqual(try stream("--for \(value)").duration, seconds, value)
+        }
+        XCTAssertEqual(try stream("exec --count=100").limit, 100)
+        XCTAssertNil(try stream("exec").duration)
+        XCTAssertNil(try stream("exec").limit)
+        for value in ["0", "-5s", "5x", "s", "ms", "nan", "inf", "1e400"] {
+            XCTAssertEqual(usageError("stream --for=\(value)"), "--for must be a time such as 30s, 5m or 1h, not "
+                           + "'\(value)'. Run 'macmonitor help stream'.", value)
+        }
+        for value in ["0", "-1", "1.5", "ten"] {
+            XCTAssertEqual(usageError("stream --count=\(value)"), "--count must be a whole number above 0, not "
+                           + "'\(value)'. Run 'macmonitor help stream'.", value)
+        }
+        XCTAssertEqual(usageError("stream --count"), "--count needs a value. Run 'macmonitor help stream'.")
+    }
+    
+    /// Each filter option may be given more than once, and keeps its values in order. Bad values are usage errors.
+    func testFilters() throws {
+        let arguments = ["stream", "exec", "--pid", "1", "--pid=2", "--process", "curl", "--process=^/bin/",
+                         "--signing-id", "^com\\.apple\\.", "--target", "\\.plist$", "--grep", "(?i)token",
+                         "--where", "process.audit_token.euid == 0", "--where=event_type == 9"]
+        guard case .stream(let invocation) = try CommandLineParser.parse(arguments) else { return XCTFail() }
+        let filter = invocation.filter
+        XCTAssertEqual(filter.pids, [1, 2])
+        XCTAssertEqual(filter.processes.map(\.source), ["curl", "^/bin/"])
+        XCTAssertEqual(filter.signingIDs.map(\.source), ["^com\\.apple\\."])
+        XCTAssertEqual(filter.targets.map(\.source), ["\\.plist$"])
+        XCTAssertEqual(filter.greps.map(\.source), ["(?i)token"])
+        XCTAssertEqual(filter.predicates.map(\.source), ["process.audit_token.euid == 0", "event_type == 9"])
+        XCTAssertEqual(try stream("exec").filter, StreamFilter())
+        XCTAssertEqual(usageError("stream --pid=-1"),
+                       "--pid needs a process ID, not '-1'. Run 'macmonitor help stream'.")
+        XCTAssertEqual(usageError("stream --pid curl"),
+                       "--pid needs a process ID, not 'curl'. Run 'macmonitor help stream'.")
+        XCTAssertEqual(usageError("stream --target=["),
+                       "--target needs a regular expression, not '['. Run 'macmonitor help stream'.")
+        XCTAssertEqual(usageError("stream --where"), "--where needs a value. Run 'macmonitor help stream'.")
+        XCTAssertTrue(usageError("stream --where=pid==")?.hasPrefix("--where can't read 'pid==': ") == true)
     }
     
     /// `-h` or `--help` anywhere before `--` asks for the command's help, `help`'s included. No arguments, `help`,
@@ -155,7 +200,7 @@ final class CommandLineParserTests: XCTestCase {
                        "events takes no arguments, not 'exec'. Run 'macmonitor help events'.")
         XCTAssertEqual(usageError("version --verbose"),
                        "version takes no arguments, not '--verbose'. Run 'macmonitor help version'.")
-        XCTAssertEqual(usageError("stram"), "Unknown command 'stram'. Run 'macmonitor help'.")
+        XCTAssertEqual(usageError("stram"), "Unknown command 'stram'. Did you mean 'stream'? Run 'macmonitor help'.")
         XCTAssertEqual(usageError("--verbose"), "Unknown option '--verbose'. Run 'macmonitor help'.")
     }
     
@@ -199,7 +244,8 @@ final class CommandLineParserTests: XCTestCase {
         XCTAssertEqual(CommandLineHelp.commands.map(\.id).sorted { $0.rawValue < $1.rawValue },
                        CommandLineCommand.Name.allCases.sorted { $0.rawValue < $1.rawValue })
         XCTAssertTrue(CommandLineHelp.text(for: nil).contains(" stream and mute need root: run them with sudo."))
-        let lines: [CommandLineCommand.Name: String] = [.mute: "mute list", .validate: "validate trace.jsonl"]
+        let lines: [CommandLineCommand.Name: String] = [.mute: "mute list", .validate: "validate trace.jsonl",
+                                                        .completion: "completion zsh"]
         for command in CommandLineHelp.commands {
             let invocation = try parse(lines[command.id] ?? command.name)
             XCTAssertEqual(invocation.id, command.id)
@@ -216,5 +262,18 @@ final class CommandLineParserTests: XCTestCase {
         XCTAssertTrue(lines.contains { $0.hasPrefix("* exec ") && $0.hasSuffix(" ES_EVENT_TYPE_NOTIFY_EXEC") })
         XCTAssertTrue(lines.contains { $0.hasPrefix("  open ") && $0.hasSuffix(" ES_EVENT_TYPE_NOTIFY_OPEN") })
         XCTAssertEqual(lines.filter { $0.hasPrefix("*") }.count, Set(defaultEventSubscriptions.map(\.rawValue)).count)
+        XCTAssertEqual(CommandLineHelp.eventList(legend: true),
+                       CommandLineHelp.eventList() + "\n* streamed by 'sudo macmonitor stream' with no EVENT\n")
+    }
+    
+    /// `completion` takes one shell it knows.
+    func testCompletion() throws {
+        XCTAssertEqual(try parse("completion zsh"), .completion(.zsh))
+        XCTAssertEqual(try parse("completion bash"), .completion(.bash))
+        XCTAssertFalse(try parse("completion zsh").requiresRoot)
+        XCTAssertEqual(usageError("completion"),
+                       "completion needs a shell: zsh or bash. Run 'macmonitor help completion'.")
+        XCTAssertEqual(usageError("completion zsh bash"),
+                       "completion zsh takes no arguments, not 'bash'. Run 'macmonitor help completion'.")
     }
 }

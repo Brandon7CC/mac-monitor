@@ -29,6 +29,8 @@ public enum CommandLineInvocation: Equatable {
     case schema
     /// Check a trace against the telemetry schema.
     case validate(ValidateInvocation)
+    /// Write a shell completion script.
+    case completion(CommandLineShell)
     
     /// Does it need root? Its command decides (``CommandLineCommand/Name-swift.enum/requiresRoot``).
     public var requiresRoot: Bool { id.requiresRoot }
@@ -43,6 +45,7 @@ public enum CommandLineInvocation: Equatable {
         case .mute: return .mute
         case .schema: return .schema
         case .validate: return .validate
+        case .completion: return .completion
         }
     }
     
@@ -53,7 +56,7 @@ public enum CommandLineInvocation: Equatable {
 
 // MARK: - Stream
 /// `macmonitor stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes]
-/// [--include-self]`.
+/// [--include-self] [--for DURATION] [--count N] [FILTER...]`.
 public struct StreamInvocation: Equatable {
     /// The events, each once, in the order named. None means Mac Monitor's defaults.
     public var events: [es_event_type_t] = []
@@ -63,8 +66,15 @@ public struct StreamInvocation: Equatable {
     public var appliesSavedMutes: Bool = true
     /// Show the pipeline's own events? `--include-self`.
     public var includeSelf: Bool = false
+    /// Stop after this many seconds. `--for`.
+    public var duration: TimeInterval?
+    /// Stop after writing this many events. `--count`.
+    public var limit: Int?
+    /// Which events are written: `--pid`, `--process`, `--signing-id`, `--target`, `--grep` and `--where`.
+    public var filter = StreamFilter()
     
-    /// The defaults: Mac Monitor's events, the format by terminal, the saved mutes, without the pipeline's events.
+    /// The defaults: Mac Monitor's events, the format by terminal, the saved mutes, without the pipeline's events,
+    /// every event until stopped.
     public init() {}
     
     /// The request's options for the Security Extension.

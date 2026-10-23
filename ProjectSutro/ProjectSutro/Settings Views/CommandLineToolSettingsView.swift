@@ -143,6 +143,9 @@ struct CommandLineToolStatusView<Actions: View>: View {
                                                             : "Can't install from this copy",
                         text: refusal.description)
             }
+            if let warning = inspection.toolWarning {
+                Callout(title: "Others can change this copy's tool", text: warning)
+            }
             if let warning = inspection.binDirectoryWarning {
                 Callout(title: "Others can change \(inspection.binDirectory)", text: warning)
             }
