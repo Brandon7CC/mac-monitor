@@ -39,6 +39,22 @@ final class MessageSerializerTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(Message.self, from: current).macOS, expected)
         XCTAssertEqual(Message(from: exit.raw).macOS, expected)
     }
+
+    /// Events carry System Integrity Protection's status as the serializer read it, as `csrutil status` names it:
+    /// enabled with nothing allowed, disabled with everything `csrutil disable` allows, custom with less.
+    func testStampsTheSIPStatus() throws {
+        let exit = sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, seq: 1, global: 1)
+        let lane = LaneContext(eventClass: .process, sensorID: "SENSOR-1", encoder: StreamingJSONEncoder())
+        let stamped = try XCTUnwrap(MessageSerializer(sipStatus: .disabled).serialize(exit.raw, in: lane))
+        XCTAssertEqual(try JSONDecoder().decode(Message.self, from: stamped).sip_status, "disabled")
+        XCTAssertEqual(Message(from: exit.raw).sip_status, SIPStatus.current?.rawValue)
+        XCTAssertNotNil(SIPStatus.current)
+        XCTAssertEqual(SIPStatus(configuration: 0), .enabled)
+        XCTAssertEqual(SIPStatus(configuration: 0x6f), .disabled, "csrutil disable")
+        XCTAssertEqual(SIPStatus(configuration: 0x7f), .disabled, "csrutil disable with Apple internal")
+        XCTAssertEqual(SIPStatus(configuration: 0x2), .custom, "csrutil enable --without fs")
+        XCTAssertEqual(SIPStatus(configuration: 0x6e), .custom)
+    }
     
     /// Through a session, the process client's exit event reaches `emit` as the `Message` Mac Monitor decodes.
     func testThroughASession() throws {

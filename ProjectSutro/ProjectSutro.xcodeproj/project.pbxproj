@@ -230,12 +230,6 @@
 		28C6DF1F2A46CDA200E97922 /* ESXPCConnectEvent+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C6DF1D2A46CDA200E97922 /* ESXPCConnectEvent+CoreDataProperties.swift */; };
 		28C8E27029197C4B00449AE0 /* ESBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 28C8E26E29197C4B00449AE0 /* ESBridge.h */; };
 		28C8E27129197C4B00449AE0 /* ESBridge.c in Sources */ = {isa = PBXBuildFile; fileRef = 28C8E26F29197C4B00449AE0 /* ESBridge.c */; };
-		F17E00000000000000000002 /* PredicateBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000001 /* PredicateBridge.h */; };
-		F17E00000000000000000004 /* PredicateBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000003 /* PredicateBridge.m */; };
-		F17E00000000000000000006 /* StreamFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000005 /* StreamFilter.swift */; };
-		F17E0000000000000000000C /* StreamFilter+Predicates.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000B /* StreamFilter+Predicates.swift */; };
-		F17E0000000000000000000A /* CommandLineCompletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000009 /* CommandLineCompletion.swift */; };
-		F17E00000000000000000008 /* CommandLineOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000007 /* CommandLineOptions.swift */; };
 		28CEF0D929775941003057D2 /* MountEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0D829775941003057D2 /* MountEvent.swift */; };
 		28CEF0DC2977634C003057D2 /* ESMountEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0DA2977634C003057D2 /* ESMountEvent+CoreDataClass.swift */; };
 		28CEF0DD2977634C003057D2 /* ESMountEvent+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0DB2977634C003057D2 /* ESMountEvent+CoreDataProperties.swift */; };
@@ -526,6 +520,16 @@
 		D5A100000000000000000006 /* ValidateRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A100000000000000000005 /* ValidateRunner.swift */; };
 		DA2200000000000000000002 /* MuteAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2200000000000000000001 /* MuteAccess.swift */; };
 		DA2200000000000000000006 /* ConsoleUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2200000000000000000005 /* ConsoleUser.swift */; };
+		F17E00000000000000000002 /* PredicateBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000001 /* PredicateBridge.h */; };
+		F17E00000000000000000004 /* PredicateBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000003 /* PredicateBridge.m */; };
+		F17E00000000000000000006 /* StreamFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000005 /* StreamFilter.swift */; };
+		F17E00000000000000000008 /* CommandLineOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000007 /* CommandLineOptions.swift */; };
+		F17E0000000000000000000A /* CommandLineCompletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000009 /* CommandLineCompletion.swift */; };
+		F17E0000000000000000000C /* StreamFilter+Predicates.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000B /* StreamFilter+Predicates.swift */; };
+		F17E0000000000000000000E /* SetupRequirements.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000D /* SetupRequirements.swift */; };
+		F17E00000000000000000010 /* RequirementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000F /* RequirementsView.swift */; };
+		F17E00000000000000000012 /* SecurityExtensionSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */; };
+		F17E00000000000000000014 /* SIPStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000013 /* SIPStatus.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -868,12 +872,6 @@
 		28C6DF1D2A46CDA200E97922 /* ESXPCConnectEvent+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESXPCConnectEvent+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		28C8E26E29197C4B00449AE0 /* ESBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESBridge.h; sourceTree = "<group>"; };
 		28C8E26F29197C4B00449AE0 /* ESBridge.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ESBridge.c; sourceTree = "<group>"; };
-		F17E00000000000000000001 /* PredicateBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PredicateBridge.h; sourceTree = "<group>"; };
-		F17E00000000000000000003 /* PredicateBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PredicateBridge.m; sourceTree = "<group>"; };
-		F17E00000000000000000005 /* StreamFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamFilter.swift; sourceTree = "<group>"; };
-		F17E0000000000000000000B /* StreamFilter+Predicates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Predicates.swift"; sourceTree = "<group>"; };
-		F17E00000000000000000009 /* CommandLineCompletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineCompletion.swift; sourceTree = "<group>"; };
-		F17E00000000000000000007 /* CommandLineOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineOptions.swift; sourceTree = "<group>"; };
 		28CEF0D829775941003057D2 /* MountEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MountEvent.swift; sourceTree = "<group>"; };
 		28CEF0DA2977634C003057D2 /* ESMountEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESMountEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28CEF0DB2977634C003057D2 /* ESMountEvent+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESMountEvent+CoreDataProperties.swift"; sourceTree = "<group>"; };
@@ -1160,6 +1158,16 @@
 		D5A100000000000000000005 /* ValidateRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidateRunner.swift; sourceTree = "<group>"; };
 		DA2200000000000000000001 /* MuteAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteAccess.swift; sourceTree = "<group>"; };
 		DA2200000000000000000005 /* ConsoleUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleUser.swift; sourceTree = "<group>"; };
+		F17E00000000000000000001 /* PredicateBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PredicateBridge.h; sourceTree = "<group>"; };
+		F17E00000000000000000003 /* PredicateBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PredicateBridge.m; sourceTree = "<group>"; };
+		F17E00000000000000000005 /* StreamFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamFilter.swift; sourceTree = "<group>"; };
+		F17E00000000000000000007 /* CommandLineOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineOptions.swift; sourceTree = "<group>"; };
+		F17E00000000000000000009 /* CommandLineCompletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineCompletion.swift; sourceTree = "<group>"; };
+		F17E0000000000000000000B /* StreamFilter+Predicates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Predicates.swift"; sourceTree = "<group>"; };
+		F17E0000000000000000000D /* SetupRequirements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupRequirements.swift; sourceTree = "<group>"; };
+		F17E0000000000000000000F /* RequirementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequirementsView.swift; sourceTree = "<group>"; };
+		F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityExtensionSettingsView.swift; sourceTree = "<group>"; };
+		F17E00000000000000000013 /* SIPStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SIPStatus.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -1897,6 +1905,7 @@
 			isa = PBXGroup;
 			children = (
 				283C4D4529E0B761009FF6D3 /* EventStreamControl.swift */,
+				F17E0000000000000000000D /* SetupRequirements.swift */,
 				283C4D4B29E0F0F3009FF6D3 /* SecurityExtension.swift */,
 			);
 			path = Extensions;
@@ -2721,6 +2730,7 @@
 			isa = PBXGroup;
 			children = (
 				282744A928EF75F400464C5B /* Message.swift */,
+				F17E00000000000000000013 /* SIPStatus.swift */,
 				7E5A1C00000000000000000D /* Message+LaunchedByParent.swift */,
 				282DFE062D9DDF7B006E0C94 /* EventType */,
 				28B3438F2D863B45004127E8 /* Process Events */,
@@ -2794,6 +2804,7 @@
 			children = (
 				BA97AFCF2875471D0099C035 /* ProjectSutroApp.swift */,
 				BA97AFD12875471D0099C035 /* ContentView.swift */,
+				F17E0000000000000000000F /* RequirementsView.swift */,
 				D15C00000000000000000105 /* TraceSession.swift */,
 				D15C0000000000000000012A /* TraceSessionViews.swift */,
 				7E5A1C900000000000000001 /* ProcessTreeCommands.swift */,
@@ -2830,6 +2841,7 @@
 				284CFE1C2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift */,
 				C11D00000000000000000011 /* CommandLineToolInstaller.swift */,
 				C11D00000000000000000013 /* CommandLineToolSettingsView.swift */,
+				F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */,
 			);
 			path = "Settings Views";
 			sourceTree = "<group>";
@@ -4121,6 +4133,7 @@
 				CAD3D9822E0F167300028111 /* ESFileDestination+CoreDataClass.swift in Sources */,
 				28823F542ECEF7E7000B7F5C /* XattrListEvent.swift in Sources */,
 				282744AA28EF75F400464C5B /* Message.swift in Sources */,
+				F17E00000000000000000014 /* SIPStatus.swift in Sources */,
 				7E5A1C00000000000000000E /* Message+LaunchedByParent.swift in Sources */,
 				2852BBB629DB756900AA833C /* ESCodeSignatureInvalidatedEvent+CoreDataClass.swift in Sources */,
 				283C4D3F29E09D89009FF6D3 /* MutingEngine.swift in Sources */,
@@ -4280,6 +4293,7 @@
 				2852BB8029D83C6100AA833C /* ESFileDeleteEvent+CoreDataClass.swift in Sources */,
 				2829EA6C2DC48096005E7788 /* ESAuthResult+CoreDataClass.swift in Sources */,
 				283C4D4629E0B761009FF6D3 /* EventStreamControl.swift in Sources */,
+				F17E0000000000000000000E /* SetupRequirements.swift in Sources */,
 				CADD9D882E8DC959009EC919 /* SocketTypeResolver.swift in Sources */,
 				282FEDED295FCE3600572E22 /* ESXProtectDetect+CoreDataProperties.swift in Sources */,
 				28235282296F5A4200A31F99 /* ESMessage+CoreDataProperties.swift in Sources */,
@@ -4404,6 +4418,7 @@
 				28CEF0DF29776B51003057D2 /* SystemTargetExecProcMetadataView.swift in Sources */,
 				28EC62EF2925A1B100EAC8AD /* MMAPSystemEventsViews.swift in Sources */,
 				BA97AFD22875471D0099C035 /* ContentView.swift in Sources */,
+				F17E00000000000000000010 /* RequirementsView.swift in Sources */,
 				D15C00000000000000000106 /* TraceSession.swift in Sources */,
 				D15C0000000000000000012B /* TraceSessionViews.swift in Sources */,
 				284CFE1B2A16F03200D0038B /* PathMutingSettingsView.swift in Sources */,
@@ -4494,6 +4509,7 @@
 				28CEF0FD29776D31003057D2 /* SystemProcExitMetadataView.swift in Sources */,
 				C11D00000000000000000012 /* CommandLineToolInstaller.swift in Sources */,
 				C11D00000000000000000014 /* CommandLineToolSettingsView.swift in Sources */,
+				F17E00000000000000000012 /* SecurityExtensionSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4775,7 +4791,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Project Sutro to work. We use the security extension to record endpoint security events and display them to the user.";
+				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Mac Monitor to work. We use the security extension to record endpoint security events and display them to the user.";
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -4836,7 +4852,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Project Sutro to work. We use the security extension to record endpoint security events and display them to the user.";
+				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Mac Monitor to work. We use the security extension to record endpoint security events and display them to the user.";
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -4962,7 +4978,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Mac Monitor Security Extension";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "2025 Brandon Dalton";
 				INFOPLIST_KEY_NSSystemAdministrationUsageDescription = "The Mac Monitor Security Extension needs Full Disk Access to monitor security events.";
-				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Project Sutro to work. We use the security extension to record endpoint security events and display them to the user.";
+				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Mac Monitor to work. We use the security extension to record endpoint security events and display them to the user.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -5002,7 +5018,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Mac Monitor Security Extension";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "2025 Brandon Dalton";
 				INFOPLIST_KEY_NSSystemAdministrationUsageDescription = "The Mac Monitor Security Extension needs Full Disk Access to monitor security events.";
-				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Project Sutro to work. We use the security extension to record endpoint security events and display them to the user.";
+				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Mac Monitor to work. We use the security extension to record endpoint security events and display them to the user.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -5117,7 +5133,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Project Sutro to work. We use the security extension to record endpoint security events and display them to the user.";
+				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Mac Monitor to work. We use the security extension to record endpoint security events and display them to the user.";
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -5184,7 +5200,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Mac Monitor Security Extension";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "2025 Brandon Dalton";
 				INFOPLIST_KEY_NSSystemAdministrationUsageDescription = "The Mac Monitor Security Extension needs Full Disk Access to monitor security events.";
-				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Project Sutro to work. We use the security extension to record endpoint security events and display them to the user.";
+				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Mac Monitor to work. We use the security extension to record endpoint security events and display them to the user.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

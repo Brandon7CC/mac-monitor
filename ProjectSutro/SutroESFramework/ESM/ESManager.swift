@@ -82,7 +82,18 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     
     // MARK: Install properties
     @Published public var seIsInstalled: Bool = false
+    /// The Security Extension, as macOS and the last activation request report it (see ``requirements``).
+    @Published public var extensionState: SetupRequirements.ExtensionState = .checking
     @Published public var connectionResult: NewClientResult = .waiting
+    /// The deactivation request in flight, whose delegate calls aren't an activation's. Main thread only.
+    var deactivationRequest: OSSystemExtensionRequest?
+    /// The properties request in flight, whose delegate calls aren't an activation's. Main thread only.
+    var propertiesRequest: OSSystemExtensionRequest?
+    /// Has ``checkExtensionAtLaunch()`` run? Main thread only.
+    var checkedAtLaunch = false
+    /// Does the properties request in flight decide whether to activate (``checkExtensionAtLaunch()``)? Main thread
+    /// only.
+    var decidesActivation = false
     
     /// Reference to the shared Core Data Controller (agent context).
     ///

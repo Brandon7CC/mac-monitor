@@ -12,7 +12,6 @@ import SutroESFramework
 @available(macOS, introduced: 14)
 struct SonomaStartButton: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @EnvironmentObject var agentTerminate: AgentCloseController
     @EnvironmentObject var userPrefs: UserPrefs
     /// Start closes an open trace.
     @EnvironmentObject var traceSession: TraceSession
@@ -56,25 +55,8 @@ struct SonomaStartButton: View {
                 .padding([.leading, .trailing], 5)
         }
         .disabled(recordingEvents || systemExtensionManager.connectionResult != .success)
-        .onTapGesture {
-            if !recordingEvents && systemExtensionManager.connectionResult != .success {
-                agentTerminate.toggleQuitAlert()
-            }
-        }
-        .alert(isPresented: $agentTerminate.showAlert) {
-            Alert(
-                title: Text("Quit and re-open!"),
-                message: Text("You need to quit and re-open the app after completing **both** of these: Allow the System Extension and enable Full Disk Access."),
-                primaryButton: .default(Text("Let's do it!")) {
-                    let userDefaults = UserDefaults.standard
-                    let defaultValues = ["lifecycleQuitInternal" : true]
-                    userDefaults.register(defaults: defaultValues)
-                    UserDefaults.standard.set(true, forKey: "lifecycleQuitInternal")
-                    agentTerminate.quitAgent(esm: systemExtensionManager)
-                },
-                secondaryButton: .cancel()
-            )
-        }
+        .help(systemExtensionManager.connectionResult == .success || recordingEvents ? ""
+              : "Mac Monitor can't record yet. Settings ▸ Security Extension says what's missing.")
         .confirmationDialog(
             "Are you sure you want to clear all events?",
             isPresented: $confirmClear

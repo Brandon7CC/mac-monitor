@@ -175,6 +175,19 @@
       "x-mac-monitor-origin": "eslogger",
       "type": "integer"
     },
+    "sip_status": {
+      "description": "System Integrity Protection on the Mac that recorded the event, as csrutil status names it: enabled, disabled, or custom when only some protections are off. null in a trace that didn't record it, such as eslogger's.",
+      "x-mac-monitor-origin": "mac-monitor",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "enum": ["custom", "disabled", "enabled"]
+        }
+      ]
+    },
     "target_path": {
       "description": "The path the event is about, or \"Not supported\".",
       "x-mac-monitor-origin": "mac-monitor",
@@ -223,6 +236,7 @@
     "schema_version",
     "sensor_id",
     "seq_num",
+    "sip_status",
     "target_path",
     "telemetry_version",
     "thread",

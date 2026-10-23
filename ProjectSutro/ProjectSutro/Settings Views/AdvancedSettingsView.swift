@@ -162,45 +162,6 @@ struct AdvancedView: View {
                 
                 SystemDetailsView()
                 
-                Divider().padding(.bottom)
-
-                
-                Text("**Manage Security Extension**").font(.title2)
-                GroupBox {
-                    VStack(alignment: .leading) {
-                        Text("**Warning**: Uninstalling the security extension will disable the ability of the Mac Monitor Security Extension to collect Endpoint Security events from macOS. To enable event tracing the security extension must be installed.").frame(maxWidth: .infinity)
-                        Divider()
-                        GroupBox {
-                            HStack {
-                                Group {
-                                    Button("Install") {
-                                        systemExtensionManager.activateSystemExtension()
-                                    }
-                                    Button("Uninstall") {
-                                        systemExtensionManager.uninstallSystemExtension()
-                                    }.buttonStyle(.borderedProminent).tint(.pink).opacity(0.8)
-                                }
-                            }.frame(maxWidth: .infinity, alignment: .center)
-                        }
-                    }.frame(maxWidth: .infinity)
-                }
-                
-                Divider().padding(.bottom)
-                
-                Text("**Full Disk Access (FDA)**").font(.title2)
-                GroupBox {
-                    VStack(alignment: .leading) {
-                        Text("**Requirement**: The Mac Monitor security extension requires full disk access to monitor system events. Without the help of MDM (Mobile Device Management) profiles this *must* be enabled by the end user. Use the following button to make sure the Security Extension has full disk access.").frame(maxWidth: .infinity)
-                        Divider()
-                        GroupBox {
-                            HStack {
-                                Button("Full Disk Access") {
-                                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
-                                }
-                            }.frame(maxWidth: .infinity, alignment: .center)
-                        }
-                    }.frame(maxWidth: .infinity)
-                }
             }
         }
         

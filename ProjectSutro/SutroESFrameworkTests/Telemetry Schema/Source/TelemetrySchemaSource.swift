@@ -48,6 +48,10 @@ enum TelemetrySchemaSource {
             eslogger("time", .pattern(.timespec)),
             eslogger("mach_time", .integer),
             enrichment("macOS", .string, "The macOS version of the Mac that recorded the event: 27.0 (Build 26A1)."),
+            enrichment("sip_status", .nullable(.values(["custom", "disabled", "enabled"])),
+                       "System Integrity Protection on the Mac that recorded the event, as csrutil status names it: "
+                        + "enabled, disabled, or custom when only some protections are off. null in a trace that "
+                        + "didn't record it, such as eslogger's."),
             enrichment("sensor_id", .string, "The Sensor ID of the Mac Monitor that recorded the event."),
             eslogger("process", .ref("process")),
             eslogger("thread", .nullable(.ref("thread"))),

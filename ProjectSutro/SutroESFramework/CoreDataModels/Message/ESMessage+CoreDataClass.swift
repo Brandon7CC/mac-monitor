@@ -38,6 +38,7 @@ public class ESMessage: NSManagedObject {
         
         /// Platform -- Mac Monitor enrichment
         case macOS
+        case sip_status
         case sensor_id
         
         /// Initiating Process
@@ -112,6 +113,7 @@ public class ESMessage: NSManagedObject {
         
         /// Platform -- Mac Monitor enrichment
         self.macOS = message.macOS
+        self.sip_status = message.sip_status
         self.sensor_id = message.sensor_id
         
         /// Initiating Process: shared with the process's other events (see ``EventRowCaches``), so the event keeps the
@@ -174,6 +176,7 @@ extension ESMessage: Encodable {
         
         /// Platform -- Mac Monitor enrichment
         try container.encode(macOS, forKey: .macOS)
+        try container.encode(sip_status, forKey: .sip_status)
         try container.encode(sensor_id, forKey: .sensor_id)
         
         /// Initiating Process
