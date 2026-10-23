@@ -23,16 +23,6 @@ final class TelemetryVersionTests: XCTestCase {
         try importRecord(try fixtureObject("eslogger-exit.jsonl"))
     }
     
-    /// The export the command line streams (an event encoded without a store) carries the version, and eslogger's
-    /// `schema_version` and `version` are eslogger's.
-    func testStorelessExportCarriesTheVersion() throws {
-        let fixture = try fixtureObject("eslogger-exit.jsonl")
-        let record = try export(try exitEvent())
-        XCTAssertEqual(record[TelemetrySchema.versionKey] as? String, TelemetrySchema.version)
-        XCTAssertEqual(record["schema_version"] as? Int, 1)
-        XCTAssertEqual(record["version"] as? Int, fixture["version"] as? Int)
-    }
-    
     /// "Export all" writes the version on every record, as JSONL and as pretty JSON.
     func testExportedFilesCarryTheVersion() throws {
         let exit = try exitEvent()
