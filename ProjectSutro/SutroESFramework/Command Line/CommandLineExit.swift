@@ -104,12 +104,13 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
         return "'" + argument.replacingOccurrences(of: "'", with: #"'\''"#) + "'"
     }
     
-    /// The failure a Security Extension's reply stands for.
+    /// The failure a Security Extension's reply stands for. Its own words are escaped for a terminal.
     ///
     /// - Parameter reply: The reply.
     /// - Returns: `nil` for ``StreamReply/Status-swift.enum/ok``, else the failure.
     public static func reply(_ reply: StreamReply) -> CommandLineFailure? {
-        let problem = reply.problem.map { " \($0)" } ?? ""
+        let reason = reply.problem.map(TerminalSafeText.text)
+        let problem = reason.map { " \($0)" } ?? ""
         switch reply.status {
         case .ok:
             return nil
@@ -125,19 +126,19 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
         case .alreadyStreaming:
             return CommandLineFailure(.software, "The stream had already started.\(problem)")
         case .sessionLimit, .clientLimit:
-            return CommandLineFailure(.temporaryFailure, reply.problem ?? "Too many streams are running.")
+            return CommandLineFailure(.temporaryFailure, reason ?? "Too many streams are running.")
         case .notPermitted, .failed:
-            return CommandLineFailure(.unavailable, reply.problem ?? "Endpoint Security refused the stream.")
+            return CommandLineFailure(.unavailable, reason ?? "Endpoint Security refused the stream.")
         }
     }
     
     /// The failure a Security Extension's answer to a mute request stands for.
     ///
     /// - Parameter reply: The answer.
-    /// - Returns: `nil` for `ok`, else the failure, with the Security Extension's reasons, or a sentence of its own
-    ///   when it gave none.
+    /// - Returns: `nil` for `ok`, else the failure, with the Security Extension's reasons escaped for a terminal, or a
+    ///   sentence of its own when it gave none.
     public static func reply(_ reply: MuteReply) -> CommandLineFailure? {
-        let problems = reply.problems.joined(separator: " ")
+        let problems = reply.problems.map(TerminalSafeText.text).joined(separator: " ")
         let failure = { (exit: CommandLineExit, fallback: String) in
             CommandLineFailure(exit, problems.isEmpty ? fallback : problems)
         }

@@ -148,14 +148,38 @@ final class EventBatcherTests: XCTestCase {
         XCTAssertEqual(announced, 3)
     }
     
-    /// A lost batch frees its slot but isn't counted as delivered.
+    /// A lost batch frees its slot. Its events aren't delivered, and are counted as lost.
     func testALostBatchFreesItsSlot() {
         let batcher = makeBatcher(limits(batch: 1, window: 1, memory: 100), overflow: .pause { _ in })
         enqueue(1...1, to: batcher)
         reply(false)
         enqueue(2...2, to: batcher)
         XCTAssertEqual(delivery.events, ["1", "2"])
-        XCTAssertEqual(queue.sync { batcher.counters.delivered }, 0)
+        let counters = queue.sync { batcher.counters }
+        XCTAssertEqual(counters.delivered, 0)
+        XCTAssertEqual(counters.lost, 1)
+    }
+    
+    /// Once events are spooled, newer ones follow them through the spool even when memory has room again, so the
+    /// reader always gets them in order.
+    func testOnceSpooledNewerEventsFollow() {
+        let batcher = makeBatcher(limits(batch: 2, window: 1, memory: 4), overflow: .backlog { FakeBacklog() })
+        enqueue(1...8, to: batcher)
+        XCTAssertEqual(delivery.events, ["1", "2"])
+        reply()
+        enqueue(9...9, to: batcher)
+        while delivery.events.count < 9 { reply() }
+        XCTAssertEqual(delivery.events, (1...9).map(String.init))
+    }
+    
+    /// A spool that can't be made loses the events that don't fit in memory, and counts them.
+    func testASpoolThatCantBeMadeCountsWhatItLoses() {
+        struct Refused: Error {}
+        let batcher = makeBatcher(limits(batch: 2, window: 1, memory: 2), overflow: .backlog { throw Refused() })
+        enqueue(1...6, to: batcher)
+        let counters = queue.sync { batcher.counters }
+        XCTAssertEqual(counters.dropped, 2)
+        XCTAssertEqual(counters.spooled, 0)
     }
     
     /// Once closed, nothing more is sent, late replies are ignored, and a pending flush does nothing.

@@ -149,8 +149,8 @@ public final class EventBatcher {
 extension EventBatcher {
     /// Send the next batch unless too many are already awaiting the reader's reply.
     ///
-    /// Each reply calls back in here, so a backlog drains as fast as the reader takes it. A failed delivery only frees
-    /// its slot: the reader is gone, and its owner is about to close the batcher.
+    /// Each reply calls back in here, so a backlog drains as fast as the reader takes it. A failed delivery frees its
+    /// slot and counts its events as lost. The reader is gone, and its owner is about to close the batcher.
     private func flush() {
         guard !isClosed else { return }
         refill()
@@ -178,7 +178,10 @@ extension EventBatcher {
     private func finished(_ count: Int, delivered: Bool) {
         guard !isClosed else { return }
         batchesInFlight -= 1
-        guard delivered else { return }
+        guard delivered else {
+            counters.lost += count
+            return
+        }
         counters.delivered += count
         resumeIfCaughtUp()
         flush()

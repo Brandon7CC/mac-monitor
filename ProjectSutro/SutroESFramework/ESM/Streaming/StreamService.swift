@@ -41,6 +41,10 @@ public final class StreamService {
     private let sessionNumbers = OSAllocatedUnfairLock(initialState: UInt64(0))
     static let logger = Logger(subsystem: "com.swiftlydetecting.agent.securityextension", category: "StreamService")
     
+    /// The live service's admission rule: only a connection whose effective user is root. Asked on the thread
+    /// delivering each request, where the connection is `NSXPCConnection.current()`.
+    public static let rootOnly: (NSXPCConnection?) -> Bool = { $0?.effectiveUserIdentifier == 0 }
+    
     /// The live service: ``SensorXPC/maxCommandLineStreams`` streams on live Endpoint Security clients, for root only.
     /// A stream that closes posts ``SensorXPC/sensorReleasedNotification``, so a Mac Monitor that Endpoint Security
     /// refused (`.tooManyClients`) tries again.
@@ -48,7 +52,7 @@ public final class StreamService {
     /// - Parameter savedMutes: The saved mute set, shared with Mac Monitor's capture.
     public convenience init(savedMutes: SavedMuteSet) {
         self.init(savedMutes: savedMutes, slots: StreamSlots(capacity: SensorXPC.maxCommandLineStreams),
-                  sensorVersion: Self.version(of: .main), admits: { $0?.effectiveUserIdentifier == 0 },
+                  sensorVersion: Self.version(of: .main), admits: Self.rootOnly,
                   makeCapture: { try CaptureSession($0, emit: $1) },
                   released: { notify_post(SensorXPC.sensorReleasedNotification) })
     }

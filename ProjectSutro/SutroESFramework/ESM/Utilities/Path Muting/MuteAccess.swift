@@ -33,6 +33,17 @@ public enum MuteAccess: String, Codable, Sendable {
         return controlsStream ? .write : .read
     }
     
+    /// Does a Mac Monitor connection control the event stream? It does when it owns the stream, or when nobody does.
+    /// The same rule decides who may install an update.
+    ///
+    /// - Parameters:
+    ///   - caller: The connection a request arrived on, if any.
+    ///   - owner: The connection that owns the event stream, or `nil` if nobody does.
+    /// - Returns: `true` if `caller` is `owner`, or there's no owner.
+    public static func controlsStream(_ caller: AnyObject?, owner: AnyObject?) -> Bool {
+        owner == nil || caller === owner
+    }
+    
     /// Why a change is refused, as the reply's status and a sentence for Mac Monitor to show.
     public var refusal: (status: MuteReply.Status, problem: String)? {
         switch self {

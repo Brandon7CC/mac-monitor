@@ -30,6 +30,26 @@ public struct CommandLineToolLinker {
         return (try? link.validate(tool).get()) == tool
     }
 
+    /// Settings ▸ Command Line's request, as the Security Extension handles it. The action is checked first, then the
+    /// approval, and only then is anything changed. The link always goes in `binDirectory`, never a directory the
+    /// request names, and a removal ignores any tool the request names.
+    ///
+    /// - Parameters:
+    ///   - action: An ``CommandLineToolLink/Action``'s raw value.
+    ///   - tool: The tool to link, for an install.
+    ///   - expected: What Settings saw at the link's path.
+    ///   - binDirectory: The link's directory.
+    ///   - isApproved: Did an administrator approve the change? Asked only for a known action.
+    /// - Returns: What happened, and the plan once there is one.
+    public func handle(action: String, tool: String, expected: String, binDirectory: String = "/usr/local/bin",
+                       isApproved: () -> Bool) -> (outcome: Outcome, plan: CommandLineToolLink.Plan?) {
+        guard let action = CommandLineToolLink.Action(rawValue: action) else { return (.badTool, nil) }
+        guard isApproved() else { return (.notAuthorized, nil) }
+        let plan = CommandLineToolLink.Plan(action: action, tool: action == .install ? tool : "",
+                                            binDirectory: binDirectory, expected: expected)
+        return (apply(plan), plan)
+    }
+    
     /// Make the change.
     ///
     /// - Parameter plan: What Settings asked for.

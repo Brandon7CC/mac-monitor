@@ -7,6 +7,7 @@
 
 import XCTest
 import EndpointSecurity
+import os
 @testable import SutroESFramework
 
 
@@ -188,6 +189,45 @@ final class CommandLineStreamTests: XCTestCase {
             guard case .failed(let failure) = run.reported.first else { return XCTFail("\(run.reported)") }
             XCTAssertEqual(failure.exit, exit)
         }
+    }
+    
+    /// The live service admits only root. It's asked on the thread delivering the request, with the caller's real
+    /// connection.
+    func testTheLiveServiceAdmitsOnlyRoot() throws {
+        XCTAssertFalse(StreamService.rootOnly(nil))
+        let asked = OSAllocatedUnfairLock<[uid_t?]>(uncheckedState: [])
+        let recording = StreamHarness(savedMutes: savedMutes, admitting: { connection in
+            asked.withLockUnchecked { $0.append(connection?.effectiveUserIdentifier) }
+            return StreamService.rootOnly(connection)
+        })
+        let run = StreamCommandRun(harness: recording, formatter: .text(utc), scope: nobody)
+        run.start()
+        XCTAssertTrue(waitUntil { !run.reported.isEmpty || !recording.factories.isEmpty })
+        XCTAssertEqual(asked.withLockUnchecked { $0.first }, geteuid())
+        guard geteuid() != 0 else { return }
+        guard case .failed(let failure) = run.reported.first else { return XCTFail("\(run.reported)") }
+        XCTAssertEqual(failure.exit, .noPermission)
+        XCTAssertTrue(recording.factories.isEmpty, "No capture for a caller that isn't root")
+    }
+    
+    /// `macmonitor` pins the Security Extension's signature. NSXPC checks it on what comes back, so a service that
+    /// isn't signed as Mac Monitor's Security Extension, such as this test process, still gets the request, but
+    /// nothing it answers is believed: the stream fails with exit 69 and writes no events. Registering the Security
+    /// Extension's service name takes root.
+    func testMacmonitorBelievesNothingFromAnUnsignedSecurityExtension() throws {
+        let harness = makeHarness()
+        let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody,
+                                   requirement: SensorXPC.sensorRequirement)
+        run.start()
+        XCTAssertTrue(waitUntil { !run.reported.isEmpty })
+        guard case .failed(let failure) = run.reported.first else { return XCTFail("\(run.reported)") }
+        XCTAssertEqual(failure.exit, .unavailable)
+        XCTAssertTrue(failure.message.contains("signature"), failure.message)
+        if let client = harness.factories.first?.client(.process) {
+            client.deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 1))
+        }
+        usleep(100_000)
+        XCTAssertEqual(run.output.lines, [])
     }
     
     /// A Security Extension that goes away mid-stream ends it with exit 69, once.

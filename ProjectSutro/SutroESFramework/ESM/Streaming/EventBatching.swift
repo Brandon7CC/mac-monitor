@@ -69,6 +69,8 @@ public struct EventBatcherCounters: Equatable, Sendable {
     public var spooled: Int = 0
     /// Events lost: the backlog refused or lost them, or the memory buffer was full with the source paused.
     public var dropped: Int = 0
+    /// Events in batches the reader never replied to, because it went away.
+    public var lost: Int = 0
     /// How many times the source was paused.
     public var pauses: Int = 0
     

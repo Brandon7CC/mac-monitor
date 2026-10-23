@@ -200,7 +200,7 @@ extension SensorService: SensorProtocol {
             /// Only an administrator's Mac Monitor may change the saved set. Like `installUpdate`, it may while nobody
             /// owns the event stream, and while someone does, only they may. Every Mac Monitor may list it.
             let access = MuteAccess.app(isAdministrator: isAdministrator,
-                                        controlsStream: sink == nil || caller === sink?.connection)
+                                        controlsStream: MuteAccess.controlsStream(caller, owner: sink?.connection))
             savedMutes.handle(request, access: access, caller: "Mac Monitor (pid \(caller?.processIdentifier ?? 0))",
                               reply: reply)
         }
@@ -215,20 +215,20 @@ extension SensorService: SensorProtocol {
                                reply: @escaping (Int) -> Void) {
         // Off `queue` since the signature check reads from disk.
         DispatchQueue.global(qos: .userInitiated).async { [logger] in
-            guard let action = CommandLineToolLink.Action(rawValue: action) else {
-                return reply(CommandLineToolLinker.Outcome.badTool.rawValue)
+            let (outcome, plan) = CommandLineToolLinker().handle(action: action, tool: tool, expected: expected) {
+                CommandLineToolAuthorization.isApproved(authorization)
             }
-            guard CommandLineToolAuthorization.isApproved(authorization) else {
-                logger.error("Refused to \(action.rawValue, privacy: .public) the command line tool: not authorized.")
-                return reply(CommandLineToolLinker.Outcome.notAuthorized.rawValue)
+            if let plan {
+                logger.log("""
+                    \(action, privacy: .public) \(plan.linkPath, privacy: .public) \
+                    (\(plan.tool, privacy: .public)): \(String(describing: outcome), privacy: .public)
+                    """)
+            } else {
+                logger.error("""
+                    Refused to \(action, privacy: .public) the command line tool: \
+                    \(String(describing: outcome), privacy: .public).
+                    """)
             }
-            let plan = CommandLineToolLink.Plan(action: action, tool: action == .install ? tool : "",
-                                                binDirectory: "/usr/local/bin", expected: expected)
-            let outcome = CommandLineToolLinker().apply(plan)
-            logger.log("""
-                \(action.rawValue, privacy: .public) \(plan.linkPath, privacy: .public) \
-                (\(plan.tool, privacy: .public)): \(String(describing: outcome), privacy: .public)
-                """)
             reply(outcome.rawValue)
         }
     }
@@ -283,7 +283,8 @@ extension SensorService {
         let counters = current.batcher.counters
         logger.log("""
             Mac Monitor disconnected after \(counters.delivered) of \(counters.enqueued) events \
-            (\(counters.spooled) went through the spool). Stopping capture.
+            (\(counters.spooled) went through the spool, \(counters.dropped) were dropped, and \(counters.lost) were \
+            in batches it never answered). Stopping capture.
             """)
         current.batcher.close()
         sink = nil
@@ -296,7 +297,7 @@ extension SensorService {
     
     /// Batch events for Mac Monitor: in memory up to ``EventBatcher/Limits-swift.struct/app``'s limit, then spilled to
     /// an ``EventSpool`` file, so a stalled Mac Monitor can't grow a root process without bound. Nothing is dropped
-    /// unless the spool is full too (``EventSpool/maxSize``, ``EventSpool/minFreeSpace``).
+    /// unless the spool is full too (``EventSpool/Limits-swift.struct``).
     ///
     /// - Parameter connection: The connection that claimed the event stream.
     /// - Returns: The batcher. Each batch sent also logs what Endpoint Security dropped since the last report.

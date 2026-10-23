@@ -283,4 +283,17 @@ final class ExportValueTests: XCTestCase {
             XCTAssertEqual(exported["rights"] as? [String], rights)
         }
     }
+    
+    /// A petition's flags are named in bit order, the same on every run, and none are named for the defaults (0).
+    func testPetitionFlagsAreNamedInOrder() {
+        let all: UInt32 = 0b1_1111 | 1 << 20
+        XCTAssertEqual(AuthorizationPetitionEvent.flagNames(all), [
+            "kAuthorizationFlagInteractionAllowed", "kAuthorizationFlagExtendRights",
+            "kAuthorizationFlagPartialRights", "kAuthorizationFlagDestroyRights", "kAuthorizationFlagPreAuthorize",
+            "kAuthorizationFlagNoData",
+        ])
+        XCTAssertEqual(AuthorizationPetitionEvent.flagNames(0), [])
+        XCTAssertEqual(AuthorizationPetitionEvent.flagNames(1 << 4 | 1 << 1),
+                       ["kAuthorizationFlagExtendRights", "kAuthorizationFlagPreAuthorize"])
+    }
 }

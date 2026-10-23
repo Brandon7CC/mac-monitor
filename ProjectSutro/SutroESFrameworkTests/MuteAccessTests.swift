@@ -64,12 +64,27 @@ final class MuteAccessTests: XCTestCase {
         XCTAssertFalse(AdministratorCheck { _ in true }.isAdministrator(nil))
         XCTAssertTrue(AdministratorCheck.openDirectory.isAdministrator(Peer(euid: 0)))
         
-        let access = { (caller: Peer?) in
-            MuteAccess.app(isAdministrator: administrators.isAdministrator(caller), controlsStream: true)
+    }
+    
+    /// A connection controls the event stream when it owns it, or when nobody does. A connection that isn't the
+    /// owner, or no connection at all, doesn't while someone does.
+    func testOnlyTheStreamsOwnerControlsIt() {
+        let owner = Peer(euid: 501), other = Peer(euid: 501)
+        XCTAssertTrue(MuteAccess.controlsStream(owner, owner: owner))
+        XCTAssertTrue(MuteAccess.controlsStream(other, owner: nil))
+        XCTAssertTrue(MuteAccess.controlsStream(nil, owner: nil))
+        XCTAssertFalse(MuteAccess.controlsStream(other, owner: owner), "Same user, another connection")
+        XCTAssertFalse(MuteAccess.controlsStream(nil, owner: owner))
+        
+        let administrators = AdministratorCheck { $0 == 501 }
+        let access = { (caller: Peer?, owner: Peer?) in
+            MuteAccess.app(isAdministrator: administrators.isAdministrator(caller),
+                           controlsStream: MuteAccess.controlsStream(caller, owner: owner))
         }
-        XCTAssertEqual(access(Peer(euid: 501)), .write)
-        XCTAssertEqual(access(Peer(euid: 502)), .standardUser)
-        XCTAssertEqual(access(nil), .standardUser)
+        XCTAssertEqual(access(owner, owner), .write)
+        XCTAssertEqual(access(other, owner), .read)
+        XCTAssertEqual(access(Peer(euid: 502), nil), .standardUser)
+        XCTAssertEqual(access(nil, nil), .standardUser)
     }
     
     /// Open Directory counts root, a member of `admin` on every Mac, and never `nobody` or a user ID with no account.
