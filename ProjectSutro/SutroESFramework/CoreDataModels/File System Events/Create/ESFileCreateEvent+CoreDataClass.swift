@@ -68,6 +68,6 @@ extension ESFileCreateEvent: Encodable {
     ///
     /// Read as a path, not a URL: `URL(string:)` has no URL for "" and, on macOS 13, none for a path with a space.
     public var fileName: String {
-        return (targetPath as NSString).lastPathComponent
+        targetPath.lastPathComponent
     }
 }

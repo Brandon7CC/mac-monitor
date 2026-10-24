@@ -126,6 +126,7 @@ struct SystemFileCreateMetadataView: View {
                             Text("`\(destinationPath)`")
                                 .lineLimit(10)
                         }
+                        ShowInFinderButton(path: destinationPath)
                     }
                     
                     if let acl = acl {

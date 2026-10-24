@@ -3,7 +3,7 @@
 #  community-sign.sh
 #  Mac Monitor
 #
-#  Ad-hoc signs a Mac Monitor build produced with Community.xcconfig so that it
+#  Adhoc signs a Mac Monitor build produced with Community.xcconfig so that it
 #  can be loaded in a virtual machine with SIP disabled and
 #  `amfi_get_out_of_my_way=1` set. The signature carries the real entitlements
 #  and identifiers; only the certificate chain is missing. Such a build will
@@ -74,4 +74,4 @@ echo "→ verify"
 # grep reads every line (no -q), so codesign never writes into a closed pipe under pipefail.
 [[ "$("$CODESIGN" --display --verbose=1 "$CLI" 2>&1 | "$GREP" "^Identifier=")" == \
     "Identifier=com.swiftlydetecting.agent.cli" ]] || { echo "macmonitor lost its signing identifier" >&2; exit 70; }
-echo "✅ ad-hoc signed: $APP"
+echo "✅ adhoc signed: $APP"

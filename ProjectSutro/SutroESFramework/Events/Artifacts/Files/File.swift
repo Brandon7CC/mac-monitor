@@ -9,6 +9,16 @@ import Foundation
 
 
 // Ensure File conforms to Codable and Equatable
+public extension String {
+    /// A path's last component, its file name: `macmonitor` for
+    /// `/Applications/Mac Monitor.app/Contents/MacOS/macmonitor`. Read as a path, never through `URL(string:)`, which
+    /// on macOS 13 has no URL for a path with a space, so the name was "".
+    var lastPathComponent: String {
+        (self as NSString).lastPathComponent
+    }
+}
+
+
 public struct File: Identifiable, Codable, Equatable, Hashable {
     public var id = UUID.buffered()
     
@@ -19,7 +29,7 @@ public struct File: Identifiable, Codable, Equatable, Hashable {
     
     ///Mac Monitor Enrichment
     public var name: String {
-        (path as NSString).lastPathComponent
+        path.lastPathComponent
     }
     
     public init(from file: es_file_t) {

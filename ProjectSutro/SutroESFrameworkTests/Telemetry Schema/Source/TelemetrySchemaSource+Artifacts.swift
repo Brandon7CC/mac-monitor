@@ -178,7 +178,7 @@ extension TelemetrySchemaSource {
             eslogger("cdhash", .pattern(.cdhash)),
             eslogger("signing_id", .nullable(.string), "null when the signing information has none."),
             eslogger("team_id", .nullable(.string),
-                     "null when the signing information has none, as for ad hoc signing."),
+                     "null when the signing information has none, as for adhoc signing."),
         ])
     }
 }

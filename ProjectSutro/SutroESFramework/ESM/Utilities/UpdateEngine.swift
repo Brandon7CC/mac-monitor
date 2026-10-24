@@ -28,7 +28,7 @@ public struct UpdateDetails: Codable, Identifiable {
 
 
 extension EndpointSecurityManager {
-    /// Can this build update itself? `false` for Community builds, which are ad-hoc signed for SIP-off development VMs
+    /// Can this build update itself? `false` for Community builds, which are adhoc signed for SIP-off development VMs
     /// and shouldn't be replaced by a release build (the Security Extension refuses to check or install).
 #if COMMUNITY_BUILD
     public static let supportsUpdates: Bool = false

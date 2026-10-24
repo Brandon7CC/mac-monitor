@@ -81,6 +81,7 @@ struct SystemFileRenameMetadataView: View {
                                 .monospaced()
                                 .lineLimit(10)
                         }
+                        ShowInFinderButton(path: event.destination_path)
                     }
                     
                     if let sourcePath = event.source.path {
@@ -91,6 +92,7 @@ struct SystemFileRenameMetadataView: View {
                                     .monospaced()
                                     .lineLimit(10)
                             }
+                            ShowInFinderButton(path: sourcePath)
                         }
                     }
                     

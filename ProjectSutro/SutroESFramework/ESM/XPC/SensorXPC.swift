@@ -118,7 +118,7 @@ public enum SensorXPC {
             + " and certificate leaf[subject.OU] = \"\(teamID)\""
     }
     
-    /// The requirement a Community build enforces. Community builds are ad-hoc signed (see `Community.xcconfig`), so
+    /// The requirement a Community build enforces. Community builds are adhoc signed (see `Community.xcconfig`), so
     /// there is no certificate chain or team ID to pin against: only the signing identifier is enforced. Never ship a
     /// build that uses it.
     ///

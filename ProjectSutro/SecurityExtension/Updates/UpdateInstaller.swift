@@ -21,7 +21,7 @@ import SutroESFramework
 ///    `true` and no `assessment:authority:override`), which implies notarization even if Gatekeeper is turned off
 /// 3. Is signed by `SensorXPC.teamID`
 ///
-/// Updates are disabled in Community builds: they're ad-hoc signed for SIP-off development VMs, only enforce the
+/// Updates are disabled in Community builds: they're adhoc signed for SIP-off development VMs, only enforce the
 /// signing identifier on XPC peers, and shouldn't be replaced by a release build.
 final class UpdateInstaller {
     private static let latestReleaseURL: URL = URL(string: "https://api.github.com/repos/Brandon7CC/mac-monitor/releases/latest")!

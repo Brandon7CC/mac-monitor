@@ -34,7 +34,7 @@ struct GroupSummary {
 
     /// How a process is signed.
     enum Signing: String, CaseIterable {
-        case apple = "Apple", appStore = "App Store", developerID = "Developer ID", adhoc = "Ad hoc"
+        case apple = "Apple", appStore = "App Store", developerID = "Developer ID", adhoc = "Adhoc"
         case unsigned = "Unsigned", unknown = "Unknown"
 
         /// - Parameter type: A process's ``CodeSigningType``, as stored.
@@ -186,11 +186,11 @@ enum GroupFinding: String, CaseIterable, Identifiable {
     /// The card's title.
     ///
     /// - Parameter count: How many execs are part of it.
-    /// - Returns: The title, such as "2 ad hoc or unsigned".
+    /// - Returns: The title, such as "2 adhoc or unsigned".
     func title(_ count: Int) -> String {
         switch self {
         case .newExecutable: return count == 1 ? "New executable" : "\(count) new executables"
-        case .unsignedCode: return "\(count) ad hoc or unsigned"
+        case .unsignedCode: return "\(count) adhoc or unsigned"
         case .script: return count == 1 ? "Ran a script" : "Ran \(count) scripts"
         case .appleScript: return count == 1 ? "AppleScript" : "AppleScript ×\(count)"
         case .download: return count == 1 ? "Download tool" : "\(count) download tools"
@@ -204,7 +204,7 @@ enum GroupFinding: String, CaseIterable, Identifiable {
         case .newExecutable:
             return "Its executable was created less than five minutes before it ran, as a dropper's payload is."
         case .unsignedCode:
-            return "Ran code that isn't signed by a known developer: ad hoc, as a freshly compiled or modified binary "
+            return "Ran code that isn't signed by a known developer: adhoc, as a freshly compiled or modified binary "
                 + "is, or not at all."
         case .script:
             return "An interpreter ran a script Mac Monitor read. That exec's Script tab shows its content."

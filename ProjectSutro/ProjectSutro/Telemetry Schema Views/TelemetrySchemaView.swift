@@ -34,7 +34,7 @@ struct TelemetrySchemaView: View {
             Divider()
             switch model.schema {
             case .success:
-                ReadOnlyTextView(text: model.schemaText)
+                ReadOnlyTextView(text: model.schemaText, language: .json)
             case .failure(let error):
                 unavailable(error)
             }

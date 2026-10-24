@@ -94,7 +94,7 @@ enum SyntheticCorpus {
             /// A path arm whose path is NULL, which eslogger writes as `"file": null`.
             all.append(variant("null path", arms: ["FilePathUnion": "unknown"], path))
             all.append(variant("unknown file", arms: ["FilePathUnion": "unknown"], ["file_type": 2]))
-            /// Signing information without IDs, such as an ad hoc signature's: eslogger writes them as `null`.
+            /// Signing information without IDs, such as an adhoc signature's: eslogger writes them as `null`.
             all.append(variant("signing info without IDs",
                                absent: [unflagged, "SignedFileInfo.signing_id", "SignedFileInfo.team_id"]))
         case ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD, ES_EVENT_TYPE_NOTIFY_OD_GROUP_REMOVE:

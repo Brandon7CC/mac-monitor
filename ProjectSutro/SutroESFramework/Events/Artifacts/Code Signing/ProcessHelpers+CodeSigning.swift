@@ -26,7 +26,7 @@ extension ProcessHelpers {
     ///
     /// - Parameter path: The executable's path.
     /// - Returns: Each certificate's subject summary and SHA-1 thumbprint, leaf first: none if the signature has no
-    ///   certificates (an ad hoc signature), `nil` if it can't be read.
+    ///   certificates (an adhoc signature), `nil` if it can't be read.
     static func readCodeSigningCerts(forBinaryAt path: String) -> [X509Cert]? {
         var staticCode: SecStaticCode?
         guard let url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, path as CFString, .cfurlposixPathStyle, false) else {
@@ -112,29 +112,64 @@ extension ProcessHelpers {
 
 
 // MARK: - Code signing flags
+/// One code signing flag: its bit and name in `<kern/cs_blobs.h>`, and what it means, from the header's comments.
+public struct CodeSigningFlag: Identifiable, Hashable {
+    public let bit: UInt32
+    public let name: String
+    public let summary: String
+    public var id: UInt32 { bit }
+}
+
+
 extension ProcessHelpers {
-    /// Each code signing flag's bit and name, from `<kern/cs_blobs.h>`, in bit order. Literal values: the header's
-    /// constants are `Int32`, and `CS_DATAVAULT_CONTROLLER` (bit 31) has none.
-    private static let codeSigningFlags: [(bit: UInt32, name: String)] = [
-        (0x0000_0001, "CS_VALID"), (0x0000_0002, "CS_ADHOC"), (0x0000_0004, "CS_GET_TASK_ALLOW"),
-        (0x0000_0008, "CS_INSTALLER"), (0x0000_0010, "CS_FORCED_LV"), (0x0000_0020, "CS_INVALID_ALLOWED"),
-        (0x0000_0100, "CS_HARD"), (0x0000_0200, "CS_KILL"), (0x0000_0400, "CS_CHECK_EXPIRATION"),
-        (0x0000_0800, "CS_RESTRICT"), (0x0000_1000, "CS_ENFORCEMENT"), (0x0000_2000, "CS_REQUIRE_LV"),
-        (0x0000_4000, "CS_ENTITLEMENTS_VALIDATED"), (0x0000_8000, "CS_NVRAM_UNRESTRICTED"),
-        (0x0001_0000, "CS_RUNTIME"), (0x0002_0000, "CS_LINKER_SIGNED"), (0x0010_0000, "CS_EXEC_SET_HARD"),
-        (0x0020_0000, "CS_EXEC_SET_KILL"), (0x0040_0000, "CS_EXEC_SET_ENFORCEMENT"),
-        (0x0080_0000, "CS_EXEC_INHERIT_SIP"), (0x0100_0000, "CS_KILLED"), (0x0200_0000, "CS_NO_UNTRUSTED_HELPERS"),
-        (0x0400_0000, "CS_PLATFORM_BINARY"), (0x0800_0000, "CS_PLATFORM_PATH"), (0x1000_0000, "CS_DEBUGGED"),
-        (0x2000_0000, "CS_SIGNED"), (0x4000_0000, "CS_DEV_CODE"), (0x8000_0000, "CS_DATAVAULT_CONTROLLER"),
-    ]
+    /// Each code signing flag, in bit order. Literal values: the header's constants are `Int32`, and
+    /// `CS_DATAVAULT_CONTROLLER` (bit 31) has none.
+    private static let codeSigningFlags: [CodeSigningFlag] = [
+        (0x0000_0001, "CS_VALID", "Dynamically valid"),
+        (0x0000_0002, "CS_ADHOC", "Adhoc signed"),
+        (0x0000_0004, "CS_GET_TASK_ALLOW", "Has the get-task-allow entitlement"),
+        (0x0000_0008, "CS_INSTALLER", "Has an installer entitlement"),
+        (0x0000_0010, "CS_FORCED_LV", "Library validation required by the hardened system policy"),
+        (0x0000_0020, "CS_INVALID_ALLOWED", "Page invalidation allowed by the task port policy"),
+        (0x0000_0100, "CS_HARD", "Doesn't load invalid pages"),
+        (0x0000_0200, "CS_KILL", "Killed if it becomes invalid"),
+        (0x0000_0400, "CS_CHECK_EXPIRATION", "Certificate expiration checked"),
+        (0x0000_0800, "CS_RESTRICT", "dyld treats it as restricted"),
+        (0x0000_1000, "CS_ENFORCEMENT", "Code signing enforced"),
+        (0x0000_2000, "CS_REQUIRE_LV", "Library validation required"),
+        (0x0000_4000, "CS_ENTITLEMENTS_VALIDATED", "Its signature permits restricted entitlements"),
+        (0x0000_8000, "CS_NVRAM_UNRESTRICTED", "Has the restricted NVRAM variables entitlement"),
+        (0x0001_0000, "CS_RUNTIME", "Hardened runtime"),
+        (0x0002_0000, "CS_LINKER_SIGNED", "Signed by the linker, as a freshly compiled binary is"),
+        (0x0010_0000, "CS_EXEC_SET_HARD", "Sets CS_HARD on what it execs"),
+        (0x0020_0000, "CS_EXEC_SET_KILL", "Sets CS_KILL on what it execs"),
+        (0x0040_0000, "CS_EXEC_SET_ENFORCEMENT", "Sets CS_ENFORCEMENT on what it execs"),
+        (0x0080_0000, "CS_EXEC_INHERIT_SIP", "Sets CS_INSTALLER on what it execs"),
+        (0x0100_0000, "CS_KILLED", "Killed by the kernel for being invalid"),
+        (0x0200_0000, "CS_NO_UNTRUSTED_HELPERS", "The kernel loaded only a platform dyld or Rosetta"),
+        (0x0400_0000, "CS_PLATFORM_BINARY", "A platform binary"),
+        (0x0800_0000, "CS_PLATFORM_PATH", "A platform binary by its path"),
+        (0x1000_0000, "CS_DEBUGGED", "Debugged now or before, and allowed to run with invalid pages"),
+        (0x2000_0000, "CS_SIGNED", "Has a signature, which may have gone invalid"),
+        (0x4000_0000, "CS_DEV_CODE", "Development signed: can't load into production signed code"),
+        (0x8000_0000, "CS_DATAVAULT_CONTROLLER", "Has the Data Vault controller entitlement"),
+    ].map { CodeSigningFlag(bit: $0.0, name: $0.1, summary: $0.2) }
+
+    /// The flags set in a process's code signing flags.
+    ///
+    /// - Parameter flags: `es_process_t`'s `codesigning_flags`, a `uint32_t`.
+    /// - Returns: The flags, in bit order.
+    public static func codeSigningFlags(_ flags: Int64) -> [CodeSigningFlag] {
+        let bits = UInt32(truncatingIfNeeded: flags)
+        return codeSigningFlags.filter { bits & $0.bit != 0 }
+    }
 
     /// The names of the flags set in a process's code signing flags, such as `CS_VALID` and `CS_RUNTIME` (the
-    /// hardened runtime). Ad hoc with `CS_LINKER_SIGNED` is what the linker signs a freshly compiled binary with.
+    /// hardened runtime). Adhoc with `CS_LINKER_SIGNED` is what the linker signs a freshly compiled binary with.
     ///
     /// - Parameter flags: `es_process_t`'s `codesigning_flags`, a `uint32_t`.
     /// - Returns: The names, in bit order.
     public static func codeSigningFlagNames(_ flags: Int64) -> [String] {
-        let bits = UInt32(truncatingIfNeeded: flags)
-        return codeSigningFlags.filter { bits & $0.bit != 0 }.map(\.name)
+        codeSigningFlags(flags).map(\.name)
     }
 }

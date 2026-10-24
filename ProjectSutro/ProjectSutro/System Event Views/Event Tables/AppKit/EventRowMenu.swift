@@ -118,8 +118,8 @@ struct EventRowMenu {
         let filters = filters, manager = manager, id = message.id
         let targetPath = exec.target.executable?.path
         let targetName = exec.target.executable?.name
-        /// The SwiftUI menu names the muted target by the last component of `URL(string:)`, not the executable's name.
-        let targetFileName = URL(string: targetPath ?? "")?.lastPathComponent ?? ""
+        /// The muted target by its path's last component, as the SwiftUI menu names it, not the executable's name.
+        let targetFileName = (targetPath ?? "").lastPathComponent
         let path = message.process.executable?.path
         let name = message.process.executable?.name
         let euid = message.process.euid_human ?? ""

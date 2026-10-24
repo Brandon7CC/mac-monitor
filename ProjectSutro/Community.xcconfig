@@ -12,14 +12,14 @@
 //    xcodebuild -project ProjectSutro.xcodeproj -scheme ProjectSutro \
 //        -configuration Debug -xcconfig Community.xcconfig build
 //
-//  Xcode refuses to ad-hoc sign a target whose entitlements include restricted
+//  Xcode refuses to adhoc sign a target whose entitlements include restricted
 //  keys (com.apple.developer.endpoint-security.client,
 //  com.apple.developer.system-extension.install) unless a provisioning profile
-//  is present. So we turn Xcode's signing off entirely and re-sign ad-hoc with
+//  is present. So we turn Xcode's signing off entirely and re-sign adhoc with
 //  the real entitlements in Scripts/community-sign.sh after the build.
 //
 
-// Disable Xcode's code signing step. The linker still emits an ad-hoc
+// Disable Xcode's code signing step. The linker still emits an adhoc
 // signature, and Scripts/community-sign.sh replaces it with one that carries
 // the entitlements and bundle identifiers the OS expects.
 CODE_SIGNING_ALLOWED = NO
@@ -32,13 +32,13 @@ DEVELOPMENT_TEAM[sdk=macosx*] =
 PROVISIONING_PROFILE_SPECIFIER =
 PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*] =
 
-// Hardened Runtime is meaningless for an ad-hoc signature and would break
+// Hardened Runtime is meaningless for an adhoc signature and would break
 // debugging in the VM.
 ENABLE_HARDENED_RUNTIME = NO
 
 // Relaxes both XPC code-signing requirements (the Security Extension's on Mac
 // Monitor and Mac Monitor's on the Security Extension) to identifier-only, which
-// ad-hoc signed builds can satisfy, and disables update installs in the Security
+// adhoc signed builds can satisfy, and disables update installs in the Security
 // Extension. See SensorXPC.swift and UpdateInstaller.swift.
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) COMMUNITY_BUILD
 
@@ -51,6 +51,6 @@ COMMUNITY_EXCLUDED_ARCHS_arm64 = x86_64
 COMMUNITY_EXCLUDED_ARCHS_x86_64 = arm64 arm64e
 
 // No Mac Monitor.debug.dylib or __preview.dylib beside the app's executable: they serve Xcode Previews, which a VM
-// build has no use for, and Scripts/community-sign.sh doesn't sign them. Only the linker's ad-hoc signature, which it
+// build has no use for, and Scripts/community-sign.sh doesn't sign them. Only the linker's adhoc signature, which it
 // writes for arm64 and arm64e alone, kept them valid, so an Intel Mac's x86_64 build failed the script's verify step.
 ENABLE_DEBUG_DYLIB = NO

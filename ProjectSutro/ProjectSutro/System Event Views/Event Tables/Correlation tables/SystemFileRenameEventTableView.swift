@@ -26,7 +26,7 @@ struct SystemFileRenameEventTableView: View {
                 
                 TableColumn("Destination name") { message in
                     if let rename = message.event.rename,
-                       let fileName = URL(string: rename.destination_path)?.lastPathComponent {
+                       case let fileName = rename.destination_path.lastPathComponent, !fileName.isEmpty {
                         HStack {
                             Text(fileName)
                         }

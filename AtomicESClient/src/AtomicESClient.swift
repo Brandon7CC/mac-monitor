@@ -25,7 +25,7 @@ import EndpointSecurity
 
 // @note: reference: `kern/cs_blobs.h`
 // Use a Swift module to expose the Kernel/kern/cs_blobs.h header file
-let CS_ADHOC: UInt32 = 0x00000002  /* ad hoc signed */
+let CS_ADHOC: UInt32 = 0x00000002  /* adhoc signed */
 
 // @discussion: This ES event will give you basic *high level* process execution information.
 public var esEventSubs: [es_event_type_t] = [
