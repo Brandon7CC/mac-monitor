@@ -32,7 +32,7 @@ final class SensorXPCRequirementTests: XCTestCase {
         return SecStaticCodeCheckValidity(code, SecCSFlags(rawValue: kSecCSStrictValidate), compiled) == errSecSuccess
     }
     
-    /// A copy of `/usr/bin/true`, ad-hoc signed with an identifier, as a Community build signs its programs. Removed
+    /// A copy of `/usr/bin/true`, adhoc signed with an identifier, as a Community build signs its programs. Removed
     /// when the test ends.
     ///
     /// - Parameter identifier: The signing identifier.
@@ -77,7 +77,7 @@ final class SensorXPCRequirementTests: XCTestCase {
     }
     
     /// Evaluated against signed code, the listener's requirement admits a program signed as Mac Monitor or as
-    /// `macmonitor`, and nothing else: not one signed as the Security Extension, and not an Apple tool. Ad-hoc copies
+    /// `macmonitor`, and nothing else: not one signed as the Security Extension, and not an Apple tool. Adhoc copies
     /// stand in for a Community build's programs, which only the Community variant admits.
     func testTheListenerAdmitsMacMonitorAndTheCommandLineToolOnly() throws {
         let copies = try identifiers.map { try adHocCopy(signedAs: $0) }

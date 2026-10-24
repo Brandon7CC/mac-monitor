@@ -74,7 +74,7 @@ struct ExecEventLabelView: View {
             if event.target.is_adhoc_signed {
                 Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow)
                     .help(event.target.isLinkerSignedAdhoc
-                          ? "Ad hoc signed by the linker, as a freshly compiled binary is." : "Ad hoc signed.")
+                          ? "Adhoc signed by the linker, as a freshly compiled binary is." : "Adhoc signed.")
                 Label("**`\(message.es_event_type!)`**", systemImage: "xmark.seal").symbolRenderingMode(.palette).foregroundStyle(.orange)
             } else if let signingID = event.target.signing_id.nonEmpty, signingID != "Unknown" {
                 // MARK: Signed

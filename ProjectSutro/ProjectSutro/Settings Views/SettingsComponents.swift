@@ -179,7 +179,11 @@ struct SettingsSearchField: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-            TextField(prompt, text: $text).textFieldStyle(.plain)
+            /// The label hidden, the prompt the placeholder: in a form, a TextField's title is a label to its left,
+            /// which leaves the field itself a sliver at the right.
+            TextField(text: $text, prompt: Text(prompt)) { Text(prompt) }
+                .labelsHidden()
+                .textFieldStyle(.plain)
             if !text.isEmpty {
                 Button { text = "" } label: { Image(systemName: "xmark.circle.fill") }
                     .buttonStyle(.borderless)

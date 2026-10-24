@@ -5,7 +5,7 @@
 #
 #  One-shot build for contributors without Swiftly Detecting's signing
 #  certificates. Builds the "Community" configuration (see Community.xcconfig)
-#  and ad-hoc signs the result with Scripts/community-sign.sh.
+#  and adhoc signs the result with Scripts/community-sign.sh.
 #
 #  The output loads only in a virtual machine with SIP disabled and
 #  `amfi_get_out_of_my_way=1` in boot-args. See the "Community development"
@@ -35,7 +35,7 @@ APP="$DERIVED_DATA/Build/Products/Community/Mac Monitor.app"
 
 "$PROJECT_DIR/Scripts/community-sign.sh" "$APP"
 
-# Zip with ditto so the ad-hoc signature survives the copy into the VM.
+# Zip with ditto so the adhoc signature survives the copy into the VM.
 ZIP="$PROJECT_DIR/build/MacMonitor-community.zip"
 /bin/rm -f "$ZIP"
 /usr/bin/ditto -c -k --keepParent "$APP" "$ZIP"

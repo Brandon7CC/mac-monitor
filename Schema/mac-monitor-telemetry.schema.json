@@ -3024,7 +3024,7 @@
           "type": ["string", "null"]
         },
         "team_id": {
-          "description": "null when the signing information has none, as for ad hoc signing.",
+          "description": "null when the signing information has none, as for adhoc signing.",
           "x-mac-monitor-origin": "eslogger",
           "type": ["string", "null"]
         }

@@ -17,6 +17,7 @@ struct SystemTargetExecProcMetadataView: View {
     @State private var showEnvVars: Bool = false
     @State private var showXPCServiceName: Bool = false
     @State private var showFDs: Bool = false
+    @State private var showCodeSigningFlags: Bool = false
     
     private var event: ESProcessExecEvent {
         selectedMessage.event.exec!
@@ -27,9 +28,7 @@ struct SystemTargetExecProcMetadataView: View {
     }
     
     private var procName: String {
-        return URL(
-            string: event.target.executable?.path ?? ""
-        )?.lastPathComponent ?? ""
+        (event.target.executable?.path ?? "").lastPathComponent
     }
     
     private var start_time: String {
@@ -47,6 +46,11 @@ struct SystemTargetExecProcMetadataView: View {
         return event.target.codesigning_type
     }
     
+    /// The flags set in the target's code signing flags, in bit order.
+    private var codeSigningFlags: [CodeSigningFlag] {
+        ProcessHelpers.codeSigningFlags(event.target.codesigning_flags)
+    }
+
     /// The XPC service the process was started as. Matching whole entries for `XPC_SERVICE_NAME` never found one, so
     /// the XPC sheet never showed.
     private var xpcServiceName: String? {
@@ -210,14 +214,16 @@ struct SystemTargetExecProcMetadataView: View {
                         }
                         
                         // MARK: Code signing flags
-                        HStack(alignment: .top) {
+                        /// The value and how many are set: the Code signing flags section lists them.
+                        HStack {
                             Text("\u{2022} **Code signing flags:**")
                             GroupBox {
-                                Text(event.target.codesigningFlagNames.joined(separator: ", "))
+                                Text(String(format: "0x%08X",
+                                            UInt32(truncatingIfNeeded: event.target.codesigning_flags)))
                                     .monospaced()
                                     .textSelection(.enabled)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
+                            Text("\(codeSigningFlags.count) set").foregroundStyle(.secondary)
                         }
                         
                         // MARK: Signing ID
@@ -284,6 +290,39 @@ struct SystemTargetExecProcMetadataView: View {
             }
         }
         
+        // MARK: Code signing flags
+        if !codeSigningFlags.isEmpty {
+            GroupBox {
+                VStack(alignment: .leading) {
+                    HStack {
+                        Label("**Code signing flags**", systemImage: "flag")
+                            .font(.title3)
+                        Button("\(showCodeSigningFlags ? "Hide" : "Show") code signing flags") {
+                            showCodeSigningFlags.toggle()
+                        }
+                    }
+
+                    if showCodeSigningFlags {
+                        GroupBox {
+                            Table(codeSigningFlags) {
+                                TableColumn("Flag") { flag in
+                                    Text(flag.name).monospaced().textSelection(.enabled)
+                                }
+                                .width(min: 180, ideal: 230)
+                                TableColumn("Bit") { flag in
+                                    Text(String(format: "0x%08X", flag.bit)).monospaced()
+                                }
+                                .width(min: 90, ideal: 100, max: 120)
+                                TableColumn("Meaning", value: \.summary)
+                            }
+                            /// Every flag without scrolling: a process has a dozen at most.
+                            .frame(height: CGFloat(codeSigningFlags.count) * 26 + 34)
+                        }
+                    }
+                }.frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+        }
+
         // MARK: File Descriptors
         if !event.fds.isEmpty {
             GroupBox {

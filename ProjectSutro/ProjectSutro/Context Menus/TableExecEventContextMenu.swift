@@ -148,12 +148,8 @@ struct AdvancedExecEventContextMenu: View {
         message.event.exec!
     }
     
-    private var procPath: URL? {
-        URL(string: exec.target.executable?.path ?? "")
-    }
-    
     private var procName: String {
-        return procPath?.lastPathComponent ?? ""
+        (exec.target.executable?.path ?? "").lastPathComponent
     }
     
     var body: some View {

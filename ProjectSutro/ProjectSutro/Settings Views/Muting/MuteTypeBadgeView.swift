@@ -51,6 +51,19 @@ enum MuteKind: String, CaseIterable, Identifiable {
         }
     }
 
+    /// What it matches, in Endpoint Security's words.
+    var detail: String {
+        switch self {
+        case .literal: return "Initiating executable path literal"
+        case .prefix: return "Initiating executable path prefix"
+        case .targetLiteral: return "Target path literal"
+        case .targetPrefix: return "Target path prefix"
+        }
+    }
+
+    /// The order the Add sheet offers them in: the initiating process's, then the target's, prefix first.
+    static let offered: [MuteKind] = [.prefix, .literal, .targetPrefix, .targetLiteral]
+
     /// Does it match the event's target, rather than the process that caused it?
     var isTarget: Bool { self == .targetLiteral || self == .targetPrefix }
 

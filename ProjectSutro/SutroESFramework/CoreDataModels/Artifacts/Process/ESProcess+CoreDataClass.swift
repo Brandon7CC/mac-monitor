@@ -207,7 +207,7 @@ extension ESProcess {
         ProcessHelpers.codeSigningFlagNames(codesigning_flags)
     }
 
-    /// Is the process ad hoc signed by the linker, as a freshly compiled binary is?
+    /// Is the process adhoc signed by the linker, as a freshly compiled binary is?
     public var isLinkerSignedAdhoc: Bool {
         let names = codesigningFlagNames
         return names.contains("CS_ADHOC") && names.contains("CS_LINKER_SIGNED")

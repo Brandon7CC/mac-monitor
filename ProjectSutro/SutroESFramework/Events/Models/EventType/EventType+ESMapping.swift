@@ -350,7 +350,7 @@ extension EventType {
     /// - Parameter path: The path.
     /// - Returns: Such as `true` for `/usr/bin/true`, or `""` for `""`.
     private static func name(of path: String) -> String {
-        (path as NSString).lastPathComponent
+        path.lastPathComponent
     }
     
     /// A directory and a file name joined into a path, as written, without percent escapes.

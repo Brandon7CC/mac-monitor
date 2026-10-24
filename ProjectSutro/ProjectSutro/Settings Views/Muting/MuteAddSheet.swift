@@ -10,26 +10,24 @@ import AppKit
 import SutroESFramework
 
 
-/// Adds a path to the saved mute set: what to match (the process or the target, exactly or as a folder) and the
-/// events to mute it for, every one or only some, with a sentence that says what the mute will do.
+/// Adds a path to the saved mute set: the path and how to mute it by, then Mute Path for every event
+/// (`es_mute_path`), or Mute Path Events for the Endpoint Security client's events picked below
+/// (`es_mute_path_events`).
 struct MuteAddSheet: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @Environment(\.dismiss) private var dismiss
     @Binding var pathToMute: String
 
-    @State private var target: Bool
-    @State private var prefix: Bool
-    @State private var onlySome = false
+    @State private var kind: MuteKind
     @State private var picked: Set<String> = []
     @State private var query = ""
 
     /// - Parameters:
     ///   - pathToMute: The path, which the sheet may start with.
-    ///   - kind: How to match it at first.
+    ///   - kind: How to mute it by at first.
     init(pathToMute: Binding<String>, kind: MuteKind = .literal) {
         _pathToMute = pathToMute
-        _target = State(initialValue: kind.isTarget)
-        _prefix = State(initialValue: kind.isPrefix)
+        _kind = State(initialValue: kind)
     }
 
     /// The `ES_EVENT_TYPE_*` names Endpoint Security mutes by target path.
@@ -37,52 +35,61 @@ struct MuteAddSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            header.padding([.horizontal, .top], 20).padding(.bottom, 12)
             Form {
                 Section {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Path")
-                        HStack {
-                            TextField("Path", text: $pathToMute, prompt: Text(placeholder))
-                                .textFieldStyle(.roundedBorder)
-                                .font(.body.monospaced())
-                                .labelsHidden()
-                            Button("Choose…") { choose() }
-                        }
-                        if let note {
-                            Text(note.text).font(.caption).foregroundStyle(note.warns ? .orange : .secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                    Label("To mute the path for every event, click Mute Path. To mute it only for the events "
+                          + "selected below, click Mute Path Events.", systemImage: "info.square")
+                        .foregroundStyle(.secondary)
+                    /// The whole row, as the path reads from its start.
+                    HStack {
+                        TextField(text: $pathToMute, prompt: Text(placeholder)) { Text("Path") }
+                            .labelsHidden()
+                            .textFieldStyle(.roundedBorder)
+                            .font(.body.monospaced())
+                        Button("Choose…") { choose() }
+                    }
+                    if let note {
+                        Text(note.text).font(.caption).foregroundStyle(note.warns ? .orange : .secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Picker(selection: $kind) {
+                        ForEach(MuteKind.offered) { Text($0.detail).tag($0) }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Mute by")
+                            Text(kind.rawValue).font(.caption.monospaced()).foregroundStyle(.secondary)
                         }
                     }
-                    LabeledContent("Match") {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Picker("Match the", selection: $target) {
-                                Text("Process").tag(false).help("The executable that caused the event")
-                                Text("Target").tag(true).help("The file or path the event is about")
-                            }
-                            .pickerStyle(.segmented).labelsHidden().fixedSize()
-                            Picker("Match how", selection: $prefix) {
-                                Text("This path exactly").tag(false)
-                                Text("Anything under this folder").tag(true)
-                            }
-                            .pickerStyle(.segmented).labelsHidden().fixedSize()
-                            HStack(spacing: 6) {
-                                MuteTypeBadgeView(kind: kind)
-                                Text(kind.rawValue).font(.caption.monospaced()).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    LabeledContent("Mute for") {
-                        Picker("Mute for", selection: $onlySome) {
-                            Text("Every event").tag(false)
-                            Text("Only these events").tag(true)
-                        }
-                        .pickerStyle(.segmented).labelsHidden().fixedSize()
-                    }
+                } header: {
+                    Text("Path mute properties")
                 }
-                if onlySome { eventList }
                 Section {
-                    Label(summary, systemImage: "info.circle").foregroundStyle(.secondary)
+                    HStack {
+                        SettingsSearchField(text: $query, prompt: "Search events")
+                        Text("\(picked.count) selected").foregroundStyle(.secondary).monospacedDigit()
+                    }
+                    /// Its own scroll view, a fixed height: rows in the form itself fall past the sheet's bottom.
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 6) {
+                            ForEach(shownGroups) { group in
+                                Text(group.title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                    .padding(.top, 4)
+                                ForEach(group.events) { eventRow($0) }
+                            }
+                            if shownGroups.isEmpty { Text("No events match.").foregroundStyle(.secondary) }
+                        }
+                        .padding(.vertical, 4)
+                        .padding(.trailing, 12)
+                    }
+                    .frame(height: 290)
+                } header: {
+                    Text("Endpoint Security client properties")
+                } footer: {
+                    Text("The path is muted only for the events selected here. AUTH events have no effect here. "
+                         + "Only events Mac Monitor subscribes to are listed"
+                         + (kind.isTarget ? ", and only those Endpoint Security mutes by target path." : ".")
+                         + " Subscribe to an event first to mute it.")
+                        .foregroundStyle(.secondary)
                 }
             }
             .formStyle(.grouped)
@@ -90,65 +97,52 @@ struct MuteAddSheet: View {
             HStack {
                 Spacer()
                 Button("Cancel", role: .cancel) { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Add Mute") { add() }.keyboardShortcut(.defaultAction).disabled(!isValid)
+                Button("Mute Path") { add(events: []) }
+                    .disabled(!hasPath)
+                    .keyboardShortcut(picked.isEmpty ? .defaultAction : nil)
+                    .help("es_mute_path: mute the path for every event")
+                Button("Mute Path Events") { add(events: pickedEvents) }
+                    .disabled(!hasPath || picked.isEmpty)
+                    .keyboardShortcut(picked.isEmpty ? nil : .defaultAction)
+                    .help("es_mute_path_events: mute the path for the events selected")
             }
             .padding(.horizontal, 20).padding(.vertical, 12)
         }
-        .frame(width: 580, height: onlySome ? 700 : 490)
-        .onChange(of: target) { _ in picked.formIntersection(Set(choices.map(\.name))) }
+        /// No taller than the Settings window it's on, whose height the form then scrolls in.
+        .frame(width: 600)
+        .frame(minHeight: 520, idealHeight: 700, maxHeight: 720)
+        .onChange(of: kind) { _ in picked.formIntersection(Set(choices.map(\.name))) }
+        .onAppear { systemExtensionManager.requestEventSubscriptions() }
     }
 
-    /// The sheet's title and what a mute does.
-    private var header: some View {
-        HStack(spacing: 12) {
-            SettingsIconTile(pane: .pathMuting, size: 34)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Add Path Mute").font(.title3.bold())
-                Text("Endpoint Security stops sending the events it matches, right away, to Mac Monitor and "
-                     + "macmonitor.")
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    /// The events to choose from, searchable, grouped as Subscriptions groups them.
-    private var eventList: some View {
-        Section {
-            SettingsSearchField(text: $query, prompt: "Search events")
-            ForEach(shownGroups) { group in
-                Text(group.title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                ForEach(group.events) { event in
-                    Toggle(isOn: Binding { picked.contains(event.name) } set: {
-                        if $0 { picked.insert(event.name) } else { picked.remove(event.name) }
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: event.symbol).foregroundStyle(.secondary).frame(width: 18)
-                            Text(event.title)
-                            Spacer()
-                            Text(event.shortName).font(.caption.monospaced()).foregroundStyle(.secondary)
-                        }
-                    }
-                    .toggleStyle(.checkbox)
+    /// One event to pick, by its `ES_EVENT_TYPE_NOTIFY_` name, with Apple's documentation.
+    ///
+    /// - Parameter event: The event.
+    /// - Returns: Its row.
+    private func eventRow(_ event: EventCatalog.Event) -> some View {
+        HStack(spacing: 8) {
+            Toggle(isOn: Binding { picked.contains(event.name) } set: {
+                if $0 { picked.insert(event.name) } else { picked.remove(event.name) }
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: event.symbol).foregroundStyle(.secondary).frame(width: 18)
+                    Text(event.name).font(.callout.monospaced())
                 }
             }
-            if shownGroups.isEmpty { Text("No events match.").foregroundStyle(.secondary) }
-        } header: {
-            Text("\(picked.count) selected")
-        } footer: {
-            Text("Only events Mac Monitor subscribes to" + (target
-                ? ", and that Endpoint Security can mute by target path." : "."))
-                .foregroundStyle(.secondary)
+            .toggleStyle(.checkbox)
+            .help(event.title)
+            Spacer()
+            Link(destination: event.documentation) { Image(systemName: "book") }
+                .help("Apple's documentation for \(event.name)")
+                .accessibilityLabel("Documentation for \(event.title)")
         }
     }
 
-    /// How the mute matches its path.
-    private var kind: MuteKind { MuteKind(target: target, prefix: prefix) }
-
-    /// The events a mute like this can cover: subscribed ones, and for a target, ones ES mutes by target path.
+    /// The events a mute like this can cover: subscribed ones, and by a target path, ones ES mutes by it.
     private var choices: [EventCatalog.Event] {
         let subscribed = systemExtensionManager.monitoredEventStrings
         return EventCatalog.events.filter {
-            subscribed.contains($0.name) && (!target || Self.targetable.contains($0.name))
+            subscribed.contains($0.name) && (!kind.isTarget || Self.targetable.contains($0.name))
         }
     }
 
@@ -165,6 +159,9 @@ struct MuteAddSheet: View {
         }
     }
 
+    /// The events picked, in the list's order.
+    private var pickedEvents: [String] { choices.map(\.name).filter { picked.contains($0) } }
+
     /// A path to show in the empty field.
     private var placeholder: String {
         switch kind {
@@ -178,17 +175,16 @@ struct MuteAddSheet: View {
     /// Is the path a full one?
     private var hasPath: Bool { pathToMute.hasPrefix("/") && pathToMute.count > 1 }
 
-    /// Can the mute be added?
-    private var isValid: Bool { hasPath && (!onlySome || !picked.isEmpty) }
-
     /// What's wrong with the path, or what to know about it, and whether it's a warning.
     private var note: (text: String, warns: Bool)? {
         if pathToMute.isEmpty {
-            return (target ? "The file or folder whose events to mute." : "The executable whose events to mute.", false)
+            return (kind.isTarget ? "The event's target: the file or folder it's about."
+                    : "The initiating process's executable.", false)
         }
         if !pathToMute.hasPrefix("/") { return ("A full path, starting with /.", true) }
-        if prefix && !pathToMute.hasSuffix("/") {
-            return ("End a folder with /, so \(pathToMute) doesn't also match \(pathToMute)X.", true)
+        if kind.isPrefix && !pathToMute.hasSuffix("/") {
+            return ("A prefix matches by text: end a folder with /, so \(pathToMute) doesn't also match "
+                    + "\(pathToMute)X.", true)
         }
         if systemExtensionManager.simpleGetMutedPaths().contains(where: {
             $0.path == pathToMute && $0.type == kind.rawValue
@@ -198,36 +194,21 @@ struct MuteAddSheet: View {
         return nil
     }
 
-    /// What the mute will do, in a sentence.
-    private var summary: String {
-        guard hasPath else { return "Type a path to see what this mute does." }
-        let names = choices.filter { picked.contains($0.name) }.map(\.shortName)
-        let events = !onlySome ? "any events" : names.isEmpty ? "the events you choose"
-            : ListFormatter.localizedString(byJoining: names) + " events"
-        let whose: String
-        switch kind {
-        case .literal: whose = "from"
-        case .prefix: whose = "from anything under"
-        case .targetLiteral: whose = "about"
-        case .targetPrefix: whose = "about anything under"
-        }
-        return "Endpoint Security won't send \(events) \(whose) \(pathToMute)."
-    }
-
     /// Ask for the file or folder to mute.
     private func choose() {
         let panel = NSOpenPanel()
-        panel.canChooseFiles = !prefix
+        panel.canChooseFiles = !kind.isPrefix
         panel.canChooseDirectories = true
         panel.treatsFilePackagesAsDirectories = true
         panel.title = "Choose what to mute"
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        pathToMute = url.path + (prefix && !url.path.hasSuffix("/") ? "/" : "")
+        pathToMute = url.path + (kind.isPrefix && !url.path.hasSuffix("/") ? "/" : "")
     }
 
     /// Send the mute to the Security Extension, which replies with the new saved set.
-    private func add() {
-        let events = onlySome ? choices.map(\.name).filter { picked.contains($0) } : []
+    ///
+    /// - Parameter events: The events to mute the path for, or none for every event.
+    private func add(events: [String]) {
         systemExtensionManager.puntPathToMute(pathToMute: pathToMute, muteCase: kind.esType, pathEvents: events)
         pathToMute = ""
         dismiss()
