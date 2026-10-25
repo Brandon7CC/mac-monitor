@@ -28,7 +28,15 @@ struct SystemMProtectMetadataView: View {
         event.size
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.mprotect != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             IntelligentEventLabelView(message: esSystemEvent)

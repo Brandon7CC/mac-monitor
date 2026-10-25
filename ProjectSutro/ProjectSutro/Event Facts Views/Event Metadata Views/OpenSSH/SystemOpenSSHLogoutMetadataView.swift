@@ -16,7 +16,15 @@ struct SystemOpenSSHLogoutMetadataView: View {
         esSystemEvent.event.openssh_logout!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.openssh_logout != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             OpenSSHLabelView(message: esSystemEvent)

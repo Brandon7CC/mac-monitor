@@ -16,7 +16,15 @@ struct SystemProcExitMetadataView: View {
         esSystemEvent.event.exit!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.exit != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             ExitEventLabelView(message: esSystemEvent)

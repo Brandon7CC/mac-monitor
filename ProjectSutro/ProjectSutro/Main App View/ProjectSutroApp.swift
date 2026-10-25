@@ -239,7 +239,7 @@ struct ProjectSutroApp: App {
                     .keyboardShortcut("f", modifiers: [.command, .option])
             }
             CommandGroup(after: .textEditing) {
-                Button("Find Events") { NotificationCenter.default.post(name: .focusEventSearch, object: nil) }
+                Button("Find…") { FindCommand.perform() }
                     .keyboardShortcut("f")
             }
             
@@ -314,6 +314,7 @@ struct ProjectSutroApp: App {
         Window("Settings", id: Self.settingsWindow) {
             AgentSettingsView(pathToMute: $pathToMute, allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled)
                 .environmentObject(systemExtensionManager)
+                .environmentObject(predicateSearch)
                 .environmentObject(userPrefs)
                 .onAppear { ForcedDarkMode.follow() }
         }

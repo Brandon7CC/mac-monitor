@@ -21,10 +21,10 @@ struct SystemXattrTableView: View {
     var body: some View {
         Table(of: ESMessage.self, selection: $eventSelection) {
             TableColumn("xattr") { message in
-                Text(message.event.deleteextattr!.extattr)
+                Text(message.event.deleteextattr?.extattr ?? "")
             }
             TableColumn("File path") { message in
-                Text(message.event.deleteextattr!.target.path ?? "")
+                Text(message.event.deleteextattr?.target.path ?? "")
             }
         } rows: {
             ForEach(xattrEvents) { message in

@@ -27,7 +27,15 @@ struct TableExecEventContextMenu: View {
         message.event.exec!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.exec != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         // MARK: Event metadata
         Group {
             Button(action: {
@@ -39,7 +47,7 @@ struct TableExecEventContextMenu: View {
         
         // MARK: Filter target_path
         if userPrefs.contextExecTargetPathFilter {
-            if let exe = message.event.exec!.target.executable,
+            if let exe = message.event.exec?.target.executable,
                let procPath = exe.path {
                 // MARK: Secodary click "Filter target process globally"
                 Button(action: {
@@ -54,10 +62,10 @@ struct TableExecEventContextMenu: View {
         
         // MARK: Filter ES event
         Button(action: {
-            allFilters.events.append(message.es_event_type!)
+            allFilters.events.append(contentsOf: [message.es_event_type].compactMap { $0 })
         }) {
             HStack {
-                Text("Filter event: \"`\(message.es_event_type!)`\"")
+                Text("Filter event: \"`\(message.es_event_type ?? "")`\"")
             }
         }
         
@@ -152,7 +160,15 @@ struct AdvancedExecEventContextMenu: View {
         (exec.target.executable?.path ?? "").lastPathComponent
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.exec != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         // MARK: Initiating path filter
         
         
@@ -203,12 +219,12 @@ action: {
         // MARK: Unsubscribe from event
         if userPrefs.contextExecEventUnsubscribe {
             Button(action: {
-                os_log("Requesting ES unsubscribe from: \(message.es_event_type!)")
+                os_log("Requesting ES unsubscribe from: \(message.es_event_type ?? "")")
                 // Mute the binaries initiating process path globally (for all events)
-                systemExtensionManager.puntEventToUnsubscribe(eventString: message.es_event_type!)
+                systemExtensionManager.puntEventToUnsubscribe(eventString: message.es_event_type ?? "")
             }) {
                 HStack {
-                    Text("Unsubscribe: \"`\(message.es_event_type!)`\"")
+                    Text("Unsubscribe: \"`\(message.es_event_type ?? "")`\"")
                 }
             }
         }

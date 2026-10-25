@@ -36,6 +36,8 @@ struct SystemEnrichedEventView: View {
     /// The kind kept, by title.
     @State private var kind: String?
     @State private var finding: Finding?
+    /// Settings ▸ Findings: the summary is made again when they change.
+    @ObservedObject private var findingStore = FindingStore.shared
     /// The event types whose chips are on, by short name.
     @State private var types: Set<String> = []
     @State private var selection: NSManagedObjectID?
@@ -49,8 +51,8 @@ struct SystemEnrichedEventView: View {
             }
         }
         /// One fetch per exec: `correlated_array` queries the store each time it's read.
-        .task(id: selectedMessage.objectID) {
-            summary = CorrelationSummary(exec: selectedMessage)
+        .task(id: "\(selectedMessage.objectID)|\(findingStore.revision)") {
+            summary = CorrelationSummary(exec: selectedMessage, matcher: findingStore.matcher(for: .correlation))
             (query, kind, finding, types, selection) = ("", nil, nil, [], nil)
         }
     }
@@ -113,7 +115,7 @@ struct SystemEnrichedEventView: View {
     private func shown(_ summary: CorrelationSummary) -> [CorrelationSummary.Row] {
         let query = query.trimmingCharacters(in: .whitespaces).lowercased()
         return summary.rows.filter { row in
-            (kind == nil || row.kind.title == kind) && (finding?.matches(row.message) ?? true)
+            (kind == nil || row.kind.title == kind) && (finding.map { row.findings.contains($0.id) } ?? true)
                 && (types.isEmpty || types.contains(row.type)) && (query.isEmpty || row.mentions(query))
         }
     }

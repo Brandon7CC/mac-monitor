@@ -17,7 +17,15 @@ struct SystemOpenDirectoryAttrAddMetadataView: View {
         esSystemEvent.event.od_attribute_value_add!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.od_attribute_value_add != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         OpenDirectoryFactsView(message: esSystemEvent, event: event, role: "adding a value to a record") {
             OrangeEventLabelView(message: esSystemEvent)
         } facts: {

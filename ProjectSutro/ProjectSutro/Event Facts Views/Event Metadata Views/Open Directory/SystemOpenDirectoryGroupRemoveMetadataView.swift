@@ -17,7 +17,15 @@ struct SystemOpenDirectoryGroupRemoveMetadataView: View {
         esSystemEvent.event.od_group_remove!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.od_group_remove != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         OpenDirectoryFactsView(message: esSystemEvent, event: event, role: "removing a member from the group") {
             OrangeEventLabelView(message: esSystemEvent)
         } facts: {

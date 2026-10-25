@@ -120,10 +120,24 @@ public enum PredicateText {
     // MARK: Completion
     /// What completes the word being typed.
     public struct Completion: Equatable {
+        /// One completion: the word that replaces the one typed, what it is, and what the schema says of it.
+        public struct Item: Equatable {
+            public enum Kind: Equatable {
+                case key, related, keyword, value
+            }
+            public let word: String
+            public let kind: Kind
+            /// Its JSON type for a key, such as "string", or "" for anything else.
+            public let type: String
+            public let summary: String?
+        }
+
         /// The word, which each completion replaces.
         public let range: NSRange
         /// The completions, in order.
-        public let words: [String]
+        public let items: [Item]
+        /// Each completion's word.
+        public var words: [String] { items.map(\.word) }
     }
 
     /// The keywords completed, besides key paths and related events.
@@ -150,7 +164,8 @@ public enum PredicateText {
             let fragment = string.substring(with: range).lowercased()
             let values = Set(RecordKeyPaths.shared.nodes.values.flatMap(\.values))
                 .filter { $0.lowercased().hasPrefix(fragment) && $0.lowercased() != fragment }.sorted()
-            return values.isEmpty ? nil : Completion(range: range, words: values)
+                .map { Completion.Item(word: $0, kind: .value, type: "", summary: nil) }
+            return values.isEmpty ? nil : Completion(range: range, items: values)
         }
         var start = location
         let word = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_@.$"))
@@ -161,15 +176,32 @@ public enum PredicateText {
         let typed = string.substring(with: range)
         guard !typed.isEmpty else { return nil }
         var words: [String]
+        var variable = ""
         if typed.hasPrefix("$") {
             guard let dot = typed.firstIndex(of: ".") else { return nil }
-            let variable = String(typed[...dot])
+            variable = String(typed[...dot])
             words = pathCompletions(String(typed[typed.index(after: dot)...]), keywords: false).map { variable + $0 }
         } else {
             words = pathCompletions(typed, keywords: true)
         }
         words.removeAll { $0 == typed }
-        return words.isEmpty ? nil : Completion(range: range, words: words)
+        let items = words.map { item(for: $0, variable: variable) }
+        return items.isEmpty ? nil : Completion(range: range, items: items)
+    }
+
+    /// - Parameters:
+    ///   - word: A completion.
+    ///   - variable: `$e.` before a related event's key path, or "".
+    /// - Returns: It with its kind, and for a key its type and what the schema says of it.
+    private static func item(for word: String, variable: String) -> Completion.Item {
+        if variable.isEmpty, let relation = PredicateRelation(rawValue: word) {
+            return Completion.Item(word: word, kind: .related, type: "related", summary: relation.summary)
+        }
+        if variable.isEmpty, completedKeywords.contains(word) {
+            return Completion.Item(word: word, kind: .keyword, type: "", summary: nil)
+        }
+        let node = RecordKeyPaths.shared.nodes[String(word.dropFirst(variable.count))]
+        return Completion.Item(word: word, kind: .key, type: node?.type ?? "", summary: node?.summary)
     }
 
     /// - Parameters:

@@ -17,7 +17,15 @@ struct SystemXProtectRemediateMetadataView: View {
         esSystemEvent.event.xp_malware_remediated!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.xp_malware_remediated != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             XProtectMalwareRemediatedEventLabelView(message: esSystemEvent)

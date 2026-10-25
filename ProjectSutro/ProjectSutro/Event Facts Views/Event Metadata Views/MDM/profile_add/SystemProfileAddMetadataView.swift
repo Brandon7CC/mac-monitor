@@ -16,7 +16,15 @@ struct SystemProfileAddMetadataView: View {
         esSystemEvent.event.profile_add!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.profile_add != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             ProfileAddEventLabelView(message: esSystemEvent)

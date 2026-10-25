@@ -16,7 +16,15 @@ struct SystemLWLoginMetadataView: View {
         esSystemEvent.event.lw_session_login!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.lw_session_login != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             LoginWindowLoginEventLabelView(message: esSystemEvent)

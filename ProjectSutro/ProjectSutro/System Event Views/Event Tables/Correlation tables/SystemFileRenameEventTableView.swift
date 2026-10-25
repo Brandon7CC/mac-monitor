@@ -34,16 +34,16 @@ struct SystemFileRenameEventTableView: View {
                     
                 }.width(min: 100, ideal: 150, max: 400)
                 
-                TableColumn("Destination path", value: \.event.rename!.destination_path)
+                TableColumn("Destination path", value: \.sortRenameDestination)
                 
-                TableColumn("Source path", value: \.event.rename!.source.path!)
+                TableColumn("Source path", value: \.sortRenameSource)
                 
 //                TableColumn("Is quarantined", value: \.file_rename_event!.is_quarantined.description)
                 TableColumn("Is quarantined") { message in
                     HStack {
-                        if message.event.rename!.is_quarantined == 0 {
+                        if message.event.rename?.is_quarantined == 0 {
                             Text("Not quarantined")
-                        } else if message.event.rename!.is_quarantined == 1 {
+                        } else if message.event.rename?.is_quarantined == 1 {
                             Text("Quarantined")
                         } else {
                             Text("Does not exist")

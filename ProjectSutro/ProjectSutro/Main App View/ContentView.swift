@@ -266,14 +266,19 @@ struct EventView: View {
                     Text("Filters `\(allFilters.totalFilters() + (filteringLongRunningProcs ? 1 : 0) + (filterPlatform ? 1 : 0))`")
                         .padding([.leading, .trailing], 5)
                 }.sheet(isPresented: $filteredTelemetryShown, content: {
+                    /// Opening the predicate editor puts the sheet away.
                     FilterView(
                         allFilters: $allFilters,
                         filteredTelemetryShown: $filteredTelemetryShown,
                         filterSelection: $filterSelection,
                         filteringLongRunningProcs: $filteringLongRunningProcs,
                         eventMaskEnabled: $eventMaskEnabled,
-                        filterPlatform: $filterPlatform
-                    )
+                        filterPlatform: $filterPlatform,
+                        search: search
+                    ) {
+                        filteredTelemetryShown = false
+                        if search.isPoppedOut || !search.showsEditor { togglePredicateEditor() }
+                    }
                     .environmentObject(systemExtensionManager)
                     .environmentObject(traceSession)
                 })

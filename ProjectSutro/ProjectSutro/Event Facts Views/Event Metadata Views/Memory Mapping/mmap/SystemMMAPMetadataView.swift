@@ -37,7 +37,15 @@ struct SystemMMAPMetadataView: View {
         UInt64(bitPattern: event.file_pos)
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.mmap != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             MMAPEventLabelView(message: esSystemEvent)

@@ -11,21 +11,24 @@ import OSLog
 
 
 /// An exec's process name in the event tables, after what's worth knowing about it, as its Event Facts label shows:
-/// root or elevated, a dyld injection, File Quarantine awareness, a new executable, a script, then how it's signed.
+/// root or elevated, a dyld injection, File Quarantine awareness, the findings that mark it
+/// (Settings ▸ Findings), such as a new executable or a script, then how it's signed.
 struct ProcessExecEventNameView: View {
     var message: ESMessage
 
-    private var exec: ESProcessExecEvent {
-        message.event.exec!
-    }
-
-    private var procName: String {
-        (exec.target.executable?.path ?? "").lastPathComponent
-    }
-
+    /// Nothing for an exec that's gone, as a Clear's events are while the tables let go of them.
     var body: some View {
-        HStack {
-            indicators
+        if let exec = message.event.exec {
+            name(exec)
+        }
+    }
+
+    /// - Parameter exec: The exec.
+    /// - Returns: Its icons, then its process name, as it's signed.
+    private func name(_ exec: ESProcessExecEvent) -> some View {
+        let procName = (exec.target.executable?.path ?? "").lastPathComponent
+        return HStack {
+            indicators(exec)
             if exec.target.is_adhoc_signed {
                 Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette)
                     .foregroundStyle(.black, .orange).help("Binary is adhoc signed!")
@@ -41,9 +44,10 @@ struct ProcessExecEventNameView: View {
         .frame(alignment: .leading)
     }
 
-    /// Every exec's icons, whatever its signature.
+    /// - Parameter exec: The exec.
+    /// - Returns: Every exec's icons, whatever its signature.
     @ViewBuilder
-    private var indicators: some View {
+    private func indicators(_ exec: ESProcessExecEvent) -> some View {
         if exec.target.ruid == 0 {
             Image(systemName: "person.crop.circle.badge.exclamationmark.fill").symbolRenderingMode(.multicolor)
                 .padding([.leading], 2.0).help("Process is running as the root user")
@@ -60,15 +64,7 @@ struct ProcessExecEventNameView: View {
             Image(systemName: "lock.icloud").symbolRenderingMode(.multicolor).padding([.leading], 2.0)
                 .help("Process is File Quarantine-aware.")
         }
-        if exec.isNewExecutable, let age = exec.executableAgeText {
-            Image(systemName: "clock.badge.exclamationmark").symbolRenderingMode(.palette)
-                .foregroundStyle(.orange, .primary)
-                .help("Its executable was created \(age) before it ran.")
-        }
-        if let content = exec.script_content, !content.isEmpty {
-            Image(systemName: "scroll.fill").foregroundStyle(.purple)
-                .help("Ran \(exec.resolved_script_path ?? "a script"). Event Facts' Script tab shows its content.")
-        }
+        FindingMarks(message: message)
     }
 }
 
@@ -80,6 +76,10 @@ extension ESMessage {
     var sortSigningID:     String       { event.exec?.target.signing_id      ?? "" }
     var sortProcessPath:   String       { event.exec?.target.executable?.path ?? "" }
     var sortCommandLine:   String       { event.exec?.command_line           ?? "" }
+    var sortEventType:     String       { es_event_type                      ?? "" }
+    var sortRenameDestination: String   { event.rename?.destination_path     ?? "" }
+    var sortRenameSource:  String       { event.rename?.source.path          ?? "" }
+    var sortCreateTarget:  String       { event.create?.targetPath           ?? "" }
 }
 
 // MARK: - Ventura Process Table

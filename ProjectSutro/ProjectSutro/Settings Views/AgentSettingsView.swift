@@ -214,6 +214,7 @@ struct AgentSettingsView: View {
         case .systemDetails: SystemDetailsSettingsView()
         case .subscriptions: SubscriptionsSettingsView(allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled)
         case .pathMuting: PathMutingSettingsView(pathToMute: $pathToMute)
+        case .findings: FindingsSettingsView()
         case .commandLine: SettingsPage(pane: pane) { CommandLineToolSettingsView() }
         case .telemetrySchema: TelemetrySchemaSettingsView()
         case .eventTables: ContextMenuSettingsView()

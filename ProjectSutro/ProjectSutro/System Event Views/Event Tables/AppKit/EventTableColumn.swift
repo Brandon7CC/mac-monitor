@@ -50,7 +50,12 @@ extension EventTableColumn {
             EventTableColumn(title: "Timestamp", width: (100, 100, 100), sortKey: "message_darwin_time", sortsAsText: false,
                              content: .text(timestamp)),
             EventTableColumn(title: "Event type", width: (150, 200, 400), sortKey: "es_event_type", hideable: false,
-                             content: .view { AnyView(SystemEventTypeLabel(message: $0).truncationMode(.middle)) }),
+                             content: .view { message in
+                                 AnyView(HStack(spacing: 4) {
+                                     FindingMarks(message: message)
+                                     SystemEventTypeLabel(message: message).truncationMode(.middle)
+                                 })
+                             }),
             EventTableColumn(title: "Context", width: (100, 150, 2_000), sortKey: "context", hideable: false,
                              content: .text({ $0.context ?? "" }, truncation: .byTruncatingMiddle)),
             EventTableColumn(title: "Effective user", width: (80, 90, 120), sortKey: "initiating_euid_human",

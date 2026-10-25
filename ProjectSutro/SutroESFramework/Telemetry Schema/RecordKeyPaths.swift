@@ -21,6 +21,8 @@ public final class RecordKeyPaths {
         public fileprivate(set) var children: [String] = []
         /// The values it takes, when the schema lists them, such as `es_event_type`'s.
         public fileprivate(set) var values: [String] = []
+        /// What it is, as the schema describes it, if it does.
+        public fileprivate(set) var summary: String?
         /// Is it inside an array, an array's objects' key?
         public let isInArray: Bool
     }
@@ -64,6 +66,9 @@ public final class RecordKeyPaths {
         let type = types.first { $0 != "null" } ?? "null"
         var entry = Node(type: type, isInArray: inArray)
         entry.values = alternatives.flatMap { ($0["enum"] as? [Any] ?? []).compactMap { $0 as? String } }
+        /// The key's own description, else its type's.
+        entry.summary = node["description"] as? String
+            ?? alternatives.lazy.compactMap { $0["description"] as? String }.first
         nodes[path] = entry
         for alternative in alternatives {
             if let properties = alternative["properties"] as? [String: Any] {

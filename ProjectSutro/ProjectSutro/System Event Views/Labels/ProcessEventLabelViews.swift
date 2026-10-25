@@ -27,16 +27,21 @@ extension ESProcessExecEvent {
 struct ExecEventLabelView: View {
     var message: ESMessage
     
-    private var event: ESProcessExecEvent {
-        message.event.exec!
-    }
+    /// The exec's type, as its label names it.
+    private var eventType: String { message.es_event_type ?? "ES_EVENT_TYPE_NOTIFY_EXEC" }
     
-    private var procPath: String {
-        event.target.executable?.path ?? ""
-    }
-    
+    /// Nothing for an exec that's gone, as a Clear's events are while the tables let go of them.
     var body: some View {
-        HStack {
+        if let event = message.event.exec {
+            label(event)
+        }
+    }
+    
+    /// - Parameter event: The exec.
+    /// - Returns: Its icons, then its type.
+    private func label(_ event: ESProcessExecEvent) -> some View {
+        let procPath = event.target.executable?.path ?? ""
+        return HStack {
             // MARK: New executable
             if event.isNewExecutable, let age = event.executableAgeText {
                 Image(systemName: "clock.badge.exclamationmark").symbolRenderingMode(.palette)
@@ -75,14 +80,14 @@ struct ExecEventLabelView: View {
                 Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow)
                     .help(event.target.isLinkerSignedAdhoc
                           ? "Adhoc signed by the linker, as a freshly compiled binary is." : "Adhoc signed.")
-                Label("**`\(message.es_event_type!)`**", systemImage: "xmark.seal").symbolRenderingMode(.palette).foregroundStyle(.orange)
+                Label("**`\(eventType)`**", systemImage: "xmark.seal").symbolRenderingMode(.palette).foregroundStyle(.orange)
             } else if let signingID = event.target.signing_id.nonEmpty, signingID != "Unknown" {
                 // MARK: Signed
-                Label("**`\(message.es_event_type!)`**", systemImage: "checkmark.seal")
+                Label("**`\(eventType)`**", systemImage: "checkmark.seal")
             } else {
                 // MARK: Unsigned
                 Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .red)
-                Label("**`\(message.es_event_type!)`**", systemImage: "xmark.seal").symbolRenderingMode(.palette).foregroundStyle(.red)
+                Label("**`\(eventType)`**", systemImage: "xmark.seal").symbolRenderingMode(.palette).foregroundStyle(.red)
             }
         }.frame(alignment: .leading)
     }
@@ -110,13 +115,21 @@ struct ExitEventLabelView: View {
         message.event.exit!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.exit != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         HStack {
             // MARK: Non-zero Exit Code
             if event.stat != 0 {
                 Image(systemName: "info.square").symbolRenderingMode(.palette).help("Non-zero exit code")
             }
-            Label("**`\(message.es_event_type!)`**", systemImage: "eject.fill")
+            Label("**`\(message.es_event_type ?? "")`**", systemImage: "eject.fill")
         }
     }
 }
@@ -126,7 +139,7 @@ struct RemoteThreadCreateEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
     var body: some View {
@@ -142,7 +155,7 @@ struct CodeSignatureInvalidatedEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
     var body: some View {
@@ -158,7 +171,7 @@ struct ProcessSocketEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
     var body: some View {
@@ -171,7 +184,7 @@ struct ProcessTraceEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
     var body: some View {
@@ -187,7 +200,7 @@ struct GetTaskEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
     var body: some View {
@@ -203,7 +216,7 @@ struct ProcessCheckEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
     var body: some View {
@@ -216,7 +229,7 @@ struct ProcessSignalEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
     var body: some View {
