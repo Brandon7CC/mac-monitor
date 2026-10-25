@@ -17,7 +17,15 @@ struct SystemGetTaskMetadataView: View {
         esSystemEvent.event.get_task!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.get_task != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             GetTaskEventLabelView(message: esSystemEvent)

@@ -57,7 +57,15 @@ struct SystemTargetExecProcMetadataView: View {
         event.xpcServiceName
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if selectedMessage.event.exec != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         
         VStack(alignment: .leading) {
             // MARK: Event label

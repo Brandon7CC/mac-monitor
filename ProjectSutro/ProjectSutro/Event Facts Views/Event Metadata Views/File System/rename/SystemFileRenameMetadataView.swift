@@ -17,7 +17,15 @@ struct SystemFileRenameMetadataView: View {
         esSystemEvent.event.rename!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.rename != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             FileRenameEventLabelView(message: esSystemEvent)

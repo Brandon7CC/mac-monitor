@@ -12,14 +12,15 @@ import SutroESFramework
 
 // MARK: - Predicate editor
 /// The pane beside the event tables for writing a predicate on each event's record: a code editor that colors its
-/// syntax, marks keys the schema doesn't name and checks it as `macmonitor stream --predicate` does, chips for the
-/// operators, and the record's keys, saved predicates and recent ones to insert. Apply (⌘↩) filters the tables.
+/// syntax, completes as it's typed (``CompletingTextView``), marks keys the schema doesn't name and checks it as
+/// `macmonitor stream --predicate` does, over one search of the record's keys, related events, and saved and recent
+/// predicates to insert. Apply (⌘↩) filters the tables.
 struct PredicateEditorPane: View {
     @ObservedObject var search: EventSearchController
     /// The tables' queries, which only the footer follows: they change with every event saved. `nil` with no main
     /// window.
     let model: EventQueryModel?
-    /// Is it in its own window rather than beside the tables?
+    /// Is it in its own window rather than beside the tables? Its tools are then the window's toolbar.
     var isWindow = false
     /// Opens the telemetry schema's window.
     let openSchema: () -> Void
@@ -29,51 +30,43 @@ struct PredicateEditorPane: View {
 
     @StateObject private var editor = PredicateEditorController()
 
-    /// What the lower half lists.
-    enum Library: String, CaseIterable, Identifiable {
-        case keys = "Keys", saved = "Saved", recent = "Recent"
-        var id: Self { self }
-    }
-
-    @State private var library = Library.keys
-    @State private var keyQuery = ""
+    @State private var libraryQuery = ""
     @State private var naming = false
     @State private var newName = ""
-
-    /// The operators and keywords the chips insert.
-    private static let operators = ["==", "!=", "CONTAINS[c]", "BEGINSWITH", "ENDSWITH", "MATCHES", "IN", "AND", "OR",
-                                    "NOT", "ANY", "<", ">"]
 
     var body: some View {
         let problem = search.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? nil : search.problem(with: search.draft)
         VStack(spacing: 0) {
-            header
-            Divider()
-            VStack(alignment: .leading, spacing: 8) {
-                editorBox(problem: problem)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
-                        ForEach(Self.operators, id: \.self) { op in
-                            Button(op) { editor.insert(op) }
-                                .buttonStyle(OperatorChipStyle())
-                        }
-                    }
+            if !isWindow {
+                HStack(spacing: 4) {
+                    Spacer()
+                    tools
+                    Divider().frame(height: 16).padding(.horizontal, 2)
+                    Button { search.showsEditor = false } label: { Image(systemName: "xmark") }
+                        .help("Close the predicate editor. A predicate applied stays applied.")
                 }
+                .buttonStyle(.borderless)
+                .labelStyle(.iconOnly)
+                .padding(.horizontal, 10)
+                .frame(height: 32)
+                Divider()
             }
-            .padding(12)
-            libraryPicker
-            switch library {
-            case .keys: KeyLibraryList(query: keyQuery, editor: editor).equatable()
-            case .saved: savedList
-            case .recent: recentList
-            }
+            editorBox(problem: problem)
+                .padding(12)
+            SettingsSearchField(text: $libraryQuery, prompt: "Keys, related events and predicates")
+                .padding(.horizontal, 12)
+                .padding(.bottom, 6)
+            PredicateLibraryList(query: libraryQuery, saved: search.saved, recents: search.recents, editor: editor,
+                                 load: { search.draft = $0 }, delete: { search.delete($0) })
+                .equatable()
             Divider()
             if let model {
                 PredicateEditorFooter(search: search, model: model, problem: problem)
             }
         }
         .frame(minWidth: 340)
+        .modifier(WindowToolbar(isWindow: isWindow) { tools.labelStyle(.iconOnly) })
         .alert("Save Predicate", isPresented: $naming) {
             TextField("Name", text: $newName)
             Button("Save") {
@@ -82,55 +75,40 @@ struct PredicateEditorPane: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Saved predicates are listed under Saved.")
+            Text("Saved predicates are listed under Saved, and found by name.")
         }
     }
 
-    // MARK: Header
-    private var header: some View {
-        HStack(spacing: 4) {
-            Text("Predicate Editor").font(.headline)
-            Spacer()
-            Button { search.draft = Self.formatted(search.draft) } label: {
-                Label("Format", systemImage: "text.alignleft")
-            }
-            .help("Put each AND and OR on its own line")
-            Button { newName = ""; naming = true } label: { Label("Save…", systemImage: "star") }
-                .disabled(search.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .help("Keep this predicate under Saved")
-            Button {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(search.draft, forType: .string)
-            } label: { Label("Copy", systemImage: "doc.on.doc") }
-                .help("Copy the predicate")
-            Button(action: openSchema) { Label("Telemetry Schema", systemImage: "curlybraces") }
-                .help("Telemetry Schema: every key a record has")
-            if isWindow {
-                Button {
-                    search.isPoppedOut = false
-                    dismiss()
-                } label: { Label("Dock", systemImage: "sidebar.right") }
-                    .help("Put the predicate editor back beside the tables")
-            } else {
-                Button {
-                    search.isPoppedOut = true
-                    openWindow(id: ProjectSutroApp.predicateEditorWindow)
-                } label: { Label("Pop Out", systemImage: "macwindow.on.rectangle") }
-                    .help("Open the predicate editor in its own window")
-            }
-            Divider().frame(height: 16).padding(.horizontal, 2)
-            Button {
-                search.showsEditor = false
-                if isWindow { dismiss() }
-            } label: {
-                Image(systemName: "xmark").foregroundStyle(.red)
-            }
-            .help("Close the predicate editor. A predicate applied stays applied.")
+    // MARK: Tools
+    /// Format, Save, Copy, the schema, and Pop Out or Dock: the pane's header, or its window's toolbar.
+    @ViewBuilder private var tools: some View {
+        Button { search.draft = Self.formatted(search.draft) } label: {
+            Label("Format", systemImage: "text.alignleft")
         }
-        .buttonStyle(.borderless)
-        .labelStyle(.iconOnly)
-        .padding(.horizontal, 12)
-        .frame(height: 40)
+        .help("Put each AND and OR on its own line")
+        Button { newName = ""; naming = true } label: { Label("Save…", systemImage: "star") }
+            .disabled(search.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .help("Keep this predicate under Saved")
+        Button {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(search.draft, forType: .string)
+        } label: { Label("Copy", systemImage: "doc.on.doc") }
+            .help("Copy the predicate")
+        Button(action: openSchema) { Label("Telemetry Schema", systemImage: "curlybraces") }
+            .help("Telemetry Schema: every key a record has")
+        if isWindow {
+            Button {
+                search.isPoppedOut = false
+                dismiss()
+            } label: { Label("Dock", systemImage: "sidebar.right") }
+                .help("Put the predicate editor back beside the tables")
+        } else {
+            Button {
+                search.isPoppedOut = true
+                openWindow(id: ProjectSutroApp.predicateEditorWindow)
+            } label: { Label("Open in a Window", systemImage: "macwindow.on.rectangle") }
+                .help("Open the predicate editor in its own window")
+        }
     }
 
     // MARK: Editor
@@ -165,66 +143,6 @@ struct PredicateEditorPane: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8)
             .strokeBorder(problem == nil ? Color(nsColor: .separatorColor) : .red.opacity(0.7)))
-    }
-
-    // MARK: Library
-    private var libraryPicker: some View {
-        HStack(spacing: 8) {
-            Picker("Library", selection: $library) {
-                ForEach(Library.allCases) { Text($0.rawValue).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
-            if library == .keys {
-                SettingsSearchField(text: $keyQuery, prompt: "Filter keys")
-            } else {
-                Spacer()
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.bottom, 6)
-    }
-
-    private var savedList: some View {
-        List(search.saved) { saved in
-            predicateRow(saved.name, saved.source) { search.draft = saved.source }
-                .contextMenu { Button("Delete", role: .destructive) { search.delete(saved) } }
-        }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .overlay {
-            if search.saved.isEmpty { Text("Save a predicate to list it here.").foregroundStyle(.secondary) }
-        }
-    }
-
-    private var recentList: some View {
-        List(search.recents, id: \.self) { source in
-            predicateRow(nil, source) { search.draft = source }
-        }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .overlay {
-            if search.recents.isEmpty { Text("Predicates you apply are listed here.").foregroundStyle(.secondary) }
-        }
-    }
-
-    /// - Parameters:
-    ///   - name: A saved predicate's name.
-    ///   - source: The predicate.
-    ///   - load: Puts it in the editor.
-    /// - Returns: Its row.
-    private func predicateRow(_ name: String?, _ source: String, load: @escaping () -> Void) -> some View {
-        Button(action: load) {
-            VStack(alignment: .leading, spacing: 2) {
-                if let name { Text(name).font(.callout.weight(.semibold)) }
-                Text(EventSearchController.oneLine(source)).font(.caption.monospaced())
-                    .foregroundStyle(name == nil ? .primary : .secondary).lineLimit(2)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: Formatting
@@ -266,6 +184,20 @@ struct PredicateEditorPane: View {
     }
 }
 
+/// The pane's tools as its window's toolbar, when it's in its own window: the window's title bar is its header.
+private struct WindowToolbar<Tools: View>: ViewModifier {
+    let isWindow: Bool
+    @ViewBuilder let tools: Tools
+
+    func body(content: Content) -> some View {
+        if isWindow {
+            content.toolbar { ToolbarItemGroup(placement: .primaryAction) { tools } }
+        } else {
+            content
+        }
+    }
+}
+
 /// The predicate editor in its own window, popped out of the main window. Closing the window closes the editor; its
 /// Dock button puts the editor back beside the tables.
 struct PredicateEditorWindow: View {
@@ -296,87 +228,153 @@ private struct CaretPosition: View {
     }
 }
 
-/// The record's key paths, by group, to insert at the cursor. Lazy, and drawn again only when its filter or its
-/// groups change, not as the predicate is typed.
-private struct KeyLibraryList: View, Equatable {
+/// One search of what can go in a predicate: related events, saved and recent predicates, and the record's key paths
+/// by group, each badged as the completion list badges it. Lazy, and drawn again only when its search or what it
+/// lists changes, not as the predicate is typed.
+private struct PredicateLibraryList: View, Equatable {
     let query: String
+    let saved: [EventSearchController.SavedPredicate]
+    let recents: [String]
     let editor: PredicateEditorController
+    /// Puts a predicate in the editor.
+    let load: (String) -> Void
+    let delete: (EventSearchController.SavedPredicate) -> Void
 
-    /// The groups shown open, until a filter shows every group that matches.
-    @State private var expanded: Set<String> = [RecordKeyLibrary.relatedTitle, "Record", "Process", "exec"]
+    /// The sections shown open without a search.
+    @State private var expanded: Set<String> = [RecordKeyLibrary.relatedTitle, Self.savedTitle, "Record", "Process"]
+    /// The sections closed during a search, which opens every one that matches: open again when the search changes.
+    @State private var closedInSearch: Set<String> = []
 
-    static func == (lhs: Self, rhs: Self) -> Bool { lhs.query == rhs.query }
+    private static let savedTitle = "Saved", recentTitle = "Recent"
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.query == rhs.query && lhs.saved == rhs.saved && lhs.recents == rhs.recents
+    }
+
+    /// A row: what it is, its name, what it is under it, its type, and what clicking it does.
+    struct Item: Identifiable {
+        let id: String
+        let badge: CompletionBadge.Kind
+        let name: String
+        var detail: String?
+        var type = ""
+        var help: String?
+        let action: () -> Void
+    }
 
     var body: some View {
         let query = query.trimmingCharacters(in: .whitespaces).lowercased()
-        let groups = RecordKeyLibrary.groups.compactMap { group -> (RecordKeyLibrary.Group, [RecordKeyLibrary.Key])? in
-            let keys = query.isEmpty ? group.keys : group.keys.filter { $0.path.lowercased().contains(query) }
-            return keys.isEmpty ? nil : (group, keys)
+        let sections = self.sections.compactMap { title, items -> (String, [Item])? in
+            let items = query.isEmpty ? items : items.filter {
+                $0.name.lowercased().contains(query) || $0.detail?.lowercased().contains(query) == true
+            }
+            return items.isEmpty ? nil : (title, items)
         }
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0, pinnedViews: .sectionHeaders) {
-                ForEach(groups, id: \.0.id) { group, keys in
-                    let isOpen = !query.isEmpty || expanded.contains(group.title)
+                ForEach(sections, id: \.0) { title, items in
+                    let isOpen = query.isEmpty ? expanded.contains(title) : !closedInSearch.contains(title)
                     Section {
                         if isOpen {
-                            ForEach(keys.prefix(400)) { key in
-                                Button { editor.insert(key.insertion ?? key.path) } label: { KeyRow(key: key) }
+                            ForEach(items.prefix(400)) { item in
+                                Button(action: item.action) { LibraryRow(item: item) }
                                     .buttonStyle(.plain)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 4)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 3)
+                                    .contextMenu {
+                                        if let predicate = saved.first(where: { "saved:\($0.id)" == item.id }) {
+                                            Button("Delete", role: .destructive) { delete(predicate) }
+                                        }
+                                    }
                             }
                         }
                     } header: {
-                        Button {
-                            if expanded.contains(group.title) {
-                                expanded.remove(group.title)
-                            } else {
-                                expanded.insert(group.title)
-                            }
-                        } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: "chevron.right").font(.caption2.weight(.semibold))
-                                    .rotationEffect(.degrees(isOpen ? 90 : 0))
-                                Text(group.title)
-                                Spacer()
-                                Text("\(keys.count)").monospacedDigit()
-                            }
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 5)
-                            .background(.bar)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(!query.isEmpty)
+                        header(title, count: items.count, isOpen: isOpen, searching: !query.isEmpty)
                     }
                 }
             }
         }
+        .overlay {
+            if sections.isEmpty { Text("Nothing matches “\(query)”.").foregroundStyle(.secondary) }
+        }
+        .onChange(of: query) { _ in closedInSearch = [] }
+    }
+
+    /// Related events, Saved, Recent, then the record's keys by group.
+    private var sections: [(String, [Item])] {
+        let key = { (key: RecordKeyLibrary.Key) in
+            Item(id: key.path, badge: key.type == "related" ? .related : .key, name: key.path, detail: key.detail,
+                 type: key.type == "related" ? "" : key.type, help: key.summary) {
+                editor.insert(key.insertion ?? key.path)
+            }
+        }
+        let saved = saved.map { saved in
+            Item(id: "saved:\(saved.id)", badge: .saved, name: saved.name,
+                 detail: EventSearchController.oneLine(saved.source), help: saved.source) { load(saved.source) }
+        }
+        let recents = recents.map { source in
+            Item(id: "recent:\(source)", badge: .recent, name: EventSearchController.oneLine(source), help: source) {
+                load(source)
+            }
+        }
+        let groups = RecordKeyLibrary.groups.map { ($0.title, $0.keys.map(key)) }
+        return [groups[0], (Self.savedTitle, saved), (Self.recentTitle, recents)] + groups.dropFirst()
+    }
+
+    /// - Parameters:
+    ///   - title: The section's title.
+    ///   - count: How many rows it has.
+    ///   - isOpen: Is it open?
+    ///   - searching: Is a search showing every section that matches open?
+    /// - Returns: Its header, which opens and closes it, with a search or without.
+    private func header(_ title: String, count: Int, isOpen: Bool, searching: Bool) -> some View {
+        Button {
+            if searching {
+                closedInSearch.formSymmetricDifference([title])
+            } else {
+                expanded.formSymmetricDifference([title])
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "chevron.right").font(.caption2.weight(.semibold))
+                    .rotationEffect(.degrees(isOpen ? 90 : 0))
+                Text(title)
+                Spacer()
+                Text("\(count)").monospacedDigit()
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .background(.bar)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title), \(count) \(isOpen ? "open" : "closed")")
     }
 }
 
-/// One key path and its JSON type.
-private struct KeyRow: View {
-    let key: RecordKeyLibrary.Key
+/// One row of the library: its badge, its name and what it is, and its type.
+private struct LibraryRow: View {
+    let item: PredicateLibraryList.Item
 
     var body: some View {
-        HStack {
+        HStack(spacing: 8) {
+            CompletionBadge(item.badge)
             VStack(alignment: .leading, spacing: 1) {
-                Text(key.path).font(.caption.monospaced())
-                    .foregroundStyle(Color(nsColor: PredicateSyntax.keyColor))
+                Text(item.name)
+                    .font(item.badge == .saved ? .callout : .system(size: 11.5, design: .monospaced))
                     .lineLimit(1).truncationMode(.middle)
-                if let detail = key.detail {
+                if let detail = item.detail {
                     Text(detail).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 }
             }
             Spacer(minLength: 6)
-            Text(key.type).font(.caption2).foregroundStyle(.secondary)
-                .padding(.horizontal, 5).padding(.vertical, 1)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
+            Text(item.type).font(.caption2).foregroundStyle(.secondary)
         }
+        .frame(minHeight: 20)
         .contentShape(Rectangle())
+        .help(item.help ?? "")
     }
 }
 
@@ -461,18 +459,6 @@ private struct StatusDotLabelStyle: LabelStyle {
     }
 }
 
-/// An operator's chip: monospaced, in the editor's keyword color.
-private struct OperatorChipStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.caption.monospaced())
-            .foregroundStyle(Color(nsColor: PredicateSyntax.keywordColor))
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
-            .opacity(configuration.isPressed ? 0.6 : 1)
-    }
-}
 
 
 // MARK: - Syntax
@@ -655,31 +641,6 @@ struct PredicateTextView: NSViewRepresentable {
     }
 }
 
-/// The editor's text view, whose Tab and Escape complete the word before the cursor: a key path's next key, a
-/// keyword, related events, or inside quotes an event type's name (``PredicateText/completions(in:at:)``).
-final class CompletingTextView: NSTextView {
-    /// What completes the word before the cursor, if anything does.
-    private var completion: PredicateText.Completion? {
-        PredicateText.completions(in: string, at: selectedRange().location)
-    }
-
-    override var rangeForUserCompletion: NSRange {
-        completion?.range ?? NSRange(location: NSNotFound, length: 0)
-    }
-
-    override func completions(forPartialWordRange charRange: NSRange,
-                              indexOfSelectedItem index: UnsafeMutablePointer<Int>) -> [String]? {
-        index.pointee = 0
-        return completion?.words
-    }
-
-    /// Complete the word before the cursor, or with nothing to complete, insert a tab.
-    override func insertTab(_ sender: Any?) {
-        guard selectedRange().length == 0, completion != nil else { return super.insertTab(sender) }
-        complete(sender)
-    }
-}
-
 /// Line numbers beside the editor's text, the cursor's line darker.
 final class LineNumberRuler: NSRulerView {
     private weak var textView: NSTextView?
@@ -746,6 +707,8 @@ enum RecordKeyLibrary {
         let type: String
         /// What it is, under its path.
         var detail: String?
+        /// What the schema says of it, as its help.
+        var summary: String?
         /// What clicking it inserts, when not its path.
         var insertion: String?
         var id: String { path }
@@ -780,7 +743,8 @@ enum RecordKeyLibrary {
     /// array is.
     static let groups: [Group] = {
         let keys = RecordKeyPaths.shared.nodes.compactMap { path, node -> Key? in
-            path.isEmpty || node.type == "object" || node.isInArray ? nil : Key(path: path, type: node.type)
+            path.isEmpty || node.type == "object" || node.isInArray
+                ? nil : Key(path: path, type: node.type, summary: node.summary)
         }
         .sorted { $0.path < $1.path }
 

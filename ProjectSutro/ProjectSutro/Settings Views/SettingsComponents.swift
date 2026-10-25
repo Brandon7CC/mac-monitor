@@ -13,11 +13,12 @@ import SutroESFramework
 // MARK: - Panes
 /// Settings' panes, as the sidebar lists them.
 enum SettingsPane: String, CaseIterable, Identifiable {
-    case securityExtension, subscriptions, pathMuting, commandLine, telemetrySchema, general, eventTables, systemDetails
+    case securityExtension, subscriptions, pathMuting, findings, commandLine, telemetrySchema, general, eventTables
+    case systemDetails
 
     /// The sidebar's groups under the Security Extension card, in order.
-    static let groups: [[SettingsPane]] = [[.general], [.subscriptions, .pathMuting], [.commandLine, .telemetrySchema],
-                                           [.eventTables, .systemDetails]]
+    static let groups: [[SettingsPane]] = [[.general], [.subscriptions, .pathMuting], [.findings],
+                                           [.commandLine, .telemetrySchema], [.eventTables, .systemDetails]]
 
     var id: String { rawValue }
 
@@ -27,6 +28,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .securityExtension: return "Security Extension"
         case .subscriptions: return "Subscriptions"
         case .pathMuting: return "Path Muting"
+        case .findings: return "Findings"
         case .commandLine: return "Command Line"
         case .telemetrySchema: return "Telemetry Schema"
         case .general: return "General"
@@ -44,6 +46,9 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .subscriptions: return "The Endpoint Security events Mac Monitor records."
         case .pathMuting:
             return "Paths whose events Mac Monitor never captures. Mac Monitor and macmonitor share one saved set."
+        case .findings:
+            return "What Event Facts points out among an exec's correlated events and a group's execs, and what "
+                + "marks events in the tables: a predicate each."
         case .commandLine:
             return "Stream events to a terminal or a pipe with sudo macmonitor, while Mac Monitor keeps recording."
         case .telemetrySchema:
@@ -63,6 +68,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .securityExtension: return "checkmark.shield.fill"
         case .subscriptions: return "bolt.fill"
         case .pathMuting: return "speaker.slash.fill"
+        case .findings: return "sparkle.magnifyingglass"
         case .commandLine: return "terminal.fill"
         case .telemetrySchema: return "curlybraces"
         case .general: return "gearshape.fill"
@@ -79,6 +85,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .pathMuting, .general: return .gray
         case .commandLine: return Color(white: 0.22)
         case .telemetrySchema: return .purple
+        case .findings: return .orange
         case .eventTables: return .green
         case .systemDetails: return Color(white: 0.4)
         }
@@ -90,6 +97,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .securityExtension: return ["full disk access", "fda", "install", "uninstall", "requirements"]
         case .subscriptions: return ["events", "exec", "fork", "subscribe"]
         case .pathMuting: return ["mute", "unmute", "path", "import", "export"]
+        case .findings: return ["detections", "correlation", "groups", "predicate", "reflective", "applescript", "script", "marks"]
         case .commandLine: return ["macmonitor", "terminal", "cli", "sudo"]
         case .telemetrySchema: return ["schema", "json", "validate", "trace", "export"]
         case .general: return ["update", "release notes", "version", "quit", "clear", "dark", "process tree"]

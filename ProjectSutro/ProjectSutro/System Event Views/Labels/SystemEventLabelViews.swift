@@ -16,10 +16,18 @@ struct BTMLaunchItemAddEventLabelView: View {
         message.event.btm_launch_item_add!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.btm_launch_item_add != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         HStack {
             Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow).help("These events indicate a background task was added")
-            Label("**`\(message.es_event_type!)`**", systemImage: "lock.doc").symbolRenderingMode(.palette).foregroundStyle(.orange)
+            Label("**`\(message.es_event_type ?? "")`**", systemImage: "lock.doc").symbolRenderingMode(.palette).foregroundStyle(.orange)
         }.frame(alignment: .leading)
     }
 }
@@ -32,10 +40,18 @@ struct BTMLaunchItemRemoveEventLabelView: View {
         message.event.btm_launch_item_remove!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.btm_launch_item_remove != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         HStack {
             Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow).help("These events indicate a background task was removed")
-            Label("**`\(message.es_event_type!)`**", systemImage: "lock.doc").symbolRenderingMode(.palette).foregroundStyle(.orange)
+            Label("**`\(message.es_event_type ?? "")`**", systemImage: "lock.doc").symbolRenderingMode(.palette).foregroundStyle(.orange)
         }.frame(alignment: .leading)
     }
 }
@@ -46,7 +62,7 @@ struct OpenSSHLabelView: View {
     
     var body: some View {
         HStack {
-            Label("**`\(message.es_event_type!)`**", systemImage: "network").symbolRenderingMode(.palette).foregroundStyle(.blue)
+            Label("**`\(message.es_event_type ?? "")`**", systemImage: "network").symbolRenderingMode(.palette).foregroundStyle(.blue)
         }.frame(alignment: .leading)
     }
 }
@@ -58,7 +74,7 @@ struct XProtectMalwareDetectedEventLabelView: View {
     var body: some View {
         HStack {
             Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .purple)
-            Label("**`\(message.es_event_type!)`**", systemImage: "bolt.shield").symbolRenderingMode(.palette).foregroundStyle(.purple)
+            Label("**`\(message.es_event_type ?? "")`**", systemImage: "bolt.shield").symbolRenderingMode(.palette).foregroundStyle(.purple)
         }.frame(alignment: .leading)
     }
 }
@@ -70,7 +86,7 @@ struct XProtectMalwareRemediatedEventLabelView: View {
     var body: some View {
         HStack {
             Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .purple)
-            Label("**`\(message.es_event_type!)`**", systemImage: "checkmark.shield").symbolRenderingMode(.palette).foregroundStyle(.purple)
+            Label("**`\(message.es_event_type ?? "")`**", systemImage: "checkmark.shield").symbolRenderingMode(.palette).foregroundStyle(.purple)
         }.frame(alignment: .leading)
     }
 }
@@ -80,7 +96,7 @@ struct LoginLoginEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: "person.fill.checkmark").foregroundStyle(.blue)
+        Label("**`\(message.es_event_type ?? "")`**", systemImage: "person.fill.checkmark").foregroundStyle(.blue)
     }
 }
 
@@ -89,7 +105,7 @@ struct LoginWindowLoginEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: "macwindow.badge.plus").foregroundStyle(.blue)
+        Label("**`\(message.es_event_type ?? "")`**", systemImage: "macwindow.badge.plus").foregroundStyle(.blue)
     }
 }
 
@@ -98,7 +114,7 @@ struct LoginWindowUnlockEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: "macwindow.badge.plus").foregroundStyle(.blue)
+        Label("**`\(message.es_event_type ?? "")`**", systemImage: "macwindow.badge.plus").foregroundStyle(.blue)
     }
 }
 
@@ -107,7 +123,7 @@ struct ProfileAddEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
     var body: some View {
@@ -120,7 +136,7 @@ struct OpenDirectoryCreateUserEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
     var body: some View {
@@ -135,7 +151,7 @@ struct OpenDirectoryModifyPasswordEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
     var body: some View {
@@ -150,7 +166,7 @@ struct OrangeEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
     var body: some View {

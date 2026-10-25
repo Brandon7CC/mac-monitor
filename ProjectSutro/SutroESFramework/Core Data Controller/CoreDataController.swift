@@ -52,8 +52,11 @@ public class CoreDataController {
     let canSave: OSAllocatedUnfairLock<Bool>
     
     /// Set up the on-disk Core Data PSC named: `SystemEvents`, starting from an empty store.
-    init() {
-        container = NSPersistentContainer(name: "SystemEvents")
+    ///
+    /// - Parameter model: The events' model, or `nil` for the one in the main bundle, which a test runner hasn't.
+    init(model: NSManagedObjectModel? = nil) {
+        container = model.map { NSPersistentContainer(name: "SystemEvents", managedObjectModel: $0) }
+            ?? NSPersistentContainer(name: "SystemEvents")
         let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.swiftlydetecting.SutroESFramework", isDirectory: true)
         storeFile = EventStoreFile(in: caches)
@@ -341,8 +344,15 @@ public class CoreDataController {
             DispatchQueue.main.async {
                 /// The view context is not aware of the changes yet, so we merge them, or, if the store was taken away,
                 /// forget everything it loaded from it.
+                /// What it loaded since the Clear began too: a table can load a row in the run loop turn before it lets
+                /// go, and an object left out stays alive with its rows gone, its relationships nil. Nothing saved
+                /// after the Clear has reached it yet: those saves come after the delete, and their notices after this.
+                let gone = Set(loaded).union(viewContext.registeredObjects.map(\.objectID))
                 if replaced { viewContext.reset() }
-                else { NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: loaded], into: [viewContext]) }
+                else {
+                    NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: Array(gone)],
+                                                        into: [viewContext])
+                }
                 self.clearsInProgress -= 1
                 NotificationCenter.default.post(name: Self.eventsDidClear, object: self)
             }

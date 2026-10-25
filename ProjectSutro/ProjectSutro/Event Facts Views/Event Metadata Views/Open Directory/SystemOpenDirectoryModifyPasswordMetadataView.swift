@@ -17,7 +17,15 @@ struct SystemOpenDirectoryModifyPasswordMetadataView: View {
         esSystemEvent.event.od_modify_password!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.od_modify_password != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         OpenDirectoryFactsView(message: esSystemEvent, event: event, role: "the password modification") {
             OpenDirectoryModifyPasswordEventLabelView(message: esSystemEvent)
         } facts: {

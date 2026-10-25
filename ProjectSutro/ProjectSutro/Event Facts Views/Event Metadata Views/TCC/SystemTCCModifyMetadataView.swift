@@ -45,7 +45,15 @@ struct SystemTCCModifyMetadataView: View {
         }
     }
 
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.tcc_modify != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             SystemEventTypeLabel(message: message)

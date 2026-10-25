@@ -32,7 +32,9 @@ struct SystemEventGroupTableViews: View {
     @State private var query = ""
     /// The way of signing kept, by title.
     @State private var signing: String?
-    @State private var finding: GroupFinding?
+    @State private var finding: Finding?
+    /// Settings ▸ Findings: the summary is made again when they change.
+    @ObservedObject private var findingStore = FindingStore.shared
     /// The executables whose chips are on, by name.
     @State private var names: Set<String> = []
     @State private var selection: NSManagedObjectID?
@@ -58,8 +60,9 @@ struct SystemEventGroupTableViews: View {
             }
         }
         /// Made again when the event, the group, or its number of execs changes.
-        .task(id: "\(selectedMessage.objectID)|\(scope)|\(execs(scope).count)") {
-            summary = GroupSummary(scope: scope, execs: execs(scope), current: selectedMessage)
+        .task(id: "\(selectedMessage.objectID)|\(scope)|\(execs(scope).count)|\(findingStore.revision)") {
+            summary = GroupSummary(scope: scope, execs: execs(scope), current: selectedMessage,
+                                   matcher: findingStore.matcher(for: .groups))
             (query, signing, finding, names, selection) = ("", nil, nil, [], nil)
         }
     }
@@ -125,7 +128,7 @@ struct SystemEventGroupTableViews: View {
         let query = query.trimmingCharacters(in: .whitespaces).lowercased()
         return summary.rows.filter { row in
             (signing == nil || row.signing.rawValue == signing)
-                && (finding.map { finding in row.message.event.exec.map(finding.matches) ?? false } ?? true)
+                && (finding.map { row.findings.contains($0.id) } ?? true)
                 && (names.isEmpty || names.contains(row.name)) && (query.isEmpty || row.mentions(query))
         }
     }

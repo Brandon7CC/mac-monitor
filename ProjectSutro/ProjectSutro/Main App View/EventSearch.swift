@@ -143,10 +143,45 @@ final class EventSearchController: ObservableObject {
 
 // MARK: - Search field
 extension Notification.Name {
-    /// Asks the main window's search field to take the keyboard focus (Edit ▸ Find Events).
+    /// Asks the main window's search field to take the keyboard focus (Edit ▸ Find…, ``FindCommand``).
     static let focusEventSearch = Notification.Name("com.swiftlydetecting.agent.focusEventSearch")
     /// Asks the main window to show or hide the predicate editor (View ▸ Predicate Editor).
     static let togglePredicateEditor = Notification.Name("com.swiftlydetecting.agent.togglePredicateEditor")
+}
+
+/// Edit ▸ Find… (⌘F): text with a find bar, such as Event Facts' JSON tab, shows it when it has the focus or when
+/// its window has no event search field, and otherwise the main window's search field takes the focus.
+@MainActor
+enum FindCommand {
+    static func perform() {
+        guard let window = NSApp.keyWindow else { return }
+        let frame = window.contentView?.superview ?? window.contentView
+        let focused = (window.firstResponder as? NSTextView).flatMap { $0.usesFindBar ? $0 : nil }
+        let hasEventSearch = frame?.firstDescendant(of: FixedWidthSearchField.self) != nil
+        let findable = window.contentView?.firstDescendant(of: NSTextView.self) {
+            $0.usesFindBar && !$0.isHiddenOrHasHiddenAncestor
+        }
+        guard let textView = focused ?? (hasEventSearch ? nil : findable)
+        else { return NotificationCenter.default.post(name: .focusEventSearch, object: nil) }
+        window.makeFirstResponder(textView)
+        let item = NSMenuItem()
+        item.tag = NSTextFinder.Action.showFindInterface.rawValue
+        textView.performFindPanelAction(item)
+    }
+}
+
+extension NSView {
+    /// - Parameters:
+    ///   - type: The kind of view.
+    ///   - test: What else it must be.
+    /// - Returns: The first view of that kind under this one, depth first, that passes the test.
+    func firstDescendant<View: NSView>(of type: View.Type, where test: (View) -> Bool = { _ in true }) -> View? {
+        for subview in subviews {
+            if let view = subview as? View, test(view) { return view }
+            if let view = subview.firstDescendant(of: type, where: test) { return view }
+        }
+        return nil
+    }
 }
 
 /// The event tables' search field, AppKit's own, which filters by each event's context as you type, and with a
@@ -190,7 +225,7 @@ struct EventSearchField: NSViewRepresentable {
             if let observer { NotificationCenter.default.removeObserver(observer) }
         }
 
-        /// Take the focus when Edit ▸ Find Events asks, in this field's window.
+        /// Take the focus when Edit ▸ Find… asks, in this field's window.
         func observeFocusRequests() {
             observer = NotificationCenter.default.addObserver(forName: .focusEventSearch, object: nil, queue: .main) {
                 [weak self] _ in
@@ -216,3 +251,4 @@ final class FixedWidthSearchField: NSSearchField {
         NSSize(width: NSView.noIntrinsicMetric, height: super.intrinsicContentSize.height)
     }
 }
+

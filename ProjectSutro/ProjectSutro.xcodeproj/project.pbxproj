@@ -363,6 +363,7 @@
 		BA97AFD22875471D0099C035 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA97AFD12875471D0099C035 /* ContentView.swift */; };
 		F17E00000000000000000020 /* EventSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000001F /* EventSearch.swift */; };
 		F17E00000000000000000028 /* PredicateEditorPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000027 /* PredicateEditorPane.swift */; };
+		3B09005499A6B2009E0C7197 /* PredicateCompletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = A62BA102FB28AAA1A05A4B05 /* PredicateCompletion.swift */; };
 		BA97AFD42875471E0099C035 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BA97AFD32875471E0099C035 /* Assets.xcassets */; };
 		BA97AFD72875471E0099C035 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BA97AFD62875471E0099C035 /* Preview Assets.xcassets */; };
 		BA97AFEA28754ABF0099C035 /* libEndpointSecurity.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = BA97AFE928754ABF0099C035 /* libEndpointSecurity.tbd */; };
@@ -378,6 +379,8 @@
 		C11D00000000000000000012 /* CommandLineToolInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000011 /* CommandLineToolInstaller.swift */; };
 		C11D00000000000000000014 /* CommandLineToolSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000013 /* CommandLineToolSettingsView.swift */; };
 		F17E00000000000000000016 /* SettingsComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000015 /* SettingsComponents.swift */; };
+		F17E00000000000000000036 /* FindingsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000035 /* FindingsSettingsView.swift */; };
+		F17E00000000000000000034 /* FindingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000033 /* FindingStore.swift */; };
 		CA4CE59B2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE59A2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift */; };
 		CA4CE59E2E53DB7900C057EB /* GatekeeperUserOverrideEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE59D2E53DB6C00C057EB /* GatekeeperUserOverrideEvent.swift */; };
 		CA4CE5A12E53E0CB00C057EB /* FilePathUnion.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE5A02E53E0C400C057EB /* FilePathUnion.swift */; };
@@ -537,6 +540,7 @@
 		F17E00000000000000000008 /* CommandLineOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000007 /* CommandLineOptions.swift */; };
 		F17E0000000000000000000A /* CommandLineCompletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000009 /* CommandLineCompletion.swift */; };
 		F17E0000000000000000000C /* StreamFilter+Predicates.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000B /* StreamFilter+Predicates.swift */; };
+		F17E00000000000000000032 /* Findings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000031 /* Findings.swift */; };
 		F17E00000000000000000030 /* StreamFilter+Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002F /* StreamFilter+Store.swift */; };
 		F17E0000000000000000002C /* PredicateText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002B /* PredicateText.swift */; };
 		F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000029 /* StreamFilter+Relations.swift */; };
@@ -1015,6 +1019,7 @@
 		BA97AFD12875471D0099C035 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F17E0000000000000000001F /* EventSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSearch.swift; sourceTree = "<group>"; };
 		F17E00000000000000000027 /* PredicateEditorPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateEditorPane.swift; sourceTree = "<group>"; };
+		A62BA102FB28AAA1A05A4B05 /* PredicateCompletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateCompletion.swift; sourceTree = "<group>"; };
 		BA97AFD32875471E0099C035 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BA97AFD62875471E0099C035 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		BA97AFDD2875471E0099C035 /* ProjectSutro.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ProjectSutro.entitlements; sourceTree = "<group>"; };
@@ -1031,6 +1036,8 @@
 		C11D00000000000000000011 /* CommandLineToolInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolInstaller.swift; sourceTree = "<group>"; };
 		C11D00000000000000000013 /* CommandLineToolSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolSettingsView.swift; sourceTree = "<group>"; };
 		F17E00000000000000000015 /* SettingsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsComponents.swift; sourceTree = "<group>"; };
+		F17E00000000000000000035 /* FindingsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindingsSettingsView.swift; sourceTree = "<group>"; };
+		F17E00000000000000000033 /* FindingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindingStore.swift; sourceTree = "<group>"; };
 		CA4CE59A2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemTCCModifyMetadataView.swift; sourceTree = "<group>"; };
 		CA4CE59D2E53DB6C00C057EB /* GatekeeperUserOverrideEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatekeeperUserOverrideEvent.swift; sourceTree = "<group>"; };
 		CA4CE5A02E53E0C400C057EB /* FilePathUnion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePathUnion.swift; sourceTree = "<group>"; };
@@ -1189,6 +1196,7 @@
 		F17E00000000000000000007 /* CommandLineOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineOptions.swift; sourceTree = "<group>"; };
 		F17E00000000000000000009 /* CommandLineCompletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineCompletion.swift; sourceTree = "<group>"; };
 		F17E0000000000000000000B /* StreamFilter+Predicates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Predicates.swift"; sourceTree = "<group>"; };
+		F17E00000000000000000031 /* Findings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Findings.swift; sourceTree = "<group>"; };
 		F17E0000000000000000002F /* StreamFilter+Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Store.swift"; sourceTree = "<group>"; };
 		F17E0000000000000000002B /* PredicateText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateText.swift; sourceTree = "<group>"; };
 		F17E00000000000000000029 /* StreamFilter+Relations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Relations.swift"; sourceTree = "<group>"; };
@@ -2836,6 +2844,7 @@
 				BA97AFD12875471D0099C035 /* ContentView.swift */,
 				F17E0000000000000000001F /* EventSearch.swift */,
 				F17E00000000000000000027 /* PredicateEditorPane.swift */,
+				A62BA102FB28AAA1A05A4B05 /* PredicateCompletion.swift */,
 				F17E0000000000000000000F /* RequirementsView.swift */,
 				D15C00000000000000000105 /* TraceSession.swift */,
 				D15C0000000000000000012A /* TraceSessionViews.swift */,
@@ -2879,6 +2888,8 @@
 				C11D00000000000000000011 /* CommandLineToolInstaller.swift */,
 				C11D00000000000000000013 /* CommandLineToolSettingsView.swift */,
 				F17E00000000000000000015 /* SettingsComponents.swift */,
+				F17E00000000000000000035 /* FindingsSettingsView.swift */,
+				F17E00000000000000000033 /* FindingStore.swift */,
 				F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */,
 			);
 			path = "Settings Views";
@@ -3736,6 +3747,7 @@
 				CB1C00000000000000000033 /* PipelineScope.swift */,
 				F17E00000000000000000005 /* StreamFilter.swift */,
 				F17E0000000000000000000B /* StreamFilter+Predicates.swift */,
+				F17E00000000000000000031 /* Findings.swift */,
 				F17E0000000000000000002F /* StreamFilter+Store.swift */,
 				F17E0000000000000000002B /* PredicateText.swift */,
 				F17E00000000000000000029 /* StreamFilter+Relations.swift */,
@@ -4085,6 +4097,7 @@
 				CB1C00000000000000000034 /* PipelineScope.swift in Sources */,
 				F17E00000000000000000006 /* StreamFilter.swift in Sources */,
 				F17E0000000000000000000C /* StreamFilter+Predicates.swift in Sources */,
+				F17E00000000000000000032 /* Findings.swift in Sources */,
 				F17E00000000000000000030 /* StreamFilter+Store.swift in Sources */,
 				F17E0000000000000000002C /* PredicateText.swift in Sources */,
 				F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */,
@@ -4466,6 +4479,7 @@
 				BA97AFD22875471D0099C035 /* ContentView.swift in Sources */,
 				F17E00000000000000000020 /* EventSearch.swift in Sources */,
 				F17E00000000000000000028 /* PredicateEditorPane.swift in Sources */,
+				3B09005499A6B2009E0C7197 /* PredicateCompletion.swift in Sources */,
 				F17E00000000000000000010 /* RequirementsView.swift in Sources */,
 				D15C00000000000000000106 /* TraceSession.swift in Sources */,
 				D15C0000000000000000012B /* TraceSessionViews.swift in Sources */,
@@ -4565,6 +4579,8 @@
 				C11D00000000000000000012 /* CommandLineToolInstaller.swift in Sources */,
 				C11D00000000000000000014 /* CommandLineToolSettingsView.swift in Sources */,
 				F17E00000000000000000016 /* SettingsComponents.swift in Sources */,
+				F17E00000000000000000036 /* FindingsSettingsView.swift in Sources */,
+				F17E00000000000000000034 /* FindingStore.swift in Sources */,
 				F17E00000000000000000012 /* SecurityExtensionSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

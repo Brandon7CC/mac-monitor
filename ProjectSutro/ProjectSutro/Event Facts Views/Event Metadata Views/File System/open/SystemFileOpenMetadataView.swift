@@ -16,7 +16,15 @@ struct SystemFileOpenMetadataView: View {
         esSystemEvent.event.open!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.open != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             FileOpenEventLabelView(message: esSystemEvent)

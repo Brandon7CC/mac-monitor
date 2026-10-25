@@ -83,7 +83,9 @@ struct GroupSummary {
         /// Is it the event Event Facts shows?
         let isCurrent: Bool
         /// The first finding it's part of.
-        let finding: GroupFinding?
+        let finding: Finding?
+        /// Every finding it's part of, by identity.
+        let findings: Set<UUID>
 
         var id: NSManagedObjectID { message.objectID }
 
@@ -103,8 +105,8 @@ struct GroupSummary {
     let rows: [Row]
     /// Each way of signing with its number of execs, most first.
     let signings: [(signing: Signing, count: Int)]
-    /// Each finding with its execs, in ``GroupFinding`` order.
-    let findings: [(finding: GroupFinding, rows: [Row])]
+    /// Each finding with its execs, in Settings ▸ Findings' order.
+    let findings: [(finding: Finding, rows: [Row])]
     /// Seconds from the first exec to the last.
     let span: Double
 
@@ -112,26 +114,28 @@ struct GroupSummary {
     ///   - scope: Which group.
     ///   - execs: Its exec events, newest first.
     ///   - current: The event Event Facts shows.
-    init(scope: Scope, execs: [ESMessage], current: ESMessage) {
+    ///   - matcher: The findings to look for (``FindingStore``).
+    init(scope: Scope, execs: [ESMessage], current: ESMessage, matcher: FindingMatcher) {
         self.scope = scope
         let process = current.event.exec?.target ?? current.process
         identifier = Int(scope == .process ? process.group_id : process.session_id)
         rows = execs.reversed().compactMap { message in
             guard let exec = message.event.exec else { return nil }
             let target = exec.target
+            let matched = matcher.matches(message)
             return Row(message: message, name: target.executable?.name ?? "", path: target.executable?.path ?? "",
                        commandLine: exec.command_line ?? "", signer: target.signing_id ?? target.team_id ?? "",
                        signing: Signing(target.codesigning_type), user: target.euid_human ?? "\(target.euid)",
                        time: eventTimeStamp(for: message), isCurrent: message.objectID == current.objectID,
-                       finding: GroupFinding.allCases.first { $0.matches(exec) })
+                       finding: matched.first, findings: Set(matched.map(\.id)))
         }
         var counts: [Signing: Int] = [:]
         rows.forEach { counts[$0.signing, default: 0] += 1 }
         signings = Signing.allCases.compactMap { signing in counts[signing].map { (signing, $0) } }
             .sorted { $0.count > $1.count }
         let rows = rows
-        findings = GroupFinding.allCases.compactMap { finding in
-            let matching = rows.filter { $0.message.event.exec.map(finding.matches) ?? false }
+        findings = matcher.order.compactMap { finding in
+            let matching = rows.filter { $0.findings.contains(finding.id) }
             return matching.isEmpty ? nil : (finding, matching)
         }
         let times = rows.compactMap { $0.message.message_darwin_time }
@@ -150,93 +154,3 @@ struct GroupSummary {
     }
 }
 
-
-// MARK: - Findings
-/// What's worth a look among a group's execs, each a card above them.
-enum GroupFinding: String, CaseIterable, Identifiable {
-    case newExecutable, unsignedCode, script, appleScript, download, nonAppleRoot
-
-    var id: Self { self }
-
-    /// Command line tools that download files.
-    private static let downloaders: Set<String> = ["curl", "wget", "nscurl", "ftp", "tftp", "scp", "sftp"]
-
-    /// Is an exec part of this finding?
-    ///
-    /// - Parameter exec: The exec.
-    /// - Returns: `true` if it is.
-    func matches(_ exec: ESProcessExecEvent) -> Bool {
-        let target = exec.target
-        switch self {
-        case .newExecutable:
-            return exec.isNewExecutable
-        case .unsignedCode:
-            return [.adhoc, .unsigned].contains(GroupSummary.Signing(target.codesigning_type))
-        case .script:
-            return !(exec.script_content ?? "").isEmpty
-        case .appleScript:
-            return target.executable?.name == "osascript"
-        case .download:
-            return Self.downloaders.contains(target.executable?.name ?? "")
-        case .nonAppleRoot:
-            return target.euid == 0 && GroupSummary.Signing(target.codesigning_type) != .apple
-        }
-    }
-
-    /// The card's title.
-    ///
-    /// - Parameter count: How many execs are part of it.
-    /// - Returns: The title, such as "2 adhoc or unsigned".
-    func title(_ count: Int) -> String {
-        switch self {
-        case .newExecutable: return count == 1 ? "New executable" : "\(count) new executables"
-        case .unsignedCode: return "\(count) adhoc or unsigned"
-        case .script: return count == 1 ? "Ran a script" : "Ran \(count) scripts"
-        case .appleScript: return count == 1 ? "AppleScript" : "AppleScript ×\(count)"
-        case .download: return count == 1 ? "Download tool" : "\(count) download tools"
-        case .nonAppleRoot: return "\(count) non-Apple as root"
-        }
-    }
-
-    /// Why it's worth a look.
-    var explanation: String {
-        switch self {
-        case .newExecutable:
-            return "Its executable was created less than five minutes before it ran, as a dropper's payload is."
-        case .unsignedCode:
-            return "Ran code that isn't signed by a known developer: adhoc, as a freshly compiled or modified binary "
-                + "is, or not at all."
-        case .script:
-            return "An interpreter ran a script Mac Monitor read. That exec's Script tab shows its content."
-        case .appleScript:
-            return "osascript ran AppleScript or JXA, which stealers use for fake password prompts and to drive other "
-                + "apps."
-        case .download:
-            return "A command line download tool ran, as a dropper does to fetch its payload."
-        case .nonAppleRoot:
-            return "Ran as root without Apple's signature."
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .newExecutable: return "clock.badge.exclamationmark"
-        case .unsignedCode: return "xmark.seal"
-        case .script: return "scroll.fill"
-        case .appleScript: return "applescript"
-        case .download: return "arrow.down.circle"
-        case .nonAppleRoot: return "bolt.shield"
-        }
-    }
-
-    var tint: Color {
-        switch self {
-        case .newExecutable: return .pink
-        case .unsignedCode: return .orange
-        case .script: return .purple
-        case .appleScript: return .indigo
-        case .download: return .blue
-        case .nonAppleRoot: return .red
-        }
-    }
-}

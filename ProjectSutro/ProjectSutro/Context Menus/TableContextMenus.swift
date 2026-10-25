@@ -56,10 +56,10 @@ struct TableNonExecContextMenus: View {
         // MARK: - Filter ES event
         // @note non-optional
         Button(action: {
-            allFilters.events.append(message.es_event_type!)
+            allFilters.events.append(contentsOf: [message.es_event_type].compactMap { $0 })
         }) {
             HStack {
-                Text("Filter event: \"`\(message.es_event_type!)`\"")
+                Text("Filter event: \"`\(message.es_event_type ?? "")`\"")
             }
         }
         
@@ -138,7 +138,7 @@ struct AdvancedNonExecContextMenu: View {
     var body: some View {
         // MARK: Filter target path
         if userPrefs.contextTargetPathFilter && event.target_path != nil && !event.target_path!.isEmpty {
-            if IntelligentEventTargeting.targetShouldBeParentDir(esEventType: event.es_event_type!) {
+            if IntelligentEventTargeting.targetShouldBeParentDir(esEventType: event.es_event_type ?? "") {
                 let targetPath: String = event.target_path ?? ""
                 let parentDir = URL(fileURLWithPath: targetPath).deletingLastPathComponent().path
                 Button(action: {
@@ -179,14 +179,14 @@ action: {
         Group {
             if isRecorded && userPrefs.contextTargetPathMute && event.target_path != nil && !event.target_path!.isEmpty {
                 // MARK: Target path parent dir
-                if IntelligentEventTargeting.targetShouldBeParentDir(esEventType: event.es_event_type!) {
+                if IntelligentEventTargeting.targetShouldBeParentDir(esEventType: event.es_event_type ?? "") {
                     let targetPath: String = event.target_path ?? ""
                     let parentDir = URL(fileURLWithPath: targetPath).deletingLastPathComponent().path
                     Button(action: {
                         // Mute the target path's parent directory for the specified event
                         systemExtensionManager.puntPathToMute(pathToMute: parentDir,
                                                               muteCase: ES_MUTE_PATH_TYPE_TARGET_PREFIX,
-                                                              pathEvents: [event.es_event_type!], from: .eventMenu)
+                                                              pathEvents: [event.es_event_type ?? ""], from: .eventMenu)
                     }) {
                         Text("Mute target path event: \"\(parentDir)/\"")
                     }
@@ -195,7 +195,7 @@ action: {
                         // Mute the target path's parent directory for the specified event
                         systemExtensionManager.puntPathToMute(pathToMute: event.target_path!,
                                                               muteCase: ES_MUTE_PATH_TYPE_TARGET_LITERAL,
-                                                              pathEvents: [event.es_event_type!], from: .eventMenu)
+                                                              pathEvents: [event.es_event_type ?? ""], from: .eventMenu)
                     }) {
                         HStack {
                             Text("Mute target path event: \"`\(event.target_path!)`/\"")
@@ -207,12 +207,12 @@ action: {
         
         if isRecorded && userPrefs.contextEventUnsubscribe {
             Button(action: {
-                os_log("Requesting ES unsubscribe from: \(event.es_event_type!)")
+                os_log("Requesting ES unsubscribe from: \(event.es_event_type ?? "")")
                 // Mute the binaries initiating process path globally (for all events)
-                systemExtensionManager.puntEventToUnsubscribe(eventString: event.es_event_type!)
+                systemExtensionManager.puntEventToUnsubscribe(eventString: event.es_event_type ?? "")
             }) {
                 HStack {
-                    Text("Unsubscribe: \"`\(event.es_event_type!)`\"")
+                    Text("Unsubscribe: \"`\(event.es_event_type ?? "")`\"")
                 }
             }
         }

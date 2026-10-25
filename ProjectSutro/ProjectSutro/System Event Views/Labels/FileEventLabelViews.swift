@@ -34,7 +34,15 @@ struct FileCreateEventLabelView: View {
         message.event.create!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.create != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         if let eventType: String = message.es_event_type {
             HStack {
                 if pathIsReflectiveLoadingImage(event.targetPath) {
@@ -67,7 +75,15 @@ struct MMAPEventLabelView: View {
         message.event.mmap!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.mmap != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         if let eventType: String = message.es_event_type {
             let filePath: String = event.source.path!
             if pathIsReflectiveLoadingImage(filePath) {
@@ -98,16 +114,24 @@ struct DeleteXattrEventLabelView: View {
         message.event.deleteextattr!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.deleteextattr != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         let xattr = event.extattr
         // MARK: Quarantine Xattr Delete
         if xattr.hasSuffix("apple.quarantine") {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow).help("Quarantine extended attribute deleted")
-                Label("**`\(message.es_event_type!)`**", systemImage: "lock.slash").symbolRenderingMode(.palette).foregroundStyle(.red)
+                Label("**`\(message.es_event_type ?? "")`**", systemImage: "lock.slash").symbolRenderingMode(.palette).foregroundStyle(.red)
             }
         } else {
-            Label("**`\(message.es_event_type!)`**", systemImage: eventStringToImage(from: message.es_event_type!)).foregroundStyle(.orange)
+            Label("**`\(message.es_event_type ?? "")`**", systemImage: eventStringToImage(from: message.es_event_type ?? "")).foregroundStyle(.orange)
         }
     }
 }
@@ -121,10 +145,18 @@ struct SetXattrEventLabelView: View {
     }
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.setextattr != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         if event.extattr == "com.apple.quarantine" {
             Label("**`\(eventType)`**", systemImage: eventStringToImage(from: eventType)).symbolRenderingMode(.palette).foregroundStyle(.green)
         } else {
@@ -138,7 +170,7 @@ struct MountEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: "mount")
+        Label("**`\(message.es_event_type ?? "")`**", systemImage: "mount")
     }
 }
 
@@ -147,7 +179,7 @@ struct FDDuplicateEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: "folder.badge.plus")
+        Label("**`\(message.es_event_type ?? "")`**", systemImage: "folder.badge.plus")
     }
 }
 
@@ -156,7 +188,15 @@ struct FileRenameEventLabelView: View {
     var message: ESMessage
     private var event: ESFileRenameEvent { message.event.rename! }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.rename != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         guard let eventType = message.es_event_type else { return AnyView(EmptyView()) }
         let config = configuration(for: event)
         
@@ -195,7 +235,7 @@ struct FileDeleteEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: eventStringToImage(from: message.es_event_type!))
+        Label("**`\(message.es_event_type ?? "")`**", systemImage: eventStringToImage(from: message.es_event_type ?? ""))
     }
 }
 
@@ -204,7 +244,7 @@ struct FileOpenEventLabelView: View {
     var message: ESMessage
     
     var body: some View {
-        Label("**`\(message.es_event_type!)`**", systemImage: eventStringToImage(from: message.es_event_type!))
+        Label("**`\(message.es_event_type ?? "")`**", systemImage: eventStringToImage(from: message.es_event_type ?? ""))
     }
 }
 
@@ -217,10 +257,18 @@ struct FileWriteEventLabelView: View {
     }
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.write != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         HStack {
             if let path = event.target.path,
                path.contains("backgroundtaskmanagementd") {
@@ -244,7 +292,7 @@ struct FileLinkEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
     var body: some View {
@@ -257,7 +305,7 @@ struct FileCloseEventLabelView: View {
     var message: ESMessage
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
     var body: some View {
@@ -274,10 +322,18 @@ struct IOKitOpenEventLabelView: View {
     }
     
     private var eventType: String {
-        message.es_event_type!
+        message.es_event_type ?? ""
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.iokit_open != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         HStack {
             // MARK: HID Device
             if event.user_client_class.contains("IOHIDLibUserClient") {

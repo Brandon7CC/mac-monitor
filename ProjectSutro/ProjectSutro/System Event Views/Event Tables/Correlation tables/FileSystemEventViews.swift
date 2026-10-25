@@ -37,7 +37,7 @@ struct SystemFileEventTableView: View {
                 }.width(min: 100, ideal: 150, max: 400)
                 TableColumn(
                     "File path",
-                    value: \.event.create!.targetPath
+                    value: \.sortCreateTarget
                 )
                 TableColumn("Is quarantined") { message in
                     if let create = message.event.create {
