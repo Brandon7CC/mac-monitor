@@ -43,8 +43,7 @@ public class ESLaunchItem: NSManagedObject, Identifiable {
         from launchItem: LaunchItem,
         insertIntoManagedObjectContext context: NSManagedObjectContext!
     ) {
-        let description = NSEntityDescription.entity(forEntityName: "ESLaunchItem", in: context)!
-        self.init(entity: description, insertInto: context)
+        self.init(insertingInto: context)
         
         self.item_type = launchItem.item_type
         self.item_type_string = launchItem.item_type_string

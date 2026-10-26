@@ -19,13 +19,11 @@ public class ESFileOpenEvent: NSManagedObject, Identifiable {
     }
 
     // MARK: - Custom Core Data initilizer for ESFileOpenEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let fileEvent: FileOpenEvent = message.event.open!
-        let description = NSEntityDescription.entity(forEntityName: "ESFileOpenEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: FileOpenEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        attach(ESFile.row(for: fileEvent.file, in: context), to: #keyPath(ESFileOpenEvent.file))
-        self.fflag = fileEvent.fflag
+        attach(ESFile.row(for: event.file, in: context), to: #keyPath(ESFileOpenEvent.file))
+        self.fflag = event.fflag
     }
 }
 

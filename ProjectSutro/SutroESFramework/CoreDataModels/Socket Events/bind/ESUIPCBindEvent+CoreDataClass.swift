@@ -22,10 +22,8 @@ public class ESUIPCBindEvent: NSManagedObject, Identifiable {
         case mode
     }
     
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: UIPCBindEvent = message.event.uipc_bind!
-        let description = NSEntityDescription.entity(forEntityName: "ESUIPCBindEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: UIPCBindEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         attach(ESFile.row(for: event.dir, in: context), to: #keyPath(ESUIPCBindEvent.dir))
         self.filename = event.filename

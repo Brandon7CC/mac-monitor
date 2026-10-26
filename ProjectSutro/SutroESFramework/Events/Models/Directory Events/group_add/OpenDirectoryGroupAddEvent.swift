@@ -27,7 +27,7 @@ import Foundation
 
 
 /// Models an `ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD`: a member was added to an Open Directory group.
-public struct OpenDirectoryGroupAddEvent: Identifiable, Codable, Hashable, OpenDirectoryGroupMemberEvent {
+public struct OpenDirectoryGroupAddEvent: Codable, IdentityHashable, OpenDirectoryGroupMemberEvent {
     public var id: UUID = UUID.buffered()
     /// The process that instigated the operation (the XPC caller), or `nil` when Endpoint Security leaves it out.
     public var instigator: Process?
@@ -46,14 +46,6 @@ public struct OpenDirectoryGroupAddEvent: Identifiable, Codable, Hashable, OpenD
     public var error_code_human, member_string: String?
     public var instigator_process_name, instigator_process_path: String?
     public var instigator_process_audit_token, instigator_process_signing_id: String?
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: OpenDirectoryGroupAddEvent, rhs: OpenDirectoryGroupAddEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     /// Record the event of a message from Endpoint Security.
     ///

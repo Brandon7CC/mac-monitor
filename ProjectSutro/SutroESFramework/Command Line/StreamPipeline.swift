@@ -149,20 +149,17 @@ public final class StreamPipeline {
     private func encode(_ batch: [Data], with encoders: [ExportEncoder],
                         format: @escaping (EventHeader, Data) -> Data) -> [Chunk] {
         let parts = Self.split(batch, into: batch.count >= Self.parallelThreshold ? encoders.count : 1)
-        var encoded = [Chunk?](repeating: nil, count: parts.count)
         let (scope, filters) = (scope, filters)
-        encoded.withUnsafeMutableBufferPointer { encoded in
-            DispatchQueue.concurrentPerform(iterations: parts.count) { index in
-                encoded[index] = Chunk(parts[index], scope: scope, filter: filters[index]) { event, decoder in
-                    let message = try decoder.decode(Message.self, from: event)
-                    let header = EventHeader(message)
-                    let record = { encoders[index].line(for: message) }
-                    return Decoded(header: header, record: record) { made in format(header, made ?? record()) }
-                }
+        let encoded = parts.indices.concurrentMap { index in
+            Chunk(parts[index], scope: scope, filter: filters[index]) { event, decoder in
+                let message = try decoder.decode(Message.self, from: event)
+                let header = EventHeader(message)
+                let record = { encoders[index].line(for: message) }
+                return Decoded(header: header, record: record) { made in format(header, made ?? record()) }
             }
         }
         encoders.forEach { $0.reset() }
-        return encoded.compactMap { $0 }
+        return encoded
     }
     
     /// Split a batch into contiguous parts of nearly equal size.

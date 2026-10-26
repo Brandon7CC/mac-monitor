@@ -6,341 +6,84 @@
 //
 
 
+/// `SOCK_*`: each socket type's name, from `<sys/socket.h>`.
+private let typeNames = ConstantNames([
+    SOCK_STREAM: "SOCK_STREAM", SOCK_DGRAM: "SOCK_DGRAM", SOCK_SEQPACKET: "SOCK_SEQPACKET", SOCK_RAW: "SOCK_RAW",
+    SOCK_RDM: "SOCK_RDM",
+])
+
+/// `AF_*`: each address family's name, from `<sys/socket.h>`. Of two names for one family the first wins: `AF_UNIX`,
+/// `AF_ISO` and `AF_ISDN`, not `AF_LOCAL`, `AF_OSI` and `AF_E164`.
+private let domainNames = ConstantNames([
+    AF_UNSPEC: "AF_UNSPEC", AF_UNIX: "AF_UNIX", AF_LOCAL: "AF_LOCAL", AF_INET: "AF_INET", AF_IMPLINK: "AF_IMPLINK",
+    AF_PUP: "AF_PUP", AF_CHAOS: "AF_CHAOS", AF_NS: "AF_NS", AF_ISO: "AF_ISO", AF_OSI: "AF_OSI", AF_ECMA: "AF_ECMA",
+    AF_DATAKIT: "AF_DATAKIT", AF_CCITT: "AF_CCITT", AF_SNA: "AF_SNA", AF_DECnet: "AF_DECnet", AF_DLI: "AF_DLI",
+    AF_LAT: "AF_LAT", AF_HYLINK: "AF_HYLINK", AF_APPLETALK: "AF_APPLETALK", AF_ROUTE: "AF_ROUTE", AF_LINK: "AF_LINK",
+    pseudo_AF_XTP: "pseudo_AF_XTP", AF_COIP: "AF_COIP", AF_CNT: "AF_CNT", pseudo_AF_RTIP: "pseudo_AF_RTIP",
+    AF_IPX: "AF_IPX", AF_SIP: "AF_SIP", pseudo_AF_PIP: "pseudo_AF_PIP", AF_NDRV: "AF_NDRV", AF_ISDN: "AF_ISDN",
+    AF_E164: "AF_E164", pseudo_AF_KEY: "pseudo_AF_KEY", AF_INET6: "AF_INET6", AF_NATM: "AF_NATM",
+    AF_SYSTEM: "AF_SYSTEM", AF_NETBIOS: "AF_NETBIOS", AF_PPP: "AF_PPP", pseudo_AF_HDRCMPLT: "pseudo_AF_HDRCMPLT",
+    AF_RESERVED_36: "AF_RESERVED_36", AF_IEEE80211: "AF_IEEE80211", AF_UTUN: "AF_UTUN", AF_VSOCK: "AF_VSOCK",
+])
+
+/// `IPPROTO_*`: each protocol's name, from `<netinet/in.h>`. Of two names for one protocol the first wins: 0 is
+/// "DEFAULT", not `IPPROTO_IP` or `IPPROTO_HOPOPTS`, and 4 is `IPPROTO_IPV4`, not `IPPROTO_IPIP`.
+private let protocolNames = ConstantNames([
+    0: "DEFAULT", IPPROTO_IP: "IPPROTO_IP", IPPROTO_HOPOPTS: "IPPROTO_HOPOPTS", IPPROTO_ICMP: "IPPROTO_ICMP",
+    IPPROTO_IGMP: "IPPROTO_IGMP", IPPROTO_GGP: "IPPROTO_GGP", IPPROTO_IPV4: "IPPROTO_IPV4",
+    IPPROTO_IPIP: "IPPROTO_IPIP", IPPROTO_TCP: "IPPROTO_TCP", IPPROTO_ST: "IPPROTO_ST", IPPROTO_EGP: "IPPROTO_EGP",
+    IPPROTO_PIGP: "IPPROTO_PIGP", IPPROTO_RCCMON: "IPPROTO_RCCMON", IPPROTO_NVPII: "IPPROTO_NVPII",
+    IPPROTO_PUP: "IPPROTO_PUP", IPPROTO_ARGUS: "IPPROTO_ARGUS", IPPROTO_EMCON: "IPPROTO_EMCON",
+    IPPROTO_XNET: "IPPROTO_XNET", IPPROTO_CHAOS: "IPPROTO_CHAOS", IPPROTO_UDP: "IPPROTO_UDP",
+    IPPROTO_MUX: "IPPROTO_MUX", IPPROTO_MEAS: "IPPROTO_MEAS", IPPROTO_HMP: "IPPROTO_HMP", IPPROTO_PRM: "IPPROTO_PRM",
+    IPPROTO_IDP: "IPPROTO_IDP", IPPROTO_TRUNK1: "IPPROTO_TRUNK1", IPPROTO_TRUNK2: "IPPROTO_TRUNK2",
+    IPPROTO_LEAF1: "IPPROTO_LEAF1", IPPROTO_LEAF2: "IPPROTO_LEAF2", IPPROTO_RDP: "IPPROTO_RDP",
+    IPPROTO_IRTP: "IPPROTO_IRTP", IPPROTO_TP: "IPPROTO_TP", IPPROTO_BLT: "IPPROTO_BLT", IPPROTO_NSP: "IPPROTO_NSP",
+    IPPROTO_INP: "IPPROTO_INP", IPPROTO_SEP: "IPPROTO_SEP", IPPROTO_3PC: "IPPROTO_3PC", IPPROTO_IDPR: "IPPROTO_IDPR",
+    IPPROTO_XTP: "IPPROTO_XTP", IPPROTO_DDP: "IPPROTO_DDP", IPPROTO_CMTP: "IPPROTO_CMTP", IPPROTO_TPXX: "IPPROTO_TPXX",
+    IPPROTO_IL: "IPPROTO_IL", IPPROTO_IPV6: "IPPROTO_IPV6", IPPROTO_SDRP: "IPPROTO_SDRP",
+    IPPROTO_ROUTING: "IPPROTO_ROUTING", IPPROTO_FRAGMENT: "IPPROTO_FRAGMENT", IPPROTO_IDRP: "IPPROTO_IDRP",
+    IPPROTO_RSVP: "IPPROTO_RSVP", IPPROTO_GRE: "IPPROTO_GRE", IPPROTO_MHRP: "IPPROTO_MHRP", IPPROTO_BHA: "IPPROTO_BHA",
+    IPPROTO_ESP: "IPPROTO_ESP", IPPROTO_AH: "IPPROTO_AH", IPPROTO_INLSP: "IPPROTO_INLSP",
+    IPPROTO_SWIPE: "IPPROTO_SWIPE", IPPROTO_NHRP: "IPPROTO_NHRP", IPPROTO_ICMPV6: "IPPROTO_ICMPV6",
+    IPPROTO_NONE: "IPPROTO_NONE", IPPROTO_DSTOPTS: "IPPROTO_DSTOPTS", IPPROTO_AHIP: "IPPROTO_AHIP",
+    IPPROTO_CFTP: "IPPROTO_CFTP", IPPROTO_HELLO: "IPPROTO_HELLO", IPPROTO_SATEXPAK: "IPPROTO_SATEXPAK",
+    IPPROTO_KRYPTOLAN: "IPPROTO_KRYPTOLAN", IPPROTO_RVD: "IPPROTO_RVD", IPPROTO_IPPC: "IPPROTO_IPPC",
+    IPPROTO_ADFS: "IPPROTO_ADFS", IPPROTO_SATMON: "IPPROTO_SATMON", IPPROTO_VISA: "IPPROTO_VISA",
+    IPPROTO_IPCV: "IPPROTO_IPCV", IPPROTO_CPNX: "IPPROTO_CPNX", IPPROTO_CPHB: "IPPROTO_CPHB",
+    IPPROTO_WSN: "IPPROTO_WSN", IPPROTO_PVP: "IPPROTO_PVP", IPPROTO_BRSATMON: "IPPROTO_BRSATMON",
+    IPPROTO_ND: "IPPROTO_ND", IPPROTO_WBMON: "IPPROTO_WBMON", IPPROTO_WBEXPAK: "IPPROTO_WBEXPAK",
+    IPPROTO_EON: "IPPROTO_EON", IPPROTO_VMTP: "IPPROTO_VMTP", IPPROTO_SVMTP: "IPPROTO_SVMTP",
+    IPPROTO_VINES: "IPPROTO_VINES", IPPROTO_TTP: "IPPROTO_TTP", IPPROTO_IGP: "IPPROTO_IGP", IPPROTO_DGP: "IPPROTO_DGP",
+    IPPROTO_TCF: "IPPROTO_TCF", IPPROTO_IGRP: "IPPROTO_IGRP", IPPROTO_OSPFIGP: "IPPROTO_OSPFIGP",
+    IPPROTO_SRPC: "IPPROTO_SRPC", IPPROTO_LARP: "IPPROTO_LARP", IPPROTO_MTP: "IPPROTO_MTP",
+    IPPROTO_AX25: "IPPROTO_AX25", IPPROTO_IPEIP: "IPPROTO_IPEIP", IPPROTO_MICP: "IPPROTO_MICP",
+    IPPROTO_SCCSP: "IPPROTO_SCCSP", IPPROTO_ETHERIP: "IPPROTO_ETHERIP", IPPROTO_ENCAP: "IPPROTO_ENCAP",
+    IPPROTO_APES: "IPPROTO_APES", IPPROTO_GMTP: "IPPROTO_GMTP", IPPROTO_PIM: "IPPROTO_PIM",
+    IPPROTO_IPCOMP: "IPPROTO_IPCOMP", IPPROTO_PGM: "IPPROTO_PGM", IPPROTO_SCTP: "IPPROTO_SCTP",
+    IPPROTO_DIVERT: "IPPROTO_DIVERT", IPPROTO_RAW: "IPPROTO_RAW", IPPROTO_DONE: "IPPROTO_DONE",
+])
+
+/// A socket type's name.
+///
+/// - Parameter type: A socket's type, `SOCK_*`.
+/// - Returns: Its name, or "UNKNOWN".
 public func resolve(type: Int32) -> String {
-    var type_string: String = ""
-    switch type {
-    case SOCK_STREAM:
-        type_string = "SOCK_STREAM"
-    case SOCK_DGRAM:
-        type_string = "SOCK_DGRAM"
-    case SOCK_SEQPACKET:
-        type_string = "SOCK_SEQPACKET"
-    case SOCK_RAW:
-        type_string = "SOCK_RAW"
-    case SOCK_RDM:
-        type_string = "SOCK_RDM"
-    default:
-        type_string = "UNKNOWN"
-    }
-    
-    return type_string
+    typeNames.name(of: Int(type))
 }
 
+/// An address family's name.
+///
+/// - Parameter domain: A socket's domain, `AF_*`.
+/// - Returns: Its name, or "UNKNOWN(n)" for a family `<sys/socket.h>` doesn't name.
 public func resolve(domain: Int32) -> String {
-    var domain_string = ""
-    switch domain {
-    case AF_UNSPEC:
-        domain_string = "AF_UNSPEC"
-    case AF_UNIX:
-        domain_string = "AF_UNIX"
-    case AF_LOCAL:
-        domain_string = "AF_LOCAL"
-    case AF_INET:
-        domain_string = "AF_INET"
-    case AF_IMPLINK:
-        domain_string = "AF_IMPLINK"
-    case AF_PUP:
-        domain_string = "AF_PUP"
-    case AF_CHAOS:
-        domain_string = "AF_CHAOS"
-    case AF_NS:
-        domain_string = "AF_NS"
-    case AF_ISO:
-        domain_string = "AF_ISO"
-    case AF_OSI:
-        domain_string = "AF_OSI"
-    case AF_ECMA:
-        domain_string = "AF_ECMA"
-    case AF_DATAKIT:
-        domain_string = "AF_DATAKIT"
-    case AF_CCITT:
-        domain_string = "AF_CCITT"
-    case AF_SNA:
-        domain_string = "AF_SNA"
-    case AF_DECnet:
-        domain_string = "AF_DECnet"
-    case AF_DLI:
-        domain_string = "AF_DLI"
-    case AF_LAT:
-        domain_string = "AF_LAT"
-    case AF_HYLINK:
-        domain_string = "AF_HYLINK"
-    case AF_APPLETALK:
-        domain_string = "AF_APPLETALK"
-    case AF_ROUTE:
-        domain_string = "AF_ROUTE"
-    case AF_LINK:
-        domain_string = "AF_LINK"
-    case pseudo_AF_XTP:
-        domain_string = "pseudo_AF_XTP"
-    case AF_COIP:
-        domain_string = "AF_COIP"
-    case AF_CNT:
-        domain_string = "AF_CNT"
-    case pseudo_AF_RTIP:
-        domain_string = "pseudo_AF_RTIP"
-    case AF_IPX:
-        domain_string = "AF_IPX"
-    case AF_SIP:
-        domain_string = "AF_SIP"
-    case pseudo_AF_PIP:
-        domain_string = "pseudo_AF_PIP"
-    case AF_NDRV:
-        domain_string = "AF_NDRV"
-    case AF_ISDN:
-        domain_string = "AF_ISDN"
-    case AF_E164:
-        domain_string = "AF_E164"
-    case pseudo_AF_KEY:
-        domain_string = "pseudo_AF_KEY"
-    case AF_INET6:
-        domain_string = "AF_INET6"
-    case AF_NATM:
-        domain_string = "AF_NATM"
-    case AF_SYSTEM:
-        domain_string = "AF_SYSTEM"
-    case AF_NETBIOS:
-        domain_string = "AF_NETBIOS"
-    case AF_PPP:
-        domain_string = "AF_PPP"
-    case pseudo_AF_HDRCMPLT:
-        domain_string = "pseudo_AF_HDRCMPLT"
-    case AF_RESERVED_36:
-        domain_string = "AF_RESERVED_36"
-    case AF_IEEE80211:
-        domain_string = "AF_IEEE80211"
-    case AF_UTUN:
-        domain_string = "AF_UTUN"
-    case AF_VSOCK:
-        domain_string = "AF_VSOCK"
-    default:
-        domain_string = "UNKNOWN(\(domain))"
-    }
-    
-    return domain_string
+    domainNames.names[Int(domain)] ?? "UNKNOWN(\(domain))"
 }
 
-
+/// A protocol's name.
+///
+/// - Parameter protocol: A socket's protocol, `IPPROTO_*`.
+/// - Returns: Its name, or "UNKNOWN(n)" for a protocol `<netinet/in.h>` doesn't name.
 public func resolve(protocol: Int32) -> String {
-    var protocol_string: String = ""
-    switch `protocol` {
-    case 0:
-        protocol_string = "DEFAULT"
-    case IPPROTO_IP:
-        protocol_string = "IPPROTO_IP"
-    case IPPROTO_HOPOPTS:
-        protocol_string = "IPPROTO_HOPOPTS"
-    case IPPROTO_ICMP:
-        protocol_string = "IPPROTO_ICMP"
-    case IPPROTO_IGMP:
-        protocol_string = "IPPROTO_IGMP"
-    case IPPROTO_GGP:
-        protocol_string = "IPPROTO_GGP"
-    case IPPROTO_IPV4:
-        protocol_string = "IPPROTO_IPV4"
-    case IPPROTO_IPIP:
-        protocol_string = "IPPROTO_IPIP"
-    case IPPROTO_TCP:
-        protocol_string = "IPPROTO_TCP"
-    case IPPROTO_ST:
-        protocol_string = "IPPROTO_ST"
-    case IPPROTO_EGP:
-        protocol_string = "IPPROTO_EGP"
-    case IPPROTO_PIGP:
-        protocol_string = "IPPROTO_PIGP"
-    case IPPROTO_RCCMON:
-        protocol_string = "IPPROTO_RCCMON"
-    case IPPROTO_NVPII:
-        protocol_string = "IPPROTO_NVPII"
-    case IPPROTO_PUP:
-        protocol_string = "IPPROTO_PUP"
-    case IPPROTO_ARGUS:
-        protocol_string = "IPPROTO_ARGUS"
-    case IPPROTO_EMCON:
-        protocol_string = "IPPROTO_EMCON"
-    case IPPROTO_XNET:
-        protocol_string = "IPPROTO_XNET"
-    case IPPROTO_CHAOS:
-        protocol_string = "IPPROTO_CHAOS"
-    case IPPROTO_UDP:
-        protocol_string = "IPPROTO_UDP"
-    case IPPROTO_MUX:
-        protocol_string = "IPPROTO_MUX"
-    case IPPROTO_MEAS:
-        protocol_string = "IPPROTO_MEAS"
-    case IPPROTO_HMP:
-        protocol_string = "IPPROTO_HMP"
-    case IPPROTO_PRM:
-        protocol_string = "IPPROTO_PRM"
-    case IPPROTO_IDP:
-        protocol_string = "IPPROTO_IDP"
-    case IPPROTO_TRUNK1:
-        protocol_string = "IPPROTO_TRUNK1"
-    case IPPROTO_TRUNK2:
-        protocol_string = "IPPROTO_TRUNK2"
-    case IPPROTO_LEAF1:
-        protocol_string = "IPPROTO_LEAF1"
-    case IPPROTO_LEAF2:
-        protocol_string = "IPPROTO_LEAF2"
-    case IPPROTO_RDP:
-        protocol_string = "IPPROTO_RDP"
-    case IPPROTO_IRTP:
-        protocol_string = "IPPROTO_IRTP"
-    case IPPROTO_TP:
-        protocol_string = "IPPROTO_TP"
-    case IPPROTO_BLT:
-        protocol_string = "IPPROTO_BLT"
-    case IPPROTO_NSP:
-        protocol_string = "IPPROTO_NSP"
-    case IPPROTO_INP:
-        protocol_string = "IPPROTO_INP"
-    case IPPROTO_SEP:
-        protocol_string = "IPPROTO_SEP"
-    case IPPROTO_3PC:
-        protocol_string = "IPPROTO_3PC"
-    case IPPROTO_IDPR:
-        protocol_string = "IPPROTO_IDPR"
-    case IPPROTO_XTP:
-        protocol_string = "IPPROTO_XTP"
-    case IPPROTO_DDP:
-        protocol_string = "IPPROTO_DDP"
-    case IPPROTO_CMTP:
-        protocol_string = "IPPROTO_CMTP"
-    case IPPROTO_TPXX:
-        protocol_string = "IPPROTO_TPXX"
-    case IPPROTO_IL:
-        protocol_string = "IPPROTO_IL"
-    case IPPROTO_IPV6:
-        protocol_string = "IPPROTO_IPV6"
-    case IPPROTO_SDRP:
-        protocol_string = "IPPROTO_SDRP"
-    case IPPROTO_ROUTING:
-        protocol_string = "IPPROTO_ROUTING"
-    case IPPROTO_FRAGMENT:
-        protocol_string = "IPPROTO_FRAGMENT"
-    case IPPROTO_IDRP:
-        protocol_string = "IPPROTO_IDRP"
-    case IPPROTO_RSVP:
-        protocol_string = "IPPROTO_RSVP"
-    case IPPROTO_GRE:
-        protocol_string = "IPPROTO_GRE"
-    case IPPROTO_MHRP:
-        protocol_string = "IPPROTO_MHRP"
-    case IPPROTO_BHA:
-        protocol_string = "IPPROTO_BHA"
-    case IPPROTO_ESP:
-        protocol_string = "IPPROTO_ESP"
-    case IPPROTO_AH:
-        protocol_string = "IPPROTO_AH"
-    case IPPROTO_INLSP:
-        protocol_string = "IPPROTO_INLSP"
-    case IPPROTO_SWIPE:
-        protocol_string = "IPPROTO_SWIPE"
-    case IPPROTO_NHRP:
-        protocol_string = "IPPROTO_NHRP"
-    case IPPROTO_ICMPV6:
-        protocol_string = "IPPROTO_ICMPV6"
-    case IPPROTO_NONE:
-        protocol_string = "IPPROTO_NONE"
-    case IPPROTO_DSTOPTS:
-        protocol_string = "IPPROTO_DSTOPTS"
-    case IPPROTO_AHIP:
-        protocol_string = "IPPROTO_AHIP"
-    case IPPROTO_CFTP:
-        protocol_string = "IPPROTO_CFTP"
-    case IPPROTO_HELLO:
-        protocol_string = "IPPROTO_HELLO"
-    case IPPROTO_SATEXPAK:
-        protocol_string = "IPPROTO_SATEXPAK"
-    case IPPROTO_KRYPTOLAN:
-        protocol_string = "IPPROTO_KRYPTOLAN"
-    case IPPROTO_RVD:
-        protocol_string = "IPPROTO_RVD"
-    case IPPROTO_IPPC:
-        protocol_string = "IPPROTO_IPPC"
-    case IPPROTO_ADFS:
-        protocol_string = "IPPROTO_ADFS"
-    case IPPROTO_SATMON:
-        protocol_string = "IPPROTO_SATMON"
-    case IPPROTO_VISA:
-        protocol_string = "IPPROTO_VISA"
-    case IPPROTO_IPCV:
-        protocol_string = "IPPROTO_IPCV"
-    case IPPROTO_CPNX:
-        protocol_string = "IPPROTO_CPNX"
-    case IPPROTO_CPHB:
-        protocol_string = "IPPROTO_CPHB"
-    case IPPROTO_WSN:
-        protocol_string = "IPPROTO_WSN"
-    case IPPROTO_PVP:
-        protocol_string = "IPPROTO_PVP"
-    case IPPROTO_BRSATMON:
-        protocol_string = "IPPROTO_BRSATMON"
-    case IPPROTO_ND:
-        protocol_string = "IPPROTO_ND"
-    case IPPROTO_WBMON:
-        protocol_string = "IPPROTO_WBMON"
-    case IPPROTO_WBEXPAK:
-        protocol_string = "IPPROTO_WBEXPAK"
-    case IPPROTO_EON:
-        protocol_string = "IPPROTO_EON"
-    case IPPROTO_VMTP:
-        protocol_string = "IPPROTO_VMTP"
-    case IPPROTO_SVMTP:
-        protocol_string = "IPPROTO_SVMTP"
-    case IPPROTO_VINES:
-        protocol_string = "IPPROTO_VINES"
-    case IPPROTO_TTP:
-        protocol_string = "IPPROTO_TTP"
-    case IPPROTO_IGP:
-        protocol_string = "IPPROTO_IGP"
-    case IPPROTO_DGP:
-        protocol_string = "IPPROTO_DGP"
-    case IPPROTO_TCF:
-        protocol_string = "IPPROTO_TCF"
-    case IPPROTO_IGRP:
-        protocol_string = "IPPROTO_IGRP"
-    case IPPROTO_OSPFIGP:
-        protocol_string = "IPPROTO_OSPFIGP"
-    case IPPROTO_SRPC:
-        protocol_string = "IPPROTO_SRPC"
-    case IPPROTO_LARP:
-        protocol_string = "IPPROTO_LARP"
-    case IPPROTO_MTP:
-        protocol_string = "IPPROTO_MTP"
-    case IPPROTO_AX25:
-        protocol_string = "IPPROTO_AX25"
-    case IPPROTO_IPEIP:
-        protocol_string = "IPPROTO_IPEIP"
-    case IPPROTO_MICP:
-        protocol_string = "IPPROTO_MICP"
-    case IPPROTO_SCCSP:
-        protocol_string = "IPPROTO_SCCSP"
-    case IPPROTO_ETHERIP:
-        protocol_string = "IPPROTO_ETHERIP"
-    case IPPROTO_ENCAP:
-        protocol_string = "IPPROTO_ENCAP"
-    case IPPROTO_APES:
-        protocol_string = "IPPROTO_APES"
-    case IPPROTO_GMTP:
-        protocol_string = "IPPROTO_GMTP"
-    case IPPROTO_PIM:
-        protocol_string = "IPPROTO_PIM"
-    case IPPROTO_IPCOMP:
-        protocol_string = "IPPROTO_IPCOMP"
-    case IPPROTO_PGM:
-        protocol_string = "IPPROTO_PGM"
-    case IPPROTO_SCTP:
-        protocol_string = "IPPROTO_SCTP"
-    case IPPROTO_DIVERT:
-        protocol_string = "IPPROTO_DIVERT"
-    case IPPROTO_RAW:
-        protocol_string = "IPPROTO_RAW"
-    case IPPROTO_DONE:
-        protocol_string = "IPPROTO_DONE"
-    default:
-        protocol_string = "UNKNOWN(\(`protocol`))"
-    }
-    
-    return protocol_string
+    protocolNames.names[Int(`protocol`)] ?? "UNKNOWN(\(`protocol`))"
 }

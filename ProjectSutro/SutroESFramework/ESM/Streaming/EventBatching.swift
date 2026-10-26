@@ -73,7 +73,4 @@ public struct EventBatcherCounters: Equatable, Sendable {
     public var lost: Int = 0
     /// How many times the source was paused.
     public var pauses: Int = 0
-    
-    /// No events yet.
-    public init() {}
 }

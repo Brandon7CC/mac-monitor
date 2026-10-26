@@ -9,7 +9,7 @@ import Foundation
 
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_rename_t
-public struct FileRenameEvent: Identifiable, Codable, Hashable {
+public struct FileRenameEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var source: File
@@ -21,14 +21,6 @@ public struct FileRenameEvent: Identifiable, Codable, Hashable {
     /// @note Mac Monitor enrichment
     public var destination_path: String = ""
     public var is_quarantined: Int16 = 0
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: FileRenameEvent, rhs: FileRenameEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let fileRenameEvent: es_event_rename_t = rawMessage.pointee.event.rename

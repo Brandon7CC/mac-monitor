@@ -186,7 +186,7 @@ struct MuteAddSheet: View {
             return ("A prefix matches by text: end a folder with /, so \(pathToMute) doesn't also match "
                     + "\(pathToMute)X.", true)
         }
-        if systemExtensionManager.simpleGetMutedPaths().contains(where: {
+        if systemExtensionManager.savedMutes.contains(where: {
             $0.path == pathToMute && $0.type == kind.rawValue
         }) {
             return ("Already muted this way. Adding merges these events into it.", false)

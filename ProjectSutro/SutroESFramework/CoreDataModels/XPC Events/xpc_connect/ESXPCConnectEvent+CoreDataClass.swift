@@ -19,14 +19,12 @@ public class ESXPCConnectEvent: NSManagedObject, Identifiable {
         case service_name, service_domain_type, service_domain_type_string
     }
     
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let xpcConnectEvent: XPCConnectEvent = message.event.xpc_connect!
-        let description = NSEntityDescription.entity(forEntityName: "ESXPCConnectEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: XPCConnectEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.service_name = xpcConnectEvent.service_name
-        self.service_domain_type = xpcConnectEvent.service_domain_type
-        self.service_domain_type_string = xpcConnectEvent.service_domain_type_string
+        self.service_name = event.service_name
+        self.service_domain_type = event.service_domain_type
+        self.service_domain_type_string = event.service_domain_type_string
     }
 }
 

@@ -93,19 +93,3 @@ public struct ESMutedPaths: Identifiable, Codable, Hashable {
         }
     }
 }
-
-
-/// A value as compact JSON with sorted keys.
-///
-/// - Parameter value: The value, such as an ``ESMutedPath``.
-/// - Returns: The JSON, or "" if the value can't be encoded.
-public func pathToJSON(value: Encodable) -> String {
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.withoutEscapingSlashes, .sortedKeys]
-    
-    guard let encodedData = try? encoder.encode(value),
-          let json = String(data: encodedData, encoding: .utf8) else { return "" }
-    return json
-}
-
-

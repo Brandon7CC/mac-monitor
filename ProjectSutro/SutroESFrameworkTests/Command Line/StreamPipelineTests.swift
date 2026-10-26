@@ -61,7 +61,7 @@ final class StreamPipelineTests: XCTestCase {
                                       scope: nobody, forTerminal: true)
         let output = String(decoding: pipeline.process(try messages.map(wire)), as: UTF8.self)
         let expected = messages.map { message in
-            withStoredEvent(message) { ProcessHelpers.eventToPrettyJSON(value: $0) } + "\n"
+            withStoredEvent(message) { ProcessHelpers.eventToJSON(value: $0, pretty: true) } + "\n"
         }
         XCTAssertEqual(output, expected.joined())
         XCTAssertGreaterThan(output.split(separator: "\n").count, messages.count, "Records span several lines")

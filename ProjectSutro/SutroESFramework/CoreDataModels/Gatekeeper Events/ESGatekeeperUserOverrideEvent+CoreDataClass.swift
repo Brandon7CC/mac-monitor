@@ -36,36 +36,26 @@ public class ESGatekeeperUserOverrideEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESGatekeeperUserOverrideEvent
-    convenience init(
-        from message: Message,
-        insertIntoManagedObjectContext context: NSManagedObjectContext!
-    ) {
-        let override: GatekeeperUserOverrideEvent = message.event.gatekeeper_user_override!
-        let description = NSEntityDescription.entity(forEntityName: "ESGatekeeperUserOverrideEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: GatekeeperUserOverrideEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        file_type = override.file_type
-        file_type_string = override.file_type_string
+        file_type = event.file_type
+        file_type_string = event.file_type_string
         
         /// The union's arm: a file, or a path. An unknown arm stores neither.
-        if let file = override.file.file {
+        if let file = event.file.file {
             attach(ESFile.row(for: file, in: context), to: #keyPath(ESGatekeeperUserOverrideEvent.file))
         }
-        if let file_path = override.file.file_path {
-            self.file_path = file_path
-        }
+        self.file_path = event.file.file_path
         
         /// ESLogger for some reason reports when this is null as a string...
         /// `"sha256": "NULL"`
         /// Uppercase like eslogger, also when an older Security Extension sent lowercase.
-        sha256 = override.sha256?.uppercased() ?? "NULL"
+        sha256 = event.sha256?.uppercased() ?? "NULL"
         
         /// For some reason ESLogger as of macOS 26 does not emit this object...
-        if let signing_info = override.signing_info {
-            self.signing_info = ESSignedFileInfo(
-                from: signing_info,
-                insertIntoManagedObjectContext: context
-            )
+        self.signing_info = event.signing_info.map {
+            ESSignedFileInfo(from: $0, insertIntoManagedObjectContext: context)
         }
     }
 }

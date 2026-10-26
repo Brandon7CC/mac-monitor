@@ -19,7 +19,7 @@ final class SchemaCommandTests: XCTestCase {
         XCTAssertEqual(try CommandLineParser.parse(["schema"]), .schema)
         XCTAssertFalse(try CommandLineParser.parse(["schema"]).requiresRoot)
         let output = BufferOutput()
-        XCTAssertNoThrow(try SchemaCommand(output: output).run().get())
+        XCTAssertNoThrow(try SchemaCommand.run(output: output).get())
         XCTAssertEqual(output.data, try TelemetrySchema.data())
         XCTAssertEqual(output.data, try Data(contentsOf: Self.schemaFileURL))
         XCTAssertEqual(try TelemetryValidator(schema: output.data).schemaVersion, TelemetrySchema.version)
@@ -35,14 +35,14 @@ final class SchemaCommandTests: XCTestCase {
         close(descriptors[0])
         defer { close(descriptors[1]) }
         XCTAssertGreaterThan(try TelemetrySchema.data().count, 65_536, "More than a pipe holds")
-        XCTAssertNoThrow(try SchemaCommand(output: FileOutput(descriptor: descriptors[1])).run().get())
+        XCTAssertNoThrow(try SchemaCommand.run(output: FileOutput(descriptor: descriptors[1])).get())
         
         let closed = BufferOutput()
         closed.fail(with: .closed)
-        XCTAssertNoThrow(try SchemaCommand(output: closed).run().get())
+        XCTAssertNoThrow(try SchemaCommand.run(output: closed).get())
         
         let failure = { (output: StreamOutput) -> CommandLineFailure? in
-            guard case .failure(let failure) = SchemaCommand(output: output).run() else { return nil }
+            guard case .failure(let failure) = SchemaCommand.run(output: output) else { return nil }
             return failure
         }
         XCTAssertEqual(failure(FileOutput(descriptor: -1)), .output(EBADF))
@@ -55,7 +55,7 @@ final class SchemaCommandTests: XCTestCase {
     /// A schema the framework doesn't bundle is a bug in the build: exit 70, saying so, with nothing written.
     func testAMissingSchemaExits70() {
         let output = BufferOutput()
-        let result = SchemaCommand(output: output, schema: { throw TelemetrySchemaError.missingResource }).run()
+        let result = SchemaCommand.run(output: output, schema: { throw TelemetrySchemaError.missingResource })
         guard case .failure(let failure) = result else { return XCTFail("The schema was written.") }
         XCTAssertEqual(failure, CommandLineFailure(.software,
                                                    "Mac Monitor's telemetry schema is missing from its framework."))

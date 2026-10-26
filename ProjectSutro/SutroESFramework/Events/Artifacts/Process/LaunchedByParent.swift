@@ -55,11 +55,6 @@ public struct LaunchedByParent: Codable, Hashable {
     public struct LaunchdJob: Codable, Hashable {
         /// The job's label: `com.example.agent`, or `application.<bundle ID>.…` for an app LaunchServices launched.
         public var label: String
-        
-        /// - Parameter label: The job's label.
-        public init(label: String) {
-            self.label = label
-        }
     }
     
     /// The signal that named the launched-by parent.

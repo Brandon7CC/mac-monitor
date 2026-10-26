@@ -10,7 +10,7 @@ import EndpointSecurity
 
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_iokit_open_t
-public struct IOKitOpenEvent: Identifiable, Codable, Hashable {
+public struct IOKitOpenEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var user_client_type: Int64
@@ -22,14 +22,6 @@ public struct IOKitOpenEvent: Identifiable, Codable, Hashable {
     public var parent_registry_id: Int64?
     public var parent_path: String?
     
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: IOKitOpenEvent, rhs: IOKitOpenEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let ioKitEvent: es_event_iokit_open_t = rawMessage.pointee.event.iokit_open

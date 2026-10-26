@@ -41,10 +41,8 @@ public class ESAuthorizationJudgementEvent: NSManagedObject, Identifiable {
         }
     }
 
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: AuthorizationJudgementEvent = message.event.authorization_judgement!
-        let description = NSEntityDescription.entity(forEntityName: "ESAuthorizationJudgementEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: AuthorizationJudgementEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         self.return_code = Int32(event.return_code)
         self.result_count = Int32(event.result_count)

@@ -33,8 +33,7 @@ public class ESFileDestination: NSManagedObject, Identifiable {
         from destination: FileDestination,
         insertIntoManagedObjectContext context: NSManagedObjectContext!
     ) {
-        let description = NSEntityDescription.entity(forEntityName: "ESFileDestination", in: context)!
-        self.init(entity: description, insertInto: context)
+        self.init(insertingInto: context)
         
         switch destination {
         case .existing_file(let existingFile):

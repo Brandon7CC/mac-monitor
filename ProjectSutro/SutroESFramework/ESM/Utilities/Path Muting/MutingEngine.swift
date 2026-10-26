@@ -45,13 +45,6 @@ extension EndpointSecurityManager {
     /// user isn't one?
     public var savedMutesNeedAdministrator: Bool { savedMutesAccess == .standardUser }
     
-    /// The saved mute set, as the Security Extension last sent it: by type name, then path.
-    ///
-    /// - Returns: One muted path per path and type. No events means every event.
-    public func simpleGetMutedPaths() -> [ESMutedPath] {
-        savedMutes
-    }
-    
     public func requestAppleMuteSet(_ completion: ((Set<String>) -> Void)? = nil) {
         sensor.call { $0.appleMuteSet(reply: $1) } completion: { response in
             guard let response else { return }

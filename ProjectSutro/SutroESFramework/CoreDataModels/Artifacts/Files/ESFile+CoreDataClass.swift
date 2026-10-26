@@ -27,8 +27,7 @@ public class ESFile: NSManagedObject, Identifiable {
         from file: File,
         insertIntoManagedObjectContext context: NSManagedObjectContext!
     ) {
-        let description = NSEntityDescription.entity(forEntityName: "ESFile", in: context)!
-        self.init(entity: description, insertInto: context)
+        self.init(insertingInto: context)
         self.path = file.path
         self.name = file.name
         self.path_truncated = file.path_truncated

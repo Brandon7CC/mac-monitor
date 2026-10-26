@@ -37,12 +37,12 @@ public class ProcessHelpers {
     
     
     // MARK: - Parsing the arguments of exec events
+    /// An exec's arguments, in order.
+    ///
+    /// - Parameter execEvent: The exec event.
+    /// - Returns: Each argument, or "" for one that isn't UTF-8.
     static func parseExecArgs(execEvent: inout es_event_exec_t) -> [String] {
-        var args: [String] = []
-        for i in 0 ..< Int(es_exec_arg_count(&execEvent)) {
-            args.append(es_exec_arg(&execEvent, UInt32(i)).string ?? "")
-        }
-        return args
+        (0..<es_exec_arg_count(&execEvent)).map { es_exec_arg(&execEvent, $0).string ?? "" }
     }
     
     static func parseScriptFromArgs(args: [String], workingDirectory: String) -> String? {
@@ -65,30 +65,22 @@ public class ProcessHelpers {
         return nil
     }
     
-    // MARK: - Parsing the evnvironment variables of exec events
-    
+    // MARK: - Parsing the environment variables of exec events
+    /// An exec's environment variables, in order.
+    ///
+    /// - Parameter event: The exec event.
+    /// - Returns: Each `NAME=value`, or "" for one that isn't UTF-8.
     public static func parseExecEnv(event: inout es_event_exec_t) -> [String] {
-        let count: Int = Int(es_exec_env_count(&event))
-        var env: [String] = []
-        
-        for index in 0..<count {
-            let envVarVar: String = es_exec_env(&event, UInt32(index)).string ?? ""
-            env.append(envVarVar)
-        }
-        return env
+        (0..<es_exec_env_count(&event)).map { es_exec_env(&event, $0).string ?? "" }
     }
     
     // MARK: - Parsing the open file descriptors of exec events
+    /// The file descriptors an exec's image starts with, in order.
+    ///
+    /// - Parameter event: The exec event.
+    /// - Returns: Each file descriptor.
     public static func getFds(event: inout es_event_exec_t) -> [FileDescriptor] {
-        let count = Int(es_exec_fd_count(&event))
-        var fds: [FileDescriptor] = []
-        
-        for index in 0..<count {
-            let fd: es_fd_t = es_exec_fd(&event, UInt32(index)).pointee
-            fds.append(FileDescriptor(from: fd))
-        }
-        
-        return fds
+        (0..<es_exec_fd_count(&event)).map { FileDescriptor(from: es_exec_fd(&event, $0).pointee) }
     }
     
     // MARK: - Address to hex
@@ -110,56 +102,38 @@ public class ProcessHelpers {
     }
     
     // MARK: - Event to JSON
-    public static func eventToJSON(value: Encodable) -> String {
+    /// A value as JSON with sorted keys and unescaped slashes, as exports, the JSON tab and Copy JSON write events.
+    ///
+    /// - Parameters:
+    ///   - value: The value, such as an `ESMessage`.
+    ///   - pretty: Pretty-print it, rather than write it on one line.
+    /// - Returns: The JSON, or `{}` if the value can't be encoded.
+    public static func eventToJSON(value: Encodable, pretty: Bool = false) -> String {
         let encoder = JSONEncoder()
-        encoder.outputFormatting = [.withoutEscapingSlashes, .sortedKeys]
-        
-        do {
-            let encodedData = try encoder.encode(value)
-            return String(data: encodedData, encoding: .utf8) ?? ""
-        } catch {
-            return "{}"
-        }
-    }
-    
-    public static func eventToPrettyJSON(value: Encodable) -> String {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        
-        do {
-            let encodedData = try encoder.encode(value)
-            return String(data: encodedData, encoding: .utf8) ?? ""
-        } catch {
-            return "{}"
-        }
+        encoder.outputFormatting = pretty ? [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+            : [.withoutEscapingSlashes, .sortedKeys]
+        guard let encodedData = try? encoder.encode(value) else { return "{}" }
+        return String(data: encodedData, encoding: .utf8) ?? ""
     }
     
     // MARK: - Add to when supporting new ES events (if it has a process struct)
+    /// The name of the process an event is about: a fork's child, an exec's target, or else the event's process.
+    ///
+    /// - Parameter message: The event.
+    /// - Returns: The executable's name, "" for a fork child without one, or `EVENTS_CLEARED` when the event's process
+    ///   has none either.
     public static func getTargetProcessName(message: ESMessage) -> String {
-        let event = message.event
-        if let exec = event.exec,
-           let exe = exec.target.executable {
-            return exe.name
-        } else if let fork = event.fork {
-            return fork.child.executable?.name ?? ""
-        } else if let _ = event.exit,
-                  let exe = message.process.executable {
-            return exe.name
-        }
-        
-        if let exe = message.process.executable {
-            return exe.name
-        }
-        
-        return "EVENTS_CLEARED"
+        if let fork = message.event.fork { return fork.child.executable?.name ?? "" }
+        return message.event.exec?.target.executable?.name ?? message.process.executable?.name ?? "EVENTS_CLEARED"
     }
     
     // MARK: - Process event helper functions
+    /// A `timespec` as a date.
+    ///
+    /// - Parameter timespec: Seconds and nanoseconds since 1970.
+    /// - Returns: The date.
     public static func timespecToTimestamp(timespec: timespec) -> Date {
-        let unixTimestamp = Double(timespec.tv_sec) + (Double(timespec.tv_nsec) / 1e9)
-        let date = Date(timeIntervalSince1970: unixTimestamp)
-        
-        return date
+        Date(timeIntervalSince1970: Double(timespec.tv_sec) + Double(timespec.tv_nsec) / 1e9)
     }
     
     /// Formats event timestamps as `yyyy-MM-dd'T'HH:mm:ss.SSS'Z'`.

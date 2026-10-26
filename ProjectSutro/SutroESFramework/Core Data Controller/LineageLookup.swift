@@ -12,9 +12,9 @@ import CoreData
 // MARK: - Lineage lookups
 /// Finds a process's parents among stored events, in one context: each through the event that created the parent (its
 /// exec or fork), by the indexed ``ESMessage/created_audit_token``. No other index is needed.
-struct LineageLookup {
+public struct LineageLookup {
     /// The most launched-by parents ``launchedByParents(of:limit:)`` walks up.
-    static let maxSteps = 64
+    public static let maxSteps = 64
     /// The most images of one process walked back to the fork that created it, for a parent known only by its pid.
     static let maxImages = 16
     /// The `event_type`s of the events that create a process: exec and fork.
@@ -148,7 +148,7 @@ struct LineageLookup {
     ///   - event: The event: an exec or fork is about the process it created, any other event about its instigator.
     ///   - limit: The most steps to return. Never more than ``maxSteps``.
     /// - Returns: The steps, nearest first. Empty when the store doesn't have the process's creator.
-    func launchedByParents(of event: ESMessage, limit: Int = maxSteps) -> [LaunchedByParentStep] {
+    public func launchedByParents(of event: ESMessage, limit: Int = maxSteps) -> [LaunchedByParentStep] {
         guard var current = creator(ofProcessOf: event) else { return [] }
         var steps: [LaunchedByParentStep] = [], seen: Set<NSManagedObjectID> = [current.objectID]
         while steps.count < min(limit, Self.maxSteps), let step = step(from: current) {
@@ -167,7 +167,7 @@ struct LineageLookup {
     ///
     /// - Parameter event: The exec or fork.
     /// - Returns: The parents, or `nil` for any other event.
-    func parents(of event: ESMessage) -> ProcessParents? {
+    public func parents(of event: ESMessage) -> ProcessParents? {
         guard event.createsProcess, let created = event.event.exec?.target ?? event.event.fork?.child else {
             return nil
         }

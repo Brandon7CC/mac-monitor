@@ -9,7 +9,7 @@ import Foundation
 import OSLog
 
 // MARK: - Process Execution event https://developer.apple.com/documentation/endpointsecurity/es_event_exec_t
-public struct ProcessExecEvent: Identifiable, Codable, Hashable {
+public struct ProcessExecEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     /// Base properties `es_event_exec_t`
@@ -36,15 +36,6 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
     /// serializer from the message's own fields, not by ``enrich()``, which also runs on traces recorded on other Macs,
     /// where no process's path may be read. `nil` until it's resolved.
     public var launched_by_parent: LaunchedByParent?
-    
-    // MARK: - Protocol conformance
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: ProcessExecEvent, rhs: ProcessExecEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     // @note construct a new process_exec
     init(from rawMessage: UnsafePointer<es_message_t>, forcedQuarantineSigningIDs: [String] = []) {

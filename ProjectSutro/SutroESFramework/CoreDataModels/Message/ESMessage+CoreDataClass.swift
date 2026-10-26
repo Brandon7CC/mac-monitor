@@ -166,19 +166,14 @@ public class ESMessage: NSManagedObject, Identifiable {
     
     // MARK: - Custom Core Data entity creation from ESMessage type
     convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let description: NSEntityDescription = NSEntityDescription.entity(forEntityName: "ESMessage", in: context)!
-        self.init(entity: description, insertInto: context)
+        self.init(insertingInto: context)
         self.id = message.id
         
         // MARK: Version and sequence
         self.version = Int32(truncatingIfNeeded: message.version)
         self.schema_version = Int32(truncatingIfNeeded: message.schema_version)
-        if let seq_num = message.seq_num {
-            self.seq_num = Int64(seq_num)
-        }
-        if let global_seq_num = message.global_seq_num {
-            self.global_seq_num = Int64(global_seq_num)
-        }
+        self.seq_num = Int64(message.seq_num ?? 0)
+        self.global_seq_num = Int64(message.global_seq_num ?? 0)
         
         // MARK: Time
         /// eslogger's format even when an older Security Extension sent local time (see ``ESLogger/time(_:darwinTime:)``).

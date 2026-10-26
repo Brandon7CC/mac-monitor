@@ -19,13 +19,11 @@ public class ESLWUnlockEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESLWUnlockEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let lwUnlockEvent: LWUnlockEvent = message.event.lw_session_unlock!
-        let description = NSEntityDescription.entity(forEntityName: "ESLWUnlockEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: LWUnlockEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.username = lwUnlockEvent.username
-        self.graphical_session_id = lwUnlockEvent.graphical_session_id
+        self.username = event.username
+        self.graphical_session_id = event.graphical_session_id
     }
     
 }

@@ -22,10 +22,8 @@ public class ESLinkEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESLinkEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: LinkEvent = message.event.link!
-        let description = NSEntityDescription.entity(forEntityName: "ESLinkEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: LinkEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         attach(ESFile.row(for: event.source, in: context), to: #keyPath(ESLinkEvent.source))
         attach(ESFile.row(for: event.target_dir, in: context), to: #keyPath(ESLinkEvent.target_dir))

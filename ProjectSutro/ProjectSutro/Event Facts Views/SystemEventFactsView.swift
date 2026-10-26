@@ -226,7 +226,7 @@ struct AppWrapperForFacts: View {
                 alert.runModal()
                 return []
             }
-            let json = events.map { ProcessHelpers.eventToPrettyJSON(value: $0) }.joined(separator: "\n")
+            let json = events.map { ProcessHelpers.eventToJSON(value: $0, pretty: true) }.joined(separator: "\n")
             return [NSItemProvider(object: json as NSString)]
         }
     }

@@ -63,16 +63,6 @@ public struct TelemetryValidation: Sendable {
         mode == .macMonitor && records > malformed && esloggerRecords == records - malformed
     }
     
-    /// - Parameters:
-    ///   - schemaVersion: The telemetry version of the schema.
-    ///   - mode: Which keys are checked.
-    ///   - issueLimit: The most issues to keep.
-    init(schemaVersion: String?, mode: TelemetryValidator.Mode, issueLimit: Int) {
-        self.schemaVersion = schemaVersion
-        self.mode = mode
-        self.issueLimit = issueLimit
-    }
-    
     /// Add a record's check.
     ///
     /// - Parameters:

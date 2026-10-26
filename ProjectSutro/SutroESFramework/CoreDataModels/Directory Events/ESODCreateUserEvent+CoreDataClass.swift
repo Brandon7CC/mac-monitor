@@ -25,12 +25,11 @@ public class ESODCreateUserEvent: ESODEvent, Identifiable {
     /// Store an event.
     ///
     /// - Parameters:
+    ///   - event: The event.
     ///   - message: The event's message.
     ///   - context: The context to insert into.
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: OpenDirectoryCreateUserEvent = message.event.od_create_user!
-        let description = NSEntityDescription.entity(forEntityName: "ESODCreateUserEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: OpenDirectoryCreateUserEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         store(event, version: message.version, in: context)
         user_name = event.user_name
     }

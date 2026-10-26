@@ -21,10 +21,8 @@ public class ESSetModeEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESSetModeEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: SetModeEvent = message.event.setmode!
-        let description = NSEntityDescription.entity(forEntityName: "ESSetModeEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: SetModeEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         self.mode = event.mode
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESSetModeEvent.target))
     }

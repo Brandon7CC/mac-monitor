@@ -16,7 +16,7 @@ struct SystemEventJSONView: View {
     var body: some View {
         FileContentView(title: "Event JSON", content: jsonText, language: .json)
             .task(id: selectedMessage.objectID) {
-                jsonText = ProcessHelpers.eventToPrettyJSON(value: selectedMessage)
+                jsonText = ProcessHelpers.eventToJSON(value: selectedMessage, pretty: true)
             }
     }
 }

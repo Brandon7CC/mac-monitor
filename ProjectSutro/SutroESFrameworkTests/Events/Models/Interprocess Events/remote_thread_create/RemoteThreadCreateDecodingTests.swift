@@ -163,7 +163,9 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
         let sent = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         XCTAssertNil(sent["thread_state"])
         XCTAssertNil(sent["thread_state_string"])
-        XCTAssertEqual(try JSONDecoder().decode(RemoteThreadCreateEvent.self, from: data), created)
+        let decoded = try JSONDecoder().decode(RemoteThreadCreateEvent.self, from: data)
+        XCTAssertEqual(decoded, created)
+        XCTAssertNil(decoded.thread_state)
     }
     
     /// A whole `Message` from Endpoint Security goes over XPC with its thread state, and one from an older Security

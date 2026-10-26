@@ -11,111 +11,20 @@ import Foundation
 // MARK: - Arrays
 extension StreamingJSONEncoder {
     /// An array's container. Writes nothing once the array is closed (the value is then left to `JSONEncoder`).
-    struct ArrayWriter: UnkeyedEncodingContainer {
+    struct ArrayWriter: UnkeyedEncodingContainer, ValueSlot {
         let encoder: StreamingJSONEncoder
         /// The array's frame.
         let frame: FrameReference
-        var codingPath: [CodingKey] { [] }
         /// How many elements it holds so far.
         var count: Int {
             frame.index < encoder.state.pointee.frames.count && encoder.state.pointee.frames[frame.index].id == frame.id
                 ? encoder.state.pointee.frames[frame.index].count : 0
         }
         
-        /// Write `null` as the next element.
+        /// Start the next element (``StreamingJSONEncoder/element(in:)``).
         ///
-        /// - Throws: Never: `null` always has a JSON form.
-        func encodeNil() throws { if encoder.element(in: frame) { encoder.write(raw: "null" as StaticString) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The value.
-        /// - Throws: Never: a Boolean always has a JSON form.
-        func encode(_ value: Bool) throws { if encoder.element(in: frame) { encoder.write(bool: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The string.
-        /// - Throws: Never: a string always has a JSON form.
-        func encode(_ value: String) throws { if encoder.element(in: frame) { encoder.write(string: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The number.
-        /// - Throws: `EncodingError.invalidValue` for NaN or infinity, as `JSONEncoder` throws.
-        func encode(_ value: Double) throws { if encoder.element(in: frame) { try encoder.write(floating: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The number.
-        /// - Throws: `EncodingError.invalidValue` for NaN or infinity, as `JSONEncoder` throws.
-        func encode(_ value: Float) throws { if encoder.element(in: frame) { try encoder.write(floating: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The integer.
-        /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: Int) throws { if encoder.element(in: frame) { encoder.write(integer: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The integer.
-        /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: Int8) throws { if encoder.element(in: frame) { encoder.write(integer: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The integer.
-        /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: Int16) throws { if encoder.element(in: frame) { encoder.write(integer: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The integer.
-        /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: Int32) throws { if encoder.element(in: frame) { encoder.write(integer: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The integer.
-        /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: Int64) throws { if encoder.element(in: frame) { encoder.write(integer: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The integer.
-        /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: UInt) throws { if encoder.element(in: frame) { encoder.write(integer: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The integer.
-        /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: UInt8) throws { if encoder.element(in: frame) { encoder.write(integer: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The integer.
-        /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: UInt16) throws { if encoder.element(in: frame) { encoder.write(integer: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The integer.
-        /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: UInt32) throws { if encoder.element(in: frame) { encoder.write(integer: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The integer.
-        /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: UInt64) throws { if encoder.element(in: frame) { encoder.write(integer: value) } }
-        
-        /// Write the next element.
-        ///
-        /// - Parameter value: The value.
-        /// - Throws: The error encoding the value throws.
-        func encode<T: Encodable>(_ value: T) throws { if encoder.element(in: frame) { try encoder.write(value) } }
+        /// - Returns: `false`, writing nothing, if the array was already closed.
+        func begin() -> Bool { encoder.element(in: frame) }
         
         /// Open an object as the next element.
         ///

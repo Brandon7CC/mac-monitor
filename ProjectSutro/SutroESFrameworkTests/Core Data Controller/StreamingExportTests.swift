@@ -12,8 +12,8 @@ import CoreData
 
 // MARK: - Streaming exports
 /// Pins the export's fast path to what it replaced: where ``StreamingJSONEncoder`` sorts keys as this Mac's
-/// `JSONEncoder` does, every stored event's record is byte for byte ``ProcessHelpers/eventToJSON(value:)``'s, and an
-/// export fetched and encoded by several workers at once is byte for byte the events, in file order, through
+/// `JSONEncoder` does, every stored event's record is byte for byte ``ProcessHelpers/eventToJSON(value:pretty:)``'s,
+/// and an export fetched and encoded by several workers at once is byte for byte the events, in file order, through
 /// `eventToJSON`.
 final class StreamingExportTests: XCTestCase {
     /// Keys out of order at every level, an object inside an array, an empty object, and strings with slashes.

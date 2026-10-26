@@ -221,7 +221,7 @@ action: {
             Button(action: {
                 os_log("Requesting ES unsubscribe from: \(message.es_event_type ?? "")")
                 // Mute the binaries initiating process path globally (for all events)
-                systemExtensionManager.puntEventToUnsubscribe(eventString: message.es_event_type ?? "")
+                systemExtensionManager.setSubscription(message.es_event_type ?? "", enabled: false)
             }) {
                 HStack {
                     Text("Unsubscribe: \"`\(message.es_event_type ?? "")`\"")

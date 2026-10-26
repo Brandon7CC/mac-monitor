@@ -30,29 +30,18 @@ FOUNDATION_EXPORT NSErrorDomain const PredicateBridgeErrorDomain;
 /// - Returns: The predicate, or `nil` with `error` set.
 + (nullable NSPredicate *)predicateWithFormat:(NSString *)format error:(NSError **)error;
 
-/// Evaluate a predicate on an object.
+/// Evaluate a predicate on an object, with its variables (`$e`) bound if it has any. In Swift it returns whether the
+/// object matches, and throws why it couldn't be evaluated.
 ///
 /// - Parameters:
 ///   - predicate: The predicate.
 ///   - object: What it's evaluated on.
-///   - matches: Set to whether the object matches.
+///   - variables: Each variable's value, by name, or `nil` for none.
 ///   - error: Why it couldn't be evaluated.
-/// - Returns: `YES` if it was evaluated, else `NO` with `error` set.
-+ (BOOL)evaluate:(NSPredicate *)predicate withObject:(nullable id)object matches:(BOOL *)matches
-           error:(NSError **)error;
-
-/// Evaluate a predicate on an object, with its variables (`$e`) bound.
-///
-/// - Parameters:
-///   - predicate: The predicate.
-///   - object: What it's evaluated on.
-///   - variables: Each variable's value, by name.
-///   - matches: Set to whether the object matches.
-///   - error: Why it couldn't be evaluated.
-/// - Returns: `YES` if it was evaluated, else `NO` with `error` set.
+/// - Returns: Does the object match? `NO` with `error` set if it couldn't be evaluated.
 + (BOOL)evaluate:(NSPredicate *)predicate withObject:(nullable id)object
-       variables:(NSDictionary<NSString *, id> *)variables matches:(BOOL *)matches error:(NSError **)error
-    NS_SWIFT_NAME(evaluate(_:with:variables:matches:));
+       variables:(nullable NSDictionary<NSString *, id> *)variables error:(NSError **)error
+    NS_SWIFT_NAME(evaluate(_:with:variables:)) __attribute__((swift_error(nonnull_error)));
 
 /// The values a predicate matches with its variable bound to each, evaluated on one object: a `SUBQUERY`'s related
 /// events that its conditions on both events match.
@@ -68,19 +57,18 @@ FOUNDATION_EXPORT NSErrorDomain const PredicateBridgeErrorDomain;
                     variable:(NSString *)variable error:(NSError **)error
     NS_SWIFT_NAME(filter(_:with:object:variable:));
 
-/// Evaluate an expression on an object, such as a comparison's key path.
+/// Evaluate an expression on an object, such as a comparison's key path. In Swift it returns the value, and throws why
+/// it couldn't be evaluated.
 ///
 /// - Parameters:
 ///   - expression: The expression.
 ///   - object: What it's evaluated on.
 ///   - variables: Each variable's value, by name, or `nil` for none.
-///   - value: Set to the expression's value, which may be `nil`.
 ///   - error: Why it couldn't be evaluated.
-/// - Returns: `YES` if it was evaluated, else `NO` with `error` set.
-+ (BOOL)evaluateExpression:(NSExpression *)expression withObject:(nullable id)object
-                 variables:(nullable NSDictionary<NSString *, id> *)variables value:(id _Nullable * _Nonnull)value
-                     error:(NSError **)error
-    NS_SWIFT_NAME(evaluate(_:with:variables:value:));
+/// - Returns: The expression's value, which may be `nil`, or `nil` with `error` set if it couldn't be evaluated.
++ (nullable id)evaluateExpression:(NSExpression *)expression withObject:(nullable id)object
+                        variables:(nullable NSDictionary<NSString *, id> *)variables error:(NSError **)error
+    NS_SWIFT_NAME(evaluate(_:with:variables:)) __attribute__((swift_error(nonnull_error)));
 
 @end
 

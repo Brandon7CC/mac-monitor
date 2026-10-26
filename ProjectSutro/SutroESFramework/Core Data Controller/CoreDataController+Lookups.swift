@@ -13,6 +13,9 @@ import OSLog
 extension CoreDataController {
     // MARK: - Accessors
     
+    /// A process's parents among stored events, looked up in the view context: use it on the main thread.
+    public var lineage: LineageLookup { LineageLookup(container.viewContext) }
+    
     /// Get all `EXEC` events in a given process group.
     ///
     /// - Parameters:
@@ -89,7 +92,7 @@ extension CoreDataController {
     public func findParentProc(message: ESMessage) -> ESMessage? {
         guard message.process.audit_token != nil, let token = message.instigator_audit_token else { return nil }
         do {
-            return try LineageLookup(container.viewContext).creator(ofToken: token)
+            return try lineage.creator(ofToken: token)
         } catch {
             CoreDataController.logger.error("We could not find the parent proc for: \(message.process.executable?.name ?? "")")
             return nil

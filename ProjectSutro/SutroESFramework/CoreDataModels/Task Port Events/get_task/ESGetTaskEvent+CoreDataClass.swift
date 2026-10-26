@@ -22,10 +22,8 @@ public class ESGetTaskEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESGetTaskEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: GetTaskEvent = message.event.get_task!
-        let description = NSEntityDescription.entity(forEntityName: "ESGetTaskEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: GetTaskEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
 
         self.target = ESProcess(
             from: event.target,

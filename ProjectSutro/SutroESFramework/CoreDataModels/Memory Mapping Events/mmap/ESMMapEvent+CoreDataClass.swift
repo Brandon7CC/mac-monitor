@@ -26,16 +26,14 @@ public class ESMMapEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESMMapEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let mmapEvent: MMapEvent = message.event.mmap!
-        let description = NSEntityDescription.entity(forEntityName: "ESMMapEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: MMapEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.protection = mmapEvent.protection
-        self.max_protection = mmapEvent.max_protection
-        self.flags = mmapEvent.flags
-        self.file_pos = mmapEvent.file_pos
-        attach(ESFile.row(for: mmapEvent.source, in: context), to: #keyPath(ESMMapEvent.source))
+        self.protection = event.protection
+        self.max_protection = event.max_protection
+        self.flags = event.flags
+        self.file_pos = event.file_pos
+        attach(ESFile.row(for: event.source, in: context), to: #keyPath(ESMMapEvent.source))
     }
 }
 

@@ -26,16 +26,14 @@ public class ESFileCreateEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESFileCreateEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let create: FileCreateEvent = message.event.create!
-        let description = NSEntityDescription.entity(forEntityName: "ESFileCreateEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: FileCreateEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.destination_type = Int16(truncatingIfNeeded: create.destination_type)
-        self.destination_type_string = create.destination_type_string
-        self.destination = ESFileDestination(from: create.destination, insertIntoManagedObjectContext: context)
-        self.acl = create.acl
-        self.is_quarantined = create.is_quarantined
+        self.destination_type = Int16(truncatingIfNeeded: event.destination_type)
+        self.destination_type_string = event.destination_type_string
+        self.destination = ESFileDestination(from: event.destination, insertIntoManagedObjectContext: context)
+        self.acl = event.acl
+        self.is_quarantined = event.is_quarantined
     }
 }
 

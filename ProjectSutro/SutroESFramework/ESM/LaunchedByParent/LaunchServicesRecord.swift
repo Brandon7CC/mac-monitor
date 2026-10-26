@@ -27,21 +27,6 @@ public struct LaunchServicesRecord: Hashable {
     /// The launcher's executable, from its own record (`CFBundleExecutablePath`), which outlives the launcher: its
     /// pid can't name it once it quits. `nil` without the launcher's record, or a path in it.
     public var parentPath: String?
-    
-    /// - Parameters:
-    ///   - token: The process that checked in.
-    ///   - launchedByLaunchServices: Did LaunchServices launch it?
-    ///   - hasParentASN: Does the record name a launcher?
-    ///   - parentToken: The launcher, when LaunchServices can still read its record.
-    ///   - parentPath: The launcher's executable, from its record.
-    public init(token: AuditToken, launchedByLaunchServices: Bool, hasParentASN: Bool, parentToken: AuditToken?,
-                parentPath: String? = nil) {
-        self.token = token
-        self.launchedByLaunchServices = launchedByLaunchServices
-        self.hasParentASN = hasParentASN
-        self.parentToken = parentToken
-        self.parentPath = parentPath
-    }
 }
 
 
@@ -67,9 +52,7 @@ extension AuditToken {
     /// - Returns: `nil` when the value isn't 32 bytes.
     public init?(auditTokenData data: Data) {
         guard data.count == MemoryLayout<audit_token_t>.size else { return nil }
-        let token = data.withUnsafeBytes { $0.loadUnaligned(as: audit_token_t.self) }
-        self.init(pid: token.pid(), pidversion: token.pidversion(), asid: token.asid(), auid: token.auid(),
-                  euid: token.euid(), ruid: token.ruid(), rgid: token.rgid(), egid: token.egid())
+        self = AuditToken(from: data.withUnsafeBytes { $0.loadUnaligned(as: audit_token_t.self) }).rowKey
     }
 }
 

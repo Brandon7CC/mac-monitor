@@ -13,7 +13,7 @@ import Foundation
 /// https://developer.apple.com/documentation/endpointsecurity/3228936-es_events_t/4161242-profile_add
 ///
 //@available(macOS, introduced: 14.0)
-public struct ProfileAddEvent: Identifiable, Codable, Hashable {
+public struct ProfileAddEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var instigator: Process?
@@ -23,21 +23,11 @@ public struct ProfileAddEvent: Identifiable, Codable, Hashable {
     // Available in msg versions >= 8.
     public var instigator_token: AuditToken?
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: ProfileAddEvent, rhs: ProfileAddEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let event: es_event_profile_add_t = rawMessage.pointee.event.profile_add.pointee
         let version: Int = Int(rawMessage.pointee.version)
         
-        if let instigator = event.instigator {
-            self.instigator = Process(from: instigator.pointee, version: version)
-        }
+        self.instigator = event.instigator.map { Process(from: $0.pointee, version: version) }
         
         self.is_update = event.is_update
         self.profile = Profile(from: event.profile.pointee)

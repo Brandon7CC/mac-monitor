@@ -14,9 +14,8 @@ public class ESCodeSignatureInvalidatedEvent: NSManagedObject, Identifiable {
     enum CodingKeys: CodingKey {}
     
     // MARK: - Custom Core Data initilizer for ESCodeSignatureInvalidatedEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let description = NSEntityDescription.entity(forEntityName: "ESCodeSignatureInvalidatedEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: CodeSignatureInvalidatedEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
     }
 }
 

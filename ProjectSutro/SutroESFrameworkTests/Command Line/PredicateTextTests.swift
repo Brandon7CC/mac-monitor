@@ -57,6 +57,8 @@ final class PredicateTextTests: XCTestCase {
             ("context == 'process.is_platform_binary'", "context == 'process.is_platform_binary'"),
             ("process.pid == 1 AND process.is_platform_binary != event.exec.target.is_adhoc_signed",
              "process.pid == 1 AND process.is_platform_binary != event.exec.target.is_adhoc_signed"),
+            ("process.pid == 1AND process.is_platform_binary",
+             "process.pid == 1AND process.is_platform_binary == YES"),
         ]
         for (source, compared) in cases {
             XCTAssertEqual(PredicateText.comparingBooleans(source), compared, source)

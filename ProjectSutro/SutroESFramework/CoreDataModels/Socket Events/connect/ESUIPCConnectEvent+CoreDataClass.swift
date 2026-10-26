@@ -32,10 +32,8 @@ public class ESUIPCConnectEvent: NSManagedObject, Identifiable {
         case protocol_string
     }
     
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: UIPCConnectEvent = message.event.uipc_connect!
-        let description = NSEntityDescription.entity(forEntityName: "ESUIPCConnectEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: UIPCConnectEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         attach(ESFile.row(for: event.file, in: context), to: #keyPath(ESUIPCConnectEvent.file))
         self.domain = event.domain

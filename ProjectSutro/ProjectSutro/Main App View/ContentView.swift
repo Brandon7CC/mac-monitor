@@ -93,13 +93,14 @@ struct EventView: View {
     /// The number of System Events in the store.
     private var totalEventCount: Int { eventQueries.totalCount }
     
-    /// The string displaying the number of System Events collected over the course of the trace
+    /// The string displaying the number of System Events collected over the course of the trace, grouped the way the
+    /// Mac's locale groups digits (6,373 in the US)
     private var eventCountString: AttributedString {
         let searching = !filterSpec.searchText.isEmpty || filterSpec.recordPredicate != nil
         let hasActiveFilters = allFilters.totalFilters > 0 || searching
-        
+
         if !hasActiveFilters {
-            return try! AttributedString(markdown: "**Events** `\(totalEventCount)`")
+            return try! AttributedString(markdown: "**Events** `\(totalEventCount.formatted())`")
         }
         
         let totalCount = totalEventCount
@@ -107,7 +108,7 @@ struct EventView: View {
         let percentage = totalCount > 0 ? Double(filteredCount) / Double(totalCount) * 100.0 : 0.0
         
         return try! AttributedString(
-            markdown: "**Events** `\(filteredCount)` (`\(String(format: "%.2f", percentage))%`)"
+            markdown: "**Events** `\(filteredCount.formatted())` (`\(String(format: "%.2f", percentage))%`)"
         )
     }
     

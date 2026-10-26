@@ -30,14 +30,6 @@ public struct MuteList: Equatable, Sendable {
         /// How ``path`` is matched: against the process or the target, literally or as a prefix.
         public let type: es_mute_path_type_t
         
-        /// - Parameters:
-        ///   - path: The path, or path prefix.
-        ///   - type: How `path` is matched.
-        public init(path: String, type: es_mute_path_type_t) {
-            self.path = path
-            self.type = type
-        }
-        
         /// Canonical order: by `ES_MUTE_PATH_TYPE_*` name, then by path.
         ///
         /// - Parameters:

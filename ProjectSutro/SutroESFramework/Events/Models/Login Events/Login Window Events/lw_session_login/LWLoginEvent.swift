@@ -11,24 +11,11 @@ import OSLog
 
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_lw_session_login_t
-public struct LWLoginEvent: Identifiable, Codable, Hashable {
+public struct LWLoginEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var username: String
     public var graphical_session_id: Int32
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(username)
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: LWLoginEvent, rhs: LWLoginEvent) -> Bool {
-        if lhs.graphical_session_id == rhs.graphical_session_id && lhs.id == rhs.id && lhs.username == rhs.username {
-            return true
-        }
-        
-        return false
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let lwLoginEvent: es_event_lw_session_login_t = rawMessage.pointee.event.lw_session_login.pointee

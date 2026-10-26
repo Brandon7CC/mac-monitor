@@ -24,16 +24,14 @@ public class ESProcessCheckEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESProcessCheckEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let procCheckEvent: ProcessCheckEvent = message.event.proc_check!
-        let description = NSEntityDescription.entity(forEntityName: "ESProcessCheckEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: ProcessCheckEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.type = procCheckEvent.type
-        self.type_string = procCheckEvent.type_string
-        self.flavor = Int32(truncatingIfNeeded: procCheckEvent.flavor)
+        self.type = event.type
+        self.type_string = event.type_string
+        self.flavor = Int32(truncatingIfNeeded: event.flavor)
         
-        if let target = procCheckEvent.target {
+        if let target = event.target {
             self.target = ESProcess(from: target, version: message.version, insertIntoManagedObjectContext: context)
         }
     }

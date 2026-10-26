@@ -33,7 +33,7 @@ struct SubscriptionsSettingsView: View {
     private func subscribe(_ names: [String]) {
         for name in names {
             if eventMaskEnabled && !allFilters.events.contains(name) { allFilters.events.append(name) }
-            systemExtensionManager.puntEventToSubscribe(eventString: name)
+            systemExtensionManager.setSubscription(name, enabled: true)
         }
     }
 
@@ -41,7 +41,7 @@ struct SubscriptionsSettingsView: View {
     ///
     /// - Parameter names: The events' names.
     private func unsubscribe(_ names: [String]) {
-        names.forEach { systemExtensionManager.puntEventToUnsubscribe(eventString: $0) }
+        names.forEach { systemExtensionManager.setSubscription($0, enabled: false) }
     }
 
     /// Mac Monitor's default subscriptions, and nothing else.

@@ -124,18 +124,18 @@ public struct StreamFilter: Equatable {
         /// - Throws: ``StreamFilterError`` if the predicate can't be evaluated on it, such as `MATCHES` on a number,
         ///   or on a value it gave up on (``BoundedMatches``).
         public func evaluate(on record: NSDictionary) throws -> Bool {
-            var result = ObjCBool(false)
             matches.failure = nil
             related.failure = nil
+            let result: Bool
             do {
-                try PredicateBridge.evaluate(predicate, with: PredicateRecord(record), matches: &result)
+                result = try PredicateBridge.evaluate(predicate, with: PredicateRecord(record), variables: nil)
             } catch {
                 throw StreamFilterError(predicate: source, reason: error.localizedDescription)
             }
             if let failure = related.failure ?? matches.failure {
                 throw StreamFilterError(predicate: source, reason: failure)
             }
-            return result.boolValue
+            return result
         }
 
         /// The same predicate, parsed again, for another thread: `NSPredicate` doesn't say it's thread-safe. It has

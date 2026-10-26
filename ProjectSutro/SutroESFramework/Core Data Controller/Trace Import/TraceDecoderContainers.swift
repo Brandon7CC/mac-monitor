@@ -86,36 +86,8 @@ struct TraceKeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
     
     /// Is `key`'s value missing or `null`?
     func decodeNil(forKey key: Key) throws -> Bool { child(key).decodeNil() }
-    /// `key`'s value as a `T`.
+    /// `key`'s value as a `T`, scalars included (see ``TraceDecoder/decode(_:)``).
     func decode<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T { try child(key).decode(type) }
-    /// `key`'s value as a `Bool`.
-    func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool { try child(key).decode(type) }
-    /// `key`'s value as a `String`.
-    func decode(_ type: String.Type, forKey key: Key) throws -> String { try child(key).decode(type) }
-    /// `key`'s value as a `Double`.
-    func decode(_ type: Double.Type, forKey key: Key) throws -> Double { try child(key).decode(type) }
-    /// `key`'s value as a `Float`.
-    func decode(_ type: Float.Type, forKey key: Key) throws -> Float { try child(key).decode(type) }
-    /// `key`'s value as an `Int`.
-    func decode(_ type: Int.Type, forKey key: Key) throws -> Int { try child(key).decode(type) }
-    /// `key`'s value as an `Int8`.
-    func decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 { try child(key).decode(type) }
-    /// `key`'s value as an `Int16`.
-    func decode(_ type: Int16.Type, forKey key: Key) throws -> Int16 { try child(key).decode(type) }
-    /// `key`'s value as an `Int32`.
-    func decode(_ type: Int32.Type, forKey key: Key) throws -> Int32 { try child(key).decode(type) }
-    /// `key`'s value as an `Int64`.
-    func decode(_ type: Int64.Type, forKey key: Key) throws -> Int64 { try child(key).decode(type) }
-    /// `key`'s value as an `UInt`.
-    func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt { try child(key).decode(type) }
-    /// `key`'s value as an `UInt8`.
-    func decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 { try child(key).decode(type) }
-    /// `key`'s value as an `UInt16`.
-    func decode(_ type: UInt16.Type, forKey key: Key) throws -> UInt16 { try child(key).decode(type) }
-    /// `key`'s value as an `UInt32`.
-    func decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 { try child(key).decode(type) }
-    /// `key`'s value as an `UInt64`.
-    func decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 { try child(key).decode(type) }
     
     /// `key`'s value as an object.
     func nestedContainer<N: CodingKey>(keyedBy type: N.Type, forKey key: Key) throws -> KeyedDecodingContainer<N> {
@@ -181,36 +153,8 @@ struct TraceUnkeyedContainer: UnkeyedDecodingContainer {
         currentIndex += 1
         return true
     }
-    /// The next element as a `T`.
+    /// The next element as a `T`, scalars included (see ``TraceDecoder/decode(_:)``).
     mutating func decode<T: Decodable>(_ type: T.Type) throws -> T { try next().decode(type) }
-    /// The next element as a `Bool`.
-    mutating func decode(_ type: Bool.Type) throws -> Bool { try next().decode(type) }
-    /// The next element as a `String`.
-    mutating func decode(_ type: String.Type) throws -> String { try next().decode(type) }
-    /// The next element as a `Double`.
-    mutating func decode(_ type: Double.Type) throws -> Double { try next().decode(type) }
-    /// The next element as a `Float`.
-    mutating func decode(_ type: Float.Type) throws -> Float { try next().decode(type) }
-    /// The next element as an `Int`.
-    mutating func decode(_ type: Int.Type) throws -> Int { try next().decode(type) }
-    /// The next element as an `Int8`.
-    mutating func decode(_ type: Int8.Type) throws -> Int8 { try next().decode(type) }
-    /// The next element as an `Int16`.
-    mutating func decode(_ type: Int16.Type) throws -> Int16 { try next().decode(type) }
-    /// The next element as an `Int32`.
-    mutating func decode(_ type: Int32.Type) throws -> Int32 { try next().decode(type) }
-    /// The next element as an `Int64`.
-    mutating func decode(_ type: Int64.Type) throws -> Int64 { try next().decode(type) }
-    /// The next element as an `UInt`.
-    mutating func decode(_ type: UInt.Type) throws -> UInt { try next().decode(type) }
-    /// The next element as an `UInt8`.
-    mutating func decode(_ type: UInt8.Type) throws -> UInt8 { try next().decode(type) }
-    /// The next element as an `UInt16`.
-    mutating func decode(_ type: UInt16.Type) throws -> UInt16 { try next().decode(type) }
-    /// The next element as an `UInt32`.
-    mutating func decode(_ type: UInt32.Type) throws -> UInt32 { try next().decode(type) }
-    /// The next element as an `UInt64`.
-    mutating func decode(_ type: UInt64.Type) throws -> UInt64 { try next().decode(type) }
     
     /// The next element as an object.
     mutating func nestedContainer<N: CodingKey>(keyedBy type: N.Type) throws -> KeyedDecodingContainer<N> {

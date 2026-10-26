@@ -10,19 +10,11 @@ import EndpointSecurity
 
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_deleteextattr_t
-public struct XattrDeleteEvent: Identifiable, Codable, Hashable {
+public struct XattrDeleteEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var target: File
     public var extattr: String
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: XattrDeleteEvent, rhs: XattrDeleteEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         // Getting the extended attribute (xattr) set event

@@ -103,15 +103,17 @@ public struct Process: Identifiable, Codable, Hashable {
         self.cdhash = cdhashToString(cdhash: process.cdhash)
         
         derive(namingAllUsers: true)
-        /// From the executable's code signing certificates, where its flags don't tell.
-        self.codesigning_type = ProcessHelpers.codeSigningType(for: process)
+        /// From the executable's code signing certificates, where its flags don't tell (a validly signed process that
+        /// isn't a platform binary nor adhoc signed). One without a path is unsigned.
+        if codesigning_type == .unknown {
+            let path = executable?.path ?? ""
+            codesigning_type = path.isEmpty ? .unsigned : ProcessHelpers.certificateType(at: path)
+        }
         
         // MARK: File Quarantine-aware
         if let exe = self.executable {
             self.file_quarantine_type = ProcessHelpers
                 .isQuarantineEnabled(forExecutableAt: exe.path, signingId: self.signing_id)
-        } else {
-            self.file_quarantine_type = .disabled
         }
     }
 }
@@ -159,20 +161,19 @@ extension Process: ESEnrichable {
         
         // macOS 26 support
         if let category = cs_validation_category {
-            let name = Self.validationCategoryNames[UInt32(truncatingIfNeeded: category)]
-            cs_validation_category_string = name ?? "UNKNOWN"
+            cs_validation_category_string = Self.validationCategoryNames.name(of: Int(category))
         }
     }
     
     /// Each code signing validation category's name (macOS 26 and later), as `es_cs_validation_category_t` spells it.
-    static let validationCategoryNames: [UInt32: String] = Dictionary(uniqueKeysWithValues: [
+    static let validationCategoryNames = ConstantNames(names: Dictionary(uniqueKeysWithValues: [
         (ES_CS_VALIDATION_CATEGORY_NONE, "NONE"), (ES_CS_VALIDATION_CATEGORY_OOPJIT, "OOPJIT"),
         (ES_CS_VALIDATION_CATEGORY_INVALID, "INVALID"), (ES_CS_VALIDATION_CATEGORY_ROSETTA, "ROSETTA"),
         (ES_CS_VALIDATION_CATEGORY_PLATFORM, "PLATFORM"), (ES_CS_VALIDATION_CATEGORY_ENTERPRISE, "ENTERPRISE"),
         (ES_CS_VALIDATION_CATEGORY_TESTFLIGHT, "TESTFLIGHT"), (ES_CS_VALIDATION_CATEGORY_DEVELOPMENT, "DEVELOPMENT"),
         (ES_CS_VALIDATION_CATEGORY_APP_STORE, "APP_STORE"), (ES_CS_VALIDATION_CATEGORY_DEVELOPER_ID, "DEVELOPER_ID"),
         (ES_CS_VALIDATION_CATEGORY_LOCAL_SIGNING, "LOCAL_SIGNING"),
-    ].map { ($0.rawValue, "ES_CS_VALIDATION_CATEGORY_" + $1) })
+    ].map { (Int($0.rawValue), "ES_CS_VALIDATION_CATEGORY_" + $1) }), unknown: "UNKNOWN")
     
     /// A user's name, from this Mac's user database (``UserNames``).
     ///

@@ -26,12 +26,15 @@ public class ESODAttributeValueAddEvent: ESODEvent, Identifiable {
     /// Store an event.
     ///
     /// - Parameters:
+    ///   - event: The event.
     ///   - message: The event's message.
     ///   - context: The context to insert into.
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: OpenDirectoryAttributeValueAddEvent = message.event.od_attribute_value_add!
-        let description = NSEntityDescription.entity(forEntityName: "ESODAttributeValueAddEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(
+        from event: OpenDirectoryAttributeValueAddEvent,
+        message: Message,
+        in context: NSManagedObjectContext!
+    ) {
+        self.init(insertingInto: context)
         store(event, version: message.version, in: context)
         record_type = event.record_type.map { NSNumber(value: $0) }
         record_name = event.record_name

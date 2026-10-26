@@ -186,333 +186,136 @@ public class ESEventType: NSManagedObject, Identifiable {
         from message: Message,
         insertIntoManagedObjectContext context: NSManagedObjectContext!
     ) {
-        let description = NSEntityDescription.entity(forEntityName: "ESEventType", in: context)!
-        self.init(entity: description, insertInto: context)
+        self.init(insertingInto: context)
         
         switch message.event {
-            // MARK: Process events
-        case .exec(_):
-            self.exec = ESProcessExecEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .fork(_):
-            self.fork = ESProcessForkEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .exit(_):
-            self.exit = ESProcessExitEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .signal(_):
-            self.signal = ESProcessSignalEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .proc_suspend_resume(_):
-            self.proc_suspend_resume = ESProcessSocketEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .proc_check(_):
-            self.proc_check = ESProcessCheckEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: Interprocess events
-        case .remote_thread_create(_):
-            self.remote_thread_create = ESRemoteThreadCreateEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .trace(_):
-            self.trace = ESProcessTraceEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: Code Signing events
-        case .cs_invalidated(_):
-            self.cs_invalidated = ESCodeSignatureInvalidatedEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            
-            // MARK: Memory mapping events
-        case .mmap(_):
-            self.mmap = ESMMapEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .mprotect(_):
-            self.mprotect = ESMProtectEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: File System events
-        case .create(_):
-            self.create = ESFileCreateEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .rename(_):
-            self.rename = ESFileRenameEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .open(_):
-            self.open = ESFileOpenEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .write(_):
-            self.write = ESFileWriteEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .close(_):
-            self.close = ESFileCloseEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .unlink(_):
-            self.unlink = ESFileDeleteEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .dup(_):
-            self.dup = ESFDDuplicateEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: Symbolic Link events
-        case .link(_):
-            self.link = ESLinkEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: File Metadata events
-        case .setextattr(_):
-            self.setextattr = ESXattrSetEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .getextattr(_):
-            self.getextattr = ESXattrGetEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .listextattr(_):
-            self.listextattr = ESXattrListEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .deleteextattr(_):
-            self.deleteextattr = ESXattrDeleteEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .setmode(_):
-            self.setmode = ESSetModeEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: Pseudoterminal Event
-        case .pty_grant(_):
-            self.pty_grant = ESPTYGrantEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: File System Mounting events
-        case .mount(_):
-            self.mount = ESMountEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: Login events
-        case .login_login(_):
-            self.login_login = ESLoginLoginEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .lw_session_login(_):
-            self.lw_session_login = ESLWLoginEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .lw_session_unlock(_):
-            self.lw_session_unlock = ESLWUnlockEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: OpenSSH events
-        case .openssh_login(_):
-            self.openssh_login = ESOpenSSHLoginEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .openssh_logout(_):
-            self.openssh_logout = ESOpenSSHLogoutEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: Kernel events
-        case .iokit_open(_):
-            self.iokit_open = ESIOKitOpenEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: Security Authorization events
-        case .authorization_petition(_):
-            self.authorization_petition = ESAuthorizationPetitionEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .authorization_judgement(_):
-            self.authorization_judgement = ESAuthorizationJudgementEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: Task Port events
-        case .get_task(_):
-            self.get_task = ESGetTaskEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: MDM events
-        case .profile_add(_):
-            self.profile_add = ESProfileAddEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: Service Management events
-        case .btm_launch_item_add(_):
-            self.btm_launch_item_add = ESLaunchItemAddEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .btm_launch_item_remove(_):
-            self.btm_launch_item_remove = ESLaunchItemRemoveEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: XProtect events
-        case .xp_malware_detected(_):
-            self.xp_malware_detected = ESXProtectDetect(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .xp_malware_remediated(_):
-            self.xp_malware_remediated = ESXProtectRemediate(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: Directory events
-        case .od_create_user(_):
-            self.od_create_user = ESODCreateUserEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .od_modify_password(_):
-            self.od_modify_password = ESODModifyPasswordEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .od_group_add(_):
-            self.od_group_add = ESODGroupAddEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .od_group_remove(_):
-            self.od_group_remove = ESODGroupRemoveEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .od_create_group(_):
-            self.od_create_group = ESODCreateGroupEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .od_attribute_value_add(_):
-            self.od_attribute_value_add = ESODAttributeValueAddEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            
-            // MARK: XPC events
-        case .xpc_connect(_):
-            self.xpc_connect = ESXPCConnectEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            // MARK: Socket events
-        case .uipc_connect(_):
-            self.uipc_connect = ESUIPCConnectEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-        case .uipc_bind(_):
-            self.uipc_bind = ESUIPCBindEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            // MARK: TCC events
-        case .tcc_modify(_):
-            self.tcc_modify = ESTCCModifyEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
-            // MARK: Gatekeeper events
-        case .gatekeeper_user_override(_):
-            self.gatekeeper_user_override = ESGatekeeperUserOverrideEvent(
-                from: message,
-                insertIntoManagedObjectContext: context
-            )
-            
+        // MARK: Process events
+        case .exec(let e):
+            self.exec = ESProcessExecEvent(from: e, message: message, in: context)
+        case .fork(let e):
+            self.fork = ESProcessForkEvent(from: e, message: message, in: context)
+        case .exit(let e):
+            self.exit = ESProcessExitEvent(from: e, message: message, in: context)
+        case .signal(let e):
+            self.signal = ESProcessSignalEvent(from: e, message: message, in: context)
+        case .proc_suspend_resume(let e):
+            self.proc_suspend_resume = ESProcessSocketEvent(from: e, message: message, in: context)
+        case .proc_check(let e):
+            self.proc_check = ESProcessCheckEvent(from: e, message: message, in: context)
+        // MARK: Interprocess events
+        case .remote_thread_create(let e):
+            self.remote_thread_create = ESRemoteThreadCreateEvent(from: e, message: message, in: context)
+        case .trace(let e):
+            self.trace = ESProcessTraceEvent(from: e, message: message, in: context)
+        // MARK: Code Signing events
+        case .cs_invalidated(let e):
+            self.cs_invalidated = ESCodeSignatureInvalidatedEvent(from: e, message: message, in: context)
+        // MARK: Memory mapping events
+        case .mmap(let e):
+            self.mmap = ESMMapEvent(from: e, message: message, in: context)
+        case .mprotect(let e):
+            self.mprotect = ESMProtectEvent(from: e, message: message, in: context)
+        // MARK: File System events
+        case .create(let e):
+            self.create = ESFileCreateEvent(from: e, message: message, in: context)
+        case .rename(let e):
+            self.rename = ESFileRenameEvent(from: e, message: message, in: context)
+        case .open(let e):
+            self.open = ESFileOpenEvent(from: e, message: message, in: context)
+        case .write(let e):
+            self.write = ESFileWriteEvent(from: e, message: message, in: context)
+        case .close(let e):
+            self.close = ESFileCloseEvent(from: e, message: message, in: context)
+        case .unlink(let e):
+            self.unlink = ESFileDeleteEvent(from: e, message: message, in: context)
+        case .dup(let e):
+            self.dup = ESFDDuplicateEvent(from: e, message: message, in: context)
+        // MARK: Symbolic Link events
+        case .link(let e):
+            self.link = ESLinkEvent(from: e, message: message, in: context)
+        // MARK: File Metadata events
+        case .setextattr(let e):
+            self.setextattr = ESXattrSetEvent(from: e, message: message, in: context)
+        case .getextattr(let e):
+            self.getextattr = ESXattrGetEvent(from: e, message: message, in: context)
+        case .listextattr(let e):
+            self.listextattr = ESXattrListEvent(from: e, message: message, in: context)
+        case .deleteextattr(let e):
+            self.deleteextattr = ESXattrDeleteEvent(from: e, message: message, in: context)
+        case .setmode(let e):
+            self.setmode = ESSetModeEvent(from: e, message: message, in: context)
+        // MARK: Pseudoterminal Event
+        case .pty_grant(let e):
+            self.pty_grant = ESPTYGrantEvent(from: e, message: message, in: context)
+        // MARK: File System Mounting events
+        case .mount(let e):
+            self.mount = ESMountEvent(from: e, message: message, in: context)
+        // MARK: Login events
+        case .login_login(let e):
+            self.login_login = ESLoginLoginEvent(from: e, message: message, in: context)
+        case .lw_session_login(let e):
+            self.lw_session_login = ESLWLoginEvent(from: e, message: message, in: context)
+        case .lw_session_unlock(let e):
+            self.lw_session_unlock = ESLWUnlockEvent(from: e, message: message, in: context)
+        // MARK: OpenSSH events
+        case .openssh_login(let e):
+            self.openssh_login = ESOpenSSHLoginEvent(from: e, message: message, in: context)
+        case .openssh_logout(let e):
+            self.openssh_logout = ESOpenSSHLogoutEvent(from: e, message: message, in: context)
+        // MARK: Kernel events
+        case .iokit_open(let e):
+            self.iokit_open = ESIOKitOpenEvent(from: e, message: message, in: context)
+        // MARK: Security Authorization events
+        case .authorization_petition(let e):
+            self.authorization_petition = ESAuthorizationPetitionEvent(from: e, message: message, in: context)
+        case .authorization_judgement(let e):
+            self.authorization_judgement = ESAuthorizationJudgementEvent(from: e, message: message, in: context)
+        // MARK: Task Port events
+        case .get_task(let e):
+            self.get_task = ESGetTaskEvent(from: e, message: message, in: context)
+        // MARK: MDM events
+        case .profile_add(let e):
+            self.profile_add = ESProfileAddEvent(from: e, message: message, in: context)
+        // MARK: Service Management events
+        case .btm_launch_item_add(let e):
+            self.btm_launch_item_add = ESLaunchItemAddEvent(from: e, message: message, in: context)
+        case .btm_launch_item_remove(let e):
+            self.btm_launch_item_remove = ESLaunchItemRemoveEvent(from: e, message: message, in: context)
+        // MARK: XProtect events
+        case .xp_malware_detected(let e):
+            self.xp_malware_detected = ESXProtectDetect(from: e, message: message, in: context)
+        case .xp_malware_remediated(let e):
+            self.xp_malware_remediated = ESXProtectRemediate(from: e, message: message, in: context)
+        // MARK: Directory events
+        case .od_create_user(let e):
+            self.od_create_user = ESODCreateUserEvent(from: e, message: message, in: context)
+        case .od_modify_password(let e):
+            self.od_modify_password = ESODModifyPasswordEvent(from: e, message: message, in: context)
+        case .od_group_add(let e):
+            self.od_group_add = ESODGroupAddEvent(from: e, message: message, in: context)
+        case .od_group_remove(let e):
+            self.od_group_remove = ESODGroupRemoveEvent(from: e, message: message, in: context)
+        case .od_create_group(let e):
+            self.od_create_group = ESODCreateGroupEvent(from: e, message: message, in: context)
+        case .od_attribute_value_add(let e):
+            self.od_attribute_value_add = ESODAttributeValueAddEvent(from: e, message: message, in: context)
+        // MARK: XPC events
+        case .xpc_connect(let e):
+            self.xpc_connect = ESXPCConnectEvent(from: e, message: message, in: context)
+        // MARK: Socket events
+        case .uipc_connect(let e):
+            self.uipc_connect = ESUIPCConnectEvent(from: e, message: message, in: context)
+        case .uipc_bind(let e):
+            self.uipc_bind = ESUIPCBindEvent(from: e, message: message, in: context)
+        // MARK: TCC events
+        case .tcc_modify(let e):
+            self.tcc_modify = ESTCCModifyEvent(from: e, message: message, in: context)
+        // MARK: Gatekeeper events
+        case .gatekeeper_user_override(let e):
+            self.gatekeeper_user_override = ESGatekeeperUserOverrideEvent(from: e, message: message, in: context)
         default:
             break
         }
-        
-        
     }
     
 }

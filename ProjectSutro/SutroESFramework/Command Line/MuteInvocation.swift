@@ -77,7 +77,10 @@ extension CommandLineParser {
         case .export:
             try cursor.expectEnd(of: "mute export", command: "mute")
             return .export
-        case .reset: return try muteReset(&cursor)
+        case .reset:
+            let given = try cursor.flags(of: "mute reset", among: CommandLineOption.mute(.reset), positional: nil,
+                                         command: "mute")
+            return .reset(confirmed: given.flags.contains("--yes"))
         case .add: return .add(try muteEntry(&cursor, subcommand: "add"))
         case .remove: return .remove(try muteEntry(&cursor, subcommand: "remove"))
         case .import: return try muteImport(&cursor)
@@ -160,63 +163,14 @@ extension CommandLineParser {
     ///
     /// - Parameter cursor: The arguments.
     /// - Returns: The import.
-    /// - Throws: ``CommandLineUsageError`` for no file or more than one, or an unknown option.
+    /// - Throws: ``CommandLineUsageError`` for no file or more than one, a value given to `--merge` or `--yes`, or an
+    ///   unknown option.
     static func muteImport(_ cursor: inout ArgumentCursor) throws -> MuteInvocation {
-        var path: String?, merge = false, confirmed = false
-        while let argument = cursor.next() {
-            switch argument {
-            case .positional(let value) where path == nil:
-                path = value
-            case .option("--merge", nil):
-                merge = true
-            case .option("--yes", nil):
-                confirmed = true
-            case .positional(let value):
-                throw CommandLineUsageError("mute import takes one file, not also '\(value)'.", command: "mute")
-            case .option(let option, let value):
-                throw unknownMuteOption(option, value: value, subcommand: "import", flags: ["--merge", "--yes"])
-            }
-        }
+        let (path, flags) = try cursor.flags(of: "mute import", among: CommandLineOption.mute(.import),
+                                             positional: "file", command: "mute")
         guard let path else {
             throw CommandLineUsageError("mute import needs a file, or - for standard input.", command: "mute")
         }
-        return .importFile(path: path, merge: merge, confirmed: confirmed)
-    }
-    
-    /// `reset [--yes]`.
-    ///
-    /// - Parameter cursor: The arguments.
-    /// - Returns: The reset.
-    /// - Throws: ``CommandLineUsageError`` for a positional or an unknown option.
-    static func muteReset(_ cursor: inout ArgumentCursor) throws -> MuteInvocation {
-        var confirmed = false
-        while let argument = cursor.next() {
-            switch argument {
-            case .option("--yes", nil):
-                confirmed = true
-            case .option(let option, let value):
-                throw unknownMuteOption(option, value: value, subcommand: "reset", flags: ["--yes"])
-            case .positional(let value):
-                throw CommandLineUsageError("mute reset takes no arguments, not '\(value)'.", command: "mute")
-            }
-        }
-        return .reset(confirmed: confirmed)
-    }
-    
-    /// The usage error for an option a mute command doesn't take as given.
-    ///
-    /// - Parameters:
-    ///   - option: The option.
-    ///   - value: The value attached with `=`, if any.
-    ///   - subcommand: The mute command, for the message.
-    ///   - flags: The options the command takes without a value.
-    /// - Returns: The error: one of its flags given a value, or an option it doesn't take.
-    static func unknownMuteOption(_ option: String, value: String?, subcommand: String,
-                                  flags: Set<String>) -> CommandLineUsageError {
-        guard value == nil || !flags.contains(option) else {
-            return CommandLineUsageError("\(option) takes no value.", command: "mute")
-        }
-        let options = MuteInvocation.Name(rawValue: subcommand).map(CommandLineOption.mute) ?? []
-        return unknownOption(option, for: "mute \(subcommand)", among: options)
+        return .importFile(path: path, merge: flags.contains("--merge"), confirmed: flags.contains("--yes"))
     }
 }

@@ -26,10 +26,10 @@ import Foundation
 /// nothing at all is encoded again by `JSONEncoder`, so the result is always what `JSONEncoder` would give.
 ///
 /// Exports write their records as `JSONEncoder` does with `.sortedKeys` and `.withoutEscapingSlashes`
-/// (``ProcessHelpers/eventToJSON(value:)``), which this does too when asked (``init(sortsKeys:escapesSlashes:)``): each
-/// object's members are put in key order as the object closes, by the keys' UTF-8 bytes, as `.sortedKeys` orders them.
-/// An object with a key twice, which `JSONEncoder` writes once, is left to `JSONEncoder`. A ~3.6 KB event from the
-/// store took 34 µs this way, and 115 µs through `JSONEncoder`.
+/// (``ProcessHelpers/eventToJSON(value:pretty:)``), which this does too when asked
+/// (``init(sortsKeys:escapesSlashes:)``): each object's members are put in key order as the object closes, by the keys'
+/// UTF-8 bytes, as `.sortedKeys` orders them. An object with a key twice, which `JSONEncoder` writes once, is left to
+/// `JSONEncoder`. A ~3.6 KB event from the store took 34 µs this way, and 115 µs through `JSONEncoder`.
 ///
 /// **Threading:** not thread-safe. Each capture lane owns one and uses it under its lock.
 final class StreamingJSONEncoder {

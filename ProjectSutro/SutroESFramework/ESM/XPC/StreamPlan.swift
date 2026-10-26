@@ -23,7 +23,10 @@ public struct StreamPlan: Equatable {
     public let events: [es_event_type_t]
     /// Apply the saved mute set, and follow its changes?
     public let appliesSavedMutes: Bool
-    
+}
+
+
+extension StreamPlan {
     /// Validate a request's options.
     ///
     /// - Parameter options: The options.
@@ -48,14 +51,6 @@ public struct StreamPlan: Equatable {
             if seen.insert(event.rawValue).inserted { events.append(event) }
         }
         self.init(events: events, appliesSavedMutes: options.appliesSavedMutes)
-    }
-    
-    /// - Parameters:
-    ///   - events: The events to subscribe to.
-    ///   - appliesSavedMutes: Apply the saved mute set?
-    init(events: [es_event_type_t], appliesSavedMutes: Bool) {
-        self.events = events
-        self.appliesSavedMutes = appliesSavedMutes
     }
     
     /// Every event a stream may subscribe to, by its `ES_EVENT_TYPE_NOTIFY_*` name: the NOTIFY events Mac Monitor

@@ -26,17 +26,15 @@ public class ESXProtectDetect: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESXProtectDetect
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let xprotectDetectItem: XProtectDetectEvent = message.event.xp_malware_detected!
-        let description = NSEntityDescription.entity(forEntityName: "ESXProtectDetect", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: XProtectDetectEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.signature_version = xprotectDetectItem.signature_version
-        self.malware_identifier = xprotectDetectItem.malware_identifier
-        self.incident_identifier = xprotectDetectItem.incident_identifier
-        self.detected_path = xprotectDetectItem.detected_path
+        self.signature_version = event.signature_version
+        self.malware_identifier = event.malware_identifier
+        self.incident_identifier = event.incident_identifier
+        self.detected_path = event.detected_path
         
-        self.detected_executable = xprotectDetectItem.detected_executable
+        self.detected_executable = event.detected_executable
     }
 }
 

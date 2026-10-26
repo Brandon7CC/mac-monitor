@@ -24,7 +24,7 @@ final class OpenDirectoryMemberTests: XCTestCase {
     
     /// A name reads back as its value, and the name of an unknown value as none.
     func testRawValuesOfNames() {
-        for names in [ODEnumNames.memberType, .recordType, .accountType] {
+        for names in [ConstantNames.memberType, .recordType, .accountType] {
             for value in names.names.keys {
                 XCTAssertEqual(names.rawValue(of: names.name(of: value)), value)
             }

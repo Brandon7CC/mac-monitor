@@ -250,7 +250,7 @@ struct AppKitEventTable: NSViewRepresentable {
             return tableView.selectedRowIndexes.compactMap { index -> String? in
                 guard index < rows.count, let message = try? context.existingObject(with: rows[index]) as? ESMessage,
                       !message.isDeleted else { return nil }
-                return ProcessHelpers.eventToPrettyJSON(value: message)
+                return ProcessHelpers.eventToJSON(value: message, pretty: true)
             }
         }
         

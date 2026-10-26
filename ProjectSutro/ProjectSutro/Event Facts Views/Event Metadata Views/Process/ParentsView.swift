@@ -19,7 +19,7 @@ struct ParentsView: View {
     let message: ESMessage
 
     var body: some View {
-        if let parents = systemExtensionManager.coreDataContainer.parents(of: message) {
+        if let parents = systemExtensionManager.coreDataContainer.lineage.parents(of: message) {
             VStack(alignment: .leading) {
                 ParentRow(
                     title: LaunchedByParent.Source.unixParent.title,

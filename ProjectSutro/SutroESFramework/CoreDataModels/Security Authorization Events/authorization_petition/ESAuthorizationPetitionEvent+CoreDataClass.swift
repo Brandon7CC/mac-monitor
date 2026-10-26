@@ -52,10 +52,8 @@ public class ESAuthorizationPetitionEvent: NSManagedObject, Identifiable {
         }
     }
     
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: AuthorizationPetitionEvent = message.event.authorization_petition!
-        let description = NSEntityDescription.entity(forEntityName: "ESAuthorizationPetitionEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: AuthorizationPetitionEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         /// Each process and token on its own: Endpoint Security can leave out a process (`NULL`) and still give its
         /// token, and before message version 8 gives the processes without tokens.

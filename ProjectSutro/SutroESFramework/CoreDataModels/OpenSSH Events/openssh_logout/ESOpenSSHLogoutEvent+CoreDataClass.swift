@@ -27,10 +27,8 @@ public class ESOpenSSHLogoutEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESOpenSSHLogoutEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: SSHLogoutEvent = message.event.openssh_logout!
-        let description = NSEntityDescription.entity(forEntityName: "ESOpenSSHLogoutEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: SSHLogoutEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         self.source_address_type = event.source_address_type
         self.source_address_type_string = event.source_address_type_string

@@ -19,13 +19,11 @@ public class ESLWLoginEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESLWLoginEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let lwLoginEvent: LWLoginEvent = message.event.lw_session_login!
-        let description = NSEntityDescription.entity(forEntityName: "ESLWLoginEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: LWLoginEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.username = lwLoginEvent.username
-        self.graphical_session_id = lwLoginEvent.graphical_session_id
+        self.username = event.username
+        self.graphical_session_id = event.graphical_session_id
     }
 }
 

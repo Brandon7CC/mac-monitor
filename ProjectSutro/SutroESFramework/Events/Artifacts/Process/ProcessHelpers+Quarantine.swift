@@ -43,23 +43,9 @@ extension ProcessHelpers {
     /// We read from that property list and pull out all identiifers with a `LSFileQuarantineEnabled` key value set to `true`.
     ///
     public static let forcedQuarantineSigningIDs: [String] = {
-        var signingIDs: [String] = []
-        let filePath = "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/Exceptions.plist"
-        
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: filePath)),
-              let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
-              let dict = plist as? [String: Any],
-              let entries = dict["Additions"] as? [String: Any] else {
-            return signingIDs
-        }
-        
-        for (key, value) in entries {
-            if let data = value as? [String: Any], data["LSFileQuarantineEnabled"] != nil {
-                signingIDs.append(key)
-            }
-        }
-        
-        return signingIDs
+        let path = "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/Exceptions.plist"
+        guard let additions = NSDictionary(contentsOfFile: path)?["Additions"] as? [String: Any] else { return [] }
+        return additions.keys.filter { (additions[$0] as? [String: Any])?["LSFileQuarantineEnabled"] != nil }
     }()
     
     /// Does a path have the bytes of ".app" anywhere in its UTF-8?

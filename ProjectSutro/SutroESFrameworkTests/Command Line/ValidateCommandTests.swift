@@ -38,7 +38,7 @@ final class ValidateCommandTests: XCTestCase {
             XCTFail("'validate \(arguments.joined(separator: " "))' is \(parsed), not validate.")
             throw CommandLineUsageError("Not validate.")
         }
-        let outcome = ValidateCommand(output: output, isCancelled: isCancelled).run(invocation)
+        let outcome = ValidateCommand.run(invocation, output: output, isCancelled: isCancelled)
         return Run(outcome: outcome, report: output.text)
     }
     
@@ -212,8 +212,9 @@ final class ValidateCommandTests: XCTestCase {
         XCTAssertEqual(ValidateCommand.Outcome.failed(.output(ENOSPC)).exit?.rawValue, 74)
         
         let output = BufferOutput()
-        let missing = ValidateCommand(output: output, schema: { throw TelemetrySchemaError.missingResource })
-        XCTAssertEqual(missing.run(ValidateInvocation(path: valid)), .failed(CommandLineFailure(
+        let missing = ValidateCommand.run(ValidateInvocation(path: valid), output: output,
+                                          schema: { throw TelemetrySchemaError.missingResource })
+        XCTAssertEqual(missing, .failed(CommandLineFailure(
             .software, "Mac Monitor's telemetry schema is missing from its framework.")))
         XCTAssertEqual(output.text, "")
     }

@@ -42,8 +42,8 @@ final class UpdateInstaller {
         logger.log("Mac Monitor requested an update check.")
         Task {
             do {
-                guard let release = try await newerRelease() else { return reply(nil) }
-                reply(try JSONEncoder().encode(release.details))
+                guard let details = try await newerRelease() else { return reply(nil) }
+                reply(try JSONEncoder().encode(details))
             } catch {
                 logger.error("Update check failed: \(error.localizedDescription, privacy: .public)")
                 reply(nil)
@@ -88,10 +88,10 @@ final class UpdateInstaller {
     /// Securely downloads, validates, and installs the latest release.
     private func installLatestRelease() async throws {
         guard let release = try await newerRelease() else { throw UpdateError.noNewerRelease }
-        guard release.updatePkgURL.scheme == "https" else { throw UpdateError.insecureDownload(release.updatePkgURL) }
+        guard release.downloadURL.scheme == "https" else { throw UpdateError.insecureDownload(release.downloadURL) }
         
         /// 1. Download the update package into a fresh directory that's removed when we're done
-        logger.log("1. Downloading update from \(release.updatePkgURL.absoluteString, privacy: .public)")
+        logger.log("1. Downloading update from \(release.downloadURL.absoluteString, privacy: .public)")
         let fm = FileManager.default
         let workDirectory = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try fm.createDirectory(at: workDirectory, withIntermediateDirectories: true)
@@ -100,7 +100,7 @@ final class UpdateInstaller {
             logger.log("🧹 Cleaned up temporary directory at \(workDirectory.path, privacy: .public)")
         }
         
-        let (downloadedURL, response) = try await URLSession.shared.download(from: release.updatePkgURL)
+        let (downloadedURL, response) = try await URLSession.shared.download(from: release.downloadURL)
         /// We don't trust the server's file name: the package always lands at a fixed name inside our directory.
         let package = workDirectory.appendingPathComponent("MacMonitorUpdate.pkg")
         try fm.moveItem(at: downloadedURL, to: package)
@@ -121,17 +121,25 @@ final class UpdateInstaller {
     // MARK: - Release lookup
     /// Fetch the latest GitHub release and keep it only if it's newer than this build.
     ///
-    /// - Returns: The newer release, or `nil` if we're up-to-date.
-    private func newerRelease() async throws -> GitHubRelease? {
+    /// - Returns: What Mac Monitor shows in its update sheet about the newer release, whose first asset is the update
+    ///   package, or `nil` if we're up-to-date.
+    /// - Throws: ``UpdateError/releaseLookupFailed`` for a failed lookup or a release without assets, or why the
+    ///   release couldn't be downloaded or read.
+    private func newerRelease() async throws -> UpdateDetails? {
         let (data, response) = try await URLSession.shared.data(from: Self.latestReleaseURL)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw UpdateError.releaseLookupFailed }
-        let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let release = try decoder.decode(GitHubRelease.self, from: data)
         
-        guard let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
+        guard let package = release.assets.first?.browserDownloadUrl,
+              let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
             throw UpdateError.releaseLookupFailed
         }
         logger.log("(Mac Monitor Update) Latest version found: \(release.version, privacy: .public). Current version: \(currentVersion, privacy: .public)")
-        return release.version.compare(currentVersion, options: .numeric) == .orderedDescending ? release : nil
+        guard release.version.compare(currentVersion, options: .numeric) == .orderedDescending else { return nil }
+        return UpdateDetails(version: release.tagName, downloadURL: package, releaseNotes: release.body,
+                             releaseDate: release.publishedAt)
     }
     
     // MARK: - Signature validation
@@ -257,50 +265,16 @@ extension UpdateInstaller {
 
 
 // MARK: - GitHub Release JSON Decoder
-/// Decode the relevant fields from the GitHub API response.
+/// The fields Mac Monitor reads from GitHub's latest release. The decoder converts GitHub's snake_case keys.
 private struct GitHubRelease: Decodable {
+    /// A file attached to the release. The first one is the update package.
+    struct Asset: Decodable { let browserDownloadUrl: URL }
+    
     let tagName: String
-    let updatePkgURL: URL
+    let assets: [Asset]
     let body: String
     let publishedAt: String
     
     /// The release version without the tag's `v` prefix.
     var version: String { String(tagName.trimmingPrefix("v")) }
-    
-    /// What Mac Monitor shows in its update sheet.
-    var details: UpdateDetails {
-        UpdateDetails(version: tagName, downloadURL: updatePkgURL, releaseNotes: body, releaseDate: publishedAt)
-    }
-    
-    private struct Asset: Decodable {
-        let browserDownloadURL: URL
-        
-        enum CodingKeys: String, CodingKey {
-            case browserDownloadURL = "browser_download_url"
-        }
-    }
-    
-    enum CodingKeys: String, CodingKey {
-        case tagName = "tag_name"
-        case assets
-        case body
-        case publishedAt = "published_at"
-    }
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        tagName = try container.decode(String.self, forKey: .tagName)
-        body = try container.decode(String.self, forKey: .body)
-        publishedAt = try container.decode(String.self, forKey: .publishedAt)
-        
-        // Decode the 'assets' array and extract the URL from the first element.
-        var assetsContainer = try container.nestedUnkeyedContainer(forKey: .assets)
-        guard let firstAsset = try assetsContainer.decodeIfPresent(Asset.self) else {
-            throw DecodingError.dataCorruptedError(
-                in: assetsContainer,
-                debugDescription: "The 'assets' array is empty or missing the expected object."
-            )
-        }
-        updatePkgURL = firstAsset.browserDownloadURL
-    }
 }

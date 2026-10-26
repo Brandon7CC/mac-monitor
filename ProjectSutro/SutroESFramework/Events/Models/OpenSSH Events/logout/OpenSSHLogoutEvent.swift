@@ -9,7 +9,7 @@ import Foundation
 
 
 // MARK: - OpenSSH Logout event model: https://developer.apple.com/documentation/endpointsecurity/3228936-es_events_t/3930482-openssh_logout
-public struct SSHLogoutEvent: Identifiable, Codable, Hashable {
+public struct SSHLogoutEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var source_address_type: Int32
@@ -19,14 +19,6 @@ public struct SSHLogoutEvent: Identifiable, Codable, Hashable {
     public var username: String
     
     public var uid: Int32
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: SSHLogoutEvent, rhs: SSHLogoutEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let event: es_event_openssh_logout_t = rawMessage.pointee.event.openssh_logout.pointee
@@ -44,24 +36,8 @@ public struct SSHLogoutEvent: Identifiable, Codable, Hashable {
 
 // MARK: - Mac Monitor enrichment
 extension SSHLogoutEvent: ESEnrichable {
-    /// Derive the source address type's name.
+    /// Derive the source address type's name, "Unknown" for a type ``SSHLoginEvent/addressTypeNames`` doesn't name.
     public mutating func enrich() {
-        switch es_address_type_t(rawValue: UInt32(truncatingIfNeeded: source_address_type)) {
-        case ES_ADDRESS_TYPE_NONE:
-            source_address_type_string = "ES_ADDRESS_TYPE_NONE"
-            break
-        case ES_ADDRESS_TYPE_IPV4:
-            source_address_type_string = "ES_ADDRESS_TYPE_IPV4"
-            break
-        case ES_ADDRESS_TYPE_IPV6:
-            source_address_type_string = "ES_ADDRESS_TYPE_IPV6"
-            break
-        case ES_ADDRESS_TYPE_NAMED_SOCKET:
-            source_address_type_string = "ES_ADDRESS_TYPE_NAMED_SOCKET"
-            break
-        default:
-            source_address_type_string = "Unknown"
-            break
-        }
+        source_address_type_string = SSHLoginEvent.addressTypeNames.names[Int(source_address_type)] ?? "Unknown"
     }
 }

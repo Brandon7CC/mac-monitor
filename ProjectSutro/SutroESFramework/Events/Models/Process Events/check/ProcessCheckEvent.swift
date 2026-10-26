@@ -18,27 +18,17 @@ import Foundation
  * @note Cache key for this event type:  (process executable file, target process executable file, type)
  */
 // MARK: - Process check https://developer.apple.com/documentation/endpointsecurity/es_event_proc_check_t
-public struct ProcessCheckEvent: Identifiable, Codable, Hashable {
+public struct ProcessCheckEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     public var target: Process?
     public var type: Int32
     public var type_string = ""
     public var flavor: Int
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: ProcessCheckEvent, rhs: ProcessCheckEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let procCheckEvent: es_event_proc_check_t = rawMessage.pointee.event.proc_check
         
-        if let target = procCheckEvent.target {
-            self.target = Process(from: target.pointee, version: Int(rawMessage.pointee.version))
-        }
+        self.target = procCheckEvent.target.map { Process(from: $0.pointee, version: Int(rawMessage.pointee.version)) }
         
         self.flavor = Int(procCheckEvent.flavor)
         
@@ -51,33 +41,22 @@ public struct ProcessCheckEvent: Identifiable, Codable, Hashable {
 
 // MARK: - Mac Monitor enrichment
 extension ProcessCheckEvent: ESEnrichable {
+    /// `es_proc_check_type_t`: the call that checks the target.
+    private static let typeNames = ConstantNames([
+        ES_PROC_CHECK_TYPE_PIDINFO.rawValue: "ES_PROC_CHECK_TYPE_PIDINFO",
+        ES_PROC_CHECK_TYPE_LISTPIDS.rawValue: "ES_PROC_CHECK_TYPE_LISTPIDS",
+        ES_PROC_CHECK_TYPE_PIDFDINFO.rawValue: "ES_PROC_CHECK_TYPE_PIDFDINFO",
+        ES_PROC_CHECK_TYPE_PIDRUSAGE.rawValue: "ES_PROC_CHECK_TYPE_PIDRUSAGE",
+        ES_PROC_CHECK_TYPE_TERMINATE.rawValue: "ES_PROC_CHECK_TYPE_TERMINATE",
+        ES_PROC_CHECK_TYPE_KERNMSGBUF.rawValue: "ES_PROC_CHECK_TYPE_KERNMSGBUF",
+        ES_PROC_CHECK_TYPE_SETCONTROL.rawValue: "ES_PROC_CHECK_TYPE_SETCONTROL",
+        ES_PROC_CHECK_TYPE_DIRTYCONTROL.rawValue: "ES_PROC_CHECK_TYPE_DIRTYCONTROL",
+        ES_PROC_CHECK_TYPE_PIDFILEPORTINFO.rawValue: "ES_PROC_CHECK_TYPE_PIDFILEPORTINFO",
+        ES_PROC_CHECK_TYPE_UDATA_INFO.rawValue: "ES_PROC_CHECK_TYPE_UDATA_INFO",
+    ])
+    
     /// Derive the check type's name.
     public mutating func enrich() {
-        switch es_proc_check_type_t(rawValue: UInt32(truncatingIfNeeded: type)) {
-        case ES_PROC_CHECK_TYPE_PIDINFO:
-            self.type_string = "ES_PROC_CHECK_TYPE_PIDINFO"
-        case ES_PROC_CHECK_TYPE_LISTPIDS:
-            self.type_string = "ES_PROC_CHECK_TYPE_LISTPIDS"
-        case ES_PROC_CHECK_TYPE_PIDFDINFO:
-            self.type_string = "ES_PROC_CHECK_TYPE_PIDFDINFO"
-        case ES_PROC_CHECK_TYPE_PIDRUSAGE:
-            self.type_string = "ES_PROC_CHECK_TYPE_PIDRUSAGE"
-        case ES_PROC_CHECK_TYPE_TERMINATE:
-            self.type_string = "ES_PROC_CHECK_TYPE_TERMINATE"
-        case ES_PROC_CHECK_TYPE_KERNMSGBUF:
-            self.type_string = "ES_PROC_CHECK_TYPE_KERNMSGBUF"
-        case ES_PROC_CHECK_TYPE_SETCONTROL:
-            self.type_string = "ES_PROC_CHECK_TYPE_SETCONTROL"
-        case ES_PROC_CHECK_TYPE_DIRTYCONTROL:
-            self.type_string = "ES_PROC_CHECK_TYPE_DIRTYCONTROL"
-        case ES_PROC_CHECK_TYPE_PIDFILEPORTINFO:
-            self.type_string = "ES_PROC_CHECK_TYPE_PIDFILEPORTINFO"
-        case ES_PROC_CHECK_TYPE_UDATA_INFO:
-            self.type_string = "ES_PROC_CHECK_TYPE_UDATA_INFO"
-        case ES_PROC_CHECK_TYPE_PIDFILEPORTINFO:
-            self.type_string = "ES_PROC_CHECK_TYPE_PIDFILEPORTINFO"
-        default:
-            self.type_string = "UNKNOWN"
-        }
+        type_string = Self.typeNames.name(of: Int(type))
     }
 }

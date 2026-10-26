@@ -119,9 +119,6 @@ final class LiveEndpointSecurityClient: EndpointSecurityClient {
 // MARK: - Live factory
 /// Makes clients with `es_new_client`. Needs root, the Endpoint Security entitlement, and Full Disk Access.
 struct LiveEndpointSecurityClientFactory: EndpointSecurityClientFactory {
-    /// A factory for live clients.
-    init() {}
-    
     /// `es_new_client`.
     ///
     /// - Parameter handler: Called for each message, serially, on the client's queue.

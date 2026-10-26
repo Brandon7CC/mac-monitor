@@ -27,8 +27,7 @@ public class ESNewPath: NSManagedObject, Identifiable {
         from newPath: NewPath,
         insertIntoManagedObjectContext context: NSManagedObjectContext!
     ) {
-        let description = NSEntityDescription.entity(forEntityName: "ESNewPath", in: context)!
-        self.init(entity: description, insertInto: context)
+        self.init(insertingInto: context)
         
         attach(ESFile.row(for: newPath.dir, in: context), to: #keyPath(ESNewPath.dir))
         self.filename = newPath.filename

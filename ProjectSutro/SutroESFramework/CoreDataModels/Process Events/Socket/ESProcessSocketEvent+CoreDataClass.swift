@@ -22,15 +22,13 @@ public class ESProcessSocketEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESProcessSocketEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let processSocketEvent: ProcessSocketEvent = message.event.proc_suspend_resume!
-        let description = NSEntityDescription.entity(forEntityName: "ESProcessSocketEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: ProcessSocketEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.type_string = processSocketEvent.type_string
-        self.type = processSocketEvent.type
+        self.type_string = event.type_string
+        self.type = event.type
         
-        if let target = processSocketEvent.target {
+        if let target = event.target {
             self.target = ESProcess(from: target, version: message.version, insertIntoManagedObjectContext: context)
         }
     }

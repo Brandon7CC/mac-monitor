@@ -16,11 +16,11 @@ public class ESODGroupRemoveEvent: ESODGroupMemberEvent, Identifiable {
     /// Store an event.
     ///
     /// - Parameters:
+    ///   - event: The event.
     ///   - message: The event's message.
     ///   - context: The context to insert into.
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let description = NSEntityDescription.entity(forEntityName: "ESODGroupRemoveEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        store(groupMember: message.event.od_group_remove!, version: message.version, in: context)
+    convenience init(from event: OpenDirectoryGroupRemoveEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
+        store(groupMember: event, version: message.version, in: context)
     }
 }

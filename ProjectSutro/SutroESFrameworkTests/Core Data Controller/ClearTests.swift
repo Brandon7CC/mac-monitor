@@ -128,7 +128,7 @@ final class ClearTests: XCTestCase {
         let url = try makeTemporaryDirectory().appendingPathComponent("trace.jsonl")
         let exported = expectation(description: "exported")
         var result: Result<Int, Error>?
-        store.exportFullTrace(to: url, jsonl: true) {
+        store.exportEvents(to: url, jsonl: true) {
             result = $0
             exported.fulfill()
         }

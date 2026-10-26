@@ -117,48 +117,40 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
     }
     
     // MARK: - Custom Core Data initilizer for ESProcessExecEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let execEvent: ProcessExecEvent = message.event.exec!
-        let description = NSEntityDescription.entity(forEntityName: "ESProcessExecEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: ProcessExecEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         // MARK: - Conform to ESLogger
-        self.dyld_exec_path = execEvent.dyld_exec_path // macOS 13.3+
+        self.dyld_exec_path = event.dyld_exec_path // macOS 13.3+
         /// The new process image: shared with the events it goes on to cause (see ``ESProcess/row(for:version:in:)``).
-        attach(ESProcess.row(for: execEvent.target, version: message.version, in: context), to: #keyPath(ESProcessExecEvent.target))
-        self.target_id = execEvent.target.id
+        attach(
+            ESProcess.row(for: event.target, version: message.version, in: context),
+            to: #keyPath(ESProcessExecEvent.target)
+        )
+        self.target_id = event.target.id
         
-        self.fds = execEvent.fds
-        self.args = execEvent.args
-        self.env = execEvent.env
+        self.fds = event.fds
+        self.args = event.args
+        self.env = event.env
         
-        if let script = execEvent.script {
+        if let script = event.script {
             attach(ESFile.row(for: script, in: context), to: #keyPath(ESProcessExecEvent.script))
         }
-        if let resolved_script_path = execEvent.resolved_script_path {
-            self.resolved_script_path = resolved_script_path
-        }
-        self.script_content = execEvent.script_content
+        self.resolved_script_path = event.resolved_script_path
+        self.script_content = event.script_content
         
-        if let cwd = execEvent.cwd {
+        if let cwd = event.cwd {
             attach(ESFile.row(for: cwd, in: context), to: #keyPath(ESProcessExecEvent.cwd))
         }
         
-        if let last_fd = execEvent.last_fd {
-            self.last_fd = Int64(last_fd)
-        }
+        self.last_fd = Int64(event.last_fd ?? 0)
+        self.image_cputype = Int64(event.image_cputype ?? 0)
+        self.image_cpusubtype = Int64(event.image_cpusubtype ?? 0)
         
-        if let image_cputype = execEvent.image_cputype {
-            self.image_cputype = Int64(image_cputype)
-        }
-        if let image_cpusubtype = execEvent.image_cpusubtype {
-            self.image_cpusubtype = Int64(image_cpusubtype)
-        }
-        
-        self.command_line = execEvent.command_line ?? ""
-        self.certificate_chain = execEvent.certificate_chain
-        self.launched_by_parent = execEvent.launched_by_parent
-        self.executable_age_ms = execEvent.executable_age_ms.map { NSNumber(value: $0) }
+        self.command_line = event.command_line ?? ""
+        self.certificate_chain = event.certificate_chain
+        self.launched_by_parent = event.launched_by_parent
+        self.executable_age_ms = event.executable_age_ms.map { NSNumber(value: $0) }
     }
 }
 

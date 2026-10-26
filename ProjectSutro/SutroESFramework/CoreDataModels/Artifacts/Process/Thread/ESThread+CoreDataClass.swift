@@ -18,8 +18,7 @@ public class ESThread: NSManagedObject, Identifiable {
     }
 
     convenience init(from thread: SutroESFramework.Thread, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let description = NSEntityDescription.entity(forEntityName: "ESThread", in: context)!
-        self.init(entity: description, insertInto: context)
+        self.init(insertingInto: context)
         
         self.thread_id = Int64(thread.thread_id)
     }

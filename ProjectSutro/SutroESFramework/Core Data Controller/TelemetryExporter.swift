@@ -17,9 +17,9 @@ import os
 /// inserts events (so recording stalled until the export finished) or on the main thread (#84). This keeps memory flat
 /// and leaves both free, whatever the trace's size.
 ///
-/// The file is byte for byte what the old exports wrote: each event as ``ProcessHelpers/eventToJSON(value:)`` (JSONL) or
-/// ``ProcessHelpers/eventToPrettyJSON(value:)``, joined by "\n" with no trailing newline, and saved atomically. Since
-/// 3.0.0 each event also carries its telemetry version
+/// The file is byte for byte what the old exports wrote: each event as ``ProcessHelpers/eventToJSON(value:pretty:)``
+/// writes it, on one line (JSONL) or pretty-printed, joined by "\n" with no trailing newline, and saved atomically.
+/// Since 3.0.0 each event also carries its telemetry version
 /// (``TelemetrySchema/versionKey``), which ``ESMessage`` encodes.
 ///
 /// The context is pinned to the store as it was when the export started (``pin()``), so events cleared meanwhile still
@@ -29,9 +29,9 @@ import os
 /// A large trace takes a while to encode, so the export reports how many of its events it has written, and fetches and
 /// encodes several batches at once, each on its own context pinned to the same snapshot (``Worker``), writing them in
 /// file order. JSONL records are written by ``StreamingJSONEncoder`` where it sorts keys as this Mac's `JSONEncoder`
-/// does, so they stay byte for byte what ``ProcessHelpers/eventToJSON(value:)`` writes. Measured on an M1 Max with a
-/// recording's events (JSONL): 4,800 events a second one batch at a time through `JSONEncoder`, 7,000 through the
-/// streaming encoder, and 11,000 to 12,900 with two workers, so 5.3 million events take 7 to 8 minutes, not 18.
+/// does, so they stay byte for byte what ``ProcessHelpers/eventToJSON(value:pretty:)`` writes. Measured on an M1 Max
+/// with a recording's events (JSONL): 4,800 events a second one batch at a time through `JSONEncoder`, 7,000 through
+/// the streaming encoder, and 11,000 to 12,900 with two workers, so 5.3 million events take 7 to 8 minutes, not 18.
 public final class TelemetryExporter {
     /// How far an export has got, once it knows which events it writes.
     public struct Progress: Equatable {
@@ -41,14 +41,6 @@ public final class TelemetryExporter {
         public let total: Int
         /// `written` over `total`, from 0 to 1.
         public var fraction: Double { total > 0 ? min(1, Double(written) / Double(total)) : 1 }
-        
-        /// - Parameters:
-        ///   - written: Events written so far.
-        ///   - total: Events the file will hold.
-        public init(written: Int, total: Int) {
-            self.written = written
-            self.total = total
-        }
     }
     
     /// Events fetched and encoded at a time, by each worker.
@@ -295,8 +287,8 @@ extension TelemetryExporter {
     final class Worker {
         let context: NSManagedObjectContext
         private let pretty: Bool
-        /// Writes JSONL records where it sorts keys as `JSONEncoder` does (``ProcessHelpers/eventToJSON(value:)``
-        /// otherwise).
+        /// Writes JSONL records where it sorts keys as `JSONEncoder` does
+        /// (``ProcessHelpers/eventToJSON(value:pretty:)`` otherwise).
         private let encoder: StreamingJSONEncoder?
         /// The last batch's records joined by newlines, and how many there are, or why there are none.
         private var result: Result<(json: Data, count: Int), Error> = .success((Data(), 0))
@@ -333,8 +325,7 @@ extension TelemetryExporter {
                             if let encoder {
                                 json.append((try? encoder.encode(message)) ?? Data("{}".utf8))
                             } else {
-                                let text = pretty ? ProcessHelpers.eventToPrettyJSON(value: message)
-                                    : ProcessHelpers.eventToJSON(value: message)
+                                let text = ProcessHelpers.eventToJSON(value: message, pretty: pretty)
                                 json.append(contentsOf: text.utf8)
                             }
                             count += 1

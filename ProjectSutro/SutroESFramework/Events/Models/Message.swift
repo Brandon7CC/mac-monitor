@@ -202,3 +202,45 @@ extension Message: ESEnrichable {
         event = .exec(exec)
     }
 }
+
+
+// MARK: - Names of constants
+/// The names Mac Monitor gives the values of an Endpoint Security enum or a family of Darwin constants, which it
+/// writes in a `*_string` field beside the number: `reason_string`, `type_string`, `member_string`.
+///
+/// Before 3.0.0 Mac Monitor wrote the names of Open Directory values in place of the numbers, so it also reads those
+/// events back (``rawValue(of:)``).
+struct ConstantNames {
+    /// The name of each value.
+    let names: [Int: String]
+    /// The name of a value `names` doesn't have.
+    let unknown: String
+    
+    /// The name of a value.
+    ///
+    /// - Parameter rawValue: The value.
+    /// - Returns: Its name, or ``unknown``.
+    func name(of rawValue: Int) -> String {
+        names[rawValue] ?? unknown
+    }
+    
+    /// The value a name stands for.
+    ///
+    /// - Parameter name: A name ``name(of:)`` returns.
+    /// - Returns: The value, or `nil` for ``unknown`` and any other name.
+    func rawValue(of name: String) -> Int? {
+        names.first { $0.value == name }?.key
+    }
+}
+
+extension ConstantNames {
+    /// Name values in the order a `switch` lists them: of two names for one value (`AF_UNIX` and `AF_LOCAL`), the
+    /// first wins, as the first of two `case`s does.
+    ///
+    /// - Parameters:
+    ///   - names: Each value and its name.
+    ///   - unknown: The name of a value `names` doesn't have.
+    init<T: BinaryInteger>(_ names: KeyValuePairs<T, String>, unknown: String = "UNKNOWN") {
+        self.init(names: Dictionary(names.map { (Int($0.key), $0.value) }) { first, _ in first }, unknown: unknown)
+    }
+}

@@ -28,10 +28,8 @@ public class ESLoginLoginEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESLoginLoginEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: LoginLoginEvent = message.event.login_login!
-        let description = NSEntityDescription.entity(forEntityName: "ESLoginLoginEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: LoginLoginEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         self.success = event.succcess
         self.failure_message = event.failure_message

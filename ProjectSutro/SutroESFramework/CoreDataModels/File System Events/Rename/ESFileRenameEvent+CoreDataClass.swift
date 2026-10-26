@@ -29,19 +29,17 @@ public class ESFileRenameEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESFileRenameEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let fileRenameEvent: FileRenameEvent = message.event.rename!
-        let description = NSEntityDescription.entity(forEntityName: "ESFileRenameEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: FileRenameEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        attach(ESFile.row(for: fileRenameEvent.source, in: context), to: #keyPath(ESFileRenameEvent.source))
+        attach(ESFile.row(for: event.source, in: context), to: #keyPath(ESFileRenameEvent.source))
         
-        self.destination_type = Int16(truncatingIfNeeded: fileRenameEvent.destination_type)
-        self.destination_type_string = fileRenameEvent.destination_type_string
-        self.destination = ESFileDestination(from: fileRenameEvent.destination, insertIntoManagedObjectContext: context)
-        self.destination_path = fileRenameEvent.destination_path
+        self.destination_type = Int16(truncatingIfNeeded: event.destination_type)
+        self.destination_type_string = event.destination_type_string
+        self.destination = ESFileDestination(from: event.destination, insertIntoManagedObjectContext: context)
+        self.destination_path = event.destination_path
         
-        self.is_quarantined = fileRenameEvent.is_quarantined
+        self.is_quarantined = event.is_quarantined
     }
 }
 

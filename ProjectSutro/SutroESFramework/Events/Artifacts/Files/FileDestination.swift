@@ -20,19 +20,10 @@ public enum FileDestination: Hashable, Codable {
     /// - Returns: The existing file or the new path, or ``unknown`` for a type that names neither.
     static func from(create: es_event_create_t) -> FileDestination {
         switch create.destination_type {
-        case ES_DESTINATION_TYPE_EXISTING_FILE:
-            return .existing_file(
-                File(from: create.destination.existing_file.pointee)
-            )
-            
-        case ES_DESTINATION_TYPE_NEW_PATH:
-            return .new_path(
-                NewPath(from: create)
-            )
-            
-        default:
-            /// A newer macOS's destination type: recording it beats stopping the Security Extension.
-            return .unknown
+        case ES_DESTINATION_TYPE_EXISTING_FILE: .existing_file(File(from: create.destination.existing_file.pointee))
+        case ES_DESTINATION_TYPE_NEW_PATH: .new_path(NewPath(from: create))
+        /// A newer macOS's destination type: recording it beats stopping the Security Extension.
+        default: .unknown
         }
     }
     
@@ -42,18 +33,9 @@ public enum FileDestination: Hashable, Codable {
     /// - Returns: The existing file or the new path, or ``unknown`` for a type that names neither.
     static func from(rename: es_event_rename_t) -> FileDestination {
         switch rename.destination_type {
-        case ES_DESTINATION_TYPE_EXISTING_FILE:
-            return .existing_file(
-                File(from: rename.destination.existing_file.pointee)
-            )
-            
-        case ES_DESTINATION_TYPE_NEW_PATH:
-            return .new_path(
-                NewPath(from: rename)
-            )
-            
-        default:
-            return .unknown
+        case ES_DESTINATION_TYPE_EXISTING_FILE: .existing_file(File(from: rename.destination.existing_file.pointee))
+        case ES_DESTINATION_TYPE_NEW_PATH: .new_path(NewPath(from: rename))
+        default: .unknown
         }
     }
 }

@@ -37,10 +37,8 @@ public class ESOpenSSHLoginEvent: NSManagedObject, Identifiable {
     }
 
     // MARK: - Custom Core Data initilizer for ESOpenSSHLoginEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: SSHLoginEvent = message.event.openssh_login!
-        let description = NSEntityDescription.entity(forEntityName: "ESOpenSSHLoginEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: SSHLoginEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         self.success = event.success
         self.result_type = event.result_type

@@ -26,8 +26,7 @@ public class ESSignedFileInfo: NSManagedObject, Identifiable {
         from singingInfo: SignedFileInfo,
         insertIntoManagedObjectContext context: NSManagedObjectContext!
     ) {
-        let description = NSEntityDescription.entity(forEntityName: "ESSignedFileInfo", in: context)!
-        self.init(entity: description, insertInto: context)
+        self.init(insertingInto: context)
         
         /// Uppercase like eslogger, also when an older Security Extension sent lowercase.
         cdhash = singingInfo.cdhash.uppercased()

@@ -129,7 +129,8 @@ public final class TraceImporter {
         /// - Returns: `false` once a save has failed.
         func flush() -> Bool {
             var messages: [Message] = []
-            for (record, result) in zip(records, Self.decode(records.map(\.json))) {
+            let decoded = records.concurrentMap { record in Result { try Self.message(from: record.json) } }
+            for (record, result) in zip(records, decoded) {
                 switch result {
                 case .success(let message):
                     messages.append(message)
@@ -214,22 +215,6 @@ public final class TraceImporter {
         }
         report(state())
         return summary
-    }
-    
-    /// Decode a batch of records, in parallel, keeping their order.
-    ///
-    /// - Parameter records: Each record's JSON.
-    /// - Returns: Each record's event, or why it isn't one.
-    private static func decode(_ records: [Data]) -> [Result<Message, Error>] {
-        var results = [Result<Message, Error>](repeating: .failure(CancellationError()), count: records.count)
-        results.withUnsafeMutableBufferPointer { buffer in
-            let slots = buffer
-            DispatchQueue.concurrentPerform(iterations: records.count) { index in
-                /// The calling thread decodes some records too, inside the import's one long work item: drain as we go.
-                slots[index] = autoreleasepool { Result { try message(from: records[index]) } }
-            }
-        }
-        return results
     }
     
     /// One event, from its JSON in any shape ``TraceImporter`` reads.

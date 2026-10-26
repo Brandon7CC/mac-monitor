@@ -34,15 +34,16 @@ public class ESProcessForkEvent: NSManagedObject, Identifiable, LaunchedByParent
     }
     
     // MARK: - Custom Core Data initilizer for ESProcessForkEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let forkEvent: ProcessForkEvent = message.event.fork!
-        let description = NSEntityDescription.entity(forEntityName: "ESProcessForkEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: ProcessForkEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         /// The child: shared with the events it goes on to cause (see ``ESProcess/row(for:version:in:)``).
-        attach(ESProcess.row(for: forkEvent.child, version: message.version, in: context), to: #keyPath(ESProcessForkEvent.child))
-        self.child_id = forkEvent.child.id
-        self.launched_by_parent = forkEvent.launched_by_parent
+        attach(
+            ESProcess.row(for: event.child, version: message.version, in: context),
+            to: #keyPath(ESProcessForkEvent.child)
+        )
+        self.child_id = event.child.id
+        self.launched_by_parent = event.launched_by_parent
     }
 }
 

@@ -49,11 +49,12 @@ final class CaptureCrashGuardTests: XCTestCase {
     /// Code signing flags with bit 31 set have no `Int32`: they're read by bit pattern.
     func testCodeSigningFlagsWithBit31() {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_EXIT)
-        let valid = fixture.process(path: "/nonexistent/Example", flags: 0x8000_0001, platform: false)
-        XCTAssertEqual(ProcessHelpers.codeSigningType(for: valid.pointee), .unknown)
-        let invalid = fixture.process(path: "/nonexistent/Example", flags: 0x8000_0000, platform: false)
-        XCTAssertEqual(ProcessHelpers.codeSigningType(for: invalid.pointee), .unsigned)
-        XCTAssertEqual(Process(from: valid.pointee, version: 10).codesigning_flags, 0x8000_0001)
+        let processes = [UInt32(0x8000_0001), 0x8000_0000].map { flags in
+            Process(from: fixture.process(path: "/nonexistent/Example", flags: flags, platform: false).pointee,
+                    version: 10)
+        }
+        XCTAssertEqual(processes.map(\.codesigning_type), [.unknown, .unsigned])
+        XCTAssertEqual(processes[0].codesigning_flags, 0x8000_0001)
     }
     
     // MARK: Unions

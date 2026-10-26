@@ -20,25 +20,9 @@ struct LaneContext {
     let encoder: StreamingJSONEncoder
     /// The executables of the processes the lane's events have named, for the launched-by parents it stamps. The lane's
     /// own: only one thread uses it at a time.
-    let processPaths: ProcessPathMemory
+    var processPaths = ProcessPathMemory(capacity: ProcessPathMemory.laneCapacity)
     /// Does the lane hold app execs (``LaunchServicesHold``)?
-    let holdsForLaunchServices: Bool
-    
-    /// - Parameters:
-    ///   - eventClass: The lane's client.
-    ///   - sensorID: The Sensor ID to stamp on the event.
-    ///   - encoder: The lane's own encoder.
-    ///   - processPaths: The lane's own process path memory, by default an empty one.
-    ///   - holdsForLaunchServices: Does the lane hold app execs?
-    init(eventClass: EventClass, sensorID: String, encoder: StreamingJSONEncoder,
-         processPaths: ProcessPathMemory = ProcessPathMemory(capacity: ProcessPathMemory.laneCapacity),
-         holdsForLaunchServices: Bool = false) {
-        self.eventClass = eventClass
-        self.sensorID = sensorID
-        self.encoder = encoder
-        self.processPaths = processPaths
-        self.holdsForLaunchServices = holdsForLaunchServices
-    }
+    var holdsForLaunchServices = false
 }
 
 

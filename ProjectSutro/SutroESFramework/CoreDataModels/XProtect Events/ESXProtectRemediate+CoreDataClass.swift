@@ -32,19 +32,17 @@ public class ESXProtectRemediate: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESXProtectRemediate
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let xprotectRemediateItem: XProtecRemediateEvent = message.event.xp_malware_remediated!
-        let description = NSEntityDescription.entity(forEntityName: "ESXProtectRemediate", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: XProtecRemediateEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.signature_version = xprotectRemediateItem.signature_version
-        self.malware_identifier = xprotectRemediateItem.malware_identifier
-        self.incident_identifier = xprotectRemediateItem.incident_identifier
-        self.action_type = xprotectRemediateItem.action_type
-        self.success = xprotectRemediateItem.success
-        self.result_description = xprotectRemediateItem.result_description
-        self.remediated_path = xprotectRemediateItem.remediated_path
-        if let token = xprotectRemediateItem.remediated_process_audit_token {
+        self.signature_version = event.signature_version
+        self.malware_identifier = event.malware_identifier
+        self.incident_identifier = event.incident_identifier
+        self.action_type = event.action_type
+        self.success = event.success
+        self.result_description = event.result_description
+        self.remediated_path = event.remediated_path
+        if let token = event.remediated_process_audit_token {
             self.remediated_process_audit_token = ESAuditToken(from: token, insertIntoManagedObjectContext: context)
         }
     }

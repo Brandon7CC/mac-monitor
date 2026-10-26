@@ -20,10 +20,8 @@ public class ESXattrGetEvent: NSManagedObject, Identifiable {
     
     
     // MARK: - Custom Core Data initilizer for ESXattrGetEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: XattrGetEvent = message.event.getextattr!
-        let description = NSEntityDescription.entity(forEntityName: "ESXattrGetEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: XattrGetEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESXattrGetEvent.target))
         extattr = event.extattr

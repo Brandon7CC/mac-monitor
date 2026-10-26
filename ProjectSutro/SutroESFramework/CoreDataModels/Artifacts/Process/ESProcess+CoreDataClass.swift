@@ -60,8 +60,7 @@ public class ESProcess: NSManagedObject, Identifiable {
         version: Int,
         insertIntoManagedObjectContext context: NSManagedObjectContext
     ) {
-        let description = NSEntityDescription.entity(forEntityName: "ESProcess", in: context)!
-        self.init(entity: description, insertInto: context)
+        self.init(insertingInto: context)
         self.id = process.id
         
         /// Time
@@ -93,16 +92,10 @@ public class ESProcess: NSManagedObject, Identifiable {
         
         /// Codesigning
         self.codesigning_flags = process.codesigning_flags
-        if let signing_id = process.signing_id {
-            self.signing_id = signing_id
-        }
-        if let team_id = process.team_id {
-            self.team_id = team_id
-        }
-        if let cdhash = process.cdhash {
-            /// Uppercase like eslogger, also when an older Security Extension sent lowercase.
-            self.cdhash = cdhash.uppercased()
-        }
+        self.signing_id = process.signing_id
+        self.team_id = process.team_id
+        /// Uppercase like eslogger, also when an older Security Extension sent lowercase.
+        self.cdhash = process.cdhash?.uppercased()
         
         self.is_adhoc_signed = process.is_adhoc_signed
         
@@ -133,19 +126,10 @@ public class ESProcess: NSManagedObject, Identifiable {
         }
         
         /// User identification
-        if let euid = process.euid {
-            self.euid = Int64(euid)
-        }
-        if let euid_human = process.euid_human {
-            self.euid_human = euid_human
-        }
-        
-        if let ruid = process.ruid {
-            self.ruid = Int64(ruid)
-        }
-        if let ruid_human = process.ruid_human {
-            self.ruid_human = ruid_human
-        }
+        self.euid = Int64(process.euid ?? 0)
+        self.euid_human = process.euid_human
+        self.ruid = Int64(process.ruid ?? 0)
+        self.ruid_human = process.ruid_human
     }
     
     /// The row for `process`: shared with every other event (and `EXEC` target or `FORK` child) of the same process

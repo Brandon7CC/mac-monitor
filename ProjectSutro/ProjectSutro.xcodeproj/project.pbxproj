@@ -263,7 +263,6 @@
 		7E5A1C00000000000000001F /* LaunchServicesRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C00000000000000001E /* LaunchServicesRecord.swift */; };
 		7E5A1C000000000000000023 /* LaunchedByParentUpgrader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C000000000000000022 /* LaunchedByParentUpgrader.swift */; };
 		7E5A1C000000000000000027 /* ESMessage+LaunchedByParent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C000000000000000026 /* ESMessage+LaunchedByParent.swift */; };
-		7E5A1C000000000000000029 /* CoreDataController+LaunchedByParent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C000000000000000028 /* CoreDataController+LaunchedByParent.swift */; };
 		7E5A1C000000000000000030 /* LaunchServicesReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C00000000000000002F /* LaunchServicesReader.swift */; };
 		7E5A1C0000000000000F0002 /* LaunchServicesHold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C0000000000000F0001 /* LaunchServicesHold.swift */; };
 		7E5A1C0000000000000F0004 /* CommandLineToolEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C0000000000000F0003 /* CommandLineToolEngine.swift */; };
@@ -461,6 +460,7 @@
 		F17E00000000000000000030 /* StreamFilter+Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002F /* StreamFilter+Store.swift */; };
 		F17E0000000000000000002C /* PredicateText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002B /* PredicateText.swift */; };
 		F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000029 /* StreamFilter+Relations.swift */; };
+		F17E00000000000000000038 /* NSExpression+Walking.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000037 /* NSExpression+Walking.swift */; };
 		F17E0000000000000000000E /* SetupRequirements.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000D /* SetupRequirements.swift */; };
 		F17E00000000000000000010 /* RequirementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000F /* RequirementsView.swift */; };
 		F17E00000000000000000012 /* SecurityExtensionSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */; };
@@ -838,7 +838,6 @@
 		7E5A1C00000000000000001E /* LaunchServicesRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchServicesRecord.swift; sourceTree = "<group>"; };
 		7E5A1C000000000000000022 /* LaunchedByParentUpgrader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchedByParentUpgrader.swift; sourceTree = "<group>"; };
 		7E5A1C000000000000000026 /* ESMessage+LaunchedByParent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESMessage+LaunchedByParent.swift"; sourceTree = "<group>"; };
-		7E5A1C000000000000000028 /* CoreDataController+LaunchedByParent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoreDataController+LaunchedByParent.swift"; sourceTree = "<group>"; };
 		7E5A1C00000000000000002F /* LaunchServicesReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchServicesReader.swift; sourceTree = "<group>"; };
 		7E5A1C0000000000000F0001 /* LaunchServicesHold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchServicesHold.swift; sourceTree = "<group>"; };
 		7E5A1C0000000000000F0003 /* CommandLineToolEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolEngine.swift; sourceTree = "<group>"; };
@@ -1035,6 +1034,7 @@
 		F17E0000000000000000002F /* StreamFilter+Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Store.swift"; sourceTree = "<group>"; };
 		F17E0000000000000000002B /* PredicateText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateText.swift; sourceTree = "<group>"; };
 		F17E00000000000000000029 /* StreamFilter+Relations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Relations.swift"; sourceTree = "<group>"; };
+		F17E00000000000000000037 /* NSExpression+Walking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSExpression+Walking.swift"; sourceTree = "<group>"; };
 		F17E0000000000000000000D /* SetupRequirements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupRequirements.swift; sourceTree = "<group>"; };
 		F17E0000000000000000000F /* RequirementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequirementsView.swift; sourceTree = "<group>"; };
 		F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityExtensionSettingsView.swift; sourceTree = "<group>"; };
@@ -1801,7 +1801,6 @@
 			children = (
 				283C4D3C29E0983A009FF6D3 /* CoreDataController.swift */,
 				D15C00000000000000000138 /* CoreDataController+Lookups.swift */,
-				7E5A1C000000000000000028 /* CoreDataController+LaunchedByParent.swift */,
 				7E5A1C300000000000000001 /* LineageLookup.swift */,
 				7E5A1C300000000000000003 /* ProcessParents.swift */,
 				D15C00000000000000000136 /* CoreDataController+Export.swift */,
@@ -3472,6 +3471,7 @@
 				F17E0000000000000000002F /* StreamFilter+Store.swift */,
 				F17E0000000000000000002B /* PredicateText.swift */,
 				F17E00000000000000000029 /* StreamFilter+Relations.swift */,
+				F17E00000000000000000037 /* NSExpression+Walking.swift */,
 				F17E00000000000000000009 /* CommandLineCompletion.swift */,
 				F17E00000000000000000007 /* CommandLineOptions.swift */,
 				CB1C00000000000000000035 /* StreamDropMeter.swift */,
@@ -3822,6 +3822,7 @@
 				F17E00000000000000000030 /* StreamFilter+Store.swift in Sources */,
 				F17E0000000000000000002C /* PredicateText.swift in Sources */,
 				F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */,
+				F17E00000000000000000038 /* NSExpression+Walking.swift in Sources */,
 				F17E0000000000000000000A /* CommandLineCompletion.swift in Sources */,
 				F17E00000000000000000008 /* CommandLineOptions.swift in Sources */,
 				CB1C00000000000000000032 /* EventHeader.swift in Sources */,
@@ -4032,7 +4033,6 @@
 				281BBE812A397C41009B94F8 /* ESODGroupRemoveEvent+CoreDataClass.swift in Sources */,
 				283C4D3D29E0983A009FF6D3 /* CoreDataController.swift in Sources */,
 				D15C00000000000000000139 /* CoreDataController+Lookups.swift in Sources */,
-				7E5A1C000000000000000029 /* CoreDataController+LaunchedByParent.swift in Sources */,
 				7E5A1C300000000000000002 /* LineageLookup.swift in Sources */,
 				7E5A1C300000000000000004 /* ProcessParents.swift in Sources */,
 				D15C00000000000000000137 /* CoreDataController+Export.swift in Sources */,

@@ -49,7 +49,7 @@ struct FilterView: View {
         FilterSheet(allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled, filterPlatform: $filterPlatform,
                     isLive: traceSession.isLive, search: search,
                     subscribedEvents: {
-                        let subscribed = systemExtensionManager.getSimpleEventSubscriptions()
+                        let subscribed = systemExtensionManager.monitoredEventStrings
                         return supportedEvents.map { eventTypeToString(from: $0) }.filter(subscribed.contains)
                     },
                     togglePlatformBinaries: { systemExtensionManager.togglePlatformBinaries() },

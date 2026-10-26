@@ -72,10 +72,6 @@ public struct StreamRequest: XPCRequest, Equatable, Sendable {
     /// The stream to start, for ``Kind-swift.enum/stream``.
     public var options: StreamOptions?
     
-    private enum CodingKeys: String, CodingKey {
-        case version, kind, options
-    }
-    
     /// - Parameters:
     ///   - kind: What to do.
     ///   - options: The stream to start, for ``Kind-swift.enum/stream``.
@@ -107,10 +103,6 @@ public struct StreamOptions: Codable, Equatable, Sendable {
     public var events: [String]
     /// Apply the saved mute set, and follow its changes? `macmonitor stream --no-mutes` sends `false`.
     public var appliesSavedMutes: Bool
-    
-    private enum CodingKeys: String, CodingKey {
-        case events, appliesSavedMutes
-    }
     
     /// - Parameters:
     ///   - events: `ES_EVENT_TYPE_NOTIFY_*` names, or none for the defaults.

@@ -42,10 +42,6 @@ public struct MuteRequest: XPCRequest, Equatable, Sendable {
     /// The mutes to add, remove, or replace the set with.
     public var mutes: [MuteFile.Entry]
     
-    private enum CodingKeys: String, CodingKey {
-        case version, operation, mutes
-    }
-    
     /// - Parameters:
     ///   - operation: What to do.
     ///   - mutes: The mutes to add, remove, or replace the set with.
@@ -114,10 +110,6 @@ public struct MuteReply: XPCReply, Equatable, Sendable {
     /// this build doesn't know).
     public var access: MuteAccess?
     
-    private enum CodingKeys: String, CodingKey {
-        case version, status, changed, mutes, problems, notice, access
-    }
-    
     /// - Parameters:
     ///   - status: How the request went.
     ///   - changed: Did the saved set change?
@@ -168,21 +160,10 @@ public struct MuteSetChange: XPCReply, Equatable, Sendable {
     public var changed: Int
     /// How many mutes the set has now.
     public var mutes: Int
-    
-    /// - Parameters:
-    ///   - caller: Who changed it.
-    ///   - added: Mutes for paths and types the set didn't have.
-    ///   - removed: Mutes the set lost.
-    ///   - changed: Mutes whose events changed.
-    ///   - mutes: How many mutes the set has now.
-    public init(caller: String, added: Int, removed: Int, changed: Int, mutes: Int) {
-        self.caller = caller
-        self.added = added
-        self.removed = removed
-        self.changed = changed
-        self.mutes = mutes
-    }
-    
+}
+
+
+extension MuteSetChange {
     /// - Parameters:
     ///   - caller: Who changed it.
     ///   - difference: How the set changed.

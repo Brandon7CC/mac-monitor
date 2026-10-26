@@ -160,13 +160,12 @@ extension MuteFile.Entry {
         name.hasPrefix("ES_EVENT_TYPE_AUTH_")
     }
     
-    /// Names for a message, deduplicated in their order.
+    /// Names for a message, which ``validated(droppingUnknownEvents:)`` has already deduplicated.
     ///
     /// - Parameter names: The names.
     /// - Returns: The names, comma separated.
     private static func list(_ names: [String]) -> String {
-        var seen = Set<String>()
-        return names.filter { seen.insert($0).inserted }.joined(separator: ", ")
+        names.joined(separator: ", ")
     }
 }
 

@@ -36,14 +36,6 @@ public struct MuteImport: Sendable {
 /// warning to show before anything is sent. The Security Extension is strict: it refuses any request with an entry it
 /// can't use, and never reads a file itself.
 public enum MuteFileReader {
-    /// One line of a list exported before 3.0: an `ESMutedPath`, of which only these keys matter (`eventCount` and
-    /// `id` are ignored).
-    private struct Line: Decodable {
-        let path: String
-        let type: String
-        let events: [String]?
-    }
-    
     /// Read a version 1 mute file, or the list Mac Monitor exported before 3.0 (one `ESMutedPath` JSON object per
     /// line, such as Export ▸ Current mute set… and the files in "Mute sets/").
     ///
@@ -85,13 +77,14 @@ public enum MuteFileReader {
             .filter { !$0.text.isEmpty }
     }
     
-    /// Read one legacy line.
+    /// Read one legacy line: an `ESMutedPath`, of which only the path, type and events matter (`eventCount` and `id`
+    /// are ignored).
     ///
     /// - Parameter text: The line.
-    /// - Returns: The muted path it describes.
+    /// - Returns: The entry it describes.
     /// - Throws: A `DecodingError`.
-    private static func line(_ text: String) throws -> Line {
-        try JSONDecoder().decode(Line.self, from: Data(text.utf8))
+    private static func line(_ text: String) throws -> MuteFile.Entry {
+        try JSONDecoder().decode(MuteFile.Entry.self, from: Data(text.utf8))
     }
     
     /// Every legacy line as an entry.
@@ -106,13 +99,12 @@ public enum MuteFileReader {
     private static func legacyEntries(_ lines: [(number: Int, text: String)]) throws -> [MuteFile.Entry] {
         var entries: [MuteFile.Entry] = []
         for (number, text) in lines {
-            let line: Line
+            var entry: MuteFile.Entry
             do {
-                line = try Self.line(text)
+                entry = try Self.line(text)
             } catch {
                 throw MuteFileError.invalidLine(line: number, reason: MuteFile.reason(error))
             }
-            var entry = MuteFile.Entry(path: line.path, type: line.type, events: line.events ?? [])
             let named = Set(entry.events.map { eventStringToType(from: $0) })
             if named.isSuperset(of: everyEvent(for: entry.muteType)) { entry.events = [] }
             entries.append(entry)

@@ -106,3 +106,23 @@ public enum EventType: Hashable, Codable {
     
     case unknown
 }
+
+
+// MARK: - Payload identity
+/// A payload compared and hashed by its ``id`` alone: two values are one Endpoint Security event when their ids match.
+public protocol IdentityHashable: Identifiable, Hashable {}
+
+extension IdentityHashable {
+    /// Compare two payloads by ``id``.
+    ///
+    /// - Parameters:
+    ///   - lhs: A payload.
+    ///   - rhs: Another payload.
+    /// - Returns: Whether their ids match.
+    public static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+    
+    /// Hash the payload's ``id``.
+    ///
+    /// - Parameter hasher: The hasher to feed.
+    public func hash(into hasher: inout Hasher) { hasher.combine(id) }
+}

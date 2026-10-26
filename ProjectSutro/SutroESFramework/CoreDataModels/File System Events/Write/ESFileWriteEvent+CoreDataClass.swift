@@ -19,10 +19,8 @@ public class ESFileWriteEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESFileWriteEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: FileWriteEvent = message.event.write!
-        let description = NSEntityDescription.entity(forEntityName: "ESFileWriteEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: FileWriteEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESFileWriteEvent.target))
     }

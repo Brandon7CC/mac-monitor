@@ -112,7 +112,7 @@ struct ProcessLineageSidebar: View {
     private func launchedByParentTree(of selected: ESMessage) -> some View {
         let container = systemExtensionManager.coreDataContainer
         /// One lookup per update.
-        let steps = container.launchedByParents(of: selected)
+        let steps = container.lineage.launchedByParents(of: selected)
         let origin = selected.createsProcess ? nil : container.findParentProc(message: selected)
         return List(selection: $selection) {
             subtreeHeader(count: steps.count + (origin == nil ? 1 : 2))

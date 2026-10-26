@@ -80,6 +80,37 @@ struct ArgumentCursor {
         guard let argument = next() else { return }
         throw CommandLineUsageError("\(name) takes no arguments, not '\(argument.text)'.", command: command)
     }
+    
+    /// Read the rest of a command that takes options without values, and one positional at most. A positional the
+    /// message repeats is escaped for a terminal: `validate *.jsonl` expands to file names anyone can choose.
+    ///
+    /// - Parameters:
+    ///   - name: The command, such as "validate" or "mute import", for the messages.
+    ///   - options: The options it takes, none of which takes a value.
+    ///   - positional: What its one positional is, such as "trace", or `nil` if it takes none.
+    ///   - command: The command whose help the error points to.
+    /// - Returns: The positional, if given, and the options given.
+    /// - Throws: ``CommandLineUsageError`` for a positional too many, a value given to an option, or an unknown option.
+    mutating func flags(of name: String, among options: [CommandLineOption], positional: String?,
+                        command: String) throws -> (positional: String?, flags: Set<String>) {
+        var given: String?, flags = Set<String>()
+        while let argument = next() {
+            switch argument {
+            case .positional(let value) where positional != nil && given == nil:
+                given = value
+            case .positional(let value):
+                let takes = positional.map { "one \($0), not also" } ?? "no arguments, not"
+                throw CommandLineUsageError("\(name) takes \(takes) '\(TerminalSafeText.text(value))'.",
+                                            command: command)
+            case .option(let option, let value) where options.contains(where: { $0.name == option }):
+                guard value == nil else { throw CommandLineUsageError("\(option) takes no value.", command: command) }
+                flags.insert(option)
+            case .option(let option, _):
+                throw CommandLineParser.unknownOption(option, for: name, among: options)
+            }
+        }
+        return (given, flags)
+    }
 }
 
 
@@ -246,32 +277,17 @@ public enum CommandLineParser {
         return event
     }
     
-    /// `validate [--eslogger] TRACE`. An argument a message repeats is escaped for a terminal: `validate *.jsonl`
-    /// expands to file names anyone can choose.
+    /// `validate [--eslogger] TRACE`.
     ///
     /// - Parameter cursor: The arguments.
     /// - Returns: The trace to check, and how.
     /// - Throws: ``CommandLineUsageError`` for no trace or more than one, a value given to `--eslogger`, or an unknown
     ///   option.
     static func validate(_ cursor: inout ArgumentCursor) throws -> ValidateInvocation {
-        var path: String?, mode = TelemetryValidator.Mode.macMonitor
-        while let argument = cursor.next() {
-            switch argument {
-            case .positional(let value) where path == nil:
-                path = value
-            case .positional(let value):
-                throw CommandLineUsageError("validate takes one trace, not also '\(TerminalSafeText.text(value))'.",
-                                            command: "validate")
-            case .option("--eslogger", nil):
-                mode = .eslogger
-            case .option("--eslogger", .some):
-                throw CommandLineUsageError("--eslogger takes no value.", command: "validate")
-            case .option(let option, _):
-                throw unknownOption(option, for: "validate", among: CommandLineOption.validate)
-            }
-        }
+        let (path, flags) = try cursor.flags(of: "validate", among: CommandLineOption.validate, positional: "trace",
+                                             command: "validate")
         guard let path else { throw CommandLineUsageError("validate needs a trace.", command: "validate") }
-        return ValidateInvocation(path: path, mode: mode)
+        return ValidateInvocation(path: path, mode: flags.contains("--eslogger") ? .eslogger : .macMonitor)
     }
     
     /// `help [COMMAND]`. `-h` or `--help` asks for help's own help, as it does for every other command.

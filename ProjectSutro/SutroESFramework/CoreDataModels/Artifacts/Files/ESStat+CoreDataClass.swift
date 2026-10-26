@@ -32,8 +32,7 @@ public class ESStat: NSManagedObject, Identifiable {
         from stat: Stat,
         insertIntoManagedObjectContext context: NSManagedObjectContext
     ) {
-        let description = NSEntityDescription.entity(forEntityName: "ESStat", in: context)!
-        self.init(entity: description, insertInto: context)
+        self.init(insertingInto: context)
         self.st_dev = stat.st_dev
         self.st_blksize = stat.st_blksize
         self.st_blocks = stat.st_blocks

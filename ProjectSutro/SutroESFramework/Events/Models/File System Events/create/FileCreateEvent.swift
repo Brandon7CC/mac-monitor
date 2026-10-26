@@ -9,7 +9,7 @@ import Foundation
 
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_create_t
-public struct FileCreateEvent: Identifiable, Codable, Hashable {
+public struct FileCreateEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var destination_type: Int
@@ -21,14 +21,6 @@ public struct FileCreateEvent: Identifiable, Codable, Hashable {
     public var acl: String?
     
     public var is_quarantined: Int16 = 0
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: FileCreateEvent, rhs: FileCreateEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>, shouldCheckQuarantine: Bool = false) {
         let messageVersion: Int = Int(rawMessage.pointee.version)
@@ -50,9 +42,7 @@ public struct FileCreateEvent: Identifiable, Codable, Hashable {
         }
         
         if messageVersion >= 2 {
-            if let aclObj = create.acl {
-                self.acl = aclObj.toString()
-            }
+            self.acl = create.acl?.toString()
         }
     }
 }

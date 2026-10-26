@@ -9,19 +9,11 @@ import Foundation
 
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_lw_session_unlock_t
-public struct LWUnlockEvent: Identifiable, Codable, Hashable {
+public struct LWUnlockEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var username: String
     public var graphical_session_id: Int32
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: LWUnlockEvent, rhs: LWUnlockEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let lwUnlockEvent: es_event_lw_session_unlock_t = rawMessage.pointee.event.lw_session_unlock.pointee

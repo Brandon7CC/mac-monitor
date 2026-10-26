@@ -78,7 +78,13 @@ public enum PredicateRelation: String, CaseIterable {
     ///   - keyPath: A key path to a string or a number.
     /// - Returns: The value, or `nil` if it's anything else.
     private static func hashable(_ record: NSDictionary, _ keyPath: String) -> AnyHashable? {
-        switch record.value(forKeyPath: keyPath) {
+        hashable(record.value(forKeyPath: keyPath))
+    }
+
+    /// - Parameter value: A value.
+    /// - Returns: The value if it's a string or a number, to group or look events up by, else `nil`.
+    static func hashable(_ value: Any?) -> AnyHashable? {
+        switch value {
         case let string as NSString: return string
         case let number as NSNumber: return number
         default: return nil
@@ -123,11 +129,6 @@ final class RelatedEvents {
         self.matches = matches
     }
 
-    /// Why a `SUBQUERY` couldn't be evaluated.
-    struct Failure: Error, CustomStringConvertible {
-        let description: String
-    }
-
     /// Replace each `SUBQUERY` in a predicate with its related events, and evaluate the rest first: `NSPredicate`
     /// evaluates `AND` and `OR` in order and stops once it knows, so `SUBQUERY(…) AND es_event_type == …` only
     /// goes through related events for the events of that type.
@@ -141,10 +142,11 @@ final class RelatedEvents {
         switch predicate {
         case let compound as NSCompoundPredicate:
             let subpredicates = compound.subpredicates.compactMap { $0 as? NSPredicate }
-            let ordered = subpredicates.filter { !Self.hasSubquery($0) } + subpredicates.filter(Self.hasSubquery)
+            let ordered = subpredicates.filter { !$0.contains(where: Self.isSubquery) }
+                + subpredicates.filter { $0.contains(where: Self.isSubquery) }
             return NSCompoundPredicate(type: compound.compoundPredicateType,
                                        subpredicates: try ordered.map { try rewrite($0, for: audience) })
-        case let comparison as NSComparisonPredicate where Self.hasSubquery(comparison):
+        case let comparison as NSComparisonPredicate where comparison.contains(where: Self.isSubquery):
             return NSComparisonPredicate(leftExpression: try rewrite(comparison.leftExpression, for: audience),
                                          rightExpression: try rewrite(comparison.rightExpression, for: audience),
                                          modifier: comparison.comparisonPredicateModifier,
@@ -159,7 +161,7 @@ final class RelatedEvents {
     ///   - audience: Who an error is for.
     /// - Returns: The expression, each `SUBQUERY` in it a block returning its related events.
     private func rewrite(_ expression: NSExpression, for audience: PredicateAudience) throws -> NSExpression {
-        guard Self.hasSubquery(expression) else { return expression }
+        guard expression.contains(where: Self.isSubquery) else { return expression }
         switch expression.expressionType {
         case .subquery:
             let subquery = try Subquery(expression, matches: matches, for: audience)
@@ -181,13 +183,13 @@ final class RelatedEvents {
     /// Keep each event a `SUBQUERY` picks. Give it every event before evaluating the predicate on any.
     ///
     /// - Parameter record: An event's record.
-    /// - Throws: ``Failure`` if a `SUBQUERY`'s conditions on the related event can't be evaluated on it.
+    /// - Throws: ``PredicateFailure`` if a `SUBQUERY`'s conditions on the related event can't be evaluated on it.
     func collect(_ record: NSDictionary) throws {
         let related = PredicateRecord(record)
         for subquery in subqueries {
             matches.failure = nil
             try subquery.collect(related)
-            if let failure = matches.failure { throw Failure(description: failure) }
+            if let failure = matches.failure { throw PredicateFailure(description: failure) }
         }
     }
 
@@ -205,29 +207,10 @@ final class RelatedEvents {
         }
     }
 
-    /// - Parameter predicate: A predicate.
-    /// - Returns: Does it have a `SUBQUERY`?
-    private static func hasSubquery(_ predicate: NSPredicate) -> Bool {
-        switch predicate {
-        case let compound as NSCompoundPredicate:
-            return compound.subpredicates.contains { ($0 as? NSPredicate).map(hasSubquery) ?? false }
-        case let comparison as NSComparisonPredicate:
-            return hasSubquery(comparison.leftExpression) || hasSubquery(comparison.rightExpression)
-        default:
-            return false
-        }
-    }
-
     /// - Parameter expression: An expression.
-    /// - Returns: Does it have a `SUBQUERY`?
-    private static func hasSubquery(_ expression: NSExpression) -> Bool {
-        switch expression.expressionType {
-        case .subquery: return true
-        case .function:
-            return hasSubquery(expression.operand) || (expression.arguments ?? []).contains(where: hasSubquery)
-        case .aggregate: return ((expression.collection as? [NSExpression]) ?? []).contains(where: hasSubquery)
-        default: return false
-        }
+    /// - Returns: Is it a `SUBQUERY`?
+    private static func isSubquery(_ expression: NSExpression) -> Bool {
+        expression.expressionType == .subquery
     }
 }
 
@@ -285,17 +268,14 @@ extension RelatedEvents {
             let conjuncts = (conditions as? NSCompoundPredicate)?.compoundPredicateType == .and
                 ? (conditions as! NSCompoundPredicate).subpredicates.compactMap { $0 as? NSPredicate } : [conditions]
             let joining = conjuncts.filter(Self.readsSearched), picking = conjuncts.filter { !Self.readsSearched($0) }
-            func and(_ predicates: [NSPredicate]) throws -> NSPredicate? {
-                guard !predicates.isEmpty else { return nil }
-                let predicate = predicates.count == 1 ? predicates[0]
-                    : NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
-                return try matches.rewrite(predicate, for: audience)
+            /// The conditions joined by `AND`, or `nil` for none.
+            func and(_ predicates: [NSPredicate]) -> NSPredicate? {
+                predicates.count > 1 ? NSCompoundPredicate(andPredicateWithSubpredicates: predicates) : predicates.first
             }
-            picks = try and(picking)
-            let picked = picking.count == 1 ? picking.first
-                : picking.isEmpty ? nil : NSCompoundPredicate(andPredicateWithSubpredicates: picking)
+            let picked = and(picking)
+            picks = try picked.map { try matches.rewrite($0, for: audience) }
             storePredicate = picked.flatMap { [variable] in StoreNarrowing.predicate(for: $0, variable: variable) }
-            joins = try and(joining)
+            joins = try and(joining).map { try matches.rewrite($0, for: audience) }
             lookup = joining.lazy.compactMap { [variable] in Self.lookup(in: $0, variable) }.first
         }
 
@@ -305,7 +285,7 @@ extension RelatedEvents {
         /// - Throws: Why the conditions couldn't be evaluated on it.
         func collect(_ related: PredicateRecord) throws {
             guard !overflowed, let group = relation.group(ofRelated: related.values) else { return }
-            if let picks { guard try Self.evaluate(picks, searched: related, variable, related) else { return } }
+            if let picks, try !PredicateBridge.evaluate(picks, with: related, variables: [variable: related]) { return }
             guard count < RelatedEvents.limit else {
                 overflowed = true
                 (kept, sameness) = ([:], [:])
@@ -318,11 +298,11 @@ extension RelatedEvents {
 
         /// - Parameter searched: The searched event.
         /// - Returns: Its related events that the conditions on both events match.
-        /// - Throws: ``Failure`` once the `SUBQUERY` kept too many events or compared too many pairs, or why the
-        ///   conditions couldn't be evaluated.
+        /// - Throws: ``PredicateFailure`` once the `SUBQUERY` kept too many events or compared too many pairs, or why
+        ///   the conditions couldn't be evaluated.
         func matches(for searched: PredicateRecord) throws -> NSArray {
             guard !overflowed else {
-                throw Failure(description: """
+                throw PredicateFailure(description: """
                     SUBQUERY(\(relation.rawValue), $\(variable), …) picks more than \(RelatedEvents.limit) related \
                     events: narrow it with conditions on $\(variable) alone, joined by AND.
                     """)
@@ -330,13 +310,14 @@ extension RelatedEvents {
             guard let group = relation.group(ofSearched: searched.values), var related = kept[group] else {
                 return NSArray()
             }
-            if let lookup, let index, let value = try Self.lookupValue(lookup.searched, on: searched) {
+            if let lookup, let index, let value = try PredicateRelation.hashable(
+                PredicateBridge.evaluate(lookup.searched, with: searched, variables: nil)) {
                 related = index[Pair(group: group, value: value)] ?? []
             }
             guard let joins else { return excluding(searched, from: related, in: group) }
             compared += related.count
             guard compared <= RelatedEvents.pairLimit else {
-                throw Failure(description: """
+                throw PredicateFailure(description: """
                     SUBQUERY(\(relation.rawValue), $\(variable), …) compares more than \
                     \(RelatedEvents.pairLimit.formatted()) pairs of events: narrow it with conditions on $\(variable) \
                     alone, or join on an equality, such as $\(variable).process.pid == process.pid.
@@ -370,47 +351,12 @@ extension RelatedEvents {
             var index: [Pair: [PredicateRecord]] = [:]
             for (group, records) in kept {
                 for record in records {
-                    switch record.value(forKeyPath: lookup.path) {
-                    case nil, is NSNull: continue
-                    case let value as NSString: index[Pair(group: group, value: value), default: []].append(record)
-                    case let value as NSNumber: index[Pair(group: group, value: value), default: []].append(record)
-                    default: return nil
-                    }
+                    guard let value = record.value(forKeyPath: lookup.path), !(value is NSNull) else { continue }
+                    guard let value = PredicateRelation.hashable(value) else { return nil }
+                    index[Pair(group: group, value: value), default: []].append(record)
                 }
             }
             return index
-        }
-
-        /// Evaluate conditions on a searched event and a related one.
-        ///
-        /// - Parameters:
-        ///   - predicate: The conditions.
-        ///   - searched: The searched event, what plain key paths read.
-        ///   - variable: The variable's name.
-        ///   - related: The related event, what the variable's key paths read.
-        /// - Returns: Do they match?
-        /// - Throws: Why `NSPredicate` couldn't evaluate them.
-        private static func evaluate(_ predicate: NSPredicate, searched: PredicateRecord, _ variable: String,
-                                     _ related: PredicateRecord) throws -> Bool {
-            var result = ObjCBool(false)
-            try PredicateBridge.evaluate(predicate, with: searched, variables: [variable: related], matches: &result)
-            return result.boolValue
-        }
-
-        /// - Parameters:
-        ///   - expression: The searched side of ``lookup``.
-        ///   - searched: The searched event.
-        /// - Returns: Its value to look up, or `nil` if it's not a string or a number: every related event is compared.
-        /// - Throws: Why `NSExpression` couldn't evaluate it.
-        private static func lookupValue(_ expression: NSExpression,
-                                        on searched: PredicateRecord) throws -> AnyHashable? {
-            var value: AnyObject?
-            try PredicateBridge.evaluate(expression, with: searched, variables: nil, value: &value)
-            switch value {
-            case let string as NSString: return string
-            case let number as NSNumber: return number
-            default: return nil
-            }
         }
 
         /// - Parameters:
@@ -422,63 +368,16 @@ extension RelatedEvents {
                   comparison.comparisonPredicateModifier == .direct, comparison.options.isEmpty else { return nil }
             for (related, searched) in [(comparison.leftExpression, comparison.rightExpression),
                                         (comparison.rightExpression, comparison.leftExpression)] {
-                if let path = relatedPath(related, variable), !readsVariable(searched) { return (path, searched) }
+                if let path = related.keyPath(of: variable),
+                   !searched.contains(where: { $0.expressionType == .variable }) { return (path, searched) }
             }
             return nil
-        }
-
-        /// - Parameters:
-        ///   - expression: An expression.
-        ///   - variable: The variable's name.
-        /// - Returns: `path` for `$e.path`, else `nil`.
-        private static func relatedPath(_ expression: NSExpression, _ variable: String) -> String? {
-            guard expression.expressionType == .function, expression.function == "valueForKeyPath:",
-                  expression.operand.expressionType == .variable, expression.operand.variable == variable else {
-                return nil
-            }
-            return expression.arguments?.first?.keyPath
         }
 
         /// - Parameter predicate: One of a `SUBQUERY`'s conditions.
         /// - Returns: Does it read the searched event, with a plain key path or `SELF`?
         private static func readsSearched(_ predicate: NSPredicate) -> Bool {
-            switch predicate {
-            case let compound as NSCompoundPredicate:
-                return compound.subpredicates.contains { ($0 as? NSPredicate).map(readsSearched) ?? false }
-            case let comparison as NSComparisonPredicate:
-                return readsSearched(comparison.leftExpression) || readsSearched(comparison.rightExpression)
-            default:
-                return false
-            }
-        }
-
-        /// - Parameter expression: An expression.
-        /// - Returns: Does it read the searched event?
-        private static func readsSearched(_ expression: NSExpression) -> Bool {
-            switch expression.expressionType {
-            case .keyPath, .evaluatedObject: return true
-            case .function where expression.operand.expressionType == .variable: return false
-            case .function:
-                return readsSearched(expression.operand) || (expression.arguments ?? []).contains(where: readsSearched)
-            case .aggregate: return ((expression.collection as? [NSExpression]) ?? []).contains(where: readsSearched)
-            case .unionSet, .intersectSet, .minusSet:
-                return readsSearched(expression.left) || readsSearched(expression.right)
-            default: return false
-            }
-        }
-
-        /// - Parameter expression: An expression.
-        /// - Returns: Does it read the variable?
-        private static func readsVariable(_ expression: NSExpression) -> Bool {
-            switch expression.expressionType {
-            case .variable: return true
-            case .function:
-                return readsVariable(expression.operand) || (expression.arguments ?? []).contains(where: readsVariable)
-            case .aggregate: return ((expression.collection as? [NSExpression]) ?? []).contains(where: readsVariable)
-            case .unionSet, .intersectSet, .minusSet:
-                return readsVariable(expression.left) || readsVariable(expression.right)
-            default: return false
-            }
+            predicate.contains { $0.expressionType == .keyPath || $0.expressionType == .evaluatedObject }
         }
     }
 }
@@ -564,9 +463,6 @@ extension PredicateRecord {
     /// - Parameter other: Another record.
     /// - Returns: `true` if both have the same `es_event_type`, `global_seq_num` and `mach_time`.
     func isSame(as other: PredicateRecord) -> Bool {
-        values === other.values || Self.identityKeys.allSatisfy { key in
-            guard let value = values[key] as? NSObject else { return false }
-            return value.isEqual(other.values[key])
-        }
+        values === other.values || Sameness.Identity(values).map { $0 == Sameness.Identity(other.values) } ?? false
     }
 }

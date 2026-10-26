@@ -14,7 +14,8 @@ import SutroESFramework
 extension EventQueryModel {
     /// The model's background half: runs fetches on its own context, one job at a time.
     ///
-    /// Only touched on the context's queue, through ``perform(_:completion:)``.
+    /// Only touched on its context's queue: through ``perform(_:completion:)``, or by the predicate editor's preview
+    /// (``EventQueryModel/preview(_:for:examples:)``) on a context of its own.
     final class Worker {
         /// What a job needs from the main thread, copied when it starts.
         struct Snapshot {
@@ -253,12 +254,12 @@ extension EventQueryModel {
             var found = Found()
             if recordPredicate.relatesEvents {
                 let related = recordPredicate.relatedStorePredicate.map { and(covered, $0) } ?? covered
-                try forEachEvent(matching: related, snapshot) { message in
+                try forEachEvent(matching: related, isCurrent: snapshot.isCurrent) { message in
                     do { try recordPredicate.collect(message) } catch { found.unchecked.add(error) }
                 }
             }
             let candidates = recordPredicate.storePredicate.map { and(filter, $0) } ?? filter
-            try forEachEvent(matching: candidates, snapshot) { message in
+            try forEachEvent(matching: candidates, isCurrent: snapshot.isCurrent) { message in
                 do {
                     guard try recordPredicate.evaluate(on: message) else { return }
                     found.ids.insert(message.objectID)
@@ -274,23 +275,25 @@ extension EventQueryModel {
         /// Load each event matching a predicate, with what its record encodes, a batch at a time.
         ///
         /// - Parameters:
-        ///   - predicate: The events.
-        ///   - snapshot: Whether the job is still wanted.
+        ///   - predicate: The events, or `nil` for every one.
+        ///   - sort: Their order.
+        ///   - isCurrent: Is the job still wanted?
         ///   - body: Called with each event, on the context's queue.
         /// - Throws: `CancellationError` once the job isn't wanted, or the fetch's error.
-        private func forEachEvent(matching predicate: NSPredicate, _ snapshot: Snapshot,
-                                  _ body: (ESMessage) throws -> Void) throws {
-            let ids = try sqliteSorted(matching: predicate, sortedBy: [])
+        func forEachEvent(matching predicate: NSPredicate?, sortedBy sort: [NSSortDescriptor] = [],
+                          isCurrent: () -> Bool, _ body: (ESMessage) throws -> Void) throws {
+            let ids = try sqliteSorted(matching: predicate, sortedBy: sort)
             for start in stride(from: 0, to: ids.count, by: Self.batchSize) {
                 try autoreleasepool {
                     let request = ESMessage.fetchRequest()
                     let batch = ids[start..<min(start + Self.batchSize, ids.count)]
                     request.predicate = NSPredicate(format: "self IN %@", Array(batch))
+                    request.sortDescriptors = sort
                     request.returnsObjectsAsFaults = false
                     request.relationshipKeyPathsForPrefetching = prefetch
                     for message in try context.fetch(request) {
                         /// Each event can take a while: a `MATCHES` has up to `BoundedMatches.limit` for each value.
-                        guard snapshot.isCurrent() else { throw CancellationError() }
+                        guard isCurrent() else { throw CancellationError() }
                         try body(message)
                     }
                     context.reset()
@@ -341,10 +344,11 @@ extension EventQueryModel {
         /// Fetch the events matching `predicate` in order, sorted by SQLite.
         ///
         /// - Parameters:
-        ///   - predicate: The events to fetch.
+        ///   - predicate: The events to fetch, or `nil` for every one.
         ///   - sort: Their order.
         /// - Returns: The events' object IDs.
-        private func sqliteSorted(matching predicate: NSPredicate, sortedBy sort: [NSSortDescriptor]) throws -> [NSManagedObjectID] {
+        private func sqliteSorted(matching predicate: NSPredicate?,
+                                  sortedBy sort: [NSSortDescriptor]) throws -> [NSManagedObjectID] {
             let request = NSFetchRequest<NSManagedObjectID>(entityName: "ESMessage")
             request.resultType = .managedObjectIDResultType
             request.includesPropertyValues = false

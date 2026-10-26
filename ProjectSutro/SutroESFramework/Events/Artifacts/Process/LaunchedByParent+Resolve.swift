@@ -32,32 +32,6 @@ extension LaunchedByParent {
         /// How it was created.
         let creation: Creation
         
-        /// - Parameters:
-        ///   - pid: The created process's pid.
-        ///   - ppid: `ppid`.
-        ///   - original_ppid: `original_ppid`.
-        ///   - parent_audit_token: `parent_audit_token`.
-        ///   - responsible_audit_token: `responsible_audit_token`.
-        ///   - creation: How the process was created.
-        init(pid: Int32, ppid: Int32, original_ppid: Int32, parent_audit_token: AuditToken?,
-             responsible_audit_token: AuditToken?, by creation: Creation) {
-            self.pid = pid
-            self.ppid = ppid
-            self.original_ppid = original_ppid
-            self.parent_audit_token = parent_audit_token
-            self.responsible_audit_token = responsible_audit_token
-            self.creation = creation
-        }
-        
-        /// - Parameters:
-        ///   - process: The exec's target or the fork's child.
-        ///   - creation: How it was created.
-        init(created process: Process, by creation: Creation) {
-            self.init(pid: process.audit_token?.pid ?? process.pid, ppid: process.ppid,
-                      original_ppid: process.original_ppid, parent_audit_token: process.parent_audit_token,
-                      responsible_audit_token: process.responsible_audit_token, by: creation)
-        }
-        
         /// The label of the launchd job that started the process: `XPC_SERVICE_NAME` in the environment of an exec by
         /// `xpcproxy` (``ProcessExecEvent/xpcServiceName(in:)``). An image any other process exec'd, even a job's own
         /// program exec'ing again, has whatever environment that process chose, so its label names no job.
@@ -77,6 +51,18 @@ extension LaunchedByParent {
         
         /// `xpcproxy`'s executable.
         static let xpcProxyPath = "/usr/libexec/xpcproxy"
+    }
+}
+
+
+extension LaunchedByParent.Lineage {
+    /// - Parameters:
+    ///   - process: The exec's target or the fork's child.
+    ///   - creation: How it was created.
+    init(created process: Process, by creation: Creation) {
+        self.init(pid: process.audit_token?.pid ?? process.pid, ppid: process.ppid,
+                  original_ppid: process.original_ppid, parent_audit_token: process.parent_audit_token,
+                  responsible_audit_token: process.responsible_audit_token, creation: creation)
     }
 }
 

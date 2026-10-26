@@ -24,16 +24,6 @@ public struct ConsoleUser: Equatable, Sendable {
     /// The home folder, such as "/Users/alice".
     public let home: String
     
-    /// - Parameters:
-    ///   - name: The short name.
-    ///   - uid: The user ID.
-    ///   - home: The home folder.
-    public init(name: String, uid: uid_t, home: String) {
-        self.name = name
-        self.uid = uid
-        self.home = home
-    }
-    
     /// Who's logged in at the console now.
     ///
     /// - Parameter source: Where to ask: the system, unless a test passes its own.
@@ -56,15 +46,6 @@ public struct ConsoleUserSource: Sendable {
     let session: @Sendable () -> (name: String, uid: uid_t)?
     /// A user's home folder from the user database, if it has one.
     let homeFolder: @Sendable (uid_t) -> String?
-    
-    /// - Parameters:
-    ///   - session: The console session's user, by short name and ID, if there's one.
-    ///   - homeFolder: A user's home folder, if it has one.
-    public init(session: @escaping @Sendable () -> (name: String, uid: uid_t)?,
-                homeFolder: @escaping @Sendable (uid_t) -> String?) {
-        self.session = session
-        self.homeFolder = homeFolder
-    }
     
     /// The system: `SCDynamicStoreCopyConsoleUser` for the session, `getpwuid_r` for the home folder.
     public static let system = ConsoleUserSource(session: {

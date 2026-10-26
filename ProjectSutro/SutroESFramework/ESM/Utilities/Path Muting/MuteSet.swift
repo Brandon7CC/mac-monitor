@@ -33,6 +33,21 @@ public struct MuteSet {
         let mutesXcode = mutesXcode ?? ownsXcode()
         let caches = homePaths("Library/Caches", in: home)
         let biomeStreams = homePaths("Library/Biome/streams", in: home)
+        /// Processes muted for both mmap and mprotect.
+        let mappers = [
+            "/usr/bin/tailspin",
+            "/usr/libexec/spindump",
+            "/private/var/db/KernelExtensionManagement/KernelCollections/BootKernelCollection.kc",
+            "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared",
+            "/System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService",
+            "/usr/libexec/knowledge-agent",
+            "/usr/libexec/locationd",
+            "/System/Library/PrivateFrameworks/BiomeStreams.framework/Support/BiomeAgent",
+            "/usr/libexec/xpcproxy",
+            "/usr/libexec/opendirectoryd",
+            "/System/Library/Frameworks/CoreSpotlight.framework/spotlightknowledged",
+            "/usr/libexec/mobileassetd"
+        ]
         
         // MARK: - Event-Specific Mute Rules
         var eventRules = [
@@ -65,7 +80,6 @@ public struct MuteSet {
                 "/usr/sbin/cfprefsd",
                 "/Library/SystemExtensions/",
                 "/System/Library/CoreServices/Spotlight.app",
-                "/Library/SystemExtensions/",
                 "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework",
                 "/System/Library/PrivateFrameworks/SkyLight.framework",
                 "/System/Library/PrivateFrameworks/AXAssetLoader.framework",
@@ -103,34 +117,8 @@ public struct MuteSet {
                 "/System/Library/PrivateFrameworks/CoreDuetContext.framework",
                 "/System/Library/CoreServices/diagnostics_agent"
             ]),
-            (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: [
-                "/usr/bin/tailspin",
-                "/usr/libexec/spindump",
-                "/private/var/db/KernelExtensionManagement/KernelCollections/BootKernelCollection.kc",
-                "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared",
-                "/System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService",
-                "/usr/libexec/knowledge-agent",
-                "/usr/libexec/locationd",
-                "/System/Library/PrivateFrameworks/BiomeStreams.framework/Support/BiomeAgent",
-                "/usr/libexec/xpcproxy",
-                "/usr/libexec/opendirectoryd",
-                "/System/Library/Frameworks/CoreSpotlight.framework/spotlightknowledged",
-                "/usr/libexec/mobileassetd"
-            ]),
-            (eventType: ES_EVENT_TYPE_NOTIFY_MPROTECT, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: [
-                "/usr/bin/tailspin",
-                "/usr/libexec/spindump",
-                "/private/var/db/KernelExtensionManagement/KernelCollections/BootKernelCollection.kc",
-                "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared",
-                "/System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService",
-                "/usr/libexec/knowledge-agent",
-                "/usr/libexec/locationd",
-                "/System/Library/PrivateFrameworks/BiomeStreams.framework/Support/BiomeAgent",
-                "/usr/libexec/xpcproxy",
-                "/usr/libexec/opendirectoryd",
-                "/System/Library/Frameworks/CoreSpotlight.framework/spotlightknowledged",
-                "/usr/libexec/mobileassetd"
-            ]),
+            (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: mappers),
+            (eventType: ES_EVENT_TYPE_NOTIFY_MPROTECT, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: mappers),
             (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: [
                 "/Library/Caches/",
                 "/private/var/db/",

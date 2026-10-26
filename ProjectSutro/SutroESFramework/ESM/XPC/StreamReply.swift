@@ -50,10 +50,6 @@ public struct StreamReply: XPCReply, Equatable, Sendable {
     /// What the stream delivered and lost, for a stop request.
     public var summary: StreamSummary?
     
-    private enum CodingKeys: String, CodingKey {
-        case version, status, problem, sensorVersion, stream, summary
-    }
-    
     /// - Parameters:
     ///   - status: How the request went.
     ///   - problem: What went wrong.
@@ -93,14 +89,6 @@ public struct StreamStarted: Codable, Equatable, Sendable {
     public var events: [String]
     /// How many saved mutes apply, or `nil` for a stream without them (`--no-mutes`).
     public var savedMutes: Int?
-    
-    /// - Parameters:
-    ///   - events: The `ES_EVENT_TYPE_NOTIFY_*` names subscribed.
-    ///   - savedMutes: How many saved mutes apply, or `nil` without them.
-    public init(events: [String], savedMutes: Int?) {
-        self.events = events
-        self.savedMutes = savedMutes
-    }
 }
 
 
@@ -123,21 +111,4 @@ public struct StreamSummary: Codable, Equatable, Sendable {
     public var skippedWhilePaused: Int
     /// How many times capture paused until `macmonitor` caught up.
     public var pauses: Int
-    
-    /// - Parameters:
-    ///   - captured: Events serialized for the stream.
-    ///   - delivered: Events `macmonitor` replied to.
-    ///   - droppedByEndpointSecurity: Messages Endpoint Security dropped.
-    ///   - droppedWhileBehind: Events dropped with the buffer full.
-    ///   - skippedWhilePaused: Messages skipped while capture was paused.
-    ///   - pauses: How many times capture paused.
-    public init(captured: Int, delivered: Int, droppedByEndpointSecurity: Int, droppedWhileBehind: Int,
-                skippedWhilePaused: Int, pauses: Int) {
-        self.captured = captured
-        self.delivered = delivered
-        self.droppedByEndpointSecurity = droppedByEndpointSecurity
-        self.droppedWhileBehind = droppedWhileBehind
-        self.skippedWhilePaused = skippedWhilePaused
-        self.pauses = pauses
-    }
 }

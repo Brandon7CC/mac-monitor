@@ -138,7 +138,7 @@ struct LaunchedByParentFacts: View {
         GroupBox {
             /// The launched-by parent and the event that created it, or `nil` when the store doesn't have the
             /// process's creator.
-            let step = systemExtensionManager.coreDataContainer.launchedByParents(of: message, limit: 1).first
+            let step = systemExtensionManager.coreDataContainer.lineage.launchedByParents(of: message, limit: 1).first
             VStack(alignment: .leading) {
                 HStack {
                     Text("**Launched by parent**").font(.title3)

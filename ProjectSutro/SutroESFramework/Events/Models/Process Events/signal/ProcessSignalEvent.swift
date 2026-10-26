@@ -8,75 +8,21 @@
 import Foundation
 
 
+/// Each signal's name by its number, from `<sys/signal.h>`: 1 (`SIGHUP`) to 31 (`SIGUSR2`), and "IS-ALIVE" for 0,
+/// which only checks that the target exists.
+private let signalNames = [
+    "IS-ALIVE", "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT", "SIGEMT", "SIGFPE", "SIGKILL",
+    "SIGBUS", "SIGSEGV", "SIGSYS", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGURG", "SIGSTOP", "SIGTSTP", "SIGCONT",
+    "SIGCHLD", "SIGTTIN", "SIGTTOU", "SIGIO", "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGINFO",
+    "SIGUSR1", "SIGUSR2",
+]
+
+/// A signal's name.
+///
+/// - Parameter signalNumber: The signal's number.
+/// - Returns: Its name in `signalNames`, or "UNKNOWN".
 func signalName(from signalNumber: Int32) -> String {
-    switch signalNumber {
-    case SIGHUP:
-        return "SIGHUP"
-    case SIGINT:
-        return "SIGINT"
-    case SIGQUIT:
-        return "SIGQUIT"
-    case SIGILL:
-        return "SIGILL"
-    case SIGTRAP:
-        return "SIGTRAP"
-    case SIGABRT:
-        return "SIGABRT"
-    case SIGEMT:
-        return "SIGEMT"
-    case SIGFPE:
-        return "SIGFPE"
-    case SIGKILL:
-        return "SIGKILL"
-    case SIGBUS:
-        return "SIGBUS"
-    case SIGSEGV:
-        return "SIGSEGV"
-    case SIGSYS:
-        return "SIGSYS"
-    case SIGPIPE:
-        return "SIGPIPE"
-    case SIGALRM:
-        return "SIGALRM"
-    case SIGTERM:
-        return "SIGTERM"
-    case SIGURG:
-        return "SIGURG"
-    case SIGSTOP:
-        return "SIGSTOP"
-    case SIGTSTP:
-        return "SIGTSTP"
-    case SIGCONT:
-        return "SIGCONT"
-    case SIGCHLD:
-        return "SIGCHLD"
-    case SIGTTIN:
-        return "SIGTTIN"
-    case SIGTTOU:
-        return "SIGTTOU"
-    case SIGIO:
-        return "SIGIO"
-    case SIGXCPU:
-        return "SIGXCPU"
-    case SIGXFSZ:
-        return "SIGXFSZ"
-    case SIGVTALRM:
-        return "SIGVTALRM"
-    case SIGPROF:
-        return "SIGPROF"
-    case SIGWINCH:
-        return "SIGWINCH"
-    case SIGINFO:
-        return "SIGINFO"
-    case SIGUSR1:
-        return "SIGUSR1"
-    case SIGUSR2:
-        return "SIGUSR2"
-    case 0:
-        return "IS-ALIVE"
-    default:
-        return "UNKNOWN"
-    }
+    signalNames.indices.contains(Int(signalNumber)) ? signalNames[Int(signalNumber)] : "UNKNOWN"
 }
 
 /**
@@ -108,21 +54,13 @@ func signalName(from signalNumber: Int32) -> String {
  */
 
 // MARK:  Process Signal event https://developer.apple.com/documentation/endpointsecurity/es_event_signal_t
-public struct ProcessSignalEvent: Identifiable, Codable, Hashable {
+public struct ProcessSignalEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     public var sig: Int
     public var signal_name = ""
     
     public var instigator: Process?
     public var target: Process
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: ProcessSignalEvent, rhs: ProcessSignalEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         // Getting the signal event

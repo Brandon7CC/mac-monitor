@@ -47,43 +47,37 @@ public class ESTCCModifyEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESTCCModifyEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let tccModifyEvent: TCCModifyEvent = message.event.tcc_modify!
-        let description = NSEntityDescription.entity(forEntityName: "ESTCCModifyEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: TCCModifyEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.service = tccModifyEvent.service
-        self.identity = tccModifyEvent.identity
-        self.identity_type = Int32(truncatingIfNeeded: tccModifyEvent.identity_type)
-        self.identity_type_string = tccModifyEvent.identity_type_string
-        self.update_type = Int32(truncatingIfNeeded: tccModifyEvent.update_type)
-        self.update_type_string = tccModifyEvent.update_type_string
+        self.service = event.service
+        self.identity = event.identity
+        self.identity_type = Int32(truncatingIfNeeded: event.identity_type)
+        self.identity_type_string = event.identity_type_string
+        self.update_type = Int32(truncatingIfNeeded: event.update_type)
+        self.update_type_string = event.update_type_string
         
         self.instigator_token = ESAuditToken(
-            from: tccModifyEvent.instigator_token,
+            from: event.instigator_token,
             insertIntoManagedObjectContext: context
         )
-        if let instigator = tccModifyEvent.instigator {
-            self.instigator = ESProcess(
-                from: instigator,
-                version: message.version,
-                insertIntoManagedObjectContext: context
-            )
+        self.instigator = event.instigator.map {
+            ESProcess(from: $0, version: message.version, insertIntoManagedObjectContext: context)
         }
         
         /// The responsible token and process on their own: Endpoint Security can leave out the process (`NULL`) and
         /// still give its token.
-        self.responsible_token = tccModifyEvent.responsible_token.map {
+        self.responsible_token = event.responsible_token.map {
             ESAuditToken(from: $0, insertIntoManagedObjectContext: context)
         }
-        self.responsible = tccModifyEvent.responsible.map {
+        self.responsible = event.responsible.map {
             ESProcess(from: $0, version: message.version, insertIntoManagedObjectContext: context)
         }
         
-        self.right = Int32(truncatingIfNeeded: tccModifyEvent.right)
-        self.right_string = tccModifyEvent.right_string
-        self.reason = Int32(truncatingIfNeeded: tccModifyEvent.reason)
-        self.reason_string = tccModifyEvent.reason_string
+        self.right = Int32(truncatingIfNeeded: event.right)
+        self.right_string = event.right_string
+        self.reason = Int32(truncatingIfNeeded: event.reason)
+        self.reason_string = event.reason_string
     }
 }
 

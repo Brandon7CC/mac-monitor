@@ -32,7 +32,7 @@ import Foundation
 
 
 /// Models an `ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_VALUE_ADD`: a value was added to an Open Directory record's attribute.
-public struct OpenDirectoryAttributeValueAddEvent: Identifiable, Codable, Hashable, OpenDirectoryEvent {
+public struct OpenDirectoryAttributeValueAddEvent: Codable, IdentityHashable, OpenDirectoryEvent {
     public var id: UUID = UUID.buffered()
     /// The process that instigated the operation (the XPC caller), or `nil` when Endpoint Security leaves it out.
     public var instigator: Process?
@@ -54,14 +54,6 @@ public struct OpenDirectoryAttributeValueAddEvent: Identifiable, Codable, Hashab
     public var error_code_human, record_type_string: String?
     public var instigator_process_name, instigator_process_path: String?
     public var instigator_process_audit_token, instigator_process_signing_id: String?
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: OpenDirectoryAttributeValueAddEvent, rhs: OpenDirectoryAttributeValueAddEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     /// Record the event of a message from Endpoint Security.
     ///
@@ -98,6 +90,6 @@ extension OpenDirectoryAttributeValueAddEvent: ESEnrichable {
     /// Derive the error code's description, the name of the record's type, and the instigator's fields.
     public mutating func enrich() {
         enrichCommonFields()
-        record_type_string = record_type.map(ODEnumNames.recordType.name(of:)) ?? record_type_string
+        record_type_string = record_type.map(ConstantNames.recordType.name(of:)) ?? record_type_string
     }
 }

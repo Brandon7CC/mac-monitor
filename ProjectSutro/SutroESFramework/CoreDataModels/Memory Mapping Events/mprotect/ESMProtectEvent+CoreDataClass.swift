@@ -38,10 +38,8 @@ public class ESMProtectEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESMProtectEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: MProtectEvent = message.event.mprotect!
-        let description = NSEntityDescription.entity(forEntityName: "ESMProtectEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: MProtectEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         self.protection = event.protection
         self.address = event.address

@@ -11,7 +11,7 @@ import OSLog
 
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_login_login_t
-public struct LoginLoginEvent: Identifiable, Codable, Hashable {
+public struct LoginLoginEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var succcess, has_uid: Bool
@@ -20,14 +20,6 @@ public struct LoginLoginEvent: Identifiable, Codable, Hashable {
     public var failure_message: String?
     /// The user's ID: `nil` (eslogger's `null`) without one.
     public var uid: Int64?
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: LoginLoginEvent, rhs: LoginLoginEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let loginLoginEvent: es_event_login_login_t = rawMessage.pointee.event.login_login.pointee

@@ -24,16 +24,14 @@ public class ESProcessSignalEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESProcessSignalEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let signalEvent: ProcessSignalEvent = message.event.signal!
-        let description = NSEntityDescription.entity(forEntityName: "ESProcessSignalEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.sig = Int32(truncatingIfNeeded: signalEvent.sig)
-        self.signal_name = signalEvent.signal_name
+    convenience init(from event: ProcessSignalEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
+        self.sig = Int32(truncatingIfNeeded: event.sig)
+        self.signal_name = event.signal_name
         
         /// Process structures
-        self.target = ESProcess(from: signalEvent.target, version: message.version, insertIntoManagedObjectContext: context)
-        if let instigator = signalEvent.instigator {
+        self.target = ESProcess(from: event.target, version: message.version, insertIntoManagedObjectContext: context)
+        if let instigator = event.instigator {
             self.instigator = ESProcess(from: instigator, version: message.version, insertIntoManagedObjectContext: context)
         }
     }

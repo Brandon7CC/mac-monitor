@@ -225,8 +225,7 @@ public final class FindingMatcher {
     public func matches(_ message: ESMessage) -> [Finding] {
         let candidates = findings.filter { item in
             guard let narrow = item.narrow else { return true }
-            var result = ObjCBool(false)
-            return (try? PredicateBridge.evaluate(narrow, with: message, matches: &result)) != nil && result.boolValue
+            return (try? PredicateBridge.evaluate(narrow, with: message, variables: nil)) == true
         }
         guard !candidates.isEmpty else { return [] }
         let stored = StoredEventValues(message)
@@ -303,8 +302,7 @@ final class StoredEventValues: NSObject {
     /// - Parameter predicate: The predicate.
     /// - Returns: Whether the event matches.
     func matches(_ predicate: NSPredicate) -> Bool {
-        var result = ObjCBool(false)
-        return (try? PredicateBridge.evaluate(predicate, with: self, matches: &result)) != nil && result.boolValue
+        (try? PredicateBridge.evaluate(predicate, with: self, variables: nil)) == true
     }
     
     /// A key path's value on the stored event: "" for a string the record writes as "" and the store keeps as `nil`,

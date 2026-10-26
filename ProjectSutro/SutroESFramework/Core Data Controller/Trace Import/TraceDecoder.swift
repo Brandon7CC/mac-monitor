@@ -124,10 +124,29 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
     /// Is the value missing or `null`?
     func decodeNil() -> Bool { isAbsent }
     
-    /// The value as a `T`: a `UUID` (a new one if it's missing), a ``fallbacks`` value, or what `T` decodes, enriched when
-    /// ``enriching``.
+    /// The value as a `T`: a scalar (``bool()``, ``string()``, ``integer(_:)``, ``float(_:)``), a `UUID` (a new one if
+    /// it's missing), a ``fallbacks`` value, or what `T` decodes, enriched when ``enriching``.
+    ///
+    /// Each scalar type has its own case: matching `any FixedWidthInteger.Type` instead decodes a fifth slower.
     func decode<T: Decodable>(_ type: T.Type) throws -> T {
-        if type == UUID.self { return ((value as? String).flatMap(UUID.init(uuidString:)) ?? UUID()) as! T }
+        switch type {
+        case is Bool.Type: return try bool() as! T
+        case is String.Type: return try string() as! T
+        case is Int.Type: return try integer(Int.self) as! T
+        case is Int8.Type: return try integer(Int8.self) as! T
+        case is Int16.Type: return try integer(Int16.self) as! T
+        case is Int32.Type: return try integer(Int32.self) as! T
+        case is Int64.Type: return try integer(Int64.self) as! T
+        case is UInt.Type: return try integer(UInt.self) as! T
+        case is UInt8.Type: return try integer(UInt8.self) as! T
+        case is UInt16.Type: return try integer(UInt16.self) as! T
+        case is UInt32.Type: return try integer(UInt32.self) as! T
+        case is UInt64.Type: return try integer(UInt64.self) as! T
+        case is Double.Type: return try float(Double.self) as! T
+        case is Float.Type: return try float(Float.self) as! T
+        case is UUID.Type: return ((value as? String).flatMap(UUID.init(uuidString:)) ?? UUID()) as! T
+        default: break
+        }
         if let fallback = Self.fallbacks[ObjectIdentifier(type)] {
             return isAbsent ? fallback as! T : (try? T(from: self)) ?? fallback as! T
         }
@@ -138,49 +157,24 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
     }
     
     /// The value as a `Bool`: a number, or `"true"` or `"false"`. Missing is `false`.
-    func decode(_ type: Bool.Type) throws -> Bool {
+    private func bool() throws -> Bool {
         switch value {
         case let number as NSNumber: return number.boolValue
         case let text as String where Bool(text) != nil: return Bool(text)!
         case _ where isAbsent: return false
-        default: throw mismatch(type)
+        default: throw mismatch(Bool.self)
         }
     }
     
     /// The value as a `String`: a string, or a number's digits. Missing is `""`.
-    func decode(_ type: String.Type) throws -> String {
+    private func string() throws -> String {
         switch value {
         case let text as NSString: return text as String
         case let number as NSNumber: return number.stringValue
         case _ where isAbsent: return ""
-        default: throw mismatch(type)
+        default: throw mismatch(String.self)
         }
     }
-    
-    /// The value as a `Double` (see ``float()``).
-    func decode(_ type: Double.Type) throws -> Double { try float() }
-    /// The value as a `Float` (see ``float()``).
-    func decode(_ type: Float.Type) throws -> Float { try float() }
-    /// The value as an `Int` (see ``integer()``).
-    func decode(_ type: Int.Type) throws -> Int { try integer() }
-    /// The value as an `Int8` (see ``integer()``).
-    func decode(_ type: Int8.Type) throws -> Int8 { try integer() }
-    /// The value as an `Int16` (see ``integer()``).
-    func decode(_ type: Int16.Type) throws -> Int16 { try integer() }
-    /// The value as an `Int32` (see ``integer()``).
-    func decode(_ type: Int32.Type) throws -> Int32 { try integer() }
-    /// The value as an `Int64` (see ``integer()``).
-    func decode(_ type: Int64.Type) throws -> Int64 { try integer() }
-    /// The value as a `UInt` (see ``integer()``).
-    func decode(_ type: UInt.Type) throws -> UInt { try integer() }
-    /// The value as a `UInt8` (see ``integer()``).
-    func decode(_ type: UInt8.Type) throws -> UInt8 { try integer() }
-    /// The value as a `UInt16` (see ``integer()``).
-    func decode(_ type: UInt16.Type) throws -> UInt16 { try integer() }
-    /// The value as a `UInt32` (see ``integer()``).
-    func decode(_ type: UInt32.Type) throws -> UInt32 { try integer() }
-    /// The value as a `UInt64` (see ``integer()``).
-    func decode(_ type: UInt64.Type) throws -> UInt64 { try integer() }
     
     /// The value as an integer: a number (truncated to fit, as `UInt64` values written as `Int64` are), or a string of
     /// digits. Missing is 0.
@@ -188,9 +182,10 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
     /// An unsigned 64-bit value of 2^63 or more (an `st_ino` on SMB, NFS or FUSE) reads into an `Int64` as its bit
     /// pattern: `JSONSerialization` keeps it as an unsigned `NSNumber`, whose `int64Value` is that pattern.
     ///
+    /// - Parameter type: The integer type.
     /// - Returns: The integer.
     /// - Throws: A type mismatch for any other value.
-    private func integer<N: FixedWidthInteger>() throws -> N {
+    private func integer<N: FixedWidthInteger>(_ type: N.Type) throws -> N {
         switch value {
         case let number as NSNumber: return N(exactly: number.int64Value) ?? N(truncatingIfNeeded: number.uint64Value)
         case let text as String where N(text) != nil: return N(text)!
@@ -201,9 +196,10 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
     
     /// The value as a floating-point number: a number, or a string of one. Missing is 0.
     ///
+    /// - Parameter type: The floating-point type.
     /// - Returns: The number.
     /// - Throws: A type mismatch for any other value.
-    private func float<F: BinaryFloatingPoint>() throws -> F {
+    private func float<F: BinaryFloatingPoint>(_ type: F.Type) throws -> F {
         switch value {
         case let number as NSNumber: return F(number.doubleValue)
         case let text as String where Double(text) != nil: return F(Double(text)!)

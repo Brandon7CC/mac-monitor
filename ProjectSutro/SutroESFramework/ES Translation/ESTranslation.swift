@@ -25,137 +25,30 @@ public func eventTimeStamp(for message: ESMessage) -> String {
 }
 
 
+/// The SF Symbol an event shows, from ``ModeledEvent/symbols``.
+///
+/// - Parameter eventString: The event type's `ESTypes.h` name, such as `ES_EVENT_TYPE_NOTIFY_EXEC`.
+/// - Returns: Its symbol, or `questionmark.app.dashed` for an event without one.
 public func eventStringToImage(from eventString: String) -> String {
-    switch(eventString) {
-    case "ES_EVENT_TYPE_NOTIFY_EXEC":
-        return "cpu"
-    case "ES_EVENT_TYPE_NOTIFY_FORK":
-        return "point.topleft.down.curvedto.point.bottomright.up"
-    case "ES_EVENT_TYPE_NOTIFY_EXIT":
-        return "eject.fill"
-    case "ES_EVENT_TYPE_NOTIFY_CREATE":
-        return "doc.plaintext"
-    case "ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR":
-        return "delete.backward.fill"
-    case "ES_EVENT_TYPE_NOTIFY_MMAP":
-        return "memorychip"
-    case "ES_EVENT_TYPE_NOTIFY_MPROTECT":
-        return "staroflife.shield"
-    case "ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD":
-        return "lock.doc"
-    case "ES_EVENT_TYPE_NOTIFY_DUP":
-        return "folder.badge.plus"
-    case "ES_EVENT_TYPE_NOTIFY_MOUNT":
-        return "mount"
-    case "ES_EVENT_TYPE_NOTIFY_RENAME":
-        return "filemenu.and.cursorarrow"
-    case "ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN":
-        return "macwindow.badge.plus"
-    case "ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK":
-        return "lock.open"
-    case "ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN":
-        return "person.fill.checkmark"
-    case "ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED":
-        return "bolt.shield"
-    case "ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED":
-        return "checkmark.shield"
-    case "ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_REMOVE":
-        return "lock.doc"
-    case "ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGIN":
-        return "network"
-    case "ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGOUT":
-        return "network"
-    case "ES_EVENT_TYPE_NOTIFY_UNLINK":
-        return "trash"
-    case "ES_EVENT_TYPE_NOTIFY_OPEN":
-        return "envelope.open.fill"
-    case "ES_EVENT_TYPE_NOTIFY_WRITE":
-        return "square.and.pencil"
-    case "ES_EVENT_TYPE_NOTIFY_LINK":
-        return "link.badge.plus"
-    case "ES_EVENT_TYPE_NOTIFY_CLOSE":
-        return "xmark.square"
-    case "ES_EVENT_TYPE_NOTIFY_SIGNAL":
-        return "dot.radiowaves.forward"
-    case "ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE":
-        return "bolt.horizontal.fill"
-    case "ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN":
-        return "captions.bubble"
-    case "ES_EVENT_TYPE_NOTIFY_CS_INVALIDATED":
-        return "signature"
-    case "ES_EVENT_TYPE_NOTIFY_SETEXTATTR":
-        return "filemenu.and.selection"
-    case "ES_EVENT_TYPE_NOTIFY_PROC_SUSPEND_RESUME":
-        return "autostartstop.trianglebadge.exclamationmark"
-    case "ES_EVENT_TYPE_NOTIFY_TRACE":
-        return "stethoscope"
-    case "ES_EVENT_TYPE_NOTIFY_GET_TASK":
-        return "creditcard.trianglebadge.exclamationmark"
-    case "ES_EVENT_TYPE_NOTIFY_PROC_CHECK":
-        return "barcode.viewfinder"
-    case "ES_EVENT_TYPE_NOTIFY_SETMODE":
-        return "plus.diamond"
-    case "ES_EVENT_TYPE_NOTIFY_PTY_GRANT":
-        return "apple.terminal"
-    case "ES_EVENT_TYPE_NOTIFY_UIPC_CONNECT":
-        return "line.diagonal.trianglehead.up.right.left.down"
-    case "ES_EVENT_TYPE_NOTIFY_UIPC_BIND":
-        return "line.diagonal.trianglehead.up.right"
-    
-    // MARK: - macOS 14+ events
-    case "ES_EVENT_TYPE_NOTIFY_PROFILE_ADD":
-        return "magazine"
-    case "ES_EVENT_TYPE_NOTIFY_OD_CREATE_USER":
-        return "person.fill.badge.plus"
-    case "ES_EVENT_TYPE_NOTIFY_OD_MODIFY_PASSWORD":
-        return "rectangle.and.pencil.and.ellipsis"
-    case "ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_SET":
-        return "slider.horizontal.2.square.on.square"
-    case "ES_EVENT_TYPE_NOTIFY_OD_DISABLE_USER":
-        return "person.crop.circle.badge.minus"
-    case "ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD":
-        return "person.3.fill"
-    case "ES_EVENT_TYPE_NOTIFY_OD_GROUP_REMOVE":
-        return "person.fill.badge.minus"
-    case "ES_EVENT_TYPE_NOTIFY_OD_CREATE_GROUP":
-        return "person.3.fill"
-    case "ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_VALUE_ADD":
-        return "text.badge.plus"
-    case "ES_EVENT_TYPE_NOTIFY_XPC_CONNECT":
-        return "phone.connection.fill"
-    case "ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_PETITION":
-        return "questionmark.diamond"
-    case "ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_JUDGEMENT":
-        return "arrowshape.right.fill"
-    case "ES_EVENT_TYPE_NOTIFY_GETEXTATTR":
-        return "text.viewfinder"
-    case "ES_EVENT_TYPE_NOTIFY_LISTEXTATTR":
-        return "list.bullet.indent"
-    
-    // MARK: - macOS 15+ events
-    case "ES_EVENT_TYPE_NOTIFY_TCC_MODIFY":
-        return "hand.raised.fill"
-    case "ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE":
-        return "shield.lefthalf.filled.trianglebadge.exclamationmark"
-    default:
-        os_log("❌ Unknown image for event: \(eventString)")
-        return "questionmark.app.dashed"
-    }
+    if let symbol = ModeledEvent.symbols[eventString] { return symbol }
+    os_log("❌ Unknown image for event: \(eventString)")
+    return "questionmark.app.dashed"
 }
 
 
 // MARK: - ES muting
+/// `es_mute_path_type_t`: how a muted path matches.
+private let muteTypeNames = ConstantNames([
+    ES_MUTE_PATH_TYPE_PREFIX.rawValue: "ES_MUTE_PATH_TYPE_PREFIX",
+    ES_MUTE_PATH_TYPE_LITERAL.rawValue: "ES_MUTE_PATH_TYPE_LITERAL",
+    ES_MUTE_PATH_TYPE_TARGET_PREFIX.rawValue: "ES_MUTE_PATH_TYPE_TARGET_PREFIX",
+    ES_MUTE_PATH_TYPE_TARGET_LITERAL.rawValue: "ES_MUTE_PATH_TYPE_TARGET_LITERAL",
+], unknown: "ES_MUTE_PATH_TYPE_TARGET_PREFIX")
+
+/// A mute path type's name, as mute files and `macmonitor mute` spell it.
+///
+/// - Parameter muteType: The type.
+/// - Returns: Its name, or `ES_MUTE_PATH_TYPE_TARGET_PREFIX` for any other value.
 public func getMuteCaseString(muteType: es_mute_path_type_t) -> String {
-    switch(muteType) {
-    case ES_MUTE_PATH_TYPE_PREFIX:
-        return "ES_MUTE_PATH_TYPE_PREFIX"
-    case ES_MUTE_PATH_TYPE_LITERAL:
-        return "ES_MUTE_PATH_TYPE_LITERAL"
-    case ES_MUTE_PATH_TYPE_TARGET_PREFIX:
-        return "ES_MUTE_PATH_TYPE_TARGET_PREFIX"
-    case ES_MUTE_PATH_TYPE_TARGET_LITERAL:
-        return "ES_MUTE_PATH_TYPE_TARGET_LITERAL"
-    default:
-        return "ES_MUTE_PATH_TYPE_TARGET_PREFIX"
-    }
+    muteTypeNames.name(of: Int(muteType.rawValue))
 }

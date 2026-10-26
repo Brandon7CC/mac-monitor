@@ -37,7 +37,7 @@ final class OpenDirectoryCaptureTests: XCTestCase {
         "auid": 501, "euid": 0, "egid": 0, "ruid": 0, "rgid": 0, "pid": 4100, "asid": 100100, "pidversion": 9100,
     ]
     
-    /// ``instigatorToken``, as `audit_token_t.toString()` writes it.
+    /// ``instigatorToken``, as ``AuditToken/toString()`` writes it.
     private static let instigatorTokenString =
         "pid:4100, euid:0, ruid:0, rgid:0, egid:0, asid:100100, auid:501, pidversion:9100"
     

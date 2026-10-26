@@ -11,7 +11,7 @@ import EndpointSecurity
 
 // MARK: - Gatekeeper User Override event model: https://developer.apple.com/documentation/endpointsecurity/es_event_gatekeeper_user_override_t
 // Available beginning in macOS 15.0
-public struct GatekeeperUserOverrideEvent: Identifiable, Codable, Hashable {
+public struct GatekeeperUserOverrideEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     /// `es_gatekeeper_user_override_file_type_t`
@@ -24,27 +24,14 @@ public struct GatekeeperUserOverrideEvent: Identifiable, Codable, Hashable {
     
     public var signing_info: SignedFileInfo?
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: GatekeeperUserOverrideEvent, rhs: GatekeeperUserOverrideEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let gatekeeperOverrideEvent: es_event_gatekeeper_user_override_t = rawMessage.pointee.event.gatekeeper_user_override.pointee
         
         file_type = Int32(gatekeeperOverrideEvent.file_type.rawValue)
         
         file = FilePathUnion.from(override: gatekeeperOverrideEvent)
-        if let sha256 = gatekeeperOverrideEvent.sha256 {
-            self.sha256 = sha256HexString(sha256.pointee)
-        }
-        
-        if let signingInfo = gatekeeperOverrideEvent.signing_info {
-            signing_info = SignedFileInfo(from: signingInfo.pointee)
-        }
+        self.sha256 = gatekeeperOverrideEvent.sha256.map { sha256HexString($0.pointee) }
+        signing_info = gatekeeperOverrideEvent.signing_info.map { SignedFileInfo(from: $0.pointee) }
         enrich()
     }
 }

@@ -32,10 +32,8 @@ public class ESMountEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESMountEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: MountEvent = message.event.mount!
-        let description = NSEntityDescription.entity(forEntityName: "ESMountEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: MountEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         self.statfs = event.statfs
         self.disposition = event.disposition

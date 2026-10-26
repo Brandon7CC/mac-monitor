@@ -19,11 +19,9 @@ public class ESProcessExitEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESProcessExitEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let exitEvent: ProcessExitEvent = message.event.exit!
-        let description = NSEntityDescription.entity(forEntityName: "ESProcessExitEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.stat = Int32(truncatingIfNeeded: exitEvent.stat)
+    convenience init(from event: ProcessExitEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
+        self.stat = Int32(truncatingIfNeeded: event.stat)
     }
 }
 

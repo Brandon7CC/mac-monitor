@@ -11,7 +11,7 @@ import EndpointSecurity
 
 // MARK: - TCC Modify event model: https://developer.apple.com/documentation/endpointsecurity/es_event_tcc_modify_t
 // Available beginning in macOS 15.4
-public struct TCCModifyEvent: Identifiable, Codable, Hashable {
+public struct TCCModifyEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     public var service, identity: String
     public var identity_type_string = "", update_type_string = "", right_string = "", reason_string = ""
@@ -19,15 +19,6 @@ public struct TCCModifyEvent: Identifiable, Codable, Hashable {
     public var instigator_token: AuditToken
     public var instigator, responsible: Process?
     public var responsible_token: AuditToken?
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(instigator_token)
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: TCCModifyEvent, rhs: TCCModifyEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let tccModifyEvent: es_event_tcc_modify_t = rawMessage.pointee.event.tcc_modify.pointee
@@ -39,17 +30,9 @@ public struct TCCModifyEvent: Identifiable, Codable, Hashable {
         update_type = tccModifyEvent.update_type.rawValue
         instigator_token = AuditToken(from: tccModifyEvent.instigator_token)
         
-        if let instigator = tccModifyEvent.instigator {
-            self.instigator = Process(from: instigator.pointee, version: version)
-        }
-        
-        if let responsible_token = tccModifyEvent.responsible_token {
-            self.responsible_token = AuditToken(from: responsible_token.pointee)
-        }
-        
-        if let responsible = tccModifyEvent.responsible {
-            self.responsible = Process(from: responsible.pointee, version: version)
-        }
+        self.instigator = tccModifyEvent.instigator.map { Process(from: $0.pointee, version: version) }
+        self.responsible_token = tccModifyEvent.responsible_token.map { AuditToken(from: $0.pointee) }
+        self.responsible = tccModifyEvent.responsible.map { Process(from: $0.pointee, version: version) }
         
         right = tccModifyEvent.right.rawValue
         reason = tccModifyEvent.reason.rawValue
@@ -66,81 +49,57 @@ public struct TCCModifyEvent: Identifiable, Codable, Hashable {
 
 // MARK: - Mac Monitor enrichment
 extension TCCModifyEvent: ESEnrichable {
+    /// `es_tcc_identity_type_t`: what the identity is.
+    private static let identityTypeNames = ConstantNames([
+        ES_TCC_IDENTITY_TYPE_BUNDLE_ID.rawValue: "ES_TCC_IDENTITY_TYPE_BUNDLE_ID",
+        ES_TCC_IDENTITY_TYPE_POLICY_ID.rawValue: "ES_TCC_IDENTITY_TYPE_POLICY_ID",
+        ES_TCC_IDENTITY_TYPE_EXECUTABLE_PATH.rawValue: "ES_TCC_IDENTITY_TYPE_EXECUTABLE_PATH",
+        ES_TCC_IDENTITY_TYPE_FILE_PROVIDER_DOMAIN_ID.rawValue: "ES_TCC_IDENTITY_TYPE_FILE_PROVIDER_DOMAIN_ID",
+    ], unknown: "Unknown")
+    
+    /// `es_tcc_event_type_t`: how the right changed.
+    private static let updateTypeNames = ConstantNames([
+        ES_TCC_EVENT_TYPE_UNKNOWN.rawValue: "ES_TCC_EVENT_TYPE_UNKNOWN",
+        ES_TCC_EVENT_TYPE_CREATE.rawValue: "ES_TCC_EVENT_TYPE_CREATE",
+        ES_TCC_EVENT_TYPE_MODIFY.rawValue: "ES_TCC_EVENT_TYPE_MODIFY",
+        ES_TCC_EVENT_TYPE_DELETE.rawValue: "ES_TCC_EVENT_TYPE_DELETE",
+    ], unknown: "Unknown")
+    
+    /// `es_tcc_authorization_right_t`: what TCC decided.
+    private static let rightNames = ConstantNames([
+        ES_TCC_AUTHORIZATION_RIGHT_DENIED.rawValue: "ES_TCC_AUTHORIZATION_RIGHT_DENIED",
+        ES_TCC_AUTHORIZATION_RIGHT_UNKNOWN.rawValue: "ES_TCC_AUTHORIZATION_RIGHT_UNKNOWN",
+        ES_TCC_AUTHORIZATION_RIGHT_ALLOWED.rawValue: "ES_TCC_AUTHORIZATION_RIGHT_ALLOWED",
+        ES_TCC_AUTHORIZATION_RIGHT_LIMITED.rawValue: "ES_TCC_AUTHORIZATION_RIGHT_LIMITED",
+        ES_TCC_AUTHORIZATION_RIGHT_ADD_MODIFY_ADDED.rawValue: "ES_TCC_AUTHORIZATION_RIGHT_ADD_MODIFY_ADDED",
+        ES_TCC_AUTHORIZATION_RIGHT_SESSION_PID.rawValue: "ES_TCC_AUTHORIZATION_RIGHT_SESSION_PID",
+        ES_TCC_AUTHORIZATION_RIGHT_LEARN_MORE.rawValue: "ES_TCC_AUTHORIZATION_RIGHT_LEARN_MORE",
+    ], unknown: "Unknown")
+    
+    /// `es_tcc_authorization_reason_t`: why TCC decided it.
+    private static let reasonNames = ConstantNames([
+        ES_TCC_AUTHORIZATION_REASON_NONE.rawValue: "ES_TCC_AUTHORIZATION_REASON_NONE",
+        ES_TCC_AUTHORIZATION_REASON_ERROR.rawValue: "ES_TCC_AUTHORIZATION_REASON_ERROR",
+        ES_TCC_AUTHORIZATION_REASON_USER_CONSENT.rawValue: "ES_TCC_AUTHORIZATION_REASON_USER_CONSENT",
+        ES_TCC_AUTHORIZATION_REASON_USER_SET.rawValue: "ES_TCC_AUTHORIZATION_REASON_USER_SET",
+        ES_TCC_AUTHORIZATION_REASON_SYSTEM_SET.rawValue: "ES_TCC_AUTHORIZATION_REASON_SYSTEM_SET",
+        ES_TCC_AUTHORIZATION_REASON_SERVICE_POLICY.rawValue: "ES_TCC_AUTHORIZATION_REASON_SERVICE_POLICY",
+        ES_TCC_AUTHORIZATION_REASON_MDM_POLICY.rawValue: "ES_TCC_AUTHORIZATION_REASON_MDM_POLICY",
+        ES_TCC_AUTHORIZATION_REASON_SERVICE_OVERRIDE_POLICY.rawValue:
+            "ES_TCC_AUTHORIZATION_REASON_SERVICE_OVERRIDE_POLICY",
+        ES_TCC_AUTHORIZATION_REASON_MISSING_USAGE_STRING.rawValue: "ES_TCC_AUTHORIZATION_REASON_MISSING_USAGE_STRING",
+        ES_TCC_AUTHORIZATION_REASON_PROMPT_TIMEOUT.rawValue: "ES_TCC_AUTHORIZATION_REASON_PROMPT_TIMEOUT",
+        ES_TCC_AUTHORIZATION_REASON_PREFLIGHT_UNKNOWN.rawValue: "ES_TCC_AUTHORIZATION_REASON_PREFLIGHT_UNKNOWN",
+        ES_TCC_AUTHORIZATION_REASON_ENTITLED.rawValue: "ES_TCC_AUTHORIZATION_REASON_ENTITLED",
+        ES_TCC_AUTHORIZATION_REASON_APP_TYPE_POLICY.rawValue: "ES_TCC_AUTHORIZATION_REASON_APP_TYPE_POLICY",
+        ES_TCC_AUTHORIZATION_REASON_PROMPT_CANCEL.rawValue: "ES_TCC_AUTHORIZATION_REASON_PROMPT_CANCEL",
+    ], unknown: "Unknown")
+    
     /// Derive the names of the identity type, update type, right, and reason.
     public mutating func enrich() {
-        switch es_tcc_identity_type_t(rawValue: identity_type) {
-        case ES_TCC_IDENTITY_TYPE_BUNDLE_ID:
-            identity_type_string = "ES_TCC_IDENTITY_TYPE_BUNDLE_ID"
-        case ES_TCC_IDENTITY_TYPE_POLICY_ID:
-            identity_type_string = "ES_TCC_IDENTITY_TYPE_POLICY_ID"
-        case ES_TCC_IDENTITY_TYPE_EXECUTABLE_PATH:
-            identity_type_string = "ES_TCC_IDENTITY_TYPE_EXECUTABLE_PATH"
-        case ES_TCC_IDENTITY_TYPE_FILE_PROVIDER_DOMAIN_ID:
-            identity_type_string = "ES_TCC_IDENTITY_TYPE_FILE_PROVIDER_DOMAIN_ID"
-        default:
-            identity_type_string = "Unknown"
-        }
-        switch es_tcc_event_type_t(rawValue: update_type) {
-        case ES_TCC_EVENT_TYPE_UNKNOWN:
-            update_type_string = "ES_TCC_EVENT_TYPE_UNKNOWN"
-        case ES_TCC_EVENT_TYPE_CREATE:
-            update_type_string = "ES_TCC_EVENT_TYPE_CREATE"
-        case ES_TCC_EVENT_TYPE_MODIFY:
-            update_type_string = "ES_TCC_EVENT_TYPE_MODIFY"
-        case ES_TCC_EVENT_TYPE_DELETE:
-            update_type_string = "ES_TCC_EVENT_TYPE_DELETE"
-        default:
-            update_type_string = "Unknown"
-        }
-        switch es_tcc_authorization_right_t(rawValue: right) {
-        case ES_TCC_AUTHORIZATION_RIGHT_DENIED:
-            right_string = "ES_TCC_AUTHORIZATION_RIGHT_DENIED"
-        case ES_TCC_AUTHORIZATION_RIGHT_UNKNOWN:
-            right_string = "ES_TCC_AUTHORIZATION_RIGHT_UNKNOWN"
-        case ES_TCC_AUTHORIZATION_RIGHT_ALLOWED:
-            right_string = "ES_TCC_AUTHORIZATION_RIGHT_ALLOWED"
-        case ES_TCC_AUTHORIZATION_RIGHT_LIMITED:
-            right_string = "ES_TCC_AUTHORIZATION_RIGHT_LIMITED"
-        case ES_TCC_AUTHORIZATION_RIGHT_ADD_MODIFY_ADDED:
-            right_string = "ES_TCC_AUTHORIZATION_RIGHT_ADD_MODIFY_ADDED"
-        case ES_TCC_AUTHORIZATION_RIGHT_SESSION_PID:
-            right_string = "ES_TCC_AUTHORIZATION_RIGHT_SESSION_PID"
-        case ES_TCC_AUTHORIZATION_RIGHT_LEARN_MORE:
-            right_string = "ES_TCC_AUTHORIZATION_RIGHT_LEARN_MORE"
-        default:
-            right_string = "Unknown"
-        }
-        switch es_tcc_authorization_reason_t(rawValue: reason) {
-        case ES_TCC_AUTHORIZATION_REASON_NONE:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_NONE"
-        case ES_TCC_AUTHORIZATION_REASON_ERROR:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_ERROR"
-        case ES_TCC_AUTHORIZATION_REASON_USER_CONSENT:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_USER_CONSENT"
-        case ES_TCC_AUTHORIZATION_REASON_USER_SET:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_USER_SET"
-        case ES_TCC_AUTHORIZATION_REASON_SYSTEM_SET:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_SYSTEM_SET"
-        case ES_TCC_AUTHORIZATION_REASON_SERVICE_POLICY:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_SERVICE_POLICY"
-        case ES_TCC_AUTHORIZATION_REASON_MDM_POLICY:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_MDM_POLICY"
-        case ES_TCC_AUTHORIZATION_REASON_SERVICE_OVERRIDE_POLICY:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_SERVICE_OVERRIDE_POLICY"
-        case ES_TCC_AUTHORIZATION_REASON_MISSING_USAGE_STRING:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_MISSING_USAGE_STRING"
-        case ES_TCC_AUTHORIZATION_REASON_PROMPT_TIMEOUT:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_PROMPT_TIMEOUT"
-        case ES_TCC_AUTHORIZATION_REASON_PREFLIGHT_UNKNOWN:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_PREFLIGHT_UNKNOWN"
-        case ES_TCC_AUTHORIZATION_REASON_ENTITLED:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_ENTITLED"
-        case ES_TCC_AUTHORIZATION_REASON_APP_TYPE_POLICY:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_APP_TYPE_POLICY"
-        case ES_TCC_AUTHORIZATION_REASON_PROMPT_CANCEL:
-            reason_string = "ES_TCC_AUTHORIZATION_REASON_PROMPT_CANCEL"
-        default:
-            reason_string = "Unknown"
-        }
+        identity_type_string = Self.identityTypeNames.name(of: Int(identity_type))
+        update_type_string = Self.updateTypeNames.name(of: Int(update_type))
+        right_string = Self.rightNames.name(of: Int(right))
+        reason_string = Self.reasonNames.name(of: Int(reason))
     }
 }

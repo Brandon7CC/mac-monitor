@@ -21,7 +21,7 @@
 import Foundation
 
 
-public struct AuthorizationPetitionEvent: Identifiable, Codable, Hashable {
+public struct AuthorizationPetitionEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var instigator, petitioner: Process?
@@ -51,25 +51,12 @@ public struct AuthorizationPetitionEvent: Identifiable, Codable, Hashable {
         flagNames.filter { rawFlags & $0.flag != 0 }.map(\.name)
     }
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: AuthorizationPetitionEvent, rhs: AuthorizationPetitionEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let event: es_event_authorization_petition_t = rawMessage.pointee.event.authorization_petition.pointee
         let version: Int = Int(rawMessage.pointee.version)
         
-        if let instigator = event.instigator {
-            self.instigator = Process(from: instigator.pointee, version: version)
-        }
-        
-        if let petitioner = event.petitioner {
-            self.petitioner = Process(from: petitioner.pointee, version: version)
-        }
+        self.instigator = event.instigator.map { Process(from: $0.pointee, version: version) }
+        self.petitioner = event.petitioner.map { Process(from: $0.pointee, version: version) }
         
         if version >= 8 {
             self.instigator_token = AuditToken(from: event.instigator_token)

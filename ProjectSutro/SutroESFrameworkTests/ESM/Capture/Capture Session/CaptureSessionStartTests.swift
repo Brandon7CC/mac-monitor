@@ -91,7 +91,7 @@ final class CaptureSessionStartTests: XCTestCase {
         let apple = [ESMutedPath(type: "ES_MUTE_PATH_TYPE_LITERAL", events: [], path: "/usr/libexec/apple")]
         let factory = FakeEndpointSecurityClientFactory(mutedPaths: [0: apple])
         let session = try makeSession(configuration, factory: factory)
-        XCTAssertEqual(session.appleMuteSet, Set(apple.map { pathToJSON(value: $0) }))
+        XCTAssertEqual(session.appleMuteSet, Set(apple.map { ProcessHelpers.eventToJSON(value: $0) }))
         let calls = factory.client(.process).calls
         let read = try XCTUnwrap(calls.firstIndex(of: .mutedPaths))
         let firstMute = try XCTUnwrap(calls.firstIndex { $0.kind == .setPathMute })

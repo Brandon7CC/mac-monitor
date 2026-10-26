@@ -74,6 +74,15 @@ public struct LaunchItem: Identifiable, Codable, Hashable {
 
 // MARK: - Mac Monitor enrichment
 extension LaunchItem: ESEnrichable {
+    /// `es_btm_item_type_t`: what kind of launch item it is.
+    private static let itemTypeNames = ConstantNames([
+        ES_BTM_ITEM_TYPE_USER_ITEM.rawValue: "ES_BTM_ITEM_TYPE_USER_ITEM",
+        ES_BTM_ITEM_TYPE_APP.rawValue: "ES_BTM_ITEM_TYPE_APP",
+        ES_BTM_ITEM_TYPE_AGENT.rawValue: "ES_BTM_ITEM_TYPE_AGENT",
+        ES_BTM_ITEM_TYPE_DAEMON.rawValue: "ES_BTM_ITEM_TYPE_DAEMON",
+        ES_BTM_ITEM_TYPE_LOGIN_ITEM.rawValue: "ES_BTM_ITEM_TYPE_LOGIN_ITEM",
+    ])
+    
     /// Derive the item type's name, the item's and the app's paths from their URLs, and the user's name if it's a
     /// system account.
     ///
@@ -82,19 +91,6 @@ extension LaunchItem: ESEnrichable {
         app_path = app_url.flatMap(URL.init(string:))?.path
         item_path = URL(string: item_url)?.path ?? ""
         uid_human = Process.userName(Int(uid), systemAccountsOnly: true) ?? uid_human
-        switch es_btm_item_type_t(rawValue: UInt32(truncatingIfNeeded: item_type)) {
-        case ES_BTM_ITEM_TYPE_USER_ITEM:
-            item_type_string = "ES_BTM_ITEM_TYPE_USER_ITEM"
-        case ES_BTM_ITEM_TYPE_APP:
-            item_type_string = "ES_BTM_ITEM_TYPE_APP"
-        case ES_BTM_ITEM_TYPE_AGENT:
-            item_type_string = "ES_BTM_ITEM_TYPE_AGENT"
-        case ES_BTM_ITEM_TYPE_DAEMON:
-            item_type_string = "ES_BTM_ITEM_TYPE_DAEMON"
-        case ES_BTM_ITEM_TYPE_LOGIN_ITEM:
-            item_type_string = "ES_BTM_ITEM_TYPE_LOGIN_ITEM"
-        default:
-            item_type_string = "UNKNOWN"
-        }
+        item_type_string = Self.itemTypeNames.name(of: Int(item_type))
     }
 }

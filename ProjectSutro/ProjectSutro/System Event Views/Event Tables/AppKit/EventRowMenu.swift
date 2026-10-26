@@ -206,7 +206,7 @@ struct EventRowMenu {
         let manager = manager
         return Self.item("Unsubscribe: \"\(eventType)\"") {
             os_log("Requesting ES unsubscribe from: \(eventType)")
-            manager.puntEventToUnsubscribe(eventString: eventType)
+            manager.setSubscription(eventType, enabled: false)
         }
     }
     

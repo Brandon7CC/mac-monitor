@@ -118,7 +118,8 @@ final class MuteListTests: XCTestCase {
     }
     
     /// The shipped default holds every mute of Mac Monitor's default set: one entry per distinct path and type, each
-    /// covering its mutes' events or every event. The repeated `/Library/SystemExtensions/` OPEN rule is listed once.
+    /// covering its mutes' events or every event. `/Library/SystemExtensions/`, which four prefix rules mute, is listed
+    /// once, with OPEN once.
     func testShippedDefaultHoldsTheDefaultSet() {
         let shipped = MuteList.shippedDefault(for: .tester)
         let mutes = MuteSet.default(home: ConsoleUser.tester.home).pathMutes

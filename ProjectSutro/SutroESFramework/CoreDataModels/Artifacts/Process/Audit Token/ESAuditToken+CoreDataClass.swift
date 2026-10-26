@@ -29,8 +29,7 @@ public class ESAuditToken: NSManagedObject, Identifiable {
         from token: AuditToken,
         insertIntoManagedObjectContext context: NSManagedObjectContext!
     ) {
-        let description = NSEntityDescription.entity(forEntityName: "ESAuditToken", in: context)!
-        self.init(entity: description, insertInto: context)
+        self.init(insertingInto: context)
         
         self.pid = token.pid
         self.euid = token.euid

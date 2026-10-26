@@ -60,7 +60,6 @@ final class EventSearchController: ObservableObject {
         /// Read the schema's keys now, off the main thread, so the editor opens without reading them.
         DispatchQueue.global(qos: .utility).async {
             _ = RecordKeyLibrary.groups
-            _ = StreamFilter.Predicate.recordKeys
         }
         recents = defaults.stringArray(forKey: Key.recents) ?? []
         saved = defaults.data(forKey: Key.saved).flatMap { try? JSONDecoder().decode([SavedPredicate].self, from: $0) }

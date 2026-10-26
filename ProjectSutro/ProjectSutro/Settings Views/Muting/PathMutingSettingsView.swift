@@ -283,7 +283,7 @@ struct PathMutingSettingsView: View {
     // MARK: Data
 
     /// The saved set, as the Security Extension last sent it.
-    private var mutes: [ESMutedPath] { systemExtensionManager.simpleGetMutedPaths() }
+    private var mutes: [ESMutedPath] { systemExtensionManager.savedMutes }
 
     /// The mutes the search keeps: by path, by type, or by event.
     private var kept: [ESMutedPath] {

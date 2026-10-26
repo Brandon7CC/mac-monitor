@@ -13,8 +13,8 @@ import CoreData
 /// Encodes events the way Export telemetry ▸ JSONL (lines) writes them, without an event store: `macmonitor`'s JSONL.
 ///
 /// Each event becomes the same `ESMessage` the store keeps, in a context with no persistent store (so nothing is ever
-/// saved), and is encoded with the same ``ProcessHelpers/eventToJSON(value:)``: one record per line, an eslogger
-/// superset. It never touches `CoreDataController.shared`, the user's caches, or their preferences.
+/// saved), and is encoded with the same ``ProcessHelpers/eventToJSON(value:pretty:)``: one record per line, an
+/// eslogger superset. It never touches `CoreDataController.shared`, the user's caches, or their preferences.
 ///
 /// **Threading:** not thread-safe. One per thread. Every call waits on its private-queue context.
 public final class ExportEncoder {
@@ -47,7 +47,7 @@ public final class ExportEncoder {
         context.performAndWait {
             autoreleasepool {
                 let row = ESMessage(from: message, insertIntoManagedObjectContext: context)
-                let json = pretty ? ProcessHelpers.eventToPrettyJSON(value: row) : ProcessHelpers.eventToJSON(value: row)
+                let json = ProcessHelpers.eventToJSON(value: row, pretty: pretty)
                 var line = Data(json.utf8)
                 line.append(0x0A)
                 return line

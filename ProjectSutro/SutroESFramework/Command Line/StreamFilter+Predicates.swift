@@ -64,28 +64,9 @@ enum PredicateGuard {
     ]
     /// The class `NSPredicate` calls its own functions on. `FUNCTION` calls them on whatever it's given instead.
     static let functionsClass = "_NSPredicateUtilities"
-    /// Every key a record can have: each object's properties in the bundled telemetry schema. None if it can't be
-    /// read, so every key path is refused.
-    static let keys: Set<String> = {
-        guard let data = try? TelemetrySchema.data(), let schema = try? JSONSerialization.jsonObject(with: data) else {
-            return []
-        }
-        var keys = Set<String>()
-        /// Each `properties` object's names, at any depth.
-        func collect(_ value: Any) {
-            switch value {
-            case let object as [String: Any]:
-                if let properties = object["properties"] as? [String: Any] { keys.formUnion(properties.keys) }
-                object.values.forEach(collect)
-            case let array as [Any]:
-                array.forEach(collect)
-            default:
-                break
-            }
-        }
-        collect(schema)
-        return keys
-    }()
+    /// Every key a record can have: each of the telemetry schema's key paths' keys (``RecordKeyPaths``). None if it
+    /// can't be read, so every key path is refused.
+    static let keys = Set(RecordKeyPaths.shared.nodes.values.flatMap(\.children))
 
     /// Refuse a predicate that does more than compare the record's values.
     ///
@@ -151,16 +132,11 @@ enum PredicateGuard {
             try expression.arguments?.forEach { try check($0, for: audience, in: variable) }
         case .subquery:
             try checkSubquery(expression, for: audience, in: variable)
-        case .aggregate:
-            guard let members = expression.collection as? [NSExpression] else {
-                throw refusal(expression.description, for: audience)
-            }
-            try members.forEach { try check($0, for: audience, in: variable) }
-        case .unionSet, .intersectSet, .minusSet:
-            try check(expression.left, for: audience, in: variable)
-            try check(expression.right, for: audience, in: variable)
+        case .aggregate where expression.collection is [NSExpression], .unionSet, .intersectSet, .minusSet:
+            try expression.subexpressions.forEach { try check($0, for: audience, in: variable) }
         default:
-            /// Variables outside `$e.path`, blocks, TERNARY, and FIRST, LAST and SIZE.
+            /// Variables outside `$e.path`, blocks, TERNARY, FIRST, LAST and SIZE, and an aggregate of anything but
+            /// expressions.
             throw refusal(expression.description, for: audience)
         }
     }
@@ -288,11 +264,6 @@ final class BoundedMatches {
     /// Patterns read from records, compiled.
     private var compiled: [String: NSRegularExpression] = [:]
 
-    /// Why a value couldn't be matched.
-    private struct Failure: Error, CustomStringConvertible {
-        let description: String
-    }
-
     /// Replace each `MATCHES` in a predicate.
     ///
     /// - Parameters:
@@ -336,7 +307,7 @@ final class BoundedMatches {
                           on object: Any?, _ variables: [String: Any]?) -> Bool {
         guard failure == nil else { return false }
         do {
-            let value = try Self.value(of: comparison.leftExpression, on: object, variables)
+            let value = try PredicateBridge.evaluate(comparison.leftExpression, with: object, variables: variables)
             let expression = try constant ?? pattern(of: comparison, on: object, variables)
             let options = comparison.options
             switch comparison.comparisonPredicateModifier {
@@ -357,12 +328,12 @@ final class BoundedMatches {
     ///   - value: The value: `nil` never matches.
     ///   - options: The comparison's options: `[d]` matches the value without its diacritics.
     /// - Returns: `true` if it matches.
-    /// - Throws: ``Failure`` for a value that isn't a string, or one it gave up on.
+    /// - Throws: ``PredicateFailure`` for a value that isn't a string, or one it gave up on.
     private func matches(_ expression: NSRegularExpression, _ value: Any?,
                          _ options: NSComparisonPredicate.Options) throws -> Bool {
         guard let value, !(value is NSNull) else { return false }
         guard var text = value as? String else {
-            throw Failure(description: "Can't do regex matching on object \(value).")
+            throw PredicateFailure(description: "Can't do regex matching on object \(value).")
         }
         if options.contains(.diacriticInsensitive) { text = text.folding(options: .diacriticInsensitive, locale: nil) }
         let deadline = Date(timeIntervalSinceNow: Self.limit)
@@ -378,8 +349,8 @@ final class BoundedMatches {
             }
         }
         guard !gaveUp else {
-            throw Failure(description: "MATCHES gave up on a value after \(Self.limit) seconds: its pattern "
-                          + "backtracks too much.")
+            throw PredicateFailure(description: "MATCHES gave up on a value after \(Self.limit) seconds: its pattern "
+                                   + "backtracks too much.")
         }
         return matched
     }
@@ -391,16 +362,16 @@ final class BoundedMatches {
     ///   - object: What it's evaluated on.
     ///   - variables: A `SUBQUERY`'s variable, when it's in one.
     /// - Returns: The regular expression.
-    /// - Throws: ``Failure`` if the pattern isn't a regular expression.
+    /// - Throws: ``PredicateFailure`` if the pattern isn't a regular expression.
     private func pattern(of comparison: NSComparisonPredicate, on object: Any?,
                          _ variables: [String: Any]?) throws -> NSRegularExpression {
-        let value = try Self.value(of: comparison.rightExpression, on: object, variables)
+        let value = try PredicateBridge.evaluate(comparison.rightExpression, with: object, variables: variables)
         guard let pattern = value as? String else {
-            throw Failure(description: "Can't use \(value ?? "nil") as a regular expression.")
+            throw PredicateFailure(description: "Can't use \(value ?? "nil") as a regular expression.")
         }
         if let expression = compiled[pattern] { return expression }
         guard let expression = expression(pattern, comparison.options) else {
-            throw Failure(description: "Can't use '\(pattern)' as a regular expression.")
+            throw PredicateFailure(description: "Can't use '\(pattern)' as a regular expression.")
         }
         if compiled.count >= Self.cacheSize { compiled.removeAll() }
         compiled[pattern] = expression
@@ -422,40 +393,26 @@ final class BoundedMatches {
                                         options: options.contains(.caseInsensitive) ? .caseInsensitive : [])
     }
 
-    /// - Parameters:
-    ///   - expression: One side of a comparison.
-    ///   - object: What it's evaluated on.
-    ///   - variables: A `SUBQUERY`'s variable, when it's in one.
-    /// - Returns: Its value.
-    /// - Throws: Why `NSExpression` couldn't evaluate it.
-    private static func value(of expression: NSExpression, on object: Any?,
-                              _ variables: [String: Any]?) throws -> Any? {
-        var value: AnyObject?
-        try PredicateBridge.evaluate(expression, with: object, variables: variables, value: &value)
-        return value
-    }
-
     /// - Parameter value: The left side of an `ANY` or `ALL` comparison.
     /// - Returns: Its members.
-    /// - Throws: ``Failure`` if it isn't an array or a set.
+    /// - Throws: ``PredicateFailure`` if it isn't an array or a set.
     private static func members(of value: Any?) throws -> [Any] {
         switch value {
         case let array as NSArray: return array as [AnyObject]
         case let set as NSSet: return set.allObjects
-        default: throw Failure(description: "ANY and ALL need an array or a set, not \(value ?? "nil").")
+        default: throw PredicateFailure(description: "ANY and ALL need an array or a set, not \(value ?? "nil").")
         }
     }
+}
+
+/// Why a `MATCHES` (``BoundedMatches``) or a `SUBQUERY` (``RelatedEvents``) couldn't be evaluated on a record.
+struct PredicateFailure: Error, CustomStringConvertible {
+    let description: String
 }
 
 
 // MARK: - Events
 public extension StreamFilter.Predicate {
-    /// Every key a predicate's key paths may name: each object's properties in the telemetry schema, an array's
-    /// aggregates (`@count`), and the related events a `SUBQUERY` goes through.
-    static var recordKeys: Set<String> {
-        PredicateGuard.keys.union(PredicateRecord.aggregates).union(PredicateRelation.allCases.map(\.rawValue))
-    }
-    
     /// Evaluate the predicate on an event's record, the JSON Export telemetry writes for it.
     ///
     /// Call on the event's context's queue. Prefetch ``ESMessage/recordPrefetchKeyPaths(in:)`` for many events.

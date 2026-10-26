@@ -24,12 +24,15 @@ public class ESODModifyPasswordEvent: ESODEvent, Identifiable {
     /// Store an event.
     ///
     /// - Parameters:
+    ///   - event: The event.
     ///   - message: The event's message.
     ///   - context: The context to insert into.
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: OpenDirectoryModifyPasswordEvent = message.event.od_modify_password!
-        let description = NSEntityDescription.entity(forEntityName: "ESODModifyPasswordEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(
+        from event: OpenDirectoryModifyPasswordEvent,
+        message: Message,
+        in context: NSManagedObjectContext!
+    ) {
+        self.init(insertingInto: context)
         store(event, version: message.version, in: context)
         account_type = event.account_type.map { NSNumber(value: $0) }
         account_name = event.account_name

@@ -123,11 +123,7 @@ enum StoreNarrowing {
     /// - Returns: The key path it reads: `path` for `path` without a variable, or for `$e.path` with one.
     private static func keyPath(of expression: NSExpression, _ variable: String?) -> String? {
         guard let variable else { return expression.expressionType == .keyPath ? expression.keyPath : nil }
-        guard expression.expressionType == .function, expression.function == "valueForKeyPath:",
-              expression.operand.expressionType == .variable, expression.operand.variable == variable else {
-            return nil
-        }
-        return expression.arguments?.first?.keyPath
+        return expression.keyPath(of: variable)
     }
 
     /// - Parameter expression: A comparison's right side.

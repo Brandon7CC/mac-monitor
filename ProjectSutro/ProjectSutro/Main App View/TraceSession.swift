@@ -266,9 +266,7 @@ final class TraceSession: ObservableObject {
         }
         /// Checked first: a short save can rename over the file before the next line runs.
         let replacing = FileManager.default.fileExists(atPath: url.path)
-        let started = eventIDs.map { store.exportSelectedEvents(eventIDs: $0, to: url, jsonl: jsonl, progress: progress,
-                                                                completion: completion) }
-            ?? store.exportFullTrace(to: url, jsonl: jsonl, progress: progress, completion: completion)
+        let started = store.exportEvents(eventIDs, to: url, jsonl: jsonl, progress: progress, completion: completion)
         exporter = started
         (saving, showsSaving) = (Saving(url: url, replacing: replacing, exporter: started), false)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in

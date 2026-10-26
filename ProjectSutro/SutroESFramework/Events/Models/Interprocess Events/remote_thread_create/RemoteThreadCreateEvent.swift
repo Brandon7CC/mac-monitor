@@ -11,7 +11,7 @@ import Foundation
 // https://developer.apple.com/documentation/endpointsecurity/es_event_remote_thread_create_t
 /// Models an `ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE`: a process created a thread in another process with
 /// `thread_create` or `thread_create_running`.
-public struct RemoteThreadCreateEvent: Identifiable, Codable, Hashable {
+public struct RemoteThreadCreateEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     /// The process the thread was created in.
@@ -26,22 +26,6 @@ public struct RemoteThreadCreateEvent: Identifiable, Codable, Hashable {
     /// eslogger's keys, then Mac Monitor's.
     enum CodingKeys: String, CodingKey {
         case id, target, thread_state, thread_state_string
-    }
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: RemoteThreadCreateEvent, rhs: RemoteThreadCreateEvent) -> Bool {
-        if lhs.target.audit_token_string != rhs.target.audit_token_string {
-            return false
-        }
-        
-        if lhs.thread_state != rhs.thread_state {
-            return false
-        }
-        
-        return true
     }
     
     /// Record the event of a message from Endpoint Security.

@@ -13,7 +13,8 @@ import Foundation
 /// suppression, and a text line need.
 ///
 /// Decoding only these is about four times cheaper than decoding a whole `Message` (21 µs against 90 µs an event),
-/// which keeps text output fast. JSONL output decodes the `Message` anyway, and takes its header from it.
+/// which keeps text output fast. JSONL output decodes the `Message` anyway, and takes its header from it. Decoding
+/// throws a `DecodingError` for a missing `event_type`, `es_event_type`, `time`, or `process`.
 public struct EventHeader: Decodable, Equatable {
     /// The initiating process.
     public struct Process: Decodable, Equatable {
@@ -79,7 +80,8 @@ public struct EventHeader: Decodable, Equatable {
     public let targetPath: String?
     
     private enum CodingKeys: String, CodingKey {
-        case seq_num, global_seq_num, event_type, es_event_type, time, process, context, target_path
+        case sequence = "seq_num", globalSequence = "global_seq_num", eventType = "event_type", name = "es_event_type"
+        case time, process, context, targetPath = "target_path"
     }
     
     /// - Parameters:
@@ -112,21 +114,5 @@ public struct EventHeader: Decodable, Equatable {
                   process: Process(pid: message.process.pid, groupID: message.process.group_id,
                                    user: message.process.euid_human, path: message.process.executable?.path),
                   context: message.context, targetPath: message.target_path)
-    }
-    
-    /// Read the header of a wire event.
-    ///
-    /// - Parameter decoder: The decoder.
-    /// - Throws: A `DecodingError` for a missing `event_type`, `es_event_type`, `time`, or `process`.
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        sequence = try container.decodeIfPresent(Int.self, forKey: .seq_num)
-        globalSequence = try container.decodeIfPresent(Int.self, forKey: .global_seq_num)
-        eventType = try container.decode(Int.self, forKey: .event_type)
-        name = try container.decode(String.self, forKey: .es_event_type)
-        time = try container.decode(String.self, forKey: .time)
-        process = try container.decode(Process.self, forKey: .process)
-        context = try container.decodeIfPresent(String.self, forKey: .context)
-        targetPath = try container.decodeIfPresent(String.self, forKey: .target_path)
     }
 }

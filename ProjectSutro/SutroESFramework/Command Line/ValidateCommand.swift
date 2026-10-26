@@ -16,7 +16,7 @@ import Foundation
 /// The trace must be a regular file: the validator measures it and reads it a chunk at a time, and a pipe or a device
 /// could block forever. So standard input (`-`), a folder, a pipe or a device can't be read (66), as a missing or
 /// unreadable file can't. A trace with no records isn't valid (65).
-public struct ValidateCommand {
+public enum ValidateCommand {
     /// How a check ended.
     public enum Outcome: Equatable {
         /// The trace has records, and every one follows the schema.
@@ -45,28 +45,17 @@ public struct ValidateCommand {
     /// How the report's hint for eslogger's own JSON says to check only eslogger's keys.
     public static let esloggerAdvice = "Add --eslogger to check only the keys eslogger writes."
     
-    private let output: StreamOutput
-    /// Asked before each record: `true` stops checking.
-    private let isCancelled: () -> Bool
-    /// Reads the schema.
-    private let schema: () throws -> Data
-    
+    /// Check a trace and write the report, even when checking stopped early.
+    ///
     /// - Parameters:
+    ///   - invocation: The trace, and which of its keys to check.
     ///   - output: Standard output.
     ///   - isCancelled: Asked before each record: `true` stops checking, as a signal does in `macmonitor`.
     ///   - schema: Reads the schema: the framework's (``TelemetrySchema/data()``), unless a test passes its own.
-    public init(output: StreamOutput, isCancelled: @escaping () -> Bool = { false },
-                schema: @escaping () throws -> Data = TelemetrySchema.data) {
-        self.output = output
-        self.isCancelled = isCancelled
-        self.schema = schema
-    }
-    
-    /// Check a trace and write the report, even when checking stopped early.
-    ///
-    /// - Parameter invocation: The trace, and which of its keys to check.
     /// - Returns: How the check ended.
-    public func run(_ invocation: ValidateInvocation) -> Outcome {
+    public static func run(_ invocation: ValidateInvocation, output: StreamOutput,
+                           isCancelled: @escaping () -> Bool = { false },
+                           schema: () throws -> Data = TelemetrySchema.data) -> Outcome {
         guard invocation.path != "-" else {
             return .failed(CommandLineFailure(.noInput, """
                 validate reads a trace from a file, not standard input. Save it to a file, then validate that.

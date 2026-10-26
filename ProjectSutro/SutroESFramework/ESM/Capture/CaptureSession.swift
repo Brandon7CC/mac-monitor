@@ -96,7 +96,7 @@ public final class CaptureSession {
             CaptureLane($0, sensorID: sensorID, serializer: serializer, launchServices: launchServices, emit: emit)
         }
         try Self.createClients(for: lanes, with: factory, label: label)
-        appleMuteSet = Set((lanes.first?.client?.mutedPaths() ?? []).map { pathToJSON(value: $0) })
+        appleMuteSet = Set((lanes.first?.client?.mutedPaths() ?? []).map { ProcessHelpers.eventToJSON(value: $0) })
         if configuration.mutesSelf { Self.muteSelf(on: lanes, label: label) }
         Self.apply(MuteList().changes(to: configuration.mutes), on: lanes, label: label)
         try Self.subscribe(lanes, to: events, label: label)

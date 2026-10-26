@@ -274,3 +274,23 @@ enum ESLogger {
         return formatter
     }
 }
+
+
+// MARK: - Parallel map
+extension RandomAccessCollection {
+    /// Transform every element in parallel, keeping their order. Each is transformed in its own autorelease pool: the
+    /// calling thread transforms some too, inside what may be one long work item.
+    ///
+    /// - Parameter transform: Transforms one element. Called on any thread, concurrently.
+    /// - Returns: The transformed elements, in order.
+    func concurrentMap<T>(_ transform: (Element) -> T) -> [T] {
+        [T](unsafeUninitializedCapacity: count) { buffer, initialized in
+            let slots = buffer
+            DispatchQueue.concurrentPerform(iterations: count) { offset in
+                let element = self[index(startIndex, offsetBy: offset)]
+                slots.initializeElement(at: offset, to: autoreleasepool { transform(element) })
+            }
+            initialized = count
+        }
+    }
+}

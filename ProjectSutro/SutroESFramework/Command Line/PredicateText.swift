@@ -20,48 +20,42 @@ public enum PredicateText {
         public let range: NSRange
     }
 
-    private static let expression = try! NSRegularExpression(pattern: [
-        #""(?:[^"\\]|\\.)*"?|'(?:[^'\\]|\\.)*'?"#,
-        #"\b(?:AND|OR|NOT|ANY|ALL|NONE|IN|CONTAINS|BEGINSWITH|ENDSWITH|MATCHES|LIKE|BETWEEN|TRUEPREDICATE"#
-            + #"|FALSEPREDICATE|TRUE|FALSE|NIL|NULL|YES|NO)\b(?:\[[cd]+\])?"#,
-        #"==|!=|>=|<=|=|<|>"#,
-        #"\b\d+(?:\.\d+)?\b"#,
-        #"\$[A-Za-z_]\w*(?:\.[\w@]+)*"#,
-        #"[A-Za-z_@][\w@]*(?:\.[\w@]+)*"#,
-    ].joined(separator: "|"), options: [.caseInsensitive])
-
-    private static let keywords: Set<String> = [
-        "AND", "OR", "NOT", "ANY", "ALL", "NONE", "IN", "CONTAINS", "BEGINSWITH", "ENDSWITH", "MATCHES", "LIKE",
-        "BETWEEN", "TRUEPREDICATE", "FALSEPREDICATE", "TRUE", "FALSE", "NIL", "NULL", "YES", "NO",
+    /// Each kind of token and the pattern that matches it, tried in this order, so a keyword is read before a key path.
+    private static let patterns: [(kind: Token.Kind, pattern: String)] = [
+        (.string, #""(?:[^"\\]|\\.)*"?|'(?:[^'\\]|\\.)*'?"#),
+        (.keyword, #"\b(?:AND|OR|NOT|ANY|ALL|NONE|IN|CONTAINS|BEGINSWITH|ENDSWITH|MATCHES|LIKE|BETWEEN|TRUEPREDICATE"#
+            + #"|FALSEPREDICATE|TRUE|FALSE|NIL|NULL|YES|NO)\b(?:\[[cd]+\])?"#),
+        (.comparison, #"==|!=|>=|<=|=|<|>"#),
+        (.number, #"\b\d+(?:\.\d+)?\b"#),
+        (.variable, #"\$[A-Za-z_]\w*(?:\.[\w@]+)*"#),
+        (.keyPath, #"[A-Za-z_@][\w@]*(?:\.[\w@]+)*"#),
     ]
+    /// Every pattern, each in its own group: the group that matched is the token's kind.
+    private static let expression = try! NSRegularExpression(
+        pattern: patterns.map { "(\($0.pattern))" }.joined(separator: "|"), options: [.caseInsensitive])
+    /// The keyword pattern alone, matched over a key path: one that's a keyword right after a digit, as in `1AND`,
+    /// has no word boundary before it, so the key path pattern matched it.
+    private static let keyword = try! NSRegularExpression(
+        pattern: patterns.first { $0.kind == .keyword }!.pattern, options: [.caseInsensitive])
 
     /// - Parameter text: A predicate.
     /// - Returns: Its tokens, in order.
     public static func tokens(in text: String) -> [Token] {
         let string = text as NSString
         return expression.matches(in: text, range: NSRange(location: 0, length: string.length)).map { match in
-            let token = string.substring(with: match.range)
-            let first = token.first ?? " "
-            let kind: Token.Kind
-            if first == "\"" || first == "'" {
-                kind = .string
-            } else if "=!<>".contains(first) {
-                kind = .comparison
-            } else if first.isNumber {
-                kind = .number
-            } else if first == "$" {
-                kind = .variable
-            } else if NSMaxRange(match.range) < string.length,
-                      string.substring(with: NSRange(location: NSMaxRange(match.range), length: 1)) == "(" {
-                kind = .function
-            } else if token.range(of: #"^[A-Za-z]+(\[[cd]+\])?$"#, options: .regularExpression) != nil,
-                      keywords.contains(token.uppercased().replacingOccurrences(of: #"\[[CD]+\]"#, with: "",
-                                                                                   options: .regularExpression)) {
+            var kind = patterns.indices.first { match.range(at: $0 + 1).location != NSNotFound }
+                .map { patterns[$0].kind } ?? .keyPath
+            /// A key path that's a keyword is one, such as `AND` in `1AND`.
+            if kind == .keyPath,
+               keyword.firstMatch(in: text, options: .anchored, range: match.range)?.range == match.range {
                 kind = .keyword
-            } else {
-                kind = .keyPath
             }
-            return Token(kind: kind, text: token, range: match.range)
+            /// A keyword or key path just before `(`, such as `NOT(` or `lowercase(`, is a function.
+            let end = NSMaxRange(match.range)
+            if [.keyword, .keyPath].contains(kind), end < string.length, string.character(at: end) == 0x28 {
+                kind = .function
+            }
+            return Token(kind: kind, text: string.substring(with: match.range), range: match.range)
         }
     }
 

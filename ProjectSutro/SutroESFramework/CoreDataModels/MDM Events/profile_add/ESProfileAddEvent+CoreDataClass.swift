@@ -34,10 +34,8 @@ public class ESProfileAddEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESProfileAddEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: ProfileAddEvent = message.event.profile_add!
-        let description = NSEntityDescription.entity(forEntityName: "ESProfileAddEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: ProfileAddEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         self.is_update = event.is_update
         if let instigator = event.instigator {

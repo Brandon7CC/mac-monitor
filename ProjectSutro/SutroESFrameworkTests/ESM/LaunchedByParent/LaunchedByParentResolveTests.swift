@@ -32,7 +32,7 @@ final class LaunchedByParentResolveTests: XCTestCase {
                               byXPCProxy: Bool = true) -> LaunchedByParent.Lineage {
         LaunchedByParent.Lineage(pid: pid, ppid: 1, original_ppid: 1, parent_audit_token: launchd,
                                  responsible_audit_token: responsible ?? .fixture(pid: pid, pidversion: 9),
-                                 by: .exec(env: env, byXPCProxy: byXPCProxy))
+                                 creation: .exec(env: env, byXPCProxy: byXPCProxy))
     }
     
     /// Resolve as the Security Extension does, naming a process's executable `/path/of/<pid>`.
@@ -60,7 +60,7 @@ final class LaunchedByParentResolveTests: XCTestCase {
     func testShellChildIsUnixParent() {
         let answer = resolve(.init(pid: 402, ppid: 401, original_ppid: 401, parent_audit_token: shell,
                                    responsible_audit_token: terminal,
-                                   by: .exec(env: ["XPC_SERVICE_NAME=0"], byXPCProxy: false)))
+                                   creation: .exec(env: ["XPC_SERVICE_NAME=0"], byXPCProxy: false)))
         XCTAssertEqual(answer, LaunchedByParent(source: .unixParent, audit_token: shell, path: "/path/of/401",
                                                 resolved_by: .securityExtension))
         XCTAssertEqual(answer.pid, 401)
@@ -70,7 +70,7 @@ final class LaunchedByParentResolveTests: XCTestCase {
     /// Without a parent token, `ppid` names the Unix parent.
     func testWithoutParentTokenUsesPPID() {
         let answer = resolve(.init(pid: 402, ppid: 401, original_ppid: 401, parent_audit_token: nil,
-                                   responsible_audit_token: nil, by: .exec(env: [], byXPCProxy: false)))
+                                   responsible_audit_token: nil, creation: .exec(env: [], byXPCProxy: false)))
         XCTAssertEqual(answer.source, .unixParent)
         XCTAssertEqual(answer.pid, 401)
         XCTAssertNil(answer.audit_token)
@@ -82,8 +82,8 @@ final class LaunchedByParentResolveTests: XCTestCase {
     func testAdoptedProcessIsOriginalParentByPIDOnly() {
         let answer = resolveWithoutPaths(.init(pid: 430, ppid: 1, original_ppid: 401, parent_audit_token: launchd,
                                                responsible_audit_token: terminal,
-                                               by: .exec(env: ["XPC_SERVICE_NAME=com.example.agent"],
-                                                         byXPCProxy: false)))
+                                               creation: .exec(env: ["XPC_SERVICE_NAME=com.example.agent"],
+                                                               byXPCProxy: false)))
         XCTAssertEqual(answer, LaunchedByParent(source: .unixParent, audit_token: nil, pid: 401, path: nil,
                                                 resolved_by: .securityExtension))
     }
@@ -157,7 +157,7 @@ final class LaunchedByParentResolveTests: XCTestCase {
         let job = AuditToken.fixture(pid: 410, pidversion: 4102)
         let answer = resolve(.init(pid: 451, ppid: 410, original_ppid: 410, parent_audit_token: job,
                                    responsible_audit_token: job,
-                                   by: .exec(env: ["XPC_SERVICE_NAME=com.example.agent"], byXPCProxy: false)))
+                                   creation: .exec(env: ["XPC_SERVICE_NAME=com.example.agent"], byXPCProxy: false)))
         XCTAssertEqual(answer.source, .unixParent)
         XCTAssertEqual(answer.audit_token, job)
         XCTAssertNil(answer.launchd_job)
@@ -175,15 +175,15 @@ final class LaunchedByParentResolveTests: XCTestCase {
     /// A fork names its parent from the forking process's executable, never by reading a path.
     func testForkNamesParentFromForkingProcess() {
         let child = LaunchedByParent.Lineage(pid: 402, ppid: 401, original_ppid: 401, parent_audit_token: shell,
-                                             responsible_audit_token: terminal, by: .fork(parentPath: "/bin/zsh"))
+                                             responsible_audit_token: terminal, creation: .fork(parentPath: "/bin/zsh"))
         XCTAssertEqual(resolveWithoutPaths(child), LaunchedByParent(source: .unixParent, audit_token: shell,
                                                                     path: "/bin/zsh", resolved_by: .securityExtension))
         let unnamed = LaunchedByParent.Lineage(pid: 402, ppid: 401, original_ppid: 401, parent_audit_token: shell,
-                                               responsible_audit_token: terminal, by: .fork(parentPath: nil))
+                                               responsible_audit_token: terminal, creation: .fork(parentPath: nil))
         XCTAssertNil(resolveWithoutPaths(unnamed).path)
         let launchdFork = LaunchedByParent.Lineage(pid: 410, ppid: 1, original_ppid: 1, parent_audit_token: launchd,
                                                    responsible_audit_token: .fixture(pid: 410, pidversion: 4100),
-                                                   by: .fork(parentPath: LaunchedByParent.launchdPath))
+                                                   creation: .fork(parentPath: LaunchedByParent.launchdPath))
         XCTAssertEqual(resolveWithoutPaths(launchdFork).path, LaunchedByParent.launchdPath)
     }
     

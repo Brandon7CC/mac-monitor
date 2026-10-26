@@ -24,10 +24,8 @@ public class ESFileCloseEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESFileCloseEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: FileCloseEvent = message.event.close!
-        let description = NSEntityDescription.entity(forEntityName: "ESFileCloseEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: FileCloseEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESFileCloseEvent.target))
         self.modified = event.modified

@@ -72,7 +72,7 @@ protocol OpenDirectoryEvent: ESEnrichable {
     var instigator_process_path: String? { get set }
     /// Mac Monitor enrichment: the instigator's signing ID.
     var instigator_process_signing_id: String? { get set }
-    /// Mac Monitor enrichment: the instigator's audit token, as `audit_token_t.toString()` writes it.
+    /// Mac Monitor enrichment: the instigator's audit token, as ``AuditToken/toString()`` writes it.
     var instigator_process_audit_token: String? { get set }
 }
 
@@ -145,7 +145,7 @@ protocol OpenDirectoryGroupMemberEvent: OpenDirectoryEvent {
     /// The member added or removed: `nil` only for an event recorded before 3.0.0 whose member's type Mac Monitor
     /// didn't know.
     var member: OpenDirectoryMember? { get set }
-    /// Mac Monitor enrichment: the name of the member's type (``ODEnumNames/memberType``).
+    /// Mac Monitor enrichment: the name of the member's type (``ConstantNames/memberType``).
     var member_string: String? { get set }
 }
 
@@ -176,7 +176,7 @@ extension OpenDirectoryGroupMemberEvent {
     /// Derive Mac Monitor's fields: the common ones, and the name of the member's type.
     mutating func enrichGroupMember() {
         enrichCommonFields()
-        member_string = member.map { ODEnumNames.memberType.name(of: $0.member_type) } ?? member_string
+        member_string = member.map { ConstantNames.memberType.name(of: $0.member_type) } ?? member_string
     }
     
     /// The member for the event's summary: its name or UUID, or, for an event recorded before 3.0.0, the name of its
@@ -190,7 +190,7 @@ extension OpenDirectoryGroupMemberEvent {
 // MARK: - Values Mac Monitor wrote differently before 3.0.0
 extension KeyedDecodingContainer {
     /// An Open Directory enum's value and name: eslogger's number, or the name Mac Monitor wrote in its place before
-    /// 3.0.0 (``ODEnumNames``).
+    /// 3.0.0 (``ConstantNames``).
     ///
     /// The number is tried first: ``TraceDecoder`` reads a number as a string of its digits too.
     ///
@@ -200,7 +200,7 @@ extension KeyedDecodingContainer {
     ///   - names: The enum's names.
     /// - Returns: The value, `nil` when it's missing or names no value. And the name, `nil` when it's missing.
     /// - Throws: The error decoding a value that's neither a number nor a string.
-    func decodeODEnum(_ key: Key, name nameKey: Key, names: ODEnumNames) throws -> (Int?, String?) {
+    func decodeODEnum(_ key: Key, name nameKey: Key, names: ConstantNames) throws -> (Int?, String?) {
         if let value = try? decodeIfPresent(Int.self, forKey: key) {
             return (value, try decodeIfPresent(String.self, forKey: nameKey))
         }
@@ -222,7 +222,7 @@ extension KeyedDecodingContainer {
     /// - Throws: The error decoding a member that's neither an object nor a string.
     func decodeODMember(_ key: Key, name nameKey: Key) throws -> (OpenDirectoryMember?, String?) {
         if let name = try? decodeIfPresent(String.self, forKey: key) {
-            let type = ODEnumNames.memberType.rawValue(of: name)
+            let type = ConstantNames.memberType.rawValue(of: name)
             return (type.map { OpenDirectoryMember(member_type: $0, member_value: nil) }, name)
         }
         let member = try decodeIfPresent(OpenDirectoryMember.self, forKey: key)

@@ -25,26 +25,13 @@ public final class EventBatcher {
     /// How a batcher sizes and paces its batches.
     public struct Limits: Equatable {
         /// The most events sent in one batch.
-        public var batchSize: Int
+        public var batchSize: Int = 500
         /// How long a partial batch waits before it's sent.
-        public var flushDelay: DispatchTimeInterval
+        public var flushDelay: DispatchTimeInterval = .milliseconds(100)
         /// The most batches awaiting the reader's reply. Past this, events wait in memory.
         public var maxBatchesInFlight: Int
         /// The most events kept in memory while the reader catches up. Past this, the overflow policy decides.
         public var memoryLimit: Int
-        
-        /// - Parameters:
-        ///   - batchSize: The most events sent in one batch.
-        ///   - flushDelay: How long a partial batch waits before it's sent.
-        ///   - maxBatchesInFlight: The most batches awaiting the reader's reply.
-        ///   - memoryLimit: The most events kept in memory.
-        public init(batchSize: Int = 500, flushDelay: DispatchTimeInterval = .milliseconds(100),
-                    maxBatchesInFlight: Int, memoryLimit: Int) {
-            self.batchSize = batchSize
-            self.flushDelay = flushDelay
-            self.maxBatchesInFlight = maxBatchesInFlight
-            self.memoryLimit = memoryLimit
-        }
         
         /// Mac Monitor: ``SensorXPC/maxBatchesInFlight`` batches in flight and 5,000 events in memory, then the spool.
         public static let app = Limits(maxBatchesInFlight: SensorXPC.maxBatchesInFlight, memoryLimit: 5_000)

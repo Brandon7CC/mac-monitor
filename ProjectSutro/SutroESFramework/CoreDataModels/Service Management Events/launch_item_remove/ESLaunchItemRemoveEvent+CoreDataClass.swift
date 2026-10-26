@@ -29,27 +29,14 @@ public class ESLaunchItemRemoveEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESLaunchItemRemoveEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: LaunchItemRemoveEvent = message.event.btm_launch_item_remove!
-        let description = NSEntityDescription.entity(forEntityName: "ESLaunchItemRemoveEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: LaunchItemRemoveEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         let version: Int = message.version
         
-        if let instigator = event.instigator {
-            self.instigator = ESProcess(
-                from: instigator,
-                version: version,
-                insertIntoManagedObjectContext: context
-            )
+        self.instigator = event.instigator.map {
+            ESProcess(from: $0, version: version, insertIntoManagedObjectContext: context)
         }
-        
-        if let app = event.app {
-            self.app = ESProcess(
-                from: app,
-                version: version,
-                insertIntoManagedObjectContext: context
-            )
-        }
+        self.app = event.app.map { ESProcess(from: $0, version: version, insertIntoManagedObjectContext: context) }
         
         item = ESLaunchItem(from: event.item, insertIntoManagedObjectContext: context)
         
@@ -57,9 +44,7 @@ public class ESLaunchItemRemoveEvent: NSManagedObject, Identifiable {
             self.instigator_token = ESAuditToken(from: instigator_token, insertIntoManagedObjectContext: context)
         }
         
-        if let app_token = event.app_token {
-            self.app_token = ESAuditToken(from: app_token, insertIntoManagedObjectContext: context)
-        }
+        self.app_token = event.app_token.map { ESAuditToken(from: $0, insertIntoManagedObjectContext: context) }
     }
 }
 

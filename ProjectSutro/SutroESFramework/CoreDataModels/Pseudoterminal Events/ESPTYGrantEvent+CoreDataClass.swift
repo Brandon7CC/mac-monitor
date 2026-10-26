@@ -19,10 +19,8 @@ public class ESPTYGrantEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESPTYGrantEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: PTYGrantEvent = message.event.pty_grant!
-        let description = NSEntityDescription.entity(forEntityName: "ESPTYGrantEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: PTYGrantEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         self.dev = event.dev
     }
 }
