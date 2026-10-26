@@ -27,8 +27,6 @@ struct CorrelationSummary {
         /// Its context, as the event tables show it.
         let context: String
         let target: String
-        /// A few words on what it did, such as "Not quarantined" or "Mode 0755", for the inspector.
-        let detail: String
         /// The first finding it's part of.
         let finding: Finding?
         /// Every finding it's part of, by identity.
@@ -39,9 +37,9 @@ struct CorrelationSummary {
         /// Does the row mention some text, case-insensitively?
         ///
         /// - Parameter query: The text, lowercased.
-        /// - Returns: `true` if its type, context, target, detail, or initiating signing ID contains it.
+        /// - Returns: `true` if its type, context, target or initiating signing ID contains it.
         func mentions(_ query: String) -> Bool {
-            [type, context, target, detail, message.process.signing_id ?? ""]
+            [type, context, target, message.process.signing_id ?? ""]
                 .contains { $0.lowercased().contains(query) }
         }
     }
@@ -78,7 +76,7 @@ struct CorrelationSummary {
                        type: CommandLineEvents.shortName(name),
                        symbol: eventStringToImage(from: name), kind: Self.kind(of: name),
                        context: Self.stored(message.context), target: Self.stored(message.target_path),
-                       detail: Self.detail(of: message), finding: matched.first,
+                       finding: matched.first,
                        findings: Set(matched.map(\.id)))
         }
         var counts: [Kind: Int] = [:]
@@ -112,49 +110,5 @@ struct CorrelationSummary {
     /// - Returns: The value, or "" for none.
     private static func stored(_ value: String?) -> String {
         value == "Not supported" ? "" : value ?? ""
-    }
-
-    /// A few words on what an event did, from its own fields, unless its context already says them: an extended
-    /// attribute's name, a signal's, and an XPC service's domain are in the context.
-    ///
-    /// - Parameter message: The event.
-    /// - Returns: The words, or "" for an event whose context says it all.
-    private static func detail(of message: ESMessage) -> String {
-        let event = message.event
-        if let create = event.create { return create.is_quarantined == 0 ? "Not quarantined" : "Quarantined" }
-        if let rename = event.rename {
-            let from = "From \(rename.source.path ?? rename.source.name)"
-            return rename.is_quarantined == 0 ? from + " · not quarantined" : from
-        }
-        if let setmode = event.setmode { return "Mode 0" + String(setmode.mode, radix: 8) }
-        if let mmap = event.mmap {
-            return access(mmap.protection, [(PROT_READ, "read"), (PROT_WRITE, "write"), (PROT_EXEC, "execute")])
-        }
-        /// `fflag`'s FREAD and FWRITE: opened to read, write, or both.
-        if let open = event.open { return access(open.fflag, [(FREAD, "read"), (FWRITE, "write")]) }
-        if let close = event.close { return close.modified ? "Modified" : "Not modified" }
-        if let fork = event.fork { return "Child pid \(fork.child.pid)" }
-        if let exit = event.exit { return "Status \(exit.stat)" }
-        if let item = event.btm_launch_item_add?.item {
-            return short(item.item_type_string, dropping: "ES_BTM_ITEM_TYPE_")
-        }
-        return ""
-    }
-
-    /// - Parameters:
-    ///   - value: Access bit flags, such as an open's `fflag`.
-    ///   - names: What each flag allows.
-    /// - Returns: What the flags set allow, such as "Read and write".
-    private static func access(_ value: some BinaryInteger, _ names: [(Int32, String)]) -> String {
-        let allowed = names.filter { Int(value) & Int($0.0) != 0 }.map(\.1)
-        return ListFormatter.localizedString(byJoining: allowed).capitalizedFirst
-    }
-
-    /// - Parameters:
-    ///   - name: An Endpoint Security constant's name, such as `ES_BTM_ITEM_TYPE_AGENT`.
-    ///   - prefix: Its prefix.
-    /// - Returns: The rest, capitalized: `Agent`.
-    private static func short(_ name: String, dropping prefix: String) -> String {
-        name.droppingPrefix(prefix).replacingOccurrences(of: "_", with: " ").capitalized
     }
 }
