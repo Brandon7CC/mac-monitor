@@ -28,7 +28,7 @@ struct SystemBTMAddMetadataView: View {
         ScrollView {
             VStack(alignment: .leading) {
                 // MARK: Event label
-                BTMLaunchItemAddEventLabelView(message: esSystemEvent)
+                SystemEventTypeLabel(message: esSystemEvent)
                     .font(.title2)
 
                 GroupBox {

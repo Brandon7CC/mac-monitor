@@ -22,7 +22,7 @@ struct SystemCodeSigningInvalidatedMetadataView: View {
     @ViewBuilder
     private var eventContent: some View {
         VStack(alignment: .leading) {
-            CodeSignatureInvalidatedEventLabelView(message: esSystemEvent).font(.title2).padding([.top, .leading], 5.0)
+            SystemEventTypeLabel(message: esSystemEvent).font(.title2).padding([.top, .leading], 5.0)
             
             Divider()
             

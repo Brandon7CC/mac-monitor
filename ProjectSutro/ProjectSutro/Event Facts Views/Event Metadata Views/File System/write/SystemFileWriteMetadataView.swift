@@ -27,7 +27,7 @@ struct SystemFileWriteMetadataView: View {
     private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            FileWriteEventLabelView(message: esSystemEvent)
+            SystemEventTypeLabel(message: esSystemEvent)
                 .font(.title2)
             
             GroupBox {

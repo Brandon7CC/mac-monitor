@@ -233,7 +233,8 @@ extension EventQueryModel {
         }
         
         // MARK: Search
-        /// Check each event that passes the filters against the search's predicate, on its record.
+        /// Check each event that passes the filters against the search's predicate, on its record. It's the finding
+        /// filter's and the user's predicate joined by `AND`.
         ///
         /// Core Data can't evaluate the predicate, so each event is loaded and encoded, a batch at a time: about as
         /// slow as exporting them. SQLite first narrows them by the columns the predicate's comparisons name
@@ -242,7 +243,7 @@ extension EventQueryModel {
         ///
         /// - Parameters:
         ///   - filter: The events that pass the filters.
-        ///   - recordPredicate: The search's predicate, parsed for this thread.
+        ///   - recordPredicate: The finding filter's and the user's predicate, parsed for this thread.
         ///   - covered: Every event its `SUBQUERY`s may relate.
         ///   - snapshot: Whether the job is still wanted.
         /// - Returns: The events whose records match, and their chart counts.

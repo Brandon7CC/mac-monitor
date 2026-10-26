@@ -239,6 +239,7 @@ struct PredicateEditorWindow: View {
 }
 
 /// A divider the editor's height is dragged by, as a split view's is. The pointer shows it resizes up and down.
+/// VoiceOver reads the height and steps it by ``step``.
 private struct ResizeHandle: View {
     @Binding var height: Double
     /// The heights it can be dragged between.
@@ -247,6 +248,8 @@ private struct ResizeHandle: View {
     @State private var start: Double?
     /// Is the pointer over it, with its cursor pushed?
     @State private var hovering = false
+    /// How far VoiceOver's increment and decrement move it, in points.
+    private let step = 20.0
 
     var body: some View {
         Divider()
@@ -261,12 +264,28 @@ private struct ResizeHandle: View {
             /// In the window's space: the handle moves with the drag, so its own space would shift under it.
             .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
                 .onChanged { drag in
-                    let start = start ?? min(max(height, range.lowerBound), range.upperBound)
+                    let start = start ?? clamped(height)
                     self.start = start
-                    height = min(max(start + drag.translation.height, range.lowerBound), range.upperBound)
+                    height = clamped(start + drag.translation.height)
                 }
                 .onEnded { _ in start = nil })
             .help("Drag to make the predicate editor taller or shorter")
+            .accessibilityElement()
+            .accessibilityLabel("Predicate editor height")
+            .accessibilityValue("\(Int(height)) points")
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment: height = clamped(height + step)
+                case .decrement: height = clamped(height - step)
+                @unknown default: break
+                }
+            }
+    }
+
+    /// - Parameter height: A height.
+    /// - Returns: It, within ``range``.
+    private func clamped(_ height: Double) -> Double {
+        min(max(height, range.lowerBound), range.upperBound)
     }
 }
 
@@ -279,8 +298,8 @@ private struct CaretPosition: View {
     }
 }
 
-/// What's applied and how it's going, Revert or Remove, and Apply (⌘↩). It alone follows the tables' queries, which
-/// change with every event saved.
+/// What's applied and how it's going, Revert or Remove, and Apply (⌘↩). It names the finding filter the predicate
+/// narrows, if there is one. It alone follows the tables' queries, which change with every event saved.
 private struct PredicateEditorFooter: View {
     @ObservedObject var search: EventSearchController
     @ObservedObject var model: EventQueryModel
@@ -291,6 +310,7 @@ private struct PredicateEditorFooter: View {
         let draft = EventSearchController.oneLine(search.draft)
         let applied = search.applied.map { EventSearchController.oneLine($0.source) } ?? ""
         let unchanged = draft == applied
+        let finding = search.filteringFinding
         HStack(spacing: 8) {
             Group {
                 if problem != nil {
@@ -302,8 +322,8 @@ private struct PredicateEditorFooter: View {
                     }
                 } else if unchanged && !applied.isEmpty {
                     VStack(alignment: .leading, spacing: 1) {
-                        Label("Applied · \(model.filteredCount.formatted()) of \(model.totalCount.formatted()) "
-                              + "events match", systemImage: "circle.fill")
+                        Label("Applied\(finding.map { " with \($0)" } ?? "") · \(model.filteredCount.formatted()) "
+                              + "of \(model.totalCount.formatted()) events match", systemImage: "circle.fill")
                         if model.unchecked.count > 0 {
                             let reason = model.unchecked.reason ?? ""
                             Text("\(model.unchecked.count.formatted()) couldn't be checked: \(reason)")
@@ -311,7 +331,8 @@ private struct PredicateEditorFooter: View {
                         }
                     }
                 } else {
-                    Label(draft.isEmpty ? "No predicate applied." : "Not applied yet.", systemImage: "circle")
+                    Label((draft.isEmpty ? "No predicate applied." : "Not applied yet.")
+                          + (finding.map { " Showing only \($0)." } ?? ""), systemImage: "circle")
                         .foregroundStyle(.secondary)
                 }
             }

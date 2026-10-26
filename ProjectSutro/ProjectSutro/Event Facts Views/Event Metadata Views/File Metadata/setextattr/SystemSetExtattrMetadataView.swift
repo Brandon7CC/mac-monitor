@@ -28,7 +28,7 @@ struct SystemSetXattrMetadataView: View {
     private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            SetXattrEventLabelView(message: esSystemEvent)
+            SystemEventTypeLabel(message: esSystemEvent)
                 .font(.title2)
             
             GroupBox {

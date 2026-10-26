@@ -27,7 +27,7 @@ struct SystemFileRenameMetadataView: View {
     private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            FileRenameEventLabelView(message: esSystemEvent)
+            SystemEventTypeLabel(message: esSystemEvent)
                 .font(.title2)
             
             GroupBox {

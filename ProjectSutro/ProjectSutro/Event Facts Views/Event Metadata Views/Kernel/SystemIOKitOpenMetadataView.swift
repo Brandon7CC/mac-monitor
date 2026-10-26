@@ -27,7 +27,7 @@ struct SystemIOKitOpenMetadataView: View {
     private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            IOKitOpenEventLabelView(message: esSystemEvent)
+            SystemEventTypeLabel(message: esSystemEvent)
                 .font(.title2)
             
             GroupBox {

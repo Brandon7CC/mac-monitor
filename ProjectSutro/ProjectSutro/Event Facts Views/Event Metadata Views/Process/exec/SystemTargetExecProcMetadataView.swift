@@ -69,7 +69,7 @@ struct SystemTargetExecProcMetadataView: View {
         
         VStack(alignment: .leading) {
             // MARK: Event label
-            ExecEventLabelView(message: selectedMessage)
+            SystemEventTypeLabel(message: selectedMessage)
                 .font(.title2)
             
             GroupBox {

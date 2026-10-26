@@ -295,4 +295,38 @@ final class StreamFilterTests: XCTestCase {
         XCTAssertEqual(thrown(CommandLineUsageError.self) { try StreamFilter.Predicate(long, for: .search) }?.message,
                        "The predicate can't be longer than 4096 characters.")
     }
+
+    /// ``StreamFilter/Predicate/all(_:for:)`` matches only what every source matches, keeps each source's `OR` to
+    /// itself, relates events through any source's `SUBQUERY`, and leaves out blank sources.
+    func testAllOfSeveralPredicates() throws {
+        XCTAssertNil(try StreamFilter.Predicate.all(["", " \n"], for: .search))
+        XCTAssertEqual(try StreamFilter.Predicate.all(["", " process.pid == 1 "], for: .search)?.source,
+                       "process.pid == 1")
+        let exec = "es_event_type == 'ES_EVENT_TYPE_NOTIFY_EXEC'"
+        let both = try XCTUnwrap(StreamFilter.Predicate.all(["process.pid == 1 OR process.pid == 2", exec],
+                                                            for: .search))
+        XCTAssertEqual(both.source, "(process.pid == 1 OR process.pid == 2) AND (\(exec))")
+        let records: [(NSDictionary, Bool)] = [
+            (["process": ["pid": 2], "es_event_type": "ES_EVENT_TYPE_NOTIFY_EXEC"], true),
+            (["process": ["pid": 2], "es_event_type": "ES_EVENT_TYPE_NOTIFY_FORK"], false),
+            (["process": ["pid": 3], "es_event_type": "ES_EVENT_TYPE_NOTIFY_EXEC"], false),
+        ]
+        for (record, matches) in records {
+            XCTAssertEqual(try both.evaluate(on: record), matches, "\(record)")
+        }
+        let related = try XCTUnwrap(StreamFilter.Predicate.all(
+            [exec, "SUBQUERY(correlated, $e, $e.target_path CONTAINS 'FromMemory').@count > 0"], for: .search))
+        XCTAssertTrue(related.relatesEvents)
+        try relatedRecords.forEach(related.collect)
+        XCTAssertEqual(try relatedRecords.map { try related.evaluate(on: $0) }, [true, false, false])
+        /// An error names only the source that can't be used.
+        let message = thrown(CommandLineUsageError.self) {
+            try StreamFilter.Predicate.all(["process.pid == 1", "))"], for: .search)
+        }?.message
+        XCTAssertTrue(message?.hasPrefix("The predicate can't read '))'") == true, message ?? "")
+        /// Two of the longest predicates together are longer than one may be.
+        let long = "process.pid == 1" + String(repeating: " OR process.pid == 1", count: 200)
+        XCTAssertGreaterThan(long.count * 2, StreamFilter.Predicate.maxLength)
+        XCTAssertNotNil(try StreamFilter.Predicate.all([long, long], for: .search)?.copy)
+    }
 }

@@ -44,7 +44,7 @@ struct SystemProcessSignalMetadataView: View {
     private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            ProcessSignalEventLabelView(message: esSystemEvent)
+            SystemEventTypeLabel(message: esSystemEvent)
                 .font(.title2)
             
             GroupBox {
