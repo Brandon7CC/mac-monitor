@@ -209,7 +209,7 @@ public enum SensorXPC {
     // MARK: Updates
     /// Check GitHub for a newer release of Mac Monitor.
     ///
-    /// - Parameter reply: A JSON encoded ``UpdateDetails`` or `nil` when no update is available or the check failed.
+    /// - Parameter reply: A JSON encoded ``UpdateCheck``. It says whether a newer release is out or the check failed.
     func checkForUpdate(reply: @escaping (Data?) -> Void)
     
     /// Download, verify, and install the latest release.

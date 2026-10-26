@@ -69,6 +69,8 @@ struct ProjectSutroApp: App {
     @State private var updateToShow: UpdateDetails?
     /// Controls presentation for the "No Update Found" alert.
     @State private var showNoUpdateAlert: Bool = false
+    /// Did the last Check for Updates fail? The same alert then says there's no internet connection.
+    @State private var updateCheckFailed: Bool = false
     /// Used to disable the update button while a check is in progress.
     @State private var isCheckingForUpdate: Bool = false
     
@@ -108,10 +110,9 @@ struct ProjectSutroApp: App {
                 /// If auto-updates are enabled then check at app launch
                 if userPrefs.autoUpdates && EndpointSecurityManager.supportsUpdates {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        systemExtensionManager.checkForUpdates { details in
-                            if let details = details {
-                                updateToShow = details
-                            }
+                        /// Quiet unless there's an update. A failed check says nothing.
+                        systemExtensionManager.checkForUpdates { check in
+                            if case .newer(let details) = check { updateToShow = details }
                         }
                     }
                 }
@@ -124,10 +125,11 @@ struct ProjectSutroApp: App {
             .sheet(item: $updateToShow) { details in
                 UpdateAvailableSheet(updateDetails: details)
             }
-            .alert("✅ Up-to-date!", isPresented: $showNoUpdateAlert) {
+            .alert(updateCheckFailed ? "No internet connection" : "✅ Up-to-date!", isPresented: $showNoUpdateAlert) {
                 Button("Ok") { }
             } message: {
-                Text("You're on the latest version of Mac Monitor!")
+                Text(updateCheckFailed ? "Mac Monitor couldn't reach GitHub to check for updates."
+                                       : "You're on the latest version of Mac Monitor!")
             }
             /// Last, so the window's content and its update sheet both have them.
             .environmentObject(systemExtensionManager)
@@ -179,12 +181,12 @@ struct ProjectSutroApp: App {
                 
                 Button("Check for Updates") {
                     isCheckingForUpdate = true
-                    systemExtensionManager.checkForUpdates { details in
+                    systemExtensionManager.checkForUpdates { check in
                         isCheckingForUpdate = false
-                        if let details = details {
-                            updateToShow = details
-                        } else {
-                            showNoUpdateAlert = true
+                        switch check {
+                        case .newer(let details): updateToShow = details
+                        case .upToDate: (updateCheckFailed, showNoUpdateAlert) = (false, true)
+                        case .failed: (updateCheckFailed, showNoUpdateAlert) = (true, true)
                         }
                     }
                 }
