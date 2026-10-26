@@ -206,13 +206,16 @@ struct AppWrapperForFacts: View {
                 _ = NSApplication.shared.windows.filter({ $0.title.contains("Event Facts")}).map({ $0.close() })
             }
         }
-        /// Clear deletes the events (and processes) this window shows: let go of them first.
+        /// Clear deletes the events (and processes) this window shows, or takes their store away: let go of them first,
+        /// the fetch too, which would otherwise keep an event whose store is gone and raise when it's next read.
         .onReceive(NotificationCenter.default.publisher(for: CoreDataController.eventsWillClear)) { _ in
             selectedEventTree = nil
+            coreDataEvents.nsPredicate = NSPredicate(value: false)
         }
         .toolbar {
-            if let firstMessage = coreDataEvents.first,
-               let tree = selectedEventTree {
+            /// The selection first: after a Clear there's none, and the fetch isn't read.
+            if let tree = selectedEventTree,
+               let firstMessage = coreDataEvents.first {
                 ToolbarItem(placement: .navigation) {
                     Button(action: {
                         self.selectedEventTree = firstMessage

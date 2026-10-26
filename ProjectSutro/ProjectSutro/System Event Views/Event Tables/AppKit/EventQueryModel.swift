@@ -70,6 +70,14 @@ final class EventQueryModel: ObservableObject {
     /// After a failed job, wait until then before trying again, doubling the wait on each failure in a row.
     private var retryAt: Date = .distantPast
     private var retryDelay: TimeInterval = 0
+    /// Events arrived since a search that relates events (``StreamFilter/Predicate/relatesEvents``) last ran. It reruns
+    /// over every event for them (6.4 s at 20,000 events), so not for each batch: no sooner than ``searchAgainAt``.
+    private var searchIsStale = false
+    /// When a stale search may run again, in seconds of system uptime (which setting the clock doesn't move): a second,
+    /// or twice as long as it last took, after it last finished.
+    private var searchAgainAt: TimeInterval = 0
+    /// Runs ``pump()`` at ``searchAgainAt``, for the search it was armed for.
+    private var searchAgain: DispatchWorkItem?
     
     /// The context the tables read the events on screen from.
     var viewContext: NSManagedObjectContext { controller.container.viewContext }
@@ -134,6 +142,7 @@ final class EventQueryModel: ObservableObject {
     func reload() {
         generation += 1
         needsReload = true
+        stopSearchingAgain()
         pump()
     }
     
@@ -158,6 +167,8 @@ final class EventQueryModel: ObservableObject {
     private func willClear() {
         generation += 1
         needsReload = true
+        stopSearchingAgain()
+        searchAgainAt = 0
         pendingInserts = []
         for query in [unified, exec] { query.replace(with: [], showing: query.selection) }
         totalCount = 0
@@ -238,17 +249,49 @@ final class EventQueryModel: ObservableObject {
                                        isCurrent: { [latest = latestGeneration, started = generation] in
                                            latest.withLock { $0 } == started
                                        })
+        if searchIsStale && !needsReload {
+            guard ProcessInfo.processInfo.systemUptime >= searchAgainAt else { return pumpAgain(at: searchAgainAt) }
+            (searchIsStale, needsReload) = (false, true)
+        }
         if needsReload {
             /// A reload covers every batch received so far.
             needsReload = false
             pendingInserts = []
             isSearching = spec.recordPredicate != nil
-            run({ try $0.reload(snapshot) }, then: apply(reload:))
-        } else if !pendingInserts.isEmpty {
+            let started = ProcessInfo.processInfo.systemUptime
+            let relatesEvents = spec.recordPredicate?.relatesEvents == true
+            run({ try $0.reload(snapshot) }) { [weak self] result in
+                self?.apply(reload: result)
+                guard relatesEvents else { return }
+                let now = ProcessInfo.processInfo.systemUptime
+                self?.searchAgainAt = now + max(1, 2 * (now - started))
+            }
+        } else if !pendingInserts.isEmpty && !searchIsStale {
             let ids = pendingInserts
             pendingInserts = []
             run({ try $0.insert(ids, snapshot) }, then: apply(insert:))
         }
+    }
+    
+    /// Pump once a stale search may run again, unless that's already arranged.
+    ///
+    /// - Parameter uptime: When, in seconds of system uptime.
+    private func pumpAgain(at uptime: TimeInterval) {
+        guard searchAgain == nil else { return }
+        let work = DispatchWorkItem { [weak self] in
+            self?.searchAgain = nil
+            self?.pump()
+        }
+        searchAgain = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(0, uptime - ProcessInfo.processInfo.systemUptime),
+                                      execute: work)
+    }
+    
+    /// A new search, or a Clear, replaces the one a rerun was waiting for: forget it, and the time it was waiting for.
+    private func stopSearchingAgain() {
+        searchIsStale = false
+        searchAgain?.cancel()
+        searchAgain = nil
     }
     
     /// Run `work` on the worker's queue, then `apply` its result here, unless the generation moved on meanwhile.
@@ -269,6 +312,10 @@ final class EventQueryModel: ObservableObject {
                 if started == self.generation { apply(value) }
             case .failure(is CancellationError):
                 /// Thrown away for a newer job, which `pump` starts.
+                break
+            case .failure where started != self.generation:
+                /// A job from before a Clear (or a newer query), which can fail on events that are gone: thrown away,
+                /// not retried.
                 break
             case .failure(let error):
                 Self.logger.error("Unable to query events: \(error.localizedDescription, privacy: .public)")
@@ -295,7 +342,12 @@ final class EventQueryModel: ObservableObject {
     
     /// - Parameter result: A finished insert.
     private func apply(insert result: Worker.Insert) {
-        guard !result.needsReload else { return reload() }
+        guard !result.needsReload else {
+            /// A search that relates events is rerun for new events when it may next run, the old results showing.
+            guard spec?.recordPredicate?.relatesEvents == true else { return reload() }
+            (searchIsStale, isSearching) = (true, true)
+            return pump()
+        }
         unified.insert(result.unified.rows, at: result.unified.inserted)
         exec.insert(result.exec.rows, at: result.exec.inserted)
         totalCount += result.added

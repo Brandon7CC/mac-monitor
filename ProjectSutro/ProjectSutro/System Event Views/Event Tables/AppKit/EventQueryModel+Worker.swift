@@ -191,8 +191,12 @@ extension EventQueryModel {
             
             let rows = table.rows
             /// Does `event` belong above `rows[index]`?
-            func above(_ event: ESMessage, _ index: Int) -> Bool {
-                let row = context.object(with: rows[index])
+            ///
+            /// The row is looked up with `existingObject(with:)`, which throws for a row whose store a Clear has
+            /// replaced meanwhile, where `object(with:)` raises an exception Swift can't catch. The job is then thrown
+            /// away: the Clear moved its generation on.
+            func above(_ event: ESMessage, _ index: Int) throws -> Bool {
+                let row = try context.existingObject(with: rows[index])
                 for descriptor in table.sort {
                     switch descriptor.compare(event, to: row) {
                     case .orderedAscending: return true
@@ -210,7 +214,7 @@ extension EventQueryModel {
             for event in new {
                 /// Gallop to bracket the first row `event` belongs above, then binary search the bracket.
                 var low = next, step = 1, high = next
-                while high < rows.count, !above(event, high) {
+                while high < rows.count, try !above(event, high) {
                     low = high + 1
                     high = next + step
                     step *= 2
@@ -218,7 +222,7 @@ extension EventQueryModel {
                 high = min(high, rows.count)
                 while low < high {
                     let middle = (low + high) / 2
-                    if above(event, middle) { high = middle } else { low = middle + 1 }
+                    if try above(event, middle) { high = middle } else { low = middle + 1 }
                 }
                 merged.append(contentsOf: rows[next..<low])
                 inserted.insert(merged.count)

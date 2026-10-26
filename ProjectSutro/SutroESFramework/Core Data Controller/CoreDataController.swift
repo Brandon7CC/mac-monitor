@@ -11,6 +11,7 @@ import OSLog
 import os
 import AppKit
 import UniformTypeIdentifiers
+import SQLite3
 
 /// Exposes functions and helpers to manage system event entities stored in Core Data
 ///
@@ -67,6 +68,7 @@ public class CoreDataController {
         if let storeURL = storeFile?.url {
             description.url = storeURL
             Self.loadStores(of: container)
+            Self.dropUnusedIndexes(at: storeURL, in: container.persistentStoreCoordinator)
         }
         /// A store in memory, as before #84, beats no store at all.
         if container.persistentStoreCoordinator.persistentStores.isEmpty {
@@ -88,7 +90,7 @@ public class CoreDataController {
         /// Give the disk space back when Mac Monitor quits, after stopping any export still reading the store. (A crash
         /// leaves the files for the next launch to delete.)
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: nil) { [storeFile, exports, canSave] _ in
-            let running = exports.withLock { Array($0.values) }
+            let running = exports.withLock { $0.values.map(\.exporter) }
             running.forEach { $0.cancel() }
             running.forEach { $0.waitUntilIdle() }
             canSave.withLock { $0 = false }
@@ -279,11 +281,14 @@ public class CoreDataController {
     ///  Removes every entity in the `SystemEvents` store: the `ESMessage`s and the process, file, and event records they
     ///  point to (deleting only the `ESMessage`s left about three quarters of the store behind until quit). To do this we:
     ///  1) Post ``eventsWillClear`` so the event tables (and Event Facts windows) let go of their events
-    ///  2) On the next turn of the run loop, create a batch delete request per entity and execute them on the private context
-    ///  3) Merge the deletions into the `container.viewContext` connected to the UI, and post ``eventsDidClear``
+    ///  2) On the next turn of the run loop, replace the store with an empty one on the private context
+    ///  3) Have the `container.viewContext` connected to the UI forget what it loaded, and post ``eventsDidClear``
     ///
-    ///  The delete runs in the background (about two minutes at a million events) behind inserts already queued. Inserts
-    ///  that come after it wait for it. Events that happened before this call are discarded even if they arrive later.
+    ///  The store is thrown away at quit, so replacing it loses nothing, and takes a fraction of a second at any size,
+    ///  behind inserts already queued: a recording or a trace that starts right after carries on at once. While an export
+    ///  reads the store (which a replace would take from under it), or if the replace fails, each entity is batch deleted
+    ///  instead, as every Clear did before: 32 s at 300,000 events, which inserts that come after wait for. Events that
+    ///  happened before this call are discarded even if they arrive later.
     ///
     ///  A Clear also closes any trace: a trace still being read stops, and its batches still on their way are dropped.
     ///
@@ -310,7 +315,14 @@ public class CoreDataController {
         
         /// Queued now, so inserts that come after the Clear also come after the delete.
         let turn = DispatchSemaphore(value: 0)
-        RunLoop.main.perform { turn.signal() }
+        RunLoop.main.perform {
+            /// Once views have let go: the view context deletes what it holds while the store still has it, as a delete
+            /// would, so fetches showing those events (an Event Facts window's) drop them rather than keep an event whose
+            /// store is about to be replaced, which raises when it's read.
+            NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: viewContext.registeredObjects
+                .map(\.objectID)], into: [viewContext])
+            turn.signal()
+        }
         privateMOC.perform {
             /// One turn of the main run loop lets SwiftUI apply what views did on ``eventsWillClear`` before rows start
             /// disappearing.
@@ -321,24 +333,26 @@ public class CoreDataController {
             self.currentClear = clear
             /// The shared rows are deleted (or, unsaved, rolled back) with everything else.
             self.discardUnsavedEvents()
-            var replaced = false
-            do {
-                for entity in self.container.managedObjectModel.entities where entity.superentity == nil {
-                    guard self.canSave.withLock({ $0 }) else { break }
-                    guard let name = entity.name else { continue }
-                    let deleteRequest = NSBatchDeleteRequest(fetchRequest: NSFetchRequest(entityName: name))
-                    deleteRequest.resultType = .resultTypeStatusOnly
-                    try self.privateMOC.execute(deleteRequest)
-                    /// A delete the disk has no room for reports success: count what's left.
-                    guard try self.privateMOC.count(for: NSFetchRequest(entityName: name)) == 0 else {
-                        throw CocoaError(.fileWriteOutOfSpace)
+            var replaced = self.replaceStore()
+            if !replaced {
+                do {
+                    for entity in self.container.managedObjectModel.entities where entity.superentity == nil {
+                        guard self.canSave.withLock({ $0 }) else { break }
+                        guard let name = entity.name else { continue }
+                        let deleteRequest = NSBatchDeleteRequest(fetchRequest: NSFetchRequest(entityName: name))
+                        deleteRequest.resultType = .resultTypeStatusOnly
+                        try self.privateMOC.execute(deleteRequest)
+                        /// A delete the disk has no room for reports success: count what's left.
+                        guard try self.privateMOC.count(for: NSFetchRequest(entityName: name)) == 0 else {
+                            throw CocoaError(.fileWriteOutOfSpace)
+                        }
                     }
+                    /// Nothing is registered here after the rollback, so there are no deletions to merge.
+                    self.privateMOC.reset()
+                } catch {
+                    CoreDataController.logger.error("Error clearing system events: \(error.localizedDescription)")
+                    replaced = self.replaceStore()
                 }
-                /// Nothing is registered here after the rollback, so there are no deletions to merge.
-                self.privateMOC.reset()
-            } catch {
-                CoreDataController.logger.error("Error clearing system events: \(error.localizedDescription)")
-                replaced = self.replaceStore()
             }
             
             DispatchQueue.main.async {
@@ -360,11 +374,16 @@ public class CoreDataController {
         return clear
     }
     
-    /// Replace the store with an empty one, for a Clear whose deletes failed: SQLite logs a delete before making it, which
-    /// a full disk (most easily filled by a trace) has no room for, while emptying the store's files frees space. Not
-    /// while an export reads the store. On `privateMOC`'s queue only, after it has let go of every object.
+    /// Replace the store with an empty one: every Clear's way of emptying it, and the way left when deletes fail (SQLite
+    /// logs a delete before making it, which a full disk, most easily filled by a trace, has no room for, while emptying
+    /// the store's files frees space). Not while an export reads the store. On `privateMOC`'s queue only, after it has let
+    /// go of every object.
     ///
-    /// - Returns: Whether the store was taken away, so every context must forget the objects it loaded from it.
+    /// Objects the other contexts loaded from the old store read `nil` once their context forgets them, but looking one
+    /// up by ID with `object(with:)` raises an exception: readers use `existingObject(with:)`, which throws.
+    ///
+    /// - Returns: Whether the store was taken away, so every context must forget the objects it loaded from it. `false`
+    ///   with the store as it was, if it couldn't be emptied.
     private func replaceStore() -> Bool {
         let coordinator = container.persistentStoreCoordinator
         guard canSave.withLock({ $0 }), exports.withLock({ $0.isEmpty }), let url = storeURL,
@@ -379,15 +398,74 @@ public class CoreDataController {
                 try coordinator.destroyPersistentStore(at: url, type: .sqlite, options: options)
             } catch {
                 CoreDataController.logger.error("Unable to empty the event store: \(error.localizedDescription)")
+                /// Its events are still there: put it back, for the deletes to empty instead.
+                if (try? coordinator.addPersistentStore(type: .sqlite, at: url, options: options)) != nil {
+                    removed = false
+                    return
+                }
             }
             /// The emptied store, or (as when one can't be made at launch) one in memory.
             for location in [url, URL(fileURLWithPath: "/dev/null")] {
-                if (try? coordinator.addPersistentStore(type: .sqlite, at: location, options: options)) != nil { return }
+                guard (try? coordinator.addPersistentStore(type: .sqlite, at: location, options: options)) != nil else {
+                    continue
+                }
+                if location == url { Self.dropUnusedIndexes(at: url, in: coordinator) }
+                if coordinator.persistentStore(for: location) != nil { return }
             }
             canSave.withLock { $0 = false }
             CoreDataController.logger.fault("Unable to reopen the event store; no more events can be kept")
         }
         return removed
+    }
+    
+    // MARK: - Unused indexes
+    /// Drop the index SQLite keeps for each of `ESEventType`'s 51 relationships, which nothing looks up: a query
+    /// reaches an event's payload from its `ESEventType` row, never back. Every event's row updated all 51 as it was
+    /// saved, about a quarter of the time a save took (82 to 92 µs an event rather than 110 to 118, measured with this
+    /// model).
+    ///
+    /// Core Data makes them with the store, and the store is new at every launch and every Clear, so this runs after
+    /// each, with the store taken out of the coordinator so that SQLite has the only connection. It fails safe: on an
+    /// error the indexes stay, which only costs the speed. Never for a store in memory.
+    ///
+    /// - Parameters:
+    ///   - url: The store's file.
+    ///   - coordinator: The coordinator the store is added to. It's added back with the same options.
+    static func dropUnusedIndexes(at url: URL, in coordinator: NSPersistentStoreCoordinator) {
+        guard let store = coordinator.persistentStore(for: url),
+              let entity = coordinator.managedObjectModel.entitiesByName["ESEventType"] else { return }
+        let table = "Z" + entity.name!.uppercased()
+        let names = Set(entity.relationshipsByName.values.filter { !$0.isToMany && $0.inverseRelationship == nil }
+            .map { "\(table)_Z\($0.name.uppercased())_INDEX" })
+        let options = store.options
+        do { try coordinator.remove(store) } catch { return }
+        defer {
+            if (try? coordinator.addPersistentStore(type: .sqlite, at: url, options: options)) == nil {
+                logger.error("Unable to reopen the event store after dropping its indexes")
+            }
+        }
+        var database: OpaquePointer?
+        defer { sqlite3_close(database) }
+        guard sqlite3_open_v2(url.path, &database, SQLITE_OPEN_READWRITE, nil) == SQLITE_OK else { return }
+        /// Only the ones there: a future Core Data may name or make them differently.
+        var statement: OpaquePointer?
+        var present: [String] = []
+        let query = "SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = '\(table)'"
+        if sqlite3_prepare_v2(database, query, -1, &statement, nil) == SQLITE_OK {
+            while sqlite3_step(statement) == SQLITE_ROW {
+                if let name = sqlite3_column_text(statement, 0).map({ String(cString: $0) }), names.contains(name) {
+                    present.append(name)
+                }
+            }
+        }
+        sqlite3_finalize(statement)
+        guard !present.isEmpty else { return }
+        let drops = present.map { "DROP INDEX \"\($0)\";" }.joined()
+        if sqlite3_exec(database, "PRAGMA synchronous = OFF; BEGIN; \(drops) COMMIT;", nil, nil, nil) != SQLITE_OK {
+            let message = String(cString: sqlite3_errmsg(database))
+            logger.error("Unable to drop the event store's unused indexes: \(message, privacy: .public)")
+            sqlite3_exec(database, "ROLLBACK;", nil, nil, nil)
+        }
     }
     
     // MARK: - Open Trace
@@ -421,6 +499,6 @@ public class CoreDataController {
     
     
     
-    /// Exports in progress, so quitting can stop them before the store is deleted.
-    let exports = OSAllocatedUnfairLock(initialState: [ObjectIdentifier: TelemetryExporter]())
+    /// Exports in progress and the files they write, so quitting can stop them before the store is deleted.
+    let exports = OSAllocatedUnfairLock(initialState: [ObjectIdentifier: (exporter: TelemetryExporter, url: URL)]())
 }

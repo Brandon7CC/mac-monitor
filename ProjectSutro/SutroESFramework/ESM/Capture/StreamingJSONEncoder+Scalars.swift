@@ -123,12 +123,14 @@ extension StreamingJSONEncoder {
         append(UInt8(ascii: "\""))
     }
     
-    /// Write a string, escaped as `JSONEncoder` escapes it: a quote, backslash or slash with a backslash, the usual
-    /// control characters by name, other control characters as `\u00XX`, and everything else as its UTF-8.
+    /// Write a string, escaped as `JSONEncoder` escapes it: a quote, backslash or slash (unless the encoder leaves
+    /// slashes alone) with a backslash, the usual control characters by name, other control characters as `\u00XX`,
+    /// and everything else as its UTF-8.
     ///
     /// - Parameter string: The string.
     func write(string: String) {
         var string = string
+        let escapesSlashes = state.pointee.escapesSlashes
         string.withUTF8 { utf8 in
             reserve(utf8.count * 6 + 2)
             var out = state.pointee.base + state.pointee.count
@@ -136,7 +138,9 @@ extension StreamingJSONEncoder {
             out.pointee = UInt8(ascii: "\""); out += 1
             for byte in utf8 {
                 switch byte {
-                case UInt8(ascii: "\""), UInt8(ascii: "\\"), UInt8(ascii: "/"):
+                case UInt8(ascii: "\""), UInt8(ascii: "\\"):
+                    out[0] = UInt8(ascii: "\\"); out[1] = byte; out += 2
+                case UInt8(ascii: "/") where escapesSlashes:
                     out[0] = UInt8(ascii: "\\"); out[1] = byte; out += 2
                 case 0x08: out[0] = UInt8(ascii: "\\"); out[1] = UInt8(ascii: "b"); out += 2
                 case 0x0c: out[0] = UInt8(ascii: "\\"); out[1] = UInt8(ascii: "f"); out += 2

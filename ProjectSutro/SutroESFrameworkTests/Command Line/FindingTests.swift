@@ -93,6 +93,42 @@ final class FindingTests: XCTestCase {
                              correlation: true, groups: false).problem)
     }
 
+    /// Every default finding is evaluated on the stored event, never on an encoded record; a predicate that negates,
+    /// matches a pattern, quantifies, or reads another value is left to the record.
+    func testDefaultsEvaluateOnTheStoredEvent() throws {
+        for finding in Finding.defaults {
+            let predicate = try StreamFilter.Predicate(finding.predicate, for: .finding)
+            XCTAssertTrue(StoredEventValues.canEvaluate(predicate.parsed), finding.name)
+        }
+        for source in [#"NOT (es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC")"#, #"target_path MATCHES ".*x""#,
+                       #"process.executable.path == "/bin/sh""#, #"es_event_type == process.signing_id"#,
+                       #"ANY event.exec.args == "-c""#] {
+            let predicate = try StreamFilter.Predicate(source, for: .finding)
+            XCTAssertFalse(StoredEventValues.canEvaluate(predicate.parsed), source)
+        }
+    }
+
+    /// Each key path a finding may read from the stored event holds the record's value there, for every event of the
+    /// synthetic corpus and the fixtures: `nil` where the record has `null` or nothing, and "" where it has "".
+    func testStoredValuesAreTheRecords() throws {
+        /// `null` and a missing key read alike.
+        func normalized(_ value: Any?) -> NSObject? { value is NSNull ? nil : value as? NSObject }
+        try withEventStore(try SyntheticCorpus.records().map(\.message) + (try lineageTrace())) { _, stored in
+            var compared = 0
+            for event in stored {
+                let record = PredicateRecord(try XCTUnwrap(JSONSerialization.jsonObject(
+                    with: JSONEncoder().encode(event)) as? NSDictionary))
+                for keyPath in StoredEventValues.keyPaths.sorted() {
+                    let expected = normalized(record.value(forKeyPath: keyPath))
+                    XCTAssertEqual(normalized(StoredEventValues(event).value(forKeyPath: keyPath)), expected,
+                                   "\(event.es_event_type ?? "") \(keyPath)")
+                    compared += expected == nil ? 0 : 1
+                }
+            }
+            XCTAssertGreaterThan(compared, stored.count * 4)
+        }
+    }
+
     /// Narrowing by the store never leaves a finding out: the matcher agrees with evaluating every finding on every
     /// event of the synthetic corpus and the fixtures.
     func testMatcherAgreesWithEveryPredicate() throws {

@@ -22,6 +22,9 @@ import SutroESFramework
 /// A file is checked (``TraceImporter/preflight(_:)``) in the background before anything is cleared. Opening another file
 /// or a Clear meanwhile drops it.
 ///
+/// Export telemetry saves the events to a file in the background, one save at a time (``save(eventIDs:jsonl:)``). A save
+/// still going after half a second shows its progress, as opening a trace does.
+///
 /// Main thread only.
 final class TraceSession: ObservableObject {
     /// The trace being read or shown, `nil` while live.
@@ -36,6 +39,10 @@ final class TraceSession: ObservableObject {
     @Published private(set) var recents: [URL] = NSDocumentController.shared.recentDocumentURLs
     /// The file being read.
     @Published private var importer: TraceImporter?
+    /// The events being saved to a file, while they are.
+    @Published private(set) var saving: Saving?
+    /// Has the save run for half a second, long enough to show its progress? Most finish well before.
+    @Published private(set) var showsSaving = false
     /// Main windows showing the events, counted by `EventView`: with none, a trace opened from the File menu opens one.
     var mainWindows = 0
     
@@ -70,6 +77,8 @@ final class TraceSession: ObservableObject {
     var isLive: Bool { url == nil }
     /// Is a trace being read?
     var isOpening: Bool { importer != nil }
+    /// Are events being saved to a file?
+    var isSaving: Bool { saving != nil }
     
     /// The window title: the trace's name, or the app's.
     var title: String { url?.lastPathComponent ?? "Mac Monitor" }
@@ -223,6 +232,73 @@ final class TraceSession: ObservableObject {
         }
         self.summary = summary
         if let error = summary.error { Self.alert(stoppedReading: summary, error) }
+    }
+    
+    // MARK: Saving
+    /// A save in progress.
+    struct Saving {
+        /// The file being written. It changes only once every event is written.
+        let url: URL
+        /// Was there a file there already, which a save that doesn't finish leaves as it was?
+        let replacing: Bool
+        /// The export, to cancel.
+        let exporter: TelemetryExporter
+        /// How far it has got, once it knows its events.
+        var progress: TelemetryExporter.Progress?
+    }
+    
+    /// Export telemetry: choose a file and save the full trace or the selected events to it in the background, unless a
+    /// save is already going.
+    ///
+    /// - Parameters:
+    ///   - eventIDs: The selected events, or `nil` for the full trace.
+    ///   - jsonl: JSON Lines (`true`) or pretty-printed JSON (`false`).
+    func save(eventIDs: [UUID]? = nil, jsonl: Bool) {
+        guard saving == nil, let url = store.showSavePanel(numberOfEvents: eventIDs?.count ?? 0, jsonl: jsonl) else { return }
+        /// Reports from a save that has since finished are ignored.
+        var exporter: TelemetryExporter?
+        let progress = { [weak self] (state: TelemetryExporter.Progress) in
+            guard let self, self.saving?.exporter === exporter else { return }
+            self.saving?.progress = state
+        }
+        let completion = { [weak self] (result: Swift.Result<Int, Error>) in
+            guard let self, let saving = self.saving, saving.exporter === exporter else { return }
+            self.saved(saving, result)
+        }
+        /// Checked first: a short save can rename over the file before the next line runs.
+        let replacing = FileManager.default.fileExists(atPath: url.path)
+        let started = eventIDs.map { store.exportSelectedEvents(eventIDs: $0, to: url, jsonl: jsonl, progress: progress,
+                                                                completion: completion) }
+            ?? store.exportFullTrace(to: url, jsonl: jsonl, progress: progress, completion: completion)
+        exporter = started
+        (saving, showsSaving) = (Saving(url: url, replacing: replacing, exporter: started), false)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self, self.saving?.exporter === started else { return }
+            self.showsSaving = true
+        }
+    }
+    
+    /// Cancel: stop saving and leave the file as it was.
+    func stopSaving() { saving?.exporter.cancel() }
+    
+    /// A save ended: one long enough to show asks for attention if Mac Monitor is in the background, and one that failed
+    /// says why.
+    ///
+    /// - Parameters:
+    ///   - saving: The save.
+    ///   - result: The number of events written, or why the file wasn't.
+    private func saved(_ saving: Saving, _ result: Swift.Result<Int, Error>) {
+        let shown = showsSaving
+        (self.saving, showsSaving) = (nil, false)
+        switch result {
+        case .success:
+            if shown && !NSApp.isActive { NSApp.requestUserAttention(.informationalRequest) }
+        case .failure(let error) where !(error is CancellationError):
+            Self.show("Mac Monitor couldn't save “\(saving.url.lastPathComponent)”.", error.localizedDescription
+                      + (saving.replacing ? " The file is as it was." : " Nothing was saved."))
+        case .failure:
+            break
+        }
     }
     
     // MARK: Alerts

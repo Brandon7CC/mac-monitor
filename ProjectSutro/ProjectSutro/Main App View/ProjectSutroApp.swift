@@ -267,44 +267,25 @@ struct ProjectSutroApp: App {
             
             CommandMenu("Export telemetry") {
                 Section("JSON (pretty)") {
-                    Button("Full system trace") {
-                        recordingEvents = false
-                        systemExtensionManager.stopRecordingEvents()
-                        systemExtensionManager.coreDataContainer.exportFullTrace()
-                    }
-                    .disabled(traceSession.isOpening)
-                    
+                    Button("Full system trace") { save(jsonl: false) }
+                        .disabled(traceSession.isOpening || traceSession.isSaving)
                     Button("Selected events \(eventSelection.count > 0 ? ": \(eventSelection.count)" : "")") {
-                        recordingEvents = false
-                        systemExtensionManager.stopRecordingEvents()
-                        
-                        systemExtensionManager.coreDataContainer
-                            .exportSelectedEvents(
-                                eventIDs: Array(eventSelection)
-                            )
-                        
-                        
-                    }.disabled(eventSelection.isEmpty || traceSession.isOpening)
+                        save(Array(eventSelection), jsonl: false)
+                    }
+                    .disabled(eventSelection.isEmpty || traceSession.isOpening || traceSession.isSaving)
                 }
                 
                 Divider()
                 
                 Section("JSONL (lines)") {
-                    Button("Full system trace") {
-                        recordingEvents = false
-                        systemExtensionManager.stopRecordingEvents()
-                        systemExtensionManager.coreDataContainer.exportFullTrace(jsonl: true)
-                    }
-                    .keyboardShortcut("s", modifiers: .command)
-                    .disabled(traceSession.isOpening)
-                    
+                    Button("Full system trace") { save(jsonl: true) }
+                        .keyboardShortcut("s", modifiers: .command)
+                        .disabled(traceSession.isOpening || traceSession.isSaving)
                     Button("Selected events \(eventSelection.count > 0 ? ": \(eventSelection.count)" : "")") {
-                        recordingEvents = false
-                        systemExtensionManager.stopRecordingEvents()
-                        systemExtensionManager.coreDataContainer.exportSelectedEvents(eventIDs: Array(eventSelection), jsonl: true)
+                        save(Array(eventSelection), jsonl: true)
                     }
                     .keyboardShortcut("s", modifiers: [.command, .shift])
-                    .disabled(eventSelection.isEmpty || traceSession.isOpening)
+                    .disabled(eventSelection.isEmpty || traceSession.isOpening || traceSession.isSaving)
                 }
             }
         }
@@ -358,5 +339,16 @@ struct ProjectSutroApp: App {
     /// Open a main window, for a trace opened from the File menu while none is open (the app stays open without one).
     private func showMainWindow() {
         openEventJSON(id: Self.mainWindow)
+    }
+
+    /// Export telemetry: stop recording, then choose a file and save the events to it in the background.
+    ///
+    /// - Parameters:
+    ///   - eventIDs: The selected events, or `nil` for the full trace.
+    ///   - jsonl: JSON Lines (`true`) or pretty-printed JSON (`false`).
+    private func save(_ eventIDs: [UUID]? = nil, jsonl: Bool) {
+        recordingEvents = false
+        systemExtensionManager.stopRecordingEvents()
+        traceSession.save(eventIDs: eventIDs, jsonl: jsonl)
     }
 }

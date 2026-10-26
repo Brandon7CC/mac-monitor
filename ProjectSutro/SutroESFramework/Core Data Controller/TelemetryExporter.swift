@@ -25,39 +25,84 @@ import os
 /// The context is pinned to the store as it was when the export started (``pin()``), so events cleared meanwhile still
 /// export. While pinned, SQLite can't fold its write-ahead log back into the store, so the log grows with whatever changes
 /// during the export (measured: about 4 KB per event cleared, plus each inserted event's size) until the export finishes.
-final class TelemetryExporter {
-    /// Events fetched and encoded at a time.
+///
+/// A large trace takes a while to encode, so the export reports how many of its events it has written, and fetches and
+/// encodes several batches at once, each on its own context pinned to the same snapshot (``Worker``), writing them in
+/// file order. JSONL records are written by ``StreamingJSONEncoder`` where it sorts keys as this Mac's `JSONEncoder`
+/// does, so they stay byte for byte what ``ProcessHelpers/eventToJSON(value:)`` writes. Measured on an M1 Max with a
+/// recording's events (JSONL): 4,800 events a second one batch at a time through `JSONEncoder`, 7,000 through the
+/// streaming encoder, and 11,000 to 12,900 with two workers, so 5.3 million events take 7 to 8 minutes, not 18.
+public final class TelemetryExporter {
+    /// How far an export has got, once it knows which events it writes.
+    public struct Progress: Equatable {
+        /// Events written so far.
+        public let written: Int
+        /// Events the file will hold.
+        public let total: Int
+        /// `written` over `total`, from 0 to 1.
+        public var fraction: Double { total > 0 ? min(1, Double(written) / Double(total)) : 1 }
+        
+        /// - Parameters:
+        ///   - written: Events written so far.
+        ///   - total: Events the file will hold.
+        public init(written: Int, total: Int) {
+            self.written = written
+            self.total = total
+        }
+    }
+    
+    /// Events fetched and encoded at a time, by each worker.
     static let batchSize = 500
     /// Selected event IDs looked up per fetch.
     static let lookupSize = 10_000
+    /// Batches fetched and encoded at once: two, given two cores. One worker's fetch overlaps another's encoding, but
+    /// fetches wait for each other on the store's coordinator, so a third worker or more measured no faster (12,900
+    /// events a second with two, four or six, whatever the connection pool's size).
+    static var defaultWorkers: Int { min(2, ProcessInfo.processInfo.activeProcessorCount) }
     
+    /// Chooses the events, and writes the file.
     private let context: NSManagedObjectContext
+    /// Fetch and encode the batches, each on its own context.
+    private let workers: [Worker]
     private let pretty: Bool
     /// Every to-one relationship an event encodes, fetched along with each batch.
     private let prefetch: [String]
     private let cancelled = OSAllocatedUnfairLock(initialState: false)
+    /// The shortest time between progress reports while writing, in nanoseconds.
+    private let reportInterval: UInt64
     
     /// - Parameters:
     ///   - container: The event store.
     ///   - pretty: Pretty-printed JSON (`true`) or JSONL (`false`).
-    init(container: NSPersistentContainer, pretty: Bool) {
+    ///   - reportInterval: The shortest time between progress reports while writing: a tenth of a second, as opening a
+    ///     trace reports, or none, so tests see a report per batch.
+    ///   - workers: Batches fetched and encoded at once.
+    init(container: NSPersistentContainer, pretty: Bool, reportInterval: UInt64 = 100_000_000,
+         workers: Int = TelemetryExporter.defaultWorkers) {
         context = container.newBackgroundContext()
         self.pretty = pretty
+        self.reportInterval = reportInterval
         prefetch = ESMessage.recordPrefetchKeyPaths(in: container.managedObjectModel)
+        self.workers = (0..<max(1, workers)).map { _ in Worker(context: container.newBackgroundContext(), pretty: pretty) }
     }
     
-    /// Stop after the current batch, leaving the destination untouched.
-    func cancel() { cancelled.withLock { $0 = true } }
+    /// Stop after the current batch, leaving the destination untouched. Any thread.
+    public func cancel() { cancelled.withLock { $0 = true } }
     
     /// Wait for the step in progress to finish. Call after ``cancel()``.
     func waitUntilIdle() { context.performAndWait {} }
     
-    /// Pin the exporter's context to the store as it is now, before anything else can change it.
+    /// Pin the exporter's contexts to the store as it is now, before anything else can change it.
     ///
-    /// A context pins itself when it first loads data, so this loads one row. Call it from the queue that would make the
-    /// next change (`privateMOC`), so that change can't come first.
+    /// A context pins itself when it first loads data, so this loads one row. The workers take the same snapshot. Call it
+    /// from the queue that would make the next change (`privateMOC`), so that change can't come first.
     func pin() {
-        context.performAndWait {
+        let token = context.performAndWait { () -> NSQueryGenerationToken? in
+            /// A store in memory (Mac Monitor's at /dev/null, when its file can't be kept) can't: setting the generation
+            /// succeeds there, and the next fetch raises an exception Swift can't catch.
+            let stores = context.persistentStoreCoordinator?.persistentStores ?? []
+            guard !stores.isEmpty,
+                  stores.allSatisfy({ $0.type == NSSQLiteStoreType && $0.url?.path != "/dev/null" }) else { return nil }
             do {
                 try context.setQueryGenerationFrom(.current)
                 let request = NSFetchRequest<NSManagedObjectID>(entityName: "ESMessage")
@@ -67,7 +112,10 @@ final class TelemetryExporter {
             } catch {
                 /// Unpinned, the export still works. It just sees changes made while it runs.
             }
+            return context.queryGenerationToken
         }
+        guard let token else { return }
+        for worker in workers { worker.context.performAndWait { try? worker.context.setQueryGenerationFrom(token) } }
     }
     
     private var isCancelled: Bool { cancelled.withLock { $0 } }
@@ -78,18 +126,24 @@ final class TelemetryExporter {
     ///   - url: The destination, from the save panel.
     ///   - writeIfEmpty: Write an empty file when no events are chosen (the full trace does, but a selection doesn't).
     ///   - choose: Returns the events in file order. Runs on the exporter's context.
+    ///   - progress: Called on the exporter's queue once the events are chosen, at most ten times a second while they're
+    ///     written, and once more when the last is.
     ///   - completion: Called on the exporter's queue with the number of events written.
     func run(to url: URL, writeIfEmpty: Bool, choose: @escaping (TelemetryExporter) throws -> [NSManagedObjectID],
-             completion: @escaping (Result<Int, Error>) -> Void) {
+             progress: @escaping (Progress) -> Void = { _ in }, completion: @escaping (Result<Int, Error>) -> Void) {
         context.perform {
             let result = Result { () throws -> Int in
                 guard !self.isCancelled else { throw CancellationError() }
                 let ids = try choose(self)
+                /// Choosing every event can't stop partway: a Cancel meanwhile stops here.
+                guard !self.isCancelled else { throw CancellationError() }
                 guard writeIfEmpty || !ids.isEmpty else { return 0 }
-                return try self.write(ids, to: url)
+                progress(Progress(written: 0, total: ids.count))
+                return try self.write(ids, to: url, progress: progress)
             }
             /// Unpin, so SQLite can checkpoint its log again.
             self.context.reset()
+            for worker in self.workers { worker.context.performAndWait { worker.context.reset() } }
             completion(result)
         }
     }
@@ -151,43 +205,59 @@ final class TelemetryExporter {
     }
     
     // MARK: Writing
-    /// Encode `ids` a batch at a time into a temporary file, then move it over `url`.
+    /// Encode `ids` into a temporary file, a round of batches at a time (one per worker, in parallel), then move it over
+    /// `url`.
     ///
     /// - Parameters:
     ///   - ids: The events, in file order.
     ///   - url: The destination.
+    ///   - progress: Receives how many have been written, at most ten times a second and once at the end.
     /// - Returns: The number of events written.
-    private func write(_ ids: [NSManagedObjectID], to url: URL) throws -> Int {
+    private func write(_ ids: [NSManagedObjectID], to url: URL, progress: (Progress) -> Void) throws -> Int {
         let (handle, temporary) = try Self.temporaryFile(beside: url)
         var finished = false
         defer { if !finished { unlink(temporary.path) } }
-        var buffer = Data(), written = 0
+        var buffer = Data(), written = 0, reported = DispatchTime.now().uptimeNanoseconds
+        let batches = stride(from: 0, to: ids.count, by: Self.batchSize).map {
+            Array(ids[$0..<min($0 + Self.batchSize, ids.count)])
+        }
         do {
-            for start in stride(from: 0, to: ids.count, by: Self.batchSize) {
+            for round in stride(from: 0, to: batches.count, by: workers.count) {
                 guard !isCancelled else { throw CancellationError() }
-                try autoreleasepool {
-                    for message in try fetch(Array(ids[start..<min(start + Self.batchSize, ids.count)])) {
-                        if written > 0 { buffer.append(0x0A) }
-                        let json = pretty ? ProcessHelpers.eventToPrettyJSON(value: message) : ProcessHelpers.eventToJSON(value: message)
-                        buffer.append(contentsOf: json.utf8)
-                        written += 1
-                    }
-                    if buffer.count >= 1 << 20 {
-                        try handle.write(contentsOf: buffer)
-                        buffer.removeAll(keepingCapacity: true)
-                    }
-                    /// Not reset(): that would also unpin the context from the snapshot.
-                    context.refreshAllObjects()
+                let jobs = Array(batches[round..<min(round + workers.count, batches.count)])
+                DispatchQueue.concurrentPerform(iterations: jobs.count) { index in
+                    workers[index].encode(jobs[index], prefetch: prefetch)
+                }
+                for worker in workers.prefix(jobs.count) {
+                    let records = try worker.records()
+                    guard records.count > 0 else { continue }
+                    if written > 0 { buffer.append(0x0A) }
+                    buffer.append(records.json)
+                    written += records.count
+                }
+                if buffer.count >= 1 << 20 {
+                    try handle.write(contentsOf: buffer)
+                    buffer.removeAll(keepingCapacity: true)
+                }
+                let now = DispatchTime.now().uptimeNanoseconds
+                if now - reported >= reportInterval {
+                    reported = now
+                    progress(Progress(written: written, total: ids.count))
                 }
             }
+            /// A Cancel during the last round, which the loop no longer checks for.
+            guard !isCancelled else { throw CancellationError() }
             try handle.write(contentsOf: buffer)
             try handle.close()
         } catch {
             try? handle.close()
             throw error
         }
+        /// Or during the last write: only the rename itself can't be stopped.
+        guard !isCancelled else { throw CancellationError() }
         try Self.replace(url, with: temporary)
         finished = true
+        progress(Progress(written: written, total: ids.count))
         return written
     }
     
@@ -204,19 +274,6 @@ final class TelemetryExporter {
         return (FileHandle(fileDescriptor: descriptor, closeOnDealloc: true), temporary)
     }
     
-    /// One batch of events, fully loaded with every relationship they encode, in `batch` order.
-    ///
-    /// - Parameter batch: The events' object IDs.
-    /// - Returns: The events still in the store.
-    private func fetch(_ batch: [NSManagedObjectID]) throws -> [ESMessage] {
-        let request = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-        request.predicate = NSPredicate(format: "self IN %@", batch)
-        request.returnsObjectsAsFaults = false
-        request.relationshipKeyPathsForPrefetching = prefetch
-        let loaded = Dictionary(try context.fetch(request).map { ($0.objectID, $0) }, uniquingKeysWith: { first, _ in first })
-        return batch.compactMap { loaded[$0] }
-    }
-    
     /// Keep the replaced file's permissions and rename over it.
     ///
     /// - Parameters:
@@ -227,6 +284,74 @@ final class TelemetryExporter {
             try FileManager.default.setAttributes([.posixPermissions: mode], ofItemAtPath: temporary.path)
         }
         guard rename(temporary.path, url.path) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+    }
+}
+
+
+// MARK: - Workers
+extension TelemetryExporter {
+    /// Fetches and encodes one batch at a time on its own context, pinned to the export's snapshot. Used by one thread
+    /// at a time: the exporter hands it a batch, then reads its records once every worker has finished.
+    final class Worker {
+        let context: NSManagedObjectContext
+        private let pretty: Bool
+        /// Writes JSONL records where it sorts keys as `JSONEncoder` does (``ProcessHelpers/eventToJSON(value:)``
+        /// otherwise).
+        private let encoder: StreamingJSONEncoder?
+        /// The last batch's records joined by newlines, and how many there are, or why there are none.
+        private var result: Result<(json: Data, count: Int), Error> = .success((Data(), 0))
+        
+        /// - Parameters:
+        ///   - context: Its own context.
+        ///   - pretty: Pretty-printed JSON (`true`) or JSONL (`false`).
+        init(context: NSManagedObjectContext, pretty: Bool) {
+            self.context = context
+            self.pretty = pretty
+            encoder = !pretty && StreamingJSONEncoder.sortsKeysAsJSONEncoderDoes
+                ? StreamingJSONEncoder(sortsKeys: true, escapesSlashes: false) : nil
+        }
+        
+        /// Fetch a batch, fully loaded with every relationship its events encode, and encode its events in `batch`
+        /// order: the events still in the store, each as `eventToJSON` writes it (`{}` for one it can't encode).
+        ///
+        /// - Parameters:
+        ///   - batch: The events' object IDs.
+        ///   - prefetch: Every to-one relationship an event encodes.
+        func encode(_ batch: [NSManagedObjectID], prefetch: [String]) {
+            context.performAndWait {
+                result = Result {
+                    try autoreleasepool {
+                        let request = NSFetchRequest<ESMessage>(entityName: "ESMessage")
+                        request.predicate = NSPredicate(format: "self IN %@", batch)
+                        request.returnsObjectsAsFaults = false
+                        request.relationshipKeyPathsForPrefetching = prefetch
+                        let loaded = Dictionary(try context.fetch(request).map { ($0.objectID, $0) },
+                                                uniquingKeysWith: { first, _ in first })
+                        var json = Data(), count = 0
+                        for message in batch.compactMap({ loaded[$0] }) {
+                            if count > 0 { json.append(0x0A) }
+                            if let encoder {
+                                json.append((try? encoder.encode(message)) ?? Data("{}".utf8))
+                            } else {
+                                let text = pretty ? ProcessHelpers.eventToPrettyJSON(value: message)
+                                    : ProcessHelpers.eventToJSON(value: message)
+                                json.append(contentsOf: text.utf8)
+                            }
+                            count += 1
+                        }
+                        /// Not reset(): that would also unpin the context from the snapshot.
+                        context.refreshAllObjects()
+                        return (json, count)
+                    }
+                }
+            }
+        }
+        
+        /// The last batch's records.
+        ///
+        /// - Returns: Their JSON joined by newlines, and how many there are.
+        /// - Throws: The error fetching them.
+        func records() throws -> (json: Data, count: Int) { try result.get() }
     }
 }
 

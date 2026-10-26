@@ -201,7 +201,7 @@ public extension Finding {
 /// The findings that are on, parsed once, to find which an event is part of. Not thread-safe: use one per queue, on
 /// the events' context's queue.
 public final class FindingMatcher {
-    private let findings: [(finding: Finding, predicate: StreamFilter.Predicate, narrow: NSPredicate?)]
+    private let findings: [(finding: Finding, predicate: StreamFilter.Predicate, narrow: NSPredicate?, exact: Bool)]
 
     /// The findings it looks for, in their cards' order.
     public var order: [Finding] { findings.map(\.finding) }
@@ -211,12 +211,14 @@ public final class FindingMatcher {
     public init(_ findings: [Finding]) {
         self.findings = findings.filter(\.isEnabled).compactMap { finding in
             guard let predicate = try? StreamFilter.Predicate(finding.predicate, for: .finding) else { return nil }
-            return (finding, predicate, predicate.storePredicate)
+            return (finding, predicate, predicate.storePredicate, StoredEventValues.canEvaluate(predicate.parsed))
         }
     }
 
     /// The findings an event is part of. The store's columns rule most out first
-    /// (``StreamFilter/Predicate/storePredicate``): the event's record is encoded only when one might match.
+    /// (``StreamFilter/Predicate/storePredicate``). A finding that only compares values the stored event holds as its
+    /// record does is evaluated on the event itself (``StoredEventValues``); the record is encoded only for the rest:
+    /// about 380 µs an exec row, which the default findings never need.
     ///
     /// - Parameter message: The event.
     /// - Returns: Its findings, in order.
@@ -226,9 +228,103 @@ public final class FindingMatcher {
             var result = ObjCBool(false)
             return (try? PredicateBridge.evaluate(narrow, with: message, matches: &result)) != nil && result.boolValue
         }
-        guard !candidates.isEmpty,
-              let record = try? JSONSerialization.jsonObject(with: JSONEncoder().encode(message)) as? NSDictionary
-        else { return [] }
-        return candidates.filter { (try? $0.predicate.evaluate(on: record)) == true }.map(\.finding)
+        guard !candidates.isEmpty else { return [] }
+        let stored = StoredEventValues(message)
+        lazy var record = try? JSONSerialization.jsonObject(with: JSONEncoder().encode(message)) as? NSDictionary
+        return candidates.filter { item in
+            if item.exact { return stored.matches(item.predicate.parsed) }
+            guard let record else { return false }
+            return (try? item.predicate.evaluate(on: record)) == true
+        }.map(\.finding)
+    }
+}
+
+
+// MARK: - Stored values
+/// A stored event's values as a predicate on its record sees them, for the key paths whose value on the stored event
+/// is the record's in every case (`FindingTests` checks each against the synthetic corpus and the fixtures), so a
+/// predicate that compares only those is evaluated without encoding the record.
+final class StoredEventValues: NSObject {
+    /// The key paths whose value on the stored event is the record's.
+    static let keyPaths = emptyWhenNil.union([
+        "es_event_type", "event_type", "context", "target_path", "event.exec.executable_age_ms",
+        "event.exec.script_content", "event.exec.target.euid", "event.create.is_quarantined",
+        "event.rename.is_quarantined", "event.deleteextattr.extattr",
+    ])
+    /// Strings the store keeps as `nil` where the record writes "".
+    static let emptyWhenNil: Set<String> = [
+        "event.exec.target.codesigning_type", "process.file_quarantine_type", "event.exec.target.executable.name",
+    ]
+    /// The comparisons that read a value as the record path reads it.
+    private static let operators: Set<NSComparisonPredicate.Operator> = [
+        .equalTo, .notEqualTo, .lessThan, .lessThanOrEqualTo, .greaterThan, .greaterThanOrEqualTo, .in, .beginsWith,
+        .endsWith, .contains, .like,
+    ]
+    
+    let message: ESMessage
+    
+    /// - Parameter message: The stored event.
+    init(_ message: ESMessage) {
+        self.message = message
+    }
+    
+    /// Can a predicate be evaluated on a stored event, as on its record? Only ANDs and ORs of plain comparisons (no
+    /// `ANY` or `ALL`) of those key paths with constants: no `NOT`, `MATCHES`, `SUBQUERY`, aggregates or functions.
+    ///
+    /// - Parameter predicate: A parsed predicate.
+    /// - Returns: Whether it can.
+    static func canEvaluate(_ predicate: NSPredicate) -> Bool {
+        switch predicate {
+        case let compound as NSCompoundPredicate:
+            return compound.compoundPredicateType != .not
+                && compound.subpredicates.allSatisfy { ($0 as? NSPredicate).map(canEvaluate) ?? false }
+        case let comparison as NSComparisonPredicate:
+            return comparison.comparisonPredicateModifier == .direct
+                && operators.contains(comparison.predicateOperatorType)
+                && comparison.leftExpression.expressionType == .keyPath
+                && keyPaths.contains(comparison.leftExpression.keyPath) && isConstant(comparison.rightExpression)
+        default:
+            return false
+        }
+    }
+    
+    /// - Parameter expression: The right side of a comparison.
+    /// - Returns: Whether it's a constant, or a set of constants (`IN {"a", "b"}`).
+    private static func isConstant(_ expression: NSExpression) -> Bool {
+        switch expression.expressionType {
+        case .constantValue: return true
+        case .aggregate: return (expression.collection as? [NSExpression])?.allSatisfy(isConstant) ?? false
+        default: return false
+        }
+    }
+    
+    /// Evaluate a predicate ``canEvaluate(_:)`` passed. One that raises doesn't match, as on the record.
+    ///
+    /// - Parameter predicate: The predicate.
+    /// - Returns: Whether the event matches.
+    func matches(_ predicate: NSPredicate) -> Bool {
+        var result = ObjCBool(false)
+        return (try? PredicateBridge.evaluate(predicate, with: self, matches: &result)) != nil && result.boolValue
+    }
+    
+    /// A key path's value on the stored event: "" for a string the record writes as "" and the store keeps as `nil`,
+    /// where the object holding it is there.
+    ///
+    /// - Parameter keyPath: One of ``keyPaths``.
+    /// - Returns: The value.
+    override func value(forKeyPath keyPath: String) -> Any? {
+        let value = message.value(forKeyPath: keyPath)
+        guard value == nil, Self.emptyWhenNil.contains(keyPath),
+              let dot = keyPath.lastIndex(of: "."), message.value(forKeyPath: String(keyPath[..<dot])) != nil
+        else { return value }
+        return ""
+    }
+    
+    /// A single key's value, as a key path's: `NSPredicate` reads a key path of one key this way.
+    ///
+    /// - Parameter key: One of ``keyPaths``.
+    /// - Returns: The value.
+    override func value(forKey key: String) -> Any? {
+        value(forKeyPath: key)
     }
 }

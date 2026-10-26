@@ -299,14 +299,30 @@ struct EventView: View {
                 
                 TraceStatusView(session: traceSession)
                 
-                Circle()
-                    .fill(recordingEvents ? Color.green : Color.red)
-                    .shadow(color: Color.green, radius: 0.5)
-                    .opacity(recordingEvents ? 0.85 : 0)
-                    .scaleEffect(recordingEvents ? 1.25 : 1)
-                    .animation(.linear(duration: 0.3), value: recordingEvents)
-                    .help(recordingEvents ? "Recording system events" : "Not recording system events")
-                    .padding(.trailing)
+                if #available(macOS 26.0, *) {
+                    /// Only while recording: hidden, it's still a toolbar item, which macOS 26 and later give a glass
+                    /// capsule of its own (an empty one, beside a trace or Clear status).
+                    if recordingEvents {
+                        Circle()
+                            .fill(Color.green)
+                            .shadow(color: Color.green, radius: 0.5)
+                            .opacity(0.85)
+                            .scaleEffect(1.25)
+                            .help("Recording system events")
+                            .padding(.trailing)
+                    }
+                } else {
+                    /// Always there, so the centered principal and status items don't move when recording starts or
+                    /// stops.
+                    Circle()
+                        .fill(recordingEvents ? Color.green : Color.red)
+                        .shadow(color: Color.green, radius: 0.5)
+                        .opacity(recordingEvents ? 0.85 : 0)
+                        .scaleEffect(recordingEvents ? 1.25 : 1)
+                        .animation(.linear(duration: 0.3), value: recordingEvents)
+                        .help(recordingEvents ? "Recording system events" : "Not recording system events")
+                        .padding(.trailing)
+                }
             }
         }
         .toolbar {

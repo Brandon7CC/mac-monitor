@@ -14,12 +14,33 @@ import CoreData
 /// Pins what happens to an event a view is still showing when a Clear deletes it. Its rows go first, so until the view
 /// context hears, its relationships read nil: on macOS 13 an exec label forced its nil exec and Mac Monitor crashed.
 /// A Clear must tell the view context about every event it loaded, and no view may force an event's payload it hasn't
-/// checked for.
+/// checked for. A Clear usually replaces the store, after which the view context forgets everything; while an export
+/// reads the store it deletes the rows instead, and must name every event the view context loaded.
 final class GoneEventTests: XCTestCase {
     /// An event the view context loads after a Clear begins, as a table can in the turn before it lets go, is gone
-    /// once the Clear finishes, not left alive with its rows deleted.
+    /// once a Clear that replaces the store finishes.
     func testClearDeletesWhatLoadedDuringIt() throws {
+        try assertClearForgetsWhatLoadedDuringIt(whileExporting: false)
+    }
+    
+    /// The same for a Clear that deletes the rows, while an export reads the store: not left alive with its rows deleted.
+    func testClearDuringAnExportDeletesWhatLoadedDuringIt() throws {
+        try assertClearForgetsWhatLoadedDuringIt(whileExporting: true)
+    }
+    
+    /// Load an exec before a Clear and one during it, then check both are gone once it finishes.
+    ///
+    /// - Parameter whileExporting: Whether an export is reading the store, so the Clear deletes rather than replaces.
+    /// - Throws: The error reading the corpus.
+    private func assertClearForgetsWhatLoadedDuringIt(whileExporting: Bool) throws {
         let store = CoreDataController(model: eventModel)
+        let exporter = TelemetryExporter(container: store.container, pretty: false)
+        if whileExporting {
+            let url = try makeTemporaryDirectory().appendingPathComponent("trace.jsonl")
+            store.exports.withLock { $0[ObjectIdentifier(exporter)] = (exporter, url) }
+        }
+        defer { store.exports.withLock { $0[ObjectIdentifier(exporter)] = nil } }
+        let stores = { store.container.persistentStoreCoordinator.persistentStores.map(\.identifier) }
         let viewContext = store.container.viewContext
         /// As the event tables leave it (`EventQueryModel.activate(spec:)`).
         viewContext.automaticallyMergesChangesFromParent = false
@@ -33,6 +54,7 @@ final class GoneEventTests: XCTestCase {
         let execs = try viewContext.fetch(request)
         let early = try XCTUnwrap(execs.first.flatMap { try? viewContext.existingObject(with: $0) as? ESMessage })
         XCTAssertNotNil(early.event.exec)
+        let before = stores()
 
         let cleared = expectation(forNotification: CoreDataController.eventsDidClear, object: store)
         store.clearSystemEvents()
@@ -42,7 +64,9 @@ final class GoneEventTests: XCTestCase {
         })
         XCTAssertNotNil(late.event.exec)
         wait(for: [cleared], timeout: 60)
-
+        XCTAssertEqual(stores() == before, whileExporting, whileExporting ? "Replaced the store from under an export"
+                       : "Deleted the rows rather than replacing the store")
+        
         for (name, message) in [("loaded before", early), ("loaded during", late)] {
             XCTAssertTrue(message.isDeleted || message.managedObjectContext == nil,
                           "An exec \(name) the Clear is still alive, its exec \(String(describing: message.event.exec))")

@@ -232,6 +232,28 @@ final class StreamFilterTests: XCTestCase {
         XCTAssertFalse(try predicate.copy.evaluate(on: relatedRecords[0]))
     }
 
+    /// A `SUBQUERY` without conditions on both events leaves out exactly the events that are the searched event
+    /// (``PredicateRecord/isSame(as:)``): itself, every copy of it, and one whose type is `null` as the searched
+    /// event's is; a searched event without a type is left out only as itself.
+    func testSubqueriesLeaveOutTheSearchedEvent() throws {
+        func event(_ time: Int, _ type: Any) -> NSDictionary {
+            ["mach_time": time, "global_seq_num": time, "es_event_type": type]
+        }
+        let copied = event(1, "ES_EVENT_TYPE_NOTIFY_EXEC"), untyped = event(3, NSNull())
+        let kept = [copied, event(1, "ES_EVENT_TYPE_NOTIFY_EXEC"), event(2, "ES_EVENT_TYPE_NOTIFY_EXEC"), untyped,
+                    event(3, NSNull()), copied]
+        let typeless: NSDictionary = ["mach_time": 1, "global_seq_num": 1]
+        let predicates = try (0...kept.count).map {
+            try StreamFilter.Predicate("SUBQUERY(events, $e, TRUEPREDICATE).@count == \($0)", for: .search)
+        }
+        for predicate in predicates { try kept.forEach(predicate.collect) }
+        for searched in kept + [typeless, event(4, "ES_EVENT_TYPE_NOTIFY_EXEC")] {
+            let expected = kept.filter { !PredicateRecord($0).isSame(as: PredicateRecord(searched)) }.count
+            XCTAssertEqual(try predicates.map { try $0.evaluate(on: searched) }.firstIndex(of: true), expected,
+                           "\(searched)")
+        }
+    }
+
     /// A `SUBQUERY` only goes through related events, its variable only reads key paths the schema names, and the
     /// command line, which has one event at a time, refuses both.
     func testSubqueriesThatCantBeUsed() throws {
