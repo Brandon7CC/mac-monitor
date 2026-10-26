@@ -75,8 +75,8 @@ struct InsightCard: View {
     let symbol: String
     let tint: Color
     let title: String
-    /// What it's about, such as the files' names.
-    let detail: String
+    /// What it's about, such as the files' names. A card without one shows its title alone.
+    var detail: String? = nil
     /// Why it's worth a look, shown on hover.
     let explanation: String
     let isOn: Bool
@@ -84,7 +84,7 @@ struct InsightCard: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: 8) {
+            HStack(alignment: detail == nil ? .center : .top, spacing: 8) {
                 Image(systemName: symbol)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white)
@@ -92,7 +92,7 @@ struct InsightCard: View {
                     .background(tint, in: RoundedRectangle(cornerRadius: 6))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title).font(.callout.weight(.semibold))
-                    Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    if let detail { Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
                 }
                 Spacer(minLength: 0)
             }

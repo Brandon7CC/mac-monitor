@@ -13,8 +13,7 @@ import SutroESFramework
 // MARK: - Correlation tab
 /// Event Facts' Correlation tab: the events the exec's process instigated, as a dashboard. A summary and a bar of
 /// their kinds sit above cards for the findings worth a look, then a search, a chip for each event type, and the
-/// events as a list or a timeline, with the selected one's details beside them. A kind, a finding or a chip keeps
-/// only its events.
+/// events as a list, with the selected one's details beside them. A kind, a finding or a chip keeps only its events.
 struct SystemEnrichedEventView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @EnvironmentObject var userPrefs: UserPrefs
@@ -24,14 +23,7 @@ struct SystemEnrichedEventView: View {
     /// The exec whose process's events are shown.
     var selectedMessage: ESMessage
 
-    /// How the events are shown.
-    enum Presentation: String, CaseIterable, Identifiable {
-        case list = "List", timeline = "Timeline"
-        var id: Self { self }
-    }
-
     @State private var summary: CorrelationSummary?
-    @State private var presentation = Presentation.list
     @State private var query = ""
     /// The kind kept, by title.
     @State private var kind: String?
@@ -69,16 +61,15 @@ struct SystemEnrichedEventView: View {
             if !summary.findings.isEmpty {
                 InsightGrid {
                     ForEach(summary.findings, id: \.finding) { item in
-                        let files = item.rows.map(\.target.lastPathComponent)
                         InsightCard(symbol: item.finding.symbol, tint: item.finding.tint,
-                                    title: item.finding.title(item.rows.count), detail: InsightCard.detail(files),
+                                    title: item.finding.title(item.rows.count),
                                     explanation: item.finding.explanation, isOn: finding == item.finding) {
                             finding = finding == item.finding ? nil : item.finding
                         }
                     }
                 }
             }
-            DashboardSearchRow(query: $query, prompt: "Search paths, signing IDs and details", shown: rows.count,
+            DashboardSearchRow(query: $query, prompt: "Search paths and signing IDs", shown: rows.count,
                                total: summary.rows.count) {
                 if let kind {
                     let color = summary.kinds.first { $0.kind.title == kind }?.kind.color ?? .gray
@@ -91,12 +82,7 @@ struct SystemEnrichedEventView: View {
             }
             FilterChips(chips: FilterChips.chips(summary.rows.map { ($0.type, $0.symbol) }), selection: $types)
             HStack(spacing: 0) {
-                switch presentation {
-                case .list:
-                    table(rows)
-                case .timeline:
-                    CorrelationTimeline(summary: summary, shown: Set(rows.map(\.id)), selection: $selection)
-                }
+                table(rows)
                 if let row = summary.rows.first(where: { $0.id == selection }) {
                     Divider()
                     inspector(row)
@@ -121,26 +107,17 @@ struct SystemEnrichedEventView: View {
     }
 
     // MARK: Header
-    /// The title, the summary line, and List or Timeline.
+    /// The title and the summary line.
     ///
     /// - Parameter summary: The process's events.
     /// - Returns: The header.
     private func header(_ summary: CorrelationSummary) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                (Text(summary.processName).font(.headline.monospaced()) + Text(" correlated events").font(.headline))
-                Text("\(summary.rows.count) events in \(Self.seconds(summary.duration, sign: false)) · "
-                     + "\(summary.kinds.count) \(summary.kinds.count == 1 ? "kind" : "kinds")")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Picker("Show as", selection: $presentation) {
-                ForEach(Presentation.allCases) { Text($0.rawValue).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
+        VStack(alignment: .leading, spacing: 2) {
+            (Text(summary.processName).font(.headline.monospaced()) + Text(" correlated events").font(.headline))
+            Text("\(summary.rows.count) events in \(Self.seconds(summary.duration, sign: false)) · "
+                 + "\(summary.kinds.count) \(summary.kinds.count == 1 ? "kind" : "kinds")")
+                .font(.callout)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -168,7 +145,6 @@ struct SystemEnrichedEventView: View {
             .width(min: 100, ideal: 130, max: 180)
             /// The rest of the width. Cut in the middle, which keeps both who it's about (an XPC connection's
             /// service) and where (a path's file name).
-            /// No column for the detail, which the context mostly says: the inspector shows it.
             TableColumn("Context") { row in
                 Text(row.context).font(.body.monospaced()).lineLimit(1).truncationMode(.middle).help(row.context)
             }
@@ -191,14 +167,14 @@ struct SystemEnrichedEventView: View {
 
     // MARK: Inspector
     /// - Parameter row: The selected event.
-    /// - Returns: Its details: why it's worth a look, its facts, and what to do with it.
+    /// - Returns: Its details: its facts, and what to do with it.
     private func inspector(_ row: CorrelationSummary.Row) -> some View {
         let process = row.message.process
         return EventInspector(
             symbol: row.symbol, color: row.kind.color, title: row.type,
             subtitle: "\(Self.seconds(row.seconds)) since exec",
-            note: row.finding.map { ($0.explanation, $0.symbol, $0.tint) },
-            facts: [("Context", row.context), ("Target", row.target), ("Detail", row.detail),
+            note: nil,
+            facts: [("Context", row.context), ("Target", row.target),
                     ("Event", row.message.es_event_type ?? ""),
                     ("Instigator", "\(process.executable?.name ?? "") (pid \(process.pid))"),
                     ("Signing ID", process.signing_id ?? "")],
@@ -218,105 +194,3 @@ struct SystemEnrichedEventView: View {
     }
 }
 
-
-// MARK: - Timeline
-/// The events as dots in a lane per kind, along a square-root scale of the time since the exec, so the burst right
-/// after it spreads out. Events the filters leave out are faint. Click a dot to select its event.
-private struct CorrelationTimeline: View {
-    let summary: CorrelationSummary
-    /// The events that pass the filters.
-    let shown: Set<NSManagedObjectID>
-    @Binding var selection: NSManagedObjectID?
-
-    /// The labels' width.
-    private let labelWidth: CGFloat = 150
-    /// A dot's radius.
-    private let radius: CGFloat = 6
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(summary.kinds, id: \.kind) { item in
-                    HStack(spacing: 10) {
-                        HStack(spacing: 6) {
-                            RoundedRectangle(cornerRadius: 2).fill(item.kind.color).frame(width: 8, height: 8)
-                            Text(item.kind.title).lineLimit(1)
-                            Text("\(item.count)").foregroundStyle(.secondary)
-                        }
-                        .font(.callout)
-                        .frame(width: labelWidth, alignment: .leading)
-                        lane(summary.rows.filter { $0.kind == item.kind }, color: item.kind.color)
-                    }
-                }
-                HStack(spacing: 10) {
-                    Text("Since exec, √ scale").font(.caption).foregroundStyle(.secondary)
-                        .frame(width: labelWidth, alignment: .leading)
-                    ticks
-                }
-            }
-            .padding(12)
-        }
-    }
-
-    /// One kind's dots.
-    ///
-    /// - Parameters:
-    ///   - rows: Its events.
-    ///   - color: Its color.
-    /// - Returns: The lane.
-    private func lane(_ rows: [CorrelationSummary.Row], color: Color) -> some View {
-        GeometryReader { geometry in
-            Canvas { context, size in
-                context.fill(Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 6),
-                             with: .color(.primary.opacity(0.06)))
-                for row in rows {
-                    let dot = CGRect(x: x(row.seconds, in: size.width) - radius, y: size.height / 2 - radius,
-                                     width: radius * 2, height: radius * 2)
-                    context.fill(Path(ellipseIn: dot), with: .color(color.opacity(shown.contains(row.id) ? 1 : 0.18)))
-                    if row.id == selection {
-                        context.stroke(Path(ellipseIn: dot.insetBy(dx: -2.5, dy: -2.5)), with: .color(.primary),
-                                       lineWidth: 2)
-                    }
-                }
-            }
-            .gesture(SpatialTapGesture().onEnded { tap in
-                let nearest = rows.min { abs(x($0.seconds, in: geometry.size.width) - tap.location.x)
-                    < abs(x($1.seconds, in: geometry.size.width) - tap.location.x) }
-                if let nearest, abs(x(nearest.seconds, in: geometry.size.width) - tap.location.x) <= radius + 3 {
-                    selection = nearest.id
-                }
-            })
-            .help(rows.count == 1 ? "1 event" : "\(rows.count) events")
-        }
-        .frame(height: 24)
-    }
-
-    /// Labels along the scale, leaving out any that would crowd the one before.
-    private var ticks: some View {
-        GeometryReader { geometry in
-            let candidates = [0, 0.05, 0.25, 1, 2, 5, 10, 30, 60, 300, 1800].filter { $0 < summary.duration * 0.85 }
-                + [summary.duration]
-            let placed = candidates.reduce(into: [(seconds: Double, x: CGFloat)]()) { placed, seconds in
-                let position = x(seconds, in: geometry.size.width)
-                if placed.last.map({ position - $0.x >= 44 }) ?? true { placed.append((seconds, position)) }
-            }
-            ForEach(placed, id: \.seconds) { tick in
-                Text(tick.seconds == 0 ? "0" : SystemEnrichedEventView.seconds(tick.seconds, sign: false))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .fixedSize()
-                    .position(x: tick.x, y: 8)
-            }
-        }
-        .frame(height: 16)
-    }
-
-    /// - Parameters:
-    ///   - seconds: Seconds since the exec.
-    ///   - width: The lane's width.
-    /// - Returns: Where along the lane a dot goes.
-    private func x(_ seconds: Double, in width: CGFloat) -> CGFloat {
-        let share = summary.duration > 0 ? (seconds / summary.duration).squareRoot() : 0
-        return radius + 1 + CGFloat(share) * (width - 2 * (radius + 1))
-    }
-}
