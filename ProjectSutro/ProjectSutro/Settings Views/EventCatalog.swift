@@ -22,7 +22,7 @@ enum EventCatalog {
 
         var id: String { name }
         /// Its short name, as macmonitor knows it: `exec`.
-        var shortName: String { String(name.dropFirst(Self.prefix.count)).lowercased() }
+        var shortName: String { CommandLineEvents.shortName(name) }
         /// Its SF Symbol (``eventStringToImage(from:)``).
         var symbol: String { eventStringToImage(from: name) }
         /// Apple's documentation for it: a page per event, named in lowercase, such as
@@ -112,7 +112,7 @@ enum EventCatalog {
             })
         }
         let others = supported.filter { !named.contains($0) }.sorted()
-            .map { Event(name: $0, title: String($0.dropFirst(Event.prefix.count)).lowercased()) }
+            .map { Event(name: $0, title: CommandLineEvents.shortName($0)) }
         groups.append(Group(title: "Other", symbol: "ellipsis.circle", tint: .gray, events: others))
         return groups.filter { !$0.events.isEmpty }
     }()
@@ -126,6 +126,6 @@ enum EventCatalog {
     /// - Returns: The event, named for people when the catalog knows it.
     static func event(named name: String) -> Event {
         events.first { $0.name == name }
-            ?? Event(name: name, title: String(name.dropFirst(Event.prefix.count)).lowercased())
+            ?? Event(name: name, title: CommandLineEvents.shortName(name))
     }
 }

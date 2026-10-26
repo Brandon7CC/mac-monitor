@@ -16,8 +16,9 @@ import SutroESFramework
 /// the selected one, and ⋯ imports, exports, resets, or unmutes everything. Right-clicking a mute offers the rest.
 struct PathMutingSettingsView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @Binding var pathToMute: String
     @StateObject private var files = MuteFileActions()
+    /// The Add sheet's path: "Mute Another Way…" starts it with the mute's.
+    @State private var pathToMute = ""
 
     @State private var searchScope: SearchScope = .path
     @State private var searchText = ""
@@ -97,7 +98,7 @@ struct PathMutingSettingsView: View {
                              message: Text("This empties the saved mute set and will dramatically increase event "
                                            + "count."),
                              primaryButton: .destructive(Text("Unmute All")) {
-                                 systemExtensionManager.unmuteAllPaths()
+                                 systemExtensionManager.requestMutes(MuteRequest(.replace))
                              },
                              secondaryButton: .cancel())
             case .reset:
@@ -108,7 +109,7 @@ struct PathMutingSettingsView: View {
                                 every macmonitor stream that follows the saved set.
                                 """),
                              primaryButton: .destructive(Text("Reset to Default")) {
-                                 systemExtensionManager.resetMuteSetToDefault()
+                                 systemExtensionManager.requestMutes(MuteRequest(.reset))
                              },
                              secondaryButton: .cancel())
             }
@@ -119,10 +120,10 @@ struct PathMutingSettingsView: View {
             Text(MuteFileActions.summary(of: systemExtensionManager.muteProblems))
         })
         .modifier(MuteFileAlerts(actions: files, manager: systemExtensionManager))
-        .onAppear { systemExtensionManager.requestMutedPaths() }
+        .onAppear { systemExtensionManager.requestMutes(MuteRequest(.list)) }
         /// Pick up changes `sudo macmonitor` made while the window was in the background.
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
-            systemExtensionManager.requestMutedPaths()
+            systemExtensionManager.requestMutes(MuteRequest(.list))
         }
     }
 
@@ -263,7 +264,7 @@ struct PathMutingSettingsView: View {
         Divider()
         Button("Mute Another Way…") {
             pathToMute = mute.path
-            adding = AddRequest(kind: MuteKind(type: mute.type) ?? .literal)
+            adding = AddRequest(kind: MuteKind(rawValue: mute.type) ?? .literal)
         }
         .disabled(!canEdit)
         if !mute.events.isEmpty {
@@ -282,7 +283,7 @@ struct PathMutingSettingsView: View {
     // MARK: Data
 
     /// The saved set, as the Security Extension last sent it.
-    private var mutes: [ESMutedPath] { systemExtensionManager.simpleGetMutedPaths() }
+    private var mutes: [ESMutedPath] { systemExtensionManager.savedMutes }
 
     /// The mutes the search keeps: by path, by type, or by event.
     private var kept: [ESMutedPath] {
@@ -338,162 +339,5 @@ struct PathMutingSettingsView: View {
     private func unmute(_ mute: ESMutedPath, _ events: [String]) {
         if events.isEmpty || Set(events) == Set(mute.events) { selection = nil }
         systemExtensionManager.puntPathToUnmute(pathToUnmute: mute.path, type: mute.type, events: events)
-    }
-}
-
-
-// MARK: - Rows
-/// A group's header: its mute type's badge, or its event's symbol and name, and how many mutes it has.
-private struct GroupHeader: View {
-    let group: PathMutingSettingsView.Group
-
-    var body: some View {
-        HStack(spacing: 8) {
-            if let kind = group.kind {
-                MuteTypeBadgeView(kind: kind)
-                Text(kind.rawValue).font(.caption.monospaced()).foregroundStyle(.secondary)
-            } else if let event = group.event {
-                Label(event.shortName, systemImage: event.symbol).font(.caption.weight(.semibold))
-                Text(event.name).font(.caption.monospaced()).foregroundStyle(.secondary)
-            } else {
-                Text("All events").font(.caption.weight(.semibold))
-                Text("es_mute_path").font(.caption.monospaced()).foregroundStyle(.secondary)
-            }
-            Spacer()
-            Text("\(group.mutes.count) \(group.mutes.count == 1 ? "mute" : "mutes")")
-                .font(.caption).foregroundStyle(.secondary)
-        }
-    }
-}
-
-
-/// One mute: its path, then its events (or, grouped by event, its type), unless the inspector shows them.
-private struct MuteRow: View {
-    let mute: ESMutedPath
-    let showsEvents: Bool
-    let showsKind: Bool
-
-    /// The most events a row names before counting the rest.
-    private static let eventsShown = 3
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Text(mute.path)
-                .font(.body.monospaced())
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .help(mute.path)
-            Spacer(minLength: 8)
-            if showsKind {
-                MuteTypeBadgeView(path: mute)
-            } else if showsEvents {
-                events.frame(width: 250, alignment: .leading)
-            }
-        }
-    }
-
-    /// "All events", or the first few events as tokens and how many more there are.
-    @ViewBuilder private var events: some View {
-        if mute.events.isEmpty {
-            Text("All events").foregroundStyle(.secondary)
-        } else {
-            HStack(spacing: 4) {
-                ForEach(mute.events.prefix(Self.eventsShown), id: \.self) { name in
-                    Text(EventCatalog.event(named: name).shortName)
-                        .font(.caption.monospaced())
-                        .padding(.horizontal, 5).padding(.vertical, 1)
-                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
-                }
-                if mute.events.count > Self.eventsShown {
-                    Text("+\(mute.events.count - Self.eventsShown) more").font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            .help(mute.events.map { EventCatalog.event(named: $0).shortName }.joined(separator: ", "))
-        }
-    }
-}
-
-
-// MARK: - Inspector
-/// The selected mute beside the table: its type, its whole path, every event it covers with a way to unmute each,
-/// and Unmute Path.
-private struct MuteInspector: View {
-    let mute: ESMutedPath
-    let canEdit: Bool
-    let close: () -> Void
-    let unmute: (ESMutedPath, [String]) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                MuteTypeBadgeView(path: mute)
-                Spacer()
-                Button(action: close) {
-                    Image(systemName: "xmark.circle.fill").symbolRenderingMode(.palette)
-                        .foregroundStyle(.white, .red)
-                }
-                .buttonStyle(.borderless)
-                .help("Close")
-                .accessibilityLabel("Close the details")
-                .keyboardShortcut(.cancelAction)
-            }
-            .padding(10)
-            Divider()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(mute.path).font(.callout.monospaced()).textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if mute.events.isEmpty {
-                        Text("Muted for every event").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                        Text("To mute only some events, unmute the path, then add it back for those events.")
-                            .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    } else {
-                        Text("Muted for \(mute.events.count) \(mute.events.count == 1 ? "event" : "events")")
-                            .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                        VStack(spacing: 0) {
-                            ForEach(Array(mute.events.enumerated()), id: \.element) { index, name in
-                                if index > 0 { Divider() }
-                                eventRow(name)
-                            }
-                        }
-                        .background(.background, in: RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
-                    }
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            Divider()
-            Button(role: .destructive) { unmute(mute, []) } label: {
-                Label("Unmute Path", systemImage: "speaker.wave.2.fill").frame(maxWidth: .infinity)
-            }
-            .foregroundStyle(.red)
-            .disabled(!canEdit)
-            .padding(10)
-        }
-        .background(Color(nsColor: .windowBackgroundColor))
-    }
-
-    /// One event the mute covers, and its Unmute button.
-    ///
-    /// - Parameter name: The event's `ES_EVENT_TYPE_*` name.
-    /// - Returns: The row.
-    private func eventRow(_ name: String) -> some View {
-        let event = EventCatalog.event(named: name)
-        return HStack(spacing: 8) {
-            Image(systemName: event.symbol).foregroundStyle(.secondary).frame(width: 18)
-            Text(event.shortName).font(.callout.monospaced()).help(event.name)
-            Spacer()
-            Button { unmute(mute, [name]) } label: {
-                Label("Unmute", systemImage: "speaker.wave.2.fill").font(.caption.weight(.semibold))
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .foregroundStyle(.red)
-            .disabled(!canEdit)
-            .accessibilityLabel("Unmute \(event.title)")
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
     }
 }

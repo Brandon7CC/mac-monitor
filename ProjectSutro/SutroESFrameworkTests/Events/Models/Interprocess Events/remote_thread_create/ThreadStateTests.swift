@@ -118,7 +118,7 @@ final class ThreadStateTests: XCTestCase {
     func testEncodesEsloggerKeysPlusBytes() throws {
         let json = ProcessHelpers.eventToJSON(value: ThreadState(flavor: 6, state_base64: "AAEC/w=="))
         XCTAssertEqual(json, #"{"flavor":6,"state":null,"state_base64":"AAEC/w=="}"#)
-        let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
+        let object = try jsonObject(Data(json.utf8))
         XCTAssertTrue(object["state"] is NSNull)
     }
     

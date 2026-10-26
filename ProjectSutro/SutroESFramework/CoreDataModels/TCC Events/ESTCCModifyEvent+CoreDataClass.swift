@@ -11,10 +11,25 @@ import CoreData
 
 
 @objc(ESTCCModifyEvent)
-public class ESTCCModifyEvent: NSManagedObject {
+public class ESTCCModifyEvent: NSManagedObject, Identifiable {
+    @NSManaged public var service: String
+    @NSManaged public var identity: String
+    @NSManaged public var identity_type: Int32
+    @NSManaged public var update_type: Int32
+    @NSManaged public var right: Int32
+    @NSManaged public var reason: Int32
+    @NSManaged public var identity_type_string: String
+    @NSManaged public var update_type_string: String
+    @NSManaged public var right_string: String
+    @NSManaged public var reason_string: String
+    
+    @NSManaged public var instigator_token: ESAuditToken?
+    @NSManaged public var instigator: ESProcess?
+    
+    @NSManaged public var responsible_token: ESAuditToken?
+    @NSManaged public var responsible: ESProcess?
+
     enum CodingKeys: CodingKey {
-        case id
-        
         case service
         case identity
         case identity_type
@@ -32,44 +47,28 @@ public class ESTCCModifyEvent: NSManagedObject {
     }
     
     // MARK: - Custom Core Data initilizer for ESTCCModifyEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let tccModifyEvent: TCCModifyEvent = message.event.tcc_modify!
-        let description = NSEntityDescription.entity(forEntityName: "ESTCCModifyEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = tccModifyEvent.id
+    convenience init(from event: TCCModifyEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.service = tccModifyEvent.service
-        self.identity = tccModifyEvent.identity
-        self.identity_type = Int32(truncatingIfNeeded: tccModifyEvent.identity_type)
-        self.identity_type_string = tccModifyEvent.identity_type_string
-        self.update_type = Int32(truncatingIfNeeded: tccModifyEvent.update_type)
-        self.update_type_string = tccModifyEvent.update_type_string
+        self.service = event.service
+        self.identity = event.identity
+        self.identity_type = Int32(truncatingIfNeeded: event.identity_type)
+        self.identity_type_string = event.identity_type_string
+        self.update_type = Int32(truncatingIfNeeded: event.update_type)
+        self.update_type_string = event.update_type_string
         
-        self.instigator_token = ESAuditToken(
-            from: tccModifyEvent.instigator_token,
-            insertIntoManagedObjectContext: context
-        )
-        if let instigator = tccModifyEvent.instigator {
-            self.instigator = ESProcess(
-                from: instigator,
-                version: message.version,
-                insertIntoManagedObjectContext: context
-            )
-        }
+        self.instigator_token = ESAuditToken.insert(event.instigator_token, in: context)
+        self.instigator = ESProcess.insert(event.instigator, version: message.version, in: context)
         
         /// The responsible token and process on their own: Endpoint Security can leave out the process (`NULL`) and
         /// still give its token.
-        self.responsible_token = tccModifyEvent.responsible_token.map {
-            ESAuditToken(from: $0, insertIntoManagedObjectContext: context)
-        }
-        self.responsible = tccModifyEvent.responsible.map {
-            ESProcess(from: $0, version: message.version, insertIntoManagedObjectContext: context)
-        }
+        self.responsible_token = ESAuditToken.insert(event.responsible_token, in: context)
+        self.responsible = ESProcess.insert(event.responsible, version: message.version, in: context)
         
-        self.right = Int32(truncatingIfNeeded: tccModifyEvent.right)
-        self.right_string = tccModifyEvent.right_string
-        self.reason = Int32(truncatingIfNeeded: tccModifyEvent.reason)
-        self.reason_string = tccModifyEvent.reason_string
+        self.right = Int32(truncatingIfNeeded: event.right)
+        self.right_string = event.right_string
+        self.reason = Int32(truncatingIfNeeded: event.reason)
+        self.reason_string = event.reason_string
     }
 }
 
@@ -77,8 +76,6 @@ public class ESTCCModifyEvent: NSManagedObject {
 extension ESTCCModifyEvent: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-//        try container.encode(id, forKey: .id)
-        
         try container.encode(service, forKey: .service)
         try container.encode(identity, forKey: .identity)
         try container.encode(identity_type, forKey: .identity_type)

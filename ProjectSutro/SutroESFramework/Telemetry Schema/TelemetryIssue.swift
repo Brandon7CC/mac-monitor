@@ -48,23 +48,6 @@ public struct TelemetryIssue: Error, Hashable, Sendable, CustomStringConvertible
         public let problem: String
         /// `event.exec.args[]: missing`, or the problem alone for an issue with the whole record.
         public var description: String { path.isEmpty ? problem : "\(path): \(problem)" }
-        
-        /// - Parameters:
-        ///   - path: The path, with every index generalized.
-        ///   - problem: The problem, without the value.
-        init(path: String, problem: String) {
-            self.path = path
-            self.problem = problem
-        }
-        
-        /// The kind of an issue that isn't made: one a record has past the issues it keeps.
-        ///
-        /// - Parameters:
-        ///   - path: Where the value is in the record.
-        ///   - problem: What's wrong.
-        init(path: InstancePath, problem: Problem) {
-            self.init(path: path.generalized, problem: TelemetryIssue.text(of: problem, value: nil))
-        }
     }
     
     /// The line the record starts on in its trace, from 1 (for a record that isn't JSON, the line where reading it
@@ -144,6 +127,18 @@ public struct TelemetryIssue: Error, Hashable, Sendable, CustomStringConvertible
         self.schemaLocation = schemaLocation
         self.problem = problem
         self.value = value.map(JSONText.describe)
+    }
+}
+
+
+extension TelemetryIssue.Kind {
+    /// The kind of an issue that isn't made: one a record has past the issues it keeps.
+    ///
+    /// - Parameters:
+    ///   - path: Where the value is in the record.
+    ///   - problem: What's wrong.
+    init(path: InstancePath, problem: TelemetryIssue.Problem) {
+        self.init(path: path.generalized, problem: TelemetryIssue.text(of: problem, value: nil))
     }
 }
 

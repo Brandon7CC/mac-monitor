@@ -10,9 +10,13 @@ import Foundation
 import CoreData
 
 @objc(ESProfileAddEvent)
-public class ESProfileAddEvent: NSManagedObject {
+public class ESProfileAddEvent: NSManagedObject, Identifiable {
+    @NSManaged public var instigator: ESProcess?
+    @NSManaged public var is_update: Bool
+    @NSManaged public var profileData: Data?
+    @NSManaged public var instigator_token: ESAuditToken?
+
     enum CodingKeys: CodingKey {
-        case id
         case instigator
         case is_update
         case profile
@@ -30,21 +34,14 @@ public class ESProfileAddEvent: NSManagedObject {
     }
     
     // MARK: - Custom Core Data initilizer for ESProfileAddEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: ProfileAddEvent = message.event.profile_add!
-        let description = NSEntityDescription.entity(forEntityName: "ESProfileAddEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: ProfileAddEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.id = event.id
         self.is_update = event.is_update
-        if let instigator = event.instigator {
-            self.instigator = ESProcess(from: instigator, version: message.version, insertIntoManagedObjectContext: context)
-        }
+        self.instigator = ESProcess.insert(event.instigator, version: message.version, in: context)
         /// On its own: Endpoint Security can leave out the instigator process (`NULL`) and still give its token
         /// (message version 8 and later).
-        if let instigator_token = event.instigator_token {
-            self.instigator_token = ESAuditToken(from: instigator_token, insertIntoManagedObjectContext: context)
-        }
+        self.instigator_token = ESAuditToken.insert(event.instigator_token, in: context)
         self.profile = event.profile
     }
 }

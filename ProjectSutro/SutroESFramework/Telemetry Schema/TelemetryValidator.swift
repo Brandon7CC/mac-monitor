@@ -233,22 +233,15 @@ public struct TelemetryValidator: @unchecked Sendable {
     ///   - limit: The most issues of each record kept in full.
     /// - Returns: What checking each one found.
     private func check(_ records: [TraceRecordReader.Record], keeping limit: Int) -> [RecordCheck] {
-        var results = [RecordCheck](repeating: RecordCheck(), count: records.count)
-        results.withUnsafeMutableBufferPointer { buffer in
-            let slots = buffer
-            DispatchQueue.concurrentPerform(iterations: records.count) { index in
-                slots[index] = autoreleasepool {
-                    switch records[index] {
-                    case .object(let json, let line):
-                        return check(json, line: line, keeping: limit)
-                    case .malformed(let line):
-                        var issues = FoundIssues()
-                        issues.add(line: line, path: .root, schemaLocation: "#", problem: .malformedRecord)
-                        return RecordCheck(issues: issues, malformed: true)
-                    }
-                }
+        records.concurrentMap { record in
+            switch record {
+            case .object(let json, let line):
+                return check(json, line: line, keeping: limit)
+            case .malformed(let line):
+                var issues = FoundIssues()
+                issues.add(line: line, path: .root, schemaLocation: "#", problem: .malformedRecord)
+                return RecordCheck(issues: issues, malformed: true)
             }
         }
-        return results
     }
 }

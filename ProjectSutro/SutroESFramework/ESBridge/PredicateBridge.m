@@ -32,22 +32,11 @@ static NSError *PredicateBridgeError(NSException *exception) {
     }
 }
 
-+ (BOOL)evaluate:(NSPredicate *)predicate withObject:(nullable id)object matches:(BOOL *)matches
-           error:(NSError **)error {
-    @try {
-        *matches = [predicate evaluateWithObject:object];
-        return YES;
-    } @catch (NSException *exception) {
-        if (error) *error = PredicateBridgeError(exception);
-        return NO;
-    }
-}
-
 + (BOOL)evaluate:(NSPredicate *)predicate withObject:(nullable id)object
-       variables:(NSDictionary<NSString *, id> *)variables matches:(BOOL *)matches error:(NSError **)error {
+       variables:(nullable NSDictionary<NSString *, id> *)variables error:(NSError **)error {
     @try {
-        *matches = [predicate evaluateWithObject:object substitutionVariables:variables];
-        return YES;
+        return variables ? [predicate evaluateWithObject:object substitutionVariables:variables]
+            : [predicate evaluateWithObject:object];
     } @catch (NSException *exception) {
         if (error) *error = PredicateBridgeError(exception);
         return NO;
@@ -71,17 +60,15 @@ static NSError *PredicateBridgeError(NSException *exception) {
     }
 }
 
-+ (BOOL)evaluateExpression:(NSExpression *)expression withObject:(nullable id)object
-                 variables:(nullable NSDictionary<NSString *, id> *)variables value:(id _Nullable * _Nonnull)value
-                     error:(NSError **)error {
++ (nullable id)evaluateExpression:(NSExpression *)expression withObject:(nullable id)object
+                        variables:(nullable NSDictionary<NSString *, id> *)variables error:(NSError **)error {
     @try {
         // An expression reads its variables from the context.
         NSMutableDictionary *context = variables ? [variables mutableCopy] : nil;
-        *value = [expression expressionValueWithObject:object context:context];
-        return YES;
+        return [expression expressionValueWithObject:object context:context];
     } @catch (NSException *exception) {
         if (error) *error = PredicateBridgeError(exception);
-        return NO;
+        return nil;
     }
 }
 

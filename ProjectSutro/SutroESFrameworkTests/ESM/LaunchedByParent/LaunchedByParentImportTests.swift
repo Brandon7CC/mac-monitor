@@ -81,9 +81,7 @@ final class LaunchedByParentImportTests: XCTestCase {
     /// another pid version, and not from this Mac, even for a live process.
     func testPathsComeOnlyFromTheSameProcessInTheTrace() throws {
         var records = try fixtureRecords(Self.lineageFixture)
-        var shell = try XCTUnwrap(records[0]["process"] as? [String: Any])
-        shell["audit_token"] = esloggerToken(pid: 401, pidversion: 4011)
-        records[0]["process"] = shell
+        records[0][path: "process", "audit_token"] = esloggerToken(pid: 401, pidversion: 4011)
         var messages = try records[0...1].map { try importRecord($0) }
         TraceLaunchedByParents().fill(&messages)
         XCTAssertEqual(messages[1].createdLaunchedByParent?.audit_token?.pidversion, 4010)
@@ -112,8 +110,8 @@ final class LaunchedByParentImportTests: XCTestCase {
     /// Mac Monitor 2.1's export of an exec gets an answer the same way: a job's program, exec'd by `xpcproxy`.
     func testMacMonitor21Exec() throws {
         let record = try fixtureRecords(Self.lineageFixture)[4]
-        let exec = try XCTUnwrap((record["event"] as? [String: Any])?["exec"])
-        let legacy = try execedByXPCProxy(try legacyRecord("exec", type: ES_EVENT_TYPE_NOTIFY_EXEC, exec))
+        let exec = try XCTUnwrap(record[path: "event", "exec"])
+        let legacy = execedByXPCProxy(try legacyRecord(ES_EVENT_TYPE_NOTIFY_EXEC, exec))
         var messages = [try importRecord(legacy)]
         TraceLaunchedByParents().fill(&messages)
         let answer = try XCTUnwrap(messages[0].createdLaunchedByParent)
@@ -129,11 +127,7 @@ final class LaunchedByParentImportTests: XCTestCase {
                                       path: "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder",
                                       launchd_job: .init(label: Self.lineageAppLabel), resolved_by: .app)
         var record = try fixtureRecords(Self.lineageFixture)[5]
-        var event = try XCTUnwrap(record["event"] as? [String: Any])
-        var exec = try XCTUnwrap(event["exec"] as? [String: Any])
-        exec["launched_by_parent"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(finder))
-        event["exec"] = exec
-        record["event"] = event
+        record[path: "event", "exec", "launched_by_parent"] = try jsonObject(encoding: finder)
         var messages = [try importRecord(record)]
         XCTAssertEqual(messages[0].createdLaunchedByParent, finder)
         TraceLaunchedByParents().fill(&messages)

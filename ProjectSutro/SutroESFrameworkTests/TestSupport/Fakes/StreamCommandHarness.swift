@@ -58,21 +58,7 @@ final class BufferOutput: StreamOutput {
 
 // MARK: - Diagnostics
 /// Standard error in a test: keeps each line.
-final class DiagnosticLines {
-    private let lines = OSAllocatedUnfairLock<[String]>(initialState: [])
-    
-    /// Every line, in order.
-    var all: [String] {
-        lines.withLock { $0 }
-    }
-    
-    /// Keep a line.
-    ///
-    /// - Parameter line: The line.
-    func append(_ line: String) {
-        lines.withLock { $0.append(line) }
-    }
-}
+typealias DiagnosticLines = Recorded<String>
 
 
 // MARK: - A command against the in-process extension
@@ -81,7 +67,7 @@ final class StreamCommandRun {
     let command: StreamCommand
     let output: BufferOutput
     let diagnostics: DiagnosticLines
-    private let outcomes = OSAllocatedUnfairLock<[StreamCommand.Outcome]>(uncheckedState: [])
+    private let outcomes = Recorded<StreamCommand.Outcome>()
     
     /// - Parameters:
     ///   - harness: The in-process Security Extension.
@@ -108,13 +94,13 @@ final class StreamCommandRun {
     
     /// Every outcome reported, which should only ever be one.
     var reported: [StreamCommand.Outcome] {
-        outcomes.withLockUnchecked { $0 }
+        outcomes.all
     }
     
     /// Start the stream.
     ///
     /// - Parameter invocation: The stream asked for.
     func start(_ invocation: StreamInvocation = StreamInvocation()) {
-        command.run(invocation) { [outcomes] outcome in outcomes.withLockUnchecked { $0.append(outcome) } }
+        command.run(invocation, completion: outcomes.append)
     }
 }

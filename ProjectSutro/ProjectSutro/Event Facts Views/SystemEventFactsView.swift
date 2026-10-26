@@ -10,16 +10,12 @@ import SutroESFramework
 
 
 struct SystemEventDetailsView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @Environment(\.openWindow) private var openEventJSON
-    
     var selectedMessage: ESMessage
-    @State private var targetMetadataExpanded: Bool = true
     
     var body: some View {
         List {
-            SystemTargetProcessView(selectedMessage: selectedMessage).environmentObject(systemExtensionManager)
-        }.textSelection(.enabled)
+            SystemTargetProcessView(selectedMessage: selectedMessage)
+        }
     }
 }
 
@@ -29,11 +25,6 @@ struct SystemEventDetailsView: View {
 /// the facts, whenever they fit there. When the window is too narrow, they move to the top of the facts instead: macOS
 /// would otherwise hide them in the toolbar's overflow menu.
 struct SystemEventFactsView : View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    
-    @EnvironmentObject var userPrefs: UserPrefs
-    
-    
     @Binding var allFilters: Filters
     var selectedMessage: ESMessage
     /// Is the Correlation tab showing? Then ⌘C copies the event's correlated events too.
@@ -56,11 +47,10 @@ struct SystemEventFactsView : View {
     /// - `gid`
     /// - `session_id`
     private var procGroup: [ESMessage] {
-        systemExtensionManager.coreDataContainer.getProcGroup(message: selectedMessage)
+        CoreDataController.shared.getProcGroup(message: selectedMessage)
     }
     private var procSessionGroup: [ESMessage] {
-        systemExtensionManager.coreDataContainer
-            .getProcSessionGroup(message: selectedMessage)
+        CoreDataController.shared.getProcSessionGroup(message: selectedMessage)
     }
     
     /// The script an interpreter ran, if Mac Monitor read it.
@@ -100,13 +90,9 @@ struct SystemEventFactsView : View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(.all)
-        .background(GeometryReader { proxy in
-            Color.clear
-                .onAppear { width = proxy.size.width }
-                .onChange(of: proxy.size.width) { width = $0 }
-        })
-        .onAppear { showsCorrelation = shown == .correlation }
-        .onChange(of: shown == .correlation) { showsCorrelation = $0 }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        /// Only the newest: below macOS 26.4 a task hops to the main actor, so an older one can arrive after it.
+        .task(id: shown == .correlation) { if !Task.isCancelled { showsCorrelation = shown == .correlation } }
         .toolbar {
             if inTitleBar {
                 ToolbarItem(placement: .principal) { picker(tabs, shown) }
@@ -156,14 +142,11 @@ struct SystemEventFactsView : View {
             if let plist { FileContentView(path: plist.path, content: plist.content) }
         case .correlation:
             SystemEnrichedEventView(allFilters: $allFilters, selectedMessage: selectedMessage)
-                .environmentObject(systemExtensionManager)
-                .environmentObject(userPrefs)
         case .groups:
             SystemEventGroupTableViews(allFilters: $allFilters, selectedMessage: selectedMessage,
                                        processGroup: procGroup, sessionGroup: procSessionGroup)
         case .parent:
             SystemInitiatingProcessView(selectedMessage: selectedMessage)
-                .environmentObject(systemExtensionManager)
                 .textSelection(.enabled)
         case .json:
             SystemEventJSONView(selectedMessage: selectedMessage)
@@ -173,9 +156,6 @@ struct SystemEventFactsView : View {
 
 
 struct AppWrapperForFacts: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @EnvironmentObject var userPrefs: UserPrefs
-    @Environment(\.openWindow) private var openEventFacts
     @FetchRequest var coreDataEvents: FetchedResults<ESMessage>
     
     
@@ -185,6 +165,7 @@ struct AppWrapperForFacts: View {
     /// Is the Correlation tab showing?
     @State private var showsCorrelation = false
     @State private var visibility: NavigationSplitViewVisibility = .all
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationSplitView(columnVisibility: $visibility) {
@@ -194,17 +175,14 @@ struct AppWrapperForFacts: View {
             if let tree = selectedEventTree {
                 SystemEventFactsView(allFilters: $allFilters, selectedMessage: tree,
                                      showsCorrelation: $showsCorrelation)
-                    .environmentObject(systemExtensionManager)
-                    .environmentObject(userPrefs)
             } else {
                 Text("No event selected")
             }
         }
+        /// An event that's gone closes its window.
         .onAppear {
-            self.selectedEventTree = coreDataEvents.first
-            if selectedEventTree == nil {
-                _ = NSApplication.shared.windows.filter({ $0.title.contains("Event Facts")}).map({ $0.close() })
-            }
+            selectedEventTree = coreDataEvents.first
+            if selectedEventTree == nil { dismiss() }
         }
         /// Clear deletes the events (and processes) this window shows, or takes their store away: let go of them first,
         /// the fetch too, which would otherwise keep an event whose store is gone and raise when it's next read.
@@ -217,13 +195,11 @@ struct AppWrapperForFacts: View {
             if let tree = selectedEventTree,
                let firstMessage = coreDataEvents.first {
                 ToolbarItem(placement: .navigation) {
-                    Button(action: {
-                        self.selectedEventTree = firstMessage
-                    }, label: {
+                    Button { selectedEventTree = firstMessage } label: {
                         Label("`\(ProcessHelpers.getTargetProcessName(message: firstMessage).prefix(14))`",
                               systemImage: "scope")
                             .labelStyle(.titleAndIcon)
-                    }).disabled(selectedEventTree != nil && firstMessage.id != tree.id ? false : true)
+                    }.disabled(firstMessage.id == tree.id)
                 }
             }
         }
@@ -241,7 +217,7 @@ struct AppWrapperForFacts: View {
                 alert.runModal()
                 return []
             }
-            let json = events.map { ProcessHelpers.eventToPrettyJSON(value: $0) }.joined(separator: "\n")
+            let json = events.map { ProcessHelpers.eventToJSON(value: $0, pretty: true) }.joined(separator: "\n")
             return [NSItemProvider(object: json as NSString)]
         }
     }

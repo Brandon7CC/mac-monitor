@@ -20,19 +20,32 @@ import Foundation
 /// Compilation takes two passes: every object is compiled, then each `$ref` is looked up by name and the references are
 /// checked for loops.
 final class JSONSchemaCompiler {
-    /// A node's keywords, gathered before the node is made.
+    /// A node's keywords, gathered before the node is made, which the node reads through
+    /// (``JSONSchemaNode/subscript(dynamicMember:)``).
     struct Keywords {
+        /// `type`: the JSON types a value may have, or `nil` for any.
         var types: [JSONType]?
+        /// `const`: the one value allowed.
         var constant: JSONScalar?
+        /// `enum`: the values allowed.
         var values: Set<JSONScalar>?
+        /// `pattern`: what a string must contain (anchored when the pattern says so).
         var pattern: JSONPattern?
+        /// `properties`: each key's schema.
         var properties: [String: JSONSchemaNode] = [:]
+        /// `required`: the keys an object must have.
         var required: Set<String> = []
+        /// `additionalProperties: false`: an object may only have the keys of ``properties``.
         var closed = false
+        /// `minProperties` and `maxProperties`.
         var minProperties: Int?, maxProperties: Int?
+        /// `items`: every element's schema.
         var items: JSONSchemaNode?
+        /// `anyOf`: the schemas of which a value must match at least one.
         var anyOf: [JSONSchemaNode] = []
+        /// `$ref`: the name of the definition in the root's `$defs` that a value must also match.
         var reference: String?
+        /// `x-mac-monitor-origin`: who defines the key this node is the schema of.
         var origin: KeyOrigin?
     }
     

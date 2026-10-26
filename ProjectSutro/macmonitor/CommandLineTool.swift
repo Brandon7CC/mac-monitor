@@ -47,7 +47,7 @@ enum CommandLineTool {
         case .mute(let mute):
             if case .failure(let failure) = runMute(mute) { fail(failure) }
         case .schema:
-            if case .failure(let failure) = SchemaCommand(output: FileOutput(descriptor: STDOUT_FILENO)).run() {
+            if case .failure(let failure) = SchemaCommand.run(output: FileOutput(descriptor: STDOUT_FILENO)) {
                 fail(failure)
             }
         case .validate(let validate):

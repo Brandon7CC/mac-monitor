@@ -32,7 +32,7 @@ final class ProfileAddTokenTests: XCTestCase {
     /// An eslogger record without its instigator exports the token eslogger wrote.
     func testImportedWithoutInstigator() throws {
         let token = try XCTUnwrap(try fixtureObject("eslogger-exit.jsonl")["process"] as? [String: Any])["audit_token"]
-        let record = try esloggerRecord("profile_add", type: 126, [
+        let record = try esloggerRecord(ES_EVENT_TYPE_NOTIFY_PROFILE_ADD, [
             "instigator": NSNull(), "instigator_token": token as Any, "is_update": false,
             "profile": ["identifier": "com.example.profile", "uuid": "UUID", "install_source": 1,
                         "organization": "Example", "display_name": "Example", "scope": "System"],

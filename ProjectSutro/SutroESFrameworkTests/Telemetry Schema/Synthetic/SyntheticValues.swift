@@ -78,19 +78,10 @@ enum SyntheticValues {
         case is String.Type: return string(forKey: key)
         case is Double.Type: return 1.5
         case is Float.Type: return Float(1.5)
-        case let integer as any FixedWidthInteger.Type: return convert(integer, Self.integer(forKey: key, in: variant))
+        case let integer as any FixedWidthInteger.Type:
+            return integer.init(truncatingIfNeeded: Self.integer(forKey: key, in: variant))
         default: return nil
         }
-    }
-    
-    /// An integer as a fixed-width integer type, its bits kept.
-    ///
-    /// - Parameters:
-    ///   - type: The type.
-    ///   - value: The integer.
-    /// - Returns: The value.
-    private static func convert<N: FixedWidthInteger>(_ type: N.Type, _ value: Int) -> N {
-        N(truncatingIfNeeded: value)
     }
     
     /// A string, by its key: a time, a hash, a path or a URL where the key says so.

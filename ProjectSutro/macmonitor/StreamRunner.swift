@@ -17,20 +17,9 @@ import SutroESFramework
 /// written until it answers; then `macmonitor` exits by that signal. If the answer doesn't come within the stop timeout
 /// (standard output is stalled, say), a watchdog exits anyway, and so does a second signal. A stream that stops itself
 /// at its `--count` or `--for` exits 0.
-final class StreamRunner {
+enum StreamRunner {
     /// How long a stop may take before the watchdog exits.
     static let stopDeadline: DispatchTimeInterval = .seconds(3)
-    /// The one stream this process runs.
-    private static var current: StreamRunner?
-    private let command: StreamCommand
-    private var trap: SignalTrap?
-    /// The signal that started the stop, if one did.
-    private var stoppingSignal: Int32?
-    
-    /// - Parameter command: The stream.
-    private init(command: StreamCommand) {
-        self.command = command
-    }
     
     /// Start streaming to standard output. Runs on the main queue until it exits.
     ///
@@ -56,31 +45,16 @@ final class StreamRunner {
         let command = StreamCommand(client: client, pipeline: pipeline, output: FileOutput(descriptor: STDOUT_FILENO),
                                     toolVersion: ToolVersion.current, isChatty: isatty(STDERR_FILENO) == 1,
                                     diagnose: FileOutput.writeError)
-        let runner = StreamRunner(command: command)
-        current = runner
-        runner.trap = SignalTrap { [weak runner] number in runner?.received(number) }
-        command.run(invocation) { outcome in
-            DispatchQueue.main.async { runner.finish(outcome) }
+        let trap = SignalTrap.start { number in
+            command.stop()
+            DispatchQueue.global().asyncAfter(deadline: .now() + Self.stopDeadline) { _exit(128 + number) }
         }
-    }
-    
-    /// Stop on the first signal; exit on the second.
-    ///
-    /// - Parameter number: The signal.
-    private func received(_ number: Int32) {
-        guard stoppingSignal == nil else { _exit(128 + number) }
-        stoppingSignal = number
-        command.stop()
-        DispatchQueue.global().asyncAfter(deadline: .now() + Self.stopDeadline) { _exit(128 + number) }
-    }
-    
-    /// Exit the way the stream ended: by the signal that stopped it, else 0 for a closed pipe, or the failure's status.
-    /// A reader that went away after the signal (Ctrl-C stops `| jq` too) still exits by the signal.
-    ///
-    /// - Parameter outcome: How the stream ended.
-    private func finish(_ outcome: StreamCommand.Outcome) {
-        if let stoppingSignal { SignalTrap.exit(by: stoppingSignal) }
-        if case .failed(let failure) = outcome { CommandLineTool.fail(failure) }
-        exit(CommandLineExit.success.rawValue)
+        /// 0 for a stream that stopped itself or lost its reader, else the failure's status.
+        command.run(invocation) { outcome in
+            DispatchQueue.main.async {
+                if case .failed(let failure) = outcome { trap.finish(failure) }
+                trap.finish()
+            }
+        }
     }
 }

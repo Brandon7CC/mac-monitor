@@ -12,7 +12,9 @@ import CoreData
 
 /// A stored `od_create_group` event.
 @objc(ESODCreateGroupEvent)
-public class ESODCreateGroupEvent: ESODEvent {
+public class ESODCreateGroupEvent: ESODEvent, Identifiable {
+    @NSManaged public var group_name: String?
+
     enum CodingKeys: CodingKey {
         case group_name
     }
@@ -20,12 +22,11 @@ public class ESODCreateGroupEvent: ESODEvent {
     /// Store an event.
     ///
     /// - Parameters:
+    ///   - event: The event.
     ///   - message: The event's message.
     ///   - context: The context to insert into.
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: OpenDirectoryCreateGroupEvent = message.event.od_create_group!
-        let description = NSEntityDescription.entity(forEntityName: "ESODCreateGroupEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: OpenDirectoryCreateGroupEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         store(event, version: message.version, in: context)
         group_name = event.group_name
     }

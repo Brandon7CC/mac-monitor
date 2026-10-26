@@ -164,22 +164,16 @@ enum SystemFacts {
         protections.filter { !$0.isOn }.map(\.flag)
     }
 
-    /// The active configuration's bits, as `csr_get_active_config` reports them.
-    static var sipConfiguration: UInt32? {
-        var configuration: csr_config_t = 0
-        return csr_get_active_config(&configuration) == 0 ? configuration : nil
-    }
-
     /// Such as "csr-active-config 0x6f · 6 flags".
     static var sipSummary: String {
         let count = sipAllowances.count
         let flags = "\(count) \(count == 1 ? "flag" : "flags")"
-        return sipConfiguration.map { "csr-active-config 0x\(String($0, radix: 16)) · \(flags)" } ?? flags
+        return SIPStatus.activeConfiguration.map { "csr-active-config 0x\(String($0, radix: 16)) · \(flags)" } ?? flags
     }
 
     /// What Copy Flags copies: the configuration, then each flag it sets, one per line.
     static var sipFlagsText: String {
-        ([sipConfiguration.map { "csr-active-config 0x\(String($0, radix: 16))" } ?? "csr-active-config unknown"]
-         + sipAllowances).joined(separator: "\n")
+        ([SIPStatus.activeConfiguration.map { "csr-active-config 0x\(String($0, radix: 16))" }
+            ?? "csr-active-config unknown"] + sipAllowances).joined(separator: "\n")
     }
 }

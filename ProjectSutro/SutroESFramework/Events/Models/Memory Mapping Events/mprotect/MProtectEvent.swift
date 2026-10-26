@@ -27,7 +27,7 @@ private func decodeProtectionFlags(_ protection: Int32) -> [String] {
 /// @brief Control protection of pages
 /// A type for an event that indicates a change to protection of memory-mapped pages.
 /// https://developer.apple.com/documentation/endpointsecurity/es_event_mprotect_t
-public struct MProtectEvent: Identifiable, Codable, Hashable {
+public struct MProtectEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var protection: Int32
@@ -37,14 +37,6 @@ public struct MProtectEvent: Identifiable, Codable, Hashable {
     public var hex_address = ""
     public var kb_size: Int64 = 0
     public var flags: [String] = []
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: MProtectEvent, rhs: MProtectEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let event: es_event_mprotect_t = rawMessage.pointee.event.mprotect

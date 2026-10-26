@@ -101,7 +101,6 @@ extension EndpointSecurityManager {
     ///   - ext: The extension in this copy of Mac Monitor.
     /// - Returns: `.replace` for another version or build, otherwise `.cancel`.
     public func request(_ request: OSSystemExtensionRequest, actionForReplacingExtension existing: OSSystemExtensionProperties, withExtension ext: OSSystemExtensionProperties) -> OSSystemExtensionRequest.ReplacementAction {
-        self.seIsInstalled = true
         let sameBuild = existing.bundleVersion == ext.bundleVersion
             && existing.bundleShortVersion == ext.bundleShortVersion
         guard !sameBuild else {
@@ -121,17 +120,14 @@ extension EndpointSecurityManager {
         if request === deactivationRequest {
             os_log("Security Extension deactivated!")
             deactivationRequest = nil
-            seIsInstalled = false
             extensionState = .notInstalled
             return
         }
         if result == .completed {
             os_log("🥳 Mac Monitor Security Extension has been successfully installed!")
-            seIsInstalled = true
             extensionState = .running(version: nil)
             refreshExtensionState()
         } else {
-            seIsInstalled = false
             extensionState = .needsRestart
         }
         kickoffXPCCommunication()
@@ -156,14 +152,12 @@ extension EndpointSecurityManager {
         let code = (error as? OSSystemExtensionError)?.code
         /// The same extension is already running: the replacement was cancelled on purpose.
         if code == .requestCanceled {
-            self.seIsInstalled = true
             refreshExtensionState()
             kickoffXPCCommunication()
             return
         }
         os_log(OSLogType.error, "☠️ The Security Extension couldn't be activated: %{public}@",
                error.localizedDescription)
-        self.seIsInstalled = false
         extensionState = code == .unsupportedParentBundleLocation ? .wrongLocation
             : .failed(Self.reason(for: code) ?? error.localizedDescription)
     }
@@ -171,7 +165,6 @@ extension EndpointSecurityManager {
     /// Waiting for the user to allow the extension in System Settings.
     public func requestNeedsUserApproval(_ request: OSSystemExtensionRequest) {
         os_log(OSLogType.error, "⏳ System Extension needs user approval in System Settings.")
-        self.seIsInstalled = false
         extensionState = .awaitingApproval
     }
 

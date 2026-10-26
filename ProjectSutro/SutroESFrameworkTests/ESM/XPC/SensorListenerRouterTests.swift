@@ -131,16 +131,11 @@ extension SensorListenerRouterTests {
         connection.activate()
         defer { connection.invalidate() }
         
-        let done = expectation(description: "Answered or failed")
-        let answered = NSLock()
-        var result = false
-        let proxy = connection.remoteObjectProxyWithErrorHandler { _ in done.fulfill() } as? Ping
-        proxy?.ping { _ in
-            answered.withLock { result = true }
-            done.fulfill()
+        let answered: Bool? = try? awaitCallback(timeout: 5) { done in
+            let proxy = connection.remoteObjectProxyWithErrorHandler { _ in done(false) } as? Ping
+            proxy?.ping { _ in done(true) }
         }
-        wait(for: [done], timeout: 5)
-        return answered.withLock { result }
+        return answered ?? false
     }
     
     /// The router's pin is enforced, not just set: this test process isn't signed as Mac Monitor, so its message

@@ -100,7 +100,7 @@ extension TraceImporter {
 
 // MARK: - Errors
 /// Why a record isn't imported.
-enum TraceImportError: LocalizedError {
+enum TraceImportError: LocalizedError, Equatable {
     /// JSON, but not an Endpoint Security event (it has no `event` or `process` object).
     case notAnEvent
     /// An event of a type Mac Monitor doesn't have, by eslogger's name for the type.

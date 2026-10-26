@@ -10,10 +10,20 @@ import Foundation
 import CoreData
 
 @objc(ESProcessForkEvent)
-public class ESProcessForkEvent: NSManagedObject {
-    
+public class ESProcessForkEvent: NSManagedObject, Identifiable, LaunchedByParentColumns {
+    /// The child process. The row may be shared with the events the child goes on to cause.
+    @NSManaged public var child: ESProcess
+    /// The `id` ``child`` had in this event (and exports). A shared row keeps the `id` of the first event that
+    /// stored it.
+    @NSManaged public var child_id: UUID?
+    /// ``launched_by_parent``, in plain columns (``LaunchedByParentColumns``).
+    @NSManaged public var launched_by_parent_source, launched_by_parent_resolved_by: String?
+    @NSManaged public var launched_by_parent_path, launched_by_parent_job: String?
+    @NSManaged public var launched_by_parent_pid: NSNumber?
+    @NSManaged public var launched_by_parent_token: Data?
+
     enum CodingKeys: CodingKey {
-        case id, child, launched_by_parent
+        case child, launched_by_parent
     }
     
     /// Mac Monitor's launched-by parent of ``child`` (``LaunchedByParent``), kept in plain columns
@@ -24,16 +34,16 @@ public class ESProcessForkEvent: NSManagedObject {
     }
     
     // MARK: - Custom Core Data initilizer for ESProcessForkEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let forkEvent: ProcessForkEvent = message.event.fork!
-        let description = NSEntityDescription.entity(forEntityName: "ESProcessForkEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = forkEvent.id
+    convenience init(from event: ProcessForkEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         /// The child: shared with the events it goes on to cause (see ``ESProcess/row(for:version:in:)``).
-        attach(ESProcess.row(for: forkEvent.child, version: message.version, in: context), to: #keyPath(ESProcessForkEvent.child))
-        self.child_id = forkEvent.child.id
-        self.launched_by_parent = forkEvent.launched_by_parent
+        attach(
+            ESProcess.row(for: event.child, version: message.version, in: context),
+            to: #keyPath(ESProcessForkEvent.child)
+        )
+        self.child_id = event.child.id
+        self.launched_by_parent = event.launched_by_parent
     }
 }
 

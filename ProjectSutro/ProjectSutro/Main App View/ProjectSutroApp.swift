@@ -55,14 +55,10 @@ struct ProjectSutroApp: App {
     
     /// The currently selected System Event (i.e. table row)
     @State private var eventSelection = Set<ESMessage.ID>()
-    /// Enables users to right click and mute path events
-    @State var pathToMute: String = ""
     /// The text to filter by in the context search field
     @State private var filterText: String = ""
     /// Is the event mask enabled?
     @State private var eventMaskEnabled: Bool = false
-    /// Are we filtering long processes which executed before Mac Monitor was started?
-    @State private var filteringLongRunningProcs: Bool = false
     
     @AppStorage("forcedDarkMode") private var forcedDarkMode = false
     /// Which parents Event Facts' process tree follows: View > Process tree, and Settings > General.
@@ -78,9 +74,12 @@ struct ProjectSutroApp: App {
     
     @AppStorage("lifecycleWarnBeforeQuit") var shouldWarnBeforeAppQuit: Bool = false
     
+    /// Was Mac Monitor launched only to deactivate the Security Extension? Then it never checks or activates it.
+    static let deactivating = CommandLine.arguments.contains("--deactivate-security-extension")
+    
     init() {
         /// Secondary entry-point for handling Security Extension deactivation ``--deactivate-security-extension``
-        if CommandLine.arguments.contains("--deactivate-security-extension") {
+        if Self.deactivating {
             print("[Mac Monitor]\tSubmitting deactivation request to the system. User interaction IS required.")
             systemExtensionManager.uninstallSystemExtension()
         }
@@ -94,16 +93,12 @@ struct ProjectSutroApp: App {
                     unifiedViewSelected: $unifiedViewSelected,
                     processExecSelected: $processExecSelected,
                     viewMiniChart: $viewMiniChart,
-                    filteringLongRunningProcs: $filteringLongRunningProcs,
                     eventSelection: $eventSelection,
                     filterText: $filterText,
                     search: predicateSearch,
                     allFilters: $allFilters,
                     eventMaskEnabled: $eventMaskEnabled
                 )
-                .environmentObject(systemExtensionManager)
-                .environmentObject(userPrefs)
-                .environmentObject(traceSession)
                 .padding(.bottom)
                 .frame(minWidth: 1200, minHeight: 750)
             }
@@ -128,13 +123,16 @@ struct ProjectSutroApp: App {
             .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
             .sheet(item: $updateToShow) { details in
                 UpdateAvailableSheet(updateDetails: details)
-                    .environmentObject(systemExtensionManager)
             }
             .alert("✅ Up-to-date!", isPresented: $showNoUpdateAlert) {
                 Button("Ok") { }
             } message: {
                 Text("You're on the latest version of Mac Monitor!")
             }
+            /// Last, so the window's content and its update sheet both have them.
+            .environmentObject(systemExtensionManager)
+            .environmentObject(userPrefs)
+            .environmentObject(traceSession)
         }
         .commands {
             CommandGroup(after: .newItem) {
@@ -233,9 +231,7 @@ struct ProjectSutroApp: App {
             
             /// The main window's search field and predicate editor (``EventSearchField``, ``PredicateEditorPane``).
             CommandGroup(after: .sidebar) {
-                Button("Predicate Editor") {
-                    NotificationCenter.default.post(name: .togglePredicateEditor, object: nil)
-                }
+                Button("Predicate Editor") { predicateSearch.toggleEditor(openEventJSON) }
                     .keyboardShortcut("f", modifiers: [.command, .option])
             }
             CommandGroup(after: .textEditing) {
@@ -293,7 +289,7 @@ struct ProjectSutroApp: App {
         /// Settings, as a window rather than a `Settings` scene, which has no toolbar for the sidebar to run under or
         /// for the pane's name and Back and Forward. ⌘, opens it (the app menu's Settings… below).
         Window("Settings", id: Self.settingsWindow) {
-            AgentSettingsView(pathToMute: $pathToMute, allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled)
+            AgentSettingsView(allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled)
                 .environmentObject(systemExtensionManager)
                 .environmentObject(predicateSearch)
                 .environmentObject(userPrefs)

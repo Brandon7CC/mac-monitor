@@ -21,26 +21,17 @@ final class LaunchedByParentCodingTests: XCTestCase {
                                            launchd_job: .init(label: "application.com.example.App.1.2.0"),
                                            resolved_by: .app)
     
-    /// A value's JSON object, as `JSONEncoder` writes it.
-    ///
-    /// - Parameter value: The value.
-    /// - Returns: The object.
-    /// - Throws: The encoder's error, or an `XCTest` failure if it isn't an object.
-    private func object(_ value: some Encodable) throws -> [String: Any] {
-        try XCTUnwrap(try JSONSerialization.jsonObject(with: JSONEncoder().encode(value)) as? [String: Any])
-    }
-    
     /// Every key is written, `null` when unknown, and a token has eslogger's eight keys and no `id`.
     func testEveryKeyIsWritten() throws {
         let keys: Set = ["source", "audit_token", "pid", "path", "launchd_job", "resolved_by"]
-        let named = try object(shellChild)
+        let named = try jsonObject(encoding: shellChild)
         XCTAssertEqual(Set(named.keys), keys)
         XCTAssertTrue(named["launchd_job"] is NSNull)
         XCTAssertEqual(named["pid"] as? Int, 401, "the token's pid")
         let token = try XCTUnwrap(named["audit_token"] as? [String: Any])
         XCTAssertEqual(Set(token.keys), ["asid", "auid", "egid", "euid", "pid", "pidversion", "rgid", "ruid"])
         
-        let none = try object(unnamed)
+        let none = try jsonObject(encoding: unnamed)
         XCTAssertEqual(Set(none.keys), keys)
         for key in ["audit_token", "pid", "path"] { XCTAssertTrue(none[key] is NSNull, key) }
         let job = try XCTUnwrap(none["launchd_job"] as? [String: Any])
@@ -52,10 +43,8 @@ final class LaunchedByParentCodingTests: XCTestCase {
         for value in [shellChild, unnamed] {
             XCTAssertEqual(try JSONDecoder().decode(LaunchedByParent.self, from: JSONEncoder().encode(value)), value)
         }
-        var object = try object(shellChild)
-        var token = try XCTUnwrap(object["audit_token"] as? [String: Any])
-        token["id"] = UUID().uuidString
-        object["audit_token"] = token
+        var object = try jsonObject(encoding: shellChild)
+        object[path: "audit_token", "id"] = UUID().uuidString
         let withID = try JSONSerialization.data(withJSONObject: object)
         XCTAssertEqual(try JSONDecoder().decode(LaunchedByParent.self, from: withID), shellChild)
     }

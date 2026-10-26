@@ -34,7 +34,7 @@ final class MountDispositionTests: XCTestCase {
     private func exportedMount(version: Int, disposition: Int?) throws -> [String: Any] {
         var event: [String: Any] = ["statfs": Self.statfs]
         event["disposition"] = disposition
-        let record = try esloggerRecord("mount", type: 22, event, version: version)
+        let record = try esloggerRecord(ES_EVENT_TYPE_NOTIFY_MOUNT, event, version: version)
         return try self.event("mount", in: try export(try importRecord(record)))
     }
     

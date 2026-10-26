@@ -11,9 +11,16 @@ import SutroESFramework
 struct SystemCodeSigningInvalidatedMetadataView: View {
     var esSystemEvent: ESMessage
     @State private var showAuditTokens: Bool = false
-    @State private var showTargetAuditTokens: Bool = false
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.cs_invalidated != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             CodeSignatureInvalidatedEventLabelView(message: esSystemEvent).font(.title2).padding([.top, .leading], 5.0)
             
@@ -24,9 +31,6 @@ struct SystemCodeSigningInvalidatedMetadataView: View {
                 HStack {
                     Button("**Audit tokens**") {
                         showAuditTokens.toggle()
-                    }
-                    Button("**Target audit tokens**") {
-                        showTargetAuditTokens.toggle()
                     }
                 }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
             }

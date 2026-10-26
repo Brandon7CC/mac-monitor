@@ -9,6 +9,70 @@ import SwiftUI
 import SutroESFramework
 
 
+// MARK: - Open Directory events
+extension ESEventType {
+    /// The event's Open Directory payload, whichever of the six it is, or `nil` for any other event.
+    var openDirectoryEvent: ESODEvent? {
+        od_create_user ?? od_modify_password ?? od_group_add ?? od_group_remove ?? od_create_group
+            ?? od_attribute_value_add
+    }
+}
+
+
+/// An Open Directory event's facts: a user or group was created, an account's password was changed, a member was
+/// added to or removed from a group, or a value was added to a record's attribute.
+struct SystemOpenDirectoryMetadataView: View {
+    /// The event's message.
+    let message: ESMessage
+
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
+    var body: some View {
+        if let event = message.event.openDirectoryEvent {
+            OpenDirectoryFactsView(message: message, event: event, role: Self.role(of: event)) {
+                switch event {
+                case is ESODCreateUserEvent: OpenDirectoryCreateUserEventLabelView(message: message)
+                case is ESODModifyPasswordEvent: OpenDirectoryModifyPasswordEventLabelView(message: message)
+                default: OrangeEventLabelView(message: message)
+                }
+            } facts: {
+                switch event {
+                case let event as ESODCreateUserEvent:
+                    FactRow(name: "User name", value: event.user_name)
+                case let event as ESODModifyPasswordEvent:
+                    FactRow(name: "Account type", value: event.account_type_string)
+                    FactRow(name: "Account name", value: event.account_name)
+                case let event as ESODGroupMemberEvent:
+                    OpenDirectoryGroupMemberFacts(event: event)
+                case let event as ESODCreateGroupEvent:
+                    FactRow(name: "Group name", value: event.group_name)
+                case let event as ESODAttributeValueAddEvent:
+                    FactRow(name: "Attribute name", value: event.attribute_name)
+                    FactRow(name: "Attribute value", value: event.attribute_value)
+                    FactRow(name: "\(event.record_type_string ?? "Record") record name", value: event.record_name)
+                default:
+                    EmptyView()
+                }
+            }
+        }
+    }
+
+    /// What the process that instigated an Open Directory event did.
+    ///
+    /// - Parameter event: The event.
+    /// - Returns: The instigator's role, such as "creating a new user".
+    private static func role(of event: ESODEvent) -> String {
+        switch event {
+        case is ESODCreateUserEvent: "creating a new user"
+        case is ESODModifyPasswordEvent: "the password modification"
+        case is ESODGroupAddEvent: "adding a member to the group"
+        case is ESODGroupRemoveEvent: "removing a member from the group"
+        case is ESODCreateGroupEvent: "creating the group"
+        default: "adding a value to a record"
+        }
+    }
+}
+
+
 // MARK: - Open Directory facts
 /// The facts every Open Directory event shows: its label, the process that instigated it, the event's own facts, and
 /// its node and result, with the initiating process's audit tokens as a context item.

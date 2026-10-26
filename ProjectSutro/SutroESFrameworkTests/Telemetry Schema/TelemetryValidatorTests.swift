@@ -52,14 +52,7 @@ final class TelemetryValidatorTests: XCTestCase {
     ///
     /// - Parameter schema: The schema's JSON text.
     /// - Returns: The error, or `nil` if it compiles.
-    private func loadError(_ schema: String) -> TelemetrySchemaError? {
-        do {
-            _ = try validator(schema)
-            return nil
-        } catch {
-            return error as? TelemetrySchemaError
-        }
-    }
+    private func loadError(_ schema: String) -> TelemetrySchemaError? { thrown { try validator(schema) } }
     
     // MARK: Types
     

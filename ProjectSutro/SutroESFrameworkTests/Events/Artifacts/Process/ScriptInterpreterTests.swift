@@ -36,9 +36,7 @@ final class ScriptInterpreterTests: XCTestCase {
     
     /// `bun app.ts` and `bun run app.ts` find the script in the working directory. A binary argument isn't a script.
     func testBunScriptFromArguments() throws {
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
+        let directory = try makeTemporaryDirectory()
         try Data("console.log(\"hello\");\n".utf8).write(to: directory.appendingPathComponent("app.ts"))
         try Data([0xCF, 0xFA, 0xED, 0xFE, 0x00, 0x01, 0x02]).write(to: directory.appendingPathComponent("tool"))
         let script = directory.appendingPathComponent("app.ts").path
@@ -67,16 +65,13 @@ final class ScriptInterpreterTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory.appendingPathComponent("folder"),
                                                 withIntermediateDirectories: false)
         
-        let looked = DispatchSemaphore(value: 0)
-        var script: String?
-        var content: String?
-        DispatchQueue.global().async {
-            script = ProcessHelpers.parseScriptFromArgs(args: ["bash", "-c", ":", fifo, "folder", "missing"],
-                                                        workingDirectory: directory.path)
-            content = ProcessHelpers.getFileContents(at: fifo)
-            looked.signal()
+        let (script, content): (String?, String?) = try awaitCallback(timeout: 5) { looked in
+            DispatchQueue.global().async {
+                looked((ProcessHelpers.parseScriptFromArgs(args: ["bash", "-c", ":", fifo, "folder", "missing"],
+                                                           workingDirectory: directory.path),
+                        ProcessHelpers.getFileContents(at: fifo)))
+            }
         }
-        XCTAssertEqual(looked.wait(timeout: .now() + 5), .success)
         XCTAssertNil(script)
         XCTAssertNil(content)
         XCTAssertNil(ProcessHelpers.getFileContents(at: directory.path))

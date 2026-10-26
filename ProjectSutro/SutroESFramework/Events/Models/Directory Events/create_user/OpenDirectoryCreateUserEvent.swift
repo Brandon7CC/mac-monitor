@@ -14,7 +14,7 @@ import Foundation
 ///
 /// Examples of Open Directory implementations include: Active Directory (Windows) and OpenLDAP (an open-source directory service)
 /// https://developer.apple.com/documentation/endpointsecurity/3228936-es_events_t/4161233-od_create_user
-public struct OpenDirectoryCreateUserEvent: Identifiable, Codable, Hashable, OpenDirectoryEvent {
+public struct OpenDirectoryCreateUserEvent: Codable, IdentityHashable, OpenDirectoryEvent {
     public var id: UUID = UUID.buffered()
     
     /// The process that instigated the operation (the XPC caller), or `nil` when Endpoint Security leaves it out.
@@ -35,14 +35,6 @@ public struct OpenDirectoryCreateUserEvent: Identifiable, Codable, Hashable, Ope
     public var error_code_human: String?
     public var instigator_process_name, instigator_process_path: String?
     public var instigator_process_audit_token, instigator_process_signing_id: String?
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: OpenDirectoryCreateUserEvent, rhs: OpenDirectoryCreateUserEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     /// Record the event of a message from Endpoint Security.
     ///

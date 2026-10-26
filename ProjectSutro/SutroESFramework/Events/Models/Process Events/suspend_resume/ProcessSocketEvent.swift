@@ -20,7 +20,7 @@ import Foundation
  */
 /// We call [es_event_proc_suspend_resume_t](https://developer.apple.com/documentation/endpointsecurity/es_event_proc_suspend_resume_t)
 ///  a `ProcessSocketEvent`
-public struct ProcessSocketEvent: Identifiable, Codable, Hashable {
+public struct ProcessSocketEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var target: Process?
@@ -28,21 +28,11 @@ public struct ProcessSocketEvent: Identifiable, Codable, Hashable {
     public var type_string = ""
     
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: ProcessSocketEvent, rhs: ProcessSocketEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
     init(from rawMessage: UnsafePointer<es_message_t>) {
         // Getting the socket event "proc_suspend_resume"
         let socketEvent: es_event_proc_suspend_resume_t = rawMessage.pointee.event.proc_suspend_resume
         
-        if let target = socketEvent.target {
-            self.target = Process(from: target.pointee, version: Int(rawMessage.pointee.version))
-        }
+        self.target = socketEvent.target.map { Process(from: $0.pointee, version: Int(rawMessage.pointee.version)) }
         
         self.type = Int32(socketEvent.type.rawValue)
         
@@ -53,17 +43,15 @@ public struct ProcessSocketEvent: Identifiable, Codable, Hashable {
 
 // MARK: - Mac Monitor enrichment
 extension ProcessSocketEvent: ESEnrichable {
+    /// `es_proc_suspend_resume_type_t`: the call made on the target.
+    private static let typeNames = ConstantNames([
+        ES_PROC_SUSPEND_RESUME_TYPE_RESUME.rawValue: "ES_PROC_SUSPEND_RESUME_TYPE_RESUME",
+        ES_PROC_SUSPEND_RESUME_TYPE_SUSPEND.rawValue: "ES_PROC_SUSPEND_RESUME_TYPE_SUSPEND",
+        ES_PROC_SUSPEND_RESUME_TYPE_SHUTDOWN_SOCKETS.rawValue: "ES_PROC_SUSPEND_RESUME_TYPE_SHUTDOWN_SOCKETS",
+    ])
+    
     /// Derive the type's name.
     public mutating func enrich() {
-        switch es_proc_suspend_resume_type_t(rawValue: UInt32(truncatingIfNeeded: type)) {
-        case ES_PROC_SUSPEND_RESUME_TYPE_RESUME:
-            self.type_string = "ES_PROC_SUSPEND_RESUME_TYPE_RESUME"
-        case ES_PROC_SUSPEND_RESUME_TYPE_SUSPEND:
-            self.type_string = "ES_PROC_SUSPEND_RESUME_TYPE_SUSPEND"
-        case ES_PROC_SUSPEND_RESUME_TYPE_SHUTDOWN_SOCKETS:
-            self.type_string = "ES_PROC_SUSPEND_RESUME_TYPE_SHUTDOWN_SOCKETS"
-        default:
-            self.type_string = "UNKNOWN"
-        }
+        type_string = Self.typeNames.name(of: Int(type))
     }
 }

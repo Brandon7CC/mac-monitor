@@ -11,18 +11,16 @@ import CoreData
 
 
 @objc(ESFileWriteEvent)
-public class ESFileWriteEvent: NSManagedObject {
+public class ESFileWriteEvent: NSManagedObject, Identifiable {
+    @NSManaged public var target: ESFile
+
     enum CodingKeys: CodingKey {
-        case id
         case target
     }
     
     // MARK: - Custom Core Data initilizer for ESFileWriteEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: FileWriteEvent = message.event.write!
-        let description = NSEntityDescription.entity(forEntityName: "ESFileWriteEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = event.id
+    convenience init(from event: TargetFileEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESFileWriteEvent.target))
     }

@@ -9,7 +9,6 @@ import SwiftUI
 import SutroESFramework
 
 struct SystemFileRenameMetadataView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     var esSystemEvent: ESMessage
     @State private var showAuditTokens: Bool = false
     
@@ -64,7 +63,7 @@ struct SystemFileRenameMetadataView: View {
                         HStack {
                             Text("\u{2022} Destination type:")
                                 .bold()
-                            Text("\(event.destination_type_string.replacingOccurrences(of: "ES_DESTINATION_TYPE_", with: ""))")
+                            Text(event.destination_type_string.droppingPrefix("ES_DESTINATION_TYPE_"))
                                 .monospaced()
                         }
                     }

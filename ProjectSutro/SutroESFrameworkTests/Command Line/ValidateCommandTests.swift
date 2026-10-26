@@ -38,7 +38,7 @@ final class ValidateCommandTests: XCTestCase {
             XCTFail("'validate \(arguments.joined(separator: " "))' is \(parsed), not validate.")
             throw CommandLineUsageError("Not validate.")
         }
-        let outcome = ValidateCommand(output: output, isCancelled: isCancelled).run(invocation)
+        let outcome = ValidateCommand.run(invocation, output: output, isCancelled: isCancelled)
         return Run(outcome: outcome, report: output.text)
     }
     
@@ -47,9 +47,7 @@ final class ValidateCommandTests: XCTestCase {
     /// - Returns: Each export's object, in the fixtures' order.
     /// - Throws: The error reading a fixture, or an `XCTest` failure if an export isn't a JSON object.
     private func exportedRecords() throws -> [[String: Any]] {
-        try fixtureExports().map { label, json in
-            try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any], label)
-        }
+        try fixtureExports().map { label, json in try jsonObject(Data(json.utf8), label) }
     }
     
     /// Records written as a trace.
@@ -86,9 +84,7 @@ final class ValidateCommandTests: XCTestCase {
     /// record starts on, the path of the value, and what's wrong with it.
     func testAnInvalidRecordExits65() throws {
         var records = try exportedRecords()
-        var process = try XCTUnwrap(records[1]["process"] as? [String: Any])
-        process["ppid"] = "1"
-        records[1]["process"] = process
+        records[1][path: "process", "ppid"] = "1"
         let path = try trace(records, named: "broken.jsonl")
         let run = try validate(path)
         XCTAssertEqual(run.outcome, .invalid)
@@ -212,8 +208,9 @@ final class ValidateCommandTests: XCTestCase {
         XCTAssertEqual(ValidateCommand.Outcome.failed(.output(ENOSPC)).exit?.rawValue, 74)
         
         let output = BufferOutput()
-        let missing = ValidateCommand(output: output, schema: { throw TelemetrySchemaError.missingResource })
-        XCTAssertEqual(missing.run(ValidateInvocation(path: valid)), .failed(CommandLineFailure(
+        let missing = ValidateCommand.run(ValidateInvocation(path: valid), output: output,
+                                          schema: { throw TelemetrySchemaError.missingResource })
+        XCTAssertEqual(missing, .failed(CommandLineFailure(
             .software, "Mac Monitor's telemetry schema is missing from its framework.")))
         XCTAssertEqual(output.text, "")
     }

@@ -33,9 +33,9 @@ final class EndpointSecurityClientTests: XCTestCase {
     
     /// The audit token a capture session mutes is this process's.
     func testCurrentProcessAuditToken() {
-        let token = audit_token_t.currentProcess
-        XCTAssertEqual(token.pid(), getpid())
-        XCTAssertEqual(token.euid(), Int64(geteuid()))
-        XCTAssertGreaterThan(token.pidversion(), 0)
+        let token = AuditToken(from: .currentProcess)
+        XCTAssertEqual(token.pid, getpid())
+        XCTAssertEqual(token.euid, Int64(geteuid()))
+        XCTAssertGreaterThan(token.pidversion, 0)
     }
 }

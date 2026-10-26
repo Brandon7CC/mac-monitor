@@ -49,11 +49,12 @@ final class CaptureCrashGuardTests: XCTestCase {
     /// Code signing flags with bit 31 set have no `Int32`: they're read by bit pattern.
     func testCodeSigningFlagsWithBit31() {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_EXIT)
-        let valid = fixture.process(path: "/nonexistent/Example", flags: 0x8000_0001, platform: false)
-        XCTAssertEqual(ProcessHelpers.codeSigningType(for: valid.pointee), .unknown)
-        let invalid = fixture.process(path: "/nonexistent/Example", flags: 0x8000_0000, platform: false)
-        XCTAssertEqual(ProcessHelpers.codeSigningType(for: invalid.pointee), .unsigned)
-        XCTAssertEqual(Process(from: valid.pointee, version: 10).codesigning_flags, 0x8000_0001)
+        let processes = [UInt32(0x8000_0001), 0x8000_0000].map { flags in
+            Process(from: fixture.process(path: "/nonexistent/Example", flags: flags, platform: false).pointee,
+                    version: 10)
+        }
+        XCTAssertEqual(processes.map(\.codesigning_type), [.unknown, .unsigned])
+        XCTAssertEqual(processes[0].codesigning_flags, 0x8000_0001)
     }
     
     // MARK: Unions
@@ -114,7 +115,7 @@ final class CaptureCrashGuardTests: XCTestCase {
     
     /// A trace's create event with an empty destination reads as one that can't be read, rather than being skipped.
     func testImportedCreateWithEmptyDestination() throws {
-        let record = try esloggerRecord("create", type: 13, ["destination_type": 9, "destination": [:]])
+        let record = try esloggerRecord(ES_EVENT_TYPE_NOTIFY_CREATE, ["destination_type": 9, "destination": [:]])
         let message = try importRecord(record)
         guard case .create(let create) = message.event else { return XCTFail("Expected a create event") }
         XCTAssertEqual(create.destination, .unknown)

@@ -54,8 +54,7 @@ final class TelemetrySchemaDriftTests: XCTestCase {
         let coverage = CoverageRecorder()
         assertValid(try syntheticExports(), with: try generatedValidator(), coverage: coverage)
         /// eslogger writes `null` where Mac Monitor writes NULL: its record of an override of a file too large to hash.
-        let override = try esloggerRecord("gatekeeper_user_override",
-                                          type: Int(ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE.rawValue),
+        let override = try esloggerRecord(ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE,
                                           ["file_type": 0, "file": "/Applications/Large.app", "sha256": NSNull(),
                                            "signing_info": NSNull()])
         assertValid([("eslogger gatekeeper_user_override", try jsonText(override))],

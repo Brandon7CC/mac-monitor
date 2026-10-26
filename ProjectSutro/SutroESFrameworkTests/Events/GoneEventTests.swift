@@ -48,10 +48,8 @@ final class GoneEventTests: XCTestCase {
         store.insertSystemEvents(messages: try SyntheticCorpus.records().map(\.message)) { inserted.fulfill() }
         wait(for: [inserted], timeout: 60)
 
-        let request = NSFetchRequest<NSManagedObjectID>(entityName: "ESMessage")
-        request.resultType = .managedObjectIDResultType
-        request.predicate = NSPredicate(format: "event_type == %d", ESMessage.execEventType)
-        let execs = try viewContext.fetch(request)
+        let execType = NSPredicate(format: "event_type == %d", ESMessage.execEventType)
+        let execs = try viewContext.fetch(ESMessage.request(NSManagedObjectID.self, where: execType))
         let early = try XCTUnwrap(execs.first.flatMap { try? viewContext.existingObject(with: $0) as? ESMessage })
         XCTAssertNotNil(early.event.exec)
         let before = stores()

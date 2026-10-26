@@ -127,8 +127,19 @@ struct ProcessRowKey: Hashable {
 }
 
 
-// MARK: - Attaching shared rows
+// MARK: - Inserting and attaching rows
 extension NSManagedObject {
+    /// Insert a new object of the entity named like this class, as every entity is.
+    ///
+    /// The entity comes from `context`'s model. `init(context:)` looks it up by class instead, which is ambiguous when
+    /// more than one copy of the model is loaded.
+    ///
+    /// - Parameter context: The context to insert into.
+    convenience init(insertingInto context: NSManagedObjectContext) {
+        let entity = NSEntityDescription.entity(forEntityName: NSStringFromClass(Self.self), in: context)!
+        self.init(entity: entity, insertInto: context)
+    }
+
     /// Point this newly inserted object's to-one relationship `key` at `row`, which may be shared and already saved.
     ///
     /// The relationship's setter would fire `row`'s fault and mark it updated (one `SELECT` and one `UPDATE` per shared
@@ -152,7 +163,7 @@ extension AuditToken {
     /// This token with its random `id` zeroed.
     var rowKey: AuditToken { var token = self; token.id = zeroID; return token }
     
-    /// The token as ``ESAuditToken/toString()`` formats it (also what `ESProcess` stores as `*_audit_token_string`):
+    /// The token as `ESProcess` stores it in `*_audit_token_string`:
     /// `pid:1, euid:0, ruid:0, rgid:0, egid:0, asid:100000, auid:4294967295, pidversion:2`.
     ///
     /// Written digit by digit into one string rather than interpolated (~0.3 µs, three times for every process an

@@ -10,9 +10,18 @@ import Foundation
 import CoreData
 
 @objc(ESIOKitOpenEvent)
-public class ESIOKitOpenEvent: NSManagedObject {
+public class ESIOKitOpenEvent: NSManagedObject, Identifiable {
+    @NSManaged public var user_client_class: String
+    @NSManaged public var user_client_type: Int64
+    /// Whether the message's version has the parent's fields: 10 (macOS 26) and later. The export writes both keys
+    /// then, `null` for one the record didn't have.
+    @NSManaged public var has_parent_fields: Bool
+    /// Message version 10 and later (`nil` before it, or when the record had none): a `uint64_t`, kept by bit pattern.
+    /// Read it as ``parentRegistryID``.
+    @NSManaged public var parent_registry_id: NSNumber?
+    @NSManaged public var parent_path: String?
+
     enum CodingKeys: CodingKey {
-        case id
         case user_client_class
         case user_client_type
         case parent_registry_id
@@ -20,20 +29,17 @@ public class ESIOKitOpenEvent: NSManagedObject {
     }
     
     // MARK: - Custom Core Data initilizer for ESIOKitOpenEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let iokitEvent: IOKitOpenEvent = message.event.iokit_open!
-        let description = NSEntityDescription.entity(forEntityName: "ESIOKitOpenEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: IOKitOpenEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.id = iokitEvent.id
-        self.user_client_type = iokitEvent.user_client_type
-        self.user_client_class = iokitEvent.user_client_class
+        self.user_client_type = event.user_client_type
+        self.user_client_class = event.user_client_class
         
         /// Message version 10 and later: before it, Endpoint Security has no such fields and eslogger writes neither.
         if message.version >= 10 {
             self.has_parent_fields = true
-            self.parent_registry_id = iokitEvent.parent_registry_id.map { NSNumber(value: $0) }
-            self.parent_path = iokitEvent.parent_path
+            self.parent_registry_id = event.parent_registry_id.map { NSNumber(value: $0) }
+            self.parent_path = event.parent_path
         }
     }
     

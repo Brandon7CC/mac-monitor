@@ -31,14 +31,25 @@ public extension Optional where Wrapped == String {
     }
 }
 
-/// A SHA-256 digest in hex, uppercase as `eslogger(1)` writes it.
-func sha256HexString(_ digest: es_sha256_t) -> String {
-    ESLogger.hex(digest)
+public extension StringProtocol {
+    /// The string without a prefix, such as `READ` for `ES_GET_TASK_TYPE_READ` without `ES_GET_TASK_TYPE_`.
+    ///
+    /// `hasPrefix` and `dropFirst`, not `trimmingPrefix(_:)` or `replacingOccurrences(of:with:)`: this runs for every
+    /// event, and both are many times slower.
+    ///
+    /// - Parameter prefix: The prefix, such as an Endpoint Security constant's.
+    /// - Returns: The rest, or the string as it is when it doesn't start with the prefix.
+    func droppingPrefix(_ prefix: String) -> String {
+        hasPrefix(prefix) ? String(dropFirst(prefix.count)) : String(self)
+    }
 }
 
-/// A code directory hash in hex, uppercase as `eslogger(1)` writes it.
-func cdhashToString(cdhash: es_cdhash_t) -> String {
-    ESLogger.hex(cdhash)
+/// An `errno` in words.
+///
+/// - Parameter code: The `errno`: the current one unless given.
+/// - Returns: `strerror(code)`.
+func errnoText(_ code: Int32 = errno) -> String {
+    String(cString: strerror(code))
 }
 
 
@@ -272,5 +283,25 @@ enum ESLogger {
         let formatter = ProcessHelpers.timestampFormatter.copy() as! DateFormatter
         Foundation.Thread.current.threadDictionary[key] = formatter
         return formatter
+    }
+}
+
+
+// MARK: - Parallel map
+extension RandomAccessCollection {
+    /// Transform every element in parallel, keeping their order. Each is transformed in its own autorelease pool: the
+    /// calling thread transforms some too, inside what may be one long work item.
+    ///
+    /// - Parameter transform: Transforms one element. Called on any thread, concurrently.
+    /// - Returns: The transformed elements, in order.
+    func concurrentMap<T>(_ transform: (Element) -> T) -> [T] {
+        [T](unsafeUninitializedCapacity: count) { buffer, initialized in
+            let slots = buffer
+            DispatchQueue.concurrentPerform(iterations: count) { offset in
+                let element = self[index(startIndex, offsetBy: offset)]
+                slots.initializeElement(at: offset, to: autoreleasepool { transform(element) })
+            }
+            initialized = count
+        }
     }
 }

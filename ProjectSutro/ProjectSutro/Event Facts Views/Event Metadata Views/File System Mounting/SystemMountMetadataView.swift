@@ -52,7 +52,7 @@ struct SystemMountMetadataView: View {
                     HStack {
                         Text("\u{2022} **Type:**")
                         GroupBox {
-                            Text(event.disposition_string.replacingOccurrences(of: "ES_MOUNT_DISPOSITION_", with: ""))
+                            Text(event.disposition_string.droppingPrefix("ES_MOUNT_DISPOSITION_"))
                                 .monospaced()
                         }
                         Text("\u{2022} **Total files:**")

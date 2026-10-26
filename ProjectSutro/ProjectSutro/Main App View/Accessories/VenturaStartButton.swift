@@ -19,26 +19,12 @@ struct VenturaStartButton: View {
     @Binding var recordingEvents: Bool
     @Binding var confirmClear: Bool
     
-    /// Clear SystemEvents from the Core Data PSC and reset the UI
-    ///
-    /// The function will first stop a system trace (if one is occuring) we'll next clear the PSC using `clearSystemEvents()`
+    /// Clear the events, recording again afterwards if Mac Monitor was recording.
     public func clearSystemEventsUI() {
-        var sentinel: Bool = false
-        if recordingEvents {
-            recordingEvents = false
-            
-            sentinel = true
-        }
-        
-        systemExtensionManager.cleanup()
+        let wasRecording = recordingEvents
         systemExtensionManager.stopRecordingEvents()
         systemExtensionManager.coreDataContainer.clearSystemEvents()
-        
-        if sentinel {
-            recordingEvents = true
-            systemExtensionManager.startRecordingEvents()
-            sentinel = false
-        }
+        if wasRecording { systemExtensionManager.startRecordingEvents() }
     }
     
     

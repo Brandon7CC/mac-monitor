@@ -10,9 +10,15 @@ import Foundation
 import CoreData
 
 @objc(ESLoginLoginEvent)
-public class ESLoginLoginEvent: NSManagedObject {
+public class ESLoginLoginEvent: NSManagedObject, Identifiable {
+    @NSManaged public var success: Bool
+    @NSManaged public var failure_message: String?
+    @NSManaged public var username: String?
+    @NSManaged public var uid: NSNumber?
+    @NSManaged public var uid_human: String?
+    @NSManaged public var has_uid: Bool
+
     enum CodingKeys: CodingKey {
-        case id
         case success
         case failure_message
         case username
@@ -22,12 +28,9 @@ public class ESLoginLoginEvent: NSManagedObject {
     }
     
     // MARK: - Custom Core Data initilizer for ESLoginLoginEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: LoginLoginEvent = message.event.login_login!
-        let description = NSEntityDescription.entity(forEntityName: "ESLoginLoginEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: LoginLoginEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.id = event.id
         self.success = event.succcess
         self.failure_message = event.failure_message
         self.username = event.username

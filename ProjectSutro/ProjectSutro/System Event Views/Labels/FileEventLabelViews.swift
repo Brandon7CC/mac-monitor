@@ -16,7 +16,16 @@ import SutroESFramework
 /// - Parameter path: A file's path.
 /// - Returns: `true` for such a file.
 func pathIsReflectiveLoadingImage(_ path: String) -> Bool {
-    (path as NSString).lastPathComponent.hasPrefix("NSCreateObjectFileImageFromMemory-")
+    path.lastPathComponent.hasPrefix("NSCreateObjectFileImageFromMemory-")
+}
+
+/// Is a file an OSA (Open Scripting Architecture) component: the AppleScript or JavaScript component, or a scripting
+/// addition?
+///
+/// - Parameter path: A file's path.
+/// - Returns: `true` for such a file.
+private func pathIsOSAComponent(_ path: String) -> Bool {
+    ["AppleScript.component", "JavaScript.component", ".osax"].contains(where: path.contains)
 }
 
 /// The warning before an event that creates or maps an image for reflective loading.
@@ -92,7 +101,7 @@ struct MMAPEventLabelView: View {
                     reflectiveLoadingWarning
                     Label("**`\(eventType)`**", systemImage: "memorychip").foregroundStyle(.red)
                 }
-            } else if pathIsOSAComponent(filePath: filePath) {
+            } else if pathIsOSAComponent(filePath) {
                 // MARK: MMAP OSA
                 HStack {
                     Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.palette).foregroundStyle(.black, .yellow).help("This file is an OSA (Open Scripting Architecture) component")

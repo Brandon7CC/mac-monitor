@@ -30,16 +30,8 @@ struct ToolLinkFixture {
     /// - Parameter testCase: Removes it when the test ends.
     /// - Throws: If it can't be built.
     init(for testCase: XCTestCase) throws {
-        let base = FileManager.default.temporaryDirectory.appendingPathComponent("ToolLink-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: false,
-                                                attributes: [.posixPermissions: 0o755])
+        let base = try testCase.makeTemporaryDirectory(prefix: "ToolLink")
         root = CommandLineToolLink.realPath(base.path) ?? base.path
-        testCase.addTeardownBlock { [root] in
-            /// Undo any mode a test set, so everything can be removed.
-            let walker = FileManager.default.enumerator(atPath: root)
-            while let path = walker?.nextObject() as? String { chmod(root + "/" + path, 0o755) }
-            try? FileManager.default.removeItem(atPath: root)
-        }
         try makeTool(at: tool)
         try makeDirectory(binDirectory)
     }
@@ -58,7 +50,7 @@ struct ToolLinkFixture {
     /// - Parameter path: The file.
     /// - Throws: If it can't be created.
     func makeTool(at path: String) throws {
-        try makeDirectory((path as NSString).deletingLastPathComponent)
+        try makeDirectory(path.deletingLastPathComponent)
         XCTAssertTrue(FileManager.default.createFile(atPath: path, contents: Data("#!/bin/sh\n".utf8),
                                                      attributes: [.posixPermissions: 0o755]))
     }

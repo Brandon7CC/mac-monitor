@@ -32,25 +32,6 @@ struct SyntheticDecoder: Decoder {
     /// Nothing: the types decoded take no options.
     var userInfo: [CodingUserInfoKey: Any] { [:] }
     
-    /// A decoder for a record.
-    ///
-    /// - Parameter variant: How the record is filled.
-    init(_ variant: SyntheticVariant) {
-        self.init(variant: variant, owner: "", key: nil, codingPath: [])
-    }
-    
-    /// - Parameters:
-    ///   - variant: How the value is filled.
-    ///   - owner: The type being decoded.
-    ///   - key: The value's key in its parent.
-    ///   - codingPath: The path to the value.
-    init(variant: SyntheticVariant, owner: String, key: String?, codingPath: [CodingKey]) {
-        self.variant = variant
-        self.owner = owner
-        self.key = key
-        self.codingPath = codingPath
-    }
-    
     /// The value as an object.
     func container<Key: CodingKey>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> {
         KeyedDecodingContainer(SyntheticKeyedContainer<Key>(decoder: self))
@@ -63,9 +44,7 @@ struct SyntheticDecoder: Decoder {
     }
     
     /// The value as a single value: this decoder.
-    func singleValueContainer() throws -> SingleValueDecodingContainer {
-        SyntheticSingleValue(decoder: self)
-    }
+    func singleValueContainer() throws -> SingleValueDecodingContainer { self }
     
     /// Is the value under `key` of the type being decoded `nil`? Only in an empty variant, unless Endpoint Security
     /// never leaves it out, or when the variant leaves the key out on purpose.
@@ -132,5 +111,16 @@ struct SyntheticDecoder: Decoder {
     /// - Returns: A type mismatch at this value's path.
     func mismatch<T>(_ type: T.Type, _ reason: String) -> DecodingError {
         .typeMismatch(type, .init(codingPath: codingPath, debugDescription: "\(owner): \(reason)"))
+    }
+}
+
+
+// MARK: - Records
+extension SyntheticDecoder {
+    /// A decoder for a record.
+    ///
+    /// - Parameter variant: How the record is filled.
+    init(_ variant: SyntheticVariant) {
+        self.init(variant: variant, owner: "", key: nil, codingPath: [])
     }
 }

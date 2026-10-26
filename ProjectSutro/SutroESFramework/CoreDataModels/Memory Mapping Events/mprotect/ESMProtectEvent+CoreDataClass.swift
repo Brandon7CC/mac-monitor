@@ -10,9 +10,16 @@ import Foundation
 import CoreData
 
 @objc(ESMProtectEvent)
-public class ESMProtectEvent: NSManagedObject {
+public class ESMProtectEvent: NSManagedObject, Identifiable {
+    @NSManaged public var protection: Int32
+    @NSManaged public var address: Int64
+    @NSManaged public var size: Int64
+    
+    @NSManaged public var hex_address: String
+    @NSManaged public var kb_size: Int64
+    @NSManaged public var flagsData: Data
+
     enum CodingKeys: CodingKey {
-        case id
         case protection
         case address
         case size
@@ -31,11 +38,8 @@ public class ESMProtectEvent: NSManagedObject {
     }
     
     // MARK: - Custom Core Data initilizer for ESMProtectEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: MProtectEvent = message.event.mprotect!
-        let description = NSEntityDescription.entity(forEntityName: "ESMProtectEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = event.id
+    convenience init(from event: MProtectEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         self.protection = event.protection
         self.address = event.address

@@ -28,9 +28,7 @@ import EndpointSecurity
 let CS_ADHOC: UInt32 = 0x00000002  /* adhoc signed */
 
 // @discussion: This ES event will give you basic *high level* process execution information.
-public var esEventSubs: [es_event_type_t] = [
-    ES_EVENT_TYPE_NOTIFY_EXEC
-]
+public var esEventSubs: [es_event_type_t] = [ES_EVENT_TYPE_NOTIFY_EXEC]
 
 // MARK: - Process Execution event
 // @note: we'll give you a *very* basic model here.
@@ -41,30 +39,24 @@ public struct ExampleProcessExecEvent: Identifiable, Codable {
     public var process_name, process_path, signing_id, command_line, team_id: String?
     public var pid: Int?
     
-    private func parseCommandLine(execEvent: inout es_event_exec_t) -> String {
-        let commandLineProducer = (0 ..< Int(es_exec_arg_count(&execEvent))).map {
-            String(cString: es_exec_arg(&execEvent, UInt32($0)).data)
-        }.joined(separator: " ")
-
-        return commandLineProducer.trimmingCharacters(in: .whitespaces)
-    }
-    
     init(fromRawEvent rawEvent: UnsafePointer<es_message_t>) {
-        var processExecEvent: es_event_exec_t = rawEvent.pointee.event.exec
+        var exec: es_event_exec_t = rawEvent.pointee.event.exec
+        let target = exec.target.pointee
+        let path = String(cString: target.executable.pointee.path.data)
         
         self.pid = Int(audit_token_to_pid(rawEvent.pointee.process.pointee.audit_token))
-        let processURL: NSURL = NSURL(fileURLWithPath:  String(cString: processExecEvent.target.pointee.executable.pointee.path.data))
-        self.process_name = processURL.lastPathComponent
-        self.process_path = String(cString: processExecEvent.target.pointee.executable.pointee.path.data)
-        self.is_platform_binary = processExecEvent.target.pointee.is_platform_binary
-        self.is_adhoc_signed = (processExecEvent.target.pointee.codesigning_flags) & CS_ADHOC == CS_ADHOC
-        self.command_line = parseCommandLine(execEvent: &processExecEvent)
+        self.process_name = path.isEmpty ? nil : URL(fileURLWithPath: path).lastPathComponent
+        self.process_path = path
+        self.is_platform_binary = target.is_platform_binary
+        self.is_adhoc_signed = target.codesigning_flags & CS_ADHOC == CS_ADHOC
+        self.command_line = (0 ..< es_exec_arg_count(&exec)).map { String(cString: es_exec_arg(&exec, $0).data) }
+            .joined(separator: " ").trimmingCharacters(in: .whitespaces)
         
         // @note: basic code signing information
-        self.signing_id = String(cString: processExecEvent.target.pointee.signing_id.data)
+        self.signing_id = String(cString: target.signing_id.data)
         
-        if processExecEvent.target.pointee.team_id.length > 0 {
-            self.team_id = String(cString: processExecEvent.target.pointee.team_id.data)
+        if target.team_id.length > 0 {
+            self.team_id = String(cString: target.team_id.data)
         }
     }
 }
@@ -83,98 +75,85 @@ public struct ExampleESEvent: Identifiable, Codable {
     init(fromRawEvent rawEvent: UnsafePointer<es_message_t>) {
         // MARK: - Top-level `es_message_t` / `es_process_t`
         // Reference: https://developer.apple.com/documentation/endpointsecurity/message
-        self.mach_time = Int(rawEvent.pointee.mach_time)
-        self.initiating_pid = Int(audit_token_to_pid(rawEvent.pointee.process.pointee.parent_audit_token))
+        let process = rawEvent.pointee.process.pointee
+        let path = String(cString: process.executable.pointee.path.data)
         
-        let executableURL: NSURL = NSURL(fileURLWithPath:  String(cString: rawEvent.pointee.process.pointee.executable.pointee.path.data))
-        self.initiating_process_path = String(cString: rawEvent.pointee.process.pointee.executable.pointee.path.data)
-        self.initiating_process_name = executableURL.lastPathComponent ?? "Unknown"
+        self.mach_time = Int(rawEvent.pointee.mach_time)
+        self.initiating_pid = Int(audit_token_to_pid(process.parent_audit_token))
+        self.initiating_process_path = path
+        self.initiating_process_name = path.isEmpty ? "Unknown" : URL(fileURLWithPath: path).lastPathComponent
         
         // @note: basic code signing information
-        self.initiating_process_signing_id = String(cString: rawEvent.pointee.process.pointee.signing_id.data)
+        self.initiating_process_signing_id = String(cString: process.signing_id.data)
         
         // MARK: - ES event switch
-        switch (rawEvent.pointee.event_type) {
+        switch rawEvent.pointee.event_type {
         case ES_EVENT_TYPE_NOTIFY_EXEC:
             self.es_event_type = "ES_EVENT_TYPE_NOTIFY_EXEC"
             self.exec_event = ExampleProcessExecEvent(fromRawEvent: rawEvent)
-            break
         default:
             self.es_event_type = "NOT MAPPED"
-            break
         }
     }
 }
 
 // MARK: - Manage your Endpoint Security (ES) client
-public class EndpointSecurityClientManager: NSObject {
-    public var esClient: OpaquePointer?
+// A simple function to convert an `Encodable` event to JSON.
+func eventToJSON(value: Encodable) -> String {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = .withoutEscapingSlashes
+    return (try? encoder.encode(value)).map { String(decoding: $0, as: UTF8.self) } ?? "{}"
+}
+
+func bootupESClient(completion: @escaping (_: String) -> Void) -> OpaquePointer? {
+    var client: OpaquePointer?
     
-    // A simple function to convert an `Encodable` event to JSON.
-    public static func eventToJSON(value: Encodable) -> String {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .withoutEscapingSlashes
-        
-        let encodedData = try? encoder.encode(value)
-        return String(data: encodedData!, encoding: .utf8)!
+    // MARK: - New ES client
+    // Reference: https://developer.apple.com/documentation/endpointsecurity/client
+    let result: es_new_client_result_t = es_new_client(&client) { _, event in
+        // Here is where the ES client will "send" events to be handled by our app -- this is the "callback".
+        completion(eventToJSON(value: ExampleESEvent(fromRawEvent: event)))
     }
     
-    public func bootupESClient(completion: @escaping (_: String) -> Void) -> OpaquePointer? {
-        var client: OpaquePointer?
-        
-        // MARK: - New ES client
-        // Reference: https://developer.apple.com/documentation/endpointsecurity/client
-        let result: es_new_client_result_t = es_new_client(&client){ _, event in
-            // Here is where the ES client will "send" events to be handled by our app -- this is the "callback".
-            completion(EndpointSecurityClientManager.eventToJSON(value: ExampleESEvent(fromRawEvent: event)))
-        }
-        
-        // Check the result of your `es_new_client_result_t` operation. Here is where you'll run into issues like:
-        // - Not having the ES entitlement signed to your app.
-        // - Not running as `root`, etc.
-        switch result {
-        case ES_NEW_CLIENT_RESULT_ERR_TOO_MANY_CLIENTS:
-            print("[ES CLIENT ERROR] There are too many Endpoint Security clients!")
-            break
-        case ES_NEW_CLIENT_RESULT_ERR_NOT_ENTITLED:
-            print("[ES CLIENT ERROR] Failed to create new Endpoint Security client! The endpoint security entitlement is required.")
-            break
-        case ES_NEW_CLIENT_RESULT_ERR_NOT_PERMITTED:
-            print("[ES CLIENT ERROR] Lacking TCC permissions!")
-            break
-        case ES_NEW_CLIENT_RESULT_ERR_NOT_PRIVILEGED:
-            print("[ES CLIENT ERROR] Caller is not running as root!")
-            break
-        case ES_NEW_CLIENT_RESULT_ERR_INTERNAL:
-            print("[ES CLIENT ERROR] Error communicating with ES!")
-            break
-        case ES_NEW_CLIENT_RESULT_ERR_INVALID_ARGUMENT:
-            print("[ES CLIENT ERROR] Incorrect arguments creating a new ES client!")
-            break
-        case ES_NEW_CLIENT_RESULT_SUCCESS:
-            print("[ES CLIENT SUCCESS] We successfully created a new Endpoint Security client!")
-            break
-        default:
-            print("An unknown error occured while creating a new Endpoint Security client!")
-        }
-        
-        // Validate that we have a valid reference to a client
-        if client == nil {
-            print("[ES CLIENT ERROR] After atempting to make a new ES client we failed.")
-            return nil
-        }
-        
-        // MARK: - Event subscriptions
-        // Reference: https://developer.apple.com/documentation/endpointsecurity/3228854-es_subscribe
-        if es_subscribe(client!, esEventSubs, UInt32(esEventSubs.count)) != ES_RETURN_SUCCESS {
-            print("[ES CLIENT ERROR] Failed to subscribe to core events! \(result.rawValue)")
-            es_delete_client(client)
-            exit(EXIT_FAILURE)
-        }
-        
-        self.esClient = client
-        return client
+    // Check the result of your `es_new_client_result_t` operation. Here is where you'll run into issues like:
+    // - Not having the ES entitlement signed to your app.
+    // - Not running as `root`, etc.
+    let message = switch result {
+    case ES_NEW_CLIENT_RESULT_ERR_TOO_MANY_CLIENTS:
+        "[ES CLIENT ERROR] There are too many Endpoint Security clients!"
+    case ES_NEW_CLIENT_RESULT_ERR_NOT_ENTITLED:
+        "[ES CLIENT ERROR] Failed to create new Endpoint Security client! "
+            + "The endpoint security entitlement is required."
+    case ES_NEW_CLIENT_RESULT_ERR_NOT_PERMITTED:
+        "[ES CLIENT ERROR] Lacking TCC permissions!"
+    case ES_NEW_CLIENT_RESULT_ERR_NOT_PRIVILEGED:
+        "[ES CLIENT ERROR] Caller is not running as root!"
+    case ES_NEW_CLIENT_RESULT_ERR_INTERNAL:
+        "[ES CLIENT ERROR] Error communicating with ES!"
+    case ES_NEW_CLIENT_RESULT_ERR_INVALID_ARGUMENT:
+        "[ES CLIENT ERROR] Incorrect arguments creating a new ES client!"
+    case ES_NEW_CLIENT_RESULT_SUCCESS:
+        "[ES CLIENT SUCCESS] We successfully created a new Endpoint Security client!"
+    default:
+        "An unknown error occured while creating a new Endpoint Security client!"
     }
+    print(message)
+    
+    // Validate that we have a valid reference to a client
+    guard let client else {
+        print("[ES CLIENT ERROR] After atempting to make a new ES client we failed.")
+        return nil
+    }
+    
+    // MARK: - Event subscriptions
+    // Reference: https://developer.apple.com/documentation/endpointsecurity/3228854-es_subscribe
+    if es_subscribe(client, esEventSubs, UInt32(esEventSubs.count)) != ES_RETURN_SUCCESS {
+        print("[ES CLIENT ERROR] Failed to subscribe to core events! \(result.rawValue)")
+        es_delete_client(client)
+        exit(EXIT_FAILURE)
+    }
+    
+    return client
 }
 
 // Implement a very simple logger -- here is where your events will be printed.
@@ -182,29 +161,13 @@ func logger(jsonEvent: String) {
     print(jsonEvent)
 }
 
-func bootupESClientWithLogger() -> OpaquePointer? {
-    let esClientManager = EndpointSecurityClientManager()
-    let esClient = esClientManager.bootupESClient(completion: logger)
-    
-    if esClient == nil {
-        print("[ES CLIENT ERROR] Error creating the endpoint security client!")
-        exit(EXIT_FAILURE)
-    }
-    
-    return esClient
+guard let esClient = bootupESClient(completion: logger) else {
+    print("[ES CLIENT ERROR] Error creating the endpoint security client!")
+    exit(EXIT_FAILURE)
 }
-
-func waitForExit() {
-    let waitForCTRLC = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
-    waitForCTRLC.setEventHandler {
-        exit(EXIT_SUCCESS)
-    }
-    
-    waitForCTRLC.resume()
-    dispatchMain()
-}
-
-let esClient = bootupESClientWithLogger()
 
 // Simple `ctrl+c` to exit
-waitForExit()
+let waitForCTRLC = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
+waitForCTRLC.setEventHandler { exit(EXIT_SUCCESS) }
+waitForCTRLC.resume()
+dispatchMain()

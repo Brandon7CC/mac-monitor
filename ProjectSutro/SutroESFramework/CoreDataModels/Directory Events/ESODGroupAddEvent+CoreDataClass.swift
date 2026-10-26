@@ -12,15 +12,15 @@ import CoreData
 
 /// A stored `od_group_add` event.
 @objc(ESODGroupAddEvent)
-public class ESODGroupAddEvent: ESODGroupMemberEvent {
+public class ESODGroupAddEvent: ESODGroupMemberEvent, Identifiable {
     /// Store an event.
     ///
     /// - Parameters:
+    ///   - event: The event.
     ///   - message: The event's message.
     ///   - context: The context to insert into.
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let description = NSEntityDescription.entity(forEntityName: "ESODGroupAddEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        store(groupMember: message.event.od_group_add!, version: message.version, in: context)
+    convenience init(from event: OpenDirectoryGroupAddEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
+        store(groupMember: event, version: message.version, in: context)
     }
 }

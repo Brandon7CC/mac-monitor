@@ -1,0 +1,347 @@
+//
+//  CommandLineParser.swift
+//  SutroESFramework
+//
+//  Created by Brandon Dalton on 10/5/26.
+//
+
+import Foundation
+import EndpointSecurity
+
+
+// MARK: - Arguments
+/// Walks a command's arguments: options (`--name`, `--name=value`, `-h`) and positionals in any order, with `--`
+/// ending the options. A lone `-` is a positional (standard input).
+struct ArgumentCursor {
+    /// One argument.
+    enum Argument: Equatable {
+        /// An option with its dashes, and its value if it was attached with `=`.
+        case option(String, value: String?)
+        /// Anything else.
+        case positional(String)
+        
+        /// What was typed: the option without its attached value, or the positional.
+        var text: String {
+            switch self {
+            case .option(let option, _): return option
+            case .positional(let positional): return positional
+            }
+        }
+    }
+    
+    private var remaining: ArraySlice<String>
+    private var optionsEnded = false
+    
+    /// - Parameter arguments: The command's arguments, after its name.
+    init(_ arguments: ArraySlice<String>) {
+        remaining = arguments
+    }
+    
+    /// The next argument.
+    ///
+    /// - Returns: The argument, or `nil` at the end.
+    mutating func next() -> Argument? {
+        guard let argument = remaining.popFirst() else { return nil }
+        guard !optionsEnded, argument.hasPrefix("-"), argument != "-" else { return .positional(argument) }
+        if argument == "--" {
+            optionsEnded = true
+            return next()
+        }
+        guard argument.hasPrefix("--"), let equals = argument.firstIndex(of: "=") else {
+            return .option(argument, value: nil)
+        }
+        return .option(String(argument[..<equals]), value: String(argument[argument.index(after: equals)...]))
+    }
+    
+    /// An option's value: the one attached with `=`, else the next argument.
+    ///
+    /// - Parameters:
+    ///   - option: The option, such as `--format`.
+    ///   - attached: The value attached with `=`, if any.
+    ///   - command: The command, for the error.
+    /// - Returns: The value.
+    /// - Throws: ``CommandLineUsageError`` if there's no value.
+    mutating func value(of option: String, attached: String?, command: String) throws -> String {
+        if let attached { return attached }
+        guard let value = remaining.first, !value.hasPrefix("-") || value == "-" else {
+            throw CommandLineUsageError("\(option) needs a value.", command: command)
+        }
+        remaining.removeFirst()
+        return value
+    }
+    
+    /// Refuse any argument left.
+    ///
+    /// - Parameters:
+    ///   - name: What takes no arguments, such as "events" or "mute export", for the message.
+    ///   - command: The command whose help the error points to.
+    /// - Throws: ``CommandLineUsageError`` if there's an argument left.
+    mutating func expectEnd(of name: String, command: String) throws {
+        guard let argument = next() else { return }
+        throw CommandLineUsageError("\(name) takes no arguments, not '\(argument.text)'.", command: command)
+    }
+    
+    /// Read the rest of a command that takes options without values, and one positional at most. A positional the
+    /// message repeats is escaped for a terminal: `validate *.jsonl` expands to file names anyone can choose.
+    ///
+    /// - Parameters:
+    ///   - name: The command, such as "validate" or "mute import", for the messages.
+    ///   - options: The options it takes, none of which takes a value.
+    ///   - positional: What its one positional is, such as "trace", or `nil` if it takes none.
+    ///   - command: The command whose help the error points to.
+    /// - Returns: The positional, if given, and the options given.
+    /// - Throws: ``CommandLineUsageError`` for a positional too many, a value given to an option, or an unknown option.
+    mutating func flags(of name: String, among options: [CommandLineOption], positional: String?,
+                        command: String) throws -> (positional: String?, flags: Set<String>) {
+        var given: String?, flags = Set<String>()
+        while let argument = next() {
+            switch argument {
+            case .positional(let value) where positional != nil && given == nil:
+                given = value
+            case .positional(let value):
+                let takes = positional.map { "one \($0), not also" } ?? "no arguments, not"
+                throw CommandLineUsageError("\(name) takes \(takes) '\(TerminalSafeText.text(value))'.",
+                                            command: command)
+            case .option(let option, let value) where options.contains(where: { $0.name == option }):
+                guard value == nil else { throw CommandLineUsageError("\(option) takes no value.", command: command) }
+                flags.insert(option)
+            case .option(let option, _):
+                throw CommandLineParser.unknownOption(option, for: name, among: options)
+            }
+        }
+        return (given, flags)
+    }
+}
+
+
+// MARK: - Parser
+/// Reads `macmonitor`'s command line. Hand-rolled, with no dependencies: a handful of commands and options.
+public enum CommandLineParser {
+    /// Read a command line.
+    ///
+    /// `-h` or `--help` anywhere before `--` asks for the command's help instead. No arguments ask for `macmonitor`'s.
+    ///
+    /// - Parameter arguments: The arguments, without the program's name.
+    /// - Returns: What they ask for.
+    /// - Throws: ``CommandLineUsageError``.
+    public static func parse(_ arguments: [String]) throws -> CommandLineInvocation {
+        guard let name = arguments.first else { return .help(command: nil) }
+        if name == "--version" { return .version }
+        if isHelp(name) { return .help(command: nil) }
+        guard let command = CommandLineCommand(rawValue: name) else {
+            let kind = name.hasPrefix("-") ? "option" : "command"
+            let names = kind == "option" ? ["--help", "--version"] : CommandLineCommand.allCases.map(\.rawValue)
+            let suggestion = CommandLineSuggestion.didYouMean(name, among: names)
+            throw CommandLineUsageError("Unknown \(kind) '\(name)'.\(suggestion)")
+        }
+        let rest = arguments.dropFirst()
+        if rest.prefix(while: { $0 != "--" }).contains(where: isHelp), command != .help {
+            return .help(command: command.rawValue)
+        }
+        var cursor = ArgumentCursor(rest)
+        /// Every command, and no default: a new one doesn't build until it's parsed here.
+        switch command {
+        case .stream: return .stream(try stream(&cursor))
+        case .mute: return .mute(try mute(&cursor))
+        case .validate: return .validate(try validate(&cursor))
+        case .help: return .help(command: try help(&cursor))
+        case .completion: return .completion(try completion(&cursor))
+        case .events: return try takingNothing(&cursor, .events)
+        case .schema: return try takingNothing(&cursor, .schema)
+        case .version: return try takingNothing(&cursor, .version)
+        }
+    }
+    
+    /// Is an argument a request for help?
+    ///
+    /// - Parameter argument: The argument.
+    /// - Returns: `true` for `-h` and `--help`.
+    static func isHelp(_ argument: String) -> Bool {
+        argument == "-h" || argument == "--help"
+    }
+    
+    /// `stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes] [--include-self]
+    /// [--for DURATION] [--count N] [--pid PID] [--process|--signing-id|--target|--grep REGEX] [--predicate PREDICATE]`.
+    ///
+    /// `--json`, `--pretty` and `--text` are short for `--format jsonl|pretty|text`. Each filter option may be given
+    /// more than once (``StreamFilter``).
+    ///
+    /// - Parameter cursor: The arguments.
+    /// - Returns: The stream asked for.
+    /// - Throws: ``CommandLineUsageError`` for an event that can't be streamed, a bad format, two formats, a bad
+    ///   duration, count, process ID, regular expression or predicate, or an unknown option.
+    static func stream(_ cursor: inout ArgumentCursor) throws -> StreamInvocation {
+        var invocation = StreamInvocation(), seen = Set<UInt32>()
+        while let argument = cursor.next() {
+            switch argument {
+            case .positional(let name):
+                let events = name == "all" ? supportedEvents : [try event(named: name)]
+                invocation.events += events.filter { seen.insert($0.rawValue).inserted }
+            case .option("--format", let attached):
+                let value = try cursor.value(of: "--format", attached: attached, command: "stream")
+                guard let format = StreamOutputFormat(rawValue: value) else {
+                    let names = StreamOutputFormat.allCases.map(\.rawValue)
+                    throw CommandLineUsageError("--format must be \(names.dropLast().joined(separator: ", ")) or "
+                                                + "\(names.last ?? ""), not '\(value)'.", command: "stream")
+                }
+                try choose(format, for: &invocation)
+            case .option(let option, nil) where formatShorthands[option] != nil:
+                try choose(formatShorthands[option]!, for: &invocation)
+            case .option("--no-mutes", nil):
+                invocation.appliesSavedMutes = false
+            case .option("--include-self", nil):
+                invocation.includeSelf = true
+            case .option("--for", let attached):
+                invocation.duration = try duration(cursor.value(of: "--for", attached: attached, command: "stream"))
+            case .option("--count", let attached):
+                let value = try cursor.value(of: "--count", attached: attached, command: "stream")
+                guard let count = Int(value), count > 0 else {
+                    throw CommandLineUsageError("--count must be a whole number above 0, not '\(value)'.",
+                                                command: "stream")
+                }
+                invocation.limit = count
+            case .option("--pid", let attached):
+                let value = try cursor.value(of: "--pid", attached: attached, command: "stream")
+                guard let pid = Int32(value), pid >= 0 else {
+                    throw CommandLineUsageError("--pid needs a process ID, not '\(value)'.", command: "stream")
+                }
+                invocation.filter.pids.append(pid)
+            case .option(let option, let attached) where patternOptions[option] != nil:
+                let pattern = try StreamFilter.Pattern(cursor.value(of: option, attached: attached, command: "stream"),
+                                                       option: option)
+                invocation.filter[keyPath: patternOptions[option]!].append(pattern)
+            case .option("--predicate", let attached):
+                let value = try cursor.value(of: "--predicate", attached: attached, command: "stream")
+                invocation.filter.predicates.append(try StreamFilter.Predicate(value))
+            case .option(let option, .some) where flags.contains(option):
+                throw CommandLineUsageError("\(option) takes no value.", command: "stream")
+            case .option(let option, _):
+                throw unknownOption(option, for: "stream", among: CommandLineOption.stream)
+            }
+        }
+        return invocation
+    }
+    
+    static let formatShorthands: [String: StreamOutputFormat] = ["--json": .jsonl, "--pretty": .pretty, "--text": .text]
+    static let flags = Set(formatShorthands.keys).union(["--no-mutes", "--include-self"])
+    /// The filter options that take a regular expression, and where each keeps them.
+    static let patternOptions: [String: WritableKeyPath<StreamFilter, [StreamFilter.Pattern]>] = [
+        "--process": \.processes, "--signing-id": \.signingIDs, "--target": \.targets, "--grep": \.greps
+    ]
+    
+    /// The units `--for` takes, longest first so `ms` isn't read as `m`.
+    static let durationUnits: [(suffix: String, seconds: TimeInterval)] = [("ms", 0.001), ("s", 1), ("m", 60),
+                                                                          ("h", 3_600)]
+    
+    /// A `--for` value in seconds.
+    ///
+    /// - Parameter value: A number of seconds, or a number with a unit: 500ms, 30s, 5m, 1.5h.
+    /// - Returns: The seconds.
+    /// - Throws: ``CommandLineUsageError`` for anything else, or a time that isn't above 0.
+    static func duration(_ value: String) throws -> TimeInterval {
+        let unit = durationUnits.first { value.hasSuffix($0.suffix) }
+        guard let amount = Double(value.dropLast(unit?.suffix.count ?? 0)), amount.isFinite, amount > 0 else {
+            throw CommandLineUsageError("--for must be a time such as 30s, 5m or 1h, not '\(value)'.",
+                                        command: "stream")
+        }
+        return amount * (unit?.seconds ?? 1)
+    }
+    
+    /// Set the format, refusing a second, different one.
+    ///
+    /// - Parameters:
+    ///   - format: The format.
+    ///   - invocation: The stream.
+    /// - Throws: ``CommandLineUsageError`` for two formats.
+    private static func choose(_ format: StreamOutputFormat, for invocation: inout StreamInvocation) throws {
+        if let chosen = invocation.format, chosen != format {
+            throw CommandLineUsageError("Choose one output format, not both \(chosen.rawValue) and \(format.rawValue).",
+                                        command: "stream")
+        }
+        invocation.format = format
+    }
+    
+    /// The event a name on the command line stands for.
+    ///
+    /// - Parameter name: A short or full event name.
+    /// - Returns: The event.
+    /// - Throws: ``CommandLineUsageError`` for an AUTH event, one Mac Monitor doesn't model, or a name that isn't one.
+    static func event(named name: String) throws -> es_event_type_t {
+        guard let event = CommandLineEvents.event(named: name) else {
+            let catalog = CommandLineEvents.catalog()
+            let names = name.hasPrefix(CommandLineEvents.notifyPrefix) ? catalog.map(\.fullName) : catalog.map(\.name)
+            let suggestion = CommandLineSuggestion.didYouMean(name, among: names)
+            throw CommandLineUsageError("'\(name)' isn't an event macmonitor can stream.\(suggestion)",
+                                        hint: "Run 'macmonitor events' to list them.")
+        }
+        return event
+    }
+    
+    /// `validate [--eslogger] TRACE`.
+    ///
+    /// - Parameter cursor: The arguments.
+    /// - Returns: The trace to check, and how.
+    /// - Throws: ``CommandLineUsageError`` for no trace or more than one, a value given to `--eslogger`, or an unknown
+    ///   option.
+    static func validate(_ cursor: inout ArgumentCursor) throws -> ValidateInvocation {
+        let (path, flags) = try cursor.flags(of: "validate", among: CommandLineOption.validate, positional: "trace",
+                                             command: "validate")
+        guard let path else { throw CommandLineUsageError("validate needs a trace.", command: "validate") }
+        return ValidateInvocation(path: path, mode: flags.contains("--eslogger") ? .eslogger : .macMonitor)
+    }
+    
+    /// `help [COMMAND]`. `-h` or `--help` asks for help's own help, as it does for every other command.
+    ///
+    /// - Parameter cursor: The arguments.
+    /// - Returns: The command to show help for, or `nil` for `macmonitor`'s.
+    /// - Throws: ``CommandLineUsageError`` for an unknown command, or more than one.
+    static func help(_ cursor: inout ArgumentCursor) throws -> String? {
+        var topic: String?
+        while let argument = cursor.next() {
+            if case .option(let option, _) = argument, isHelp(option) { return "help" }
+            guard case .positional(let name) = argument, topic == nil else {
+                throw CommandLineUsageError("help takes one command at most.", command: "help")
+            }
+            guard CommandLineCommand(rawValue: name) != nil else {
+                let names = CommandLineCommand.allCases.map(\.rawValue)
+                let suggestion = CommandLineSuggestion.didYouMean(name, among: names)
+                throw CommandLineUsageError("Unknown command '\(name)'.\(suggestion)")
+            }
+            topic = name
+        }
+        return topic
+    }
+    
+    /// `completion zsh|bash`.
+    ///
+    /// - Parameter cursor: The arguments.
+    /// - Returns: The shell.
+    /// - Throws: ``CommandLineUsageError`` for no shell, one it doesn't know, or anything more.
+    static func completion(_ cursor: inout ArgumentCursor) throws -> CommandLineShell {
+        let names = CommandLineShell.allCases.map(\.rawValue)
+        guard case .positional(let name)? = cursor.next() else {
+            throw CommandLineUsageError("completion needs a shell: \(names.joined(separator: " or ")).",
+                                        command: "completion")
+        }
+        guard let shell = CommandLineShell(rawValue: name) else {
+            let suggestion = CommandLineSuggestion.didYouMean(name, among: names)
+            throw CommandLineUsageError("macmonitor has no completion for '\(name)'.\(suggestion)",
+                                        command: "completion")
+        }
+        try cursor.expectEnd(of: "completion \(name)", command: "completion")
+        return shell
+    }
+    
+    /// A command that takes no arguments.
+    ///
+    /// - Parameters:
+    ///   - cursor: The arguments.
+    ///   - invocation: What the command asks for.
+    /// - Returns: `invocation`.
+    /// - Throws: ``CommandLineUsageError`` if there's any argument.
+    static func takingNothing(_ cursor: inout ArgumentCursor,
+                              _ invocation: CommandLineInvocation) throws -> CommandLineInvocation {
+        try cursor.expectEnd(of: invocation.command, command: invocation.command)
+        return invocation
+    }
+}

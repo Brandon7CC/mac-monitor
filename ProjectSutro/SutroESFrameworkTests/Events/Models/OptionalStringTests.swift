@@ -114,35 +114,32 @@ final class OptionalStringTests: XCTestCase {
     /// Import an eslogger record with `value` in its event, export it, and read the exported value at `path`.
     ///
     /// - Parameters:
-    ///   - name: The event's key.
-    ///   - type: The event's `event_type`.
+    ///   - type: The event's type.
     ///   - event: The event's object, with `value` already in place.
     ///   - path: The keys to the value in the exported event.
     /// - Returns: The exported value: `NSNull` for `null`, `nil` if a key is missing.
     /// - Throws: The error reading the record, or an `XCTest` failure if the export has no such event.
-    private func exported(_ name: String, type: Int, _ event: [String: Any], at path: [String]) throws -> Any? {
-        let export = try export(try importRecord(try esloggerRecord(name, type: type, event)))
-        return path.reduce(try self.event(name, in: export) as Any?) { ($0 as? [String: Any])?[$1] }
+    private func exported(_ type: es_event_type_t, _ event: [String: Any], at path: [JSONStep]) throws -> Any? {
+        try self.event(esloggerKey(type), in: try export(try importRecord(try esloggerRecord(type, event))))[path: path]
     }
     
     /// Assert that `null` and "" in an eslogger record come back out of the export as they went in.
     ///
     /// - Parameters:
-    ///   - name: The event's key.
-    ///   - type: The event's `event_type`.
+    ///   - type: The event's type.
     ///   - path: The keys to the value in the exported event.
-    ///   - event: Builds the event's object around a value.
     ///   - line: The caller's line.
+    ///   - event: Builds the event's object around a value.
     /// - Throws: The error reading a record, or an `XCTest` failure if an export has no such event.
-    private func assertKeepsNullAndEmpty(_ name: String, type: Int, at path: [String], line: UInt = #line,
+    private func assertKeepsNullAndEmpty(_ type: es_event_type_t, at path: [JSONStep], line: UInt = #line,
                                          _ event: (Any) -> [String: Any]) throws {
-        XCTAssertTrue(try exported(name, type: type, event(NSNull()), at: path) is NSNull, "null", line: line)
-        XCTAssertEqual(try exported(name, type: type, event(""), at: path) as? String, "", "\"\"", line: line)
+        XCTAssertTrue(try exported(type, event(NSNull()), at: path) is NSNull, "null", line: line)
+        XCTAssertEqual(try exported(type, event(""), at: path) as? String, "", "\"\"", line: line)
     }
     
     /// `xp_malware_remediated.remediated_path`.
     func testRemediatedPathRoundTrip() throws {
-        try assertKeepsNullAndEmpty("xp_malware_remediated", type: 113, at: ["remediated_path"]) {
+        try assertKeepsNullAndEmpty(ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED, at: ["remediated_path"]) {
             ["signature_version": "1", "malware_identifier": "Example", "incident_identifier": "0",
              "action_type": "path", "success": true, "result_description": "", "remediated_path": $0,
              "remediated_process_audit_token": NSNull()]
@@ -155,24 +152,24 @@ final class OptionalStringTests: XCTestCase {
             ["item_type": 2, "legacy": false, "managed": false, "uid": 0, "app_url": appURL,
              "item_url": "file:///Library/LaunchDaemons/com.example.agent.plist"]
         }
-        try assertKeepsNullAndEmpty("btm_launch_item_add", type: 124, at: ["executable_path"]) {
+        try assertKeepsNullAndEmpty(ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD, at: ["executable_path"]) {
             ["instigator": NSNull(), "app": NSNull(), "item": item(appURL: NSNull()), "executable_path": $0]
         }
-        try assertKeepsNullAndEmpty("btm_launch_item_add", type: 124, at: ["item", "app_url"]) {
+        try assertKeepsNullAndEmpty(ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD, at: ["item", "app_url"]) {
             ["instigator": NSNull(), "app": NSNull(), "item": item(appURL: $0), "executable_path": NSNull()]
         }
     }
     
     /// `login_login.failure_message`.
     func testLoginFailureMessageRoundTrip() throws {
-        try assertKeepsNullAndEmpty("login_login", type: 122, at: ["failure_message"]) {
+        try assertKeepsNullAndEmpty(ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN, at: ["failure_message"]) {
             ["success": false, "failure_message": $0, "username": "testuser", "uid": NSNull()]
         }
     }
     
     /// `od_create_user.db_path`.
     func testOpenDirectoryDatabasePathRoundTrip() throws {
-        try assertKeepsNullAndEmpty("od_create_user", type: 141, at: ["db_path"]) {
+        try assertKeepsNullAndEmpty(ES_EVENT_TYPE_NOTIFY_OD_CREATE_USER, at: ["db_path"]) {
             ["instigator": NSNull(), "error_code": 0, "user_name": "testuser", "node_name": "/Local/Default",
              "db_path": $0]
         }
@@ -180,7 +177,7 @@ final class OptionalStringTests: XCTestCase {
     
     /// `gatekeeper_user_override.signing_info.team_id`.
     func testGatekeeperTeamIDRoundTrip() throws {
-        try assertKeepsNullAndEmpty("gatekeeper_user_override", type: 146, at: ["signing_info", "team_id"]) {
+        try assertKeepsNullAndEmpty(ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE, at: ["signing_info", "team_id"]) {
             ["file_type": 0, "file": "/Applications/Example.app", "sha256": NSNull(),
              "signing_info": ["cdhash": String(repeating: "0", count: 40), "signing_id": "com.example.app",
                               "team_id": $0]]
@@ -191,10 +188,8 @@ final class OptionalStringTests: XCTestCase {
     func testProcessTeamIDRoundTrip() throws {
         for value in [NSNull(), "" as Any] {
             var record = try fixtureObject("eslogger-exit.jsonl")
-            var process = try XCTUnwrap(record["process"] as? [String: Any])
-            process["team_id"] = value
-            record["process"] = process
-            let exported = (try export(try importRecord(record))["process"] as? [String: Any])?["team_id"]
+            record[path: "process", "team_id"] = value
+            let exported = try export(try importRecord(record))[path: "process", "team_id"]
             XCTAssertEqual(exported as? NSObject, value as? NSObject)
         }
     }

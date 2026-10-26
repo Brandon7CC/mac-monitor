@@ -24,7 +24,7 @@ final class OpenDirectoryMemberTests: XCTestCase {
     
     /// A name reads back as its value, and the name of an unknown value as none.
     func testRawValuesOfNames() {
-        for names in [ODEnumNames.memberType, .recordType, .accountType] {
+        for names in [ConstantNames.memberType, .recordType, .accountType] {
             for value in names.names.keys {
                 XCTAssertEqual(names.rawValue(of: names.name(of: value)), value)
             }
@@ -67,7 +67,7 @@ final class OpenDirectoryMemberTests: XCTestCase {
     /// A member without a value is written with `member_value: null`, as eslogger writes every key it has.
     func testMemberEncodesNull() throws {
         let data = try JSONEncoder().encode(OpenDirectoryMember(member_type: 1, member_value: nil))
-        let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let object = try jsonObject(data)
         XCTAssertEqual(object.keys.sorted(), ["member_type", "member_value"])
         XCTAssertTrue(object["member_value"] is NSNull)
         XCTAssertEqual(try JSONDecoder().decode(OpenDirectoryMember.self, from: data),

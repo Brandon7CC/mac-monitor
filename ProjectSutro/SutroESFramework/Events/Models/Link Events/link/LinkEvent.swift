@@ -11,19 +11,11 @@ import EndpointSecurity
 /// https://developer.apple.com/documentation/endpointsecurity/es_event_link_t
 /// A type for an event that indicates the creation of a hard link.
 ///
-public struct LinkEvent: Identifiable, Codable, Hashable {
+public struct LinkEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var source, target_dir: File
     public var target_filename: String
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: LinkEvent, rhs: LinkEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         // Getting the file write event

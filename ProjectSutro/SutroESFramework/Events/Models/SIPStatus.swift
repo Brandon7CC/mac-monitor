@@ -36,10 +36,14 @@ public enum SIPStatus: String, Equatable, Sendable {
         }
     }
 
+    /// This Mac's active configuration's bits, as `csr_get_active_config` reports them, or `nil` if they can't be read.
+    public static var activeConfiguration: UInt32? {
+        var configuration: csr_config_t = 0
+        return csr_get_active_config(&configuration) == 0 ? configuration : nil
+    }
+
     /// This Mac's status, or `nil` if the configuration can't be read.
     public static var current: SIPStatus? {
-        var configuration: csr_config_t = 0
-        guard csr_get_active_config(&configuration) == 0 else { return nil }
-        return SIPStatus(configuration: configuration)
+        activeConfiguration.map(SIPStatus.init(configuration:))
     }
 }

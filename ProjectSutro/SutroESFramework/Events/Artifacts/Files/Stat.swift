@@ -8,8 +8,7 @@
 import Foundation
 
 
-// Ensure Stat conforms to Codable and Equatable
-public struct Stat: Identifiable, Codable, Equatable, Hashable {
+public struct Stat: Identifiable, Codable, Hashable {
     public var id = UUID.buffered()
     
     // [XSI] File serial number

@@ -27,19 +27,11 @@
 import Foundation
 
 
-public struct XPCConnectEvent: Identifiable, Codable, Hashable {
+public struct XPCConnectEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     public var service_name: String
     public var service_domain_type: Int32
     public var service_domain_type_string = ""
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: XPCConnectEvent, rhs: XPCConnectEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let xpcConnectEvent: es_event_xpc_connect_t = rawMessage.pointee.event.xpc_connect.pointee
@@ -54,35 +46,20 @@ public struct XPCConnectEvent: Identifiable, Codable, Hashable {
 
 // MARK: - Mac Monitor enrichment
 extension XPCConnectEvent: ESEnrichable {
+    /// `es_xpc_domain_type_t`: the type of the service's domain.
+    private static let domainTypeNames = ConstantNames([
+        ES_XPC_DOMAIN_TYPE_GUI.rawValue: "GUI",
+        ES_XPC_DOMAIN_TYPE_PID.rawValue: "PID",
+        ES_XPC_DOMAIN_TYPE_PORT.rawValue: "PORT",
+        ES_XPC_DOMAIN_TYPE_USER.rawValue: "USER",
+        ES_XPC_DOMAIN_TYPE_SYSTEM.rawValue: "SYSTEM",
+        ES_XPC_DOMAIN_TYPE_MANAGER.rawValue: "MANAGER",
+        ES_XPC_DOMAIN_TYPE_SESSION.rawValue: "SESSION",
+        ES_XPC_DOMAIN_TYPE_USER_LOGIN.rawValue: "USER LOGIN",
+    ])
+    
     /// Derive the service domain type's name.
     public mutating func enrich() {
-        switch es_xpc_domain_type_t(rawValue: UInt32(truncatingIfNeeded: service_domain_type)) {
-        case ES_XPC_DOMAIN_TYPE_GUI:
-            self.service_domain_type_string = "GUI"
-            break
-        case ES_XPC_DOMAIN_TYPE_PID:
-            self.service_domain_type_string = "PID"
-            break
-        case ES_XPC_DOMAIN_TYPE_PORT:
-            self.service_domain_type_string = "PORT"
-            break
-        case ES_XPC_DOMAIN_TYPE_USER:
-            self.service_domain_type_string = "USER"
-            break
-        case ES_XPC_DOMAIN_TYPE_SYSTEM:
-            self.service_domain_type_string = "SYSTEM"
-            break
-        case ES_XPC_DOMAIN_TYPE_MANAGER:
-            self.service_domain_type_string = "MANAGER"
-            break
-        case ES_XPC_DOMAIN_TYPE_SESSION:
-            self.service_domain_type_string = "SESSION"
-            break
-        case ES_XPC_DOMAIN_TYPE_USER_LOGIN:
-            self.service_domain_type_string = "USER LOGIN"
-            break
-        default:
-            self.service_domain_type_string = "UNKNOWN"
-        }
+        service_domain_type_string = Self.domainTypeNames.name(of: Int(service_domain_type))
     }
 }

@@ -90,9 +90,7 @@ final class DefaultMuteSetTests: XCTestCase {
     /// Xcode counts as root's only when root owns every folder its mutes cover, and the folders above them in the
     /// bundle, and no one else can change them.
     func testOnlyAnXcodeItsOwnerAloneCanChangeCounts() throws {
-        let base = try XCTUnwrap(CommandLineToolLink.realPath(NSTemporaryDirectory()))
-            + "/MuteSetTests-\(UUID().uuidString)"
-        addTeardownBlock { try? FileManager.default.removeItem(atPath: base) }
+        let base = try XCTUnwrap(CommandLineToolLink.realPath(try makeTemporaryDirectory(prefix: "MuteSetTests").path))
         let xcode = base + "/Xcode.app", toolchain = xcode + "/Contents/Developer/Toolchains/XcodeDefault.xctoolchain"
         for folder in [toolchain, xcode + "/Contents/SharedFrameworks"] {
             try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true,
@@ -168,7 +166,6 @@ final class DefaultMuteSetTests: XCTestCase {
         XCTAssertTrue(newer.notice?.hasSuffix(SavedMuteSet.noConsoleUser) == true, newer.notice ?? "")
         
         chmod(store.directory.path, 0o777)
-        defer { chmod(store.directory.path, 0o700) }
         let untrusted = makeSavedSet().send(MuteRequest(.list))
         XCTAssertEqual(untrusted.mutes, MuteFile(.shippedDefault(for: nil)).mutes)
         XCTAssertTrue(untrusted.notice?.hasPrefix("Mac Monitor can't keep a saved mute set.") == true)

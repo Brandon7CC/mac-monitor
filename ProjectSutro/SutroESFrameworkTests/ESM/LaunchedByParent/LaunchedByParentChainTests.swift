@@ -57,8 +57,7 @@ final class LaunchedByParentChainTests: XCTestCase {
     /// Without a launcher recorded, the walk ends there.
     func testAppStepNamesItsLauncher() throws {
         var messages = try lineageTrace()
-        let launcher = AuditToken(pid: 410, pidversion: 4102, asid: 100_001, auid: 4_294_967_295, euid: 0, ruid: 0,
-                                  rgid: 0, egid: 0)
+        let launcher = AuditToken.fixture(pid: 410, pidversion: 4102, asid: 100_001)
         let job = LaunchedByParent.LaunchdJob(label: Self.lineageAppLabel)
         messages[5].setLaunchedByParent(LaunchedByParent(source: .launchServices, audit_token: launcher, path: nil,
                                                          launchd_job: job, resolved_by: .app))
@@ -193,9 +192,8 @@ final class LaunchedByParentChainTests: XCTestCase {
         let forked = try esloggerProcess(pid: 600, pidversion: 6000, path: "/bin/zsh", parent: (401, 4010))
         /// `sudo` as it forks, with group IDs 0, and as its exec made it, with 20.
         let sudo = try esloggerProcess(pid: 600, pidversion: 6001, path: "/usr/bin/sudo", parent: (401, 4010))
-        var execed = sudo, token = try XCTUnwrap(sudo["audit_token"] as? [String: Any])
-        (token["rgid"], token["egid"]) = (20, 20)
-        execed["audit_token"] = token
+        var execed = sudo
+        (execed[path: "audit_token", "rgid"], execed[path: "audit_token", "egid"]) = (20, 20)
         let child = try esloggerProcess(pid: 601, pidversion: 6010, path: "/usr/bin/sudo", parent: (600, 6001))
         let chmod = try esloggerProcess(pid: 601, pidversion: 6011, path: "/bin/chmod", parent: (600, 6001))
         var messages = [try shellExec(), try forkMessage(by: try shell(), of: forked),

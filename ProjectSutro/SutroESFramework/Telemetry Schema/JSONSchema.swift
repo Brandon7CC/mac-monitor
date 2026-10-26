@@ -19,40 +19,20 @@ enum KeyOrigin: String, Sendable {
 
 
 // MARK: - Compiled schema
-/// One schema object, compiled: the subset of JSON Schema 2020-12 that Mac Monitor's telemetry schema uses.
+/// One schema object, compiled: the subset of JSON Schema 2020-12 that Mac Monitor's telemetry schema uses. Its
+/// keywords read through to ``keywords``: `node.types` is `node.keywords.types`.
 ///
 /// Immutable once compiled, so a schema can be checked from any number of threads.
+@dynamicMemberLookup
 final class JSONSchemaNode {
     /// Where the node is in the schema, as a JSON pointer: `#/$defs/process/properties/cdhash`.
     let location: String
-    /// `type`: the JSON types a value may have, or `nil` for any.
-    let types: [JSONType]?
-    /// `const`: the one value allowed.
-    let constant: JSONScalar?
-    /// `enum`: the values allowed.
-    let values: Set<JSONScalar>?
-    /// `pattern`: what a string must contain (anchored when the pattern says so).
-    let pattern: JSONPattern?
-    /// `properties`: each key's schema.
-    let properties: [String: JSONSchemaNode]
-    /// The keys of ``properties``, in order, so issues come out in the same order every time.
+    /// Its keywords, compiled.
+    let keywords: JSONSchemaCompiler.Keywords
+    /// The keys of `properties`, in order, so issues come out in the same order every time.
     let propertyNames: [String]
-    /// `required`: the keys an object must have.
-    let required: Set<String>
-    /// The keys of ``required`` that ``properties`` doesn't have, in order: whatever their value, they must be there.
+    /// The keys of `required` that `properties` doesn't have, in order: whatever their value, they must be there.
     let unspecifiedRequired: [String]
-    /// `additionalProperties: false`: an object may only have the keys of ``properties``.
-    let closed: Bool
-    /// `minProperties` and `maxProperties`.
-    let minProperties: Int?, maxProperties: Int?
-    /// `items`: every element's schema.
-    let items: JSONSchemaNode?
-    /// `anyOf`: the schemas of which a value must match at least one.
-    let anyOf: [JSONSchemaNode]
-    /// `$ref`: the name of the definition in the root's `$defs` that a value must also match.
-    let reference: String?
-    /// `x-mac-monitor-origin`: who defines the key this node is the schema of.
-    let origin: KeyOrigin?
     
     /// A node from its compiled keywords (see ``JSONSchemaCompiler``).
     ///
@@ -61,21 +41,17 @@ final class JSONSchemaNode {
     ///   - keywords: Its keywords, compiled.
     init(location: String, keywords: JSONSchemaCompiler.Keywords) {
         self.location = location
-        types = keywords.types
-        constant = keywords.constant
-        values = keywords.values
-        pattern = keywords.pattern
-        properties = keywords.properties
+        self.keywords = keywords
         propertyNames = keywords.properties.keys.sorted()
-        required = keywords.required
         unspecifiedRequired = keywords.required.subtracting(keywords.properties.keys).sorted()
-        closed = keywords.closed
-        minProperties = keywords.minProperties
-        maxProperties = keywords.maxProperties
-        items = keywords.items
-        anyOf = keywords.anyOf
-        reference = keywords.reference
-        origin = keywords.origin
+    }
+    
+    /// One of the node's keywords.
+    ///
+    /// - Parameter keyword: The keyword's field in ``keywords``.
+    /// - Returns: Its value.
+    subscript<Value>(dynamicMember keyword: KeyPath<JSONSchemaCompiler.Keywords, Value>) -> Value {
+        keywords[keyPath: keyword]
     }
 }
 

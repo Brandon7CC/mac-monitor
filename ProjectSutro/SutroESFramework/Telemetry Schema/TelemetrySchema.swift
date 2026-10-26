@@ -38,20 +38,17 @@ public enum TelemetrySchema {
     /// - Returns: The schema's JSON text.
     /// - Throws: ``TelemetrySchemaError/missingResource`` if the framework doesn't bundle it, or the error reading it.
     public static func data() throws -> Data {
-        guard let url = Bundle(for: BundleToken.self).url(forResource: fileName, withExtension: nil) else {
+        guard let url = Bundle(for: RecordKeyPaths.self).url(forResource: fileName, withExtension: nil) else {
             throw TelemetrySchemaError.missingResource
         }
         return try Data(contentsOf: url)
     }
-    
-    /// A class of the framework's, so `Bundle(for:)` finds its resources.
-    private final class BundleToken {}
 }
 
 
 // MARK: - Errors
 /// Why a schema can't be used to validate telemetry.
-public enum TelemetrySchemaError: Error, LocalizedError, Equatable {
+public enum TelemetrySchemaError: LocalizedError, Equatable {
     /// The framework doesn't bundle the telemetry schema.
     case missingResource
     /// The schema isn't JSON, or isn't a JSON object: why.

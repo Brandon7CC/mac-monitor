@@ -26,7 +26,7 @@ import Foundation
 
 
 /// Models an `ES_EVENT_TYPE_NOTIFY_OD_CREATE_GROUP`: a group was created in an Open Directory node.
-public struct OpenDirectoryCreateGroupEvent: Identifiable, Codable, Hashable, OpenDirectoryEvent {
+public struct OpenDirectoryCreateGroupEvent: Codable, IdentityHashable, OpenDirectoryEvent {
     public var id: UUID = UUID.buffered()
     /// The process that instigated the operation (the XPC caller), or `nil` when Endpoint Security leaves it out.
     public var instigator: Process?
@@ -42,14 +42,6 @@ public struct OpenDirectoryCreateGroupEvent: Identifiable, Codable, Hashable, Op
     public var error_code_human: String?
     public var instigator_process_name, instigator_process_path: String?
     public var instigator_process_audit_token, instigator_process_signing_id: String?
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: OpenDirectoryCreateGroupEvent, rhs: OpenDirectoryCreateGroupEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     /// Record the event of a message from Endpoint Security.
     ///

@@ -6,19 +6,9 @@
 //
 
 
-/// Models an `X509` certificate
-public struct X509Cert: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID.buffered()
-    
+/// Models an `X509` certificate: its subject summary and SHA-1 thumbprint, identified by the thumbprint.
+public struct X509Cert: Identifiable, Codable, Hashable {
     public var summary, thumbprint: String
     
-    // Ignore id from being decoded
-    enum CodingKeys: String, CodingKey {
-        case summary, thumbprint
-    }
-    
-    public init(summary: String, thumbprint: String) {
-        self.summary = summary
-        self.thumbprint = thumbprint
-    }
+    public var id: String { thumbprint }
 }

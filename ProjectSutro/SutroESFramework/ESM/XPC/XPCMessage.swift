@@ -71,17 +71,17 @@ extension XPCRequest {
     /// - Parameter data: The JSON, checked against ``maximumSize`` before parsing.
     /// - Returns: The request.
     /// - Throws: ``XPCRequestError``.
-    public static func decode(_ data: Data) throws -> Self {
+    public static func decode(_ data: Data) throws(XPCRequestError) -> Self {
         guard data.count <= maximumSize else {
             let size = maximumSize >= 1 << 20 ? "\(maximumSize >> 20) MiB" : "\(maximumSize >> 10) KiB"
-            throw XPCRequestError.invalid("The request is larger than \(size).")
+            throw .invalid("The request is larger than \(size).")
         }
         do {
             return try JSONDecoder().decode(Self.self, from: data)
         } catch let error as XPCRequestError {
             throw error
         } catch {
-            throw XPCRequestError.invalid("The request isn't a \(noun)\(invalidReason(error)).")
+            throw .invalid("The request isn't a \(noun)\(invalidReason(error)).")
         }
     }
     
@@ -145,4 +145,14 @@ public protocol XPCFailureStatus {
     static var invalid: Self { get }
     /// A newer version, or something this build doesn't know.
     static var unsupported: Self { get }
+}
+
+extension XPCFailureStatus where Self: RawRepresentable & Decodable, RawValue == String {
+    /// Read a status by name. One a newer Security Extension added reads as `unsupported`, so its reply still reads.
+    ///
+    /// - Parameter decoder: The decoder.
+    /// - Throws: A `DecodingError` for a status that isn't a string.
+    public init(from decoder: Decoder) throws {
+        self = Self(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .unsupported
+    }
 }

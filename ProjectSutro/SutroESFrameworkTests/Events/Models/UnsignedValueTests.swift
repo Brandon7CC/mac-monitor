@@ -43,7 +43,7 @@ final class UnsignedValueTests: XCTestCase {
     
     /// eslogger's unsigned user ID reads back and exports as it was written.
     func testImportedOpenSSHLogoutUID() throws {
-        let record = try esloggerRecord("openssh_logout", type: 121, [
+        let record = try esloggerRecord(ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGOUT, [
             "source_address_type": 1, "source_address": "192.0.2.1", "username": "testuser", "uid": Self.nobody,
         ])
         let logout = try event("openssh_logout", in: try export(try importRecord(record)))
@@ -57,7 +57,7 @@ final class UnsignedValueTests: XCTestCase {
         login.username = fixture.token("testuser")
         login.graphical_session_id = 4_294_967_280
         fixture.message.pointee.event.lw_session_login = fixture.pointer(login)
-        XCTAssertEqual(LWLoginEvent(from: fixture.raw).graphical_session_id, -16)
+        XCTAssertEqual(LWSessionEvent(from: login).graphical_session_id, -16)
         XCTAssertTrue(exportText(Message(from: fixture.raw)).contains(#""graphical_session_id":4294967280"#))
         
         fixture.message.pointee.event_type = ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK
@@ -65,7 +65,7 @@ final class UnsignedValueTests: XCTestCase {
         unlock.username = fixture.token("testuser")
         unlock.graphical_session_id = 4_294_967_280
         fixture.message.pointee.event.lw_session_unlock = fixture.pointer(unlock)
-        XCTAssertEqual(LWUnlockEvent(from: fixture.raw).graphical_session_id, -16)
+        XCTAssertEqual(LWSessionEvent(from: unlock).graphical_session_id, -16)
         XCTAssertTrue(exportText(Message(from: fixture.raw)).contains(#""graphical_session_id":4294967280"#))
     }
     
@@ -94,7 +94,7 @@ final class UnsignedValueTests: XCTestCase {
     
     /// Mac Monitor 2.1 wrote a pointer as `hex_address`: it's derived again from the address when stored.
     func testMacMonitor21MProtectHexAddress() throws {
-        let record = try legacyRecord("mprotect", type: ES_EVENT_TYPE_NOTIFY_MPROTECT, [
+        let record = try legacyRecord(ES_EVENT_TYPE_NOTIFY_MPROTECT, [
             "protection": 1, "address": 4_374_282_240, "size": 16_384, "hex_address": "0x7542c64030", "kb_size": 16,
             "flags": ["VM_PROT_READ"],
         ])

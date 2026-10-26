@@ -32,19 +32,19 @@ public enum EventType: Hashable, Codable {
     case create(FileCreateEvent)
     case rename(FileRenameEvent)
     case open(FileOpenEvent)
-    case write(FileWriteEvent)
+    case write(TargetFileEvent)
     case close(FileCloseEvent)
     case unlink(FileDeleteEvent)
-    case dup(FDDuplicateEvent)
+    case dup(TargetFileEvent)
     
     // MARK: Symbolic Link events
     case link(LinkEvent)
     
     // MARK: File Metadata events
-    case setextattr(XattrSetEvent)
-    case deleteextattr(XattrDeleteEvent)
-    case listextattr(XattrListEvent)
-    case getextattr(XattrGetEvent)
+    case setextattr(XattrEvent)
+    case deleteextattr(XattrEvent)
+    case listextattr(TargetFileEvent)
+    case getextattr(XattrEvent)
     case setmode(SetModeEvent)
     
     // MARK: Pseudoterminal events
@@ -67,8 +67,8 @@ public enum EventType: Hashable, Codable {
     
     // MARK: Login events
     case login_login(LoginLoginEvent)
-    case lw_session_login(LWLoginEvent)
-    case lw_session_unlock(LWUnlockEvent)
+    case lw_session_login(LWSessionEvent)
+    case lw_session_unlock(LWSessionEvent)
     
     // MARK: Kernel events
     case iokit_open(IOKitOpenEvent)
@@ -105,4 +105,24 @@ public enum EventType: Hashable, Codable {
     case gatekeeper_user_override(GatekeeperUserOverrideEvent)
     
     case unknown
+}
+
+
+// MARK: - Payload identity
+/// A payload compared and hashed by its ``id`` alone: two values are one Endpoint Security event when their ids match.
+public protocol IdentityHashable: Identifiable, Hashable {}
+
+extension IdentityHashable {
+    /// Compare two payloads by ``id``.
+    ///
+    /// - Parameters:
+    ///   - lhs: A payload.
+    ///   - rhs: Another payload.
+    /// - Returns: Whether their ids match.
+    public static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+    
+    /// Hash the payload's ``id``.
+    ///
+    /// - Parameter hasher: The hasher to feed.
+    public func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }

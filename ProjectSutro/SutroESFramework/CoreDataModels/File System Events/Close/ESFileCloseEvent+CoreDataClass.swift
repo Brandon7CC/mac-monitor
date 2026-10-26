@@ -10,20 +10,22 @@ import Foundation
 import CoreData
 
 @objc(ESFileCloseEvent)
-public class ESFileCloseEvent: NSManagedObject {
+public class ESFileCloseEvent: NSManagedObject, Identifiable {
+    @NSManaged public var target: ESFile
+    @NSManaged public var modified: Bool
+    
+    // message >= 6
+    @NSManaged public var was_mapped_writable: Bool
+
     enum CodingKeys: CodingKey {
-        case id
         case target
         case modified
         case was_mapped_writable
     }
     
     // MARK: - Custom Core Data initilizer for ESFileCloseEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: FileCloseEvent = message.event.close!
-        let description = NSEntityDescription.entity(forEntityName: "ESFileCloseEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = event.id
+    convenience init(from event: FileCloseEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESFileCloseEvent.target))
         self.modified = event.modified

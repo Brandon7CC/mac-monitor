@@ -70,7 +70,7 @@ final class MessageThreadTests: XCTestCase {
     
     /// An eslogger record with `"thread": null` reads back as none and exports `null` again. A thread is kept.
     func testImportedThread() throws {
-        var record = try esloggerRecord("cs_invalidated", type: 94, [:])
+        var record = try esloggerRecord(ES_EVENT_TYPE_NOTIFY_CS_INVALIDATED, [:])
         record["thread"] = NSNull()
         let none = try importRecord(record)
         XCTAssertNil(none.thread)

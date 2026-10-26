@@ -28,23 +28,17 @@ extension EndpointSecurityManager {
         }
     }
     
-    public func getSimpleEventSubscriptions() -> [String] {
-        return Array(self.monitoredEventStrings.sorted(by: <))
-    }
-    
     public func getCoreEvents() -> [String] {
         return defaultEventSubscriptions.map { eventTypeToString(from: $0) }
     }
     
-    // MARK: Step #2 in unsubscribing from events
-    // @note send across events that should be unsubscribed from by the Endpoint Security client
-    public func puntEventToUnsubscribe(eventString: String) {
-        sensor.call { $0.setSubscription(eventString, enabled: false, reply: $1) }
-    }
-    
-    // MARK: Step #2 in subscribing to ES events
-    // @note send across events that we should subscrube to
-    public func puntEventToSubscribe(eventString: String) {
-        sensor.call { $0.setSubscription(eventString, enabled: true, reply: $1) }
+    // MARK: Step #2 in subscribing to or unsubscribing from ES events
+    /// Ask the Security Extension to subscribe to an event, or unsubscribe from it.
+    ///
+    /// - Parameters:
+    ///   - eventString: The event's `ES_EVENT_TYPE_*` name.
+    ///   - enabled: Subscribe (`true`) or unsubscribe (`false`).
+    public func setSubscription(_ eventString: String, enabled: Bool) {
+        sensor.call { $0.setSubscription(eventString, enabled: enabled, reply: $1) }
     }
 }

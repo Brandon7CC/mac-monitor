@@ -32,28 +32,16 @@ final class TraceImporterMessageTests: XCTestCase {
         try TraceImporter.message(from: try JSONSerialization.data(withJSONObject: object))
     }
     
-    /// Assert that reading `json` throws a `TraceImportError` that `matches` accepts.
+    /// Assert that reading `json` throws `expected`.
     ///
     /// - Parameters:
     ///   - json: The record's text.
-    ///   - expected: Describes the error expected, for the failure message.
-    ///   - matches: Decides whether the error is the one expected.
+    ///   - expected: The error expected.
     ///   - line: The caller's line.
-    private func assertRejects(_ json: String, _ expected: String, line: UInt = #line,
-                               where matches: (TraceImportError) -> Bool) {
+    private func assertRejects(_ json: String, as expected: TraceImportError, line: UInt = #line) {
         XCTAssertThrowsError(try TraceImporter.message(from: Data(json.utf8)), line: line) { error in
-            guard let error = error as? TraceImportError, matches(error) else {
-                return XCTFail("Expected \(expected), got \(error)", line: line)
-            }
+            XCTAssertEqual(error as? TraceImportError, expected, "\(error)", line: line)
         }
-    }
-    
-    /// Is the error ``TraceImportError/notAnEvent``?
-    ///
-    /// - Parameter error: The error thrown.
-    /// - Returns: Whether it's the one expected.
-    private static func isNotAnEvent(_ error: TraceImportError) -> Bool {
-        if case .notAnEvent = error { true } else { false }
     }
     
     // MARK: eslogger
@@ -110,11 +98,7 @@ final class TraceImporterMessageTests: XCTestCase {
         XCTAssertEqual(ProcessHelpers.codeSigningFlagNames(0x8000_0000), ["CS_DATAVAULT_CONTROLLER"])
         
         var target = try shell()
-        var executable = try XCTUnwrap(target["executable"] as? [String: Any])
-        var stat = try XCTUnwrap(executable["stat"] as? [String: Any])
-        stat["st_birthtimespec"] = "2026-10-04T00:01:52.031215406Z"
-        executable["stat"] = stat
-        target["executable"] = executable
+        target[path: "executable", "stat", "st_birthtimespec"] = "2026-10-04T00:01:52.031215406Z"
         guard case .exec(let exec) = try execMessage(by: try shell(), of: target).event else {
             return XCTFail("Not an exec")
         }
@@ -199,23 +183,19 @@ final class TraceImporterMessageTests: XCTestCase {
     
     /// JSON without an `event` and a `process` object isn't an event.
     func testOtherJSONIsNotAnEvent() {
-        assertRejects(#"{"foo":1}"#, "notAnEvent", where: Self.isNotAnEvent)
-        assertRejects(#"[{"event":{},"process":{}}]"#, "notAnEvent", where: Self.isNotAnEvent)
-        assertRejects(#"{"event":"exit","process":{}}"#, "notAnEvent", where: Self.isNotAnEvent)
+        assertRejects(#"{"foo":1}"#, as: .notAnEvent)
+        assertRejects(#"[{"event":{},"process":{}}]"#, as: .notAnEvent)
+        assertRejects(#"{"event":"exit","process":{}}"#, as: .notAnEvent)
     }
     
     /// An event of a type Mac Monitor doesn't have is counted by eslogger's name for it.
     func testUnsupportedEventIsNamed() {
-        assertRejects(#"{"event":{"bogus":{}},"process":{}}"#, "unsupportedEvent(bogus)") {
-            if case .unsupportedEvent("bogus") = $0 { true } else { false }
-        }
+        assertRejects(#"{"event":{"bogus":{}},"process":{}}"#, as: .unsupportedEvent("bogus"))
     }
     
     /// An event without a type isn't shown.
     func testEventWithoutTypeIsIncomplete() {
-        assertRejects(#"{"event":{},"process":{}}"#, "incomplete(no event type)") {
-            if case .incomplete("no event type") = $0 { true } else { false }
-        }
+        assertRejects(#"{"event":{},"process":{}}"#, as: .incomplete("no event type"))
     }
     
     /// An event without a time it can be read from isn't shown.
@@ -223,12 +203,12 @@ final class TraceImporterMessageTests: XCTestCase {
         var object = try fixtureObject(Self.esloggerExit)
         object["time"] = nil
         let json = String(decoding: try JSONSerialization.data(withJSONObject: object), as: UTF8.self)
-        assertRejects(json, "incomplete(no time)") { if case .incomplete("no time") = $0 { true } else { false } }
+        assertRejects(json, as: .incomplete("no time"))
     }
     
     /// The summary that ends `log show --style ndjson` isn't an event, and isn't a problem either.
     func testLogTrailer() {
-        assertRejects(#"{"count":2,"finished":1}"#, "logTrailer") { if case .logTrailer = $0 { true } else { false } }
+        assertRejects(#"{"count":2,"finished":1}"#, as: .logTrailer)
     }
     
     /// Text that isn't JSON is an error.

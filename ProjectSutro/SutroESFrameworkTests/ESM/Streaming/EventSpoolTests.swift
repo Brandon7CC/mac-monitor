@@ -17,9 +17,9 @@ final class EventSpoolTests: XCTestCase {
     private var directory: URL!
 
     override func setUpWithError() throws {
-        directory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-            .appendingPathComponent("EventSpoolTests-\(UUID().uuidString)", isDirectory: true)
-        addTeardownBlock { [directory] in try? FileManager.default.removeItem(at: directory!) }
+        /// Not made yet: the spool makes its own.
+        directory = try makeTemporaryDirectory(prefix: "EventSpoolTests")
+            .appendingPathComponent("spool", isDirectory: true)
     }
 
     /// A spool in the test's directory.
@@ -74,9 +74,8 @@ final class EventSpoolTests: XCTestCase {
         try spool.append(Data("event 0".utf8))
         try spool.append(Data("event 1".utf8))
         let (count, size) = (spool.count, spool.size)
-        XCTAssertThrowsError(try spool.append(Data("event 2 is too long".utf8))) { error in
-            XCTAssertEqual((error as? CocoaError)?.code, .fileWriteOutOfSpace)
-        }
+        XCTAssertEqual(thrown(CocoaError.self) { try spool.append(Data("event 2 is too long".utf8)) }?.code,
+                       .fileWriteOutOfSpace)
         XCTAssertEqual(spool.count, count)
         XCTAssertEqual(spool.size, size)
         XCTAssertEqual(try spool.read(upTo: 10), events(2))
@@ -84,9 +83,7 @@ final class EventSpoolTests: XCTestCase {
 
     /// No segment starts on a volume with less than the minimum free space.
     func testALowVolumeRefusesASegment() throws {
-        XCTAssertThrowsError(try spool(minFreeSpace: .max)) { error in
-            XCTAssertEqual((error as? CocoaError)?.code, .fileWriteOutOfSpace)
-        }
+        XCTAssertEqual(thrown(CocoaError.self) { try spool(minFreeSpace: .max) }?.code, .fileWriteOutOfSpace)
     }
 
     /// The directory is root's alone (when root makes it) and each segment is the owner's alone.
@@ -112,9 +109,7 @@ final class EventSpoolTests: XCTestCase {
 
         XCTAssertEqual(try spool.read(upTo: 3), events(1))
         XCTAssertEqual(spool.count, 2)
-        XCTAssertThrowsError(try spool.read(upTo: 3)) { error in
-            XCTAssertEqual((error as? CocoaError)?.code, .fileReadCorruptFile)
-        }
+        XCTAssertEqual(thrown(CocoaError.self) { try spool.read(upTo: 3) }?.code, .fileReadCorruptFile)
     }
 
     /// Leftovers from an extension that crashed are removed.

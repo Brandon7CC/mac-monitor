@@ -156,7 +156,7 @@ final class StreamSessionTests: XCTestCase {
         XCTAssertEqual(auth?.status, .invalid)
         XCTAssertEqual(auth?.problem, "ES_EVENT_TYPE_AUTH_EXEC isn't an event macmonitor can stream on this Mac.")
         XCTAssertEqual(connection.send(StreamRequest(.hello).encoded()),
-                       StreamReply(.ok, sensorVersion: "3.0.0 (1)"))
+                       StreamReply(status: .ok, sensorVersion: "3.0.0 (1)"))
         XCTAssertTrue(harness.factories.isEmpty)
         XCTAssertEqual(connection.send(stream())?.status, .ok, "A bad request doesn't use up the stream.")
     }

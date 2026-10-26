@@ -42,15 +42,8 @@ final class CodeSigningCertificateCacheTests: XCTestCase {
         var now: UInt64 = 1_000_000_000
     }
     
-    private var reader = Reader()
-    private var clock = TestClock()
-    
-    /// A fresh reader and clock for each test.
-    override func setUp() {
-        super.setUp()
-        reader = Reader()
-        clock = TestClock()
-    }
+    private let reader = Reader()
+    private let clock = TestClock()
     
     /// A cache that reads with ``reader`` and tells time with ``clock``.
     ///
@@ -171,8 +164,8 @@ final class CodeSigningCertificateCacheTests: XCTestCase {
         XCTAssertLessThan(reader.count, 800)
     }
     
-    /// Through ``ProcessHelpers``, a real executable's certificates are the ones a fresh read finds, each time as new
-    /// values.
+    /// Through ``ProcessHelpers``, a real executable's certificates are the ones a fresh read finds, each time with the
+    /// same ids: their thumbprints.
     func testProcessHelpersMatchAFreshRead() throws {
         let fresh = try XCTUnwrap(ProcessHelpers.readCodeSigningCerts(forBinaryAt: "/usr/bin/true"))
         let first = ProcessHelpers.getCodeSigningCerts(forBinaryAt: "/usr/bin/true")
@@ -182,7 +175,7 @@ final class CodeSigningCertificateCacheTests: XCTestCase {
             XCTAssertEqual(chain.map(\.summary), fresh.map(\.summary))
             XCTAssertEqual(chain.map(\.thumbprint), fresh.map(\.thumbprint))
         }
-        XCTAssertTrue(zip(first, second).allSatisfy { $0.id != $1.id })
+        XCTAssertEqual(first.map(\.id), second.map(\.id))
         XCTAssertNil(ProcessHelpers.readCodeSigningCerts(forBinaryAt: "/nonexistent/\(UUID().uuidString)"))
     }
 }

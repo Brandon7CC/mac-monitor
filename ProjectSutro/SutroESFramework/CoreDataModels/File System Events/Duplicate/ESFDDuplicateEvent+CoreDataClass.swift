@@ -10,18 +10,16 @@ import Foundation
 import CoreData
 
 @objc(ESFDDuplicateEvent)
-public class ESFDDuplicateEvent: NSManagedObject {
+public class ESFDDuplicateEvent: NSManagedObject, Identifiable {
+    @NSManaged public var target: ESFile
+
     enum CodingKeys: CodingKey {
-        case id
         case target
     }
     
     // MARK: - Custom Core Data initilizer for ESFDDuplicateEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: FDDuplicateEvent = message.event.dup!
-        let description = NSEntityDescription.entity(forEntityName: "ESFDDuplicateEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = event.id
+    convenience init(from event: TargetFileEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESFDDuplicateEvent.target))
     }
 }
@@ -30,7 +28,6 @@ public class ESFDDuplicateEvent: NSManagedObject {
 extension ESFDDuplicateEvent: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-//        try container.encode(id, forKey: .id)
         try container.encode(target, forKey: .target)
     }
 }

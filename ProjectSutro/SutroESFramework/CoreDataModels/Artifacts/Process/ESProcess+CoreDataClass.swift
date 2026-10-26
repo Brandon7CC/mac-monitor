@@ -10,14 +10,56 @@ import Foundation
 import CoreData
 
 @objc(ESProcess)
-public class ESProcess: NSManagedObject {
+public class ESProcess: NSManagedObject, Identifiable {
+    @NSManaged public var id: UUID?
+    
+    /// TIme
+    @NSManaged public var start_time: String
+    
+    /// PIDs
+    @NSManaged public var pid: Int32
+    @NSManaged public var ppid: Int32
+    @NSManaged public var original_ppid: Int32
+    @NSManaged public var group_id: Int32
+    @NSManaged public var session_id: Int32
+    
+    /// Audit tokens
+    @NSManaged public var audit_token: ESAuditToken?
+    @NSManaged public var responsible_audit_token: ESAuditToken?
+    @NSManaged public var parent_audit_token: ESAuditToken?
+    @NSManaged public var audit_token_string: String
+    @NSManaged public var responsible_audit_token_string: String
+    @NSManaged public var parent_audit_token_string: String
+    
+    /// Codesigning
+    @NSManaged public var codesigning_flags: Int64
+    @NSManaged public var cdhash: String?
+    @NSManaged public var signing_id: String?
+    @NSManaged public var team_id: String?
+    @NSManaged public var cs_validation_category: Int32
+    @NSManaged public var cs_validation_category_string: String?
+    
+    @NSManaged public var is_platform_binary: Bool
+    @NSManaged public var is_es_client: Bool
+    
+    @NSManaged public var executable: ESFile?
+    @NSManaged public var tty: ESFile?
+    
+    // MARK: - Enrichment
+    @NSManaged public var euid: Int64
+    @NSManaged public var ruid: Int64
+    @NSManaged public var euid_human: String?
+    @NSManaged public var ruid_human: String?
+    @NSManaged public var codesigning_type: String
+    @NSManaged public var is_adhoc_signed: Bool
+    @NSManaged public var file_quarantine_type: String
+
     convenience init(
         from process: Process,
         version: Int,
         insertIntoManagedObjectContext context: NSManagedObjectContext
     ) {
-        let description = NSEntityDescription.entity(forEntityName: "ESProcess", in: context)!
-        self.init(entity: description, insertInto: context)
+        self.init(insertingInto: context)
         self.id = process.id
         
         /// Time
@@ -49,26 +91,18 @@ public class ESProcess: NSManagedObject {
         
         /// Codesigning
         self.codesigning_flags = process.codesigning_flags
-        if let signing_id = process.signing_id {
-            self.signing_id = signing_id
-        }
-        if let team_id = process.team_id {
-            self.team_id = team_id
-        }
-        if let cdhash = process.cdhash {
-            /// Uppercase like eslogger, also when an older Security Extension sent lowercase.
-            self.cdhash = cdhash.uppercased()
-        }
+        self.signing_id = process.signing_id
+        self.team_id = process.team_id
+        /// Uppercase like eslogger, also when an older Security Extension sent lowercase.
+        self.cdhash = process.cdhash?.uppercased()
         
         self.is_adhoc_signed = process.is_adhoc_signed
         
         // macOS 26
-        if version >= 10 {
-            if let cs_validation_category = process.cs_validation_category,
-               let cs_validation_category_string = process.cs_validation_category_string {
-                self.cs_validation_category = cs_validation_category
-                self.cs_validation_category_string = cs_validation_category_string
-            }
+        if version >= 10, let cs_validation_category = process.cs_validation_category,
+           let cs_validation_category_string = process.cs_validation_category_string {
+            self.cs_validation_category = cs_validation_category
+            self.cs_validation_category_string = cs_validation_category_string
         }
         
         self.is_platform_binary = process.is_platform_binary
@@ -89,19 +123,10 @@ public class ESProcess: NSManagedObject {
         }
         
         /// User identification
-        if let euid = process.euid {
-            self.euid = Int64(euid)
-        }
-        if let euid_human = process.euid_human {
-            self.euid_human = euid_human
-        }
-        
-        if let ruid = process.ruid {
-            self.ruid = Int64(ruid)
-        }
-        if let ruid_human = process.ruid_human {
-            self.ruid_human = ruid_human
-        }
+        self.euid = Int64(process.euid ?? 0)
+        self.euid_human = process.euid_human
+        self.ruid = Int64(process.ruid ?? 0)
+        self.ruid_human = process.ruid_human
     }
     
     /// The row for `process`: shared with every other event (and `EXEC` target or `FORK` child) of the same process
@@ -119,6 +144,17 @@ public class ESProcess: NSManagedObject {
         EventRowCaches.row(\.processes, for: ProcessRowKey(version: version, process: process.rowKey), in: context) {
             ESProcess(from: process, version: version, insertIntoManagedObjectContext: context)
         }
+    }
+    
+    /// A new row for `process`, owned by the event that stores it, or `nil` without one.
+    ///
+    /// - Parameters:
+    ///   - process: The process, or `nil` when Endpoint Security left it out.
+    ///   - version: The message's version.
+    ///   - context: The context to insert into.
+    /// - Returns: The new row, or `nil`.
+    static func insert(_ process: Process?, version: Int, in context: NSManagedObjectContext) -> ESProcess? {
+        process.map { ESProcess(from: $0, version: version, insertIntoManagedObjectContext: context) }
     }
 }
 

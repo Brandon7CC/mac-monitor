@@ -14,21 +14,6 @@ import XCTest
 /// the fixtures' exports validate as a trace, and each targeted break of one is reported once, at the path it broke,
 /// with what's wrong there, in a record on its own and by line in a trace.
 final class TelemetrySchemaIssueTests: XCTestCase {
-    /// A step into a JSON value: a key of an object, or an index of an array.
-    private enum Step: ExpressibleByStringLiteral, ExpressibleByIntegerLiteral {
-        case key(String), index(Int)
-        
-        /// A key, written as a string literal.
-        ///
-        /// - Parameter key: The key.
-        init(stringLiteral key: String) { self = .key(key) }
-        
-        /// An index, written as an integer literal.
-        ///
-        /// - Parameter index: The index.
-        init(integerLiteral index: Int) { self = .index(index) }
-    }
-    
     /// The schema the framework bundles, checking every key, as the app and the command line load it.
     private var validator: TelemetryValidator!
     
@@ -63,7 +48,7 @@ final class TelemetrySchemaIssueTests: XCTestCase {
     func testBrokenValuesNameTheirPath() throws {
         let records = try exportedRecords()
         let exec = try first("exec", in: records)
-        let cdhash = try XCTUnwrap(try value(at: ["event", "exec", "target", "cdhash"], in: exec) as? String)
+        let cdhash = try XCTUnwrap(exec[path: "event", "exec", "target", "cdhash"] as? String)
         let process = "#/$defs/process/properties"
         
         check(exec, ["event", "exec", "target", "cdhash"], cdhash.lowercased(),
@@ -99,7 +84,7 @@ final class TelemetrySchemaIssueTests: XCTestCase {
     func testBrokenObjectsNameTheirPath() throws {
         let records = try exportedRecords()
         let exec = try first("exec", in: records) { $0["launched_by_parent"] is [String: Any] }
-        let fork = try value(at: ["event", "fork"], in: try first("fork", in: records))
+        let fork = try XCTUnwrap(try first("fork", in: records)[path: "event", "fork"])
         
         check(exec, ["event", "exec", "target", "audit_token", "pid"], nil,
               "event.exec.target.audit_token.pid: missing", at: "#/$defs/audit_token/properties/pid")
@@ -126,9 +111,9 @@ final class TelemetrySchemaIssueTests: XCTestCase {
     func testBrokenTraceCountsIssuesByLine() throws {
         var records = try exportedRecords()
         XCTAssertGreaterThan(records.count, 5)
-        let cdhash = try XCTUnwrap(try value(at: ["process", "cdhash"], in: records[2]) as? String).lowercased()
-        records[2] = edited(records[2], at: ["process", "cdhash"], to: cdhash)
-        records[5] = edited(records[5], at: ["process", "audit_token", "pid"], to: nil)
+        let cdhash = try XCTUnwrap(records[2][path: "process", "cdhash"] as? String).lowercased()
+        records[2][path: "process", "cdhash"] = cdhash
+        records[5][path: "process", "audit_token", "pid"] = nil
         let (valid, version) = (records.count - 2, TelemetrySchema.version)
         let pattern = "doesn't match \(SchemaPattern.cdhash.rawValue)"
         
@@ -206,7 +191,7 @@ final class TelemetrySchemaIssueTests: XCTestCase {
     ///   - validator: The validator, or the bundled schema checking every key.
     ///   - file: The caller's file.
     ///   - line: The caller's line.
-    private func check(_ record: [String: Any], _ path: [Step], _ value: Any?, _ expected: String,
+    private func check(_ record: [String: Any], _ path: [JSONStep], _ value: Any?, _ expected: String,
                        at location: String, with validator: TelemetryValidator? = nil,
                        file: StaticString = #filePath, line: UInt = #line) {
         let validator = validator ?? self.validator!
@@ -214,7 +199,9 @@ final class TelemetrySchemaIssueTests: XCTestCase {
             let original = try JSONSerialization.data(withJSONObject: record)
             XCTAssertEqual(validator.issues(inRecord: original).map(\.description), [], "Before the change",
                            file: file, line: line)
-            let broken = try JSONSerialization.data(withJSONObject: edited(record, at: path, to: value))
+            var edited = record
+            edited[path: path] = value
+            let broken = try JSONSerialization.data(withJSONObject: edited)
             let issues = validator.issues(inRecord: broken)
             XCTAssertEqual(issues.map(\.description), [expected], file: file, line: line)
             XCTAssertEqual(issues.map(\.schemaLocation), [location], expected, file: file, line: line)
@@ -229,9 +216,7 @@ final class TelemetrySchemaIssueTests: XCTestCase {
     /// - Returns: Each export's object, in the fixtures' order.
     /// - Throws: The error reading a fixture, or an `XCTest` failure if an export isn't a JSON object.
     private func exportedRecords() throws -> [[String: Any]] {
-        try fixtureExports().map { label, json in
-            try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any], label)
-        }
+        try fixtureExports().map { label, json in try jsonObject(Data(json.utf8), label) }
     }
     
     /// The first record of an event type whose event will do.
@@ -247,49 +232,5 @@ final class TelemetrySchemaIssueTests: XCTestCase {
         try XCTUnwrap(records.first { record in
             ((record["event"] as? [String: Any])?[name] as? [String: Any]).map(matches) ?? false
         }, "No \(name) record will do")
-    }
-    
-    /// The value at a path in a JSON value.
-    ///
-    /// - Parameters:
-    ///   - path: The path.
-    ///   - json: The JSON value.
-    /// - Returns: The value there.
-    /// - Throws: An `XCTest` failure if there's none.
-    private func value(at path: [Step], in json: Any) throws -> Any {
-        try path.reduce(json) { found, step in
-            switch step {
-            case .key(let key):
-                return try XCTUnwrap((found as? [String: Any])?[key], "No \(key)")
-            case .index(let index):
-                let array = try XCTUnwrap(found as? [Any], "No array for [\(index)]")
-                return try XCTUnwrap(array.indices.contains(index) ? array[index] : nil, "No [\(index)]")
-            }
-        }
-    }
-    
-    /// A record changed in one place.
-    ///
-    /// - Parameters:
-    ///   - record: The record.
-    ///   - path: Where to change it: through keys and indexes it has, to a key it may not have yet.
-    ///   - value: The value put there, or `nil` to remove the key.
-    /// - Returns: The changed record.
-    private func edited(_ record: [String: Any], at path: [Step], to value: Any?) -> [String: Any] {
-        /// The JSON value `current` with the value at `path` replaced.
-        func replacing(in current: Any?, at path: ArraySlice<Step>) -> Any? {
-            guard let step = path.first else { return value }
-            switch step {
-            case .key(let key):
-                var object = current as? [String: Any] ?? [:]
-                object[key] = replacing(in: object[key], at: path.dropFirst())
-                return object
-            case .index(let index):
-                var array = current as? [Any] ?? []
-                array[index] = replacing(in: array[index], at: path.dropFirst()) ?? NSNull()
-                return array
-            }
-        }
-        return replacing(in: record, at: path[...]) as? [String: Any] ?? [:]
     }
 }

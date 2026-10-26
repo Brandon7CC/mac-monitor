@@ -22,12 +22,13 @@ final class CommandLineExitTests: XCTestCase {
             (.notPermitted, .unavailable), (.failed, .unavailable)
         ]
         for (status, exit) in expected {
-            let failure = CommandLineFailure.reply(StreamReply(status, problem: "Because.", sensorVersion: "2.1.0 (9)"))
+            let reply = StreamReply(status: status, problem: "Because.", sensorVersion: "2.1.0 (9)")
+            let failure = CommandLineFailure.reply(reply)
             XCTAssertEqual(failure?.exit, exit, status.rawValue)
         }
-        XCTAssertEqual(CommandLineFailure.reply(StreamReply(.sessionLimit, problem: "3 are running.",
+        XCTAssertEqual(CommandLineFailure.reply(StreamReply(status: .sessionLimit, problem: "3 are running.",
                                                             sensorVersion: "3.0.0 (1)"))?.message, "3 are running.")
-        let older = CommandLineFailure.reply(StreamReply(.unsupported, sensorVersion: "2.1.0 (9)"))
+        let older = CommandLineFailure.reply(StreamReply(status: .unsupported, sensorVersion: "2.1.0 (9)"))
         XCTAssertEqual(older?.message, """
             The Security Extension (2.1.0 (9)) is older than macmonitor. Open Mac Monitor to finish updating its \
             Security Extension.
@@ -117,8 +118,8 @@ final class CommandLineExitTests: XCTestCase {
         let hostile = "a\u{1B}[2J\u{202E}b"
         let failures = [
             CommandLineFailure.reply(MuteReply(status: .invalid, mutes: [], problems: [hostile])),
-            CommandLineFailure.reply(StreamReply(.failed, problem: hostile, sensorVersion: "3.0.0 (1)")),
-            CommandLineFailure.reply(StreamReply(.invalid, problem: hostile, sensorVersion: "3.0.0 (1)")),
+            CommandLineFailure.reply(StreamReply(status: .failed, problem: hostile, sensorVersion: "3.0.0 (1)")),
+            CommandLineFailure.reply(StreamReply(status: .invalid, problem: hostile, sensorVersion: "3.0.0 (1)")),
         ]
         for failure in failures {
             let message = try XCTUnwrap(failure).message

@@ -18,11 +18,11 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
     let service: StreamService
     private let listener = NSXPCListener.anonymous()
     /// Each started stream's client factory, in the order the streams started.
-    private let madeFactories = OSAllocatedUnfairLock<[FakeEndpointSecurityClientFactory]>(uncheckedState: [])
+    private let madeFactories = Recorded<FakeEndpointSecurityClientFactory>()
     /// How many streams that held clients have closed.
     private let releaseCount = OSAllocatedUnfairLock(initialState: 0)
     /// The service's side of every connection, in the order they were accepted.
-    private let accepted = OSAllocatedUnfairLock<[NSXPCConnection]>(uncheckedState: [])
+    private let accepted = Recorded<NSXPCConnection>()
     
     /// - Parameters:
     ///   - savedMutes: The saved mute set.
@@ -39,7 +39,7 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
                                 sensorVersion: "3.0.0 (1)", admits: admitting ?? { _ in admits },
                                 makeCapture: { configuration, emit in
             let factory = FakeEndpointSecurityClientFactory(refusals: refusals)
-            made.withLockUnchecked { $0.append(factory) }
+            made.append(factory)
             return try CaptureSession(configuration, clients: factory, serializer: serializer,
                                       sensorID: { "SENSOR" }, emit: emit)
         }, released: { releases.withLock { $0 += 1 } })
@@ -50,7 +50,7 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
     
     /// Each started stream's client factory, in order.
     var factories: [FakeEndpointSecurityClientFactory] {
-        madeFactories.withLockUnchecked { $0 }
+        madeFactories.all
     }
     
     /// How many streams that held Endpoint Security clients have closed, each of which posts the released
@@ -66,7 +66,7 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
     
     /// Drop every connection from the service's side, as a Security Extension that exits does.
     func dropConnections() {
-        accepted.withLockUnchecked { $0 }.forEach { $0.invalidate() }
+        accepted.all.forEach { $0.invalidate() }
     }
     
     /// A new connection to the service, as `macmonitor` makes one: it exports `reader` for the events.
@@ -89,7 +89,7 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
     ///   - connection: The new connection.
     /// - Returns: Always `true`.
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
-        accepted.withLockUnchecked { $0.append(connection) }
+        accepted.append(connection)
         service.accept(connection)
         return true
     }

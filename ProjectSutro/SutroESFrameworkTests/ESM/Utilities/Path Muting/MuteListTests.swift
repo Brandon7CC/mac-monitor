@@ -75,10 +75,9 @@ final class MuteListTests: XCTestCase {
     func testNarrowingAnAllEventsMuteIsRefused() {
         var list = MuteList([mute()])
         let before = list
-        XCTAssertThrowsError(try list.remove(mute([open]))) { error in
-            XCTAssertEqual(error as? MuteListError, .narrowsAllEvents(path: "/a", type: ES_MUTE_PATH_TYPE_LITERAL))
-            XCTAssertTrue("\(error)".contains("Remove it, then add it back"))
-        }
+        let error = thrown(MuteListError.self) { try list.remove(mute([open])) }
+        XCTAssertEqual(error, .narrowsAllEvents(path: "/a", type: ES_MUTE_PATH_TYPE_LITERAL))
+        XCTAssertTrue(error?.description.contains("Remove it, then add it back") == true)
         XCTAssertEqual(list, before)
     }
     
@@ -118,7 +117,8 @@ final class MuteListTests: XCTestCase {
     }
     
     /// The shipped default holds every mute of Mac Monitor's default set: one entry per distinct path and type, each
-    /// covering its mutes' events or every event. The repeated `/Library/SystemExtensions/` OPEN rule is listed once.
+    /// covering its mutes' events or every event. `/Library/SystemExtensions/`, which four prefix rules mute, is listed
+    /// once, with OPEN once.
     func testShippedDefaultHoldsTheDefaultSet() {
         let shipped = MuteList.shippedDefault(for: .tester)
         let mutes = MuteSet.default(home: ConsoleUser.tester.home).pathMutes

@@ -16,18 +16,6 @@ struct SystemLinkEventMetadataView: View {
         esSystemEvent.event.link!
     }
     
-    private var tgtPath: String? {
-        if let path = event.target_dir.path {
-            return URL(
-                fileURLWithPath: path
-            )
-            .appendingPathComponent(event.target_filename)
-            .path()
-        }
-        
-        return nil
-    }
-    
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
         if esSystemEvent.event.link != nil {
@@ -57,7 +45,7 @@ struct SystemLinkEventMetadataView: View {
                         }.frame(maxWidth: .infinity, alignment: .leading)
                     }
                     
-                    if let tgtPath = tgtPath {
+                    if let tgtPath = esSystemEvent.target_path {
                         VStack(alignment: .leading) {
                             Text("\u{2022} Destination file path:")
                                 .bold()

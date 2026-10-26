@@ -84,23 +84,14 @@ public struct SetupRequirements: Equatable {
 
     /// One installed copy of the Security Extension, as a properties request reports it.
     public struct ExtensionReport: Equatable {
+        /// Activated and turned on.
         public let isEnabled: Bool
+        /// Waiting for the user in System Settings.
         public let isAwaitingApproval: Bool
+        /// Being removed, at the next restart.
         public let isUninstalling: Bool
-        /// Such as "3.0.0 (1)".
+        /// Its version and build, such as "3.0.0 (1)".
         public let version: String
-
-        /// - Parameters:
-        ///   - isEnabled: Activated and turned on.
-        ///   - isAwaitingApproval: Waiting for the user in System Settings.
-        ///   - isUninstalling: Being removed, at the next restart.
-        ///   - version: Its version and build.
-        public init(isEnabled: Bool, isAwaitingApproval: Bool, isUninstalling: Bool, version: String) {
-            self.isEnabled = isEnabled
-            self.isAwaitingApproval = isAwaitingApproval
-            self.isUninstalling = isUninstalling
-            self.version = version
-        }
     }
 
     /// One requirement.
@@ -154,21 +145,6 @@ public struct SetupRequirements: Equatable {
     public let sipDisabled: Bool
     /// Does System Settings have General ▸ Login Items & Extensions (macOS 15 and later)?
     public let hasExtensionsPane: Bool
-
-    /// - Parameters:
-    ///   - location: Where Mac Monitor is running from.
-    ///   - extensionState: The Security Extension.
-    ///   - client: What its Endpoint Security client said.
-    ///   - sipDisabled: Is System Integrity Protection off?
-    ///   - hasExtensionsPane: Is this macOS 15 or later?
-    public init(location: Location, extensionState: ExtensionState, client: NewClientResult, sipDisabled: Bool,
-                hasExtensionsPane: Bool) {
-        self.location = location
-        self.extensionState = extensionState
-        self.client = client
-        self.sipDisabled = sipDisabled
-        self.hasExtensionsPane = hasExtensionsPane
-    }
 
     /// Every requirement, in the order they're done.
     public var rows: [Row] {

@@ -167,7 +167,7 @@ final class FakeEndpointSecurityClient: EndpointSecurityClient {
     /// - Parameter token: The process's audit token.
     /// - Returns: `false` if muting processes is refused.
     func muteProcess(_ token: audit_token_t) -> Bool {
-        record(.muteProcess(pid: token.pid()))
+        record(.muteProcess(pid: AuditToken(from: token).pid))
     }
     
     /// Record the call.

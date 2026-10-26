@@ -38,7 +38,6 @@ struct FileQuarantineStatusLabelView: View {
 }
 
 struct SystemFileCreateMetadataView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     var esSystemEvent: ESMessage
     @State private var showAuditTokens: Bool = false
     
@@ -66,26 +65,15 @@ struct SystemFileCreateMetadataView: View {
         Int(create?.is_quarantined ?? 0)
     }
     
-    var fileIsNotArtifact: Bool {
-        let artifacts = [
-            ".part",
-            ".download"
-        ]
-        
-        for artifact in artifacts {
-            if !createdFileName.hasSuffix(artifact) {
-                return true
-            }
-        }
-        
-        return false
-    }
-    
-    var acl: String? {
-        create?.acl
-    }
-    
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if create != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             FileCreateEventLabelView(message: esSystemEvent)
@@ -93,7 +81,7 @@ struct SystemFileCreateMetadataView: View {
             
             GroupBox {
                 VStack(alignment: .leading) {
-                    if fileQuarantineEnabled && fileQuarantineType == 0 && fileIsNotArtifact {
+                    if fileQuarantineEnabled && fileQuarantineType == 0 {
                         GroupBox {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
@@ -129,7 +117,7 @@ struct SystemFileCreateMetadataView: View {
                         ShowInFinderButton(path: destinationPath)
                     }
                     
-                    if let acl = acl {
+                    if let acl = create?.acl {
                         HStack {
                             Text("\u{2022} **ACL:**")
                             GroupBox {

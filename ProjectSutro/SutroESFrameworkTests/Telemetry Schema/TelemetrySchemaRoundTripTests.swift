@@ -24,7 +24,7 @@ final class TelemetrySchemaRoundTripTests: XCTestCase {
         /// The record.
         let record: [String: Any]
         /// The value's key path.
-        let path: [String]
+        let path: [JSONStep]
     }
     
     /// The records: Mac Monitor 2.1's without the keys it left out, then eslogger's with them `null`.
@@ -34,9 +34,9 @@ final class TelemetrySchemaRoundTripTests: XCTestCase {
     private func cases() throws -> [Case] {
         let exit = try fixtureObject("macmonitor-2.1-exit.jsonl")
         let process = try XCTUnwrap(exit["process"] as? [String: Any])
-        let fork = try legacyRecord("fork", type: ES_EVENT_TYPE_NOTIFY_FORK, ["child": process])
+        let fork = try legacyRecord(ES_EVENT_TYPE_NOTIFY_FORK, ["child": process])
         /// Message version 10, without either parent key: 2.1 wrote both or neither.
-        let iokit = try legacyRecord("iokit_open", type: ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN,
+        let iokit = try legacyRecord(ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN,
                                      ["user_client_class": "AppleAPFSUserClient", "user_client_type": 0])
         let legacy = [Case(label: "2.1 exit", record: exit, path: ["process", "signing_id"]),
                       Case(label: "2.1 fork", record: fork, path: ["event", "fork", "child", "signing_id"]),
@@ -47,8 +47,7 @@ final class TelemetrySchemaRoundTripTests: XCTestCase {
         let lineage = try fixtureRecords("eslogger-lineage.jsonl")
         let parent: [String: Any] = ["user_client_class": "IOSurfaceRootUserClient", "user_client_type": 0,
                                      "parent_path": "/synthetic/parent", "parent_registry_id": 4_294_967_895]
-        let esloggerIOKit = try esloggerRecord("iokit_open", type: Int(ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN.rawValue),
-                                               parent)
+        let esloggerIOKit = try esloggerRecord(ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN, parent)
         let eslogger = [Case(label: "eslogger exit", record: try fixtureObject("eslogger-exit.jsonl"),
                              path: ["process", "signing_id"]),
                         Case(label: "eslogger fork", record: lineage[0],
@@ -58,41 +57,19 @@ final class TelemetrySchemaRoundTripTests: XCTestCase {
                         Case(label: "eslogger iokit_open", record: esloggerIOKit,
                              path: ["event", "iokit_open", "parent_path"])]
         
-        return legacy.map { Case(label: $0.label, record: replacing($0.path[...], in: $0.record, with: nil),
-                                 path: $0.path) }
-            + eslogger.map { Case(label: $0.label, record: replacing($0.path[...], in: $0.record, with: NSNull()),
-                                  path: $0.path) }
-    }
-    
-    /// An object with the value at a key path replaced.
-    ///
-    /// - Parameters:
-    ///   - path: The value's key path.
-    ///   - object: The object.
-    ///   - value: The new value, or `nil` to leave the key out.
-    /// - Returns: The object.
-    private func replacing(_ path: ArraySlice<String>, in object: [String: Any], with value: Any?) -> [String: Any] {
-        guard let key = path.first else { return object }
-        var object = object
-        object[key] = path.count == 1
-            ? value : replacing(path.dropFirst(), in: object[key] as? [String: Any] ?? [:], with: value)
-        return object
-    }
-    
-    /// The value at a key path.
-    ///
-    /// - Parameters:
-    ///   - path: The key path.
-    ///   - object: The object.
-    /// - Returns: The value, or `nil` if a key is missing.
-    private func value(at path: [String], in object: [String: Any]) -> Any? {
-        path.reduce(object as Any?) { ($0 as? [String: Any])?[$1] }
+        return [(legacy, nil), (eslogger, NSNull())].flatMap { cases, missing in
+            cases.map { item in
+                var record = item.record
+                record[path: item.path] = missing
+                return Case(label: item.label, record: record, path: item.path)
+            }
+        }
     }
     
     /// Each record exports `null` where it has no value, as eslogger writes a NULL token.
     func testExportsWriteNull() throws {
         for item in try cases() {
-            XCTAssertTrue(value(at: item.path, in: try export(try importRecord(item.record))) is NSNull, item.label)
+            XCTAssertTrue(try export(try importRecord(item.record))[path: item.path] is NSNull, item.label)
         }
     }
     
@@ -123,12 +100,11 @@ final class TelemetrySchemaRoundTripTests: XCTestCase {
             var records: [[String: Any]] = []
             let reader = try TraceRecordReader(url: url)
             while case .object(let json, _)? = try reader.next() {
-                records.append(try XCTUnwrap(try JSONSerialization.jsonObject(with: json) as? [String: Any]))
+                records.append(try jsonObject(json))
             }
             XCTAssertEqual(records.count, cases.count)
             for (item, record) in zip(cases, records) {
-                XCTAssertTrue(value(at: item.path, in: record) is NSNull,
-                              "\(item.label), \(pretty ? "pretty" : "JSONL")")
+                XCTAssertTrue(record[path: item.path] is NSNull, "\(item.label), \(pretty ? "pretty" : "JSONL")")
             }
         }
     }

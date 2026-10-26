@@ -12,20 +12,9 @@ import SutroESFramework
 struct SystemGatekeeperUserOverrideMetadataView: View {
     var message: ESMessage
     @State private var showAuditTokens: Bool = false
-    @State private var showInstigator: Bool = false
     
     private var event: ESGatekeeperUserOverrideEvent {
         message.event.gatekeeper_user_override!
-    }
-    
-    private var overridePath: String {
-        if let path = event.file?.path {
-            return path
-        } else if let filePath = event.file_path {
-            return filePath
-        }
-        
-        return ""
     }
     
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
@@ -48,7 +37,7 @@ struct SystemGatekeeperUserOverrideMetadataView: View {
                     HStack {
                         Text("\u{2022} **Override path:**")
                         GroupBox {
-                            Text(overridePath)
+                            Text(message.target_path ?? "")
                                 .monospaced()
                         }
                     }

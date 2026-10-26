@@ -10,9 +10,14 @@ import CoreData
 
 
 /// The fields a stored `od_group_add` or `od_group_remove` event has besides ``ESODEvent``'s: the group and its member
-/// (an abstract entity: each of the two event types is a sub-entity).
+/// (see ``OpenDirectoryGroupMemberEvent``). An abstract entity: each of the two event types is a sub-entity.
 @objc(ESODGroupMemberEvent)
 public class ESODGroupMemberEvent: ESODEvent {
+    @NSManaged public var group_name: String?
+    @NSManaged public var member_type: NSNumber?
+    @NSManaged public var member_value: String?
+    @NSManaged public var member_string: String?
+
     /// Store the fields every Open Directory event has, then the group and its member.
     ///
     /// - Parameters:

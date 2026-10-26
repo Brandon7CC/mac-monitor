@@ -12,7 +12,8 @@ import os
 
 // MARK: - Fake delivery
 /// A reader a test controls: it keeps every batch an ``EventBatcher`` sends and replies only when the test says so.
-final class FakeBatchDelivery: EventBatchDelivery {
+/// ``deliver(_:completion:)`` is the batcher's ``EventBatchDelivery``.
+final class FakeBatchDelivery {
     /// The batches sent, and the replies not yet given.
     private struct State {
         var batches: [[Data]] = []

@@ -7,32 +7,9 @@
 
 import Foundation
 import AppKit
-import SystemConfiguration
 import OSLog
 import UniformTypeIdentifiers
 
-
-// MARK: - File System helpers
-// @discussion used for getting the console user's hoem directory
-extension FileManager {
-    var consoleUserHome: URL? {
-        var homeDirectory: URL?
-        if let consoleUser = SCDynamicStoreCopyConsoleUser(nil, nil, nil) as String?, consoleUser != "loginwindow" {
-            homeDirectory = URL(fileURLWithPath: "/Users/\(consoleUser)")
-        }
-        return homeDirectory
-    }
-}
-
-extension URL {
-    var isDirectory: Bool {
-        (try? resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
-    }
-    var isQuarantined: Bool {
-        ((try? resourceValues(forKeys: [.quarantinePropertiesKey])) != nil)
-    }
-}
-// MARK: - End file system helpers
 
 // MARK: - AppKit UI components
 /// Ask where to export a mute set.

@@ -10,7 +10,7 @@ import EndpointSecurity
 
 
 // MARK: - XProtect Malware Remediated event model: https://developer.apple.com/documentation/endpointsecurity/es_event_xp_malware_remediated_t
-public struct XProtecRemediateEvent: Identifiable, Codable, Hashable {
+public struct XProtecRemediateEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var signature_version: String
@@ -24,18 +24,6 @@ public struct XProtecRemediateEvent: Identifiable, Codable, Hashable {
     public var remediated_process_audit_token: AuditToken?
     
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: XProtecRemediateEvent, rhs: XProtecRemediateEvent) -> Bool {
-        if lhs.id == rhs.id {
-            return true
-        }
-        
-        return false
-    }
-    
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let event: es_event_xp_malware_remediated_t = rawMessage.pointee.event.xp_malware_remediated.pointee
         
@@ -47,8 +35,6 @@ public struct XProtecRemediateEvent: Identifiable, Codable, Hashable {
         self.result_description = event.result_description.string ?? ""
         self.remediated_path = event.remediated_path.string
         
-        if let remediated_process_audit_token = event.remediated_process_audit_token {
-            self.remediated_process_audit_token = AuditToken(from: remediated_process_audit_token.pointee)
-        }
+        self.remediated_process_audit_token = event.remediated_process_audit_token.map { AuditToken(from: $0.pointee) }
     }
 }

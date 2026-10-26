@@ -77,11 +77,6 @@ protocol EndpointSecurityClient: AnyObject {
 struct ClientRefusal: Error, Equatable {
     /// The refusal, as Mac Monitor reports `es_new_client`'s result.
     let result: NewClientResult
-    
-    /// - Parameter result: The refusal.
-    init(result: NewClientResult) {
-        self.result = result
-    }
 }
 
 

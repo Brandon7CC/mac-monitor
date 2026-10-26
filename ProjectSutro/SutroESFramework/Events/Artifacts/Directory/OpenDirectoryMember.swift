@@ -18,16 +18,19 @@ public struct OpenDirectoryMember: Codable, Hashable {
     /// writes no event then), and for a member recorded before 3.0.0, which kept only its type.
     public var member_value: String?
     
-    /// A member from its fields.
+    /// Write both fields: `member_value` is `null` when it's `nil`, as eslogger writes every key it has.
     ///
-    /// - Parameters:
-    ///   - member_type: The member's `es_od_member_type_t`.
-    ///   - member_value: The member's name or UUID.
-    init(member_type: Int, member_value: String?) {
-        self.member_type = member_type
-        self.member_value = member_value
+    /// - Parameter encoder: The encoder.
+    /// - Throws: The error encoding a field.
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(member_type, forKey: .member_type)
+        try container.encode(member_value, forKey: .member_value)
     }
-    
+}
+
+
+extension OpenDirectoryMember {
     /// A member as Endpoint Security names it.
     ///
     /// - Parameter member: The event's `member`. Its `member_value` is read as the arm `member_type` names: `name`
@@ -42,15 +45,5 @@ public struct OpenDirectoryMember: Codable, Hashable {
         default:
             member_value = nil
         }
-    }
-    
-    /// Write both fields: `member_value` is `null` when it's `nil`, as eslogger writes every key it has.
-    ///
-    /// - Parameter encoder: The encoder.
-    /// - Throws: The error encoding a field.
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(member_type, forKey: .member_type)
-        try container.encode(member_value, forKey: .member_value)
     }
 }

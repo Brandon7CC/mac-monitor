@@ -7,7 +7,7 @@ AtomicESClient (a very small Endpoint Security (ES) client). AtomicESClient's go
 ## **Why?**
 We have received lots of requests to open source the "Red Canary Mac Monitor"! While this is not something I can do on my own -- we're always an open book when it comes to helping people learn and get familiar with complex security topics like ES. As a result of this feedback:
 
-We're releasing simple Swift program of just over 200 lines of code which (for educational use) shows the basics of how to:
+We're releasing simple Swift program of under 200 lines of code which (for educational use) shows the basics of how to:
 * Create an "entry point" and logger callback function
 * Model a basic `es_message_t` and process execution event `ES_EVENT_TYPE_NOTIFY_EXEC`.
 * A new ES client

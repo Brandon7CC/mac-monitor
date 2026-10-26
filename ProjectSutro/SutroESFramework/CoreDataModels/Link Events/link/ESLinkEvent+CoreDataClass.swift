@@ -10,20 +10,20 @@ import Foundation
 import CoreData
 
 @objc(ESLinkEvent)
-public class ESLinkEvent: NSManagedObject {
+public class ESLinkEvent: NSManagedObject, Identifiable {
+    @NSManaged public var source: ESFile
+    @NSManaged public var target_dir: ESFile
+    @NSManaged public var target_filename: String
+
     enum CodingKeys: CodingKey {
-        case id
         case source
         case target_dir
         case target_filename
     }
     
     // MARK: - Custom Core Data initilizer for ESLinkEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: LinkEvent = message.event.link!
-        let description = NSEntityDescription.entity(forEntityName: "ESLinkEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = event.id
+    convenience init(from event: LinkEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         attach(ESFile.row(for: event.source, in: context), to: #keyPath(ESLinkEvent.source))
         attach(ESFile.row(for: event.target_dir, in: context), to: #keyPath(ESLinkEvent.target_dir))

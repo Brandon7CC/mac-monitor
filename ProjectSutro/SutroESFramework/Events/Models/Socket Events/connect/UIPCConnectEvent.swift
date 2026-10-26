@@ -6,21 +6,13 @@
 //
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_uipc_connect_t
-public struct UIPCConnectEvent: Identifiable, Codable, Hashable {
+public struct UIPCConnectEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
     public var file: File
     public var domain, type, `protocol`: Int32
     
     public var type_string = "", domain_string = "", protocol_string = ""
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: UIPCConnectEvent, rhs: UIPCConnectEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let event: es_event_uipc_connect_t = rawMessage.pointee.event.uipc_connect

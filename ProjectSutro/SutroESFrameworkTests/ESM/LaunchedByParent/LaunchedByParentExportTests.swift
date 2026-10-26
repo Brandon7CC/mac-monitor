@@ -15,14 +15,10 @@ import EndpointSecurity
 /// enrichment at `event.exec.launched_by_parent` and `event.fork.launched_by_parent`, with every eslogger key path and
 /// value unchanged.
 final class LaunchedByParentExportTests: XCTestCase {
-    /// The shell, as eslogger names it in ``XCTestCase/esloggerExec(parent:originalPPID:env:)``.
-    private let shell = AuditToken(pid: 401, pidversion: 4010, asid: 100_001, auid: 4_294_967_295, euid: 0, ruid: 0,
-                                   rgid: 0, egid: 0)
-    
-    /// The shell's answer for the exec.
-    private var shellAnswer: LaunchedByParent {
-        LaunchedByParent(source: .unixParent, audit_token: shell, path: "/bin/zsh", resolved_by: .securityExtension)
-    }
+    /// The shell's answer for the exec: the shell as eslogger names it in
+    /// ``XCTestCase/esloggerExec(parent:originalPPID:args:env:)``.
+    private let shellAnswer = LaunchedByParent.shell(token: .fixture(pid: 401, pidversion: 4010, asid: 100_001),
+                                                     path: "/bin/zsh")
     
     /// eslogger's exec of `/usr/libexec/exampled` by the shell.
     ///
@@ -43,16 +39,7 @@ final class LaunchedByParentExportTests: XCTestCase {
         child["ppid"] = 4242
         child["original_ppid"] = 4242
         child["parent_audit_token"] = process["audit_token"]
-        return try esloggerRecord("fork", type: Int(ES_EVENT_TYPE_NOTIFY_FORK.rawValue), ["child": child])
-    }
-    
-    /// A value's JSON object, as an export writes it.
-    ///
-    /// - Parameter launchedByParent: The launched-by parent.
-    /// - Returns: Its object.
-    /// - Throws: The encoder's error, or an `XCTest` failure if it isn't an object.
-    private func object(_ launchedByParent: LaunchedByParent) throws -> [String: Any] {
-        try XCTUnwrap(try JSONSerialization.jsonObject(with: JSONEncoder().encode(launchedByParent)) as? [String: Any])
+        return try esloggerRecord(ES_EVENT_TYPE_NOTIFY_FORK, ["child": child])
     }
     
     /// An exec's and a fork's launched-by parents are exported beside eslogger's fields, as their own JSON.
@@ -60,15 +47,15 @@ final class LaunchedByParentExportTests: XCTestCase {
         var exec = try importRecord(try execRecord())
         exec.setLaunchedByParent(shellAnswer)
         let exported = try XCTUnwrap(try event("exec", in: try export(exec))["launched_by_parent"] as? [String: Any])
-        assertContains(try object(shellAnswer), exported, "exec")
-        XCTAssertEqual(Set(exported.keys), Set(try object(shellAnswer).keys))
+        assertContains(try jsonObject(encoding: shellAnswer), exported, "exec")
+        XCTAssertEqual(Set(exported.keys), Set(try jsonObject(encoding: shellAnswer).keys))
         
         var fork = try importRecord(try forkRecord())
         fork.resolveLaunchedByParent(by: .import) { _, _ in nil }
         let answer = try XCTUnwrap(fork.createdLaunchedByParent)
         XCTAssertEqual(answer.path, "/usr/libexec/exampled", "the forking process's executable")
         let forkExport = try XCTUnwrap(try event("fork", in: try export(fork))["launched_by_parent"] as? [String: Any])
-        assertContains(try object(answer), forkExport, "fork")
+        assertContains(try jsonObject(encoding: answer), forkExport, "fork")
     }
     
     /// Every key path and value eslogger wrote is still in the export.

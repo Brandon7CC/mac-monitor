@@ -33,15 +33,7 @@ final class ExecCommandLineTests: XCTestCase {
     /// - Returns: The event's `command_line`.
     /// - Throws: The error reading the record, or an `XCTest` failure if the fixture has no process.
     private func joined(_ args: [String]) throws -> String? {
-        var record = try fixtureObject("eslogger-exit.jsonl")
-        let exec: [String: Any] = [
-            "target": try XCTUnwrap(record["process"]), "script": NSNull(), "dyld_exec_path": "/bin/ls",
-            "cwd": ["path": "/", "path_truncated": false, "stat": [:]], "last_fd": 2, "image_cputype": 16_777_228,
-            "image_cpusubtype": 2, "args": args, "fds": [], "env": [],
-        ]
-        record["event"] = ["exec": exec]
-        record["event_type"] = 9
-        return try importRecord(record).event.exec?.command_line
+        try importRecord(try esloggerExec(parent: (1, 1), args: args)).event.exec?.command_line
     }
     
     /// No arguments, empty and whitespace-only ones (spaces, tabs, Unicode spaces), newlines, and Unicode.

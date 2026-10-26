@@ -10,7 +10,15 @@ import Foundation
 import CoreData
 
 @objc(ESRemoteThreadCreateEvent)
-public class ESRemoteThreadCreateEvent: NSManagedObject {
+public class ESRemoteThreadCreateEvent: NSManagedObject, Identifiable {
+    @NSManaged public var target: ESProcess
+    /// The thread state's `flavor`, or `nil` when the event has no thread state (`thread_create`).
+    @NSManaged public var thread_state_flavor: NSNumber?
+    /// The thread state's bytes in base64 (``ThreadState/state_base64``).
+    @NSManaged public var thread_state_base64: String?
+    /// Mac Monitor enrichment: the name of the thread state's flavor.
+    @NSManaged public var thread_state_string: String?
+
     enum CodingKeys: CodingKey {
         case target
         case thread_state
@@ -18,15 +26,12 @@ public class ESRemoteThreadCreateEvent: NSManagedObject {
     }
     
     // MARK: - Custom Core Data initilizer for ESRemoteThreadCreateEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let threadEvent: RemoteThreadCreateEvent = message.event.remote_thread_create!
-        let description = NSEntityDescription.entity(forEntityName: "ESRemoteThreadCreateEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = threadEvent.id
-        self.thread_state_flavor = threadEvent.thread_state.map { NSNumber(value: $0.flavor) }
-        self.thread_state_base64 = threadEvent.thread_state?.state_base64
-        self.thread_state_string = threadEvent.thread_state_string
-        self.target = ESProcess(from: threadEvent.target, version: message.version, insertIntoManagedObjectContext: context)
+    convenience init(from event: RemoteThreadCreateEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
+        self.thread_state_flavor = event.thread_state.map { NSNumber(value: $0.flavor) }
+        self.thread_state_base64 = event.thread_state?.state_base64
+        self.thread_state_string = event.thread_state_string
+        self.target = ESProcess(from: event.target, version: message.version, insertIntoManagedObjectContext: context)
     }
     
     /// The thread state, as eslogger writes it: `nil` for `thread_create`.
