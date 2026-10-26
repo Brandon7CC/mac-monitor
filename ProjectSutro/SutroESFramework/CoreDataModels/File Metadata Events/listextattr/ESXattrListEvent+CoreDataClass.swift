@@ -10,9 +10,11 @@ import Foundation
 import CoreData
 
 @objc(ESXattrListEvent)
-public class ESXattrListEvent: NSManagedObject {
+public class ESXattrListEvent: NSManagedObject, Identifiable {
+    @NSManaged public var target: ESFile
+
     enum CodingKeys: CodingKey {
-        case id, target
+        case target
     }
     
     
@@ -21,7 +23,6 @@ public class ESXattrListEvent: NSManagedObject {
         let event: XattrListEvent = message.event.listextattr!
         let description = NSEntityDescription.entity(forEntityName: "ESXattrListEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = event.id
         
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESXattrListEvent.target))
     }

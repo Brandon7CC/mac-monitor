@@ -12,7 +12,13 @@ import CoreData
 
 /// A stored `od_attribute_value_add` event.
 @objc(ESODAttributeValueAddEvent)
-public class ESODAttributeValueAddEvent: ESODEvent {
+public class ESODAttributeValueAddEvent: ESODEvent, Identifiable {
+    @NSManaged public var record_type: NSNumber?
+    @NSManaged public var record_name: String?
+    @NSManaged public var attribute_name: String?
+    @NSManaged public var attribute_value: String?
+    @NSManaged public var record_type_string: String?
+
     enum CodingKeys: CodingKey {
         case record_type, record_name, attribute_name, attribute_value, record_type_string
     }

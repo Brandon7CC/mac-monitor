@@ -9,7 +9,6 @@ import SwiftUI
 import SutroESFramework
 
 struct SystemFileRenameMetadataView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     var esSystemEvent: ESMessage
     @State private var showAuditTokens: Bool = false
     

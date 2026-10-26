@@ -11,7 +11,6 @@ import SutroESFramework
 struct SystemCodeSigningInvalidatedMetadataView: View {
     var esSystemEvent: ESMessage
     @State private var showAuditTokens: Bool = false
-    @State private var showTargetAuditTokens: Bool = false
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -24,9 +23,6 @@ struct SystemCodeSigningInvalidatedMetadataView: View {
                 HStack {
                     Button("**Audit tokens**") {
                         showAuditTokens.toggle()
-                    }
-                    Button("**Target audit tokens**") {
-                        showTargetAuditTokens.toggle()
                     }
                 }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
             }

@@ -154,7 +154,6 @@ final class TraceSession: ObservableObject {
         guard confirmReplacingRecordedEvents(with: url, recording: recording.wrappedValue), opens == ticket else { return }
         if recording.wrappedValue {
             recording.wrappedValue = false
-            esm.cleanup()
             esm.stopRecordingEvents()
         }
         NSDocumentController.shared.noteNewRecentDocumentURL(url)

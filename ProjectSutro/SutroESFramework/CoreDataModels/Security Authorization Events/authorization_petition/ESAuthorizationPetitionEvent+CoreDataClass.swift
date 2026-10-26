@@ -10,9 +10,17 @@ import Foundation
 import CoreData
 
 @objc(ESAuthorizationPetitionEvent)
-public class ESAuthorizationPetitionEvent: NSManagedObject {
+public class ESAuthorizationPetitionEvent: NSManagedObject, Identifiable {
+    @NSManaged public var instigator: ESProcess?
+    @NSManaged public var petitioner: ESProcess?
+    @NSManaged public var flags: Int64
+    @NSManaged public var flagsData: Data?
+    @NSManaged public var right_count: Int32
+    @NSManaged public var rightsData: Data?
+    @NSManaged public var instigator_token: ESAuditToken?
+    @NSManaged public var petitioner_token: ESAuditToken?
+
     enum CodingKeys: CodingKey {
-        case id
         case instigator
         case petitioner
         case flags
@@ -48,7 +56,6 @@ public class ESAuthorizationPetitionEvent: NSManagedObject {
         let event: AuthorizationPetitionEvent = message.event.authorization_petition!
         let description = NSEntityDescription.entity(forEntityName: "ESAuthorizationPetitionEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = event.id
         
         /// Each process and token on its own: Endpoint Security can leave out a process (`NULL`) and still give its
         /// token, and before message version 8 gives the processes without tokens.

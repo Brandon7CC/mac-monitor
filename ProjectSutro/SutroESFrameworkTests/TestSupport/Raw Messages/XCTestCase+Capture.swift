@@ -25,9 +25,24 @@ struct StubSerializer: EventSerializing {
     /// - Parameters:
     ///   - message: The message.
     ///   - lane: The lane's context.
-    /// - Returns: What ``body`` returns.
+    /// - Returns: What ``body`` returns, as JSON.
+    func serializeEvent(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> SerializedEvent? {
+        body(message, lane).map(SerializedEvent.json)
+    }
+}
+
+
+// MARK: - Serializing in tests
+extension EventSerializing {
+    /// The event's JSON on a lane that holds nothing.
+    ///
+    /// - Parameters:
+    ///   - message: The message.
+    ///   - lane: The lane's context.
+    /// - Returns: The JSON, or `nil` if it couldn't be encoded or was held.
     func serialize(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> Data? {
-        body(message, lane)
+        guard case .json(let data) = serializeEvent(message, in: lane) else { return nil }
+        return data
     }
 }
 

@@ -10,9 +10,13 @@ import Foundation
 import CoreData
 
 @objc(ESProfileAddEvent)
-public class ESProfileAddEvent: NSManagedObject {
+public class ESProfileAddEvent: NSManagedObject, Identifiable {
+    @NSManaged public var instigator: ESProcess?
+    @NSManaged public var is_update: Bool
+    @NSManaged public var profileData: Data?
+    @NSManaged public var instigator_token: ESAuditToken?
+
     enum CodingKeys: CodingKey {
-        case id
         case instigator
         case is_update
         case profile
@@ -35,7 +39,6 @@ public class ESProfileAddEvent: NSManagedObject {
         let description = NSEntityDescription.entity(forEntityName: "ESProfileAddEvent", in: context)!
         self.init(entity: description, insertInto: context)
         
-        self.id = event.id
         self.is_update = event.is_update
         if let instigator = event.instigator {
             self.instigator = ESProcess(from: instigator, version: message.version, insertIntoManagedObjectContext: context)

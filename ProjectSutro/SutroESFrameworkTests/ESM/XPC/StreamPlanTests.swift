@@ -27,7 +27,6 @@ final class StreamPlanTests: XCTestCase {
         let names = ["ES_EVENT_TYPE_NOTIFY_FORK", "ES_EVENT_TYPE_NOTIFY_EXEC", "ES_EVENT_TYPE_NOTIFY_FORK"]
         let plan = try StreamPlan(StreamOptions(events: names))
         XCTAssertEqual(plan.events, [ES_EVENT_TYPE_NOTIFY_FORK, ES_EVENT_TYPE_NOTIFY_EXEC])
-        XCTAssertEqual(plan.eventNames, ["ES_EVENT_TYPE_NOTIFY_FORK", "ES_EVENT_TYPE_NOTIFY_EXEC"])
     }
     
     /// Every event Mac Monitor models can be streamed.

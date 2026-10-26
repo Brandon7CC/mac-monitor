@@ -10,9 +10,14 @@ import Foundation
 import CoreData
 
 @objc(ESFileCreateEvent)
-public class ESFileCreateEvent: NSManagedObject {
+public class ESFileCreateEvent: NSManagedObject, Identifiable {
+    @NSManaged public var acl: String?
+    @NSManaged public var is_quarantined: Int16
+    @NSManaged public var destination_type: Int16
+    @NSManaged public var destination_type_string: String
+    @NSManaged public var destination: ESFileDestination
+
     enum CodingKeys: CodingKey {
-        case id
         case destination_type
         case destination_type_string
         case destination
@@ -38,8 +43,6 @@ public class ESFileCreateEvent: NSManagedObject {
 extension ESFileCreateEvent: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-//        try container.encode(id, forKey: .id)
-        
         try container.encode(destination_type, forKey: .destination_type)
         try container.encode(destination_type_string, forKey: .destination_type_string)
         try container.encode(destination, forKey: .destination)

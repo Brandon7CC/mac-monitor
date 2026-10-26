@@ -10,9 +10,18 @@ import Foundation
 import CoreData
 
 @objc(ESIOKitOpenEvent)
-public class ESIOKitOpenEvent: NSManagedObject {
+public class ESIOKitOpenEvent: NSManagedObject, Identifiable {
+    @NSManaged public var user_client_class: String
+    @NSManaged public var user_client_type: Int64
+    /// Whether the message's version has the parent's fields: 10 (macOS 26) and later. The export writes both keys
+    /// then, `null` for one the record didn't have.
+    @NSManaged public var has_parent_fields: Bool
+    /// Message version 10 and later (`nil` before it, or when the record had none): a `uint64_t`, kept by bit pattern.
+    /// Read it as ``parentRegistryID``.
+    @NSManaged public var parent_registry_id: NSNumber?
+    @NSManaged public var parent_path: String?
+
     enum CodingKeys: CodingKey {
-        case id
         case user_client_class
         case user_client_type
         case parent_registry_id
@@ -25,7 +34,6 @@ public class ESIOKitOpenEvent: NSManagedObject {
         let description = NSEntityDescription.entity(forEntityName: "ESIOKitOpenEvent", in: context)!
         self.init(entity: description, insertInto: context)
         
-        self.id = iokitEvent.id
         self.user_client_type = iokitEvent.user_client_type
         self.user_client_class = iokitEvent.user_client_class
         

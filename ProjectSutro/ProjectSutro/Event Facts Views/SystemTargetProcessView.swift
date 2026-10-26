@@ -147,19 +147,8 @@ struct ParentProcessMetadata: View {
 
 // MARK: - Event View
 struct SystemTargetProcessView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-
     var selectedMessage: ESMessage
     @State private var parentProcessExpanded: Bool = false
-    @State private var targetMetadataExpanded: Bool = true
-
-    private var eventViews: EventSpecificViewsProvider {
-        EventSpecificViewsProvider(
-            message: selectedMessage,
-            systemExtensionManager: systemExtensionManager,
-            allFilters: .constant(Filters())
-        )
-    }
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -223,7 +212,7 @@ struct SystemTargetProcessView: View {
                         }.frame(maxWidth: .infinity, alignment: .leading)
                         
                         // MARK: Parents
-                        ParentsBox(message: selectedMessage)
+                        ParentsView(message: selectedMessage)
                     }
                     
                 }
@@ -233,155 +222,7 @@ struct SystemTargetProcessView: View {
             Divider()
 
             // MARK: - Event specific views
-            eventViews.metadataView
+            eventMetadataView
         }.textSelection(.enabled)
     }
 }
-
-//
-//struct SystemTargetProcessView: View {
-//    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-//    var selectedMessage: ESMessage
-//    @State private var targetMetadataExpanded: Bool = true
-//    
-//    var body: some View {
-//        VStack(alignment: .leading) {
-//            Label("**Endpoint Security message details**", systemImage: "envelope.badge.shield.half.filled").font(.title2).padding([.leading, .top], 5.0)
-//            GroupBox {
-//                // @note shown for all events
-//                ScrollView(.horizontal) {
-//                    HStack {
-//                        Text("\u{2022} **Event type:**").font(.title3)
-//                        GroupBox {
-//                            SystemEventTypeLabel(message: selectedMessage).font(.title3)
-//                        }
-//                        
-//                        AdditionalProcMetadataView(
-//                            selectedMessage: selectedMessage
-//                        )
-//                        
-//                        if let exec = selectedMessage.event.exec {
-//                            if exec.group_id == exec.pid {
-//                                GroupLeaderView()
-//                            }
-//                        }
-//                        
-//                        
-//                    }.frame(maxWidth: .infinity, alignment: .leading)
-//                }
-//                
-//                HStack {
-//                    Label("**Message timestamp:**", systemImage: "clock").font(.title3).padding([.leading, .top], 5.0)
-//                    GroupBox {
-//                        Text("`\(selectedMessage.activity_at_ts ?? "Unknown")`").font(.title3)
-//                    }
-//                }.frame(maxWidth: .infinity, alignment: .leading)
-//                
-//                if selectedMessage.event.exec == nil && selectedMessage.event.fork == nil {
-//                    InitiatingPIDandGIDView(selectedMessage: selectedMessage)
-//                }
-//                
-//                TopLevelNonProcEventData(selectedMessage: selectedMessage)
-//                
-//                Divider()
-//                HStack {
-//                    Label("**Initiating user:**", systemImage: "person.fill").font(.title3).padding([.leading, .top], 5.0)
-//                    InitiatingUserView(selectedMessage: selectedMessage)
-//                }.frame(maxWidth: .infinity, alignment: .leading)
-//                
-//            }
-//            
-//            Divider()
-//            
-//            // TODO: Add to when adding support for new ES events
-//            // Insert event specific metadata starting with exec events
-//            if selectedRCEvent.exec_event != nil {
-//                SystemTargetExecProcMetadataView(selectedRCEvent: selectedRCEvent)
-//            } else if selectedRCEvent.fork_event != nil {
-//                SystemForkProcMetadataView(selectedRCEvent: selectedRCEvent)
-//            } else if selectedRCEvent.file_event != nil {
-//                SystemFileCreateMetadataView(esSystemEvent: selectedRCEvent)
-//                    .environmentObject(systemExtensionManager)
-//            } else if selectedRCEvent.exit_event != nil {
-//                SystemProcExitMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.mmap_event != nil {
-//                SystemMMAPMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.btm_launch_item_add_event != nil {
-//                SystemBTMAddMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.btm_launch_item_remove_event != nil {
-//                SystemBTMRemoveMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.delete_xattr_event != nil {
-//                SystemDeleteXattrMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.openssh_login_event != nil {
-//                SystemOpenSSHLoginMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.openssh_logout_event != nil {
-//                SystemOpenSSHLogoutMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.xprotect_detect_event != nil {
-//                SystemXProtectDetectMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.xprotect_remediate_event != nil {
-//                SystemXProtectRemediateMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.mount_event != nil {
-//                SystemMountMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.login_login_event != nil {
-//                SystemLoginLoginMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.lw_login_event != nil {
-//                SystemLWLoginMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.lw_unlock_event != nil {
-//                SystemLWUnlockMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.file_rename_event != nil {
-//                SystemFileRenameMetadataView(esSystemEvent: selectedRCEvent)
-//                    .environmentObject(systemExtensionManager)
-//            } else if selectedRCEvent.fd_duplicate_event != nil {
-//                SystemFDDuplicateMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.file_delete_event != nil {
-//                SystemUnlinkEventMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.file_write_event != nil {
-//                SystemFileWriteMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.link_event != nil {
-//                SystemLinkEventMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.file_close_event != nil {
-//                SystemFileCloseMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.process_signal_event != nil {
-//                SystemProcessSignalMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.remote_thread_create_event != nil {
-//                SystemRemoteThreadCreateMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.iokit_open_event != nil {
-//                SystemIOKitOpenMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.code_signature_invalidated_event != nil {
-//                SystemCodeSigningInvalidatedMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.set_xattr_event != nil {
-//                SystemSetXattrMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.process_socket_event != nil {
-//                SystemProcessSocketMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.process_trace_event != nil {
-//                SystemProcessTraceMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.get_task_event != nil {
-//                SystemGetTaskMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.process_check_event != nil {
-//                SystemProcessCheckMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.file_open_event != nil {
-//                SystemFileOpenMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.profile_add_event != nil {
-//                SystemProfileAddMetadataView(esSystemEvent: selectedRCEvent)                  // macOS 14+ Sonoma
-//            } else if selectedRCEvent.od_create_user_event != nil {
-//                SystemOpenDirectoryCreateUserMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.od_modify_password_event != nil {
-//                SystemOpenDirectoryModifyPasswordMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.xpc_connect_event != nil {
-//                SystemXPCConnectMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.od_group_add_event != nil {
-//                SystemOpenDirectoryGroupAddMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.od_group_remove_event != nil {
-//                SystemOpenDirectoryGroupRemoveMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.authorization_petition_event != nil {
-//                SystemAuthorizationPetitionMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.authorization_judgement_event != nil {
-//                SystemAuthorizationJudgementMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.od_create_group_event != nil {
-//                SystemOpenDirectoryCreateGroupMetadataView(esSystemEvent: selectedRCEvent)
-//            } else if selectedRCEvent.od_attribute_add_event != nil {
-//                SystemOpenDirectoryAttrAddMetadataView(esSystemEvent: selectedRCEvent)
-//            }
-//        }
-//    }
-//}

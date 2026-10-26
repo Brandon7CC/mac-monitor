@@ -9,17 +9,10 @@ import Foundation
 
 
 /// Models an `action_type` union from an `es_message_t`
-public struct ActionResult: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID.buffered()
-    
+public struct ActionResult: Codable, Equatable, Hashable {
     public var result_type: Int?
     public var result_type_human: String?
     public var result: AuthResult?
-    
-    // Ignore id from being decoded
-    enum CodingKeys: String, CodingKey {
-        case result_type, result_type_human, result
-    }
     
     init(from message: es_message_t) {
         
@@ -64,15 +57,8 @@ extension ActionResult: ESEnrichable {
 }
 
 
-public struct ActionResultWrapper: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID.buffered()
-    
+public struct ActionResultWrapper: Codable, Equatable, Hashable {
     public var result: ActionResult?
-    
-    // Ignore id from being decoded
-    enum CodingKeys: String, CodingKey {
-        case result
-    }
     
     init(from message: es_message_t) {
         self.result = ActionResult(from: message)

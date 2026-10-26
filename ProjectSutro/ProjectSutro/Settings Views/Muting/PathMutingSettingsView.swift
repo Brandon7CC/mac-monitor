@@ -16,8 +16,9 @@ import SutroESFramework
 /// the selected one, and ⋯ imports, exports, resets, or unmutes everything. Right-clicking a mute offers the rest.
 struct PathMutingSettingsView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @Binding var pathToMute: String
     @StateObject private var files = MuteFileActions()
+    /// The Add sheet's path: "Mute Another Way…" starts it with the mute's.
+    @State private var pathToMute = ""
 
     @State private var searchScope: SearchScope = .path
     @State private var searchText = ""
@@ -263,7 +264,7 @@ struct PathMutingSettingsView: View {
         Divider()
         Button("Mute Another Way…") {
             pathToMute = mute.path
-            adding = AddRequest(kind: MuteKind(type: mute.type) ?? .literal)
+            adding = AddRequest(kind: MuteKind(rawValue: mute.type) ?? .literal)
         }
         .disabled(!canEdit)
         if !mute.events.isEmpty {

@@ -16,8 +16,6 @@ import EndpointSecurity
 /// difference between the last number seen plus 1 and the number received is how many messages were dropped. The first
 /// message only sets the baseline, so drops before it can't be seen.
 struct SequenceGapCounter: Equatable {
-    /// Messages observed.
-    private(set) var observed: UInt64 = 0
     /// The last sequence number observed.
     private(set) var last: UInt64?
     /// Messages missing between observed ones.
@@ -31,7 +29,6 @@ struct SequenceGapCounter: Equatable {
     ///
     /// - Parameter sequence: The message's `seq_num` or `global_seq_num`.
     mutating func observe(_ sequence: UInt64) {
-        observed &+= 1
         defer { last = sequence }
         guard let last, sequence != last &+ 1 else { return }
         if sequence > last {
@@ -85,14 +82,6 @@ struct ClientSequenceTracker {
             byType += Array(repeating: SequenceGapCounter(), count: eventType - byType.count + 1)
         }
         byType[eventType].observe(sequence)
-    }
-    
-    /// Messages of one event type that carried a `seq_num`.
-    ///
-    /// - Parameter eventType: An `es_event_type_t` raw value.
-    /// - Returns: How many were observed.
-    func observed(eventType: Int) -> UInt64 {
-        eventType < byType.count ? byType[eventType].observed : 0
     }
     
     /// Dropped messages for each event type that lost any.

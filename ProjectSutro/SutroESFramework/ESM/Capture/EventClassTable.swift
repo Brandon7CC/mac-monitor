@@ -10,18 +10,13 @@ import EndpointSecurity
 
 
 // MARK: - Event class table
-/// Apple's classifications of every NOTIFY event Mac Monitor names, and the client each event goes to: the only place
+/// Apple's classification of every NOTIFY event Mac Monitor names, and the client each event goes to: the only place
 /// the capture layer decides which client serves which event.
 ///
-/// Two lists, each a copy of one Apple source that can be checked against it:
-/// - ``categories``: the categories Apple's documentation files the events under. An event's category decides its
-///   client (``AppleEventCategory/eventClass``).
-/// - ``userspaceEvents``: the events `ESMessage.h` says userspace binaries and frameworks create. Every other event is
-///   created by the kernel (``EventOrigin``).
-///
-/// The two agree: every userspace event is a File Provider or an uncategorized event, and every uncategorized event but
-/// `xpc_connect` is a userspace one. So the process client takes the process and interprocess syscalls plus every
-/// userspace security event, while the file and memory clients take the kernel's high-volume file and memory syscalls.
+/// ``categories`` copies the categories Apple's documentation files the events under, so it can be checked against
+/// the documentation. An event's category decides its client (``AppleEventCategory/eventClass``): the process client
+/// takes the process and interprocess syscalls plus every userspace security event, which Apple leaves uncategorized,
+/// while the file and memory clients take the kernel's high-volume file and memory syscalls.
 ///
 /// An event the table doesn't list (one a newer SDK adds, such as macOS 27's `bootstrap_check_in`) is
 /// ``AppleEventCategory/uncategorized``, so it goes to the process client, as Apple's newer security events do.
@@ -89,35 +84,11 @@ public enum EventClassTable {
         ])
     ]
     
-    /// The NOTIFY events `ESMessage.h` says userspace binaries and frameworks create, in the header's order.
-    static let userspaceEvents: [es_event_type_t] = [
-        ES_EVENT_TYPE_NOTIFY_FILE_PROVIDER_MATERIALIZE, ES_EVENT_TYPE_NOTIFY_FILE_PROVIDER_UPDATE,
-        ES_EVENT_TYPE_NOTIFY_AUTHENTICATION, ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED,
-        ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED, ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN,
-        ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGOUT, ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOCK,
-        ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK, ES_EVENT_TYPE_NOTIFY_SCREENSHARING_ATTACH,
-        ES_EVENT_TYPE_NOTIFY_SCREENSHARING_DETACH, ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGIN,
-        ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGOUT, ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN, ES_EVENT_TYPE_NOTIFY_LOGIN_LOGOUT,
-        ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD, ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_REMOVE,
-        ES_EVENT_TYPE_NOTIFY_PROFILE_ADD, ES_EVENT_TYPE_NOTIFY_PROFILE_REMOVE, ES_EVENT_TYPE_NOTIFY_SU,
-        ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_PETITION, ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_JUDGEMENT,
-        ES_EVENT_TYPE_NOTIFY_SUDO, ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD, ES_EVENT_TYPE_NOTIFY_OD_GROUP_REMOVE,
-        ES_EVENT_TYPE_NOTIFY_OD_GROUP_SET, ES_EVENT_TYPE_NOTIFY_OD_MODIFY_PASSWORD,
-        ES_EVENT_TYPE_NOTIFY_OD_DISABLE_USER, ES_EVENT_TYPE_NOTIFY_OD_ENABLE_USER,
-        ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_VALUE_ADD, ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_VALUE_REMOVE,
-        ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_SET, ES_EVENT_TYPE_NOTIFY_OD_CREATE_USER,
-        ES_EVENT_TYPE_NOTIFY_OD_CREATE_GROUP, ES_EVENT_TYPE_NOTIFY_OD_DELETE_USER, ES_EVENT_TYPE_NOTIFY_OD_DELETE_GROUP,
-        ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE, ES_EVENT_TYPE_NOTIFY_TCC_MODIFY
-    ]
-    
     /// Each listed event's category, by `es_event_type_t` raw value. An event listed twice keeps its first category
     /// (`EventClassTableTests` fails on a duplicate rather than this trapping at launch).
     private static let categoryByEvent: [UInt32: AppleEventCategory] = Dictionary(
         categories.flatMap { entry in entry.events.map { ($0.rawValue, entry.category) } },
         uniquingKeysWith: { first, _ in first })
-    
-    /// ``userspaceEvents`` by raw value.
-    private static let userspaceRawValues: Set<UInt32> = Set(userspaceEvents.map(\.rawValue))
     
     /// The category Apple files an event under.
     ///
@@ -127,29 +98,12 @@ public enum EventClassTable {
         categoryByEvent[event.rawValue] ?? .uncategorized
     }
     
-    /// Who creates an event.
-    ///
-    /// - Parameter event: An event type.
-    /// - Returns: ``EventOrigin/userspace`` if `ESMessage.h` lists it as created by userspace, else
-    ///   ``EventOrigin/kernel``.
-    public static func origin(of event: es_event_type_t) -> EventOrigin {
-        userspaceRawValues.contains(event.rawValue) ? .userspace : .kernel
-    }
-    
     /// The client that serves an event.
     ///
     /// - Parameter event: An event type.
     /// - Returns: The class of the event's category.
     public static func eventClass(of event: es_event_type_t) -> EventClass {
         category(of: event).eventClass
-    }
-    
-    /// Does the table list an event, rather than class it by the fallback?
-    ///
-    /// - Parameter event: An event type.
-    /// - Returns: `true` if one of ``categories`` lists it.
-    static func lists(_ event: es_event_type_t) -> Bool {
-        categoryByEvent[event.rawValue] != nil
     }
     
     /// Each class's share of a subscription list.

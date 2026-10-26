@@ -26,7 +26,6 @@ final class SequenceGapCounterTests: XCTestCase {
     /// A contiguous stream has no drops, whatever it starts at.
     func testContiguousNumbersHaveNoDrops() {
         let counter = counted(Array(1_000...1_999))
-        XCTAssertEqual(counter.observed, 1_000)
         XCTAssertEqual(counter.dropped, 0)
         XCTAssertEqual(counter.gaps, 0)
         XCTAssertEqual(counter.regressions, 0)
@@ -38,7 +37,6 @@ final class SequenceGapCounterTests: XCTestCase {
         let counter = counted([0, 1, 2, 5, 6, 10, 11])
         XCTAssertEqual(counter.dropped, 2 + 3)
         XCTAssertEqual(counter.gaps, 2)
-        XCTAssertEqual(counter.observed, 7)
     }
     
     /// A repeat or a step back is a regression, not a drop, and counting carries on from it.
@@ -59,7 +57,6 @@ final class SequenceGapCounterTests: XCTestCase {
         }
         XCTAssertEqual(tracker.global.dropped, 1)
         XCTAssertEqual(tracker.droppedByType(), [open: 1])
-        XCTAssertEqual(tracker.observed(eventType: exec), 3)
         XCTAssertEqual(tracker.droppedByType().byEventTypeName(), ["ES_EVENT_TYPE_NOTIFY_OPEN": 1])
     }
     
@@ -86,14 +83,10 @@ final class SequenceGapCounterTests: XCTestCase {
     func testMessageVersionsGateTheNumbers() {
         let exit = Int(ES_EVENT_TYPE_NOTIFY_EXIT.rawValue)
         var tracker = ClientSequenceTracker()
-        tracker.observe(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, seq: 1, global: 1, version: 1).raw)
-        XCTAssertEqual(tracker.global.observed, 0)
-        XCTAssertEqual(tracker.observed(eventType: exit), 0)
+        tracker.observe(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, seq: 0, global: 1, version: 1).raw)
         tracker.observe(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, seq: 2, global: 2, version: 3).raw)
-        XCTAssertEqual(tracker.global.observed, 0)
-        XCTAssertEqual(tracker.observed(eventType: exit), 1)
         tracker.observe(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, seq: 5, global: 9, version: 4).raw)
-        XCTAssertEqual(tracker.global.observed, 1)
+        XCTAssertEqual(tracker.global.dropped, 0)
         XCTAssertEqual(tracker.droppedByType(), [exit: 2])
     }
 }

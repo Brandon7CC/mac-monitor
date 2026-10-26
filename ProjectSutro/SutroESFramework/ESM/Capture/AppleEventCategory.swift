@@ -56,14 +56,3 @@ public enum AppleEventCategory: String, CaseIterable, Sendable {
         }
     }
 }
-
-
-// MARK: - Event origin
-/// Who creates an event, as `ESMessage.h` sorts them ("A note on userspace events").
-public enum EventOrigin: String, Sendable {
-    /// The kernel. Such events are mandatory: if no event was emitted, the operation didn't happen.
-    case kernel
-    /// A platform binary or framework. Such events are discretionary: Endpoint Security only promises them for the
-    /// binary that ships with macOS, so a user's own `su` emits `setuid` but no `su` event.
-    case userspace
-}

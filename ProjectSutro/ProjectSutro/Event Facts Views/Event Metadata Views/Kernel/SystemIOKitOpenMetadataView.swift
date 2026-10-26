@@ -11,14 +11,9 @@ import SutroESFramework
 struct SystemIOKitOpenMetadataView: View {
     var esSystemEvent: ESMessage
     @State private var showAuditTokens: Bool = false
-    @State private var showTargetAuditTokens: Bool = false
     
     private var event: ESIOKitOpenEvent {
         esSystemEvent.event.iokit_open!
-    }
-    
-    private var eventType: String {
-        esSystemEvent.es_event_type ?? ""
     }
     
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.

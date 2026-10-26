@@ -10,10 +10,10 @@ import Foundation
 import CoreData
 
 @objc(ESProcessTraceEvent)
-public class ESProcessTraceEvent: NSManagedObject {
-    
+public class ESProcessTraceEvent: NSManagedObject, Identifiable {
+    @NSManaged public var target: ESProcess
+
     enum CodingKeys: CodingKey {
-        case id
         case target
     }
     
@@ -22,7 +22,6 @@ public class ESProcessTraceEvent: NSManagedObject {
         let traceEvent: ProcessTraceEvent = message.event.trace!
         let description = NSEntityDescription.entity(forEntityName: "ESProcessTraceEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = traceEvent.id
 
         self.target = ESProcess(from: traceEvent.target, version: message.version, insertIntoManagedObjectContext: context)
     }

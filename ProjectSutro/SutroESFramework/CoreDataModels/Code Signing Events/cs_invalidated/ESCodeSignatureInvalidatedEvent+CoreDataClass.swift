@@ -10,18 +10,13 @@ import Foundation
 import CoreData
 
 @objc(ESCodeSignatureInvalidatedEvent)
-public class ESCodeSignatureInvalidatedEvent: NSManagedObject {
-    enum CodingKeys: CodingKey {
-        case id
-    }
+public class ESCodeSignatureInvalidatedEvent: NSManagedObject, Identifiable {
+    enum CodingKeys: CodingKey {}
     
     // MARK: - Custom Core Data initilizer for ESCodeSignatureInvalidatedEvent
     convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let csInvalidated: CodeSignatureInvalidatedEvent = message.event.cs_invalidated!
         let description = NSEntityDescription.entity(forEntityName: "ESCodeSignatureInvalidatedEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        
-        self.id = csInvalidated.id
     }
 }
 

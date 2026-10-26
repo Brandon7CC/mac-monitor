@@ -11,31 +11,36 @@ import CoreData
 import OSLog
 
 @objc(ESProcessExecEvent)
-public class ESProcessExecEvent: NSManagedObject {
+public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParentColumns {
+    @NSManaged public var argsData: Data?
+    @NSManaged public var envData: Data?
+    @NSManaged public var command_line: String?
+    @NSManaged public var certificateChainData: Data?
+    /// The new process image. The row may be shared with the events that process goes on to cause.
+    @NSManaged public var target: ESProcess
+    /// The `id` ``target`` had in this event (and exports). A shared row keeps the `id` of the first event that
+    /// stored it.
+    @NSManaged public var target_id: UUID?
+    @NSManaged public var dyld_exec_path: String?
+    /// Milliseconds from the executable's birth to the exec (``ProcessExecEvent/executable_age_ms``), or `nil`.
+    @NSManaged public var executable_age_ms: NSNumber?
+    @NSManaged public var script: ESFile?
+    @NSManaged public var cwd: ESFile?
+    @NSManaged public var last_fd: Int64
+    @NSManaged public var fdsData: Data?
+    @NSManaged public var image_cputype: Int64
+    @NSManaged public var image_cpusubtype: Int64
+    @NSManaged public var script_content: String?
+    @NSManaged public var resolved_script_path: String?
+    /// ``launched_by_parent``, in plain columns (``LaunchedByParentColumns``).
+    @NSManaged public var launched_by_parent_source, launched_by_parent_resolved_by: String?
+    @NSManaged public var launched_by_parent_path, launched_by_parent_job: String?
+    @NSManaged public var launched_by_parent_pid: NSNumber?
+    @NSManaged public var launched_by_parent_token: Data?
+
     enum CodingKeys: String, CodingKey {
-        case id
-        case pid
-        case target_proc_audit_token_string
-        case target_proc_parent_audit_token_string
-        case target_proc_responsible_audit_token_string
         case command_line
-        case is_adhoc_signed
-        case is_es_client
-        case is_platform_binary
-        case process_name
-        case process_path
-        case signing_id
-        case team_id
-        case start_time
-        case cdhash
         case certificate_chain
-        case ruid
-        case euid
-        case ruid_human
-        case euid_human
-        case file_quarantine_type
-        case cs_type
-        case group_id
         case target
         case dyld_exec_path
         case script
@@ -116,7 +121,6 @@ public class ESProcessExecEvent: NSManagedObject {
         let execEvent: ProcessExecEvent = message.event.exec!
         let description = NSEntityDescription.entity(forEntityName: "ESProcessExecEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = execEvent.id
         
         // MARK: - Conform to ESLogger
         self.dyld_exec_path = execEvent.dyld_exec_path // macOS 13.3+

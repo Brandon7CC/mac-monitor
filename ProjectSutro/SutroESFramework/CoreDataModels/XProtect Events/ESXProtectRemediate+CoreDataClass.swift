@@ -10,9 +10,17 @@ import Foundation
 import CoreData
 
 @objc(ESXProtectRemediate)
-public class ESXProtectRemediate: NSManagedObject {
+public class ESXProtectRemediate: NSManagedObject, Identifiable {
+    @NSManaged public var signature_version: String
+    @NSManaged public var malware_identifier: String
+    @NSManaged public var incident_identifier: String
+    @NSManaged public var action_type: String
+    @NSManaged public var success: Bool
+    @NSManaged public var result_description: String
+    @NSManaged public var remediated_path: String?
+    @NSManaged public var remediated_process_audit_token: ESAuditToken?
+
     enum CodingKeys: CodingKey {
-        case id
         case signature_version
         case malware_identifier
         case incident_identifier
@@ -28,7 +36,6 @@ public class ESXProtectRemediate: NSManagedObject {
         let xprotectRemediateItem: XProtecRemediateEvent = message.event.xp_malware_remediated!
         let description = NSEntityDescription.entity(forEntityName: "ESXProtectRemediate", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = xprotectRemediateItem.id
         
         self.signature_version = xprotectRemediateItem.signature_version
         self.malware_identifier = xprotectRemediateItem.malware_identifier
@@ -47,7 +54,6 @@ public class ESXProtectRemediate: NSManagedObject {
 extension ESXProtectRemediate: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-//        try container.encode(id, forKey: .id)
         try container.encode(signature_version, forKey: .signature_version)
         try container.encode(malware_identifier, forKey: .malware_identifier)
         try container.encode(incident_identifier, forKey: .incident_identifier)

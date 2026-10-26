@@ -151,14 +151,6 @@ public final class CaptureSession {
         return true
     }
     
-    /// Every muted path, over all the clients. Their mutes are the same unless a client refused one.
-    ///
-    /// - Returns: JSON serializations of ``ESMutedPath``. Empty after ``stop()``.
-    public func mutedPaths() -> Set<String> {
-        guard !isStopped else { return [] }
-        return Set(lanes.flatMap { $0.client?.mutedPaths() ?? [] }.map { pathToJSON(value: $0) })
-    }
-    
     /// Stop capturing and delete every client. Calling it again does nothing.
     ///
     /// 1. `es_unsubscribe_all` on each client: Endpoint Security stops generating messages for it.

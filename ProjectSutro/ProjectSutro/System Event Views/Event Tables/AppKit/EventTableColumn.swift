@@ -78,8 +78,8 @@ extension EventTableColumn {
         return columns
     }
     
-    /// The "Process Execution" table's columns. The timestamp starts hidden on macOS 14, like
-    /// `CustomizableSystemProcessExecTableView`.
+    /// The "Process Execution" table's columns. The timestamp starts hidden on macOS 14 and later, as it did in the
+    /// SwiftUI table of v2.1 and earlier.
     static var exec: [EventTableColumn] {
         [
             EventTableColumn(title: "Timestamp", width: (100, 100, 100), sortKey: "message_darwin_time", sortsAsText: false,

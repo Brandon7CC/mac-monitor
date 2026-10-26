@@ -126,16 +126,6 @@ final class CaptureSessionControlTests: XCTestCase {
         }
     }
     
-    /// The muted paths are the union of what the clients list.
-    func testMutedPathsAreTheUnionOfTheClients() throws {
-        let shared = ESMutedPath(type: "ES_MUTE_PATH_TYPE_PREFIX", events: [], path: "/shared")
-        let fileOnly = ESMutedPath(type: "ES_MUTE_PATH_TYPE_LITERAL", events: ["ES_EVENT_TYPE_NOTIFY_OPEN"],
-                                   path: "/file")
-        factory = FakeEndpointSecurityClientFactory(mutedPaths: [0: [shared], 1: [shared, fileOnly], 2: [shared]])
-        let session = try makeSession(factory: factory)
-        XCTAssertEqual(session.mutedPaths(), Set([shared, fileOnly].map { pathToJSON(value: $0) }))
-    }
-    
     /// Events are serialized only while recording, each tagged with its lane's class and stamped with the current
     /// Sensor ID.
     func testRecordingGateAndSensorID() throws {

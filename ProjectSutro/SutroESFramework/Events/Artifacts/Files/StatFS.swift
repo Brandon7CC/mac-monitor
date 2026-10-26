@@ -7,9 +7,7 @@
 
 import Foundation
 
-public struct StatFS: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID.buffered()
-    
+public struct StatFS: Codable, Equatable, Hashable {
     // fundamental file system block size
     public var f_bsize: UInt32
     // optimal transfer block size
@@ -46,11 +44,6 @@ public struct StatFS: Identifiable, Codable, Equatable, Hashable {
     public var f_mntonname: String
     // mounted filesystem
     public var f_mntfromname: String
-    
-    // Ignore id from being decoded
-    enum CodingKeys: String, CodingKey {
-        case f_bsize, f_iosize, f_blocks, f_bfree, f_bavail, f_files, f_ffree, f_fsid, f_owner, f_type, f_flags, f_fssubtype, f_flags_ext, f_fstypename, f_mntonname, f_mntfromname
-    }
     
     public init(from s: Darwin.statfs) {
         self.f_bsize = s.f_bsize

@@ -9,9 +9,26 @@ import Foundation
 import CoreData
 
 
-/// The fields every stored Open Directory event has (an abstract entity: each event type is a sub-entity).
+/// The fields every stored Open Directory event has (see ``OpenDirectoryEvent``). An abstract entity: each event type
+/// is a sub-entity.
+///
+/// `instigator` and `instigator_token` have to-many inverses, `ESProcess.od_instigated` and
+/// `ESAuditToken.od_instigated`, which nothing reads.
 @objc(ESODEvent)
 public class ESODEvent: NSManagedObject {
+    @NSManaged public var instigator: ESProcess?
+    @NSManaged public var instigator_token: ESAuditToken?
+    @NSManaged public var error_code: Int32
+    @NSManaged public var node_name: String?
+    @NSManaged public var db_path: String?
+    
+    /// Mac Monitor enrichment
+    @NSManaged public var error_code_human: String?
+    @NSManaged public var instigator_process_name: String?
+    @NSManaged public var instigator_process_path: String?
+    @NSManaged public var instigator_process_signing_id: String?
+    @NSManaged public var instigator_process_audit_token: String?
+
     /// Store the fields every Open Directory event has.
     ///
     /// The instigator and its audit token get rows of their own rather than rows shared through ``EventRowCaches``:
@@ -23,7 +40,6 @@ public class ESODEvent: NSManagedObject {
     ///   - version: The message's version.
     ///   - context: The context this object is in.
     func store(_ event: some OpenDirectoryEvent, version: Int, in context: NSManagedObjectContext) {
-        id = event.id
         if let process = event.instigator {
             instigator = ESProcess(from: process, version: version, insertIntoManagedObjectContext: context)
         }

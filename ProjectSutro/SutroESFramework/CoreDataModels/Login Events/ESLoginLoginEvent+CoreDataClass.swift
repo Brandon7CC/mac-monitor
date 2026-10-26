@@ -10,9 +10,15 @@ import Foundation
 import CoreData
 
 @objc(ESLoginLoginEvent)
-public class ESLoginLoginEvent: NSManagedObject {
+public class ESLoginLoginEvent: NSManagedObject, Identifiable {
+    @NSManaged public var success: Bool
+    @NSManaged public var failure_message: String?
+    @NSManaged public var username: String?
+    @NSManaged public var uid: NSNumber?
+    @NSManaged public var uid_human: String?
+    @NSManaged public var has_uid: Bool
+
     enum CodingKeys: CodingKey {
-        case id
         case success
         case failure_message
         case username
@@ -27,7 +33,6 @@ public class ESLoginLoginEvent: NSManagedObject {
         let description = NSEntityDescription.entity(forEntityName: "ESLoginLoginEvent", in: context)!
         self.init(entity: description, insertInto: context)
         
-        self.id = event.id
         self.success = event.succcess
         self.failure_message = event.failure_message
         self.username = event.username

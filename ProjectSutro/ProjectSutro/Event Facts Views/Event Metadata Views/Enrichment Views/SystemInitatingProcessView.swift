@@ -14,12 +14,6 @@ struct SystemInitiatingProcessView: View {
     var selectedMessage: ESMessage
     @State private var showAuditTokens: Bool = false
     
-    private var eventTimeStamp: String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'"
-        return dateFormatter.string(from: selectedMessage.message_darwin_time!)
-    }
-    
     var body: some View {
         List {
             VStack(alignment: .leading) {
@@ -86,7 +80,7 @@ struct SystemInitiatingProcessView: View {
                 }
                 
                 // MARK: Launched by parent
-                LaunchedByParentBox(message: selectedMessage)
+                LaunchedByParentFacts(message: selectedMessage)
                 
                 Label("**Code signing details**", systemImage: "signature")
                     .font(.title2)

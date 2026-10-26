@@ -63,9 +63,6 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// The Security Extension's event subscriptions, as `ES_EVENT_TYPE_*` names (see ``requestEventSubscriptions()``).
     @Published public var monitoredEventStrings: Set<String> = []
     
-    /// When Project Sutro connects let's grab the current time so we can filter long running processes
-    @Published public var clientConnectDT: Date = Date()
-    
     // MARK: Muting Enging properties
     /// The saved mute set, as the Security Extension last sent it (see ``requestMutes(_:from:completion:)``).
     @Published public var savedMutes: [ESMutedPath] = []
@@ -81,7 +78,6 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     @Published public var appleMuteSet = Set<String>()
     
     // MARK: Install properties
-    @Published public var seIsInstalled: Bool = false
     /// The Security Extension, as macOS and the last activation request report it (see ``requirements``).
     @Published public var extensionState: SetupRequirements.ExtensionState = .checking
     @Published public var connectionResult: NewClientResult = .waiting
@@ -189,15 +185,11 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// - Parameter message: A decoded event.
     /// - Returns: `true` unless platform binaries are being dropped and this event is a non-critical one from a platform binary.
     private func shouldInsert(_ message: Message) -> Bool {
-        guard self.dropPlatformBinaries else { return true }
-
-        if !message.process.is_platform_binary || isEventCritical(message: message) {
-            return true
-        } else if let exec = message.event.exec, !exec.target.is_platform_binary {
-            return true
-        } else if let fork = message.event.fork, !fork.child.is_platform_binary {
+        guard dropPlatformBinaries, message.process.is_platform_binary, !isEventCritical(message: message) else {
             return true
         }
+        if let exec = message.event.exec { return !exec.target.is_platform_binary }
+        if let fork = message.event.fork { return !fork.child.is_platform_binary }
         return false
     }
     
@@ -261,7 +253,6 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
 /// **Functionality Covers:**
 ///  - Starting a system trace
 ///  - Stoping a system trace
-///  - Cleaning up when Mac Monitor stops monitoring
 ///
 extension EndpointSecurityManager {
     /// Start recording system events.
@@ -293,12 +284,6 @@ extension EndpointSecurityManager {
             self.flushEvents()
         }
     }
-    
-    /// Clear the local ``isRecording`` flag. It's ``stopRecordingEvents()`` that tells the Security Extension to stop,
-    /// and the Security Extension stops capture when Mac Monitor's connection goes away.
-    public func cleanup() {
-        self.isRecording = false
-    }
 }
 
 
@@ -314,19 +299,17 @@ extension EndpointSecurityManager {
     ///   console (e.g. `loginwindow`) only the serial number is hashed.
     static func makeSensorID() -> String {
         let platformExpert = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"))
-        guard platformExpert > 0 else {
-            os_log("Error platformExpert")
-            return "SENSOR-ID-ERROR-" + Date().description
-        }
         defer { IOObjectRelease(platformExpert) }
-        
         /// `IORegistryEntryCreateCFProperty` follows the Create rule, so we take ownership of the returned value.
-        guard let serialNumber = (IORegistryEntryCreateCFProperty(platformExpert, kIOPlatformSerialNumberKey as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? String)?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) else {
-            os_log("Error serialNumber")
+        guard platformExpert > 0, let serialNumber = (IORegistryEntryCreateCFProperty(
+            platformExpert, kIOPlatformSerialNumberKey as CFString, kCFAllocatorDefault, 0
+        )?.takeRetainedValue() as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+            os_log("Error reading the platform serial number")
             return "SENSOR-ID-ERROR-" + Date().description
         }
         
-        let consoleUser: String = FileManager.default.consoleUserHome?.lastPathComponent ?? ""
+        let name = ConsoleUserSource.system.session()?.name ?? ""
+        let consoleUser = name == "loginwindow" ? "" : name
         let hashData = Data((serialNumber + consoleUser).utf8)
         return "\(SHA512.hash(data: hashData).description.trimmingPrefix("SHA512 digest: "))"
     }

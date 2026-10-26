@@ -10,9 +10,22 @@ public import CoreData
 
 
 @objc(ESGatekeeperUserOverrideEvent)
-public class ESGatekeeperUserOverrideEvent: NSManagedObject {
+public class ESGatekeeperUserOverrideEvent: NSManagedObject, Identifiable {
+    @NSManaged public var file_type: Int32
+    @NSManaged public var file_type_string: String
+    
+    /// For some reason ESLogger as of macOS 26 does not emit this object...
+    @NSManaged public var signing_info: ESSignedFileInfo?
+    
+    /// ESLogger for some reason reports when this is null as a string...
+    /// Making non-optional to support this behavior.
+    @NSManaged public var sha256: String
+    
+    /// The `file` union's arm that `file_type` names: the file, or its path. eslogger writes either under `file`.
+    @NSManaged public var file: ESFile?
+    @NSManaged public var file_path: String?
+
     enum CodingKeys: CodingKey {
-        case id
         case file_type
         case file_type_string
         case file
@@ -30,7 +43,6 @@ public class ESGatekeeperUserOverrideEvent: NSManagedObject {
         let override: GatekeeperUserOverrideEvent = message.event.gatekeeper_user_override!
         let description = NSEntityDescription.entity(forEntityName: "ESGatekeeperUserOverrideEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = UUID()
         
         file_type = override.file_type
         file_type_string = override.file_type_string
@@ -70,7 +82,6 @@ extension ESGatekeeperUserOverrideEvent: Encodable {
     /// - Throws: The encoder's error.
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        //        try container.encode(id, forKey: .id)
         try container.encode(file_type, forKey: .file_type)
         try container.encode(file_type_string, forKey: .file_type_string)
         switch UInt32(truncatingIfNeeded: file_type) {

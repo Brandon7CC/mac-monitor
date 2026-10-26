@@ -12,7 +12,7 @@ import CoreData
 
 /// A stored `od_group_remove` event.
 @objc(ESODGroupRemoveEvent)
-public class ESODGroupRemoveEvent: ESODGroupMemberEvent {
+public class ESODGroupRemoveEvent: ESODGroupMemberEvent, Identifiable {
     /// Store an event.
     ///
     /// - Parameters:

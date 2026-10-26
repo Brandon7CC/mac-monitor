@@ -55,14 +55,6 @@ enum SerializedEvent {
 /// Called on a lane's handler queue: serially within a lane, and concurrently across the lanes of a session (and
 /// across sessions), so it must keep no shared mutable state of its own.
 protocol EventSerializing {
-    /// Serialize one message.
-    ///
-    /// - Parameters:
-    ///   - message: The message. Only valid during the call.
-    ///   - lane: The lane's context.
-    /// - Returns: The event's JSON, or `nil` if it couldn't be encoded.
-    func serialize(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> Data?
-    
     /// Serialize one message, or hand back an exec for the lane to hold.
     ///
     /// - Parameters:
@@ -70,12 +62,6 @@ protocol EventSerializing {
     ///   - lane: The lane's context.
     /// - Returns: The event, or `nil` if it couldn't be encoded.
     func serializeEvent(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> SerializedEvent?
-}
-
-extension EventSerializing {
-    func serializeEvent(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> SerializedEvent? {
-        serialize(message, in: lane).map(SerializedEvent.json)
-    }
 }
 
 
@@ -107,16 +93,6 @@ struct MessageSerializer: EventSerializing {
         self.macOSVersion = macOSVersion
         self.sipStatus = sipStatus
         self.processPath = processPath
-    }
-    
-    /// Build and encode the message.
-    ///
-    /// - Parameters:
-    ///   - message: The message. Only valid during the call.
-    ///   - lane: The lane's context.
-    /// - Returns: The JSON, or `nil` if the event couldn't be encoded.
-    func serialize(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> Data? {
-        try? lane.encoder.encode(build(message, in: lane))
     }
     
     /// Build and encode the message, unless it's an app exec to hold.

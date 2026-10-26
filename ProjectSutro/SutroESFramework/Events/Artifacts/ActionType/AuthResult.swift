@@ -8,18 +8,10 @@
 import Foundation
 
 /// Models an `es_auth_result_t`
-public struct AuthResult: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID.buffered()
-    
+public struct AuthResult: Codable, Equatable, Hashable {
     public var auth: Int?
     public var auth_human: String?
     public var flags: Int64?
-    
-    // Ignore id from being decoded
-    enum CodingKeys: String, CodingKey {
-        case auth, auth_human
-        case flags
-    }
     
     // When the action result type is `AUTH`
     init(from authResult: es_auth_result_t) {

@@ -93,11 +93,6 @@ final class LiveEndpointSecurityClient: EndpointSecurityClient {
         return es_sync_client(client, completion) == ES_RETURN_SUCCESS
     }
     
-    /// Does this macOS have `es_sync_client`?
-    static var supportsSync: Bool {
-        if #available(macOS 27, *) { true } else { false }
-    }
-    
     /// `es_muted_paths_events`.
     ///
     /// - Returns: Every muted path, or none if Endpoint Security doesn't list them.

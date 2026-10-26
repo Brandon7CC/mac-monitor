@@ -10,9 +10,12 @@ import Foundation
 import CoreData
 
 @objc(ESXattrSetEvent)
-public class ESXattrSetEvent: NSManagedObject {
+public class ESXattrSetEvent: NSManagedObject, Identifiable {
+    @NSManaged public var target: ESFile
+    @NSManaged public var extattr: String
+
     enum CodingKeys: CodingKey {
-        case id, target, extattr
+        case target, extattr
     }
     
     
@@ -21,7 +24,6 @@ public class ESXattrSetEvent: NSManagedObject {
         let event: XattrSetEvent = message.event.setextattr!
         let description = NSEntityDescription.entity(forEntityName: "ESXattrSetEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = event.id
         
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESXattrSetEvent.target))
         extattr = event.extattr

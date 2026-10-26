@@ -40,16 +40,6 @@ public final class StreamPipeline {
         /// Export records, one per line or pretty-printed, from one or more encoders.
         case jsonl([ExportEncoder])
         
-        /// Export records from as many encoders as pay off on this Mac.
-        ///
-        /// - Parameters:
-        ///   - model: The event model, such as ``ExportEncoder/model``.
-        ///   - pretty: Pretty-print each record.
-        /// - Returns: The formatter.
-        public static func jsonl(model: NSManagedObjectModel, pretty: Bool = false) -> Formatter {
-            .jsonl(encoders(model: model, pretty: pretty))
-        }
-        
         /// As many encoders as pay off on this Mac: half its active cores, from 1 to 4.
         ///
         /// - Parameters:

@@ -10,9 +10,18 @@ import Foundation
 import CoreData
 
 @objc(ESAuditToken)
-public class ESAuditToken: NSManagedObject {
+public class ESAuditToken: NSManagedObject, Identifiable {
+    @NSManaged public var pid: Int32
+    @NSManaged public var ruid: Int64
+    @NSManaged public var euid: Int64
+    @NSManaged public var rgid: Int64
+    @NSManaged public var egid: Int64
+    @NSManaged public var asid: Int32
+    @NSManaged public var auid: Int64
+    @NSManaged public var pidversion: Int32
+
     enum CodingKeys: CodingKey {
-        case id, pid, euid, ruid, rgid, egid, asid, auid, pidversion
+        case pid, euid, ruid, rgid, egid, asid, auid, pidversion
     }
     
     // MARK: - Custom Core Data initilizer for ESAuditToken
@@ -22,7 +31,6 @@ public class ESAuditToken: NSManagedObject {
     ) {
         let description = NSEntityDescription.entity(forEntityName: "ESAuditToken", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = token.id
         
         self.pid = token.pid
         self.euid = token.euid
@@ -35,7 +43,7 @@ public class ESAuditToken: NSManagedObject {
     }
     
     /// The row for `token`: shared with every other use of the same token when `context` has ``EventRowCaches``, or a
-    /// new row otherwise. Tokens don't export their `id`, so sharing them doesn't show.
+    /// new row otherwise. Tokens have no `id`, so sharing them doesn't show.
     ///
     /// - Parameters:
     ///   - token: The audit token.
@@ -50,7 +58,6 @@ public class ESAuditToken: NSManagedObject {
 extension ESAuditToken: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-//        try container.encode(id, forKey: .id)
         try container.encode(pid, forKey: .pid)
         try container.encode(euid, forKey: .euid)
         try container.encode(ruid, forKey: .ruid)

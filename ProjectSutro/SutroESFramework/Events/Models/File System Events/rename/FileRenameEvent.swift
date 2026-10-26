@@ -30,8 +30,7 @@ public struct FileRenameEvent: Identifiable, Codable, Hashable {
         return lhs.id == rhs.id
     }
     
-    // @note files_not_quarantined should be a list of sub paths
-    init(from rawMessage: UnsafePointer<es_message_t>, files_not_quarantined: [String] = []) {
+    init(from rawMessage: UnsafePointer<es_message_t>) {
         let fileRenameEvent: es_event_rename_t = rawMessage.pointee.event.rename
         
         self.source = File(from: fileRenameEvent.source.pointee)

@@ -58,11 +58,6 @@ public struct StreamPlan: Equatable {
         self.appliesSavedMutes = appliesSavedMutes
     }
     
-    /// The events' `ES_EVENT_TYPE_NOTIFY_*` names, in order.
-    public var eventNames: [String] {
-        events.map { eventTypeToString(from: $0) }
-    }
-    
     /// Every event a stream may subscribe to, by its `ES_EVENT_TYPE_NOTIFY_*` name: the NOTIFY events Mac Monitor
     /// models on this Mac.
     ///

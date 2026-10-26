@@ -7,8 +7,8 @@
 
 import SwiftUI
 import SutroESFramework
-import OSLog
 
+/// Offers an available update: its version, release date and notes, with Later and Install Now.
 struct UpdateAvailableSheet: View {
     let updateDetails: UpdateDetails
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
@@ -17,39 +17,23 @@ struct UpdateAvailableSheet: View {
     // MARK: - State for UI Feedback
     /// Controls the installation progress view.
     @State private var isInstalling: Bool = false
-    /// Holds the error message if the update fails.
-    @State private var errorMessage: String?
-    /// Controls the presentation of the error alert.
-    @State private var showUpdateErrorAlert: Bool = false
-
-    var markdownText: LocalizedStringKey {
-        LocalizedStringKey(stringLiteral: updateDetails.releaseNotes)
-    }
-
-    var currentAppVersion: String? {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-    }
-
-    var updateTagURL: String {
-        "https://github.com/Brandon7CC/mac-monitor/releases/tag/\(updateDetails.version)"
-    }
+    /// Did the update fail to install? Shows the error alert.
+    @State private var failed = false
 
     var body: some View {
         VStack(alignment: .leading) {
             // MARK: - Conditional Progress View
             if isInstalling {
                 // Show a progress view and a message during installation.
-                HStack {
-                    VStack {
-                        ProgressView()
-                        
-                        Text("Installing \(updateDetails.version) update, please wait...")
-                            .font(.title2)
-                        
-                        Text("Mac Monitor will reboot when the update is completed")
-                    }
-                    .multilineTextAlignment(.center)
+                VStack {
+                    ProgressView()
+                    
+                    Text("Installing \(updateDetails.version) update, please wait...")
+                        .font(.title2)
+                    
+                    Text("Mac Monitor will reboot when the update is completed")
                 }
+                .multilineTextAlignment(.center)
             } else {
                 HStack {
                     Image(systemName: "square.and.arrow.down.badge.checkmark")
@@ -62,10 +46,9 @@ struct UpdateAvailableSheet: View {
                 }
                 .padding(.bottom)
 
-                if let currentAppVersion = currentAppVersion,
-                   let url = URL(string: updateTagURL) {
+                if let url = URL(string: ReleaseNotes.releasesPage.absoluteString + "/tag/\(updateDetails.version)") {
                     HStack {
-                        Text("v\(currentAppVersion) →")
+                        Text("v\(ReleaseNotes.version) →")
                         Link(updateDetails.version, destination: url)
                     }
                     .font(.title3)
@@ -80,7 +63,7 @@ struct UpdateAvailableSheet: View {
                     .padding(.top)
 
                 ScrollView {
-                    Text(markdownText)
+                    Text(LocalizedStringKey(stringLiteral: updateDetails.releaseNotes))
                         .font(.body)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(10)
@@ -101,38 +84,27 @@ struct UpdateAvailableSheet: View {
                             .frame(maxWidth: .infinity)
                     }
                     .keyboardShortcut(.cancelAction)
-                    .disabled(isInstalling)
 
                     Button(action: {
                         isInstalling = true
-                        
-                        Task {
-                            let success = await withCheckedContinuation { continuation in
-                                systemExtensionManager.installUpdate { success in
-                                    continuation.resume(returning: success)
-                                }
+                        /// Called on the main thread.
+                        systemExtensionManager.installUpdate { success in
+                            guard success else {
+                                isInstalling = false
+                                failed = true
+                                return
                             }
+                            // 1. Schedule the relaunch for when this process exits.
+                            systemExtensionManager.requestAgentRelaunch()
 
-                            await MainActor.run {
-                                if success {
-                                    // 1. Schedule the relaunch for when this process exits.
-                                    systemExtensionManager.requestAgentRelaunch()
+                            // 2. Dismiss the sheet to clean up the view hierarchy.
+                            dismiss()
 
-                                    // 2. Dismiss the sheet to clean up the view hierarchy.
-                                    dismiss()
-
-                                    // 3. Terminate the app after a brief delay. Skip the "warn before quitting" prompt:
-                                    //    the relaunch only waits 10 seconds for this process to exit.
-                                    UserDefaults.standard.set(true, forKey: "lifecycleQuitInternal")
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                        NSApplication.shared.terminate(nil)
-                                    }
-                                } else {
-                                    // Handle installation failure
-                                    isInstalling = false
-                                    errorMessage = "The update failed to install. Please check your network connection or try again later."
-                                    showUpdateErrorAlert = true
-                                }
+                            // 3. Terminate the app after a brief delay. Skip the "warn before quitting" prompt:
+                            //    the relaunch only waits 10 seconds for this process to exit.
+                            UserDefaults.standard.set(true, forKey: "lifecycleQuitInternal")
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                NSApplication.shared.terminate(nil)
                             }
                         }
                     }) {
@@ -141,7 +113,6 @@ struct UpdateAvailableSheet: View {
                             .frame(maxWidth: .infinity)
                     }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(isInstalling)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top)
@@ -149,10 +120,10 @@ struct UpdateAvailableSheet: View {
         }
         .padding(30)
         .frame(width: 500)
-        .alert("Update Failed", isPresented: $showUpdateErrorAlert, presenting: errorMessage) { _ in
+        .alert("Update Failed", isPresented: $failed) {
             Button("OK") { }
-        } message: { message in
-            Text(message)
+        } message: {
+            Text("The update failed to install. Please check your network connection or try again later.")
         }
     }
 }

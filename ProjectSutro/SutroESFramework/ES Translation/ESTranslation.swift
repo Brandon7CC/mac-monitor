@@ -24,45 +24,6 @@ public func eventTimeStamp(for message: ESMessage) -> String {
     return "Unknown timestamp"
 }
 
-public struct SelectableEvent: Identifiable, Hashable {
-    public var id: UUID = UUID()
-    public var selected: Bool
-    public var es_event_type: es_event_type_t
-    public var eventString: String
-    
-    public static func == (lhs: SelectableEvent, rhs: SelectableEvent) -> Bool {
-        return lhs.eventString == rhs.eventString && lhs.selected == rhs.selected
-    }
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(eventString)
-        hasher.combine(selected)
-    }
-}
-
-// MARK: - Get events
-
-// @discussion Returns all ES events
-public func getAllEventTypesSelectable() -> [SelectableEvent] {
-    var allSelectableEventTypes: [SelectableEvent] = []
-    
-    for index in 0..<Int(ES_EVENT_TYPE_LAST.rawValue) {
-        allSelectableEventTypes.append(SelectableEvent(selected: false, es_event_type: esEventTypeIDToEventType(eventID: index), eventString: eventTypeToString(from: esEventTypeIDToEventType(eventID: index))))
-    }
-    return allSelectableEventTypes
-}
-
-// @discussion Returns only the supported / modeled ES events
-public func getSupportedEventTypesSelectable() -> [SelectableEvent] {
-    var supportedSelectableEvents: [SelectableEvent] = []
-    
-    // We're going to 64 here because there are 64 ES notify events and we're not starting at 0 because that's `ES_EVENT_TYPE_LAST`
-    for rawEvent in supportedEvents {
-        supportedSelectableEvents.append(SelectableEvent(selected: false, es_event_type: rawEvent, eventString: eventTypeToString(from: rawEvent)))
-    }
-    return supportedSelectableEvents
-}
-
 
 public func eventStringToImage(from eventString: String) -> String {
     switch(eventString) {

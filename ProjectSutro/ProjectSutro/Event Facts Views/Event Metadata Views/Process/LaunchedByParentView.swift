@@ -125,53 +125,10 @@ struct LaunchedByParentBadge: View {
 
 
 // MARK: - Launched-by parent facts
-/// A launched-by parent's facts: its source, its pid and executable, and its launchd job. Who named it, and whether
-/// its exec is in the trace, are in the heading's tooltip.
-struct LaunchedByParentFacts: View {
-    /// The launched-by parent and the event that created it, or `nil` when the store doesn't have the process's
-    /// creator.
-    let step: LaunchedByParentStep?
-    
-    var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Text("**Launched by parent**").font(.title3)
-                if let step { LaunchedByParentBadge(step.launchedByParent, showsSource: true) }
-            }
-            .help(details ?? "")
-            if let step {
-                let answer = step.launchedByParent
-                if let pid = answer.pid {
-                    FactRow(name: "PID", value: String(pid))
-                    FactRow(name: "Path", value: step.path, stacked: true)
-                } else {
-                    Text("Launch Services recorded no launcher, as for `open` run from a shell.")
-                }
-                if let label = answer.launchd_job?.label {
-                    FactRow(name: "launchd job", value: label, stacked: true)
-                }
-            } else {
-                Text("Not in this trace").foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-    
-    /// Who named the launched-by parent and how, and whether its exec is in the trace, for the heading's tooltip.
-    private var details: String? {
-        guard let step else { return nil }
-        let answer = step.launchedByParent
-        let notInTrace = answer.pid != nil && step.event == nil && !answer.isLaunchd
-        return "\(answer.resolved_by.caption). \(answer.resolved_by.explanation)"
-            + (notInTrace ? " Its exec isn't in this trace." : "")
-    }
-}
-
-
-// MARK: - Parent tab
 /// The launched-by parent of the process an event is about, for the Parent tab: an exec's target, a fork's child, or
-/// the process that caused any other event. Looked up in the store.
-struct LaunchedByParentBox: View {
+/// the process that caused any other event, looked up in the store. Shows its source, its pid and executable, and its
+/// launchd job. Who named it, and whether its exec is in the trace, are in the heading's tooltip.
+struct LaunchedByParentFacts: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     
     /// The event.
@@ -179,8 +136,43 @@ struct LaunchedByParentBox: View {
     
     var body: some View {
         GroupBox {
-            let container = systemExtensionManager.coreDataContainer
-            LaunchedByParentFacts(step: container.launchedByParents(of: message, limit: 1).first)
+            /// The launched-by parent and the event that created it, or `nil` when the store doesn't have the
+            /// process's creator.
+            let step = systemExtensionManager.coreDataContainer.launchedByParents(of: message, limit: 1).first
+            VStack(alignment: .leading) {
+                HStack {
+                    Text("**Launched by parent**").font(.title3)
+                    if let step { LaunchedByParentBadge(step.launchedByParent, showsSource: true) }
+                }
+                .help(details(step) ?? "")
+                if let step {
+                    let answer = step.launchedByParent
+                    if let pid = answer.pid {
+                        FactRow(name: "PID", value: String(pid))
+                        FactRow(name: "Path", value: step.path, stacked: true)
+                    } else {
+                        Text("Launch Services recorded no launcher, as for `open` run from a shell.")
+                    }
+                    if let label = answer.launchd_job?.label {
+                        FactRow(name: "launchd job", value: label, stacked: true)
+                    }
+                } else {
+                    Text("Not in this trace").foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+    
+    /// Who named the launched-by parent and how, and whether its exec is in the trace, for the heading's tooltip.
+    ///
+    /// - Parameter step: The launched-by parent and the event that created it, if the store has it.
+    /// - Returns: The tooltip, or `nil` without a launched-by parent.
+    private func details(_ step: LaunchedByParentStep?) -> String? {
+        guard let step else { return nil }
+        let answer = step.launchedByParent
+        let notInTrace = answer.pid != nil && step.event == nil && !answer.isLaunchd
+        return "\(answer.resolved_by.caption). \(answer.resolved_by.explanation)"
+            + (notInTrace ? " Its exec isn't in this trace." : "")
     }
 }

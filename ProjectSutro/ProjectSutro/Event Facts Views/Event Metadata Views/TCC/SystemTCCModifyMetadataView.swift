@@ -12,7 +12,6 @@ import SutroESFramework
 struct SystemTCCModifyMetadataView: View {
     var message: ESMessage
     @State private var showAuditTokens: Bool = false
-    @State private var showInstigator: Bool = false
     
     private var event: ESTCCModifyEvent {
         message.event.tcc_modify!

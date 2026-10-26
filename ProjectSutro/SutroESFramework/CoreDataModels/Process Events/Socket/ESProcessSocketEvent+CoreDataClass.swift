@@ -10,9 +10,12 @@ import Foundation
 import CoreData
 
 @objc(ESProcessSocketEvent)
-public class ESProcessSocketEvent: NSManagedObject {
+public class ESProcessSocketEvent: NSManagedObject, Identifiable {
+    @NSManaged public var type: Int32
+    @NSManaged public var type_string: String
+    @NSManaged public var target: ESProcess?
+
     enum CodingKeys: CodingKey {
-        case id
         case type
         case type_string
         case target
@@ -24,7 +27,6 @@ public class ESProcessSocketEvent: NSManagedObject {
         let description = NSEntityDescription.entity(forEntityName: "ESProcessSocketEvent", in: context)!
         self.init(entity: description, insertInto: context)
         
-        self.id = processSocketEvent.id
         self.type_string = processSocketEvent.type_string
         self.type = processSocketEvent.type
         

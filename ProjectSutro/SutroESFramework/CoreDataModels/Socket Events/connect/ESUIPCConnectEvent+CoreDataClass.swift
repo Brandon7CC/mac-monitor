@@ -11,9 +11,18 @@ import CoreData
 
 
 @objc(ESUIPCConnectEvent)
-public class ESUIPCConnectEvent: NSManagedObject {
+public class ESUIPCConnectEvent: NSManagedObject, Identifiable {
+    @NSManaged public var file: ESFile
+    
+    @NSManaged public var domain: Int32
+    @NSManaged public var type: Int32
+    @NSManaged public var `protocol`: Int32
+    
+    @NSManaged public var type_string: String
+    @NSManaged public var domain_string: String
+    @NSManaged public var protocol_string: String
+
     enum CodingKeys: CodingKey {
-        case id
         case file
         case domain
         case type
@@ -27,7 +36,6 @@ public class ESUIPCConnectEvent: NSManagedObject {
         let event: UIPCConnectEvent = message.event.uipc_connect!
         let description = NSEntityDescription.entity(forEntityName: "ESUIPCConnectEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = event.id
         
         attach(ESFile.row(for: event.file, in: context), to: #keyPath(ESUIPCConnectEvent.file))
         self.domain = event.domain

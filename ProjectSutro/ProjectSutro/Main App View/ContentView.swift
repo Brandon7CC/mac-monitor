@@ -44,12 +44,6 @@ struct EventView: View {
     /// Should the SwiftUI mini-chart be shown
     @Binding var viewMiniChart: Bool
     
-    /// Are we filtering long processes which executed before Mac Monitor was started?
-    ///
-    // TODO: Implement long running process filtering
-    @Binding var filteringLongRunningProcs: Bool
-
-
     /// The currently selected System Event (i.e. table row)
     @Binding var eventSelection: Set<ESMessage.ID>
     
@@ -69,7 +63,6 @@ struct EventView: View {
     /// Was Mac Monitor launched only to deactivate the Security Extension? Then it never checks or activates it.
     private let deactivating = CommandLine.arguments.contains("--deactivate-security-extension")
     
-    @State private var filterSelection = Set<String>()
     @State private var filteredTelemetryShown: Bool = false
     
     
@@ -94,14 +87,7 @@ struct EventView: View {
     
     /// Everything that decides which events the event tables show.
     private var filterSpec: EventFilterSpec {
-        EventFilterSpec(
-            filters: allFilters,
-            searchText: filterText,
-            recordPredicate: search.applied,
-            filteringLongRunningProcs: filteringLongRunningProcs,
-            /// Every event in a trace is older than this launch: the filter means nothing there.
-            clientConnectDT: traceSession.isLive ? systemExtensionManager.clientConnectDT : .distantPast
-        )
+        EventFilterSpec(filters: allFilters, searchText: filterText, recordPredicate: search.applied)
     }
     
     /// The number of System Events in the store.
@@ -110,7 +96,7 @@ struct EventView: View {
     /// The string displaying the number of System Events collected over the course of the trace
     private var eventCountString: AttributedString {
         let searching = !filterSpec.searchText.isEmpty || filterSpec.recordPredicate != nil
-        let hasActiveFilters = allFilters.totalFilters() + (filteringLongRunningProcs ? 1 : 0) > 0 || searching
+        let hasActiveFilters = allFilters.totalFilters > 0 || searching
         
         if !hasActiveFilters {
             return try! AttributedString(markdown: "**Events** `\(totalEventCount)`")
@@ -125,24 +111,12 @@ struct EventView: View {
         )
     }
     
-    /// Request that events be cleared from the PSC and reset the UI
+    /// Clear the events, recording again afterwards if Mac Monitor was recording.
     public func clearSystemEventsUI() {
-        var sentinel: Bool = false
-        if recordingEvents {
-            recordingEvents = false
-            
-            sentinel = true
-        }
-        
-        systemExtensionManager.cleanup()
+        let wasRecording = recordingEvents
         systemExtensionManager.stopRecordingEvents()
         systemExtensionManager.coreDataContainer.clearSystemEvents()
-        
-        if sentinel {
-            recordingEvents = true
-            systemExtensionManager.startRecordingEvents()
-            sentinel = false
-        }
+        if wasRecording { systemExtensionManager.startRecordingEvents() }
     }
     
     /// Open a trace (File > Open Trace…), replacing the events on screen.
@@ -227,10 +201,7 @@ struct EventView: View {
                 // MARK: - Stop recording events
                 Button(action: {
                     recordingEvents = false
-                    Task {
-                        systemExtensionManager.cleanup()
-                        systemExtensionManager.stopRecordingEvents()
-                    }
+                    systemExtensionManager.stopRecordingEvents()
                 }) {
                     Text("Stop")
                         .bold()
@@ -263,15 +234,13 @@ struct EventView: View {
                 Button {
                     filteredTelemetryShown.toggle()
                 } label: {
-                    Text("Filters `\(allFilters.totalFilters() + (filteringLongRunningProcs ? 1 : 0) + (filterPlatform ? 1 : 0))`")
+                    Text("Filters `\(allFilters.totalFilters + (filterPlatform ? 1 : 0))`")
                         .padding([.leading, .trailing], 5)
                 }.sheet(isPresented: $filteredTelemetryShown, content: {
                     /// Opening the predicate editor puts the sheet away.
                     FilterView(
                         allFilters: $allFilters,
                         filteredTelemetryShown: $filteredTelemetryShown,
-                        filterSelection: $filterSelection,
-                        filteringLongRunningProcs: $filteringLongRunningProcs,
                         eventMaskEnabled: $eventMaskEnabled,
                         filterPlatform: $filterPlatform,
                         search: search

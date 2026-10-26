@@ -11,9 +11,20 @@ import CoreData
 
 
 @objc(ESLaunchItem)
-public class ESLaunchItem: NSManagedObject {
+public class ESLaunchItem: NSManagedObject, Identifiable {
+    @NSManaged public var item_type: Int16
+    @NSManaged public var item_type_string: String
+    @NSManaged public var item_url: String
+    @NSManaged public var item_path: String
+    @NSManaged public var app_url: String?
+    @NSManaged public var app_path: String?
+    @NSManaged public var legacy: Bool
+    @NSManaged public var managed: Bool
+    @NSManaged public var uid: Int64
+    @NSManaged public var plist_contents: String?
+    @NSManaged public var uid_human: String?
+
     enum CodingKeys: CodingKey {
-        case id
         case item_type
         case item_type_string
         case item_url
@@ -34,7 +45,6 @@ public class ESLaunchItem: NSManagedObject {
     ) {
         let description = NSEntityDescription.entity(forEntityName: "ESLaunchItem", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = UUID()
         
         self.item_type = launchItem.item_type
         self.item_type_string = launchItem.item_type_string
@@ -54,7 +64,6 @@ public class ESLaunchItem: NSManagedObject {
 extension ESLaunchItem: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        //        try container.encode(id, forKey: .id)
         try container.encode(item_type, forKey: .item_type)
         try container.encode(item_type_string, forKey: .item_type_string)
         try container.encode(item_url, forKey: .item_url)

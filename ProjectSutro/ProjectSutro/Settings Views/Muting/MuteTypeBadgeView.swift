@@ -20,27 +20,6 @@ enum MuteKind: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// The kind a saved mute's type name names, if any.
-    ///
-    /// - Parameter type: The `ES_MUTE_PATH_TYPE_*` name.
-    init?(type: String) {
-        self.init(rawValue: type)
-    }
-
-    /// The kind for what a mute matches, and how.
-    ///
-    /// - Parameters:
-    ///   - target: The target path, or the process's.
-    ///   - prefix: Anything under the path, or the path exactly.
-    init(target: Bool, prefix: Bool) {
-        switch (target, prefix) {
-        case (false, false): self = .literal
-        case (false, true): self = .prefix
-        case (true, false): self = .targetLiteral
-        case (true, true): self = .targetPrefix
-        }
-    }
-
     /// Its name in Path Muting.
     var title: String {
         switch self {
@@ -99,7 +78,7 @@ struct MuteTypeBadgeView: View {
 
     /// - Parameter path: A saved mute.
     init(path: ESMutedPath) {
-        kind = MuteKind(type: path.type)
+        kind = MuteKind(rawValue: path.type)
     }
 
     /// - Parameter kind: The kind.

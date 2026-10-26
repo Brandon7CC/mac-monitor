@@ -11,9 +11,17 @@ import CoreData
 
 
 @objc(ESAuthorizationJudgementEvent)
-public class ESAuthorizationJudgementEvent: NSManagedObject {
+public class ESAuthorizationJudgementEvent: NSManagedObject, Identifiable {
+    @NSManaged public var instigator: ESProcess?
+    @NSManaged public var petitioner: ESProcess?
+    @NSManaged public var resultsData: Data?
+    @NSManaged public var return_code: Int32
+    @NSManaged public var result_count: Int32
+    
+    @NSManaged public var instigator_token: ESAuditToken?
+    @NSManaged public var petitioner_token: ESAuditToken?
+
     enum CodingKeys: CodingKey {
-        case id
         case instigator
         case petitioner
         case results
@@ -37,7 +45,6 @@ public class ESAuthorizationJudgementEvent: NSManagedObject {
         let event: AuthorizationJudgementEvent = message.event.authorization_judgement!
         let description = NSEntityDescription.entity(forEntityName: "ESAuthorizationJudgementEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = event.id
         
         self.return_code = Int32(event.return_code)
         self.result_count = Int32(event.result_count)

@@ -20,14 +20,10 @@ public struct Filters: Equatable {
     public var rootIncludedTargetProcessPath: String?
     public var shouldIncludeProcessSubTrees: Bool = false
     
-    
-    public func totalFilters() -> Int {
-        var sum: Int = initiatingPaths.count + targetPaths.count + events.count + userIDs.count
-        if rootIncludedInitiatingProcessPath != nil || rootIncludedTargetProcessPath != nil {
-            sum += 1
-        }
-        
-        return sum
+    /// The number of filters set: each path, event and user hidden, and one for the selected process trees.
+    public var totalFilters: Int {
+        initiatingPaths.count + targetPaths.count + events.count + userIDs.count
+            + (rootIncludedInitiatingProcessPath == nil && rootIncludedTargetProcessPath == nil ? 0 : 1)
     }
 }
 
@@ -42,8 +38,6 @@ struct FilterView: View {
 
     @Binding var allFilters: Filters
     @Binding var filteredTelemetryShown: Bool
-    @Binding var filterSelection: Set<String>
-    @Binding var filteringLongRunningProcs: Bool
     @Binding var eventMaskEnabled: Bool
     @Binding var filterPlatform: Bool
     /// The tables' predicate, which a finding's events are shown by.
@@ -56,7 +50,7 @@ struct FilterView: View {
                     isLive: traceSession.isLive, search: search,
                     subscribedEvents: {
                         let subscribed = systemExtensionManager.getSimpleEventSubscriptions()
-                        return getSupportedEventTypesSelectable().map(\.eventString).filter(subscribed.contains)
+                        return supportedEvents.map { eventTypeToString(from: $0) }.filter(subscribed.contains)
                     },
                     togglePlatformBinaries: { systemExtensionManager.togglePlatformBinaries() },
                     openPredicateEditor: openPredicateEditor,
@@ -181,7 +175,7 @@ struct FilterSheet: View {
                 allFilters.events.removeAll { $0 == event }
             }
         }
-        let count = allFilters.totalFilters()
+        let count = allFilters.totalFilters
         return FilterCard(kind: .artifacts, title: "Artifact filtering",
                           about: "Hide events from view by path, user, or event type", symbol: "eye.slash.fill",
                           tint: .blue, summary: count > 0 ? "\(count) on" : "Off", isOn: count > 0, rows: rows,
@@ -245,7 +239,7 @@ struct FilterSheet: View {
 
     /// What the header says is on.
     private var status: String {
-        let count = allFilters.totalFilters()
+        let count = allFilters.totalFilters
         let shown = appliedFinding(findings.usable)
         let parts = [count > 0 ? "\(count) artifact \(count == 1 ? "filter" : "filters") on" : nil,
                      search.applied == nil ? nil : shown.map { "showing only \($0)" } ?? "a predicate applied",

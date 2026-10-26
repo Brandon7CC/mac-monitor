@@ -10,9 +10,13 @@ import Foundation
 import CoreData
 
 @objc(ESXPCConnectEvent)
-public class ESXPCConnectEvent: NSManagedObject {
+public class ESXPCConnectEvent: NSManagedObject, Identifiable {
+    @NSManaged public var service_name: String
+    @NSManaged public var service_domain_type: Int32
+    @NSManaged public var service_domain_type_string: String
+
     enum CodingKeys: CodingKey {
-        case id, service_name, service_domain_type, service_domain_type_string
+        case service_name, service_domain_type, service_domain_type_string
     }
     
     convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
@@ -20,7 +24,6 @@ public class ESXPCConnectEvent: NSManagedObject {
         let description = NSEntityDescription.entity(forEntityName: "ESXPCConnectEvent", in: context)!
         self.init(entity: description, insertInto: context)
         
-        self.id = xpcConnectEvent.id
         self.service_name = xpcConnectEvent.service_name
         self.service_domain_type = xpcConnectEvent.service_domain_type
         self.service_domain_type_string = xpcConnectEvent.service_domain_type_string

@@ -108,11 +108,4 @@ final class CaptureSessionDrainTests: XCTestCase {
         queue.sync { draining.stop() }
         XCTAssertEqual(arrivals(after: 2), ["drained", "drained"])
     }
-    
-    /// `es_sync_client` is found on macOS 27, where it was introduced.
-    func testTheLiveClientFindsSyncOnMacOS27() throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.isOperatingSystemAtLeast(
-            OperatingSystemVersion(majorVersion: 27, minorVersion: 0, patchVersion: 0)))
-        XCTAssertTrue(LiveEndpointSecurityClient.supportsSync)
-    }
 }

@@ -10,9 +10,14 @@ import Foundation
 import CoreData
 
 @objc(ESXProtectDetect)
-public class ESXProtectDetect: NSManagedObject {
+public class ESXProtectDetect: NSManagedObject, Identifiable {
+    @NSManaged public var signature_version: String
+    @NSManaged public var malware_identifier: String
+    @NSManaged public var incident_identifier: String
+    @NSManaged public var detected_path: String
+    @NSManaged public var detected_executable: String?
+
     enum CodingKeys: CodingKey {
-        case id
         case signature_version
         case malware_identifier
         case incident_identifier
@@ -25,7 +30,6 @@ public class ESXProtectDetect: NSManagedObject {
         let xprotectDetectItem: XProtectDetectEvent = message.event.xp_malware_detected!
         let description = NSEntityDescription.entity(forEntityName: "ESXProtectDetect", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = xprotectDetectItem.id
         
         self.signature_version = xprotectDetectItem.signature_version
         self.malware_identifier = xprotectDetectItem.malware_identifier
@@ -40,7 +44,6 @@ public class ESXProtectDetect: NSManagedObject {
 extension ESXProtectDetect: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-//        try container.encode(id, forKey: .id)
         try container.encode(signature_version, forKey: .signature_version)
         try container.encode(malware_identifier, forKey: .malware_identifier)
         try container.encode(incident_identifier, forKey: .incident_identifier)

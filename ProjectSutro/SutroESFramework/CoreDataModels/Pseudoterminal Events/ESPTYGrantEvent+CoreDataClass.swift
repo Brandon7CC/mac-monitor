@@ -11,9 +11,10 @@ import CoreData
 
 
 @objc(ESPTYGrantEvent)
-public class ESPTYGrantEvent: NSManagedObject {
+public class ESPTYGrantEvent: NSManagedObject, Identifiable {
+    @NSManaged public var dev: Int64
+
     enum CodingKeys: CodingKey {
-        case id
         case dev
     }
     
@@ -22,7 +23,6 @@ public class ESPTYGrantEvent: NSManagedObject {
         let event: PTYGrantEvent = message.event.pty_grant!
         let description = NSEntityDescription.entity(forEntityName: "ESPTYGrantEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = event.id
         self.dev = event.dev
     }
 }

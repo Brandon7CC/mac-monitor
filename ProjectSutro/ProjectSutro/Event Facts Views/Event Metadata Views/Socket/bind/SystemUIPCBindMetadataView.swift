@@ -12,7 +12,6 @@ import SutroESFramework
 struct SystemUIPCBindMetadataView: View {
     var message: ESMessage
     @State private var showAuditTokens: Bool = false
-    @State private var showInstigator: Bool = false
     
     private var event: ESUIPCBindEvent {
         message.event.uipc_bind!

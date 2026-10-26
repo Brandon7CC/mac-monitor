@@ -11,9 +11,11 @@ import CoreData
 
 
 @objc(ESSetModeEvent)
-public class ESSetModeEvent: NSManagedObject {
+public class ESSetModeEvent: NSManagedObject, Identifiable {
+    @NSManaged public var mode: Int32
+    @NSManaged public var target: ESFile
+
     enum CodingKeys: CodingKey {
-        case id
         case mode
         case target
     }
@@ -23,7 +25,6 @@ public class ESSetModeEvent: NSManagedObject {
         let event: SetModeEvent = message.event.setmode!
         let description = NSEntityDescription.entity(forEntityName: "ESSetModeEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = event.id
         self.mode = event.mode
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESSetModeEvent.target))
     }

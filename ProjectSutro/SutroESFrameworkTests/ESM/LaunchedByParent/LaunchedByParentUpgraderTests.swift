@@ -21,18 +21,10 @@ private struct HoldingSerializer: EventSerializing {
     /// - Parameters:
     ///   - message: The message.
     ///   - lane: The lane's context.
-    /// - Returns: The message's `global_seq_num`.
-    func serialize(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> Data? {
-        Data("\(message.pointee.global_seq_num)".utf8)
-    }
-    
-    /// - Parameters:
-    ///   - message: The message.
-    ///   - lane: The lane's context.
     /// - Returns: A held exec on a lane that holds them, otherwise the message's `global_seq_num`.
     func serializeEvent(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> SerializedEvent? {
         guard lane.holdsForLaunchServices, message.pointee.event_type == ES_EVENT_TYPE_NOTIFY_EXEC else {
-            return serialize(message, in: lane).map(SerializedEvent.json)
+            return .json(Data("\(message.pointee.global_seq_num)".utf8))
         }
         return .held(exec(Int32(message.pointee.global_seq_num)))
     }

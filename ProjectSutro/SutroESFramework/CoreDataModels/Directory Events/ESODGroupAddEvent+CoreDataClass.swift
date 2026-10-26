@@ -12,7 +12,7 @@ import CoreData
 
 /// A stored `od_group_add` event.
 @objc(ESODGroupAddEvent)
-public class ESODGroupAddEvent: ESODGroupMemberEvent {
+public class ESODGroupAddEvent: ESODGroupMemberEvent, Identifiable {
     /// Store an event.
     ///
     /// - Parameters:

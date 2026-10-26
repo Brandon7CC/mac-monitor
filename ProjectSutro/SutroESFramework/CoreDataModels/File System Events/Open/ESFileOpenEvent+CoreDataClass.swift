@@ -10,9 +10,12 @@ import Foundation
 import CoreData
 
 @objc(ESFileOpenEvent)
-public class ESFileOpenEvent: NSManagedObject {
+public class ESFileOpenEvent: NSManagedObject, Identifiable {
+    @NSManaged public var file: ESFile
+    @NSManaged public var fflag: Int32
+
     enum CodingKeys: CodingKey {
-        case id, file, fflag
+        case file, fflag
     }
 
     // MARK: - Custom Core Data initilizer for ESFileOpenEvent
@@ -20,7 +23,6 @@ public class ESFileOpenEvent: NSManagedObject {
         let fileEvent: FileOpenEvent = message.event.open!
         let description = NSEntityDescription.entity(forEntityName: "ESFileOpenEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = fileEvent.id
         
         attach(ESFile.row(for: fileEvent.file, in: context), to: #keyPath(ESFileOpenEvent.file))
         self.fflag = fileEvent.fflag

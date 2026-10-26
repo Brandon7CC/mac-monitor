@@ -12,7 +12,9 @@ import CoreData
 
 /// A stored `od_create_group` event.
 @objc(ESODCreateGroupEvent)
-public class ESODCreateGroupEvent: ESODEvent {
+public class ESODCreateGroupEvent: ESODEvent, Identifiable {
+    @NSManaged public var group_name: String?
+
     enum CodingKeys: CodingKey {
         case group_name
     }

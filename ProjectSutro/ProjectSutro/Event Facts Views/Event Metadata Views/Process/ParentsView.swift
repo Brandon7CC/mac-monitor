@@ -10,27 +10,33 @@ import SutroESFramework
 
 
 // MARK: - Parent rows
-/// Unix parent and launched-by parent rows under "Parent user". The launched-by parent only shows when it differs.
+/// An exec's or fork's Unix parent and launched-by parent rows under "Parent user", looked up in the store. The
+/// launched-by parent only shows when it differs.
 struct ParentsView: View {
-    let parents: ProcessParents
+    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
+
+    /// The exec or fork.
+    let message: ESMessage
 
     var body: some View {
-        VStack(alignment: .leading) {
-            ParentRow(
-                title: LaunchedByParent.Source.unixParent.title,
-                systemImage: LaunchedByParent.Source.unixParent.symbolName,
-                path: parents.unix.path,
-                pid: parents.unix.pid
-            ) {
-                if parents.unix.original_ppid != parents.unix.pid {
-                    Text("\u{2022} **Original parent PID:**")
-                    GroupBox { Text("`\(String(parents.unix.original_ppid))`") }
+        if let parents = systemExtensionManager.coreDataContainer.parents(of: message) {
+            VStack(alignment: .leading) {
+                ParentRow(
+                    title: LaunchedByParent.Source.unixParent.title,
+                    systemImage: LaunchedByParent.Source.unixParent.symbolName,
+                    path: parents.unix.path,
+                    pid: parents.unix.pid
+                ) {
+                    if parents.unix.original_ppid != parents.unix.pid {
+                        Text("\u{2022} **Original parent PID:**")
+                        GroupBox { Text("`\(String(parents.unix.original_ppid))`") }
+                    }
                 }
-            }
-            .help(LaunchedByParent.Source.unixParent.explanation)
+                .help(LaunchedByParent.Source.unixParent.explanation)
 
-            if let step = parents.launchedByParent, !parents.launchedByParentIsUnixParent {
-                launchedByParent(step)
+                if let step = parents.launchedByParent, !parents.launchedByParentIsUnixParent {
+                    launchedByParent(step)
+                }
             }
         }
     }
@@ -102,21 +108,5 @@ private struct ParentRow<Trailing: View>: View {
             trailing()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-
-// MARK: - Looked up
-/// Parent rows for an exec or fork, from the store.
-struct ParentsBox: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-
-    /// The exec or fork.
-    let message: ESMessage
-
-    var body: some View {
-        if let parents = systemExtensionManager.coreDataContainer.parents(of: message) {
-            ParentsView(parents: parents)
-        }
     }
 }

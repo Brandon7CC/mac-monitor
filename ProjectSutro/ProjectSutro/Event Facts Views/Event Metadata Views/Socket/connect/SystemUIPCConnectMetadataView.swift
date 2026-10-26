@@ -13,7 +13,6 @@ import SutroESFramework
 struct SystemUIPCConnectMetadataView: View {
     var message: ESMessage
     @State private var showAuditTokens: Bool = false
-    @State private var showInstigator: Bool = false
     
     private var event: ESUIPCConnectEvent {
         message.event.uipc_connect!

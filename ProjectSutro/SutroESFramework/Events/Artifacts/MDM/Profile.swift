@@ -8,31 +8,17 @@
 import Foundation
 
 /// Models a ``es_profile_t``
-/// Ensure Profile conforms to Codable and Equatable
-public struct Profile: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID.buffered()
-    
+public struct Profile: Codable, Equatable, Hashable {
     public var identifier: String
     public var uuid: String
-    
-    public var organization: String
-    public var display_name: String
-    public var scope: String
     
     /// ``es_profile_source_t``
     public var install_source: Int16
     public var install_source_string = ""
     
-    // Ignore id from being decoded
-    enum CodingKeys: String, CodingKey {
-        case identifier
-        case uuid
-        case install_source
-        case install_source_string
-        case organization
-        case display_name
-        case scope
-    }
+    public var organization: String
+    public var display_name: String
+    public var scope: String
     
     public func toString() -> String {
         return "[Scope: \(scope)]  Name: \(display_name), ID: \(identifier)"

@@ -10,9 +10,20 @@ public import CoreData
 
 
 @objc(ESFileDestination)
-public class ESFileDestination: NSManagedObject {
+public class ESFileDestination: NSManagedObject, Identifiable {
+    @NSManaged public var existing_file: ESFile?
+
+    /// The new path, read and written by key rather than through Core Data's generated accessor.
+    ///
+    /// Its selector, `new_path`, is in ARC's `new` family, so Swift takes the object the accessor returns as retained
+    /// and releases it once more than Core Data retained it: the row was freed under the context, which crashed when
+    /// the context was next reset.
+    public var new_path: ESNewPath? {
+        get { value(forKey: "new_path") as? ESNewPath }
+        set { setValue(newValue, forKey: "new_path") }
+    }
+
     enum CodingKeys: CodingKey {
-        case id
         case existing_file
         case new_path
     }
@@ -24,7 +35,6 @@ public class ESFileDestination: NSManagedObject {
     ) {
         let description = NSEntityDescription.entity(forEntityName: "ESFileDestination", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = UUID()
         
         switch destination {
         case .existing_file(let existingFile):

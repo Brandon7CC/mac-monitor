@@ -10,15 +10,11 @@ import SutroESFramework
 
 
 struct SystemEventDetailsView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @Environment(\.openWindow) private var openEventJSON
-    
     var selectedMessage: ESMessage
-    @State private var targetMetadataExpanded: Bool = true
     
     var body: some View {
         List {
-            SystemTargetProcessView(selectedMessage: selectedMessage).environmentObject(systemExtensionManager)
+            SystemTargetProcessView(selectedMessage: selectedMessage)
         }.textSelection(.enabled)
     }
 }
@@ -30,9 +26,6 @@ struct SystemEventDetailsView: View {
 /// would otherwise hide them in the toolbar's overflow menu.
 struct SystemEventFactsView : View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    
-    @EnvironmentObject var userPrefs: UserPrefs
-    
     
     @Binding var allFilters: Filters
     var selectedMessage: ESMessage
@@ -156,14 +149,11 @@ struct SystemEventFactsView : View {
             if let plist { FileContentView(path: plist.path, content: plist.content) }
         case .correlation:
             SystemEnrichedEventView(allFilters: $allFilters, selectedMessage: selectedMessage)
-                .environmentObject(systemExtensionManager)
-                .environmentObject(userPrefs)
         case .groups:
             SystemEventGroupTableViews(allFilters: $allFilters, selectedMessage: selectedMessage,
                                        processGroup: procGroup, sessionGroup: procSessionGroup)
         case .parent:
             SystemInitiatingProcessView(selectedMessage: selectedMessage)
-                .environmentObject(systemExtensionManager)
                 .textSelection(.enabled)
         case .json:
             SystemEventJSONView(selectedMessage: selectedMessage)
@@ -173,9 +163,6 @@ struct SystemEventFactsView : View {
 
 
 struct AppWrapperForFacts: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @EnvironmentObject var userPrefs: UserPrefs
-    @Environment(\.openWindow) private var openEventFacts
     @FetchRequest var coreDataEvents: FetchedResults<ESMessage>
     
     
@@ -194,8 +181,6 @@ struct AppWrapperForFacts: View {
             if let tree = selectedEventTree {
                 SystemEventFactsView(allFilters: $allFilters, selectedMessage: tree,
                                      showsCorrelation: $showsCorrelation)
-                    .environmentObject(systemExtensionManager)
-                    .environmentObject(userPrefs)
             } else {
                 Text("No event selected")
             }

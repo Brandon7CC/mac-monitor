@@ -10,10 +10,13 @@ import Foundation
 import CoreData
 
 @objc(ESProcessCheckEvent)
-public class ESProcessCheckEvent: NSManagedObject {
-    
+public class ESProcessCheckEvent: NSManagedObject, Identifiable {
+    @NSManaged public var flavor: Int32
+    @NSManaged public var type: Int32
+    @NSManaged public var type_string: String
+    @NSManaged public var target: ESProcess?
+
     enum CodingKeys: CodingKey {
-        case id
         case type
         case type_string
         case flavor
@@ -25,7 +28,6 @@ public class ESProcessCheckEvent: NSManagedObject {
         let procCheckEvent: ProcessCheckEvent = message.event.proc_check!
         let description = NSEntityDescription.entity(forEntityName: "ESProcessCheckEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = procCheckEvent.id
         
         self.type = procCheckEvent.type
         self.type_string = procCheckEvent.type_string

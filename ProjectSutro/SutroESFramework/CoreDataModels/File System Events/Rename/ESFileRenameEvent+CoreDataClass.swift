@@ -11,9 +11,17 @@ import CoreData
 import OSLog
 
 @objc(ESFileRenameEvent)
-public class ESFileRenameEvent: NSManagedObject {
+public class ESFileRenameEvent: NSManagedObject, Identifiable {
+    @NSManaged public var source: ESFile
+    @NSManaged public var destination_type: Int16
+    @NSManaged public var destination_type_string: String
+    @NSManaged public var destination: ESFileDestination
+    
+    /// @note Mac Monitor enrichment
+    @NSManaged public var destination_path: String
+    @NSManaged public var is_quarantined: Int16
+
     enum CodingKeys: CodingKey {
-        case id
         case source
         case destination_type, destination_type_string
         case destination, destination_path
@@ -25,7 +33,6 @@ public class ESFileRenameEvent: NSManagedObject {
         let fileRenameEvent: FileRenameEvent = message.event.rename!
         let description = NSEntityDescription.entity(forEntityName: "ESFileRenameEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = fileRenameEvent.id
         
         attach(ESFile.row(for: fileRenameEvent.source, in: context), to: #keyPath(ESFileRenameEvent.source))
         
@@ -42,8 +49,6 @@ public class ESFileRenameEvent: NSManagedObject {
 extension ESFileRenameEvent: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-//        try container.encode(id, forKey: .id)
-        
         try container.encode(source, forKey: .source)
         try container.encode(destination_type, forKey: .destination_type)
         try container.encode(destination_type_string, forKey: .destination_type_string)

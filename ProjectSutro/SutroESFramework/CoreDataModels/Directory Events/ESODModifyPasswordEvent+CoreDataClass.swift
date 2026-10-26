@@ -12,7 +12,11 @@ import CoreData
 
 /// A stored `od_modify_password` event.
 @objc(ESODModifyPasswordEvent)
-public class ESODModifyPasswordEvent: ESODEvent {
+public class ESODModifyPasswordEvent: ESODEvent, Identifiable {
+    @NSManaged public var account_type: NSNumber?
+    @NSManaged public var account_name: String?
+    @NSManaged public var account_type_string: String?
+
     enum CodingKeys: CodingKey {
         case account_type, account_name, account_type_string
     }

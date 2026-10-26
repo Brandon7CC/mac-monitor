@@ -12,7 +12,7 @@ import EndpointSecurity
 
 // MARK: - Event class table
 /// Pins the table that splits capture across Endpoint Security clients: every event Mac Monitor names is filed under
-/// exactly one of Apple's categories, each category goes to one client, and the header's userspace events agree.
+/// exactly one of Apple's categories, and each category goes to one client.
 final class EventClassTableTests: XCTestCase {
     /// Every NOTIFY event Mac Monitor names, as `allESEvents` lists them.
     private var namedNotifyEvents: [es_event_type_t] {
@@ -51,7 +51,7 @@ final class EventClassTableTests: XCTestCase {
     /// Every event Mac Monitor can subscribe to is listed by name rather than classed by the fallback.
     func testEverySupportedEventIsListed() {
         for event in supportedEvents {
-            XCTAssertTrue(EventClassTable.lists(event), eventTypeToString(from: event))
+            XCTAssertTrue(listedEvents.contains(event), eventTypeToString(from: event))
         }
         for event in defaultEventSubscriptions {
             XCTAssertTrue(supportedEvents.contains(event), eventTypeToString(from: event))
@@ -103,39 +103,15 @@ final class EventClassTableTests: XCTestCase {
                     go: .process, as: .uncategorized)
     }
     
-    /// The 38 NOTIFY events `ESMessage.h` says userspace creates are userspace, the rest kernel, and the two Apple
-    /// sources agree: a userspace event is a File Provider or an uncategorized one, and every uncategorized event but
-    /// `xpc_connect` comes from userspace.
-    func testOriginsFollowESMessageHeader() {
-        let userspace = Set(EventClassTable.userspaceEvents.map(\.rawValue))
-        XCTAssertEqual(EventClassTable.userspaceEvents.count, 38)
-        XCTAssertEqual(userspace.count, 38)
-        for event in namedNotifyEvents {
-            let name = eventTypeToString(from: event)
-            let category = EventClassTable.category(of: event)
-            let origin = EventClassTable.origin(of: event)
-            XCTAssertEqual(origin, userspace.contains(event.rawValue) ? .userspace : .kernel, name)
-            if origin == .userspace {
-                XCTAssertTrue([.uncategorized, .fileProvider].contains(category), name)
-            }
-            if category == .uncategorized, event != ES_EVENT_TYPE_NOTIFY_XPC_CONNECT {
-                XCTAssertEqual(origin, .userspace, name)
-            }
-        }
-        XCTAssertEqual(EventClassTable.origin(of: ES_EVENT_TYPE_NOTIFY_XPC_CONNECT), .kernel)
-        XCTAssertEqual(EventClassTable.origin(of: ES_EVENT_TYPE_NOTIFY_EXEC), .kernel)
-    }
-    
     /// An event the table doesn't list, such as one a newer SDK adds (macOS 27's `bootstrap_check_in` and
     /// `bootstrap_look_up`), is uncategorized, so it goes to the process client.
     func testUnlistedEventsFallBackToTheProcessClient() {
         let newer = (ES_EVENT_TYPE_NOTIFY_TCC_MODIFY.rawValue + 1...ES_EVENT_TYPE_LAST.rawValue)
             .map { es_event_type_t(rawValue: $0) }
         for event in newer {
-            XCTAssertFalse(EventClassTable.lists(event), "\(event.rawValue)")
+            XCTAssertFalse(listedEvents.contains(event), "\(event.rawValue)")
             XCTAssertEqual(EventClassTable.category(of: event), .uncategorized, "\(event.rawValue)")
             XCTAssertEqual(EventClassTable.eventClass(of: event), .process, "\(event.rawValue)")
-            XCTAssertEqual(EventClassTable.origin(of: event), .kernel, "\(event.rawValue)")
         }
         XCTAssertTrue(newer.contains(ES_EVENT_TYPE_LAST))
     }

@@ -15,7 +15,9 @@ import CoreData
 ///
 ///
 @objc(ESODCreateUserEvent)
-public class ESODCreateUserEvent: ESODEvent {
+public class ESODCreateUserEvent: ESODEvent, Identifiable {
+    @NSManaged public var user_name: String?
+
     enum CodingKeys: CodingKey {
         case user_name
     }

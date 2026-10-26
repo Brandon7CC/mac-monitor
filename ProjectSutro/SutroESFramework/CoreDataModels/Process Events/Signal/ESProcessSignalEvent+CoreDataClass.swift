@@ -10,9 +10,13 @@ import Foundation
 import CoreData
 
 @objc(ESProcessSignalEvent)
-public class ESProcessSignalEvent: NSManagedObject {
+public class ESProcessSignalEvent: NSManagedObject, Identifiable {
+    @NSManaged public var sig: Int32
+    @NSManaged public var signal_name: String
+    @NSManaged public var target: ESProcess
+    @NSManaged public var instigator: ESProcess?
+
     enum CodingKeys: CodingKey {
-        case id
         case sig
         case signal_name
         case target
@@ -24,7 +28,6 @@ public class ESProcessSignalEvent: NSManagedObject {
         let signalEvent: ProcessSignalEvent = message.event.signal!
         let description = NSEntityDescription.entity(forEntityName: "ESProcessSignalEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = signalEvent.id
         self.sig = Int32(truncatingIfNeeded: signalEvent.sig)
         self.signal_name = signalEvent.signal_name
         

@@ -10,9 +10,15 @@ import Foundation
 import CoreData
 
 @objc(ESOpenSSHLogoutEvent)
-public class ESOpenSSHLogoutEvent: NSManagedObject {
+public class ESOpenSSHLogoutEvent: NSManagedObject, Identifiable {
+    @NSManaged public var source_address_type: Int32
+    @NSManaged public var source_address_type_string: String
+    @NSManaged public var source_address: String
+    @NSManaged public var username: String
+    
+    @NSManaged public var uid: Int32
+
     enum CodingKeys: CodingKey {
-        case id
         case source_address_type
         case source_address_type_string
         case source_address
@@ -25,7 +31,6 @@ public class ESOpenSSHLogoutEvent: NSManagedObject {
         let event: SSHLogoutEvent = message.event.openssh_logout!
         let description = NSEntityDescription.entity(forEntityName: "ESOpenSSHLogoutEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = event.id
         
         self.source_address_type = event.source_address_type
         self.source_address_type_string = event.source_address_type_string
@@ -39,7 +44,6 @@ public class ESOpenSSHLogoutEvent: NSManagedObject {
 extension ESOpenSSHLogoutEvent: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-//        try container.encode(id, forKey: .id)
         try container.encode(source_address_type, forKey: .source_address_type)
         try container.encode(source_address_type_string, forKey: .source_address_type_string)
         try container.encode(source_address, forKey: .source_address)

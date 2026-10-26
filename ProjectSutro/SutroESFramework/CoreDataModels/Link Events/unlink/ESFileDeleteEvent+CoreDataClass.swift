@@ -10,9 +10,11 @@ import Foundation
 import CoreData
 
 @objc(ESFileDeleteEvent)
-public class ESFileDeleteEvent: NSManagedObject {
+public class ESFileDeleteEvent: NSManagedObject, Identifiable {
+    @NSManaged public var target: ESFile
+    @NSManaged public var parent_dir: ESFile
+
     enum CodingKeys: CodingKey {
-        case id
         case target
         case parent_dir
     }
@@ -22,7 +24,6 @@ public class ESFileDeleteEvent: NSManagedObject {
         let event: FileDeleteEvent = message.event.unlink!
         let description = NSEntityDescription.entity(forEntityName: "ESFileDeleteEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = event.id
         
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESFileDeleteEvent.target))
         attach(ESFile.row(for: event.parent_dir, in: context), to: #keyPath(ESFileDeleteEvent.parent_dir))

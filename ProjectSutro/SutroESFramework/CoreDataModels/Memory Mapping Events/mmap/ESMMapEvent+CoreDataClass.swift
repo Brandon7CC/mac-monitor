@@ -10,9 +10,14 @@ import Foundation
 import CoreData
 
 @objc(ESMMapEvent)
-public class ESMMapEvent: NSManagedObject {
+public class ESMMapEvent: NSManagedObject, Identifiable {
+    @NSManaged public var protection: Int32
+    @NSManaged public var max_protection: Int32
+    @NSManaged public var flags: Int32
+    @NSManaged public var file_pos: Int64
+    @NSManaged public var source: ESFile
+
     enum CodingKeys: CodingKey {
-        case id
         case protection
         case max_protection
         case flags
@@ -25,7 +30,6 @@ public class ESMMapEvent: NSManagedObject {
         let mmapEvent: MMapEvent = message.event.mmap!
         let description = NSEntityDescription.entity(forEntityName: "ESMMapEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = mmapEvent.id
         
         self.protection = mmapEvent.protection
         self.max_protection = mmapEvent.max_protection

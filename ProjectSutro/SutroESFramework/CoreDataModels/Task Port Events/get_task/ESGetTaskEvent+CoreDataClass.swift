@@ -10,10 +10,12 @@ import Foundation
 import CoreData
 
 @objc(ESGetTaskEvent)
-public class ESGetTaskEvent: NSManagedObject {
-    
+public class ESGetTaskEvent: NSManagedObject, Identifiable {
+    @NSManaged public var target: ESProcess
+    @NSManaged public var type: Int16
+    @NSManaged public var type_string: String
+
     enum CodingKeys: CodingKey {
-        case id
         case target
         case type
         case type_string
@@ -24,7 +26,6 @@ public class ESGetTaskEvent: NSManagedObject {
         let event: GetTaskEvent = message.event.get_task!
         let description = NSEntityDescription.entity(forEntityName: "ESGetTaskEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = event.id
 
         self.target = ESProcess(
             from: event.target,

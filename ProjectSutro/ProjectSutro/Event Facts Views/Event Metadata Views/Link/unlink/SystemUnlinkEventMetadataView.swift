@@ -16,10 +16,6 @@ struct SystemUnlinkEventMetadataView: View {
         esSystemEvent.event.unlink!
     }
     
-    private var eventType: String {
-        esSystemEvent.es_event_type ?? ""
-    }
-    
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
         if esSystemEvent.event.unlink != nil {

@@ -23,8 +23,6 @@ struct EventFilterSpec: Equatable {
     /// The search field's predicate on each event's record, as `macmonitor stream --predicate` takes, or `nil`. Core Data
     /// can't evaluate it, so the query model checks each event that passes the rest (``EventQueryModel/Worker``).
     var recordPredicate: StreamFilter.Predicate?
-    var filteringLongRunningProcs: Bool
-    var clientConnectDT: Date
     
     /// `ES_EVENT_TYPE_NOTIFY_EXEC` / `ES_EVENT_TYPE_NOTIFY_FORK`, as stored in `ESMessage.event_type`.
     static let execEventType = ESMessage.execEventType
@@ -53,10 +51,6 @@ struct EventFilterSpec: Equatable {
             } else {
                 clauses.append(NSPredicate(format: "initiating_path IN %@ OR (event_type == %d AND created_path IN %@)", inclusionRoots, Self.execEventType, inclusionRoots))
             }
-        }
-        
-        if filteringLongRunningProcs {
-            clauses.append(NSPredicate(format: "message_darwin_time == nil OR message_darwin_time >= %@", clientConnectDT as NSDate))
         }
         
         clauses.append(contentsOf: [

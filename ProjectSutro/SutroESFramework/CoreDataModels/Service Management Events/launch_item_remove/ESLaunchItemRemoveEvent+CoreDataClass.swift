@@ -12,13 +12,19 @@ import Foundation
 import CoreData
 
 @objc(ESLaunchItemRemoveEvent)
-public class ESLaunchItemRemoveEvent: NSManagedObject  {
+public class ESLaunchItemRemoveEvent: NSManagedObject, Identifiable {
+    @NSManaged public var instigator: ESProcess?
+    @NSManaged public var instigator_token: ESAuditToken?
+    
+    @NSManaged public var app: ESProcess?
+    @NSManaged public var app_token: ESAuditToken?
+    
+    @NSManaged public var item: ESLaunchItem
+
     enum CodingKeys: CodingKey {
-        case id
         case instigator
         case app
         case item
-        case executable_path
         case instigator_token, app_token
     }
     
@@ -27,7 +33,6 @@ public class ESLaunchItemRemoveEvent: NSManagedObject  {
         let event: LaunchItemRemoveEvent = message.event.btm_launch_item_remove!
         let description = NSEntityDescription.entity(forEntityName: "ESLaunchItemRemoveEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = event.id
         let version: Int = message.version
         
         if let instigator = event.instigator {
@@ -62,7 +67,6 @@ public class ESLaunchItemRemoveEvent: NSManagedObject  {
 extension ESLaunchItemRemoveEvent: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        //        try container.encode(id, forKey: .id)
         try container.encode(instigator, forKey: .instigator)
         try container.encode(app, forKey: .app)
         try container.encode(item, forKey: .item)

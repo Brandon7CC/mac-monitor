@@ -11,10 +11,25 @@ import CoreData
 
 
 @objc(ESTCCModifyEvent)
-public class ESTCCModifyEvent: NSManagedObject {
+public class ESTCCModifyEvent: NSManagedObject, Identifiable {
+    @NSManaged public var service: String
+    @NSManaged public var identity: String
+    @NSManaged public var identity_type: Int32
+    @NSManaged public var update_type: Int32
+    @NSManaged public var right: Int32
+    @NSManaged public var reason: Int32
+    @NSManaged public var identity_type_string: String
+    @NSManaged public var update_type_string: String
+    @NSManaged public var right_string: String
+    @NSManaged public var reason_string: String
+    
+    @NSManaged public var instigator_token: ESAuditToken?
+    @NSManaged public var instigator: ESProcess?
+    
+    @NSManaged public var responsible_token: ESAuditToken?
+    @NSManaged public var responsible: ESProcess?
+
     enum CodingKeys: CodingKey {
-        case id
-        
         case service
         case identity
         case identity_type
@@ -36,7 +51,6 @@ public class ESTCCModifyEvent: NSManagedObject {
         let tccModifyEvent: TCCModifyEvent = message.event.tcc_modify!
         let description = NSEntityDescription.entity(forEntityName: "ESTCCModifyEvent", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = tccModifyEvent.id
         
         self.service = tccModifyEvent.service
         self.identity = tccModifyEvent.identity
@@ -77,8 +91,6 @@ public class ESTCCModifyEvent: NSManagedObject {
 extension ESTCCModifyEvent: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-//        try container.encode(id, forKey: .id)
-        
         try container.encode(service, forKey: .service)
         try container.encode(identity, forKey: .identity)
         try container.encode(identity_type, forKey: .identity_type)

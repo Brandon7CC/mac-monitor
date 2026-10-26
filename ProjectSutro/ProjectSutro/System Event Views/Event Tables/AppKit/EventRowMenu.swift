@@ -16,8 +16,8 @@ import SutroESFramework
 /// The right-click menu of a row in the AppKit event tables.
 ///
 /// Item for item the same as ``TableNonExecContextMenus`` and ``TableExecEventContextMenu``: the same items, titles, order,
-/// and preferences. Those views are the menus of the SwiftUI tables in the Event Facts windows (correlation, enrichment,
-/// and process groups), so keep the two in sync.
+/// and preferences. Those views, through ``FactsRowMenu``, are the menus of the Event Facts window's Correlation and
+/// Groups tables, so keep the two in sync.
 ///
 /// Everything an item needs is read when the menu is built. An item never touches the event again, which may have been
 /// cleared by the time the item is chosen.

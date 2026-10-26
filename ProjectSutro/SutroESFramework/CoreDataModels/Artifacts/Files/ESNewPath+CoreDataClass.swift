@@ -10,9 +10,13 @@ import CoreData
 
 
 @objc(ESNewPath)
-public class ESNewPath: NSManagedObject {
+public class ESNewPath: NSManagedObject, Identifiable {
+    @NSManaged public var filename: String?
+    /// A create event's `mode_t`. A rename's new path has none (`nil`), and eslogger writes no `mode` for it.
+    @NSManaged public var mode: NSNumber?
+    @NSManaged public var dir: ESFile?
+
     enum CodingKeys: CodingKey {
-        case id
         case dir
         case filename
         case mode
@@ -25,7 +29,6 @@ public class ESNewPath: NSManagedObject {
     ) {
         let description = NSEntityDescription.entity(forEntityName: "ESNewPath", in: context)!
         self.init(entity: description, insertInto: context)
-        self.id = newPath.id
         
         attach(ESFile.row(for: newPath.dir, in: context), to: #keyPath(ESNewPath.dir))
         self.filename = newPath.filename

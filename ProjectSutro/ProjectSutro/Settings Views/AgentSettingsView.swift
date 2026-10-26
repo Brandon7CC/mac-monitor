@@ -42,18 +42,14 @@ class UserPrefs: ObservableObject {
     @AppStorage("forcedDarkMode") var forcedDarkMode: Bool = false
     
     
-    // @note reset the user preferences for non-process execution events
-    public func resetNonExecPreferences() {
+    /// Put both event tables' context menus back as Mac Monitor ships them: Settings ▸ Context Menus' Reset.
+    public func resetContextPreferences() {
         contextInitiatingEUIDFilter = true
         contextInitiatingPathFilter = true
         contextTargetPathFilter = false
         contextInitiatingPathMute = true
         contextTargetPathMute = false
         contextEventUnsubscribe = true
-    }
-
-    // @note reset the user preferences for process execution events
-    public func resetExecPreferences() {
         contextExecInitiatingEUIDFilter = true
         contextExecInitiatingPathFilter = false
         contextExecTargetPathFilter = true
@@ -62,22 +58,11 @@ class UserPrefs: ObservableObject {
         contextExecEventUnsubscribe = true
     }
 
-    public func resetContextPreferences() {
-        resetNonExecPreferences()
-        resetExecPreferences()
-    }
-    
-    public func resetLifecyclePreferences() {
+    /// Reset the context menus, and warn again before quitting and clearing: Settings ▸ General's Reset.
+    public func resetAllPreferences() {
+        resetContextPreferences()
         lifecycleWarnBeforeQuit = true
         lifecycleWarnBeforeClear = true
-    }
-    
-    public func resetAllPreferences() {
-        // Reset the context menu preferences
-        resetContextPreferences()
-        
-        // Reset the life cycle preferences
-        resetLifecyclePreferences()
     }
 }
 
@@ -114,7 +99,6 @@ enum ForcedDarkMode {
 struct AgentSettingsView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @EnvironmentObject var userPrefs: UserPrefs
-    @Binding var pathToMute: String
     @Binding var allFilters: Filters
     @Binding var eventMaskEnabled: Bool
 
@@ -213,7 +197,7 @@ struct AgentSettingsView: View {
         case .general: GeneralSettingsView()
         case .systemDetails: SystemDetailsSettingsView()
         case .subscriptions: SubscriptionsSettingsView(allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled)
-        case .pathMuting: PathMutingSettingsView(pathToMute: $pathToMute)
+        case .pathMuting: PathMutingSettingsView()
         case .findings: FindingsSettingsView()
         case .commandLine: SettingsPage(pane: pane) { CommandLineToolSettingsView() }
         case .telemetrySchema: TelemetrySchemaSettingsView()
