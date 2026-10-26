@@ -229,7 +229,6 @@ struct SystemTargetExecProcMetadataView: View {
                                 Text(String(format: "0x%08X",
                                             UInt32(truncatingIfNeeded: event.target.codesigning_flags)))
                                     .monospaced()
-                                    .textSelection(.enabled)
                             }
                             Text("\(codeSigningFlags.count) set").foregroundStyle(.secondary)
                         }

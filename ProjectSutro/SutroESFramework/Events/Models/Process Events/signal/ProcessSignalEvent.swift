@@ -69,9 +69,8 @@ public struct ProcessSignalEvent: Codable, IdentityHashable {
         self.sig = Int(signalEvent.sig)
         
         /// Message version 9 and later: before it, these bytes are reserved and can't be read as a process.
-        if rawMessage.pointee.version >= 9, let instigator = signalEvent.instigator {
-            self.instigator = Process(from: instigator.pointee, version: Int(rawMessage.pointee.version))
-        }
+        instigator = rawMessage.pointee.version >= 9
+            ? signalEvent.instigator.map { Process(from: $0.pointee, version: Int(rawMessage.pointee.version)) } : nil
         
         self.target = Process(from: signalEvent.target.pointee, version: Int(rawMessage.pointee.version))
         enrich()

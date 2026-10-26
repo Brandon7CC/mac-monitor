@@ -25,8 +25,26 @@ public class ESMessage: NSManagedObject, Identifiable {
     public static let execEventType = Int32(ES_EVENT_TYPE_NOTIFY_EXEC.rawValue)
     public static let forkEventType = Int32(ES_EVENT_TYPE_NOTIFY_FORK.rawValue)
 
-    @nonobjc public class func fetchRequest() -> NSFetchRequest<ESMessage> {
-        return NSFetchRequest<ESMessage>(entityName: "ESMessage")
+    /// A fetch request for events: the events themselves, their object IDs, or (with `propertiesToFetch`) some of
+    /// their values.
+    ///
+    /// - Parameters:
+    ///   - result: `ESMessage`, `NSManagedObjectID` or `NSDictionary`, which sets the request's `resultType`.
+    ///   - predicate: The events to fetch, or `nil` for every one.
+    ///   - sort: Their order.
+    ///   - loaded: Load each event's values with it, rather than return it as a fault.
+    /// - Returns: The request.
+    public static func request<ResultType: NSFetchRequestResult>(_ result: ResultType.Type = ESMessage.self,
+                                                                 where predicate: NSPredicate? = nil,
+                                                                 sortedBy sort: [NSSortDescriptor] = [],
+                                                                 loaded: Bool = false) -> NSFetchRequest<ResultType> {
+        let request = NSFetchRequest<ResultType>(entityName: "ESMessage")
+        if result == NSManagedObjectID.self { request.resultType = .managedObjectIDResultType }
+        if result == NSDictionary.self { request.resultType = .dictionaryResultType }
+        request.predicate = predicate
+        request.sortDescriptors = sort
+        request.returnsObjectsAsFaults = !loaded
+        return request
     }
     
     @NSManaged public var id: UUID
@@ -105,7 +123,7 @@ public class ESMessage: NSManagedObject, Identifiable {
     /// `target_path` represents a path "targeted" by some ES event. For example,
     /// * ``MMapEvent`` events will have the `target_path` field set for their `path`
     /// * ``ProcessExecEvent`` events will have the `target_path` field set for their `process_path`
-    /// * Similarly, for events like ``FileWriteEvent`` the `target_path` will be set for the file's destination path.
+    /// * Similarly, for events like ``TargetFileEvent`` the `target_path` will be set for the file's destination path.
     /// > Not all events will have this populated. For example, it doesn't make sense for ``IOKitOpenEvent`` events to
     /// > have a target path.
     /// /// @note Mac Monitor enrichment
@@ -210,6 +228,23 @@ public class ESMessage: NSManagedObject, Identifiable {
         self.context = message.context ?? "Not supported"
         self.target_path = message.target_path ?? "Not supported"
     }
+    
+    /// Store an event as the event store does: inserted with its instigator's token, its columns
+    /// (``denormalize(from:)``) and its place in the store.
+    ///
+    /// - Parameters:
+    ///   - message: The event.
+    ///   - order: Its ``insert_order``.
+    ///   - batch: Its ``insert_batch``, or `nil` to leave it for the save to stamp.
+    ///   - context: The context to insert it into.
+    @discardableResult
+    convenience init(storing message: Message, order: Int64, batch: Int64? = nil, in context: NSManagedObjectContext) {
+        self.init(from: message, insertIntoManagedObjectContext: context)
+        insert_order = order
+        if let batch { insert_batch = batch }
+        instigator_audit_token = message.process.audit_token_string
+        denormalize(from: message)
+    }
 
     // MARK: - Correlations
     /// Fill in ``created_audit_token`` and the table columns (``initiating_path`` and friends) from the message this
@@ -268,9 +303,7 @@ public class ESMessage: NSManagedObject, Identifiable {
     /// The fetch behind ``correlated_array``: the events whose instigator is the process this event created.
     private var correlatedRequest: NSFetchRequest<ESMessage>? {
         guard let token = created_audit_token else { return nil }
-        let request = ESMessage.fetchRequest()
-        request.predicate = NSPredicate(format: "instigator_audit_token == %@ AND self != %@", token, self)
-        return request
+        return ESMessage.request(where: NSPredicate(format: "instigator_audit_token == %@ AND self != %@", token, self))
     }
 }
 

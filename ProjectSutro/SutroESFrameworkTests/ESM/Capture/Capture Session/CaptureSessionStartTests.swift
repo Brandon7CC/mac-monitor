@@ -101,10 +101,9 @@ final class CaptureSessionStartTests: XCTestCase {
     /// A refused second client throws, and the first is deleted without ever subscribing.
     func testRefusedSecondClientDeletesTheFirst() {
         let factory = FakeEndpointSecurityClientFactory(refusals: [1: .tooManyClients])
-        XCTAssertThrowsError(try makeSession(configuration, factory: factory)) { error in
-            XCTAssertEqual(error as? CaptureStartError, .clientRefused(.file, .tooManyClients))
-            XCTAssertEqual((error as? CaptureStartError)?.clientResult, .tooManyClients)
-        }
+        let error = thrown(CaptureStartError.self) { try makeSession(configuration, factory: factory) }
+        XCTAssertEqual(error, .clientRefused(.file, .tooManyClients))
+        XCTAssertEqual(error?.clientResult, .tooManyClients)
         XCTAssertEqual(factory.clients.count, 1)
         XCTAssertEqual(factory.client(.process).calls, [.delete])
     }
@@ -112,10 +111,9 @@ final class CaptureSessionStartTests: XCTestCase {
     /// A refused third client throws, and the first two are deleted.
     func testRefusedThirdClientDeletesTheOthers() {
         let factory = FakeEndpointSecurityClientFactory(refusals: [2: .notPermitted])
-        XCTAssertThrowsError(try makeSession(configuration, factory: factory)) { error in
-            XCTAssertEqual(error as? CaptureStartError, .clientRefused(.memory, .notPermitted))
-            XCTAssertEqual((error as? CaptureStartError)?.clientResult, .notPermitted)
-        }
+        let error = thrown(CaptureStartError.self) { try makeSession(configuration, factory: factory) }
+        XCTAssertEqual(error, .clientRefused(.memory, .notPermitted))
+        XCTAssertEqual(error?.clientResult, .notPermitted)
         XCTAssertEqual(factory.clients.count, 2)
         XCTAssertTrue(factory.clients.allSatisfy { $0.calls == [.delete] })
     }
@@ -123,10 +121,9 @@ final class CaptureSessionStartTests: XCTestCase {
     /// A refused subscription throws, and every client is unsubscribed then deleted.
     func testFailedSubscriptionTearsEverythingDown() {
         let factory = FakeEndpointSecurityClientFactory(refusing: [1: [.subscribe]])
-        XCTAssertThrowsError(try makeSession(configuration, factory: factory)) { error in
-            XCTAssertEqual(error as? CaptureStartError, .subscriptionFailed(.file))
-            XCTAssertEqual((error as? CaptureStartError)?.clientResult, .internalSubsystem)
-        }
+        let error = thrown(CaptureStartError.self) { try makeSession(configuration, factory: factory) }
+        XCTAssertEqual(error, .subscriptionFailed(.file))
+        XCTAssertEqual(error?.clientResult, .internalSubsystem)
         XCTAssertEqual(factory.clients.count, 3)
         for client in factory.clients {
             XCTAssertEqual(client.calls.suffix(2), [.unsubscribeAll, .delete])

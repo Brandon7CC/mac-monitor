@@ -31,14 +31,25 @@ public extension Optional where Wrapped == String {
     }
 }
 
-/// A SHA-256 digest in hex, uppercase as `eslogger(1)` writes it.
-func sha256HexString(_ digest: es_sha256_t) -> String {
-    ESLogger.hex(digest)
+public extension StringProtocol {
+    /// The string without a prefix, such as `READ` for `ES_GET_TASK_TYPE_READ` without `ES_GET_TASK_TYPE_`.
+    ///
+    /// `hasPrefix` and `dropFirst`, not `trimmingPrefix(_:)` or `replacingOccurrences(of:with:)`: this runs for every
+    /// event, and both are many times slower.
+    ///
+    /// - Parameter prefix: The prefix, such as an Endpoint Security constant's.
+    /// - Returns: The rest, or the string as it is when it doesn't start with the prefix.
+    func droppingPrefix(_ prefix: String) -> String {
+        hasPrefix(prefix) ? String(dropFirst(prefix.count)) : String(self)
+    }
 }
 
-/// A code directory hash in hex, uppercase as `eslogger(1)` writes it.
-func cdhashToString(cdhash: es_cdhash_t) -> String {
-    ESLogger.hex(cdhash)
+/// An `errno` in words.
+///
+/// - Parameter code: The `errno`: the current one unless given.
+/// - Returns: `strerror(code)`.
+func errnoText(_ code: Int32 = errno) -> String {
+    String(cString: strerror(code))
 }
 
 

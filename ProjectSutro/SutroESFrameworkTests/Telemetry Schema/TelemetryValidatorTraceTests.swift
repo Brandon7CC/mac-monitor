@@ -138,9 +138,7 @@ final class TelemetryValidatorTraceTests: XCTestCase {
     /// Only files are validated: a folder is refused.
     func testFolderIsNotAFile() throws {
         XCTAssertThrowsError(try validator.validate(traceAt: try makeTemporaryDirectory())) { error in
-            guard case TraceImporter.Failure.notAFile = error else {
-                return XCTFail("Expected notAFile, found \(error)")
-            }
+            XCTAssertEqual(error as? TraceImporter.Failure, .notAFile, "\(error)")
         }
     }
     

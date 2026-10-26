@@ -9,56 +9,30 @@ import Foundation
 
 
 // MARK: - Commands
-/// One `macmonitor` command, as its help describes it.
-public struct CommandLineCommand: Equatable {
-    /// Every command `macmonitor` has, by what's typed.
-    ///
-    /// **Adding a command**: add its case here. The build then fails until ``CommandLineParser/parse(_:)``, which
-    /// switches over every case with no default, parses it into a new ``CommandLineInvocation`` case, and
-    /// `CommandLineTool.run` in `macmonitor` runs that case. ``CommandLineHelp/commands`` must describe each case once,
-    /// which the tests check. A command that needs neither root nor the Security Extension, as `schema` and `validate`
-    /// don't, runs entirely in `macmonitor`.
-    public enum Name: String, CaseIterable, Sendable {
-        case stream, mute, events, schema, validate, completion, version, help
-        
-        /// Does the command need root? Only what talks to the Security Extension does.
-        public var requiresRoot: Bool {
-            switch self {
-            case .stream, .mute: return true
-            case .events, .schema, .validate, .completion, .version, .help: return false
-            }
+/// Every command `macmonitor` has, by what's typed, in the order help lists them.
+///
+/// **Adding a command**: add its case here. The build then fails until ``help-swift.property`` describes it,
+/// ``CommandLineParser/parse(_:)``, which switches over every case with no default, parses it into a new
+/// ``CommandLineInvocation`` case, and `CommandLineTool.run` in `macmonitor` runs that case. A command that needs
+/// neither root nor the Security Extension, as `schema` and `validate` don't, runs entirely in `macmonitor`.
+public enum CommandLineCommand: String, CaseIterable, Sendable {
+    case stream, mute, events, schema, validate, completion, version, help
+    
+    /// Does the command need root? Only what talks to the Security Extension does.
+    public var requiresRoot: Bool {
+        switch self {
+        case .stream, .mute: return true
+        case .events, .schema, .validate, .completion, .version, .help: return false
         }
     }
     
-    /// Which command.
-    public let id: Name
-    /// One line for the command list.
-    public let summary: String
-    /// The usage line.
-    public let usage: String
-    /// The rest of its help.
-    public let details: String
-    
-    /// What's typed, such as "stream".
-    public var name: String { id.rawValue }
-    /// Does it need root?
-    public var requiresRoot: Bool { id.requiresRoot }
-}
-
-
-// MARK: - Help
-/// `macmonitor`'s commands and help text.
-///
-/// Every ``CommandLineCommand/Name-swift.enum`` has one ``CommandLineCommand`` here, a case in
-/// ``CommandLineParser``, and a ``CommandLineInvocation`` case (see ``CommandLineCommand/Name-swift.enum``).
-public enum CommandLineHelp {
-    /// Every command, in the order help lists them: one for each ``CommandLineCommand/Name-swift.enum``.
-    public static let commands: [CommandLineCommand] = [
-        CommandLineCommand(
-            id: .stream, summary: "Stream Endpoint Security events until Ctrl-C, or for a time or a count.",
-            usage: "sudo macmonitor stream [EVENT...] [--format text|jsonl|pretty] [--no-mutes] [--include-self] "
-                + "[--for DURATION] [--count N] [FILTER...]",
-            details: """
+    /// Its help: one line for the command list, the usage line, and the rest, which may be empty.
+    public var help: (summary: String, usage: String, details: String) {
+        switch self {
+        case .stream:
+            return ("Stream Endpoint Security events until Ctrl-C, or for a time or a count.",
+                    "sudo macmonitor stream [EVENT...] [--format text|jsonl|pretty] [--no-mutes] [--include-self] "
+                        + "[--for DURATION] [--count N] [FILTER...]", """
                 EVENT is a short name (exec), a full name (ES_EVENT_TYPE_NOTIFY_EXEC), or all. With no EVENT, \
                 macmonitor streams the events Mac Monitor records by default. Run 'macmonitor events' to list them.
 
@@ -100,11 +74,10 @@ public enum CommandLineHelp {
                 keeps recording while it runs. At most \(SensorXPC.maxCommandLineStreams) streams run at once. \
                 Events lost because Endpoint Security or macmonitor fell behind are counted and reported on standard \
                 error.
-                """),
-        CommandLineCommand(
-            id: .mute, summary: "Show or change the saved mute set Mac Monitor and macmonitor share.",
-            usage: "sudo macmonitor mute " + MuteInvocation.Name.allCases.map(\.rawValue).joined(separator: "|"),
-            details: """
+                """)
+        case .mute:
+            return ("Show or change the saved mute set Mac Monitor and macmonitor share.",
+                    "sudo macmonitor mute " + MuteInvocation.Name.allCases.map(\.rawValue).joined(separator: "|"), """
                 Commands:
                   list [--format text|json]               Show the saved mute set: a table, or with --format json
                                                           the mute file export writes.
@@ -130,24 +103,20 @@ public enum CommandLineHelp {
                 The saved set lives in the Security Extension. It applies to Mac Monitor and to every stream without \
                 --no-mutes, including streams already running, and survives restarts. Muted events are never \
                 captured, so they never show as lost.
-                """),
-        CommandLineCommand(id: .events, summary: "List the events macmonitor can stream.",
-                           usage: "macmonitor events",
-                           details: """
-                            Each event's short name, then its full name. Events marked * are streamed when no EVENT \
-                            is given. On a terminal, a line at the end says so.
-                            """),
-        CommandLineCommand(
-            id: .schema, summary: "Print Mac Monitor's telemetry schema.", usage: "macmonitor schema",
-            details: """
+                """)
+        case .events:
+            return ("List the events macmonitor can stream.", "macmonitor events", """
+                Each event's short name, then its full name. Events marked * are streamed when no EVENT \
+                is given. On a terminal, a line at the end says so.
+                """)
+        case .schema:
+            return ("Print Mac Monitor's telemetry schema.", "macmonitor schema", """
                 Writes the JSON Schema (draft 2020-12) of every record Mac Monitor and macmonitor write, telemetry \
                 \(TelemetrySchema.version), byte for byte as Mac Monitor ships it. Save it with 'macmonitor schema > \
                 \(TelemetrySchema.fileName)'.
-                """),
-        CommandLineCommand(
-            id: .validate, summary: "Check a trace against the telemetry schema.",
-            usage: "macmonitor validate [--eslogger] TRACE",
-            details: """
+                """)
+        case .validate:
+            return ("Check a trace against the telemetry schema.", "macmonitor validate [--eslogger] TRACE", """
                 TRACE is a file Mac Monitor or macmonitor exported: JSON Lines, pretty records, or a JSON array. It \
                 must be a regular file, not a folder, a pipe, or standard input.
 
@@ -159,10 +128,9 @@ public enum CommandLineHelp {
                 on and the path of the value. macmonitor exits 0 when every record follows the schema, 65 when a \
                 record doesn't or isn't JSON or TRACE has no records, and 66 when TRACE can't be read. Ctrl-C stops \
                 checking, prints the report so far, and exits 130.
-                """),
-        CommandLineCommand(
-            id: .completion, summary: "Print a shell completion script.", usage: "macmonitor completion zsh|bash",
-            details: """
+                """)
+        case .completion:
+            return ("Print a shell completion script.", "macmonitor completion zsh|bash", """
                 Completes commands, options, their values, and the events this Mac's macmonitor streams. Write it \
                 again after updating Mac Monitor.
 
@@ -171,40 +139,38 @@ public enum CommandLineHelp {
                          with fpath=(~/.zsh/completions $fpath) in ~/.zshrc. Or add
                          eval "$(macmonitor completion zsh)" to ~/.zshrc, after compinit.
                   bash   Add eval "$(macmonitor completion bash)" to ~/.bash_profile.
-                """),
-        CommandLineCommand(id: .version, summary: "Show macmonitor's version.", usage: "macmonitor version",
-                           details: ""),
-        CommandLineCommand(id: .help, summary: "Show help for a command.", usage: "macmonitor help [COMMAND]",
-                           details: "")
-    ]
-    
-    /// A command by name.
-    ///
-    /// - Parameter name: What's typed.
-    /// - Returns: The command, or `nil` if there's none.
-    public static func command(named name: String) -> CommandLineCommand? {
-        commands.first { $0.name == name }
+                """)
+        case .version: return ("Show macmonitor's version.", "macmonitor version", "")
+        case .help: return ("Show help for a command.", "macmonitor help [COMMAND]", "")
+        }
     }
-    
+}
+
+
+// MARK: - Help
+/// `macmonitor`'s help text: each ``CommandLineCommand``'s, the overview that lists them, and the `events` listing.
+public enum CommandLineHelp {
     /// Help for a command, or for `macmonitor`.
     ///
     /// - Parameter name: The command, or `nil` for the overview.
     /// - Returns: The text, ending in a newline.
     public static func text(for name: String?) -> String {
-        guard let name, let command = command(named: name) else { return overview() }
-        let details = command.details.isEmpty ? "" : "\n\(command.details)\n"
-        return "Usage: \(command.usage)\n\n\(command.summary)\n\(details)"
+        guard let command = name.flatMap(CommandLineCommand.init(rawValue:)) else { return overview() }
+        let (summary, usage, details) = command.help
+        return "Usage: \(usage)\n\n\(summary)\n\(details.isEmpty ? "" : "\n\(details)\n")"
     }
     
     /// `macmonitor`'s overview.
     ///
     /// - Returns: The text, ending in a newline.
     static func overview() -> String {
-        let width = commands.map(\.name.count).max() ?? 0
+        let commands = CommandLineCommand.allCases
+        let width = commands.map(\.rawValue.count).max() ?? 0
         let list = commands.map { command in
-            "  \(command.name)\(String(repeating: " ", count: width - command.name.count))   \(command.summary)"
+            let name = command.rawValue
+            return "  \(name.padding(toLength: width, withPad: " ", startingAt: 0))   \(command.help.summary)"
         }
-        let rooted = commands.filter(\.requiresRoot).map(\.name).joined(separator: " and ")
+        let rooted = commands.filter(\.requiresRoot).map(\.rawValue).joined(separator: " and ")
         return """
             macmonitor streams Endpoint Security events from Mac Monitor's Security Extension, and checks traces \
             against Mac Monitor's telemetry schema.
@@ -227,7 +193,7 @@ public enum CommandLineHelp {
         let catalog = CommandLineEvents.catalog()
         let width = catalog.map(\.name.count).max() ?? 0
         let lines = catalog.map { event in
-            "\(event.isDefault ? "*" : " ") \(event.name)\(String(repeating: " ", count: width - event.name.count))  "
+            "\(event.isDefault ? "*" : " ") \(event.name.padding(toLength: width, withPad: " ", startingAt: 0))  "
                 + event.fullName
         }
         return (lines + (legend ? ["", "* streamed by 'sudo macmonitor stream' with no EVENT"] : []))

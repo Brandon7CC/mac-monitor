@@ -69,12 +69,7 @@ final class MuteFileTests: XCTestCase {
     ///   - strictness: What to do with what can't be used.
     /// - Returns: The error, if it's a ``MuteFileError``.
     private func error(_ json: String, _ strictness: MuteFile.Strictness = .strict) -> MuteFileError? {
-        do {
-            _ = try read(json, strictness)
-            return nil
-        } catch {
-            return error as? MuteFileError
-        }
+        thrown { try read(json, strictness) }
     }
     
     /// Mac Monitor's default set writes and reads back as the same list, with nothing to warn about.
@@ -132,15 +127,13 @@ final class MuteFileTests: XCTestCase {
     /// Over 1 MiB is refused before parsing, and over 4,096 mutes once merged.
     func testLimits() {
         let tooLarge = Data(count: MuteLimits.maxFileBytes + 1)
-        XCTAssertThrowsError(try MuteFile.decode(tooLarge)) { error in
-            XCTAssertEqual(error as? MuteFileError, .tooLarge(bytes: MuteLimits.maxFileBytes + 1))
-        }
+        XCTAssertEqual(thrown(MuteFileError.self) { try MuteFile.decode(tooLarge) },
+                       .tooLarge(bytes: MuteLimits.maxFileBytes + 1))
         let entries = (0...MuteLimits.maxMutes).map {
             MuteFile.Entry(path: "/m/\($0)", type: "ES_MUTE_PATH_TYPE_LITERAL")
         }
-        XCTAssertThrowsError(try MuteFile(mutes: entries).list(.lenient)) { error in
-            XCTAssertEqual(error as? MuteFileError, .tooManyMutes(MuteLimits.maxMutes + 1))
-        }
+        XCTAssertEqual(thrown(MuteFileError.self) { try MuteFile(mutes: entries).list(.lenient) },
+                       .tooManyMutes(MuteLimits.maxMutes + 1))
         XCTAssertNoThrow(try MuteFile(mutes: Array(entries.dropLast())).list(.strict))
     }
     

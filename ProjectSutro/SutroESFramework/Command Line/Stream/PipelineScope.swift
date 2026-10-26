@@ -17,16 +17,6 @@ public struct PipelineAncestor: Equatable, Sendable {
     public let groupID: pid_t
     /// Its executable's path, or empty if it couldn't be read.
     public let path: String
-    
-    /// - Parameters:
-    ///   - pid: The process ID.
-    ///   - groupID: The process group.
-    ///   - path: The executable's path.
-    public init(pid: pid_t, groupID: pid_t, path: String) {
-        self.pid = pid
-        self.groupID = groupID
-        self.path = path
-    }
 }
 
 
@@ -120,11 +110,7 @@ public struct PipelineScope: Equatable, Sendable {
         var info = proc_bsdinfo()
         let size = Int32(MemoryLayout<proc_bsdinfo>.size)
         guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size else { return nil }
-        /// `PROC_PIDPATHINFO_MAXSIZE`.
-        var path = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
-        let length = proc_pidpath(pid, &path, UInt32(path.count))
-        let ancestor = PipelineAncestor(pid: pid, groupID: pid_t(info.pbi_pgid),
-                                        path: length > 0 ? String(cString: path) : "")
+        let ancestor = PipelineAncestor(pid: pid, groupID: pid_t(info.pbi_pgid), path: ProcessPath.of(pid) ?? "")
         return (ancestor, pid_t(info.pbi_ppid))
     }
 }

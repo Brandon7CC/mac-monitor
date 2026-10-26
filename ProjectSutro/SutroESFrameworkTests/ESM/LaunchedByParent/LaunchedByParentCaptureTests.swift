@@ -17,23 +17,8 @@ final class LaunchedByParentCaptureTests: XCTestCase {
     /// A shell, and the terminal app it runs in.
     private let shell = RawMessageFixture.auditToken(pid: 401, pidversion: 4010)
     private let terminal = RawMessageFixture.auditToken(pid: 300, pidversion: 3000)
-    
-    /// The answer for the shell's child: the shell, named from the forking process's executable.
-    private var shellAnswer: LaunchedByParent {
-        LaunchedByParent(source: .unixParent, audit_token: .fixture(pid: 401, pidversion: 4010), path: "/usr/bin/true",
-                         resolved_by: .securityExtension)
-    }
-    
-    /// A `path` that fails the test if it's called.
-    ///
-    /// - Parameter line: The caller's line, for the failure.
-    /// - Returns: The closure.
-    private func noPaths(line: UInt = #line) -> (Int32, AuditToken?) -> String? {
-        { pid, _ in
-            XCTFail("Read the path of \(pid)", line: line)
-            return nil
-        }
-    }
+    /// A process lane, new for each test: it remembers the processes its events named.
+    private let lane = LaneContext(eventClass: .process, sensorID: "SENSOR", encoder: StreamingJSONEncoder())
     
     /// The shell's fork of pid 402, which stays alive until the test ends.
     ///
@@ -44,7 +29,7 @@ final class LaunchedByParentCaptureTests: XCTestCase {
         return fixture
     }
     
-    /// Serialize a message as a process lane does.
+    /// Serialize a message in ``lane``.
     ///
     /// - Parameters:
     ///   - fixture: The message.
@@ -52,9 +37,8 @@ final class LaunchedByParentCaptureTests: XCTestCase {
     /// - Returns: The event's JSON object.
     /// - Throws: An `XCTest` failure if it wasn't serialized, or the error parsing it.
     private func serialize(_ fixture: RawMessageFixture, with serializer: MessageSerializer) throws -> [String: Any] {
-        let lane = LaneContext(eventClass: .process, sensorID: "SENSOR", encoder: StreamingJSONEncoder())
         let json = try XCTUnwrap(serializer.serialize(fixture.raw, in: lane))
-        return try XCTUnwrap(try JSONSerialization.jsonObject(with: json) as? [String: Any])
+        return try jsonObject(json)
     }
     
     /// A fork's child is stamped with its Unix parent, the forking process, named by its executable: no path is read.
@@ -80,7 +64,6 @@ final class LaunchedByParentCaptureTests: XCTestCase {
             reads.append(pid)
             return "/read/\(pid)"
         })
-        let lane = LaneContext(eventClass: .process, sensorID: "SENSOR", encoder: StreamingJSONEncoder())
         /// The responsible process's path stamped on a launchd fork of `child`.
         func responsiblePath(child: Int32, responsible: audit_token_t) throws -> String? {
             let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_FORK)
@@ -111,7 +94,6 @@ final class LaunchedByParentCaptureTests: XCTestCase {
         let exit = rawMessage(type: ES_EVENT_TYPE_NOTIFY_EXIT)
         let open = rawMessage(type: ES_EVENT_TYPE_NOTIFY_OPEN)
         open.message.pointee.event.open.file = open.file("/private/tmp/example")
-        let lane = LaneContext(eventClass: .process, sensorID: "SENSOR", encoder: StreamingJSONEncoder())
         for fixture in [exit, open] {
             let json = try XCTUnwrap(MessageSerializer(processPath: noPaths()).serialize(fixture.raw, in: lane))
             XCTAssertFalse(String(decoding: json, as: UTF8.self).contains("launched_by_parent"))
@@ -129,20 +111,18 @@ final class LaunchedByParentCaptureTests: XCTestCase {
         factory.client(.process).deliver(shellFork())
         let event = try XCTUnwrap(emitted.all.first)
         XCTAssertEqual(event.eventClass, .process)
-        XCTAssertEqual(try JSONDecoder().decode(Message.self, from: event.json).createdLaunchedByParent, shellAnswer)
+        XCTAssertEqual(try JSONDecoder().decode(Message.self, from: event.json).createdLaunchedByParent, .shell())
     }
     
     /// A message with a launched-by parent, named or not, streams exactly as `JSONEncoder` writes it.
     func testStreamsLikeJSONEncoder() throws {
         let unnamed = LaunchedByParent(source: .launchServices, audit_token: nil, path: nil, resolved_by: .app)
-        let job = LaunchedByParent(source: .launchdJob, audit_token: .fixture(pid: 1, pidversion: 1),
-                                   path: LaunchedByParent.launchdPath, launchd_job: .init(label: "com.example.agent"),
-                                   resolved_by: .securityExtension)
+        let job = LaunchedByParent.appJob(label: "com.example.agent")
         let fork = Message(from: shellFork().raw)
         let exec = try importRecord(try esloggerExec(parent: (1, 1), env: ["XPC_SERVICE_NAME=com.example.agent"]))
         let encoder = StreamingJSONEncoder()
         for (base, name) in [(fork, "fork"), (exec, "exec")] {
-            for launchedByParent in [shellAnswer, unnamed, job] {
+            for launchedByParent in [.shell(), unnamed, job] {
                 var message = base
                 message.setLaunchedByParent(launchedByParent)
                 let streamed = try encoder.encode(message)
@@ -161,10 +141,8 @@ final class LaunchedByParentCaptureTests: XCTestCase {
         var exec = try importRecord(try esloggerExec(parent: (401, 4010), env: ["XPC_SERVICE_NAME=com.example.agent"]))
         XCTAssertNil(exec.createdLaunchedByParent, "eslogger's exec carries none")
         exec.resolveLaunchedByParent(by: .securityExtension) { pid, _ in "/path/of/\(pid)" }
-        let shell = AuditToken(pid: 401, pidversion: 4010, asid: 100_001, auid: 4_294_967_295, euid: 0, ruid: 0,
-                               rgid: 0, egid: 0)
-        let expected = LaunchedByParent(source: .unixParent, audit_token: shell, path: "/path/of/401",
-                                        resolved_by: .securityExtension)
+        let expected = LaunchedByParent.shell(token: .fixture(pid: 401, pidversion: 4010, asid: 100_001),
+                                              path: "/path/of/401")
         XCTAssertEqual(exec.createdLaunchedByParent, expected)
         exec.resolveLaunchedByParent(by: .app, path: noPaths())
         XCTAssertEqual(exec.createdLaunchedByParent, expected)
@@ -178,8 +156,8 @@ final class LaunchedByParentCaptureTests: XCTestCase {
     /// again, or a copy of `xpcproxy` that isn't a platform binary, set the label themselves.
     func testOnlyXPCProxyNamesAJob() throws {
         let record = try esloggerExec(parent: (1, 1), env: ["XPC_SERVICE_NAME=com.example.agent"])
-        let execs = [(try execedByXPCProxy(record), true), (record, false),
-                     (try execedByXPCProxy(record, platform: false), false)]
+        let execs = [(execedByXPCProxy(record), true), (record, false),
+                     (execedByXPCProxy(record, platform: false), false)]
         for (made, namesJob) in execs {
             var exec = try importRecord(made)
             exec.resolveLaunchedByParent(by: .securityExtension, path: noPaths())

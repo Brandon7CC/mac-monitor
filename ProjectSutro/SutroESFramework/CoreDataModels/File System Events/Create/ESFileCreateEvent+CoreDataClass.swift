@@ -52,17 +52,11 @@ extension ESFileCreateEvent: Encodable {
     ///
     /// "" for a destination that can't be read.
     public var targetPath: String {
-        if let existingFile = destination.existing_file,
-           let path = existingFile.path {
-            return path
-        } else if let newPath = destination.new_path {
-            if let dir = newPath.dir?.path,
-               let fileName = newPath.filename {
-                return "\(dir)/\(fileName)"
-            }
+        if let path = destination.existing_file?.path { return path }
+        guard let newPath = destination.new_path, let dir = newPath.dir?.path, let name = newPath.filename else {
+            return ""
         }
-        
-        return ""
+        return "\(dir)/\(name)"
     }
     
     /// The created file's name: the last component of ``targetPath``, or "" without one.

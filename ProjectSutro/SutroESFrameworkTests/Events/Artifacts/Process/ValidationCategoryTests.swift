@@ -42,12 +42,9 @@ final class ValidationCategoryTests: XCTestCase {
     ///   - version: The message's version.
     ///   - category: The category, or `nil` to leave the key out.
     /// - Returns: The record.
-    /// - Throws: An `XCTest` failure if the record has no process.
-    private func record(_ record: [String: Any], version: Int, category: Int?) throws -> [String: Any] {
+    private func record(_ record: [String: Any], version: Int, category: Int?) -> [String: Any] {
         var record = record
-        var process = try XCTUnwrap(record["process"] as? [String: Any])
-        process["cs_validation_category"] = category
-        record["process"] = process
+        record[path: "process", "cs_validation_category"] = category
         record["version"] = version
         return record
     }
@@ -78,7 +75,7 @@ final class ValidationCategoryTests: XCTestCase {
         let eslogger = try fixtureObject("eslogger-exit.jsonl")
         var names: [String] = []
         for category in categories + [es_cs_validation_category_t(rawValue: 9_999)] {
-            let process = try importedProcess(try record(eslogger, version: 10, category: Int(category.rawValue)))
+            let process = try importedProcess(record(eslogger, version: 10, category: Int(category.rawValue)))
             names.append(try XCTUnwrap(process["cs_validation_category_string"] as? String))
         }
         XCTAssertEqual(names.last, "UNKNOWN")
@@ -91,18 +88,16 @@ final class ValidationCategoryTests: XCTestCase {
     /// An eslogger record before message version 10 has no category, and neither has its export. Nor has a Mac
     /// Monitor 2.1 export of one, which wrote 0.
     func testImportedBeforeVersion10() throws {
-        let eslogger = try record(try fixtureObject("eslogger-exit.jsonl"), version: 9, category: nil)
+        let eslogger = record(try fixtureObject("eslogger-exit.jsonl"), version: 9, category: nil)
         XCTAssertNil(try importedProcess(eslogger)["cs_validation_category"])
-        var legacy = try record(try fixtureObject("macmonitor-2.1-exit.jsonl"), version: 8, category: 0)
-        var process = try XCTUnwrap(legacy["process"] as? [String: Any])
-        process["cs_validation_category_string"] = nil
-        legacy["process"] = process
+        var legacy = record(try fixtureObject("macmonitor-2.1-exit.jsonl"), version: 8, category: 0)
+        legacy[path: "process", "cs_validation_category_string"] = nil
         XCTAssertNil(try importedProcess(legacy)["cs_validation_category"])
     }
     
     /// From message version 10 an opened trace's category is exported as it was recorded.
     func testImportedFromVersion10() throws {
-        let eslogger = try record(try fixtureObject("eslogger-exit.jsonl"), version: 10, category: 0)
+        let eslogger = record(try fixtureObject("eslogger-exit.jsonl"), version: 10, category: 0)
         XCTAssertEqual(try importedProcess(eslogger)["cs_validation_category"] as? Int, 0)
         let legacy = try importedProcess(try fixtureObject("macmonitor-2.1-exit.jsonl"))
         XCTAssertEqual(legacy["cs_validation_category"] as? Int, 1)

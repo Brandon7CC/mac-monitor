@@ -69,7 +69,7 @@ struct SystemEnrichedEventView: View {
             if !summary.findings.isEmpty {
                 InsightGrid {
                     ForEach(summary.findings, id: \.finding) { item in
-                        let files = item.rows.map { ($0.target as NSString).lastPathComponent }
+                        let files = item.rows.map(\.target.lastPathComponent)
                         InsightCard(symbol: item.finding.symbol, tint: item.finding.tint,
                                     title: item.finding.title(item.rows.count), detail: InsightCard.detail(files),
                                     explanation: item.finding.explanation, isOn: finding == item.finding) {

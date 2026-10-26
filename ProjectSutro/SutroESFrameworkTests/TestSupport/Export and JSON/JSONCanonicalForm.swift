@@ -35,6 +35,18 @@ enum JSONCanonicalForm {
         return String(decoding: value, as: UTF8.self)
     }
     
+    /// An object's own keys, in the order they're written.
+    ///
+    /// - Parameter json: An object's JSON.
+    /// - Returns: Its members' keys, without those of the objects inside it.
+    /// - Throws: ``SyntaxError`` if the bytes don't start with an object.
+    static func keys(_ json: Data) throws -> [String] {
+        var parser = Parser(bytes: Array(json))
+        parser.skipSpace()
+        guard try parser.current() == UInt8(ascii: "{") else { throw SyntaxError(offset: parser.index) }
+        return try parser.members().map { String(decoding: $0.key.dropFirst().dropLast(), as: UTF8.self) }
+    }
+    
     /// Reads JSON, writing each value's canonical bytes.
     private struct Parser {
         let bytes: [UInt8]
@@ -72,12 +84,25 @@ enum JSONCanonicalForm {
         /// - Returns: Its canonical bytes.
         /// - Throws: ``SyntaxError`` if it isn't an object.
         mutating func object() throws -> [UInt8] {
+            let sorted = try members().enumerated().sorted { lhs, rhs in
+                lhs.element.key == rhs.element.key ? lhs.offset < rhs.offset
+                    : lhs.element.key.lexicographicallyPrecedes(rhs.element.key)
+            }
+            let body = sorted.map { $0.element.key + [UInt8(ascii: ":")] + $0.element.value }
+            return [UInt8(ascii: "{")] + Array(body.joined(separator: [UInt8(ascii: ",")])) + [UInt8(ascii: "}")]
+        }
+        
+        /// Read an object's members, in the order they're written.
+        ///
+        /// - Returns: Each member's raw key bytes, quotes and all, and its value's canonical bytes.
+        /// - Throws: ``SyntaxError`` if it isn't an object.
+        mutating func members() throws -> [(key: [UInt8], value: [UInt8])] {
             index += 1
             var members: [(key: [UInt8], value: [UInt8])] = []
             skipSpace()
             if try current() == UInt8(ascii: "}") {
                 index += 1
-                return Array("{}".utf8)
+                return []
             }
             while true {
                 skipSpace()
@@ -92,12 +117,7 @@ enum JSONCanonicalForm {
                 if separator == UInt8(ascii: "}") { break }
                 guard separator == UInt8(ascii: ",") else { throw SyntaxError(offset: index - 1) }
             }
-            let sorted = members.enumerated().sorted { lhs, rhs in
-                lhs.element.key == rhs.element.key ? lhs.offset < rhs.offset
-                    : lhs.element.key.lexicographicallyPrecedes(rhs.element.key)
-            }
-            let body = sorted.map { $0.element.key + [UInt8(ascii: ":")] + $0.element.value }
-            return [UInt8(ascii: "{")] + Array(body.joined(separator: [UInt8(ascii: ",")])) + [UInt8(ascii: "}")]
+            return members
         }
         
         /// Read an array.

@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import Combine
 import EndpointSecurity
 @testable import SutroESFramework
 
@@ -19,7 +20,7 @@ final class SavedMuteSetSessionTests: XCTestCase {
     private struct Follower {
         let session: CaptureSession
         let factory: FakeEndpointSecurityClientFactory
-        let subscription: MuteSubscription?
+        let subscription: AnyCancellable?
     }
     
     /// Lets a follower closure reach a session made after it.
@@ -47,7 +48,7 @@ final class SavedMuteSetSessionTests: XCTestCase {
     private func makeFollower(following: Bool = true) throws -> Follower {
         let box = SessionBox()
         var configuration = CaptureConfiguration(label: "Test")
-        var subscription: MuteSubscription?
+        var subscription: AnyCancellable?
         if following {
             let (mutes, followed) = saved.follow { list, _ in box.session?.applyMutes(list) }
             configuration.mutes = mutes

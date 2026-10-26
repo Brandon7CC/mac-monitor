@@ -9,7 +9,7 @@ import Foundation
 
 
 /// Models an `action_type` union from an `es_message_t`
-public struct ActionResult: Codable, Equatable, Hashable {
+public struct ActionResult: Codable, Hashable {
     public var result_type: Int?
     public var result_type_human: String?
     public var result: AuthResult?
@@ -57,7 +57,7 @@ extension ActionResult: ESEnrichable {
 }
 
 
-public struct ActionResultWrapper: Codable, Equatable, Hashable {
+public struct ActionResultWrapper: Codable, Hashable {
     public var result: ActionResult?
     
     init(from message: es_message_t) {

@@ -29,10 +29,8 @@ public struct LaunchItemAddEvent: Codable, IdentityHashable {
         instigator = lauchItemAddEvent.instigator.map { Process(from: $0.pointee, version: version) }
         app = lauchItemAddEvent.app.map { Process(from: $0.pointee, version: version) }
         
-        if version >= 8 {
-            instigator_token = lauchItemAddEvent.instigator_token.map { AuditToken(from: $0.pointee) }
-            app_token = lauchItemAddEvent.app_token.map { AuditToken(from: $0.pointee) }
-        }
+        instigator_token = version >= 8 ? lauchItemAddEvent.instigator_token.map { AuditToken(from: $0.pointee) } : nil
+        app_token = version >= 8 ? lauchItemAddEvent.app_token.map { AuditToken(from: $0.pointee) } : nil
         
         // MARK: - Item
         item = LaunchItem(from: lauchItemAddEvent.item.pointee)

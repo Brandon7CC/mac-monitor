@@ -32,6 +32,8 @@ final class EventSearchController: ObservableObject {
     weak var queries: EventQueryModel?
     /// The predicate editor's text.
     @Published var draft = ""
+    /// Is the predicate editor's text only white space?
+    var isDraftBlank: Bool { draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     /// Applied predicates, newest first.
     @Published private(set) var recents: [String]
     @Published private(set) var saved: [SavedPredicate]
@@ -71,6 +73,14 @@ final class EventSearchController: ObservableObject {
         if let applied { draft = applied.source }
         showsEditor = true
     }
+    
+    /// Show or hide the predicate editor (View ▸ Predicate Editor, ⌥⌘F), or bring its window forward.
+    ///
+    /// - Parameter openWindow: Opens the editor's own window, when it's in one.
+    func toggleEditor(_ openWindow: OpenWindowAction) {
+        if isPoppedOut { return openWindow(id: ProjectSutroApp.predicateEditorWindow) }
+        if showsEditor { showsEditor = false } else { showEditor() }
+    }
 
     /// Why a predicate can't be applied.
     ///
@@ -97,9 +107,10 @@ final class EventSearchController: ObservableObject {
         remember(trimmed)
     }
 
-    /// Stop filtering by a predicate.
+    /// Stop filtering by a predicate, and empty the predicate editor.
     func clear() {
         applied = nil
+        draft = ""
     }
 
     /// Keep a predicate under a name in Saved, replacing one of the same name.
@@ -141,13 +152,6 @@ final class EventSearchController: ObservableObject {
 
 
 // MARK: - Search field
-extension Notification.Name {
-    /// Asks the main window's search field to take the keyboard focus (Edit ▸ Find…, ``FindCommand``).
-    static let focusEventSearch = Notification.Name("com.swiftlydetecting.agent.focusEventSearch")
-    /// Asks the main window to show or hide the predicate editor (View ▸ Predicate Editor).
-    static let togglePredicateEditor = Notification.Name("com.swiftlydetecting.agent.togglePredicateEditor")
-}
-
 /// Edit ▸ Find… (⌘F): text with a find bar, such as Event Facts' JSON tab, shows it when it has the focus or when
 /// its window has no event search field, and otherwise the main window's search field takes the focus.
 @MainActor
@@ -156,12 +160,14 @@ enum FindCommand {
         guard let window = NSApp.keyWindow else { return }
         let frame = window.contentView?.superview ?? window.contentView
         let focused = (window.firstResponder as? NSTextView).flatMap { $0.usesFindBar ? $0 : nil }
-        let hasEventSearch = frame?.firstDescendant(of: FixedWidthSearchField.self) != nil
+        let search = frame?.firstDescendant(of: FixedWidthSearchField.self)
         let findable = window.contentView?.firstDescendant(of: NSTextView.self) {
             $0.usesFindBar && !$0.isHiddenOrHasHiddenAncestor
         }
-        guard let textView = focused ?? (hasEventSearch ? nil : findable)
-        else { return NotificationCenter.default.post(name: .focusEventSearch, object: nil) }
+        guard let textView = focused ?? (search == nil ? findable : nil) else {
+            if let search { window.makeFirstResponder(search) }
+            return
+        }
         window.makeFirstResponder(textView)
         let item = NSMenuItem()
         item.tag = NSTextFinder.Action.showFindInterface.rawValue
@@ -199,7 +205,6 @@ struct EventSearchField: NSViewRepresentable {
         field.maximumRecents = 0
         field.lineBreakMode = .byTruncatingTail
         context.coordinator.field = field
-        context.coordinator.observeFocusRequests()
         return field
     }
 
@@ -214,26 +219,9 @@ struct EventSearchField: NSViewRepresentable {
     final class Coordinator: NSObject, NSSearchFieldDelegate {
         var parent: EventSearchField
         weak var field: NSSearchField?
-        private var observer: NSObjectProtocol?
 
         init(_ parent: EventSearchField) {
             self.parent = parent
-        }
-
-        deinit {
-            if let observer { NotificationCenter.default.removeObserver(observer) }
-        }
-
-        /// Take the focus when Edit ▸ Find… asks, in this field's window.
-        func observeFocusRequests() {
-            observer = NotificationCenter.default.addObserver(forName: .focusEventSearch, object: nil, queue: .main) {
-                [weak self] _ in
-                Task { @MainActor in
-                    guard let field = self?.field, let window = field.window, window.isKeyWindow
-                    else { return }
-                    window.makeFirstResponder(field)
-                }
-            }
         }
 
         func controlTextDidChange(_ notification: Notification) {

@@ -13,13 +13,11 @@ import SutroESFramework
 /// An exec's or fork's Unix parent and launched-by parent rows under "Parent user", looked up in the store. The
 /// launched-by parent only shows when it differs.
 struct ParentsView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-
     /// The exec or fork.
     let message: ESMessage
 
     var body: some View {
-        if let parents = systemExtensionManager.coreDataContainer.lineage.parents(of: message) {
+        if let parents = CoreDataController.shared.lineage.parents(of: message) {
             VStack(alignment: .leading) {
                 ParentRow(
                     title: LaunchedByParent.Source.unixParent.title,

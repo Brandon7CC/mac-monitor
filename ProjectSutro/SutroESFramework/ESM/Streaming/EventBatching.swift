@@ -9,16 +9,14 @@ import Foundation
 
 
 // MARK: - Delivery
-/// Sends one batch of events to the process reading them, for an ``EventBatcher``.
-public protocol EventBatchDelivery: AnyObject {
-    /// Send a batch.
-    ///
-    /// - Parameters:
-    ///   - batch: Serialized events, oldest first.
-    ///   - completion: Called exactly once, on any thread: `true` once the reader replied, `false` if the batch was
-    ///     lost because the reader went away.
-    func deliver(_ batch: [Data], completion: @escaping (Bool) -> Void)
-}
+/// Sends one batch of events to the process reading them, for an ``EventBatcher``, such as
+/// ``EventBatcher/xpcDelivery(over:label:)``.
+///
+/// - Parameters:
+///   - batch: Serialized events, oldest first.
+///   - completion: Called exactly once, on any thread: `true` once the reader replied, `false` if the batch was lost
+///     because the reader went away.
+public typealias EventBatchDelivery = (_ batch: [Data], _ completion: @escaping (Bool) -> Void) -> Void
 
 
 // MARK: - Backlog

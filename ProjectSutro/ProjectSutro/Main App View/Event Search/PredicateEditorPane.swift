@@ -35,8 +35,7 @@ struct PredicateEditorPane: View {
     @State private var newName = ""
 
     var body: some View {
-        let problem = search.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? nil : search.problem(with: search.draft)
+        let problem = search.isDraftBlank ? nil : search.problem(with: search.draft)
         VStack(spacing: 0) {
             if !isWindow {
                 HStack(spacing: 4) {
@@ -87,7 +86,7 @@ struct PredicateEditorPane: View {
         }
         .help("Put each AND and OR on its own line")
         Button { newName = ""; naming = true } label: { Label("Save…", systemImage: "star") }
-            .disabled(search.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(search.isDraftBlank)
             .help("Keep this predicate under Saved")
         Button {
             NSPasteboard.general.clearContents()
@@ -115,7 +114,7 @@ struct PredicateEditorPane: View {
     /// - Parameter problem: Why the draft can't be applied.
     /// - Returns: The code editor over its status bar.
     private func editorBox(problem: String?) -> some View {
-        let empty = search.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let empty = search.isDraftBlank
         let clauses = Self.clauses(in: search.draft)
         let status = empty ? "Type a key path, an operator and a value."
             : problem ?? "Valid predicate · \(clauses) \(clauses == 1 ? "clause" : "clauses")"
@@ -178,7 +177,7 @@ struct PredicateEditorPane: View {
     /// - Parameter source: A predicate.
     /// - Returns: How many comparisons its ANDs and ORs join.
     static func clauses(in source: String) -> Int {
-        PredicateSyntax.tokens(in: source)
+        PredicateText.tokens(in: source)
             .filter { $0.kind == .keyword && ["AND", "OR"].contains($0.text.uppercased()) }
             .count + 1
     }
@@ -269,11 +268,8 @@ private struct PredicateEditorFooter: View {
                                             ? .green : .secondary))
             Spacer()
             if unchanged && !applied.isEmpty {
-                Button("Remove") {
-                    search.clear()
-                    search.draft = ""
-                }
-                .help("Stop filtering by this predicate")
+                Button("Remove", action: search.clear)
+                    .help("Stop filtering by this predicate")
             } else {
                 Button("Revert") { search.draft = search.applied?.source ?? "" }
                     .disabled(unchanged)

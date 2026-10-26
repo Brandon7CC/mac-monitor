@@ -12,8 +12,6 @@ import SutroESFramework
 // MARK: - Syntax
 /// How a predicate's text is colored, as Xcode colors code, in light and dark.
 enum PredicateSyntax {
-    typealias Token = PredicateText.Token
-
     static let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
     static let boldFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .semibold)
     static let keyColor = dynamic(light: 0x0F68A0, dark: 0x67B7A4)
@@ -21,12 +19,6 @@ enum PredicateSyntax {
     static let stringColor = dynamic(light: 0xC41A16, dark: 0xFC6A5D)
     static let numberColor = dynamic(light: 0x1C00CF, dark: 0xD0BF69)
     static let variableColor = dynamic(light: 0x6C36A9, dark: 0xA167E6)
-
-    /// - Parameter text: A predicate.
-    /// - Returns: Its tokens, in order.
-    static func tokens(in text: String) -> [Token] {
-        PredicateText.tokens(in: text)
-    }
 
     /// Color a predicate's text, and underline each key path from its first key that isn't where it puts it, as the
     /// predicate is refused for it.
@@ -36,15 +28,13 @@ enum PredicateSyntax {
         let full = NSRange(location: 0, length: storage.length)
         storage.beginEditing()
         storage.setAttributes([.font: font, .foregroundColor: NSColor.labelColor], range: full)
-        for token in tokens(in: storage.string) {
+        for token in PredicateText.tokens(in: storage.string) {
             switch token.kind {
             case .string: storage.addAttribute(.foregroundColor, value: stringColor, range: token.range)
             case .number: storage.addAttribute(.foregroundColor, value: numberColor, range: token.range)
-            case .comparison: storage.addAttribute(.foregroundColor, value: keywordColor, range: token.range)
+            case .comparison, .function: storage.addAttribute(.foregroundColor, value: keywordColor, range: token.range)
             case .keyword:
                 storage.addAttributes([.foregroundColor: keywordColor, .font: boldFont], range: token.range)
-            case .function:
-                storage.addAttribute(.foregroundColor, value: keywordColor, range: token.range)
             case .keyPath, .variable:
                 storage.addAttribute(.foregroundColor, value: keyColor, range: token.range)
                 let keys = PredicateText.keys(of: token)

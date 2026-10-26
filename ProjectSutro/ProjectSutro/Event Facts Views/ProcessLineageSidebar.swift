@@ -14,7 +14,6 @@ import SutroESFramework
 /// the View menu or in Settings > General (``ProcessLineageMode``). It follows a change at once, and its
 /// header names the choice. Choosing a row shows that event.
 struct ProcessLineageSidebar: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @Environment(\.openWindow) private var openEventFacts
     /// Which parents the tree follows.
     @AppStorage(ProcessLineageMode.storageKey) private var mode = ProcessLineageMode.defaultMode
@@ -57,7 +56,7 @@ struct ProcessLineageSidebar: View {
     /// - Parameter event: The selected event.
     /// - Returns: Its process tree, looked up in the store.
     private func procTree(for event: ESMessage) -> [ESMessage] {
-        systemExtensionManager.coreDataContainer.getProcTree(targetEvent: event).filter {
+        CoreDataController.shared.getProcTree(targetEvent: event).filter {
             $0.event_type != ESMessage.forkEventType
         }
     }
@@ -110,7 +109,7 @@ struct ProcessLineageSidebar: View {
     /// - Returns: Its process's launched-by parents from the farthest; for an event that didn't create a process, the
     ///   process that caused it, as in the Unix tree; then the event.
     private func launchedByParentTree(of selected: ESMessage) -> some View {
-        let container = systemExtensionManager.coreDataContainer
+        let container = CoreDataController.shared
         /// One lookup per update.
         let steps = container.lineage.launchedByParents(of: selected)
         let origin = selected.createsProcess ? nil : container.findParentProc(message: selected)
@@ -185,7 +184,7 @@ struct ProcessLineageSidebar: View {
             return "**`launchd`** · `\(label)`"
         }
         guard let pid = answer.pid else { return "Launch Services · no launcher recorded" }
-        guard let name = step.path.map({ ($0 as NSString).lastPathComponent }), !name.isEmpty else {
+        guard let name = (step.path?.lastPathComponent).nonEmpty else {
             return "pid `\(String(pid))`"
         }
         return "**`\(name)`**"

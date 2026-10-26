@@ -97,7 +97,7 @@ final class RemoteThreadCreateExportTests: XCTestCase {
     /// - Throws: The error reading the fixture.
     private func legacyRecord(threadState: Any) throws -> [String: Any] {
         let target = try XCTUnwrap(try fixtureObject("macmonitor-2.1-exit.jsonl")["process"])
-        return try legacyRecord("remote_thread_create", type: ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE,
+        return try legacyRecord(ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE,
                                 ["target": target, "thread_state": threadState])
     }
     

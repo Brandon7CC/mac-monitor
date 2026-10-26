@@ -97,8 +97,7 @@ public final class TelemetryExporter {
                   stores.allSatisfy({ $0.type == NSSQLiteStoreType && $0.url?.path != "/dev/null" }) else { return nil }
             do {
                 try context.setQueryGenerationFrom(.current)
-                let request = NSFetchRequest<NSManagedObjectID>(entityName: "ESMessage")
-                request.resultType = .managedObjectIDResultType
+                let request = ESMessage.request(NSManagedObjectID.self)
                 request.fetchLimit = 1
                 _ = try context.fetch(request)
             } catch {
@@ -154,13 +153,10 @@ public final class TelemetryExporter {
     ///   - source: Where the store's events come from.
     /// - Returns: The events' object IDs.
     func allEvents(through batch: Int64, from source: CoreDataController.EventSource) throws -> [NSManagedObjectID] {
-        let request = NSFetchRequest<NSManagedObjectID>(entityName: "ESMessage")
-        request.resultType = .managedObjectIDResultType
-        request.predicate = NSPredicate(format: "insert_batch <= %lld", batch)
+        let saved = NSPredicate(format: "insert_batch <= %lld", batch)
         let arrival = NSSortDescriptor(key: "insert_order", ascending: true)
-        request.sortDescriptors = source == .live ? [NSSortDescriptor(key: "mach_time", ascending: true), arrival]
-            : [arrival]
-        return try context.fetch(request)
+        let order = source == .live ? [NSSortDescriptor(key: "mach_time", ascending: true), arrival] : [arrival]
+        return try context.fetch(ESMessage.request(NSManagedObjectID.self, where: saved, sortedBy: order))
     }
     
     /// The events with these IDs, found through the indexed `id`, ordered by `mach_time` with ties in `eventIDs` order:
@@ -181,10 +177,9 @@ public final class TelemetryExporter {
         for start in stride(from: 0, to: eventIDs.count, by: Self.lookupSize) {
             guard !isCancelled else { throw CancellationError() }
             try autoreleasepool {
-                let request = NSFetchRequest<NSDictionary>(entityName: "ESMessage")
-                request.resultType = .dictionaryResultType
+                let ids = Array(eventIDs[start..<min(start + Self.lookupSize, eventIDs.count)])
+                let request = ESMessage.request(NSDictionary.self, where: NSPredicate(format: "id IN %@", ids))
                 request.propertiesToFetch = [objectID, "id", "mach_time"]
-                request.predicate = NSPredicate(format: "id IN %@", Array(eventIDs[start..<min(start + Self.lookupSize, eventIDs.count)]))
                 for row in try context.fetch(request) {
                     guard let oid = row["objectID"] as? NSManagedObjectID, let id = row["id"] as? UUID,
                           let index = position[id], seen.insert(id).inserted else { continue }
@@ -213,38 +208,31 @@ public final class TelemetryExporter {
         let batches = stride(from: 0, to: ids.count, by: Self.batchSize).map {
             Array(ids[$0..<min($0 + Self.batchSize, ids.count)])
         }
-        do {
-            for round in stride(from: 0, to: batches.count, by: workers.count) {
-                guard !isCancelled else { throw CancellationError() }
-                let jobs = Array(batches[round..<min(round + workers.count, batches.count)])
-                DispatchQueue.concurrentPerform(iterations: jobs.count) { index in
-                    workers[index].encode(jobs[index], prefetch: prefetch)
-                }
-                for worker in workers.prefix(jobs.count) {
-                    let records = try worker.records()
-                    guard records.count > 0 else { continue }
-                    if written > 0 { buffer.append(0x0A) }
-                    buffer.append(records.json)
-                    written += records.count
-                }
-                if buffer.count >= 1 << 20 {
-                    try handle.write(contentsOf: buffer)
-                    buffer.removeAll(keepingCapacity: true)
-                }
-                let now = DispatchTime.now().uptimeNanoseconds
-                if now - reported >= reportInterval {
-                    reported = now
-                    progress(Progress(written: written, total: ids.count))
-                }
-            }
-            /// A Cancel during the last round, which the loop no longer checks for.
+        for round in stride(from: 0, to: batches.count, by: workers.count) {
             guard !isCancelled else { throw CancellationError() }
-            try handle.write(contentsOf: buffer)
-            try handle.close()
-        } catch {
-            try? handle.close()
-            throw error
+            let jobs = Array(batches[round..<min(round + workers.count, batches.count)])
+            /// Worker `i` encodes job `i`. The records are written in job order, and the first error is thrown.
+            for encoded in jobs.indices.concurrentMap({ workers[$0].encode(jobs[$0], prefetch: prefetch) }) {
+                let records = try encoded.get()
+                guard records.count > 0 else { continue }
+                if written > 0 { buffer.append(0x0A) }
+                buffer.append(records.json)
+                written += records.count
+            }
+            if buffer.count >= 1 << 20 {
+                try handle.write(contentsOf: buffer)
+                buffer.removeAll(keepingCapacity: true)
+            }
+            let now = DispatchTime.now().uptimeNanoseconds
+            if now - reported >= reportInterval {
+                reported = now
+                progress(Progress(written: written, total: ids.count))
+            }
         }
+        /// A Cancel during the last round, which the loop no longer checks for.
+        guard !isCancelled else { throw CancellationError() }
+        try handle.write(contentsOf: buffer)
+        try handle.close()
         /// Or during the last write: only the rename itself can't be stopped.
         guard !isCancelled else { throw CancellationError() }
         try Self.replace(url, with: temporary)
@@ -255,6 +243,9 @@ public final class TelemetryExporter {
     
     /// Create a hidden temporary file next to `url`, as `String.write(to:atomically:encoding:)` does, so the export
     /// takes the folder's group and inherited permissions and the final rename stays on one volume.
+    ///
+    /// The handle closes its descriptor when it's released (`closeOnDealloc`): ``write(_:to:progress:)`` relies on that
+    /// when it throws.
     ///
     /// - Parameter url: The destination.
     /// - Returns: The open file and its path.
@@ -283,15 +274,13 @@ public final class TelemetryExporter {
 // MARK: - Workers
 extension TelemetryExporter {
     /// Fetches and encodes one batch at a time on its own context, pinned to the export's snapshot. Used by one thread
-    /// at a time: the exporter hands it a batch, then reads its records once every worker has finished.
+    /// at a time.
     final class Worker {
         let context: NSManagedObjectContext
         private let pretty: Bool
         /// Writes JSONL records where it sorts keys as `JSONEncoder` does
         /// (``ProcessHelpers/eventToJSON(value:pretty:)`` otherwise).
         private let encoder: StreamingJSONEncoder?
-        /// The last batch's records joined by newlines, and how many there are, or why there are none.
-        private var result: Result<(json: Data, count: Int), Error> = .success((Data(), 0))
         
         /// - Parameters:
         ///   - context: Its own context.
@@ -309,13 +298,12 @@ extension TelemetryExporter {
         /// - Parameters:
         ///   - batch: The events' object IDs.
         ///   - prefetch: Every to-one relationship an event encodes.
-        func encode(_ batch: [NSManagedObjectID], prefetch: [String]) {
+        /// - Returns: The records joined by newlines and how many there are, or the error fetching them.
+        func encode(_ batch: [NSManagedObjectID], prefetch: [String]) -> Result<(json: Data, count: Int), Error> {
             context.performAndWait {
-                result = Result {
+                Result {
                     try autoreleasepool {
-                        let request = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-                        request.predicate = NSPredicate(format: "self IN %@", batch)
-                        request.returnsObjectsAsFaults = false
+                        let request = ESMessage.request(where: NSPredicate(format: "self IN %@", batch), loaded: true)
                         request.relationshipKeyPathsForPrefetching = prefetch
                         let loaded = Dictionary(try context.fetch(request).map { ($0.objectID, $0) },
                                                 uniquingKeysWith: { first, _ in first })
@@ -337,12 +325,6 @@ extension TelemetryExporter {
                 }
             }
         }
-        
-        /// The last batch's records.
-        ///
-        /// - Returns: Their JSON joined by newlines, and how many there are.
-        /// - Throws: The error fetching them.
-        func records() throws -> (json: Data, count: Int) { try result.get() }
     }
 }
 

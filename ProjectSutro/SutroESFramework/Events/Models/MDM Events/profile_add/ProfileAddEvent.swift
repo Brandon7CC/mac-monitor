@@ -31,9 +31,6 @@ public struct ProfileAddEvent: Codable, IdentityHashable {
         
         self.is_update = event.is_update
         self.profile = Profile(from: event.profile.pointee)
-        
-        if version >= 8 {
-            self.instigator_token = AuditToken(from: event.instigator_token)
-        }
+        instigator_token = version >= 8 ? AuditToken(from: event.instigator_token) : nil
     }
 }

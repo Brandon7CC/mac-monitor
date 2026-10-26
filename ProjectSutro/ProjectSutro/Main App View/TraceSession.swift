@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import Combine
 import SutroESFramework
 
 
@@ -49,7 +50,7 @@ final class TraceSession: ObservableObject {
     /// The event store every window shows.
     private let store: CoreDataController
     /// The store's Clear notifications, and the app becoming active (Open Recent may have changed meanwhile).
-    private var observers: [NSObjectProtocol] = []
+    private var observers: [AnyCancellable] = []
     /// Opens started, and Clears: a file whose check finishes after either has started is dropped.
     private var opens = 0
     
@@ -58,20 +59,18 @@ final class TraceSession: ObservableObject {
         self.store = store
         let center = NotificationCenter.default
         observers = [
-            center.addObserver(forName: CoreDataController.eventsWillClear, object: store, queue: nil) { [weak self] _ in
+            center.publisher(for: CoreDataController.eventsWillClear, object: store).sink { [weak self] _ in
                 self?.storeWillClear()
             },
-            center.addObserver(forName: CoreDataController.eventsDidClear, object: store, queue: nil) { [weak self] _ in
+            center.publisher(for: CoreDataController.eventsDidClear, object: store).sink { [weak self] _ in
                 self?.isClearing = store.isClearing
             },
-            center.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            /// Posted on the main thread.
+            center.publisher(for: NSApplication.didBecomeActiveNotification).sink { [weak self] _ in
                 self?.refreshRecents()
             },
         ]
     }
-    
-    /// Stop following the store's Clears and the app.
-    deinit { observers.forEach(NotificationCenter.default.removeObserver) }
     
     /// Are recorded events showing (rather than a trace)?
     var isLive: Bool { url == nil }

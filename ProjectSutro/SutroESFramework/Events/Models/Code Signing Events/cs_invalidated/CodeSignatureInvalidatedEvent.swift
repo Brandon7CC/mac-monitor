@@ -13,8 +13,5 @@ import EndpointSecurity
 public struct CodeSignatureInvalidatedEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     
-    init(from rawMessage: UnsafePointer<es_message_t>) {
-        // Getting the cs invalidated event
-        _ = rawMessage.pointee.event.cs_invalidated
-    }
+    init(from rawMessage: UnsafePointer<es_message_t>) {}
 }

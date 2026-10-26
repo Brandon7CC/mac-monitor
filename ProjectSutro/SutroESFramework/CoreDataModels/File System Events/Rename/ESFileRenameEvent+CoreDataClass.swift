@@ -58,6 +58,6 @@ extension ESFileRenameEvent: Encodable {
     }
     
     public var destination_file_name: String {
-        URL(fileURLWithPath: destination_path).lastPathComponent
+        destination_path.lastPathComponent
     }
 }

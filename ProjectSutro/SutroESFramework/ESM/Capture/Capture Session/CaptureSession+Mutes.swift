@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import EndpointSecurity
 
 
 // MARK: - Path mutes
@@ -28,45 +27,7 @@ extension CaptureSession {
         guard !isStopped else { return false }
         let changes = appliedMutes.changes(to: list)
         appliedMutes = list
-        return Self.apply(changes, on: lanes, label: label)
-    }
-    
-    /// Mute this process on every lane's client, as eslogger mutes itself.
-    ///
-    /// - Parameters:
-    ///   - lanes: The lanes, each with its client.
-    ///   - label: Names the session in the log.
-    static func muteSelf(on lanes: [CaptureLane], label: String) {
-        let token = audit_token_t.currentProcess
-        for lane in lanes where lane.client?.muteProcess(token) != true {
-            logger.fault("""
-                \(label, privacy: .public): couldn't mute this process on the \
-                \(lane.eventClass.rawValue, privacy: .public) client, so its own activity will be captured.
-                """)
-        }
-    }
-    
-    /// Make path mute calls on every lane's client, lane by lane. A refusal is logged and the rest still apply.
-    ///
-    /// - Parameters:
-    ///   - changes: The calls, in order.
-    ///   - lanes: The lanes.
-    ///   - label: Names the session in the log, which counts each client's refusals.
-    /// - Returns: `true` if every client accepted every call.
-    @discardableResult
-    static func apply(_ changes: [MuteChange], on lanes: [CaptureLane], label: String) -> Bool {
-        guard !changes.isEmpty else { return true }
-        var accepted = true
-        for lane in lanes {
-            let refused = changes.filter { lane.client?.setPathMute($0.mute, muted: $0.muted) != true }
-            guard let first = refused.first else { continue }
-            accepted = false
-            logger.error("""
-                \(label, privacy: .public): the \(lane.eventClass.rawValue, privacy: .public) client refused \
-                \(refused.count) of \(changes.count) path mute changes, such as \
-                \(first.muted ? "muting" : "unmuting", privacy: .public) \(first.mute.path).
-                """)
-        }
-        return accepted
+        /// `apply` first, so every lane gets the calls after one refuses.
+        return lanes.reduce(true) { $1.apply(changes) && $0 }
     }
 }

@@ -91,9 +91,7 @@ extension OpenDirectoryEvent {
         node_name = event.pointee.node_name.string ?? ""
         /// Optional: `nil` (eslogger's `null`) when the node has no local database.
         db_path = event.pointee.db_path.string
-        if version >= 8 {
-            instigator_token = AuditToken(from: event.pointee.instigator_token)
-        }
+        instigator_token = version >= 8 ? AuditToken(from: event.pointee.instigator_token) : nil
     }
     
     /// Read the fields every Open Directory event has from JSON: eslogger's, an export's, or the Security

@@ -50,10 +50,7 @@ final class LaunchedByParentResolveTests: XCTestCase {
     ///   - line: The caller's line, for the failure.
     /// - Returns: The launched-by parent.
     private func resolveWithoutPaths(_ lineage: LaunchedByParent.Lineage, line: UInt = #line) -> LaunchedByParent {
-        LaunchedByParent.resolve(lineage, by: .securityExtension) { pid, _ in
-            XCTFail("Read the path of \(pid)", line: line)
-            return nil
-        }
+        LaunchedByParent.resolve(lineage, by: .securityExtension, path: noPaths(line: line))
     }
     
     /// A shell's child: its Unix parent, by token, with the path read by pid.

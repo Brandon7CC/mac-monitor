@@ -33,19 +33,14 @@ public class ESLaunchItemAddEvent: NSManagedObject, Identifiable {
         self.init(insertingInto: context)
         let version: Int = message.version
         
-        self.instigator = event.instigator.map {
-            ESProcess(from: $0, version: version, insertIntoManagedObjectContext: context)
-        }
-        self.app = event.app.map { ESProcess(from: $0, version: version, insertIntoManagedObjectContext: context) }
+        self.instigator = ESProcess.insert(event.instigator, version: version, in: context)
+        self.app = ESProcess.insert(event.app, version: version, in: context)
         
         item = ESLaunchItem(from: event.item, insertIntoManagedObjectContext: context)
         
         executable_path = event.executable_path
-        if let instigator_token = event.instigator_token {
-            self.instigator_token = ESAuditToken(from: instigator_token, insertIntoManagedObjectContext: context)
-        }
-        
-        self.app_token = event.app_token.map { ESAuditToken(from: $0, insertIntoManagedObjectContext: context) }
+        self.instigator_token = ESAuditToken.insert(event.instigator_token, in: context)
+        self.app_token = ESAuditToken.insert(event.app_token, in: context)
     }
 }
 
@@ -63,10 +58,5 @@ extension ESLaunchItemAddEvent: Encodable {
         
     }
     
-    public var itemName: String? {
-        if let url = URL(string: item.item_url) {
-            return url.lastPathComponent
-        }
-        return nil
-    }
+    public var itemName: String? { URL(string: item.item_url)?.lastPathComponent }
 }

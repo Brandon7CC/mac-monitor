@@ -14,38 +14,6 @@ import XCTest
 /// what their synthesized `encode(to:)` writes: every stored property, in declaration order, so one added to a type but
 /// not to its writer fails here; and, with keys sorted, every message is byte for byte `JSONEncoder`'s.
 final class StreamingJSONEncoderArtifactTests: XCTestCase {
-    /// An object's own keys, in the order they're written.
-    ///
-    /// - Parameter json: An object's JSON.
-    /// - Returns: Its members' keys, without those of the objects inside it.
-    private func keys(_ json: Data) -> [String] {
-        var keys: [String] = [], depth = 0, inString = false, escaped = false, text: [UInt8] = [], last = ""
-        for byte in json {
-            if inString {
-                if escaped {
-                    escaped = false
-                    text.append(byte)
-                } else if byte == UInt8(ascii: "\\") {
-                    escaped = true
-                } else if byte == UInt8(ascii: "\"") {
-                    inString = false
-                    last = String(decoding: text, as: UTF8.self)
-                } else {
-                    text.append(byte)
-                }
-                continue
-            }
-            switch byte {
-            case UInt8(ascii: "\""): (inString, text) = (true, [])
-            case UInt8(ascii: "{"), UInt8(ascii: "["): depth += 1
-            case UInt8(ascii: "}"), UInt8(ascii: "]"): depth -= 1
-            case UInt8(ascii: ":") where depth == 1: keys.append(last)
-            default: break
-            }
-        }
-        return keys
-    }
-
     /// Each artifact writes every stored property, in declaration order, with the values `JSONEncoder` writes.
     func testArtifactsWriteEveryStoredProperty() throws {
         let decoder = SyntheticDecoder(SyntheticVariant(name: "full", full: true))
@@ -61,7 +29,8 @@ final class StreamingJSONEncoderArtifactTests: XCTestCase {
         for (name, artifact) in artifacts {
             XCTAssertTrue(isDirect(artifact), "\(name) went through Codable")
             let json = try StreamingJSONEncoder().encode(artifact)
-            XCTAssertEqual(keys(json), Mirror(reflecting: artifact).children.compactMap(\.label), name)
+            let properties = Mirror(reflecting: artifact).children.compactMap(\.label)
+            XCTAssertEqual(try JSONCanonicalForm.keys(json), properties, name)
             XCTAssertEqual(try JSONCanonicalForm.canonical(json),
                            try JSONCanonicalForm.canonical(try JSONEncoder().encode(artifact)), name)
         }

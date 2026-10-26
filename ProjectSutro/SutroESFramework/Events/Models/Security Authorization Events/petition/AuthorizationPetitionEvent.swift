@@ -58,10 +58,8 @@ public struct AuthorizationPetitionEvent: Codable, IdentityHashable {
         self.instigator = event.instigator.map { Process(from: $0.pointee, version: version) }
         self.petitioner = event.petitioner.map { Process(from: $0.pointee, version: version) }
         
-        if version >= 8 {
-            self.instigator_token = AuditToken(from: event.instigator_token)
-            self.petitioner_token = AuditToken(from: event.petitioner_token)
-        }
+        instigator_token = version >= 8 ? AuditToken(from: event.instigator_token) : nil
+        petitioner_token = version >= 8 ? AuditToken(from: event.petitioner_token) : nil
         
         self.flags = Int64(event.flags)
         self.right_count = Int32(event.right_count)

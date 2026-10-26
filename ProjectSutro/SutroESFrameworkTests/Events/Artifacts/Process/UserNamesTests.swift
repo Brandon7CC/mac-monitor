@@ -30,10 +30,11 @@ final class UserNamesTests: XCTestCase {
 
     /// A notification name no other test or process posts.
     private let notification = "com.swiftlydetecting.tests.UserNames.\(UUID().uuidString)"
+    /// The user database the names are read from.
+    private let database = Database()
 
     /// A name is read once, then remembered.
     func testRemembersNames() {
-        let database = Database()
         let names = UserNames(changedBy: [notification], lookUp: database.name(of:))
         XCTAssertEqual((0..<3).map { _ in names.name(of: 501) }, ["alice", "alice", "alice"])
         XCTAssertEqual(database.lookups, 1)
@@ -41,7 +42,6 @@ final class UserNamesTests: XCTestCase {
 
     /// A name is remembered for as long as a hit lives, then read again: a directory server's rename posts nothing.
     func testRemembersNamesForAWhile() {
-        let database = Database()
         let names = UserNames(changedBy: [notification], hitLifetime: 0, lookUp: database.name(of:))
         XCTAssertEqual(names.name(of: 501), "alice")
         database.names[501] = "alicia"
@@ -51,7 +51,6 @@ final class UserNamesTests: XCTestCase {
 
     /// An ID with no user is remembered for as long as a miss lives, then asked about again.
     func testRemembersMissesBriefly() {
-        let database = Database()
         let long = UserNames(changedBy: [notification], lookUp: database.name(of:))
         XCTAssertNil(long.name(of: 4_242))
         XCTAssertNil(long.name(of: 4_242))
@@ -66,7 +65,6 @@ final class UserNamesTests: XCTestCase {
 
     /// Directory Services' notification forgets every name, so a renamed user is read again.
     func testForgetsWhenTheDatabaseChanges() {
-        let database = Database()
         let names = UserNames(changedBy: [notification], lookUp: database.name(of:))
         XCTAssertEqual(names.name(of: 501), "alice")
         database.names[501] = "alicia"
@@ -80,7 +78,6 @@ final class UserNamesTests: XCTestCase {
 
     /// A name read while the database changed may be stale, so it isn't remembered.
     func testForgetsALookupTheDatabaseChangedDuring() {
-        let database = Database()
         let names = UserNames(changedBy: [notification], lookUp: database.name(of:))
         database.during = { [unowned names] in names.forget() }
         XCTAssertEqual(names.name(of: 501), "alice")

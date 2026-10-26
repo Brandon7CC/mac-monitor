@@ -24,7 +24,6 @@
 		2820DD03297224D40053CB48 /* ProcessForkEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2820DD02297224D40053CB48 /* ProcessForkEvent.swift */; };
 		2820DD05297224EC0053CB48 /* ProcessExitEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2820DD04297224EC0053CB48 /* ProcessExitEvent.swift */; };
 		2820DD07297225080053CB48 /* FileCreateEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2820DD06297225080053CB48 /* FileCreateEvent.swift */; };
-		2820DD092972251F0053CB48 /* XattrDeleteEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2820DD082972251F0053CB48 /* XattrDeleteEvent.swift */; };
 		2820DD0B297225340053CB48 /* MMapEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2820DD0A297225340053CB48 /* MMapEvent.swift */; };
 		2820DD0D297225570053CB48 /* LaunchItemAddEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2820DD0C297225570053CB48 /* LaunchItemAddEvent.swift */; };
 		2820DD0F297225770053CB48 /* LaunchItemRemoveEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2820DD0E297225770053CB48 /* LaunchItemRemoveEvent.swift */; };
@@ -59,10 +58,8 @@
 		284BAEC92A4CB803007F1193 /* SystemAuthorizationJudementMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284BAEC82A4CB803007F1193 /* SystemAuthorizationJudementMetadataView.swift */; };
 		284BAECB2A4CCD8E007F1193 /* OpenDirectoryCreateGroupEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284BAECA2A4CCD8E007F1193 /* OpenDirectoryCreateGroupEvent.swift */; };
 		284BAECE2A4CCE4D007F1193 /* ESODCreateGroupEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284BAECC2A4CCE4D007F1193 /* ESODCreateGroupEvent+CoreDataClass.swift */; };
-		284BAED12A4CE079007F1193 /* SystemOpenDirectoryCreateGroupMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284BAED02A4CE079007F1193 /* SystemOpenDirectoryCreateGroupMetadataView.swift */; };
 		284BAED32A4CE6E5007F1193 /* OpenDirectoryAttributeValueAddEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284BAED22A4CE6E5007F1193 /* OpenDirectoryAttributeValueAddEvent.swift */; };
 		284BAED62A4D09BE007F1193 /* ESODAttributeValueAddEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284BAED42A4D09BE007F1193 /* ESODAttributeValueAddEvent+CoreDataClass.swift */; };
-		284BAED92A4D0C96007F1193 /* SystemOpenDirectoryAttrAddMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284BAED82A4D0C96007F1193 /* SystemOpenDirectoryAttrAddMetadataView.swift */; };
 		284BAEDB2A4DE047007F1193 /* ODHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284BAEDA2A4DE047007F1193 /* ODHelpers.swift */; };
 		284CFE152A16EDEA00D0038B /* UserSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284CFE142A16EDEA00D0038B /* UserSettingsView.swift */; };
 		284CFE172A16EE1900D0038B /* SystemDetailsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284CFE162A16EE1900D0038B /* SystemDetailsSettingsView.swift */; };
@@ -81,7 +78,6 @@
 		2852BB8929D89AEB00AA833C /* FileOpenEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BB8829D89AEB00AA833C /* FileOpenEvent.swift */; };
 		2852BB8C29D8C4F800AA833C /* ESFileOpenEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BB8A29D8C4F800AA833C /* ESFileOpenEvent+CoreDataClass.swift */; };
 		2852BB9029D8CAAC00AA833C /* ESFileWriteEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BB8E29D8CAAC00AA833C /* ESFileWriteEvent+CoreDataClass.swift */; };
-		2852BB9329D8CAFC00AA833C /* FileWriteEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BB9229D8CAFC00AA833C /* FileWriteEvent.swift */; };
 		2852BB9529D9465E00AA833C /* LinkEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BB9429D9465E00AA833C /* LinkEvent.swift */; };
 		2852BB9829D948D000AA833C /* ESLinkEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BB9629D948D000AA833C /* ESLinkEvent+CoreDataClass.swift */; };
 		2852BB9B29D97DB600AA833C /* FileCloseEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BB9A29D97DB600AA833C /* FileCloseEvent.swift */; };
@@ -94,7 +90,6 @@
 		2852BBB029DA92DF00AA833C /* ESIOKitOpenEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BBAE29DA92DF00AA833C /* ESIOKitOpenEvent+CoreDataClass.swift */; };
 		2852BBB329DB74BF00AA833C /* CodeSignatureInvalidatedEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BBB229DB74BF00AA833C /* CodeSignatureInvalidatedEvent.swift */; };
 		2852BBB629DB756900AA833C /* ESCodeSignatureInvalidatedEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BBB429DB756900AA833C /* ESCodeSignatureInvalidatedEvent+CoreDataClass.swift */; };
-		2852BBB929DB840C00AA833C /* XattrSetEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BBB829DB840C00AA833C /* XattrSetEvent.swift */; };
 		2852BBBC29DB852500AA833C /* ESXattrSetEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BBBA29DB852500AA833C /* ESXattrSetEvent+CoreDataClass.swift */; };
 		2852BBBF29DB8B6F00AA833C /* ProcessSocketEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BBBE29DB8B6F00AA833C /* ProcessSocketEvent.swift */; };
 		2852BBC229DB8DE000AA833C /* ESProcessSocketEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2852BBC029DB8DE000AA833C /* ESProcessSocketEvent+CoreDataClass.swift */; };
@@ -103,7 +98,6 @@
 		2854A54B2E6DE836004149AF /* SystemSessionGroupTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2854A54A2E6DE82E004149AF /* SystemSessionGroupTableView.swift */; };
 		F17E00000000000000000026 /* GroupSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000025 /* GroupSummary.swift */; };
 		285932562A379C2000B9C7A6 /* EventSubscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 285932552A379C2000B9C7A6 /* EventSubscriptions.swift */; };
-		287EAAA32A42C79E007E00C4 /* SystemOpenDirectoryCreateUserMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 287EAAA22A42C79E007E00C4 /* SystemOpenDirectoryCreateUserMetadataView.swift */; };
 		2881CE17294AFFC700F97F99 /* ESOpenSSHLoginEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2881CE13294AFFC700F97F99 /* ESOpenSSHLoginEvent+CoreDataClass.swift */; };
 		2881CE19294AFFC700F97F99 /* ESLaunchItemRemoveEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2881CE15294AFFC700F97F99 /* ESLaunchItemRemoveEvent+CoreDataClass.swift */; };
 		2881CE1C294D0B2300F97F99 /* TableContextMenus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2881CE1B294D0B2300F97F99 /* TableContextMenus.swift */; };
@@ -112,17 +106,13 @@
 		28823F3B2EC839B8000B7F5C /* SystemMProtectMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F3A2EC839B8000B7F5C /* SystemMProtectMetadataView.swift */; };
 		28823F3E2ECC2A3D000B7F5C /* SystemSetExtattrMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F3D2ECC2A2C000B7F5C /* SystemSetExtattrMetadataView.swift */; };
 		28823F412ECC2A87000B7F5C /* SystemDeleteExtattrMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F402ECC2A79000B7F5C /* SystemDeleteExtattrMetadataView.swift */; };
-		28823F452ECC2BAE000B7F5C /* XattrGetEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F442ECC2BA9000B7F5C /* XattrGetEvent.swift */; };
 		28823F482ECC2CB3000B7F5C /* ESXattrGetEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F462ECC2CB3000B7F5C /* ESXattrGetEvent+CoreDataClass.swift */; };
 		28823F502ECC3400000B7F5C /* SystemGetExtattrMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F4F2ECC3400000B7F5C /* SystemGetExtattrMetadataView.swift */; };
-		28823F542ECEF7E7000B7F5C /* XattrListEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F532ECEF7D8000B7F5C /* XattrListEvent.swift */; };
 		28823F572ECEF8E8000B7F5C /* ESXattrListEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F552ECEF8E8000B7F5C /* ESXattrListEvent+CoreDataClass.swift */; };
 		28823F5D2ED14D5F000B7F5C /* SystemListExtattrMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F5C2ED14D5F000B7F5C /* SystemListExtattrMetadataView.swift */; };
 		2885A33A29EF99CE001C0420 /* TargetPathEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2885A33929EF99CE001C0420 /* TargetPathEvents.swift */; };
 		288AB3962919BCEF00D221AD /* MutedPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 288AB3952919BCEF00D221AD /* MutedPath.swift */; };
 		288AB398291DBFF400D221AD /* ESTranslation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 288AB397291DBFF400D221AD /* ESTranslation.swift */; };
-		289646BF2A4B8C6A000E9564 /* SystemOpenDirectoryGroupRemoveMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289646BE2A4B8C6A000E9564 /* SystemOpenDirectoryGroupRemoveMetadataView.swift */; };
-		289646C12A4B8C77000E9564 /* SystemOpenDirectoryGroupAddMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289646C02A4B8C77000E9564 /* SystemOpenDirectoryGroupAddMetadataView.swift */; };
 		289646C32A4B9296000E9564 /* AuthorizationPetitionEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289646C22A4B9296000E9564 /* AuthorizationPetitionEvent.swift */; };
 		289646C62A4B990C000E9564 /* ESAuthorizationPetitionEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289646C42A4B990C000E9564 /* ESAuthorizationPetitionEvent+CoreDataClass.swift */; };
 		28A169CD2DA206E600CA630B /* EventViewProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28A169CC2DA206E600CA630B /* EventViewProvider.swift */; };
@@ -130,7 +120,6 @@
 		28A169D72DADF09700CA630B /* ActionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28A169D62DADF09700CA630B /* ActionResult.swift */; };
 		28A169DB2DAE12C300CA630B /* AuthResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28A169DA2DAE12C300CA630B /* AuthResult.swift */; };
 		28A25012299EFC47007B0753 /* ESFDDuplicateEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28A25010299EFC47007B0753 /* ESFDDuplicateEvent+CoreDataClass.swift */; };
-		28A25015299EFCAA007B0753 /* FDDuplicateEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28A25014299EFCAA007B0753 /* FDDuplicateEvent.swift */; };
 		28A25018299FF613007B0753 /* ESFileRenameEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28A25016299FF613007B0753 /* ESFileRenameEvent+CoreDataClass.swift */; };
 		28A2501B299FF635007B0753 /* FileRenameEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28A2501A299FF635007B0753 /* FileRenameEvent.swift */; };
 		28A2501D299FFD1B007B0753 /* SystemFileRenameMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28A2501C299FFD1B007B0753 /* SystemFileRenameMetadataView.swift */; };
@@ -147,7 +136,6 @@
 		28AE3A2B2971E4E60077CC37 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28AE3A2A2971E4E60077CC37 /* Assets.xcassets */; };
 		28AE6BD928FB85AF009AC91F /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 28AE6BD828FB85AF009AC91F /* README.md */; };
 		28AF16612923099400AA75A5 /* ESMessage+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28AF165F2923099400AA75A5 /* ESMessage+CoreDataClass.swift */; };
-		28B3438E2D8637F2004127E8 /* LWUnlockEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B3438D2D8637F2004127E8 /* LWUnlockEvent.swift */; };
 		28B343A32D876880004127E8 /* Stat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B343A22D876880004127E8 /* Stat.swift */; };
 		28B343A52D87688F004127E8 /* File.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B343A42D87688F004127E8 /* File.swift */; };
 		28B343A72D8768DF004127E8 /* TimeSpecVal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B343A62D8768DF004127E8 /* TimeSpecVal.swift */; };
@@ -181,7 +169,6 @@
 		28B9A94329DC9A74006619FF /* SystemProcessSocketMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B9A94229DC9A74006619FF /* SystemProcessSocketMetadataView.swift */; };
 		28B9A94529DC9DE0006619FF /* SystemProcessTraceMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B9A94429DC9DE0006619FF /* SystemProcessTraceMetadataView.swift */; };
 		28C5039A2A1BE1D80066DC0D /* TableExecEventContextMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C503992A1BE1D80066DC0D /* TableExecEventContextMenu.swift */; };
-		28C6DF192A46721300E97922 /* SystemOpenDirectoryModifyPasswordMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C6DF182A46721300E97922 /* SystemOpenDirectoryModifyPasswordMetadataView.swift */; };
 		28C6DF1B2A4676FA00E97922 /* XPCConnectEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C6DF1A2A4676FA00E97922 /* XPCConnectEvent.swift */; };
 		28C6DF1E2A46CDA200E97922 /* ESXPCConnectEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C6DF1C2A46CDA200E97922 /* ESXPCConnectEvent+CoreDataClass.swift */; };
 		28C8E27029197C4B00449AE0 /* ESBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 28C8E26E29197C4B00449AE0 /* ESBridge.h */; };
@@ -211,7 +198,6 @@
 		28CEF10C297774C3003057D2 /* ESLoginLoginEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF10A297774C3003057D2 /* ESLoginLoginEvent+CoreDataClass.swift */; };
 		28CEF10F2977754D003057D2 /* LoginLoginEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF10E2977754D003057D2 /* LoginLoginEvent.swift */; };
 		28CEF11129777C4F003057D2 /* SystemLoginLoginMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF11029777C4F003057D2 /* SystemLoginLoginMetadataView.swift */; };
-		28CEF1132978CA71003057D2 /* LWLoginEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF1122978CA71003057D2 /* LWLoginEvent.swift */; };
 		28CEF1162978CBF1003057D2 /* ESLWLoginEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF1142978CBF1003057D2 /* ESLWLoginEvent+CoreDataClass.swift */; };
 		28CEF11A2978CF00003057D2 /* ESLWUnlockEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF1182978CF00003057D2 /* ESLWUnlockEvent+CoreDataClass.swift */; };
 		28CEF11F2978D2F7003057D2 /* SystemLWUnlockMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF11E2978D2F7003057D2 /* SystemLWUnlockMetadataView.swift */; };
@@ -225,9 +211,7 @@
 		28EC62D1292444C800EAC8AD /* ESXattrDeleteEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62CF292444C800EAC8AD /* ESXattrDeleteEvent+CoreDataClass.swift */; };
 		28EC62D7292446B700EAC8AD /* ESFileCreateEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62D3292446B700EAC8AD /* ESFileCreateEvent+CoreDataClass.swift */; };
 		28EC62D9292446B700EAC8AD /* ESLaunchItemAddEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62D5292446B700EAC8AD /* ESLaunchItemAddEvent+CoreDataClass.swift */; };
-		28EC62DB29245C3100EAC8AD /* SystemEvents.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 28AF164C2922C66C00AA75A5 /* SystemEvents.xcdatamodeld */; };
 		28EC62DC29245CC300EAC8AD /* SystemEvents.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 28AF164C2922C66C00AA75A5 /* SystemEvents.xcdatamodeld */; };
-		28EC62DE29245D1A00EAC8AD /* SystemEvents.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 28AF164C2922C66C00AA75A5 /* SystemEvents.xcdatamodeld */; };
 		28EC62E5292595C100EAC8AD /* EventLabelViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E4292595C100EAC8AD /* EventLabelViews.swift */; };
 		28EC62E82925966D00EAC8AD /* EventChartViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E72925966D00EAC8AD /* EventChartViews.swift */; };
 		28EC62EA29259BB900EAC8AD /* ProcessSystemEventsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62E929259BB900EAC8AD /* ProcessSystemEventsViews.swift */; };
@@ -235,6 +219,7 @@
 		F17E00000000000000000024 /* FactsDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000023 /* FactsDashboard.swift */; };
 		28EC62FA29280F8A00EAC8AD /* SystemEnrichedEventView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC62F929280F8A00EAC8AD /* SystemEnrichedEventView.swift */; };
 		F17E00000000000000000022 /* CorrelationSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000021 /* CorrelationSummary.swift */; };
+		5A1F00000000000000000002 /* String+CapitalizedFirst.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1F00000000000000000001 /* String+CapitalizedFirst.swift */; };
 		28EF8F042D7E47D600223464 /* Process.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EF8F032D7E47D600223464 /* Process.swift */; };
 		28EF8F0B2D7EA45400223464 /* ESFile+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EF8F052D7EA45400223464 /* ESFile+CoreDataClass.swift */; };
 		28EF8F0D2D7EA45400223464 /* ESProcess+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EF8F072D7EA45400223464 /* ESProcess+CoreDataClass.swift */; };
@@ -328,6 +313,9 @@
 		CA5936432E875F7B008A115D /* ESLaunchItem+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA59363E2E875F05008A115D /* ESLaunchItem+CoreDataClass.swift */; };
 		CA5936472E8873B9008A115D /* LaunchItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA5936462E8873B6008A115D /* LaunchItem.swift */; };
 		CA5936492E8AFF50008A115D /* SetModeEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA5936482E8AFF4A008A115D /* SetModeEvent.swift */; };
+		B0D900000000000000000002 /* XattrEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0D900000000000000000001 /* XattrEvent.swift */; };
+		B0D900000000000000000004 /* TargetFileEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0D900000000000000000003 /* TargetFileEvent.swift */; };
+		B0D900000000000000000006 /* LWSessionEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0D900000000000000000005 /* LWSessionEvent.swift */; };
 		CA59364B2E8B06EC008A115D /* SystemSetModeMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA59364A2E8B06DE008A115D /* SystemSetModeMetadataView.swift */; };
 		CA5936512E8B07FD008A115D /* ESSetModeEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA59364C2E8B07E3008A115D /* ESSetModeEvent+CoreDataClass.swift */; };
 		CA5936542E8B139B008A115D /* PTYGrantEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA5936532E8B1392008A115D /* PTYGrantEvent.swift */; };
@@ -373,7 +361,6 @@
 		CAE9E4532E4FF87C001143C2 /* ESTCCModifyEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE9E44E2E4FF103001143C2 /* ESTCCModifyEvent+CoreDataClass.swift */; };
 		CB1C00000000000000000003 /* EventBatching.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000002 /* EventBatching.swift */; };
 		CB1C00000000000000000005 /* EventBatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000004 /* EventBatcher.swift */; };
-		CB1C00000000000000000007 /* XPCBatchDelivery.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000006 /* XPCBatchDelivery.swift */; };
 		CB1C0000000000000000000D /* StreamProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000000C /* StreamProtocol.swift */; };
 		CB1C0000000000000000000F /* StreamReply.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000000E /* StreamReply.swift */; };
 		CB1C00000000000000000011 /* StreamPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000010 /* StreamPlan.swift */; };
@@ -417,7 +404,7 @@
 		CB980000000000000000001E /* RandomUUIDBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB980000000000000000001D /* RandomUUIDBuffer.swift */; };
 		CC9900000000000000000004 /* StreamingJSONEncoder+ObjectWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000003 /* StreamingJSONEncoder+ObjectWriter.swift */; };
 		CC9900000000000000000006 /* StreamingJSONEncoder+ArrayWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000005 /* StreamingJSONEncoder+ArrayWriter.swift */; };
-		CC9900000000000000000008 /* StreamingJSONEncoder+ScalarWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000007 /* StreamingJSONEncoder+ScalarWriter.swift */; };
+		CC9900000000000000000008 /* StreamingJSONEncoder+ValueSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000007 /* StreamingJSONEncoder+ValueSlot.swift */; };
 		CB9800000000000000000014 /* StreamingJSONEncoder+Artifacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000013 /* StreamingJSONEncoder+Artifacts.swift */; };
 		CB9800000000000000000016 /* StreamingJSONEncoder+SortedKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000015 /* StreamingJSONEncoder+SortedKeys.swift */; };
 		CC990000000000000000000A /* ProcessHelpers+Quarantine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000009 /* ProcessHelpers+Quarantine.swift */; };
@@ -618,7 +605,6 @@
 		2820DD02297224D40053CB48 /* ProcessForkEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessForkEvent.swift; sourceTree = "<group>"; };
 		2820DD04297224EC0053CB48 /* ProcessExitEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessExitEvent.swift; sourceTree = "<group>"; };
 		2820DD06297225080053CB48 /* FileCreateEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileCreateEvent.swift; sourceTree = "<group>"; };
-		2820DD082972251F0053CB48 /* XattrDeleteEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XattrDeleteEvent.swift; sourceTree = "<group>"; };
 		2820DD0A297225340053CB48 /* MMapEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MMapEvent.swift; sourceTree = "<group>"; };
 		2820DD0C297225570053CB48 /* LaunchItemAddEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchItemAddEvent.swift; sourceTree = "<group>"; };
 		2820DD0E297225770053CB48 /* LaunchItemRemoveEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchItemRemoveEvent.swift; sourceTree = "<group>"; };
@@ -631,7 +617,6 @@
 		282744A928EF75F400464C5B /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		282DFE072D9DDFBA006E0C94 /* EventType+Accessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventType+Accessors.swift"; sourceTree = "<group>"; };
 		282DFE092D9DE004006E0C94 /* EventType+ESMapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventType+ESMapping.swift"; sourceTree = "<group>"; };
-		282E64D428F9C4320060ABFA /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 		282E64D628F9C6110060ABFA /* libsystem_kernel.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsystem_kernel.tbd; path = usr/lib/system/libsystem_kernel.tbd; sourceTree = SDKROOT; };
 		282E64D828F9C94E0060ABFA /* Kernel.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kernel.framework; path = System/Library/Frameworks/Kernel.framework; sourceTree = SDKROOT; };
 		282FEDE6295FCE3600572E22 /* ESXProtectRemediate+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESXProtectRemediate+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -654,10 +639,8 @@
 		284BAEC82A4CB803007F1193 /* SystemAuthorizationJudementMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAuthorizationJudementMetadataView.swift; sourceTree = "<group>"; };
 		284BAECA2A4CCD8E007F1193 /* OpenDirectoryCreateGroupEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryCreateGroupEvent.swift; sourceTree = "<group>"; };
 		284BAECC2A4CCE4D007F1193 /* ESODCreateGroupEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESODCreateGroupEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
-		284BAED02A4CE079007F1193 /* SystemOpenDirectoryCreateGroupMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemOpenDirectoryCreateGroupMetadataView.swift; sourceTree = "<group>"; };
 		284BAED22A4CE6E5007F1193 /* OpenDirectoryAttributeValueAddEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryAttributeValueAddEvent.swift; sourceTree = "<group>"; };
 		284BAED42A4D09BE007F1193 /* ESODAttributeValueAddEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESODAttributeValueAddEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
-		284BAED82A4D0C96007F1193 /* SystemOpenDirectoryAttrAddMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemOpenDirectoryAttrAddMetadataView.swift; sourceTree = "<group>"; };
 		284BAEDA2A4DE047007F1193 /* ODHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ODHelpers.swift; sourceTree = "<group>"; };
 		284CFE142A16EDEA00D0038B /* UserSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSettingsView.swift; sourceTree = "<group>"; };
 		284CFE162A16EE1900D0038B /* SystemDetailsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemDetailsSettingsView.swift; sourceTree = "<group>"; };
@@ -676,7 +659,6 @@
 		2852BB8829D89AEB00AA833C /* FileOpenEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOpenEvent.swift; sourceTree = "<group>"; };
 		2852BB8A29D8C4F800AA833C /* ESFileOpenEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESFileOpenEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		2852BB8E29D8CAAC00AA833C /* ESFileWriteEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESFileWriteEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
-		2852BB9229D8CAFC00AA833C /* FileWriteEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileWriteEvent.swift; sourceTree = "<group>"; };
 		2852BB9429D9465E00AA833C /* LinkEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkEvent.swift; sourceTree = "<group>"; };
 		2852BB9629D948D000AA833C /* ESLinkEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLinkEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		2852BB9A29D97DB600AA833C /* FileCloseEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileCloseEvent.swift; sourceTree = "<group>"; };
@@ -689,7 +671,6 @@
 		2852BBAE29DA92DF00AA833C /* ESIOKitOpenEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESIOKitOpenEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		2852BBB229DB74BF00AA833C /* CodeSignatureInvalidatedEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeSignatureInvalidatedEvent.swift; sourceTree = "<group>"; };
 		2852BBB429DB756900AA833C /* ESCodeSignatureInvalidatedEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESCodeSignatureInvalidatedEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
-		2852BBB829DB840C00AA833C /* XattrSetEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XattrSetEvent.swift; sourceTree = "<group>"; };
 		2852BBBA29DB852500AA833C /* ESXattrSetEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESXattrSetEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		2852BBBE29DB8B6F00AA833C /* ProcessSocketEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessSocketEvent.swift; sourceTree = "<group>"; };
 		2852BBC029DB8DE000AA833C /* ESProcessSocketEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESProcessSocketEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -699,7 +680,6 @@
 		2854A54A2E6DE82E004149AF /* SystemSessionGroupTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSessionGroupTableView.swift; sourceTree = "<group>"; };
 		F17E00000000000000000025 /* GroupSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupSummary.swift; sourceTree = "<group>"; };
 		285932552A379C2000B9C7A6 /* EventSubscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSubscriptions.swift; sourceTree = "<group>"; };
-		287EAAA22A42C79E007E00C4 /* SystemOpenDirectoryCreateUserMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemOpenDirectoryCreateUserMetadataView.swift; sourceTree = "<group>"; };
 		2881CE13294AFFC700F97F99 /* ESOpenSSHLoginEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESOpenSSHLoginEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		2881CE15294AFFC700F97F99 /* ESLaunchItemRemoveEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLaunchItemRemoveEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		2881CE1B294D0B2300F97F99 /* TableContextMenus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableContextMenus.swift; sourceTree = "<group>"; };
@@ -708,10 +688,8 @@
 		28823F3A2EC839B8000B7F5C /* SystemMProtectMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMProtectMetadataView.swift; sourceTree = "<group>"; };
 		28823F3D2ECC2A2C000B7F5C /* SystemSetExtattrMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSetExtattrMetadataView.swift; sourceTree = "<group>"; };
 		28823F402ECC2A79000B7F5C /* SystemDeleteExtattrMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemDeleteExtattrMetadataView.swift; sourceTree = "<group>"; };
-		28823F442ECC2BA9000B7F5C /* XattrGetEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XattrGetEvent.swift; sourceTree = "<group>"; };
 		28823F462ECC2CB3000B7F5C /* ESXattrGetEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESXattrGetEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28823F4F2ECC3400000B7F5C /* SystemGetExtattrMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemGetExtattrMetadataView.swift; sourceTree = "<group>"; };
-		28823F532ECEF7D8000B7F5C /* XattrListEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XattrListEvent.swift; sourceTree = "<group>"; };
 		28823F552ECEF8E8000B7F5C /* ESXattrListEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESXattrListEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28823F5C2ED14D5F000B7F5C /* SystemListExtattrMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemListExtattrMetadataView.swift; sourceTree = "<group>"; };
 		2885A33929EF99CE001C0420 /* TargetPathEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetPathEvents.swift; sourceTree = "<group>"; };
@@ -719,8 +697,6 @@
 		288AB3952919BCEF00D221AD /* MutedPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutedPath.swift; sourceTree = "<group>"; };
 		288AB397291DBFF400D221AD /* ESTranslation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESTranslation.swift; sourceTree = "<group>"; };
 		288AB39E2921701500D221AD /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
-		289646BE2A4B8C6A000E9564 /* SystemOpenDirectoryGroupRemoveMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemOpenDirectoryGroupRemoveMetadataView.swift; sourceTree = "<group>"; };
-		289646C02A4B8C77000E9564 /* SystemOpenDirectoryGroupAddMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemOpenDirectoryGroupAddMetadataView.swift; sourceTree = "<group>"; };
 		289646C22A4B9296000E9564 /* AuthorizationPetitionEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorizationPetitionEvent.swift; sourceTree = "<group>"; };
 		289646C42A4B990C000E9564 /* ESAuthorizationPetitionEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESAuthorizationPetitionEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28A169CC2DA206E600CA630B /* EventViewProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventViewProvider.swift; sourceTree = "<group>"; };
@@ -728,7 +704,6 @@
 		28A169D62DADF09700CA630B /* ActionResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionResult.swift; sourceTree = "<group>"; };
 		28A169DA2DAE12C300CA630B /* AuthResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthResult.swift; sourceTree = "<group>"; };
 		28A25010299EFC47007B0753 /* ESFDDuplicateEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESFDDuplicateEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
-		28A25014299EFCAA007B0753 /* FDDuplicateEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FDDuplicateEvent.swift; sourceTree = "<group>"; };
 		28A25016299FF613007B0753 /* ESFileRenameEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESFileRenameEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28A2501A299FF635007B0753 /* FileRenameEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileRenameEvent.swift; sourceTree = "<group>"; };
 		28A2501C299FFD1B007B0753 /* SystemFileRenameMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemFileRenameMetadataView.swift; sourceTree = "<group>"; };
@@ -744,7 +719,6 @@
 		28AE6BD828FB85AF009AC91F /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../../README.md; sourceTree = "<group>"; };
 		28AF164D2922C66C00AA75A5 /* SystemEvents.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = SystemEvents.xcdatamodel; sourceTree = "<group>"; };
 		28AF165F2923099400AA75A5 /* ESMessage+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESMessage+CoreDataClass.swift"; sourceTree = "<group>"; };
-		28B3438D2D8637F2004127E8 /* LWUnlockEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LWUnlockEvent.swift; sourceTree = "<group>"; };
 		28B343A22D876880004127E8 /* Stat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stat.swift; sourceTree = "<group>"; };
 		28B343A42D87688F004127E8 /* File.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = File.swift; sourceTree = "<group>"; };
 		28B343A62D8768DF004127E8 /* TimeSpecVal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeSpecVal.swift; sourceTree = "<group>"; };
@@ -778,7 +752,6 @@
 		28B9A94229DC9A74006619FF /* SystemProcessSocketMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemProcessSocketMetadataView.swift; sourceTree = "<group>"; };
 		28B9A94429DC9DE0006619FF /* SystemProcessTraceMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemProcessTraceMetadataView.swift; sourceTree = "<group>"; };
 		28C503992A1BE1D80066DC0D /* TableExecEventContextMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableExecEventContextMenu.swift; sourceTree = "<group>"; };
-		28C6DF182A46721300E97922 /* SystemOpenDirectoryModifyPasswordMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemOpenDirectoryModifyPasswordMetadataView.swift; sourceTree = "<group>"; };
 		28C6DF1A2A4676FA00E97922 /* XPCConnectEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCConnectEvent.swift; sourceTree = "<group>"; };
 		28C6DF1C2A46CDA200E97922 /* ESXPCConnectEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESXPCConnectEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28C8E26E29197C4B00449AE0 /* ESBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESBridge.h; sourceTree = "<group>"; };
@@ -808,7 +781,6 @@
 		28CEF10A297774C3003057D2 /* ESLoginLoginEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLoginLoginEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28CEF10E2977754D003057D2 /* LoginLoginEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginLoginEvent.swift; sourceTree = "<group>"; };
 		28CEF11029777C4F003057D2 /* SystemLoginLoginMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemLoginLoginMetadataView.swift; sourceTree = "<group>"; };
-		28CEF1122978CA71003057D2 /* LWLoginEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LWLoginEvent.swift; sourceTree = "<group>"; };
 		28CEF1142978CBF1003057D2 /* ESLWLoginEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLWLoginEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28CEF1182978CF00003057D2 /* ESLWUnlockEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLWUnlockEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28CEF11E2978D2F7003057D2 /* SystemLWUnlockMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemLWUnlockMetadataView.swift; sourceTree = "<group>"; };
@@ -829,6 +801,7 @@
 		F17E00000000000000000023 /* FactsDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactsDashboard.swift; sourceTree = "<group>"; };
 		28EC62F929280F8A00EAC8AD /* SystemEnrichedEventView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEnrichedEventView.swift; sourceTree = "<group>"; };
 		F17E00000000000000000021 /* CorrelationSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrelationSummary.swift; sourceTree = "<group>"; };
+		5A1F00000000000000000001 /* String+CapitalizedFirst.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+CapitalizedFirst.swift"; sourceTree = "<group>"; };
 		28EF8F032D7E47D600223464 /* Process.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Process.swift; sourceTree = "<group>"; };
 		28EF8F052D7EA45400223464 /* ESFile+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESFile+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28EF8F072D7EA45400223464 /* ESProcess+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESProcess+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -922,6 +895,9 @@
 		CA59363E2E875F05008A115D /* ESLaunchItem+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLaunchItem+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CA5936462E8873B6008A115D /* LaunchItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchItem.swift; sourceTree = "<group>"; };
 		CA5936482E8AFF4A008A115D /* SetModeEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetModeEvent.swift; sourceTree = "<group>"; };
+		B0D900000000000000000001 /* XattrEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XattrEvent.swift; sourceTree = "<group>"; };
+		B0D900000000000000000003 /* TargetFileEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetFileEvent.swift; sourceTree = "<group>"; };
+		B0D900000000000000000005 /* LWSessionEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LWSessionEvent.swift; sourceTree = "<group>"; };
 		CA59364A2E8B06DE008A115D /* SystemSetModeMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSetModeMetadataView.swift; sourceTree = "<group>"; };
 		CA59364C2E8B07E3008A115D /* ESSetModeEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESSetModeEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CA5936532E8B1392008A115D /* PTYGrantEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTYGrantEvent.swift; sourceTree = "<group>"; };
@@ -967,7 +943,6 @@
 		CAE9E44E2E4FF103001143C2 /* ESTCCModifyEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESTCCModifyEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CB1C00000000000000000002 /* EventBatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventBatching.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000004 /* EventBatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventBatcher.swift; sourceTree = "<group>"; };
-		CB1C00000000000000000006 /* XPCBatchDelivery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCBatchDelivery.swift; sourceTree = "<group>"; };
 		CB1C0000000000000000000C /* StreamProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamProtocol.swift; sourceTree = "<group>"; };
 		CB1C0000000000000000000E /* StreamReply.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamReply.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000010 /* StreamPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamPlan.swift; sourceTree = "<group>"; };
@@ -1010,7 +985,7 @@
 		CB980000000000000000001D /* RandomUUIDBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomUUIDBuffer.swift; sourceTree = "<group>"; };
 		CC9900000000000000000003 /* StreamingJSONEncoder+ObjectWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+ObjectWriter.swift"; sourceTree = "<group>"; };
 		CC9900000000000000000005 /* StreamingJSONEncoder+ArrayWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+ArrayWriter.swift"; sourceTree = "<group>"; };
-		CC9900000000000000000007 /* StreamingJSONEncoder+ScalarWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+ScalarWriter.swift"; sourceTree = "<group>"; };
+		CC9900000000000000000007 /* StreamingJSONEncoder+ValueSlot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+ValueSlot.swift"; sourceTree = "<group>"; };
 		CB9800000000000000000013 /* StreamingJSONEncoder+Artifacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+Artifacts.swift"; sourceTree = "<group>"; };
 		CB9800000000000000000015 /* StreamingJSONEncoder+SortedKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+SortedKeys.swift"; sourceTree = "<group>"; };
 		CC9900000000000000000009 /* ProcessHelpers+Quarantine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessHelpers+Quarantine.swift"; sourceTree = "<group>"; };
@@ -1536,28 +1511,12 @@
 			path = open;
 			sourceTree = "<group>";
 		};
-		280C7A7B2E8E294400B172E5 /* write */ = {
-			isa = PBXGroup;
-			children = (
-				2852BB9229D8CAFC00AA833C /* FileWriteEvent.swift */,
-			);
-			path = write;
-			sourceTree = "<group>";
-		};
 		280C7A7C2E8E294900B172E5 /* close */ = {
 			isa = PBXGroup;
 			children = (
 				2852BB9A29D97DB600AA833C /* FileCloseEvent.swift */,
 			);
 			path = close;
-			sourceTree = "<group>";
-		};
-		280C7A7D2E8E295000B172E5 /* dup */ = {
-			isa = PBXGroup;
-			children = (
-				28A25014299EFCAA007B0753 /* FDDuplicateEvent.swift */,
-			);
-			path = dup;
 			sourceTree = "<group>";
 		};
 		280C7A7E2E8E297500B172E5 /* unlink */ = {
@@ -1735,14 +1694,6 @@
 			path = Message;
 			sourceTree = "<group>";
 		};
-		282E64D528F9C4830060ABFA /* SwiftCSBlobs */ = {
-			isa = PBXGroup;
-			children = (
-				282E64D428F9C4320060ABFA /* module.modulemap */,
-			);
-			path = SwiftCSBlobs;
-			sourceTree = "<group>";
-		};
 		283C4D4029E0B3B7009FF6D3 /* ESM */ = {
 			isa = PBXGroup;
 			children = (
@@ -1905,14 +1856,6 @@
 			path = setmode;
 			sourceTree = "<group>";
 		};
-		28823F432ECC2B83000B7F5C /* getextattr */ = {
-			isa = PBXGroup;
-			children = (
-				28823F442ECC2BA9000B7F5C /* XattrGetEvent.swift */,
-			);
-			path = getextattr;
-			sourceTree = "<group>";
-		};
 		28823F4A2ECC2CDA000B7F5C /* getextattr */ = {
 			isa = PBXGroup;
 			children = (
@@ -1957,14 +1900,6 @@
 			isa = PBXGroup;
 			children = (
 				28823F5C2ED14D5F000B7F5C /* SystemListExtattrMetadataView.swift */,
-			);
-			path = listextattr;
-			sourceTree = "<group>";
-		};
-		28823F522ECEF7D2000B7F5C /* listextattr */ = {
-			isa = PBXGroup;
-			children = (
-				28823F532ECEF7D8000B7F5C /* XattrListEvent.swift */,
 			);
 			path = listextattr;
 			sourceTree = "<group>";
@@ -2397,9 +2332,8 @@
 		28B343952D863BEE004127E8 /* File System Events */ = {
 			isa = PBXGroup;
 			children = (
-				280C7A7D2E8E295000B172E5 /* dup */,
+				B0D900000000000000000003 /* TargetFileEvent.swift */,
 				280C7A7C2E8E294900B172E5 /* close */,
-				280C7A7B2E8E294400B172E5 /* write */,
 				280C7A7A2E8E293F00B172E5 /* open */,
 				280C7A792E8E293B00B172E5 /* rename */,
 				280C7A782E8E293600B172E5 /* create */,
@@ -2418,10 +2352,7 @@
 		28B343972D863C63004127E8 /* File Metadata Events */ = {
 			isa = PBXGroup;
 			children = (
-				28823F522ECEF7D2000B7F5C /* listextattr */,
-				28823F432ECC2B83000B7F5C /* getextattr */,
-				CA9C06242E907D7600A0D5C8 /* setextattr */,
-				CA9C06232E907D6F00A0D5C8 /* deleteextattr */,
+				B0D900000000000000000001 /* XattrEvent.swift */,
 				CA9C06222E907D6100A0D5C8 /* setmode */,
 			);
 			path = "File Metadata Events";
@@ -2506,8 +2437,7 @@
 		28B343A02D863D3A004127E8 /* Login Window Events */ = {
 			isa = PBXGroup;
 			children = (
-				CA9C061A2E907C9100A0D5C8 /* lw_session_unlock */,
-				CA9C06192E907C8C00A0D5C8 /* lw_session_login */,
+				B0D900000000000000000005 /* LWSessionEvent.swift */,
 			);
 			path = "Login Window Events";
 			sourceTree = "<group>";
@@ -2757,6 +2687,14 @@
 			path = "Telemetry Schema Views";
 			sourceTree = "<group>";
 		};
+		5A1F00000000000000000003 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				5A1F00000000000000000001 /* String+CapitalizedFirst.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
 		7E5A1C00000000000000001D /* LaunchedByParent */ = {
 			isa = PBXGroup;
 			children = (
@@ -2782,7 +2720,6 @@
 				28B3438C2D863672004127E8 /* ESBridge */,
 				288AB3952919BCEF00D221AD /* MutedPath.swift */,
 				BA3368A0287620FD00794525 /* SutroESFramework.h */,
-				282E64D528F9C4830060ABFA /* SwiftCSBlobs */,
 				28E2E13F2D61701E00EF4145 /* ESExtensions.swift */,
 				CB1C0000000000000000002E /* Command Line */,
 			);
@@ -2825,6 +2762,7 @@
 				28EBAA8A2A1C3B1500AE80F9 /* Context Menus */,
 				28EC62B82924239400EAC8AD /* Event Facts Views */,
 				5C4E00000000000000000041 /* Telemetry Schema Views */,
+				5A1F00000000000000000003 /* Utilities */,
 				2818143229131038002B2368 /* Info.plist */,
 				28AE6BD828FB85AF009AC91F /* README.md */,
 				BA97AFD32875471E0099C035 /* Assets.xcassets */,
@@ -3042,25 +2980,9 @@
 				CB9800000000000000000011 /* StreamingJSONEncoder+Containers.swift */,
 				CC9900000000000000000003 /* StreamingJSONEncoder+ObjectWriter.swift */,
 				CC9900000000000000000005 /* StreamingJSONEncoder+ArrayWriter.swift */,
-				CC9900000000000000000007 /* StreamingJSONEncoder+ScalarWriter.swift */,
+				CC9900000000000000000007 /* StreamingJSONEncoder+ValueSlot.swift */,
 			);
 			path = "Streaming JSON Encoder";
-			sourceTree = "<group>";
-		};
-		CA9C06192E907C8C00A0D5C8 /* lw_session_login */ = {
-			isa = PBXGroup;
-			children = (
-				28CEF1122978CA71003057D2 /* LWLoginEvent.swift */,
-			);
-			path = lw_session_login;
-			sourceTree = "<group>";
-		};
-		CA9C061A2E907C9100A0D5C8 /* lw_session_unlock */ = {
-			isa = PBXGroup;
-			children = (
-				28B3438D2D8637F2004127E8 /* LWUnlockEvent.swift */,
-			);
-			path = lw_session_unlock;
 			sourceTree = "<group>";
 		};
 		CA9C061B2E907CFF00A0D5C8 /* lw_session_login */ = {
@@ -3125,22 +3047,6 @@
 				CA5936482E8AFF4A008A115D /* SetModeEvent.swift */,
 			);
 			path = setmode;
-			sourceTree = "<group>";
-		};
-		CA9C06232E907D6F00A0D5C8 /* deleteextattr */ = {
-			isa = PBXGroup;
-			children = (
-				2820DD082972251F0053CB48 /* XattrDeleteEvent.swift */,
-			);
-			path = deleteextattr;
-			sourceTree = "<group>";
-		};
-		CA9C06242E907D7600A0D5C8 /* setextattr */ = {
-			isa = PBXGroup;
-			children = (
-				2852BBB829DB840C00AA833C /* XattrSetEvent.swift */,
-			);
-			path = setextattr;
 			sourceTree = "<group>";
 		};
 		CA9C06252E907D8600A0D5C8 /* pty_grant */ = {
@@ -3330,12 +3236,6 @@
 			isa = PBXGroup;
 			children = (
 				0D0D0D000000000000000017 /* OpenDirectoryFactsViews.swift */,
-				287EAAA22A42C79E007E00C4 /* SystemOpenDirectoryCreateUserMetadataView.swift */,
-				28C6DF182A46721300E97922 /* SystemOpenDirectoryModifyPasswordMetadataView.swift */,
-				289646C02A4B8C77000E9564 /* SystemOpenDirectoryGroupAddMetadataView.swift */,
-				289646BE2A4B8C6A000E9564 /* SystemOpenDirectoryGroupRemoveMetadataView.swift */,
-				284BAED02A4CE079007F1193 /* SystemOpenDirectoryCreateGroupMetadataView.swift */,
-				284BAED82A4D0C96007F1193 /* SystemOpenDirectoryAttrAddMetadataView.swift */,
 			);
 			path = "Open Directory";
 			sourceTree = "<group>";
@@ -3472,7 +3372,6 @@
 				CB1C00000000000000000002 /* EventBatching.swift */,
 				CB1C00000000000000000004 /* EventBatcher.swift */,
 				D15C00000000000000000065 /* EventSpool.swift */,
-				CB1C00000000000000000006 /* XPCBatchDelivery.swift */,
 				CB1C0000000000000000001E /* StreamSlots.swift */,
 				CB1C00000000000000000020 /* StreamService.swift */,
 				CB1C00000000000000000022 /* StreamSession.swift */,
@@ -4049,7 +3948,6 @@
 				CB1C00000000000000000011 /* StreamPlan.swift in Sources */,
 				CB1C0000000000000000000F /* StreamReply.swift in Sources */,
 				CB1C0000000000000000000D /* StreamProtocol.swift in Sources */,
-				CB1C00000000000000000007 /* XPCBatchDelivery.swift in Sources */,
 				CB1C00000000000000000005 /* EventBatcher.swift in Sources */,
 				CB1C00000000000000000003 /* EventBatching.swift in Sources */,
 				D15C00000000000000000066 /* EventSpool.swift in Sources */,
@@ -4084,7 +3982,7 @@
 				CB9800000000000000000012 /* StreamingJSONEncoder+Containers.swift in Sources */,
 				CC9900000000000000000004 /* StreamingJSONEncoder+ObjectWriter.swift in Sources */,
 				CC9900000000000000000006 /* StreamingJSONEncoder+ArrayWriter.swift in Sources */,
-				CC9900000000000000000008 /* StreamingJSONEncoder+ScalarWriter.swift in Sources */,
+				CC9900000000000000000008 /* StreamingJSONEncoder+ValueSlot.swift in Sources */,
 				CA9700000000000000000019 /* MessageSerializer.swift in Sources */,
 				7E5A1C0000000000000F0002 /* LaunchServicesHold.swift in Sources */,
 				CA9700000000000000000017 /* CaptureLane.swift in Sources */,
@@ -4108,7 +4006,6 @@
 				2852BBBC29DB852500AA833C /* ESXattrSetEvent+CoreDataClass.swift in Sources */,
 				28B9A92A29DBDE2F006619FF /* ESProcessCheckEvent+CoreDataClass.swift in Sources */,
 				2820DD1A297228290053CB48 /* ESOpenSSHLogoutEvent+CoreDataClass.swift in Sources */,
-				2852BB9329D8CAFC00AA833C /* FileWriteEvent.swift in Sources */,
 				CA4CE5BB2E53F80B00C057EB /* ESGatekeeperUserOverrideEvent+CoreDataClass.swift in Sources */,
 				28823F342EC82F28000B7F5C /* ESMProtectEvent+CoreDataClass.swift in Sources */,
 				CA4CE5BF2E53F80B00C057EB /* ESSignedFileInfo+CoreDataClass.swift in Sources */,
@@ -4116,7 +4013,6 @@
 				28EC62CD2924429600EAC8AD /* ESMMapEvent+CoreDataClass.swift in Sources */,
 				28B343AD2D87740D004127E8 /* ESAuditToken+CoreDataClass.swift in Sources */,
 				CAD3D9822E0F167300028111 /* ESFileDestination+CoreDataClass.swift in Sources */,
-				28823F542ECEF7E7000B7F5C /* XattrListEvent.swift in Sources */,
 				282744AA28EF75F400464C5B /* Message.swift in Sources */,
 				F17E00000000000000000014 /* SIPStatus.swift in Sources */,
 				7E5A1C00000000000000000E /* Message+LaunchedByParent.swift in Sources */,
@@ -4133,7 +4029,6 @@
 				284BAECB2A4CCD8E007F1193 /* OpenDirectoryCreateGroupEvent.swift in Sources */,
 				28E2E1402D61701E00EF4145 /* ESExtensions.swift in Sources */,
 				2885A33A29EF99CE001C0420 /* TargetPathEvents.swift in Sources */,
-				28A25015299EFCAA007B0753 /* FDDuplicateEvent.swift in Sources */,
 				2881CE19294AFFC700F97F99 /* ESLaunchItemRemoveEvent+CoreDataClass.swift in Sources */,
 				284BAED62A4D09BE007F1193 /* ESODAttributeValueAddEvent+CoreDataClass.swift in Sources */,
 				CA7D0EE62E427E850024243F /* UpdateEngine.swift in Sources */,
@@ -4151,7 +4046,6 @@
 				28B343A72D8768DF004127E8 /* TimeSpecVal.swift in Sources */,
 				2852BBAD29DA90BB00AA833C /* IOKitOpenEvent.swift in Sources */,
 				28CEF10C297774C3003057D2 /* ESLoginLoginEvent+CoreDataClass.swift in Sources */,
-				28B3438E2D8637F2004127E8 /* LWUnlockEvent.swift in Sources */,
 				28B865D62A3119C700F06441 /* ProcessHelpers.swift in Sources */,
 				CC990000000000000000000A /* ProcessHelpers+Quarantine.swift in Sources */,
 				282DFE0A2D9DE004006E0C94 /* EventType+ESMapping.swift in Sources */,
@@ -4161,7 +4055,6 @@
 				CB9800000000000000000006 /* CodeSigningCertificateCache.swift in Sources */,
 				CC990000000000000000000C /* ProcessHelpers+CodeSigning.swift in Sources */,
 				28A608A42D9B634600962337 /* X509Cert.swift in Sources */,
-				2852BBB929DB840C00AA833C /* XattrSetEvent.swift in Sources */,
 				2852BBA729D9EF7C00AA833C /* RemoteThreadCreateEvent.swift in Sources */,
 				CA5936582E8B163E008A115D /* ESPTYGrantEvent+CoreDataClass.swift in Sources */,
 				282FEDEC295FCE3600572E22 /* ESXProtectDetect+CoreDataClass.swift in Sources */,
@@ -4193,8 +4086,6 @@
 				CA5936472E8873B9008A115D /* LaunchItem.swift in Sources */,
 				282FEDEA295FCE3600572E22 /* ESXProtectRemediate+CoreDataClass.swift in Sources */,
 				CADD9D902E8F0680009EC919 /* Profile.swift in Sources */,
-				28CEF1132978CA71003057D2 /* LWLoginEvent.swift in Sources */,
-				2820DD092972251F0053CB48 /* XattrDeleteEvent.swift in Sources */,
 				2820DD01297224990053CB48 /* ProcessExecEvent.swift in Sources */,
 				28CEF11A2978CF00003057D2 /* ESLWUnlockEvent+CoreDataClass.swift in Sources */,
 				28FE271A29E4E0740003B1B9 /* ESEventsEnumerated.swift in Sources */,
@@ -4211,6 +4102,9 @@
 				2852BBC529DB9E3700AA833C /* ProcessTraceEvent.swift in Sources */,
 				284BAEC32A4CAEEE007F1193 /* AuthorizationJudgementEvent.swift in Sources */,
 				CA5936492E8AFF50008A115D /* SetModeEvent.swift in Sources */,
+				B0D900000000000000000002 /* XattrEvent.swift in Sources */,
+				B0D900000000000000000004 /* TargetFileEvent.swift in Sources */,
+				B0D900000000000000000006 /* LWSessionEvent.swift in Sources */,
 				283C4D4C29E0F0F3009FF6D3 /* SecurityExtension.swift in Sources */,
 				28B343AA2D8769D2004127E8 /* AuditToken.swift in Sources */,
 				7E5A1C000000000000000006 /* AuditToken+Values.swift in Sources */,
@@ -4232,7 +4126,6 @@
 				CADD9D882E8DC959009EC919 /* SocketTypeResolver.swift in Sources */,
 				7E5A1C000000000000000027 /* ESMessage+LaunchedByParent.swift in Sources */,
 				2852BB8929D89AEB00AA833C /* FileOpenEvent.swift in Sources */,
-				28823F452ECC2BAE000B7F5C /* XattrGetEvent.swift in Sources */,
 				28B865DB2A312C7100F06441 /* ESODCreateUserEvent+CoreDataClass.swift in Sources */,
 				CA4CE59E2E53DB7900C057EB /* GatekeeperUserOverrideEvent.swift in Sources */,
 				2820DD11297225900053CB48 /* SSHLoginEvent.swift in Sources */,
@@ -4319,9 +4212,7 @@
 				28A2501D299FFD1B007B0753 /* SystemFileRenameMetadataView.swift in Sources */,
 				28B49C5429DCA3E800ADDABA /* SystemProcessCheckMetadataView.swift in Sources */,
 				28B865C92A30015D00F06441 /* VenturaStartButton.swift in Sources */,
-				284BAED92A4D0C96007F1193 /* SystemOpenDirectoryAttrAddMetadataView.swift in Sources */,
 				28B865CB2A30019D00F06441 /* SonomaStartButton.swift in Sources */,
-				28C6DF192A46721300E97922 /* SystemOpenDirectoryModifyPasswordMetadataView.swift in Sources */,
 				28CEF0E929776C40003057D2 /* AuditTokenView.swift in Sources */,
 				28B9A93529DBEC9F006619FF /* SystemFileCloseMetadataView.swift in Sources */,
 				280C78DC2E8DE89200B172E5 /* SystemUIPCBindMetadataView.swift in Sources */,
@@ -4331,8 +4222,6 @@
 				28CEF0F529776CE0003057D2 /* SystemBTMRemoveMetadataView.swift in Sources */,
 				28302B4B294D32E6001A616D /* FilterView.swift in Sources */,
 				D15C00000000000000000153 /* FilterCard.swift in Sources */,
-				289646BF2A4B8C6A000E9564 /* SystemOpenDirectoryGroupRemoveMetadataView.swift in Sources */,
-				289646C12A4B8C77000E9564 /* SystemOpenDirectoryGroupAddMetadataView.swift in Sources */,
 				CA4CE6402E58FD8900C057EB /* EventCriticality.swift in Sources */,
 				284F855D2E7210B4001542E3 /* MuteTypeBadgeView.swift in Sources */,
 				28B9A93329DBEAC1006619FF /* SystemLinkEventMetadataView.swift in Sources */,
@@ -4358,7 +4247,6 @@
 				28CEF0E529776BE0003057D2 /* SystemEventJSONView.swift in Sources */,
 				28FFA9B6290F0D0000977D3F /* AgentSettingsView.swift in Sources */,
 				28823F412ECC2A87000B7F5C /* SystemDeleteExtattrMetadataView.swift in Sources */,
-				28EC62DB29245C3100EAC8AD /* SystemEvents.xcdatamodeld in Sources */,
 				28CEF0E729776C05003057D2 /* SystemInitatingProcessView.swift in Sources */,
 				284409632A4BA07E009D6753 /* SystemAuthorizationPetitionMetadataView.swift in Sources */,
 				28CEF0F929776D00003057D2 /* SystemFileCreateMetadataView.swift in Sources */,
@@ -4387,7 +4275,6 @@
 				28CEF0F129776CAF003057D2 /* SystemOpenSSHLoginMetadataView.swift in Sources */,
 				28823F3B2EC839B8000B7F5C /* SystemMProtectMetadataView.swift in Sources */,
 				28CEF0EB29776C54003057D2 /* SystemXProtectRemediateMetadataView.swift in Sources */,
-				287EAAA32A42C79E007E00C4 /* SystemOpenDirectoryCreateUserMetadataView.swift in Sources */,
 				28CEF0FB29776D1D003057D2 /* SystemMMAPMetadataView.swift in Sources */,
 				284CFE1D2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift in Sources */,
 				28B9A93F29DC93A7006619FF /* SystemIOKitOpenMetadataView.swift in Sources */,
@@ -4421,6 +4308,7 @@
 				28823F3E2ECC2A3D000B7F5C /* SystemSetExtattrMetadataView.swift in Sources */,
 				28EC62FA29280F8A00EAC8AD /* SystemEnrichedEventView.swift in Sources */,
 				F17E00000000000000000022 /* CorrelationSummary.swift in Sources */,
+				5A1F00000000000000000002 /* String+CapitalizedFirst.swift in Sources */,
 				28B9A92D29DBE836006619FF /* SystemUnlinkEventMetadataView.swift in Sources */,
 				28B9A93129DBE9E1006619FF /* SystemFileWriteMetadataView.swift in Sources */,
 				28A6EE982A4A2EB600A4E0BD /* SystemXPCConnectMetadataView.swift in Sources */,
@@ -4440,7 +4328,6 @@
 				28CEF0ED29776C73003057D2 /* SystemXProtectDetectMetadataView.swift in Sources */,
 				CA59365C2E8B1920008A115D /* SystemPTYGrantMetadataView.swift in Sources */,
 				28B49C5229DCA1C200ADDABA /* SystemGetTaskMetadataView.swift in Sources */,
-				284BAED12A4CE079007F1193 /* SystemOpenDirectoryCreateGroupMetadataView.swift in Sources */,
 				28823F502ECC3400000B7F5C /* SystemGetExtattrMetadataView.swift in Sources */,
 				28CEF0FD29776D31003057D2 /* SystemProcExitMetadataView.swift in Sources */,
 				C11D00000000000000000012 /* CommandLineToolInstaller.swift in Sources */,
@@ -4459,7 +4346,6 @@
 				CB1C00000000000000000025 /* SensorListener.swift in Sources */,
 				D15C0000000000000000000A /* UpdateInstaller.swift in Sources */,
 				D15C00000000000000000007 /* SensorService.swift in Sources */,
-				28EC62DE29245D1A00EAC8AD /* SystemEvents.xcdatamodeld in Sources */,
 				BA97AFED28754ABF0099C035 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

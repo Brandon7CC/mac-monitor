@@ -30,7 +30,7 @@ public struct GatekeeperUserOverrideEvent: Codable, IdentityHashable {
         file_type = Int32(gatekeeperOverrideEvent.file_type.rawValue)
         
         file = FilePathUnion.from(override: gatekeeperOverrideEvent)
-        self.sha256 = gatekeeperOverrideEvent.sha256.map { sha256HexString($0.pointee) }
+        self.sha256 = gatekeeperOverrideEvent.sha256.map { ESLogger.hex($0.pointee) }
         signing_info = gatekeeperOverrideEvent.signing_info.map { SignedFileInfo(from: $0.pointee) }
         enrich()
     }

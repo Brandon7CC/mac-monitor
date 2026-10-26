@@ -56,51 +56,44 @@ final class ESLoggerTests: XCTestCase {
     
     // MARK: Fallback to message_darwin_time
     
-    /// A `time` already in eslogger's format is kept as it is, even when `message_darwin_time` disagrees.
-    func testEsloggerTimeIsKept() {
-        let time = "2026-10-04T00:01:54.394127173Z"
-        XCTAssertEqual(ESLogger.time(time, darwinTime: Date(timeIntervalSince1970: 0)), time)
-    }
+    /// A `time`, its message's `message_darwin_time`, and the `time` exported, with what the case pins.
+    private static let times: [(label: String, time: String, darwinTime: Date, expected: String)] = [
+        ("A time already in eslogger's format is kept as it is, even when message_darwin_time disagrees",
+         "2026-10-04T00:01:54.394127173Z", Date(timeIntervalSince1970: 0), "2026-10-04T00:01:54.394127173Z"),
+        ("Only eslogger's shape is kept: 30 characters of anything else are rebuilt like any other time",
+         String(repeating: "x", count: 30), Date(timeIntervalSince1970: TimeInterval(seconds)),
+         "2026-10-04T00:01:54.000000000Z"),
+        ("A Security Extension older than 3.0.0 sent local time to the millisecond: it's rebuilt from "
+         + "message_darwin_time", "2026-10-03T17:01:54.500Z", Date(timeIntervalSince1970: TimeInterval(seconds) + 0.5),
+         "2026-10-04T00:01:54.500000000Z"),
+        ("An empty time is rebuilt from message_darwin_time", "",
+         Date(timeIntervalSince1970: TimeInterval(seconds) + 0.5), "2026-10-04T00:01:54.500000000Z"),
+        ("The rebuilt time is rounded to the microsecond: a millisecond stays one", "2026-10-03T17:01:54.394Z",
+         Date(timeIntervalSince1970: 1_791_072_114.394), "2026-10-04T00:01:54.394000000Z"),
+        ("The rebuilt time is rounded to the microsecond, which drops the error of Date's Double instead of printing "
+         + "it as nanoseconds the time never had", "2026-10-03T17:01:54.394Z",
+         Date(timeIntervalSince1970: 1_791_072_114.394127173), "2026-10-04T00:01:54.394127000Z"),
+        ("A fraction that rounds up to a whole second carries into the second", "",
+         Date(timeIntervalSince1970: 1_791_072_114.9999996), "2026-10-04T00:01:55.000000000Z"),
+        ("A time before 1970 counts its fraction up from the second before", "", Date(timeIntervalSince1970: -0.5),
+         "1969-12-31T23:59:59.500000000Z"),
+        ("A microsecond before 1970 counts up from the second before", "", Date(timeIntervalSince1970: -0.000001),
+         "1969-12-31T23:59:59.999999000Z"),
+        ("A message_darwin_time too far from 1970 to fit in an Int of seconds leaves time as it is",
+         "2026-10-03T17:01:54.394Z", Date(timeIntervalSince1970: 1e19), "2026-10-03T17:01:54.394Z"),
+        ("A message_darwin_time of 1e300 leaves time as it is", "2026-10-03T17:01:54.394Z",
+         Date(timeIntervalSinceReferenceDate: 1e300), "2026-10-03T17:01:54.394Z"),
+        ("An infinite message_darwin_time leaves time as it is", "2026-10-03T17:01:54.394Z",
+         Date(timeIntervalSinceReferenceDate: .infinity), "2026-10-03T17:01:54.394Z"),
+        ("A NaN message_darwin_time leaves time as it is", "2026-10-03T17:01:54.394Z",
+         Date(timeIntervalSinceReferenceDate: .nan), "2026-10-03T17:01:54.394Z"),
+    ]
     
-    /// Only eslogger's shape is kept: 30 characters of anything else are rebuilt like any other time.
-    func testOnlyEsloggersShapeIsKept() {
-        let time = String(repeating: "x", count: 30)
-        XCTAssertEqual(ESLogger.time(time, darwinTime: Date(timeIntervalSince1970: TimeInterval(Self.seconds))),
-                       "2026-10-04T00:01:54.000000000Z")
-    }
-    
-    /// A Security Extension older than 3.0.0 sent local time to the millisecond: it's rebuilt from
-    /// `message_darwin_time`.
-    func testLegacyTimeIsRebuiltFromDarwinTime() {
-        let darwinTime = Date(timeIntervalSince1970: TimeInterval(Self.seconds) + 0.5)
-        XCTAssertEqual(ESLogger.time("2026-10-03T17:01:54.500Z", darwinTime: darwinTime),
-                       "2026-10-04T00:01:54.500000000Z")
-        XCTAssertEqual(ESLogger.time("", darwinTime: darwinTime), "2026-10-04T00:01:54.500000000Z")
-    }
-    
-    /// The rebuilt time is rounded to the microsecond, which drops the error of `Date`'s `Double` (seconds since 2001)
-    /// instead of printing it as nanoseconds the time never had.
-    func testRebuiltTimeIsRoundedToTheMicrosecond() {
-        let millisecond = Date(timeIntervalSince1970: 1_791_072_114.394)
-        XCTAssertEqual(ESLogger.time("2026-10-03T17:01:54.394Z", darwinTime: millisecond),
-                       "2026-10-04T00:01:54.394000000Z")
-        let nanosecond = Date(timeIntervalSince1970: 1_791_072_114.394127173)
-        XCTAssertEqual(ESLogger.time("2026-10-03T17:01:54.394Z", darwinTime: nanosecond),
-                       "2026-10-04T00:01:54.394127000Z")
-    }
-    
-    /// A fraction that rounds up to a whole second carries into the second.
-    func testRebuiltTimeRoundsIntoTheNextSecond() {
-        XCTAssertEqual(ESLogger.time("", darwinTime: Date(timeIntervalSince1970: 1_791_072_114.9999996)),
-                       "2026-10-04T00:01:55.000000000Z")
-    }
-    
-    /// A time before 1970 counts its fraction up from the second before.
-    func testRebuiltTimeBefore1970() {
-        XCTAssertEqual(ESLogger.time("", darwinTime: Date(timeIntervalSince1970: -0.5)),
-                       "1969-12-31T23:59:59.500000000Z")
-        XCTAssertEqual(ESLogger.time("", darwinTime: Date(timeIntervalSince1970: -0.000001)),
-                       "1969-12-31T23:59:59.999999000Z")
+    /// Each row of ``times`` exports its `time`.
+    func testTime() {
+        for (label, time, darwinTime, expected) in Self.times {
+            XCTAssertEqual(ESLogger.time(time, darwinTime: darwinTime), expected, label)
+        }
     }
     
     /// A 2.1 time read as local time and rebuilt is eslogger's UTC time of the same instant, whatever this Mac's time
@@ -113,15 +106,6 @@ final class ESLoggerTests: XCTestCase {
         XCTAssertTrue(time.hasSuffix(".394000000Z"), time)
         let read = try XCTUnwrap(ESLogger.date(fromTime: time, legacy: false))
         XCTAssertEqual(read.timeIntervalSince1970, date.timeIntervalSince1970, accuracy: 1e-6)
-    }
-    
-    /// A `message_darwin_time` too far from 1970 to fit in an `Int` of seconds leaves `time` as it is.
-    func testDarwinTimeThatIsNoTimeKeepsTime() {
-        let time = "2026-10-03T17:01:54.394Z"
-        XCTAssertEqual(ESLogger.time(time, darwinTime: Date(timeIntervalSince1970: 1e19)), time)
-        XCTAssertEqual(ESLogger.time(time, darwinTime: Date(timeIntervalSinceReferenceDate: 1e300)), time)
-        XCTAssertEqual(ESLogger.time(time, darwinTime: Date(timeIntervalSinceReferenceDate: .infinity)), time)
-        XCTAssertEqual(ESLogger.time(time, darwinTime: Date(timeIntervalSinceReferenceDate: .nan)), time)
     }
     
     // MARK: Reading times back
@@ -167,16 +151,14 @@ final class ESLoggerTests: XCTestCase {
         XCTAssertEqual(read.timeIntervalSince1970, written.timeIntervalSince1970, accuracy: 0.001)
     }
     
-    /// The same shape from eslogger (not legacy) is UTC.
-    func testDateFromShortTimeIsUTCWhenNotLegacy() throws {
-        let read = try XCTUnwrap(ESLogger.date(fromTime: "2026-10-04T00:01:59.285Z", legacy: false))
-        XCTAssertEqual(read.timeIntervalSince1970, 1_791_072_119.285, accuracy: 1e-6)
-    }
-    
-    /// eslogger's `time` is never read as local time, even in a record that could come from Mac Monitor 2.1.
-    func testDateFromEsloggerTimeIsUTCWhenLegacy() throws {
-        let read = try XCTUnwrap(ESLogger.date(fromTime: "2026-10-04T00:01:54.394127173Z", legacy: true))
-        XCTAssertEqual(read.timeIntervalSince1970, 1_791_072_114.394127173, accuracy: 1e-6)
+    /// The same shape from eslogger (not legacy) is UTC, and eslogger's `time` is never read as local time, even in a
+    /// record that could come from Mac Monitor 2.1.
+    func testDateFromUTCTime() throws {
+        for (time, legacy, seconds) in [("2026-10-04T00:01:59.285Z", false, 1_791_072_119.285),
+                                        ("2026-10-04T00:01:54.394127173Z", true, 1_791_072_114.394127173)] {
+            let read = try XCTUnwrap(ESLogger.date(fromTime: time, legacy: legacy), time)
+            XCTAssertEqual(read.timeIntervalSince1970, seconds, accuracy: 1e-6, time)
+        }
     }
     
     /// Text that isn't a time has no date, legacy or not.

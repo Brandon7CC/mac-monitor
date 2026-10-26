@@ -24,10 +24,53 @@ extension AuditToken {
     /// - Parameters:
     ///   - pid: The process ID.
     ///   - pidversion: The pid version.
-    /// - Returns: The token of a root process in audit session 100000
+    ///   - asid: The audit session: 100001 is the one eslogger's records name.
+    /// - Returns: The token of a root process in that audit session
     ///   (``RawMessageFixture/auditToken(pid:euid:pidversion:asid:)``).
-    static func fixture(pid: Int32, pidversion: UInt32) -> AuditToken {
-        AuditToken(from: RawMessageFixture.auditToken(pid: pid, pidversion: pidversion)).rowKey
+    static func fixture(pid: Int32, pidversion: UInt32, asid: UInt32 = 100_000) -> AuditToken {
+        AuditToken(from: RawMessageFixture.auditToken(pid: pid, pidversion: pidversion, asid: asid)).rowKey
+    }
+}
+
+
+// MARK: - Launched-by parents
+extension LaunchedByParent {
+    /// What the Security Extension first says about an app: launchd started the app's job.
+    ///
+    /// - Parameter label: The job's label, by default the fixture app's instance (``XCTestCase/lineageAppLabel``).
+    /// - Returns: The answer.
+    static func appJob(label: String = XCTestCase.lineageAppLabel) -> LaunchedByParent {
+        LaunchedByParent(source: .launchdJob, audit_token: .fixture(pid: 1, pidversion: 1), path: launchdPath,
+                         launchd_job: .init(label: label), resolved_by: .securityExtension)
+    }
+    
+    /// The answer for a shell's child: the shell, its Unix parent.
+    ///
+    /// - Parameters:
+    ///   - token: The shell's token, by default pid 401's.
+    ///   - path: The shell's executable, by default the one a raw fork's child is named from.
+    ///   - resolvedBy: Who resolved it.
+    /// - Returns: The answer.
+    static func shell(token: AuditToken = .fixture(pid: 401, pidversion: 4010), path: String = "/usr/bin/true",
+                      by resolvedBy: ResolvedBy = .securityExtension) -> LaunchedByParent {
+        LaunchedByParent(source: .unixParent, audit_token: token, path: path, resolved_by: resolvedBy)
+    }
+}
+
+
+// MARK: - Paths that aren't read
+extension XCTestCase {
+    /// A `path` that fails the test if it's called, for an answer that must be named without reading one.
+    ///
+    /// - Parameters:
+    ///   - file: The caller's file, for the failure.
+    ///   - line: The caller's line, for the failure.
+    /// - Returns: The closure.
+    func noPaths(file: StaticString = #filePath, line: UInt = #line) -> (Int32, AuditToken?) -> String? {
+        { pid, _ in
+            XCTFail("Read the path of \(pid)", file: file, line: line)
+            return nil
+        }
     }
 }
 
@@ -76,6 +119,20 @@ extension XCTestCase {
          "ruid": 0]
     }
     
+    /// eslogger's exec event of a new image: no script, run from its executable's own path, in `/`.
+    ///
+    /// - Parameters:
+    ///   - target: The new image's process.
+    ///   - args: Its arguments, by default its executable's path alone.
+    ///   - env: Its environment.
+    /// - Returns: The event's object.
+    func esloggerExecEvent(_ target: [String: Any], args: [String]? = nil, env: [String] = []) -> [String: Any] {
+        let path = target[path: "executable", "path"] as? String ?? ""
+        return ["target": target, "script": NSNull(), "dyld_exec_path": path,
+                "cwd": ["path": "/", "path_truncated": false, "stat": [:]], "last_fd": 2, "image_cputype": 16_777_228,
+                "image_cpusubtype": 2, "args": args ?? [path], "fds": [], "env": env]
+    }
+    
     /// An eslogger exec record: the eslogger exit fixture's process (`/usr/libexec/exampled`, pid 4242, its own
     /// responsible process) execs itself again, under another parent and environment.
     ///
@@ -84,38 +141,30 @@ extension XCTestCase {
     /// - Parameters:
     ///   - parent: The parent's pid and pid version: the target's `parent_audit_token`, `ppid` and `original_ppid`.
     ///   - originalPPID: The target's `original_ppid`, if not the parent's pid.
+    ///   - args: The target's arguments, by default its executable's path alone.
     ///   - env: The target's environment.
     /// - Returns: The record.
     /// - Throws: The error reading the exit fixture, or an `XCTest` failure if it has no process.
-    func esloggerExec(parent: (pid: Int, pidversion: Int), originalPPID: Int? = nil,
+    func esloggerExec(parent: (pid: Int, pidversion: Int), originalPPID: Int? = nil, args: [String]? = nil,
                       env: [String] = []) throws -> [String: Any] {
         var target = try XCTUnwrap(try fixtureObject("eslogger-exit.jsonl")["process"] as? [String: Any])
         target["ppid"] = parent.pid
         target["original_ppid"] = originalPPID ?? parent.pid
         target["parent_audit_token"] = esloggerToken(pid: parent.pid, pidversion: parent.pidversion)
-        return try esloggerRecord("exec", type: Int(ES_EVENT_TYPE_NOTIFY_EXEC.rawValue), [
-            "target": target, "script": NSNull(), "dyld_exec_path": "/usr/libexec/exampled",
-            "cwd": ["path": "/", "path_truncated": false, "stat": [:]], "last_fd": 2, "image_cputype": 16_777_228,
-            "image_cpusubtype": 2, "args": ["/usr/libexec/exampled"], "fds": [], "env": env,
-        ])
+        return try esloggerRecord(ES_EVENT_TYPE_NOTIFY_EXEC, esloggerExecEvent(target, args: args, env: env))
     }
     
     /// An exec record as launchd starts a job's program: exec'd by `xpcproxy` (the platform binary at
     /// `/usr/libexec/xpcproxy`), which sets the job's `XPC_SERVICE_NAME`.
     ///
     /// - Parameters:
-    ///   - record: An exec record (``esloggerExec(parent:originalPPID:env:)``).
+    ///   - record: An exec record (``esloggerExec(parent:originalPPID:args:env:)``).
     ///   - platform: Is the exec'ing `xpcproxy` a platform binary? Only a copy of it isn't.
     /// - Returns: The record, exec'd by `xpcproxy`.
-    /// - Throws: An `XCTest` failure if the record has no process or executable.
-    func execedByXPCProxy(_ record: [String: Any], platform: Bool = true) throws -> [String: Any] {
+    func execedByXPCProxy(_ record: [String: Any], platform: Bool = true) -> [String: Any] {
         var record = record
-        var process = try XCTUnwrap(record["process"] as? [String: Any])
-        var executable = try XCTUnwrap(process["executable"] as? [String: Any])
-        executable["path"] = "/usr/libexec/xpcproxy"
-        process["executable"] = executable
-        process["is_platform_binary"] = platform
-        record["process"] = process
+        record[path: "process", "executable", "path"] = "/usr/libexec/xpcproxy"
+        record[path: "process", "is_platform_binary"] = platform
         return record
     }
 }
@@ -138,10 +187,8 @@ extension XCTestCase {
                          originalPPID: Int? = nil,
                          responsible: (pid: Int, pidversion: Int)? = nil) throws -> [String: Any] {
         var process = try XCTUnwrap(try fixtureObject("eslogger-exit.jsonl")["process"] as? [String: Any])
-        var executable = try XCTUnwrap(process["executable"] as? [String: Any])
-        executable["path"] = path
         let responsible = responsible ?? (pid, pidversion)
-        process["executable"] = executable
+        process[path: "executable", "path"] = path
         process["audit_token"] = esloggerToken(pid: pid, pidversion: pidversion)
         process["ppid"] = parent.pid
         process["original_ppid"] = originalPPID ?? parent.pid
@@ -159,12 +206,7 @@ extension XCTestCase {
     /// - Returns: The event.
     /// - Throws: The error reading the record.
     func execMessage(by process: [String: Any], of target: [String: Any], env: [String] = []) throws -> Message {
-        let path = (target["executable"] as? [String: Any])?["path"] as? String ?? ""
-        var record = try esloggerRecord("exec", type: Int(ES_EVENT_TYPE_NOTIFY_EXEC.rawValue), [
-            "target": target, "script": NSNull(), "dyld_exec_path": path,
-            "cwd": ["path": "/", "path_truncated": false, "stat": [:]], "last_fd": 2, "image_cputype": 16_777_228,
-            "image_cpusubtype": 2, "args": [path], "fds": [], "env": env,
-        ])
+        var record = try esloggerRecord(ES_EVENT_TYPE_NOTIFY_EXEC, esloggerExecEvent(target, env: env))
         record["process"] = process
         return try importRecord(record)
     }
@@ -177,7 +219,7 @@ extension XCTestCase {
     /// - Returns: The event.
     /// - Throws: The error reading the record.
     func forkMessage(by process: [String: Any], of child: [String: Any]) throws -> Message {
-        var record = try esloggerRecord("fork", type: Int(ES_EVENT_TYPE_NOTIFY_FORK.rawValue), ["child": child])
+        var record = try esloggerRecord(ES_EVENT_TYPE_NOTIFY_FORK, ["child": child])
         record["process"] = process
         return try importRecord(record)
     }

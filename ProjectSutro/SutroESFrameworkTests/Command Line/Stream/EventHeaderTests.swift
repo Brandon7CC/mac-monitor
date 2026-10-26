@@ -43,7 +43,7 @@ final class EventHeaderTests: XCTestCase {
         XCTAssertNil(header.context)
         XCTAssertNil(header.targetPath)
         for key in ["event_type", "es_event_type", "time", "process"] {
-            var object = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(minimal.utf8)) as? [String: Any])
+            var object = try jsonObject(Data(minimal.utf8))
             object[key] = nil
             let data = try JSONSerialization.data(withJSONObject: object)
             XCTAssertThrowsError(try JSONDecoder().decode(EventHeader.self, from: data), key)

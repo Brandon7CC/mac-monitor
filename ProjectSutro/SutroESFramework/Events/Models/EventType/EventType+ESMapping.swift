@@ -11,15 +11,13 @@ import Foundation
 extension EventType {
     /// Model a raw Endpoint Security message's event.
     ///
-    /// - Parameters:
-    ///   - rawMessage: The message.
-    ///   - forcedQuarantineSigningIDs: Signing IDs Apple forces into File Quarantine, for `EXEC` events.
+    /// - Parameter rawMessage: The message.
     /// - Returns: The event, or ``unknown`` for a type Mac Monitor doesn't model.
-    static func from(rawMessage: UnsafePointer<es_message_t>, forcedQuarantineSigningIDs: [String]) -> EventType {
+    static func from(rawMessage: UnsafePointer<es_message_t>) -> EventType {
         switch rawMessage.pointee.event_type {
         // MARK: Process events
         case ES_EVENT_TYPE_NOTIFY_EXEC:
-            .exec(ProcessExecEvent(from: rawMessage, forcedQuarantineSigningIDs: forcedQuarantineSigningIDs))
+            .exec(ProcessExecEvent(from: rawMessage))
         case ES_EVENT_TYPE_NOTIFY_FORK:
             .fork(ProcessForkEvent(from: rawMessage))
         case ES_EVENT_TYPE_NOTIFY_EXIT:
@@ -45,31 +43,31 @@ extension EventType {
             .mprotect(MProtectEvent(from: rawMessage))
         // MARK: File System events
         case ES_EVENT_TYPE_NOTIFY_CREATE:
-            .create(FileCreateEvent(from: rawMessage, shouldCheckQuarantine: true))
+            .create(FileCreateEvent(from: rawMessage))
         case ES_EVENT_TYPE_NOTIFY_RENAME:
             .rename(FileRenameEvent(from: rawMessage))
         case ES_EVENT_TYPE_NOTIFY_OPEN:
             .open(FileOpenEvent(from: rawMessage))
         case ES_EVENT_TYPE_NOTIFY_WRITE:
-            .write(FileWriteEvent(from: rawMessage))
+            .write(TargetFileEvent(from: rawMessage.pointee.event.write))
         case ES_EVENT_TYPE_NOTIFY_CLOSE:
             .close(FileCloseEvent(from: rawMessage))
         case ES_EVENT_TYPE_NOTIFY_UNLINK:
             .unlink(FileDeleteEvent(from: rawMessage))
         case ES_EVENT_TYPE_NOTIFY_DUP:
-            .dup(FDDuplicateEvent(from: rawMessage))
+            .dup(TargetFileEvent(from: rawMessage.pointee.event.dup))
         // MARK: Symbolic Link events
         case ES_EVENT_TYPE_NOTIFY_LINK:
             .link(LinkEvent(from: rawMessage))
         // MARK: File Metadata events
         case ES_EVENT_TYPE_NOTIFY_SETEXTATTR:
-            .setextattr(XattrSetEvent(from: rawMessage))
+            .setextattr(XattrEvent(from: rawMessage.pointee.event.setextattr))
         case ES_EVENT_TYPE_NOTIFY_GETEXTATTR:
-            .getextattr(XattrGetEvent(from: rawMessage))
+            .getextattr(XattrEvent(from: rawMessage.pointee.event.getextattr))
         case ES_EVENT_TYPE_NOTIFY_LISTEXTATTR:
-            .listextattr(XattrListEvent(from: rawMessage))
+            .listextattr(TargetFileEvent(from: rawMessage.pointee.event.listextattr))
         case ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR:
-            .deleteextattr(XattrDeleteEvent(from: rawMessage))
+            .deleteextattr(XattrEvent(from: rawMessage.pointee.event.deleteextattr))
         case ES_EVENT_TYPE_NOTIFY_SETMODE:
             .setmode(SetModeEvent(from: rawMessage))
         // MARK: Pseudoterminal events
@@ -97,9 +95,9 @@ extension EventType {
         case ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN:
             .login_login(LoginLoginEvent(from: rawMessage))
         case ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN:
-            .lw_session_login(LWLoginEvent(from: rawMessage))
+            .lw_session_login(LWSessionEvent(from: rawMessage.pointee.event.lw_session_login.pointee))
         case ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK:
-            .lw_session_unlock(LWUnlockEvent(from: rawMessage))
+            .lw_session_unlock(LWSessionEvent(from: rawMessage.pointee.event.lw_session_unlock.pointee))
         // MARK: Kernel events
         case ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN:
             .iokit_open(IOKitOpenEvent(from: rawMessage))
@@ -162,12 +160,12 @@ extension EventType {
         case .fork(let event):
             return (event.child.executable?.name, event.child.executable?.path)
         case .exit:
-            return (Self.name(of: initiatingPath), initiatingPath)
+            return (initiatingPath.lastPathComponent, initiatingPath)
         case .signal(let event):
             let targetPath = event.target.executable?.path ?? ""
             return (Self.tagged(event.signal_name, targetPath), targetPath)
         case .proc_suspend_resume(let event):
-            let type = Self.short(event.type_string, dropping: "ES_PROC_SUSPEND_RESUME_TYPE_")
+            let type = event.type_string.droppingPrefix("ES_PROC_SUSPEND_RESUME_TYPE_")
             return (Self.tagged(type, event.target?.executable?.name ?? ""), event.target?.executable?.path ?? "")
         case .proc_check(let event):
             let targetPath = event.target?.executable?.path ?? ""
@@ -187,7 +185,7 @@ extension EventType {
         case .mmap(let event):
             return Self.about(event.source.path)
         case .mprotect(let event):
-            let flags = event.flags.map { Self.short($0, dropping: "VM_PROT_") }.joined(separator: "|")
+            let flags = event.flags.map { $0.droppingPrefix("VM_PROT_") }.joined(separator: "|")
             return ("(\(flags))(\(event.kb_size) kb) → \(initiatingPath)", nil)
         // MARK: File System events
         case .create(let event):
@@ -195,33 +193,27 @@ extension EventType {
         case .rename(let event):
             let targetPath = Self.destinationPath(event.destination)
             let targetFileName = switch event.destination {
-            case .existing_file: Self.name(of: targetPath)
+            case .existing_file: targetPath.lastPathComponent
             case .new_path(let path): path.filename
             case .unknown: ""
             }
-            return ("\(Self.name(of: event.source.path)) → \(targetFileName)", targetPath)
+            return ("\(event.source.path.lastPathComponent) → \(targetFileName)", targetPath)
         case .open(let event):
             return Self.about(event.file.path)
-        case .write(let event):
+        case .write(let event), .dup(let event):
             return Self.about(event.target.path)
         case .close(let event):
             return Self.about(event.target.path)
         case .unlink(let event):
             return Self.about(event.target.path)
-        case .dup(let event):
-            return Self.about(event.target.path)
         // MARK: Symbolic Link events
         case .link(let event):
             return Self.about(Self.join(event.target_dir.path, event.target_filename))
         // MARK: File Metadata events
-        case .setextattr(let event):
-            return (Self.tagged(event.extattr, event.target.path), event.target.path)
-        case .getextattr(let event):
+        case .setextattr(let event), .getextattr(let event), .deleteextattr(let event):
             return (Self.tagged(event.extattr, event.target.path), event.target.path)
         case .listextattr(let event):
             return Self.about(event.target.path)
-        case .deleteextattr(let event):
-            return (Self.tagged(event.extattr, event.target.path), event.target.path)
         case .setmode(let event):
             return ("(\(event.mode)) → \(event.target.path)", event.target.path)
         // MARK: Pseudoterminal events
@@ -246,14 +238,12 @@ extension EventType {
         // MARK: File System Mounting events
         case .mount(let event):
             let targetPath = event.statfs.f_mntonname
-            let disposition = Self.short(event.disposition_string, dropping: "ES_MOUNT_DISPOSITION_")
+            let disposition = event.disposition_string.droppingPrefix("ES_MOUNT_DISPOSITION_")
             return (Self.tagged(disposition, targetPath), targetPath)
         // MARK: Login events
         case .login_login(let event):
             return (event.username, nil)
-        case .lw_session_login(let event):
-            return (event.username, nil)
-        case .lw_session_unlock(let event):
+        case .lw_session_login(let event), .lw_session_unlock(let event):
             return (event.username, nil)
         // MARK: Kernel events
         case .iokit_open(let event):
@@ -261,7 +251,7 @@ extension EventType {
         // MARK: Task Port events
         case .get_task(let event):
             guard let path = event.target.executable?.path else { return ("", "") }
-            return (Self.tagged(Self.short(event.type_string, dropping: "ES_GET_TASK_TYPE_"), path), path)
+            return (Self.tagged(event.type_string.droppingPrefix("ES_GET_TASK_TYPE_"), path), path)
         // MARK: MDM events
         case .profile_add(let event):
             return (event.profile.toString(), nil)
@@ -275,7 +265,7 @@ extension EventType {
             return (Self.tagged(event.rights.joined(separator: ","), names), event.petitioner?.executable?.path ?? "")
         // MARK: XPC events
         case .xpc_connect(let event):
-            let requestor = Self.name(of: initiatingPath)
+            let requestor = initiatingPath.lastPathComponent
             return ("\(requestor) → \(event.service_name) in \(event.service_domain_type_string)", nil)
         // MARK: Open Directory events
         case .od_create_user(let event):
@@ -307,7 +297,7 @@ extension EventType {
             return Self.about(Self.join(event.dir.path, event.filename))
         // MARK: TCC events
         case .tcc_modify(let event):
-            let reason = Self.short(event.reason_string, dropping: "ES_TCC_AUTHORIZATION_REASON_")
+            let reason = event.reason_string.droppingPrefix("ES_TCC_AUTHORIZATION_REASON_")
             return (Self.tagged(reason, "\(event.service) → \(event.identity)"), nil)
         // MARK: Gatekeeper events
         case .gatekeeper_user_override(let event):
@@ -335,32 +325,17 @@ extension EventType {
         "[\(tag)] \(text)"
     }
     
-    /// An Endpoint Security name without its prefix, such as `READ` for `ES_GET_TASK_TYPE_READ`.
-    ///
-    /// - Parameters:
-    ///   - name: The name.
-    ///   - prefix: The prefix.
-    /// - Returns: The name less the prefix, or the name as it is without it.
-    private static func short(_ name: String, dropping prefix: String) -> String {
-        name.hasPrefix(prefix) ? String(name.dropFirst(prefix.count)) : name
-    }
-    
-    /// A path's last component.
-    ///
-    /// - Parameter path: The path.
-    /// - Returns: Such as `true` for `/usr/bin/true`, or `""` for `""`.
-    private static func name(of path: String) -> String {
-        path.lastPathComponent
-    }
-    
     /// A directory and a file name joined into a path, as written, without percent escapes.
+    ///
+    /// Joined natively for a summary built as the event arrives: `URL` asks the file system whether the path is a
+    /// folder, and `NSString` hands back a string that isn't contiguous UTF-8.
     ///
     /// - Parameters:
     ///   - directory: The directory.
     ///   - name: The file name.
     /// - Returns: The path.
     private static func join(_ directory: String, _ name: String) -> String {
-        URL(fileURLWithPath: directory).appendingPathComponent(name).path(percentEncoded: false)
+        directory.hasSuffix("/") ? directory + name : directory + "/" + name
     }
     
     /// The full path of a create or rename event's destination, as the event's target path.

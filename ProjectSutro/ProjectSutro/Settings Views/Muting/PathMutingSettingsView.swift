@@ -98,7 +98,7 @@ struct PathMutingSettingsView: View {
                              message: Text("This empties the saved mute set and will dramatically increase event "
                                            + "count."),
                              primaryButton: .destructive(Text("Unmute All")) {
-                                 systemExtensionManager.unmuteAllPaths()
+                                 systemExtensionManager.requestMutes(MuteRequest(.replace))
                              },
                              secondaryButton: .cancel())
             case .reset:
@@ -109,7 +109,7 @@ struct PathMutingSettingsView: View {
                                 every macmonitor stream that follows the saved set.
                                 """),
                              primaryButton: .destructive(Text("Reset to Default")) {
-                                 systemExtensionManager.resetMuteSetToDefault()
+                                 systemExtensionManager.requestMutes(MuteRequest(.reset))
                              },
                              secondaryButton: .cancel())
             }
@@ -120,10 +120,10 @@ struct PathMutingSettingsView: View {
             Text(MuteFileActions.summary(of: systemExtensionManager.muteProblems))
         })
         .modifier(MuteFileAlerts(actions: files, manager: systemExtensionManager))
-        .onAppear { systemExtensionManager.requestMutedPaths() }
+        .onAppear { systemExtensionManager.requestMutes(MuteRequest(.list)) }
         /// Pick up changes `sudo macmonitor` made while the window was in the background.
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
-            systemExtensionManager.requestMutedPaths()
+            systemExtensionManager.requestMutes(MuteRequest(.list))
         }
     }
 

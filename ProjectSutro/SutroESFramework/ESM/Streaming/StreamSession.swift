@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 import OSLog
 
 
@@ -39,7 +40,7 @@ final class StreamSession: NSObject {
     private var capture: CaptureSession?
     private var batcher: EventBatcher?
     /// Applies saved mute set changes to `capture` while held.
-    private var muteSubscription: MuteSubscription?
+    private var muteSubscription: AnyCancellable?
     /// Has the connection asked to stream? One stream a connection.
     private var hasStreamed: Bool = false
     private var isClosed: Bool = false
@@ -110,8 +111,7 @@ extension StreamSession {
                 stop(reply: reply)
             }
         } catch {
-            let problem = (error as? XPCRequestError) ?? .invalid("\(error)")
-            reply(answer(problem.status(), problem: problem.description))
+            reply(answer(error.status(), problem: error.description))
         }
     }
     
@@ -142,7 +142,7 @@ extension StreamSession {
         }
         let batcher = EventBatcher(queue: queue, limits: .commandLine,
                                    overflow: .pause { [weak self] paused in self?.setPaused(paused) },
-                                   delivery: XPCBatchDelivery(connection: connection, label: label),
+                                   delivery: EventBatcher.xpcDelivery(over: connection, label: label),
                                    willSend: { [weak self] in self?.capture?.reportDrops() }, label: label)
         do {
             let capture = try service.makeCapture(configuration) { [weak self] event in
@@ -159,7 +159,6 @@ extension StreamSession {
             let events = capture.subscribedEvents.map { eventTypeToString(from: $0) }
             return answer(.ok, stream: StreamStarted(events: events, savedMutes: savedMutes))
         } catch {
-            muteSubscription?.cancel()
             muteSubscription = nil
             service.slots.release(number)
             return startFailure(error)
@@ -194,7 +193,6 @@ extension StreamSession {
                 while paused), \(summary.droppedByEndpointSecurity) dropped by Endpoint Security.
                 """)
         }
-        muteSubscription?.cancel()
         muteSubscription = nil
         capture?.stop()
         batcher?.close()
@@ -249,7 +247,8 @@ extension StreamSession {
     /// - Returns: The answer.
     private func answer(_ status: StreamReply.Status, problem: String? = nil, stream: StreamStarted? = nil,
                         summary: StreamSummary? = nil) -> StreamReply {
-        StreamReply(status, problem: problem, sensorVersion: service.sensorVersion, stream: stream, summary: summary)
+        StreamReply(status: status, problem: problem, sensorVersion: service.sensorVersion, stream: stream,
+                    summary: summary)
     }
     
     /// What the stream has delivered and lost so far. Call on ``queue``.

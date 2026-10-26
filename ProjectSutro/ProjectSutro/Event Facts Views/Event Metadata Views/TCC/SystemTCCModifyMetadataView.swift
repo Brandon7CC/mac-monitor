@@ -17,21 +17,10 @@ struct SystemTCCModifyMetadataView: View {
         message.event.tcc_modify!
     }
     
-    private var identitySuffix: String {
-        event.identity_type_string.replacingOccurrences(of: "ES_TCC_IDENTITY_TYPE_", with: "")
-    }
-    
-    private var updateSuffix: String {
-        event.update_type_string.replacingOccurrences(of: "ES_TCC_EVENT_TYPE_", with: "")
-    }
-    
-    private var rightSuffix: String {
-        event.right_string.replacingOccurrences(of: "ES_TCC_AUTHORIZATION_RIGHT_", with: "")
-    }
-    
-    private var reasonSuffix: String {
-        event.reason_string.replacingOccurrences(of: "ES_TCC_AUTHORIZATION_REASON_", with: "")
-    }
+    private var identitySuffix: String { event.identity_type_string.droppingPrefix("ES_TCC_IDENTITY_TYPE_") }
+    private var updateSuffix: String { event.update_type_string.droppingPrefix("ES_TCC_EVENT_TYPE_") }
+    private var rightSuffix: String { event.right_string.droppingPrefix("ES_TCC_AUTHORIZATION_RIGHT_") }
+    private var reasonSuffix: String { event.reason_string.droppingPrefix("ES_TCC_AUTHORIZATION_REASON_") }
     
     private var rightSuccess: Bool {
         switch(rightSuffix){

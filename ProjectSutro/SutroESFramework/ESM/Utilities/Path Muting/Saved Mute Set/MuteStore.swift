@@ -169,13 +169,13 @@ extension MuteStore {
         let path = fileURL.path
         var info = stat()
         guard lstat(path, &info) == 0 else {
-            return errno == ENOENT ? .missing : .unreadable("It can't be examined (\(Self.errorText())).")
+            return errno == ENOENT ? .missing : .unreadable("It can't be examined (\(errnoText())).")
         }
         let isOwnRegularFile: (stat) -> Bool = { $0.st_mode & S_IFMT == S_IFREG && $0.st_uid == owner }
         let notOwnRegularFile = Read.unreadable("It isn't a regular file owned by \(ownerName).")
         guard isOwnRegularFile(info) else { return notOwnRegularFile }
         let descriptor = open(path, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
-        guard descriptor >= 0 else { return .unreadable("It can't be opened (\(Self.errorText())).") }
+        guard descriptor >= 0 else { return .unreadable("It can't be opened (\(errnoText())).") }
         let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         guard fstat(descriptor, &info) == 0, isOwnRegularFile(info) else { return notOwnRegularFile }
         guard info.st_size <= off_t(MuteLimits.maxFileBytes) else {
@@ -213,15 +213,7 @@ extension MuteStore {
     ///   - code: Why, as an `errno`: the current one unless given.
     /// - Returns: The error.
     private static func failure(_ what: String, code: Int32 = errno) -> MuteStoreError {
-        .writeFailed("\(what) (\(errorText(code))).")
-    }
-    
-    /// An `errno` in words.
-    ///
-    /// - Parameter code: The `errno`: the current one unless given.
-    /// - Returns: `strerror(code)`.
-    private static func errorText(_ code: Int32 = errno) -> String {
-        String(cString: strerror(code))
+        .writeFailed("\(what) (\(errnoText(code))).")
     }
 }
 

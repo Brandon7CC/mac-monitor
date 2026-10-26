@@ -205,7 +205,7 @@ final class CommandLineToolLinkTests: XCTestCase {
     /// `chown` and `chmod` leave such entries in place.
     func testAnAccessControlEntryThatLetsOthersChangeTheToolIsRefused() throws {
         let fixture = try ToolLinkFixture(for: self)
-        let macOS = (fixture.tool as NSString).deletingLastPathComponent
+        let macOS = fixture.tool.deletingLastPathComponent
         try Self.changeAccess(["+a", "everyone allow write", fixture.tool])
         XCTAssertEqual(fixture.linker().inspect().tool,
                        .failure(.untrustedChain(path: fixture.tool, writer: "the group everyone")))

@@ -12,8 +12,8 @@ import Foundation
 /// The Security Extension's answer to a ``StreamRequest``.
 ///
 /// Every field but the version, status and Security Extension version may be missing, and an unknown status reads as
-/// ``Status-swift.enum/unsupported``, so a newer Security Extension's reply still reads. A field added later must be
-/// optional for the same reason.
+/// ``Status-swift.enum/unsupported`` (``XPCFailureStatus``), so a newer Security Extension's reply still reads. A field
+/// added later must be optional for the same reason.
 public struct StreamReply: XPCReply, Equatable, Sendable {
     /// How the request went.
     public enum Status: String, Codable, Sendable, XPCFailureStatus {
@@ -38,7 +38,7 @@ public struct StreamReply: XPCReply, Equatable, Sendable {
     }
     
     /// The newest request version the Security Extension understands (``StreamRequest/currentVersion``).
-    public var version: Int
+    public var version: Int = StreamRequest.currentVersion
     /// How the request went.
     public var status: Status
     /// What went wrong, as a sentence, for every status but ``Status-swift.enum/ok``.
@@ -49,36 +49,6 @@ public struct StreamReply: XPCReply, Equatable, Sendable {
     public var stream: StreamStarted?
     /// What the stream delivered and lost, for a stop request.
     public var summary: StreamSummary?
-    
-    /// - Parameters:
-    ///   - status: How the request went.
-    ///   - problem: What went wrong.
-    ///   - sensorVersion: The Security Extension's version.
-    ///   - stream: The stream that started.
-    ///   - summary: What the stream delivered and lost.
-    public init(_ status: Status, problem: String? = nil, sensorVersion: String, stream: StreamStarted? = nil,
-                summary: StreamSummary? = nil) {
-        version = StreamRequest.currentVersion
-        self.status = status
-        self.problem = problem
-        self.sensorVersion = sensorVersion
-        self.stream = stream
-        self.summary = summary
-    }
-    
-    /// Read a reply, tolerating a newer Security Extension's.
-    ///
-    /// - Parameter decoder: The decoder.
-    /// - Throws: A `DecodingError` for a missing version, status or Security Extension version.
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        version = try container.decode(Int.self, forKey: .version)
-        status = Status(rawValue: try container.decode(String.self, forKey: .status)) ?? .unsupported
-        problem = try container.decodeIfPresent(String.self, forKey: .problem)
-        sensorVersion = try container.decode(String.self, forKey: .sensorVersion)
-        stream = try container.decodeIfPresent(StreamStarted.self, forKey: .stream)
-        summary = try container.decodeIfPresent(StreamSummary.self, forKey: .summary)
-    }
 }
 
 

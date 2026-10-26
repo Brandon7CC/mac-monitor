@@ -77,7 +77,7 @@ struct EventRowMenu {
         var advanced: [NSMenuItem] = []
         /// File and `MMAP` events filter and mute the directory they target rather than the file.
         let byDirectory = !targetPath.isEmpty && IntelligentEventTargeting.targetShouldBeParentDir(esEventType: eventType)
-        let directory = URL(fileURLWithPath: targetPath).deletingLastPathComponent().path
+        let directory = targetPath.deletingLastPathComponent
         if prefs.contextTargetPathFilter && !targetPath.isEmpty {
             let filtered = byDirectory ? directory : targetPath
             advanced.append(Self.item("Filter target path: \"\(filtered)/\"") { filters.wrappedValue.targetPaths.append(filtered) })

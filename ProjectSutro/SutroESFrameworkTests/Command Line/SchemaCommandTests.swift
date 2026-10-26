@@ -41,10 +41,7 @@ final class SchemaCommandTests: XCTestCase {
         closed.fail(with: .closed)
         XCTAssertNoThrow(try SchemaCommand.run(output: closed).get())
         
-        let failure = { (output: StreamOutput) -> CommandLineFailure? in
-            guard case .failure(let failure) = SchemaCommand.run(output: output) else { return nil }
-            return failure
-        }
+        let failure = { (output: StreamOutput) in SchemaCommand.run(output: output).failure }
         XCTAssertEqual(failure(FileOutput(descriptor: -1)), .output(EBADF))
         let full = BufferOutput()
         full.fail(with: .failed(ENOSPC))
@@ -53,10 +50,10 @@ final class SchemaCommandTests: XCTestCase {
     }
     
     /// A schema the framework doesn't bundle is a bug in the build: exit 70, saying so, with nothing written.
-    func testAMissingSchemaExits70() {
+    func testAMissingSchemaExits70() throws {
         let output = BufferOutput()
         let result = SchemaCommand.run(output: output, schema: { throw TelemetrySchemaError.missingResource })
-        guard case .failure(let failure) = result else { return XCTFail("The schema was written.") }
+        let failure = try XCTUnwrap(result.failure, "The schema was written.")
         XCTAssertEqual(failure, CommandLineFailure(.software,
                                                    "Mac Monitor's telemetry schema is missing from its framework."))
         XCTAssertEqual(failure.exit.rawValue, 70)

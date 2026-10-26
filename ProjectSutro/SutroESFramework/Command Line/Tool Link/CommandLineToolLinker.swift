@@ -111,8 +111,7 @@ public struct CommandLineToolLinker {
     /// - Parameter path: The link's directory.
     /// - Returns: An open descriptor for it, or the outcome to report.
     func createDirectory(_ path: String) -> Result<Int32, Outcome> {
-        let parentPath = (path as NSString).deletingLastPathComponent
-        let name = (path as NSString).lastPathComponent
+        let parentPath = path.deletingLastPathComponent, name = path.lastPathComponent
         var info = stat()
         if lstat(parentPath, &info) != 0 {
             guard errno == ENOENT, mkdir(parentPath, 0o755) == 0 else { return .failure(.directoryNotCreated) }

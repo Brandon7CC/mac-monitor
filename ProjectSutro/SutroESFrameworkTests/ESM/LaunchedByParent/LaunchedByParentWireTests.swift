@@ -27,15 +27,6 @@ final class LaunchedByParentWireTests: XCTestCase {
         let event: [String: [String: ForkIn21]]
     }
     
-    /// The answer for the shell's child.
-    ///
-    /// - Parameter resolvedBy: Who resolved it.
-    /// - Returns: The shell, named from the forking process's executable.
-    private func shellAnswer(by resolvedBy: LaunchedByParent.ResolvedBy) -> LaunchedByParent {
-        LaunchedByParent(source: .unixParent, audit_token: .fixture(pid: 401, pidversion: 4010), path: "/usr/bin/true",
-                         resolved_by: resolvedBy)
-    }
-    
     /// What a Security Extension sends for a shell's fork of pid 402: its JSON object.
     ///
     /// - Returns: The object.
@@ -46,7 +37,7 @@ final class LaunchedByParentWireTests: XCTestCase {
                      responsible: RawMessageFixture.auditToken(pid: 300, pidversion: 3000))
         let lane = LaneContext(eventClass: .process, sensorID: "SENSOR", encoder: StreamingJSONEncoder())
         let json = try XCTUnwrap(MessageSerializer(processPath: { _, _ in nil }).serialize(fixture.raw, in: lane))
-        return try XCTUnwrap(try JSONSerialization.jsonObject(with: json) as? [String: Any])
+        return try jsonObject(json)
     }
     
     /// The object with the fork's launched-by parent replaced.
@@ -55,16 +46,9 @@ final class LaunchedByParentWireTests: XCTestCase {
     ///   - object: A fork's JSON object.
     ///   - value: The new value of `event.fork._0.launched_by_parent`, or `nil` to remove the key.
     /// - Returns: The object.
-    /// - Throws: An `XCTest` failure if it isn't a fork.
-    private func replacingLaunchedByParent(in object: [String: Any], with value: Any?) throws -> [String: Any] {
+    private func replacingLaunchedByParent(in object: [String: Any], with value: Any?) -> [String: Any] {
         var object = object
-        var event = try XCTUnwrap(object["event"] as? [String: Any])
-        var fork = try XCTUnwrap(event["fork"] as? [String: Any])
-        var payload = try XCTUnwrap(fork["_0"] as? [String: Any])
-        payload["launched_by_parent"] = value
-        fork["_0"] = payload
-        event["fork"] = fork
-        object["event"] = event
+        object[path: "event", "fork", "_0", "launched_by_parent"] = value
         return object
     }
     
@@ -79,13 +63,10 @@ final class LaunchedByParentWireTests: XCTestCase {
     
     /// From an older Security Extension: no launched-by parent, which the app then resolves itself.
     func testFromAnOlderSecurityExtension() throws {
-        var fork = try received(try replacingLaunchedByParent(in: try sentFork(), with: nil))
+        var fork = try received(replacingLaunchedByParent(in: try sentFork(), with: nil))
         XCTAssertNil(fork.createdLaunchedByParent)
-        fork.resolveLaunchedByParent(by: .app) { _, _ in
-            XCTFail("A fork's parent is named by the message")
-            return nil
-        }
-        XCTAssertEqual(fork.createdLaunchedByParent, shellAnswer(by: .app))
+        fork.resolveLaunchedByParent(by: .app, path: noPaths())
+        XCTAssertEqual(fork.createdLaunchedByParent, .shell(by: .app))
     }
     
     /// To an older app: the only change is the added `event.fork._0.launched_by_parent`, which its decoder ignores.
@@ -93,9 +74,7 @@ final class LaunchedByParentWireTests: XCTestCase {
         let stamped = try received(try sentFork())
         var unstamped = stamped
         unstamped.setLaunchedByParent(nil)
-        let object = { (message: Message) in try JSONSerialization.jsonObject(with: JSONEncoder().encode(message)) }
-        let new = try XCTUnwrap(try object(stamped) as? [String: Any])
-        let old = try XCTUnwrap(try object(unstamped) as? [String: Any])
+        let (new, old) = (try jsonObject(encoding: stamped), try jsonObject(encoding: unstamped))
         XCTAssertEqual(addedKeyPaths(new, old), ["event.fork._0.launched_by_parent"])
         XCTAssertEqual(differences(old, new), [])
         
@@ -108,12 +87,11 @@ final class LaunchedByParentWireTests: XCTestCase {
     /// and the event still reads, from the Security Extension and from a trace.
     func testUnknownValuesReadAsNone() throws {
         let sent = try sentFork()
-        let fork = try XCTUnwrap(try event("fork", in: sent)["_0"] as? [String: Any])
-        let launchedByParent = try XCTUnwrap(fork["launched_by_parent"] as? [String: Any])
+        let launchedByParent = try XCTUnwrap(sent[path: "event", "fork", "_0", "launched_by_parent"] as? [String: Any])
         for (key, value) in [("source", "elsewhere"), ("resolved_by", "someone")] {
             var newer = launchedByParent
             newer[key] = value
-            let object = try replacingLaunchedByParent(in: sent, with: newer)
+            let object = replacingLaunchedByParent(in: sent, with: newer)
             XCTAssertNil(try received(object).createdLaunchedByParent, key)
             XCTAssertNil(try importRecord(object).createdLaunchedByParent, key)
         }
@@ -123,7 +101,7 @@ final class LaunchedByParentWireTests: XCTestCase {
     func testWrongTypeReadsAsNone() throws {
         let sent = try sentFork()
         for value: Any in ["unix_parent", 42, [Any](), NSNull()] {
-            let object = try replacingLaunchedByParent(in: sent, with: value)
+            let object = replacingLaunchedByParent(in: sent, with: value)
             XCTAssertNil(try received(object).createdLaunchedByParent, "\(value)")
             XCTAssertNil(try importRecord(object).createdLaunchedByParent, "\(value)")
         }

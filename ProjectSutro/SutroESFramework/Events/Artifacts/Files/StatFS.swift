@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct StatFS: Codable, Equatable, Hashable {
+public struct StatFS: Codable, Hashable {
     // fundamental file system block size
     public var f_bsize: UInt32
     // optimal transfer block size

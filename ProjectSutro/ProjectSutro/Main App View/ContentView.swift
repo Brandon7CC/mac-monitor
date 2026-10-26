@@ -60,8 +60,6 @@ struct EventView: View {
     @State private var showsRequirements = false
     /// Has the checklist shown on its own? Only once a launch: after that, the toolbar says what's missing.
     @State private var requirementsShownOnce = false
-    /// Was Mac Monitor launched only to deactivate the Security Extension? Then it never checks or activates it.
-    private let deactivating = CommandLine.arguments.contains("--deactivate-security-extension")
     
     @State private var filteredTelemetryShown: Bool = false
     
@@ -132,12 +130,6 @@ struct EventView: View {
         PredicateEditorPane(search: search, model: eventQueries) { openWindow(id: ProjectSutroApp.schemaWindow) }
     }
     
-    /// Show or hide the predicate editor (View ▸ Predicate Editor, ⌥⌘F), or bring its window forward.
-    private func togglePredicateEditor() {
-        if search.isPoppedOut { return openWindow(id: ProjectSutroApp.predicateEditorWindow) }
-        if search.showsEditor { search.showsEditor = false } else { search.showEditor() }
-    }
-    
     var body: some View {
         /// A pane beside the tables, not an inspector: on macOS 26 an inspector puts the toolbar's blurred edge over
         /// the top of the window's content, the Unified table's title and headers.
@@ -148,7 +140,6 @@ struct EventView: View {
                 predicateEditor.frame(width: 440)
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .togglePredicateEditor)) { _ in togglePredicateEditor() }
         .onAppear { search.queries = eventQueries }
         /// The editor beside the tables takes the mini chart's room, which comes back when the editor goes, unless
         /// it was shown again meanwhile.
@@ -178,11 +169,8 @@ struct EventView: View {
                 viewMiniChart: $viewMiniChart,
                 openFile: openTrace
             )
-            .environmentObject(systemExtensionManager)
-            .environmentObject(userPrefs)
         }
-        .onAppear { eventQueries.activate(spec: filterSpec) }
-        .onChange(of: filterSpec) { spec in eventQueries.update(spec: spec) }
+        .task(id: filterSpec) { eventQueries.activate(spec: filterSpec) }
         /// The selected events are about to be deleted, so "Export telemetry" > "Selected events" mustn't offer them.
         .onReceive(NotificationCenter.default.publisher(for: CoreDataController.eventsWillClear)) { _ in eventSelection = [] }
         .toolbar {
@@ -247,7 +235,7 @@ struct EventView: View {
                         search: search
                     ) {
                         filteredTelemetryShown = false
-                        if search.isPoppedOut || !search.showsEditor { togglePredicateEditor() }
+                        if search.isPoppedOut || !search.showsEditor { search.toggleEditor(openWindow) }
                     }
                     .environmentObject(systemExtensionManager)
                     .environmentObject(traceSession)
@@ -311,7 +299,7 @@ struct EventView: View {
             }
             /// The predicate editor's button, right of the search field.
             ToolbarItem(placement: .primaryAction) {
-                Button(action: togglePredicateEditor) {
+                Button { search.toggleEditor(openWindow) } label: {
                     Label("Predicate Editor", systemImage: "sidebar.right")
                 }
                 .help(search.applied.map {
@@ -338,22 +326,23 @@ struct EventView: View {
         /// Activates the Security Extension only if it's running: otherwise the checklist's Install button does, when
         /// macOS's prompt to open System Settings follows from it.
         .onAppear {
-            guard !deactivating else { return }
+            guard !ProjectSutroApp.deactivating else { return }
             systemExtensionManager.checkExtensionAtLaunch()
         }
         /// Look again whenever Mac Monitor comes to the front, such as back from System Settings.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            guard !deactivating else { return }
+            guard !ProjectSutroApp.deactivating else { return }
             systemExtensionManager.refreshRequirements()
         }
         /// Show the checklist on its own once, as soon as it's known that something is missing.
         .onChange(of: systemExtensionManager.requirements) { requirements in
-            guard !deactivating, !requirementsShownOnce, requirements.isSettled, !requirements.isReady else { return }
+            guard !ProjectSutroApp.deactivating, !requirementsShownOnce, requirements.isSettled,
+                  !requirements.isReady else { return }
             requirementsShownOnce = true
             showsRequirements = true
         }
         .sheet(isPresented: $showsRequirements) {
-            RequirementsView().environmentObject(systemExtensionManager)
+            RequirementsView()
         }
         .alert("Saved mute set", isPresented: showsEventMuteProblems,
                actions: { Button("OK", role: .cancel, action: {}) },

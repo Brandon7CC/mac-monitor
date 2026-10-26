@@ -38,7 +38,7 @@ struct ContextMenuSettingsView: View {
             Section {
                 ForEach(ContextMenuOption.allCases) { option in
                     Toggle(isOn: option.binding(userPrefs, for: kind)) {
-                        SettingsLabel(option.title, detail: option.key)
+                        SettingsLabel(title: option.title, detail: option.key)
                     }
                 }
             } header: {

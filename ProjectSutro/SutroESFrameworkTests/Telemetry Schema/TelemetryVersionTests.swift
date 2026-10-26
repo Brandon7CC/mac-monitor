@@ -37,7 +37,7 @@ final class TelemetryVersionTests: XCTestCase {
             let reader = try TraceRecordReader(url: url)
             var versions: [String?] = []
             while case .object(let json, _)? = try reader.next() {
-                let record = try XCTUnwrap(try JSONSerialization.jsonObject(with: json) as? [String: Any])
+                let record = try jsonObject(json)
                 versions.append(record[TelemetrySchema.versionKey] as? String)
             }
             XCTAssertEqual(versions, Array(repeating: TelemetrySchema.version, count: 3), pretty ? "pretty" : "JSONL")
@@ -62,7 +62,7 @@ final class TelemetryVersionTests: XCTestCase {
         let exit = sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, seq: 1, global: 1)
         let lane = LaneContext(eventClass: .process, sensorID: "SENSOR-1", encoder: StreamingJSONEncoder())
         let json = try XCTUnwrap(MessageSerializer().serialize(exit.raw, in: lane))
-        let wire = try XCTUnwrap(try JSONSerialization.jsonObject(with: json) as? [String: Any])
+        let wire = try jsonObject(json)
         XCTAssertNotNil(wire["schema_version"])
         XCTAssertNil(wire[TelemetrySchema.versionKey])
     }

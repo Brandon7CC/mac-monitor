@@ -8,7 +8,6 @@
 import Foundation
 
 
-// Ensure File conforms to Codable and Equatable
 public extension String {
     /// A path's last component, its file name: `macmonitor` for
     /// `/Applications/Mac Monitor.app/Contents/MacOS/macmonitor`. Read as a path, never through `URL(string:)`, which
@@ -16,10 +15,24 @@ public extension String {
     var lastPathComponent: String {
         (self as NSString).lastPathComponent
     }
+
+    /// A path less its last component, its folder: `/Applications/Mac Monitor.app/Contents/MacOS` for
+    /// `/Applications/Mac Monitor.app/Contents/MacOS/macmonitor`. Read as a path, without a `URL` or the file system.
+    var deletingLastPathComponent: String {
+        (self as NSString).deletingLastPathComponent
+    }
+
+    /// A path with a component added, as written, without a `URL` or the file system.
+    ///
+    /// - Parameter component: The component, such as a file name or a relative path.
+    /// - Returns: The path and the component joined by one "/".
+    func appendingPathComponent(_ component: String) -> String {
+        (self as NSString).appendingPathComponent(component)
+    }
 }
 
 
-public struct File: Identifiable, Codable, Equatable, Hashable {
+public struct File: Identifiable, Codable, Hashable {
     public var id = UUID.buffered()
     
     /// File system

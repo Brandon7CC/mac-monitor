@@ -24,7 +24,7 @@ extension EventQueryModel.Worker {
     ///   - table: The table to fetch for.
     /// - Returns: `filter`, limited to `EXEC` events for the Process Execution table.
     func predicate(_ filter: NSPredicate, for table: Snapshot.Table) -> NSPredicate {
-        table.execOnly ? and(filter, NSPredicate(format: "event_type == %d", EventFilterSpec.execEventType)) : filter
+        table.execOnly ? and(filter, NSPredicate(format: "event_type == %d", ESMessage.execEventType)) : filter
     }
     
     /// - Parameter predicates: Predicates that must all hold.
@@ -36,9 +36,7 @@ extension EventQueryModel.Worker {
     /// - Parameter predicate: The events to count.
     /// - Returns: The number of events matching `predicate`.
     func count(_ predicate: NSPredicate) throws -> Int {
-        let request = ESMessage.fetchRequest()
-        request.predicate = predicate
-        return try context.count(for: request)
+        try context.count(for: ESMessage.request(where: predicate))
     }
     
     /// - Parameters:
@@ -58,11 +56,8 @@ extension EventQueryModel.Worker {
     /// - Returns: The events' object IDs.
     func sqliteSorted(matching predicate: NSPredicate?,
                       sortedBy sort: [NSSortDescriptor]) throws -> [NSManagedObjectID] {
-        let request = NSFetchRequest<NSManagedObjectID>(entityName: "ESMessage")
-        request.resultType = .managedObjectIDResultType
+        let request = ESMessage.request(NSManagedObjectID.self, where: predicate, sortedBy: sort)
         request.includesPropertyValues = false
-        request.predicate = predicate
-        request.sortDescriptors = sort
         return try context.fetch(request)
     }
     
@@ -89,12 +84,9 @@ extension EventQueryModel.Worker {
         count.name = "count"
         count.expression = NSExpression(forFunction: "count:", arguments: [NSExpression(forKeyPath: "insert_batch")])
         count.expressionResultType = .integer64AttributeType
-        let request = NSFetchRequest<NSDictionary>(entityName: "ESMessage")
-        request.resultType = .dictionaryResultType
-        request.predicate = predicate
+        let request = ESMessage.request(NSDictionary.self, where: predicate, sortedBy: [byBytes])
         request.propertiesToFetch = [key, count]
         request.propertiesToGroupBy = [key]
-        request.sortDescriptors = [byBytes]
         
         /// Each distinct value and where its rows sit in the bytewise order.
         var runs: [(value: NSString?, rows: Range<Int>)] = []
@@ -134,9 +126,7 @@ extension EventQueryModel.Worker {
         count.expression = NSExpression(forFunction: "count:", arguments: [NSExpression(forKeyPath: "es_event_type")])
         count.expressionResultType = .integer64AttributeType
         
-        let request = NSFetchRequest<NSDictionary>(entityName: "ESMessage")
-        request.resultType = .dictionaryResultType
-        request.predicate = predicate
+        let request = ESMessage.request(NSDictionary.self, where: predicate)
         request.propertiesToFetch = ["es_event_type", count]
         request.propertiesToGroupBy = ["es_event_type"]
         

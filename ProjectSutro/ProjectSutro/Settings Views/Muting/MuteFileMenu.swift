@@ -57,7 +57,7 @@ final class MuteFileActions: ObservableObject {
     ///   - replacing: Replace the saved set, or add to it.
     ///   - manager: The Security Extension's manager.
     func apply(_ pending: PendingImport, replacing: Bool, through manager: EndpointSecurityManager) {
-        manager.importMutes(pending.imported, replacing: replacing) { reply in
+        manager.requestMutes(MuteRequest(replacing ? .replace : .add, MuteFile(pending.imported.list).mutes)) { reply in
             os_log("Imported %{public}@: %{public}@", pending.fileName, reply?.status.rawValue ?? "no reply")
         }
     }

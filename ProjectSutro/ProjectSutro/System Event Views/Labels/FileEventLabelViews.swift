@@ -16,7 +16,7 @@ import SutroESFramework
 /// - Parameter path: A file's path.
 /// - Returns: `true` for such a file.
 func pathIsReflectiveLoadingImage(_ path: String) -> Bool {
-    (path as NSString).lastPathComponent.hasPrefix("NSCreateObjectFileImageFromMemory-")
+    path.lastPathComponent.hasPrefix("NSCreateObjectFileImageFromMemory-")
 }
 
 /// Is a file an OSA (Open Scripting Architecture) component: the AppleScript or JavaScript component, or a scripting

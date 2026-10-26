@@ -34,32 +34,6 @@ public struct EventHeader: Decodable, Equatable {
         private enum ExecutableKeys: String, CodingKey {
             case path
         }
-        
-        /// - Parameters:
-        ///   - pid: The process ID.
-        ///   - groupID: The process group.
-        ///   - user: The effective user's name.
-        ///   - path: The executable's path.
-        public init(pid: Int32, groupID: Int32, user: String?, path: String?) {
-            self.pid = pid
-            self.groupID = groupID
-            self.user = user
-            self.path = path
-        }
-        
-        /// Read `process` from a wire event.
-        ///
-        /// - Parameter decoder: The decoder.
-        /// - Throws: A `DecodingError` for a missing `pid` or `group_id`.
-        public init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            pid = try container.decode(Int32.self, forKey: .pid)
-            groupID = try container.decode(Int32.self, forKey: .group_id)
-            user = try container.decodeIfPresent(String.self, forKey: .euid_human)
-            /// Missing or `null` when Endpoint Security named no executable.
-            let executable = try? container.nestedContainer(keyedBy: ExecutableKeys.self, forKey: .executable)
-            path = try executable?.decodeIfPresent(String.self, forKey: .path)
-        }
     }
     
     /// `seq_num`: per client and event type. Missing before message version 2.
@@ -83,28 +57,11 @@ public struct EventHeader: Decodable, Equatable {
         case sequence = "seq_num", globalSequence = "global_seq_num", eventType = "event_type", name = "es_event_type"
         case time, process, context, targetPath = "target_path"
     }
-    
-    /// - Parameters:
-    ///   - sequence: `seq_num`.
-    ///   - globalSequence: `global_seq_num`.
-    ///   - eventType: The `es_event_type_t` raw value.
-    ///   - name: The `ES_EVENT_TYPE_*` name.
-    ///   - time: The UTC time.
-    ///   - process: The initiating process.
-    ///   - context: The one-line summary.
-    ///   - targetPath: The target path.
-    public init(sequence: Int?, globalSequence: Int?, eventType: Int, name: String, time: String, process: Process,
-                context: String?, targetPath: String?) {
-        self.sequence = sequence
-        self.globalSequence = globalSequence
-        self.eventType = eventType
-        self.name = name
-        self.time = time
-        self.process = process
-        self.context = context
-        self.targetPath = targetPath
-    }
-    
+}
+
+
+// MARK: - Initializers
+extension EventHeader {
     /// The header of an event already decoded.
     ///
     /// - Parameter message: The event.
@@ -114,5 +71,23 @@ public struct EventHeader: Decodable, Equatable {
                   process: Process(pid: message.process.pid, groupID: message.process.group_id,
                                    user: message.process.euid_human, path: message.process.executable?.path),
                   context: message.context, targetPath: message.target_path)
+    }
+}
+
+
+// MARK: - Decoding the process
+extension EventHeader.Process {
+    /// Read `process` from a wire event.
+    ///
+    /// - Parameter decoder: The decoder.
+    /// - Throws: A `DecodingError` for a missing `pid` or `group_id`.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        pid = try container.decode(Int32.self, forKey: .pid)
+        groupID = try container.decode(Int32.self, forKey: .group_id)
+        user = try container.decodeIfPresent(String.self, forKey: .euid_human)
+        /// Missing or `null` when Endpoint Security named no executable.
+        let executable = try? container.nestedContainer(keyedBy: ExecutableKeys.self, forKey: .executable)
+        path = try executable?.decodeIfPresent(String.self, forKey: .path)
     }
 }

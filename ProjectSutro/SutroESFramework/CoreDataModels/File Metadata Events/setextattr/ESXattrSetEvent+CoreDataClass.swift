@@ -20,7 +20,7 @@ public class ESXattrSetEvent: NSManagedObject, Identifiable {
     
     
     // MARK: - Custom Core Data initilizer for ESXattrSetEvent
-    convenience init(from event: XattrSetEvent, message: Message, in context: NSManagedObjectContext!) {
+    convenience init(from event: XattrEvent, message: Message, in context: NSManagedObjectContext!) {
         self.init(insertingInto: context)
         
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESXattrSetEvent.target))

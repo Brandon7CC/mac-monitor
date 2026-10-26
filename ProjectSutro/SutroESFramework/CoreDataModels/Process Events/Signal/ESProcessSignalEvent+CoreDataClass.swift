@@ -31,9 +31,7 @@ public class ESProcessSignalEvent: NSManagedObject, Identifiable {
         
         /// Process structures
         self.target = ESProcess(from: event.target, version: message.version, insertIntoManagedObjectContext: context)
-        if let instigator = event.instigator {
-            self.instigator = ESProcess(from: instigator, version: message.version, insertIntoManagedObjectContext: context)
-        }
+        self.instigator = ESProcess.insert(event.instigator, version: message.version, in: context)
     }
 }
 

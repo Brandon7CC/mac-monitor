@@ -163,7 +163,7 @@ extension AuditToken {
     /// This token with its random `id` zeroed.
     var rowKey: AuditToken { var token = self; token.id = zeroID; return token }
     
-    /// The token as ``ESAuditToken/toString()`` formats it (also what `ESProcess` stores as `*_audit_token_string`):
+    /// The token as `ESProcess` stores it in `*_audit_token_string`:
     /// `pid:1, euid:0, ruid:0, rgid:0, egid:0, asid:100000, auid:4294967295, pidversion:2`.
     ///
     /// Written digit by digit into one string rather than interpolated (~0.3 µs, three times for every process an

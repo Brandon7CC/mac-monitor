@@ -73,8 +73,8 @@ final class CommandLineCompletionTests: XCTestCase {
     func testZshListsEverything() {
         let script = CommandLineCompletion.script(for: .zsh)
         XCTAssertTrue(script.hasPrefix("#compdef macmonitor\n"))
-        for command in CommandLineHelp.commands {
-            XCTAssertTrue(script.contains(CommandLineCompletion.quoted("\(command.name):\(command.summary)")))
+        for command in CommandLineCommand.allCases {
+            XCTAssertTrue(script.contains(CommandLineCompletion.quoted("\(command.rawValue):\(command.help.summary)")))
         }
         for option in CommandLineOption.stream + CommandLineOption.validate {
             XCTAssertTrue(script.contains(" \(option.name)"), option.name)

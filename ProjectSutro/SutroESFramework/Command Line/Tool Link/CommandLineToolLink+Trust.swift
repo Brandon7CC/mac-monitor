@@ -110,7 +110,7 @@ extension CommandLineToolLink {
     func binDirectoryWarning() -> String? {
         var path = layout.binDirectory
         var info = stat()
-        while lstat(path, &info) != 0, path != "/" { path = (path as NSString).deletingLastPathComponent }
+        while lstat(path, &info) != 0, path != "/" { path = path.deletingLastPathComponent }
         guard let real = Self.realPath(path), case let (changeable, writer)? = firstWriter(from: real) else {
             return nil
         }
@@ -134,7 +134,7 @@ extension CommandLineToolLink {
             guard lstat(current, &info) == 0 else { return (current, "someone Mac Monitor can't identify") }
             if let writer = writer(of: info) ?? Self.entryWriter(of: current) { return (current, writer) }
             guard current != root, current != "/" else { return nil }
-            current = (current as NSString).deletingLastPathComponent
+            current = current.deletingLastPathComponent
         }
     }
     
@@ -255,7 +255,7 @@ extension CommandLineToolLink {
     /// - Parameter uid: The user.
     /// - Returns: Such as "brandon", or "user 501" if it has none.
     static func userName(_ uid: uid_t) -> String {
-        getpwuid(uid).flatMap { $0.pointee.pw_name.map { String(cString: $0) } } ?? "user \(uid)"
+        UserNames.databaseName(of: uid) ?? "user \(uid)"
     }
     
     /// A group's name.

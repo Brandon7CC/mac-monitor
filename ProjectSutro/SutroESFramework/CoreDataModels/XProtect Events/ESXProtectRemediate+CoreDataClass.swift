@@ -42,9 +42,7 @@ public class ESXProtectRemediate: NSManagedObject, Identifiable {
         self.success = event.success
         self.result_description = event.result_description
         self.remediated_path = event.remediated_path
-        if let token = event.remediated_process_audit_token {
-            self.remediated_process_audit_token = ESAuditToken(from: token, insertIntoManagedObjectContext: context)
-        }
+        self.remediated_process_audit_token = ESAuditToken.insert(event.remediated_process_audit_token, in: context)
     }
 }
 

@@ -22,11 +22,7 @@ final class LaunchedByParentLaunchServicesTests: XCTestCase {
     private let launcher = AuditToken.fixture(pid: 502, pidversion: 5020)
     
     /// The Security Extension's answer for the app: launchd, starting the app's job.
-    private var appJob: LaunchedByParent {
-        LaunchedByParent(source: .launchdJob, audit_token: .fixture(pid: 1, pidversion: 1),
-                         path: LaunchedByParent.launchdPath, launchd_job: .init(label: label),
-                         resolved_by: .securityExtension)
-    }
+    private let appJob = LaunchedByParent.appJob()
     
     /// A record of the app's launch.
     ///
@@ -67,9 +63,7 @@ final class LaunchedByParentLaunchServicesTests: XCTestCase {
         var unixParent = appJob
         unixParent.source = .unixParent
         XCTAssertNil(upgrade(unixParent, with: launched))
-        var agent = appJob
-        agent.launchd_job = .init(label: "com.example.agent")
-        XCTAssertNil(upgrade(agent, with: launched))
+        XCTAssertNil(upgrade(.appJob(label: "com.example.agent"), with: launched))
     }
     
     /// A record of another exec of the app's pid (a reused pid, or an exec after the app checked in) is ignored.
@@ -85,10 +79,7 @@ final class LaunchedByParentLaunchServicesTests: XCTestCase {
         let path = "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder"
         let launched = LaunchServicesRecord(token: app, launchedByLaunchServices: true, hasParentASN: true,
                                             parentToken: launcher, parentPath: path)
-        let answer = try XCTUnwrap(appJob.upgraded(with: launched, for: app) { pid, _ in
-            XCTFail("Read the path of \(pid)")
-            return nil
-        })
+        let answer = try XCTUnwrap(appJob.upgraded(with: launched, for: app, path: noPaths()))
         XCTAssertEqual(answer.path, path)
         XCTAssertEqual(answer.audit_token, launcher)
         XCTAssertEqual(upgrade(appJob, with: record(parentASN: true, parent: launcher))?.path, "/path/of/502")

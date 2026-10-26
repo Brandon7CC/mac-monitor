@@ -59,14 +59,12 @@ final class StreamRequestTests: XCTestCase {
             ("", .invalid)
         ]
         for (json, status) in cases {
-            XCTAssertThrowsError(try StreamRequest.decode(Data(json.utf8)), json) { error in
-                XCTAssertEqual((error as? XPCRequestError)?.status(as: StreamReply.Status.self), status, json)
-            }
+            let error = thrown(XPCRequestError.self) { try StreamRequest.decode(Data(json.utf8)) }
+            XCTAssertEqual(error?.status(as: StreamReply.Status.self), status, json)
         }
         let large = Data(repeating: 0x20, count: StreamRequest.maximumSize + 1)
-        XCTAssertThrowsError(try StreamRequest.decode(large)) { error in
-            XCTAssertEqual((error as? XPCRequestError)?.status(as: StreamReply.Status.self), .invalid)
-        }
+        let tooLarge = thrown(XPCRequestError.self) { try StreamRequest.decode(large) }
+        XCTAssertEqual(tooLarge?.status(as: StreamReply.Status.self), .invalid)
     }
     
     /// A version 1 reply reads. A reply with a status this build doesn't know reads as unsupported. A reply without
@@ -77,7 +75,7 @@ final class StreamRequestTests: XCTestCase {
             "stream":{"events":["ES_EVENT_TYPE_NOTIFY_EXEC"],"savedMutes":3}}
             """#
         XCTAssertEqual(StreamReply.decode(Data(started.utf8)),
-                       StreamReply(.ok, sensorVersion: "3.0.0 (1)",
+                       StreamReply(status: .ok, sensorVersion: "3.0.0 (1)",
                                    stream: StreamStarted(events: ["ES_EVENT_TYPE_NOTIFY_EXEC"], savedMutes: 3)))
         let stopped = #"""
             {"version":1,"status":"ok","sensorVersion":"3.0.0 (1)","summary":{"captured":9,"delivered":8,\#
@@ -89,7 +87,8 @@ final class StreamRequestTests: XCTestCase {
         XCTAssertEqual(StreamReply.decode(Data(#"{"version":3,"status":"later","sensorVersion":"3.0 (1)"}"#.utf8))?
                         .status, .unsupported)
         XCTAssertNil(StreamReply.decode(Data(#"{"version":1,"status":"ok"}"#.utf8)))
-        let reply = StreamReply(.sessionLimit, problem: "Three streams are running.", sensorVersion: "3.0.0 (1)")
+        let reply = StreamReply(status: .sessionLimit, problem: "Three streams are running.",
+                                sensorVersion: "3.0.0 (1)")
         XCTAssertEqual(StreamReply.decode(reply.encoded()), reply)
     }
 }

@@ -235,7 +235,7 @@ private struct FindingPreview: View {
                 ForEach(preview.examples) { example in
                     HStack(spacing: 10) {
                         Text(example.time).monospacedDigit().foregroundStyle(.secondary)
-                        Text(example.type.replacingOccurrences(of: "ES_EVENT_TYPE_NOTIFY_", with: ""))
+                        Text(example.type.droppingPrefix("ES_EVENT_TYPE_NOTIFY_"))
                             .fontWeight(.medium)
                         Text(example.context).lineLimit(1).truncationMode(.middle).foregroundStyle(.secondary)
                             .help(example.context)

@@ -184,10 +184,7 @@ extension EventQueryModel {
         ///   - table: The table's sort and current rows.
         /// - Returns: The merged rows and the new events' positions in them.
         private func merge(_ filter: NSPredicate, into table: Snapshot.Table) throws -> (rows: [NSManagedObjectID], inserted: IndexSet) {
-            let request = ESMessage.fetchRequest()
-            request.predicate = predicate(filter, for: table)
-            request.sortDescriptors = table.sort
-            request.returnsObjectsAsFaults = false
+            let request = ESMessage.request(where: predicate(filter, for: table), sortedBy: table.sort, loaded: true)
             let new = try context.fetch(request)
             guard !new.isEmpty else { return (table.rows, []) }
             
@@ -286,11 +283,9 @@ extension EventQueryModel {
             let ids = try sqliteSorted(matching: predicate, sortedBy: sort)
             for start in stride(from: 0, to: ids.count, by: Self.batchSize) {
                 try autoreleasepool {
-                    let request = ESMessage.fetchRequest()
-                    let batch = ids[start..<min(start + Self.batchSize, ids.count)]
-                    request.predicate = NSPredicate(format: "self IN %@", Array(batch))
-                    request.sortDescriptors = sort
-                    request.returnsObjectsAsFaults = false
+                    let batch = Array(ids[start..<min(start + Self.batchSize, ids.count)])
+                    let request = ESMessage.request(where: NSPredicate(format: "self IN %@", batch), sortedBy: sort,
+                                                    loaded: true)
                     request.relationshipKeyPathsForPrefetching = prefetch
                     for message in try context.fetch(request) {
                         /// Each event can take a while: a `MATCHES` has up to `BoundedMatches.limit` for each value.

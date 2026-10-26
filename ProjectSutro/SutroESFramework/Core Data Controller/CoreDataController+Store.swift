@@ -72,10 +72,10 @@ extension CoreDataController {
         guard let store = coordinator.persistentStore(for: url),
               let entity = coordinator.managedObjectModel.entitiesByName["ESEventType"] else { return }
         let table = "Z" + entity.name!.uppercased()
-        let names = Set(entity.relationshipsByName.values.filter { !$0.isToMany && $0.inverseRelationship == nil }
-            .map { "\(table)_Z\($0.name.uppercased())_INDEX" })
+        let names = entity.relationshipsByName.values.filter { !$0.isToMany && $0.inverseRelationship == nil }
+            .map { "\(table)_Z\($0.name.uppercased())_INDEX" }
         let options = store.options
-        do { try coordinator.remove(store) } catch { return }
+        guard !names.isEmpty, (try? coordinator.remove(store)) != nil else { return }
         defer {
             if (try? coordinator.addPersistentStore(type: .sqlite, at: url, options: options)) == nil {
                 logger.error("Unable to reopen the event store after dropping its indexes")
@@ -84,20 +84,9 @@ extension CoreDataController {
         var database: OpaquePointer?
         defer { sqlite3_close(database) }
         guard sqlite3_open_v2(url.path, &database, SQLITE_OPEN_READWRITE, nil) == SQLITE_OK else { return }
-        /// Only the ones there: a future Core Data may name or make them differently.
-        var statement: OpaquePointer?
-        var present: [String] = []
-        let query = "SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = '\(table)'"
-        if sqlite3_prepare_v2(database, query, -1, &statement, nil) == SQLITE_OK {
-            while sqlite3_step(statement) == SQLITE_ROW {
-                if let name = sqlite3_column_text(statement, 0).map({ String(cString: $0) }), names.contains(name) {
-                    present.append(name)
-                }
-            }
-        }
-        sqlite3_finalize(statement)
-        guard !present.isEmpty else { return }
-        let drops = present.map { "DROP INDEX \"\($0)\";" }.joined()
+        /// `IF EXISTS`: a future Core Data may name or make them differently. Each name carries its table's, so none
+        /// can be another table's index.
+        let drops = names.map { "DROP INDEX IF EXISTS \"\($0)\";" }.joined()
         if sqlite3_exec(database, "PRAGMA synchronous = OFF; BEGIN; \(drops) COMMIT;", nil, nil, nil) != SQLITE_OK {
             let message = String(cString: sqlite3_errmsg(database))
             logger.error("Unable to drop the event store's unused indexes: \(message, privacy: .public)")

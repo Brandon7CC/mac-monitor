@@ -49,21 +49,10 @@ extension EventSerializing {
 
 // MARK: - Emitted events
 /// Collects what a capture session emits, from any thread.
-final class EmittedEvents {
-    private let lock = OSAllocatedUnfairLock<[CapturedEvent]>(uncheckedState: [])
-    
-    /// Every event, in the order they were emitted.
-    var all: [CapturedEvent] {
-        lock.withLockUnchecked { $0 }
-    }
-    
-    /// Collect one event.
-    ///
-    /// - Parameter event: The event.
-    func append(_ event: CapturedEvent) {
-        lock.withLockUnchecked { $0.append(event) }
-    }
-    
+typealias EmittedEvents = Recorded<CapturedEvent>
+
+
+extension Recorded where Element == CapturedEvent {
     /// What one class emitted, as ``StubSerializer/globalSequence`` writes it.
     ///
     /// - Parameter eventClass: The class.
@@ -124,5 +113,24 @@ extension XCTestCase {
             usleep(1_000)
         }
         return true
+    }
+    
+    /// Start something that calls back, and wait for its first value.
+    ///
+    /// - Parameters:
+    ///   - timeout: How long to wait, in seconds.
+    ///   - start: Starts it, given the callback. Calls after the first are ignored.
+    /// - Returns: The value it first called back with.
+    /// - Throws: An `XCTest` failure if it didn't call back in time, which the wait records as a failure too.
+    func awaitCallback<T>(timeout: TimeInterval = 60, _ start: (@escaping (T) -> Void) -> Void) throws -> T {
+        let called = expectation(description: "called back")
+        called.assertForOverFulfill = false
+        let value = OSAllocatedUnfairLock<T?>(uncheckedState: nil)
+        start { result in
+            value.withLockUnchecked { if $0 == nil { $0 = result } }
+            called.fulfill()
+        }
+        wait(for: [called], timeout: timeout)
+        return try XCTUnwrap(value.withLockUnchecked { $0 }, "No callback in \(timeout) seconds")
     }
 }

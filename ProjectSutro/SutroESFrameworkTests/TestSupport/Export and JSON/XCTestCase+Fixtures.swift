@@ -39,19 +39,33 @@ extension XCTestCase {
     /// - Returns: The fixture's object.
     /// - Throws: An `XCTest` failure if the fixture is missing or isn't a JSON object, or the error parsing it.
     func fixtureObject(_ name: String) throws -> [String: Any] {
-        try XCTUnwrap(try JSONSerialization.jsonObject(with: try fixture(name)) as? [String: Any],
-                      "Fixture \(name) isn't a JSON object")
+        try jsonObject(try fixture(name), "Fixture \(name) isn't a JSON object")
     }
     
-    /// A new, empty directory in the temporary folder, deleted when the test ends.
+    /// A new, empty directory in the temporary folder, deleted when the test ends whatever modes the test left in it.
     ///
+    /// - Parameters:
+    ///   - prefix: The start of its name.
+    ///   - mode: Its permissions.
     /// - Returns: The directory's URL.
     /// - Throws: The error creating it.
-    func makeTemporaryDirectory() throws -> URL {
+    func makeTemporaryDirectory(prefix: String = "SutroESFrameworkTests", mode: Int = 0o755) throws -> URL {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("SutroESFrameworkTests-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+            .appendingPathComponent("\(prefix)-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
+                                                attributes: [.posixPermissions: mode])
+        addTeardownBlock {
+            /// Every directory searchable and writable again, this one first, so everything in it can be removed.
+            /// Links aren't followed out of the tree.
+            chmod(directory.path, 0o700)
+            let keys: Set<URLResourceKey> = [.isDirectoryKey, .isSymbolicLinkKey]
+            let walker = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: Array(keys))
+            while let url = walker?.nextObject() as? URL {
+                let values = try? url.resourceValues(forKeys: keys)
+                if values?.isDirectory == true, values?.isSymbolicLink != true { chmod(url.path, 0o700) }
+            }
+            try? FileManager.default.removeItem(at: directory)
+        }
         return directory
     }
     

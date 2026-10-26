@@ -67,10 +67,7 @@ public struct LineageLookup {
     /// - Returns: The exec or fork, or `nil` when none matches.
     /// - Throws: The fetch's error.
     private func creator(matching predicate: NSPredicate) throws -> ESMessage? {
-        let request = ESMessage.fetchRequest()
-        request.predicate = predicate
-        request.returnsObjectsAsFaults = false
-        let creators = try context.fetch(request)
+        let creators = try context.fetch(ESMessage.request(where: predicate, loaded: true))
         return creators.first { $0.event_type == ESMessage.execEventType }
             ?? creators.first { $0.event_type == ESMessage.forkEventType }
     }

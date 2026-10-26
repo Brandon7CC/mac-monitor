@@ -26,7 +26,7 @@ final class EventBatcherTests: XCTestCase {
     /// - Returns: The batcher.
     private func makeBatcher(_ limits: EventBatcher.Limits, overflow: EventOverflow,
                              willSend: @escaping () -> Void = {}) -> EventBatcher {
-        EventBatcher(queue: queue, limits: limits, overflow: overflow, delivery: delivery, willSend: willSend,
+        EventBatcher(queue: queue, limits: limits, overflow: overflow, delivery: delivery.deliver, willSend: willSend,
                      label: "Test")
     }
     

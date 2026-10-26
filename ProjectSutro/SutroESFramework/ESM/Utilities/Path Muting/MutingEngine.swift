@@ -85,11 +85,6 @@ extension EndpointSecurityManager {
         }
     }
     
-    /// Ask for the saved mute set.
-    public func requestMutedPaths() {
-        requestMutes(MuteRequest(.list))
-    }
-    
     /// Add a mute to the saved set. The reply publishes the new set, so there's nothing to ask for afterwards.
     ///
     /// - Parameters:
@@ -111,29 +106,5 @@ extension EndpointSecurityManager {
     ///   - events: `ES_EVENT_TYPE_*` names to unmute. None removes the path.
     public func puntPathToUnmute(pathToUnmute: String, type: String, events: [String]) {
         requestMutes(MuteRequest(.remove, [MuteFile.Entry(path: pathToUnmute, type: type, events: events)]))
-    }
-    
-    /// Replace the saved set with Mac Monitor's default set.
-    ///
-    /// - Parameter completion: Called on the main queue with the reply, or `nil` if the request failed.
-    public func resetMuteSetToDefault(completion: ((MuteReply?) -> Void)? = nil) {
-        requestMutes(MuteRequest(.reset), completion: completion)
-    }
-    
-    /// Empty the saved set.
-    ///
-    /// - Parameter completion: Called on the main queue with the reply, or `nil` if the request failed.
-    public func unmuteAllPaths(completion: ((MuteReply?) -> Void)? = nil) {
-        requestMutes(MuteRequest(.replace), completion: completion)
-    }
-    
-    /// Import a mute file's mutes into the saved set.
-    ///
-    /// - Parameters:
-    ///   - imported: What the file holds.
-    ///   - replacing: Replace the saved set, or add to it.
-    ///   - completion: Called on the main queue with the reply, or `nil` if the request failed.
-    public func importMutes(_ imported: MuteImport, replacing: Bool, completion: ((MuteReply?) -> Void)? = nil) {
-        requestMutes(MuteRequest(replacing ? .replace : .add, MuteFile(imported.list).mutes), completion: completion)
     }
 }

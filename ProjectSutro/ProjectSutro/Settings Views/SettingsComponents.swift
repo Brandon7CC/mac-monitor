@@ -251,7 +251,7 @@ struct SettingsIconLabel: View {
         HStack(spacing: 10) {
             icon
             if let detail {
-                SettingsLabel(title, detail: detail)
+                SettingsLabel(title: title, detail: detail)
             } else {
                 Text(title)
             }

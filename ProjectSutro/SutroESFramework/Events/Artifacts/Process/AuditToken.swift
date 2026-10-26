@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct AuditToken: Identifiable, Codable, Equatable, Hashable {
+public struct AuditToken: Identifiable, Codable, Hashable {
     public var id = UUID.buffered()
     
     public var pid, pidversion, asid: Int32

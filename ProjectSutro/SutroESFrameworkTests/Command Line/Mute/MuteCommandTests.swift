@@ -42,13 +42,7 @@ final class MuteCommandTests: XCTestCase {
         let command = MuteCommand(client: client, output: output, diagnose: errors.append, confirm: confirm,
                                   readFile: { path in path == "-" ? input : try MuteCommand.readImport(path) },
                                   consoleUser: { .tester })
-        let finished = expectation(description: "finished")
-        var result: Result<Void, CommandLineFailure>?
-        command.run(invocation) {
-            result = $0
-            finished.fulfill()
-        }
-        wait(for: [finished], timeout: 10)
+        let result = try? awaitCallback(timeout: 10) { command.run(invocation, completion: $0) }
         return (result, output.text, errors.all)
     }
     
@@ -78,7 +72,7 @@ final class MuteCommandTests: XCTestCase {
     }
     
     /// The Security Extension's warnings go to standard error, and its refusals end the command with their status.
-    func testWarningsAndRefusals() {
+    func testWarningsAndRefusals() throws {
         let unresolved = MuteFile.Entry(path: "/tmp/x", type: "ES_MUTE_PATH_TYPE_LITERAL")
         let added = run(.add(unresolved))
         XCTAssertNoThrow(try added.result?.get())
@@ -87,12 +81,10 @@ final class MuteCommandTests: XCTestCase {
         
         let narrowing = MuteFile.Entry(path: "/tmp/x", type: "ES_MUTE_PATH_TYPE_LITERAL",
                                        events: ["ES_EVENT_TYPE_NOTIFY_EXEC"])
-        guard case .failure(let invalid)? = run(.remove(narrowing)).result else { return XCTFail("not refused") }
+        let invalid = try XCTUnwrap(run(.remove(narrowing)).result?.failure, "not refused")
         XCTAssertEqual(invalid.exit, .dataError)
         
-        guard case .failure(let notRoot)? = run(.reset(confirmed: true), admits: false).result else {
-            return XCTFail("not refused")
-        }
+        let notRoot = try XCTUnwrap(run(.reset(confirmed: true), admits: false).result?.failure, "not refused")
         XCTAssertEqual(notRoot.exit, .noPermission)
     }
     
@@ -121,12 +113,10 @@ final class MuteCommandTests: XCTestCase {
     func testImportAndResetAskFirst() throws {
         let count = MuteList.testDefault.count
         _ = run(.add(MuteFile.Entry(path: "/usr/bin/yes", type: "ES_MUTE_PATH_TYPE_LITERAL")))
-        guard case .failure(let unasked)? = run(.reset()).result else { return XCTFail("reset without asking") }
+        let unasked = try XCTUnwrap(run(.reset()).result?.failure, "reset without asking")
         XCTAssertEqual(unasked.exit, .usage)
         XCTAssertTrue(unasked.message.hasSuffix("Add --yes to go ahead."))
-        guard case .failure(let declined)? = run(.reset(), confirm: { _ in false }).result else {
-            return XCTFail("reset after a no")
-        }
+        let declined = try XCTUnwrap(run(.reset(), confirm: { _ in false }).result?.failure, "reset after a no")
         XCTAssertEqual(declined, .declined)
         XCTAssertEqual(declined.exit.rawValue, 1)
         XCTAssertEqual(run(.list()).output.split(separator: "\n").count, count + 2)
@@ -169,7 +159,7 @@ final class MuteCommandTests: XCTestCase {
         
         let questions = DiagnosticLines()
         let declined = run(.reset()) { questions.append($0); return false }
-        guard case .failure(let failure)? = declined.result else { return XCTFail("reset without asking") }
+        let failure = try XCTUnwrap(declined.result?.failure, "reset without asking")
         XCTAssertEqual(failure, .declined)
         let reset = MuteCommand.PendingChange.reset(for: .tester)
         XCTAssertEqual(questions.all, ["\(reset.question)\n\(MuteCommand.reach)"])
@@ -177,7 +167,7 @@ final class MuteCommandTests: XCTestCase {
         XCTAssertTrue(declined.errors.first?.contains("newer Mac Monitor (mute file version 2)") == true)
         XCTAssertEqual(savedFile(in: store), newer)
         
-        guard case .failure(let unasked)? = run(.reset()).result else { return XCTFail("reset without asking") }
+        let unasked = try XCTUnwrap(run(.reset()).result?.failure, "reset without asking")
         XCTAssertEqual(unasked.exit, .usage)
         XCTAssertEqual(savedFile(in: store), newer)
     }
@@ -192,15 +182,13 @@ final class MuteCommandTests: XCTestCase {
         ].joined(separator: "\n")
         let file = try temporaryFile(containing: appleOnly, named: "apple.json")
         let apple = run(.importFile(path: file.path, merge: false))
-        guard case .failure(let empty)? = apple.result else { return XCTFail("imported") }
+        let empty = try XCTUnwrap(apple.result?.failure, "imported")
         XCTAssertEqual(empty.exit, .dataError)
         XCTAssertEqual(apple.errors.count, 2)
         XCTAssertEqual(run(.list()).output.split(separator: "\n").count, MuteList.testDefault.count + 1)
         
         for path in ["/nonexistent/mutes.json", try makeTemporaryDirectory().path] {
-            guard case .failure(let unreadable)? = run(.importFile(path: path, merge: true)).result else {
-                return XCTFail(path)
-            }
+            let unreadable = try XCTUnwrap(run(.importFile(path: path, merge: true)).result?.failure, path)
             XCTAssertEqual(unreadable.exit, .noInput, path)
         }
     }

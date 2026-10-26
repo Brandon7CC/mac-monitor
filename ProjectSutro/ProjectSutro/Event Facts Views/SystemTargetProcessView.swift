@@ -21,7 +21,7 @@ struct AdditionalProcMetadataView: View {
     var body: some View {
         if let exec = selectedMessage.event.exec {
             if let parent = exec.launched_by_parent, parent.source != .unixParent {
-                LaunchedByParentBadge(parent)
+                LaunchedByParentBadge(launchedByParent: parent)
             }
             
             if exec.target.group_id == exec.target.pid {

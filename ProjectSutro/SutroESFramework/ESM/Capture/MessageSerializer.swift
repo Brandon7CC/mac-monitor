@@ -56,8 +56,6 @@ protocol EventSerializing {
 /// message's own fields: no lock and no IPC. A parent's path comes from the processes the lane's execs and forks named
 /// before (``LaneContext/processPaths``), or else from one `proc_pidpath`, remembered for the next child.
 struct MessageSerializer: EventSerializing {
-    /// Signing IDs Apple forces into File Quarantine, read once rather than per event.
-    private let forcedQuarantineSigningIDs: [String]
     /// This Mac's macOS version, read when the session starts rather than per event.
     private let macOSVersion: String
     /// This Mac's System Integrity Protection status, read when the session starts: it changes only at a restart.
@@ -65,15 +63,16 @@ struct MessageSerializer: EventSerializing {
     /// Reads a live process's executable, for a launched-by parent the lane hasn't seen.
     private let processPath: (Int32, AuditToken?) -> String?
     
+    /// Also reads the signing IDs Apple forces into File Quarantine (``ProcessHelpers/forcedQuarantineSigningIDs``)
+    /// now, when the session starts, rather than on the first event that checks them.
+    ///
     /// - Parameters:
-    ///   - forcedQuarantineSigningIDs: Signing IDs Apple forces into File Quarantine.
     ///   - macOSVersion: The macOS version to stamp on events.
     ///   - sipStatus: The System Integrity Protection status to stamp on events.
     ///   - processPath: Reads a live process's executable from its pid (``ProcessPath/live``).
-    init(forcedQuarantineSigningIDs: [String] = ProcessHelpers.forcedQuarantineSigningIDs,
-         macOSVersion: String = Message.currentMacOSVersion(), sipStatus: SIPStatus? = SIPStatus.current,
+    init(macOSVersion: String = Message.currentMacOSVersion(), sipStatus: SIPStatus? = SIPStatus.current,
          processPath: @escaping (Int32, AuditToken?) -> String? = ProcessPath.live) {
-        self.forcedQuarantineSigningIDs = forcedQuarantineSigningIDs
+        _ = ProcessHelpers.forcedQuarantineSigningIDs
         self.macOSVersion = macOSVersion
         self.sipStatus = sipStatus
         self.processPath = processPath
@@ -99,8 +98,7 @@ struct MessageSerializer: EventSerializing {
     ///   - lane: The lane's context.
     /// - Returns: The event.
     private func build(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> Message {
-        var event = Message(from: message, sensorID: lane.sensorID, macOS: macOSVersion, sipStatus: sipStatus,
-                            forcedQuarantineSigningIDs: forcedQuarantineSigningIDs)
+        var event = Message(from: message, sensorID: lane.sensorID, macOS: macOSVersion, sipStatus: sipStatus)
         let paths = lane.processPaths
         event.resolveLaunchedByParent(by: .securityExtension) { pid, token in
             paths.path(of: pid, token, reading: processPath)

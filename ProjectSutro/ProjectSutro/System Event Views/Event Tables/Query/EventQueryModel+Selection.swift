@@ -6,6 +6,7 @@
 //
 
 import CoreData
+import SutroESFramework
 
 
 // MARK: - Selection
@@ -49,10 +50,8 @@ extension EventQueryModel {
     /// - Returns: The IDs of the events in `rows`.
     static func eventIDs(of rows: [NSManagedObjectID], context: NSManagedObjectContext) throws -> Set<UUID> {
         guard !rows.isEmpty else { return [] }
-        let request = NSFetchRequest<NSDictionary>(entityName: "ESMessage")
-        request.resultType = .dictionaryResultType
+        let request = ESMessage.request(NSDictionary.self, where: NSPredicate(format: "self IN %@", rows))
         request.propertiesToFetch = ["id"]
-        request.predicate = NSPredicate(format: "self IN %@", rows)
         return Set(try context.fetch(request).compactMap { $0["id"] as? UUID })
     }
     
@@ -64,9 +63,7 @@ extension EventQueryModel {
     ///   `rows`).
     static func indexes(of ids: Set<UUID>, in rows: [NSManagedObjectID], context: NSManagedObjectContext) throws -> IndexSet {
         guard !ids.isEmpty, !rows.isEmpty else { return [] }
-        let request = NSFetchRequest<NSManagedObjectID>(entityName: "ESMessage")
-        request.resultType = .managedObjectIDResultType
-        request.predicate = NSPredicate(format: "id IN %@", Array(ids))
+        let request = ESMessage.request(NSManagedObjectID.self, where: NSPredicate(format: "id IN %@", Array(ids)))
         let wanted = Set(try context.fetch(request))
         guard !wanted.isEmpty else { return [] }
         return IndexSet(rows.indices.lazy.filter { wanted.contains(rows[$0]) })

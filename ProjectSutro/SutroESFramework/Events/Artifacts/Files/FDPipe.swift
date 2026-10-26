@@ -5,7 +5,7 @@
 //  Created by Brandon Dalton on 9/29/25.
 //
 
-public struct FDPipe: Codable, Equatable, Hashable {
+public struct FDPipe: Codable, Hashable {
     public var pipe_id: Int64 = -1
     
     public init(from fd: es_fd_t) {

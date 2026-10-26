@@ -18,7 +18,7 @@ public class ESFDDuplicateEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESFDDuplicateEvent
-    convenience init(from event: FDDuplicateEvent, message: Message, in context: NSManagedObjectContext!) {
+    convenience init(from event: TargetFileEvent, message: Message, in context: NSManagedObjectContext!) {
         self.init(insertingInto: context)
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESFDDuplicateEvent.target))
     }

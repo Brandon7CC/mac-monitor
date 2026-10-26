@@ -49,7 +49,7 @@ final class MuteStoreTests: XCTestCase {
     
     /// Saving creates a missing directory, 0700.
     func testSaveCreatesTheDirectory() throws {
-        let parent = try makeMuteDirectory()
+        let parent = try makeTemporaryDirectory(mode: 0o700)
         let store = MuteStore(directory: parent.appendingPathComponent("store"), owner: getuid())
         try store.save(list)
         XCTAssertEqual(mode(store.directory.path), 0o700)
@@ -70,7 +70,6 @@ final class MuteStoreTests: XCTestCase {
         let store = try makeMuteStore()
         try store.save(list)
         chmod(store.directory.path, 0o500)
-        defer { chmod(store.directory.path, 0o700) }
         XCTAssertThrowsError(try store.save(.testDefault)) { error in
             guard case .writeFailed? = error as? MuteStoreError else { return XCTFail("\(error)") }
         }
@@ -104,7 +103,7 @@ final class MuteStoreTests: XCTestCase {
     /// A link named `mutes.json` is moved aside itself. What it points to is never read or touched.
     func testALinkIsNeverFollowed() throws {
         let store = try makeMuteStore()
-        let target = try makeMuteDirectory().appendingPathComponent("elsewhere.json")
+        let target = try makeTemporaryDirectory().appendingPathComponent("elsewhere.json")
         let contents = MuteFile(list).encoded()
         try contents.write(to: target)
         try FileManager.default.createSymbolicLink(at: store.fileURL, withDestinationURL: target)
@@ -143,7 +142,6 @@ final class MuteStoreTests: XCTestCase {
         let store = try makeMuteStore()
         try store.save(list)
         chmod(store.directory.path, 0o777)
-        defer { chmod(store.directory.path, 0o700) }
         XCTAssertThrowsError(try store.load()) { error in
             guard case .untrustedDirectory? = error as? MuteStoreError else { return XCTFail("\(error)") }
         }
@@ -153,10 +151,8 @@ final class MuteStoreTests: XCTestCase {
         chmod(store.directory.path, 0o700)
         guard getuid() != 0 else { return }
         let rootOwned = MuteStore(directory: store.directory, owner: 0)
-        XCTAssertThrowsError(try rootOwned.load()) { error in
-            XCTAssertEqual(error as? MuteStoreError,
-                           .untrustedDirectory("\(store.directory.path) isn't owned by root."))
-        }
+        XCTAssertEqual(thrown(MuteStoreError.self) { try rootOwned.load() },
+                       .untrustedDirectory("\(store.directory.path) isn't owned by root."))
         XCTAssertThrowsError(try rootOwned.save(.testDefault))
         XCTAssertEqual(savedFile(in: store), MuteFile(list).encoded())
     }

@@ -29,8 +29,7 @@ final class TelemetrySchemaFileTests: XCTestCase {
     /// - Returns: The schema's root object.
     /// - Throws: The error reading or parsing the file.
     private func committedSchema() throws -> [String: Any] {
-        let data = try Data(contentsOf: Self.schemaFileURL)
-        return try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        try jsonObject(try Data(contentsOf: Self.schemaFileURL))
     }
     
     /// The committed schema is what the source generates, byte for byte. With `MM_WRITE_SCHEMA=1` it's written instead.

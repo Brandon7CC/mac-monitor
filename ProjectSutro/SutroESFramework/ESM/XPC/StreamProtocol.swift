@@ -100,18 +100,13 @@ public struct StreamRequest: XPCRequest, Equatable, Sendable {
 /// (``StreamPlan``).
 public struct StreamOptions: Codable, Equatable, Sendable {
     /// `ES_EVENT_TYPE_NOTIFY_*` names. None means Mac Monitor's default subscriptions.
-    public var events: [String]
+    public var events: [String] = []
     /// Apply the saved mute set, and follow its changes? `macmonitor stream --no-mutes` sends `false`.
-    public var appliesSavedMutes: Bool
-    
-    /// - Parameters:
-    ///   - events: `ES_EVENT_TYPE_NOTIFY_*` names, or none for the defaults.
-    ///   - appliesSavedMutes: Apply the saved mute set?
-    public init(events: [String] = [], appliesSavedMutes: Bool = true) {
-        self.events = events
-        self.appliesSavedMutes = appliesSavedMutes
-    }
-    
+    public var appliesSavedMutes: Bool = true
+}
+
+
+extension StreamOptions {
     /// Missing events mean the defaults, and missing `appliesSavedMutes` means `true`: a stream applies the saved set
     /// unless it says otherwise.
     ///

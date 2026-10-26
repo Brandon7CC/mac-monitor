@@ -49,12 +49,9 @@ final class FileOutputTests: XCTestCase {
         let (reader, writer) = try makePipe()
         close(reader)
         defer { close(writer) }
-        XCTAssertThrowsError(try FileOutput(descriptor: writer).write(Data("x\n".utf8))) { error in
-            XCTAssertEqual(error as? StreamOutputError, .closed)
-        }
-        XCTAssertThrowsError(try FileOutput(descriptor: -1).write(Data("x\n".utf8))) { error in
-            XCTAssertEqual(error as? StreamOutputError, .failed(EBADF))
-        }
+        XCTAssertEqual(thrown { try FileOutput(descriptor: writer).write(Data("x\n".utf8)) }, StreamOutputError.closed)
+        XCTAssertEqual(thrown(StreamOutputError.self) { try FileOutput(descriptor: -1).write(Data("x\n".utf8)) },
+                       .failed(EBADF))
         XCTAssertNoThrow(try FileOutput(descriptor: -1).write(Data()), "Nothing to write is no write.")
     }
 }

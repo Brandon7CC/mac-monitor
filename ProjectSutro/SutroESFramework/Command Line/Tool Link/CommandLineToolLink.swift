@@ -37,33 +37,16 @@ public struct CommandLineToolLink {
         /// Mac Monitor's bundle.
         public var bundle: URL
         /// The directory the link goes in.
-        public var binDirectory: String
+        public var binDirectory: String = "/usr/local/bin"
         /// Where the ownership checks stop: `/`, or a test's temporary directory.
-        public var root: String
+        public var root: String = "/"
         /// Who must own the tool and the directories above it: root, or the user running a test.
-        public var trustedOwner: uid_t
+        public var trustedOwner: uid_t = 0
         /// The group that may also write a directory or file on the way: admin.
-        public var adminGroup: gid_t
+        public var adminGroup: gid_t = 80
         /// Link a tool someone other than the trusted owner can change, with a warning? Only a Debug build's own
         /// layout does.
-        public var allowsChangeableTool: Bool
-        
-        /// - Parameters:
-        ///   - bundle: Mac Monitor's bundle.
-        ///   - binDirectory: The directory the link goes in.
-        ///   - root: Where the ownership checks stop.
-        ///   - trustedOwner: Who must own the tool and the directories above it.
-        ///   - adminGroup: The group that may also write them.
-        ///   - allowsChangeableTool: Link a tool others can change, with a warning: `false` unless given.
-        public init(bundle: URL, binDirectory: String = "/usr/local/bin", root: String = "/", trustedOwner: uid_t = 0,
-                    adminGroup: gid_t = 80, allowsChangeableTool: Bool = false) {
-            self.bundle = bundle
-            self.binDirectory = binDirectory
-            self.root = root
-            self.trustedOwner = trustedOwner
-            self.adminGroup = adminGroup
-            self.allowsChangeableTool = allowsChangeableTool
-        }
+        public var allowsChangeableTool: Bool = false
         
         /// A bundle's layout as this build checks it: `/usr/local/bin`, owned by root, and in a Debug build a tool
         /// others can change is linked with a warning.
@@ -112,18 +95,6 @@ public struct CommandLineToolLink {
         /// The link's value Settings showed, or empty. The change only happens if it still matches.
         public let expected: String
 
-        /// - Parameters:
-        ///   - action: Install or remove.
-        ///   - tool: The tool to link, or empty for a removal.
-        ///   - binDirectory: The link's directory.
-        ///   - expected: What Settings saw at the link's path, or empty for nothing.
-        public init(action: Action, tool: String, binDirectory: String, expected: String) {
-            self.action = action
-            self.tool = tool
-            self.binDirectory = binDirectory
-            self.expected = expected
-        }
-
         /// The link's path, such as `/usr/local/bin/macmonitor`.
         public var linkPath: String { binDirectory + "/" + CommandLineToolLink.toolName }
     }
@@ -131,15 +102,7 @@ public struct CommandLineToolLink {
     /// The layout looked at.
     public let layout: Layout
     /// Does a tool's code signature satisfy ``SensorXPC/commandLineRequirement``? Injected by the tests.
-    let signatureCheck: (String) -> Bool
-    
-    /// - Parameters:
-    ///   - layout: Where things are.
-    ///   - signatureCheck: Does a tool's code signature satisfy ``SensorXPC/commandLineRequirement``?
-    public init(layout: Layout, signatureCheck: @escaping (String) -> Bool = CommandLineToolLink.isSignedAsTool) {
-        self.layout = layout
-        self.signatureCheck = signatureCheck
-    }
+    var signatureCheck: (String) -> Bool = CommandLineToolLink.isSignedAsTool
     
     /// Is this a Debug build, which links a tool others can change? The Debug configuration alone sets
     /// `ALLOW_CHANGEABLE_TOOL_LINK`: Release and Community builds never do.

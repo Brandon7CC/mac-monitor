@@ -98,7 +98,7 @@ final class CommandLineToolLinkerTests: XCTestCase {
         let notInAnApp = fixture.root + "/Applications/Mac Monitor.app/Contents/MacOS/other"
         try fixture.makeTool(at: notInAnApp)
         let behindALink = fixture.root + "/Alias.app/Contents/MacOS/macmonitor"
-        try fixture.makeDirectory((behindALink as NSString).deletingLastPathComponent)
+        try fixture.makeDirectory(behindALink.deletingLastPathComponent)
         try fixture.symlink(behindALink, to: fixture.tool)
         let missing = fixture.root + "/Missing.app/Contents/MacOS/macmonitor"
         for tool in [notInAnApp, behindALink, missing, "relative.app/Contents/MacOS/macmonitor"] {

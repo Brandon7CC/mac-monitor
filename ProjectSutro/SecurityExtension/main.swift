@@ -9,7 +9,6 @@ import Foundation
 import EndpointSecurity
 import OSLog
 import SutroESFramework
-import CoreData
 
 
 /// The one saved mute set, shared by Mac Monitor's capture and every `macmonitor` stream.

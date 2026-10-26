@@ -94,8 +94,7 @@ extension ProcessHelpers {
         }
         
         /// First, check if Apple has forced the executable into being File Quarantine-aware
-        if let signingId = signingId,
-           forcedQuarantineSigningIDs.contains(signingId) {
+        if let signingId, forcedQuarantineSigningIDs.contains(signingId) {
             return .forced
         }
         
@@ -105,23 +104,14 @@ extension ProcessHelpers {
             return cached.boolValue ? .optIn : .disabled
         }
         
+        /// Third, check if `LSFileQuarantineEnabled` is in the bundle's Info.plist, and cache what's found: a path
+        /// without `Contents`, or a plist that's missing or doesn't set it, is disabled.
         let components = URL(fileURLWithPath: path).pathComponents
-        guard let contentsIndex = components.firstIndex(of: "Contents") else {
-            quarantineCheckCache.setObject(NSNumber(value: false), forKey: nsPath)
-            return .disabled
+        let plist = components.firstIndex(of: "Contents").map {
+            NSString.path(withComponents: Array(components.prefix(through: $0)) + ["Info.plist"])
         }
-        
-        /// Third, check if `LSFileQuarantineEnabled` is in the plist
-        let plistPath = NSString.path(withComponents: Array(components.prefix(through: contentsIndex)) + ["Info.plist"])
-        guard FileManager.default.fileExists(atPath: plistPath),
-              let dict = NSDictionary(contentsOfFile: plistPath),
-              let quarantineEnabled = dict["LSFileQuarantineEnabled"] as? Bool else {
-            quarantineCheckCache.setObject(NSNumber(value: false), forKey: nsPath)
-            return .disabled
-        }
-        
-        // Cache the result we found in the plist
-        quarantineCheckCache.setObject(NSNumber(value: quarantineEnabled), forKey: nsPath)
-        return quarantineEnabled ? .optIn : .disabled
+        let enabled = plist.flatMap { NSDictionary(contentsOfFile: $0)?["LSFileQuarantineEnabled"] as? Bool } ?? false
+        quarantineCheckCache.setObject(NSNumber(value: enabled), forKey: nsPath)
+        return enabled ? .optIn : .disabled
     }
 }

@@ -115,7 +115,7 @@ final class CaptureCrashGuardTests: XCTestCase {
     
     /// A trace's create event with an empty destination reads as one that can't be read, rather than being skipped.
     func testImportedCreateWithEmptyDestination() throws {
-        let record = try esloggerRecord("create", type: 13, ["destination_type": 9, "destination": [:]])
+        let record = try esloggerRecord(ES_EVENT_TYPE_NOTIFY_CREATE, ["destination_type": 9, "destination": [:]])
         let message = try importRecord(record)
         guard case .create(let create) = message.event else { return XCTFail("Expected a create event") }
         XCTAssertEqual(create.destination, .unknown)

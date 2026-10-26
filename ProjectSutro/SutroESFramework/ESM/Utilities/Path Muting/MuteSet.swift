@@ -281,7 +281,7 @@ public struct MuteSet {
     /// - Returns: The folder's path, ending in `/`, or nothing without a home folder or when it's too long to mute.
     static func homePaths(_ relative: String, in home: String?) -> [String] {
         guard let home else { return [] }
-        let path = URL(fileURLWithPath: home, isDirectory: true).appendingPathComponent(relative).path + "/"
+        let path = home.appendingPathComponent(relative) + "/"
         return path.utf8.count <= MuteLimits.maxPathBytes ? [path] : []
     }
 }

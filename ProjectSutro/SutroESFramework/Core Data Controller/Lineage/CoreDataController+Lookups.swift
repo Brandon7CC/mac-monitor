@@ -47,9 +47,7 @@ extension CoreDataController {
     ///   - message: The event the lookup is for, for the log.
     /// - Returns: The events, newest first.
     private func execEvents(where key: String, is value: Int32, group: String, of message: ESMessage) -> [ESMessage] {
-        let request = ESMessage.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == %d", key, value)
-        request.returnsObjectsAsFaults = false
+        let request = ESMessage.request(where: NSPredicate(format: "%K == %d", key, value), loaded: true)
         do {
             return try container.viewContext.fetch(request).sorted { $0.mach_time > $1.mach_time }
         } catch {

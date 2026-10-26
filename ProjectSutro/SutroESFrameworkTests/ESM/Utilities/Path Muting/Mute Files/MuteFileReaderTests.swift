@@ -41,14 +41,7 @@ final class MuteFileReaderTests: XCTestCase {
     ///
     /// - Parameter text: The file.
     /// - Returns: The error, if it's a ``MuteFileError``.
-    private func error(_ text: String) -> MuteFileError? {
-        do {
-            _ = try read(text)
-            return nil
-        } catch {
-            return error as? MuteFileError
-        }
-    }
+    private func error(_ text: String) -> MuteFileError? { thrown { try read(text) } }
     
     /// An entry from Apple's default set, which names only AUTH events, is left out with a warning. A 13.3.1 style
     /// line with an `id` reads. A global entry reads as every event.

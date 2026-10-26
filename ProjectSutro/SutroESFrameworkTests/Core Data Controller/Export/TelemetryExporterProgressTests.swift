@@ -41,17 +41,14 @@ final class TelemetryExporterProgressTests: XCTestCase {
     private func export(to url: URL, cancelAt: @escaping (TelemetryExporter.Progress) -> Bool = { _ in false }) throws
         -> (result: Result<Int, Error>, reports: [TelemetryExporter.Progress]) {
         let exporter = TelemetryExporter(container: try makeStore(), pretty: false, reportInterval: 0, workers: 1)
-        let exported = expectation(description: "exported")
-        var reports: [TelemetryExporter.Progress] = [], result: Result<Int, Error>?
-        exporter.run(to: url, writeIfEmpty: true, choose: { try $0.allEvents(through: 1, from: .live) }, progress: {
-            reports.append($0)
-            if cancelAt($0) { exporter.cancel() }
-        }) {
-            result = $0
-            exported.fulfill()
+        var reports: [TelemetryExporter.Progress] = []
+        let result = Result {
+            try run(exporter, to: url, timeout: 60) {
+                reports.append($0)
+                if cancelAt($0) { exporter.cancel() }
+            }
         }
-        wait(for: [exported], timeout: 60)
-        return (try XCTUnwrap(result), reports)
+        return (result, reports)
     }
 
     /// One report once the events are chosen, with none written, one after each batch, and one once the file is in

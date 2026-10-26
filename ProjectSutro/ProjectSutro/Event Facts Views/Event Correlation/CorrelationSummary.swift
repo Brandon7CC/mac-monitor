@@ -75,7 +75,7 @@ struct CorrelationSummary {
             let name = message.es_event_type ?? ""
             let matched = matcher.matches(message)
             return Row(message: message, seconds: max(seconds, 0),
-                       type: name.replacingOccurrences(of: EventCatalog.Event.prefix, with: "").lowercased(),
+                       type: CommandLineEvents.shortName(name),
                        symbol: eventStringToImage(from: name), kind: Self.kind(of: name),
                        context: Self.stored(message.context), target: Self.stored(message.target_path),
                        detail: Self.detail(of: message), finding: matched.first,
@@ -155,12 +155,6 @@ struct CorrelationSummary {
     ///   - prefix: Its prefix.
     /// - Returns: The rest, capitalized: `Agent`.
     private static func short(_ name: String, dropping prefix: String) -> String {
-        name.replacingOccurrences(of: prefix, with: "").replacingOccurrences(of: "_", with: " ").capitalized
+        name.droppingPrefix(prefix).replacingOccurrences(of: "_", with: " ").capitalized
     }
-}
-
-
-private extension String {
-    /// The string with its first letter capitalized: "read and write" reads "Read and write".
-    var capitalizedFirst: String { prefix(1).uppercased() + dropFirst() }
 }

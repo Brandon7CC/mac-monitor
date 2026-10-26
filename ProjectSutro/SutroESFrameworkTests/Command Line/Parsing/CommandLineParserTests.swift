@@ -41,12 +41,7 @@ final class CommandLineParserTests: XCTestCase {
     /// - Parameter line: The arguments.
     /// - Returns: The error's message, or `nil` if it parses.
     private func usageError(_ line: String) -> String? {
-        do {
-            _ = try parse(line)
-            return nil
-        } catch {
-            return (error as? CommandLineUsageError)?.description
-        }
+        thrown(CommandLineUsageError.self) { try parse(line) }?.description
     }
     
     /// `stream` alone: Mac Monitor's default events, the format by terminal, the saved mutes, no pipeline events.
@@ -238,20 +233,18 @@ final class CommandLineParserTests: XCTestCase {
         }
     }
     
-    /// Help describes every command once, every command parses as itself, and the overview names the commands that
-    /// need root.
+    /// Every command parses as itself, its help starts with its usage, and the overview lists it and names the
+    /// commands that need root.
     func testTheHelpMatchesTheCommands() throws {
-        XCTAssertEqual(CommandLineHelp.commands.map(\.id).sorted { $0.rawValue < $1.rawValue },
-                       CommandLineCommand.Name.allCases.sorted { $0.rawValue < $1.rawValue })
         XCTAssertTrue(CommandLineHelp.text(for: nil).contains(" stream and mute need root: run them with sudo."))
-        let lines: [CommandLineCommand.Name: String] = [.mute: "mute list", .validate: "validate trace.jsonl",
-                                                        .completion: "completion zsh"]
-        for command in CommandLineHelp.commands {
-            let invocation = try parse(lines[command.id] ?? command.name)
-            XCTAssertEqual(invocation.id, command.id)
-            XCTAssertEqual(invocation.command, command.name)
-            XCTAssertTrue(CommandLineHelp.text(for: command.name).hasPrefix("Usage: \(command.usage)\n"))
-            XCTAssertTrue(CommandLineHelp.text(for: nil).contains("  \(command.name)"))
+        let lines: [CommandLineCommand: String] = [.mute: "mute list", .validate: "validate trace.jsonl",
+                                                   .completion: "completion zsh"]
+        for command in CommandLineCommand.allCases {
+            let invocation = try parse(lines[command] ?? command.rawValue)
+            XCTAssertEqual(invocation.id, command)
+            XCTAssertEqual(invocation.command, command.rawValue)
+            XCTAssertTrue(CommandLineHelp.text(for: command.rawValue).hasPrefix("Usage: \(command.help.usage)\n"))
+            XCTAssertTrue(CommandLineHelp.text(for: nil).contains("  \(command.rawValue)"))
         }
     }
     

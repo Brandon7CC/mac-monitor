@@ -12,7 +12,7 @@ import EndpointSecurity
 // MARK: - Invocation
 /// What a `macmonitor` command line asks for, once parsed (``CommandLineParser``).
 ///
-/// One case for each ``CommandLineCommand/Name-swift.enum``. A command added later gets its case here too, and the
+/// One case for each ``CommandLineCommand``. A command added later gets its case here too, and the
 /// switches below and in `CommandLineTool.run` won't build until they say which command it is and what it does.
 public enum CommandLineInvocation: Equatable {
     /// Show help: for one command, or for `macmonitor` itself.
@@ -32,11 +32,11 @@ public enum CommandLineInvocation: Equatable {
     /// Write a shell completion script.
     case completion(CommandLineShell)
     
-    /// Does it need root? Its command decides (``CommandLineCommand/Name-swift.enum/requiresRoot``).
+    /// Does it need root? Its command decides (``CommandLineCommand/requiresRoot``).
     public var requiresRoot: Bool { id.requiresRoot }
     
     /// The command it came from.
-    public var id: CommandLineCommand.Name {
+    public var id: CommandLineCommand {
         switch self {
         case .help: return .help
         case .version: return .version
@@ -73,10 +73,6 @@ public struct StreamInvocation: Equatable {
     /// Which events are written: `--pid`, `--process`, `--signing-id`, `--target`, `--grep` and `--predicate`.
     public var filter = StreamFilter()
     
-    /// The defaults: Mac Monitor's events, the format by terminal, the saved mutes, without the pipeline's events,
-    /// every event until stopped.
-    public init() {}
-    
     /// The request's options for the Security Extension.
     public var options: StreamOptions {
         StreamOptions(events: events.map { eventTypeToString(from: $0) }, appliesSavedMutes: appliesSavedMutes)
@@ -98,15 +94,7 @@ public struct ValidateInvocation: Equatable {
     /// The trace, as typed. `-` is kept, for ``ValidateCommand`` to refuse: a trace is read from a file.
     public var path: String
     /// Which keys are checked: every key, or with `--eslogger` only eslogger's.
-    public var mode: TelemetryValidator.Mode
-    
-    /// - Parameters:
-    ///   - path: The trace, as typed.
-    ///   - mode: Which keys are checked: every key unless given.
-    public init(path: String, mode: TelemetryValidator.Mode = .macMonitor) {
-        self.path = path
-        self.mode = mode
-    }
+    public var mode: TelemetryValidator.Mode = .macMonitor
 }
 
 

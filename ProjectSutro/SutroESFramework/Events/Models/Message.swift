@@ -18,7 +18,7 @@ import OSLog
 /// * `exec_event` corresponds to an ``ProcessExecEvent`` which notifies us of processes being executed
 /// * `iokit_open_event` similarly corresponds to an ``IOKitOpenEvent``. This event notifies us when an IOKit device has been opened.
 ///
-public struct Message: Identifiable, Codable, Hashable {
+public struct Message: Codable, IdentityHashable {
     public var id = UUID.buffered()
     
     /// Version and sequence
@@ -63,25 +63,10 @@ public struct Message: Identifiable, Codable, Hashable {
     /// `target_path` represents a path "targeted" by some ES event. For example,
     /// * ``MMapEvent`` events will have the `target_path` field set for their `path`
     /// * ``ProcessExecEvent`` events will have the `target_path` field set for their `process_path`
-    /// * Similarly, for events like ``FileWriteEvent`` the `target_path` will be set for the file's destination path.
+    /// * Similarly, for events like ``TargetFileEvent`` the `target_path` will be set for the file's destination path.
     /// > Not all events will have this populated. For example, it doesn't make sense for ``IOKitOpenEvent`` events to have a target path.
     /// /// @note Mac Monitor enrichment
     public var target_path: String?
-    
-    
-    // MARK: - Protocol Conformance
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(event_type)
-        hasher.combine(process.audit_token)
-        hasher.combine(mach_time)
-    }
-    
-    public static func == (lhs: Message, rhs: Message) -> Bool {
-        return lhs.event_type == rhs.event_type &&
-               lhs.process.audit_token == rhs.process.audit_token &&
-               lhs.mach_time == rhs.mach_time &&
-               lhs.event == rhs.event
-    }
     
     
     // MARK: - Message init
@@ -102,25 +87,19 @@ public struct Message: Identifiable, Codable, Hashable {
     ///   - sensorID: The Sensor ID to stamp on the event.
     ///   - macOS: The macOS version to stamp on the event.
     ///   - sipStatus: System Integrity Protection's status to stamp on the event.
-    ///   - forcedQuarantineSigningIDs: Signing IDs Apple forces into File Quarantine.
     init(
         from rawMessage: UnsafePointer<es_message_t>,
         sensorID: String = "SENSOR-ID-NOT-SET",
         macOS: String = Message.currentMacOSVersion(),
-        sipStatus: SIPStatus? = SIPStatus.current,
-        forcedQuarantineSigningIDs: [String] = []
+        sipStatus: SIPStatus? = SIPStatus.current
     ) {
         let message: es_message_t = rawMessage.pointee
         
         /// Version and sequence
         self.version = Int(message.version)
         self.schema_version = ESLogger.schemaVersion
-        if version >= 2 {
-            self.seq_num = Int(message.seq_num)
-        }
-        if version >= 4 {
-            self.global_seq_num = Int(message.global_seq_num)
-        }
+        seq_num = version >= 2 ? Int(message.seq_num) : nil
+        global_seq_num = version >= 4 ? Int(message.global_seq_num) : nil
         
         /// Time
         self.time = ESLogger.time(message.time)
@@ -133,24 +112,13 @@ public struct Message: Identifiable, Codable, Hashable {
         self.sip_status = sipStatus?.rawValue
         
         /// Initiating process
-        if message.event_type == ES_EVENT_TYPE_NOTIFY_EXEC {
-            self.process = Process(
-                from: message.process.pointee,
-                version: Int(version),
-                isExecMessage: true
-            )
-        } else {
-            self.process = Process(from: message.process.pointee, version: Int(rawMessage.pointee.version))
-        }
-        
+        self.process = Process(from: message.process.pointee, version: version)
         
         /// Thread
         self.thread = Thread.of(message)
         
-        
         /// Event
-        /// A process execution event. Corresponds to `ES_EVENT_TYPE_NOTIFY_EXEC`
-        self.event = EventType.from(rawMessage: rawMessage, forcedQuarantineSigningIDs: forcedQuarantineSigningIDs)
+        self.event = EventType.from(rawMessage: rawMessage)
         self.event_type = Int(message.event_type.rawValue)
         
         /// Action

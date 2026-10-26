@@ -6,6 +6,7 @@
 //
 
 import AppKit
+import Combine
 import CoreData
 import OSLog
 import os
@@ -53,7 +54,7 @@ final class EventQueryModel: ObservableObject {
     private let worker: Worker
     /// Maps selections between rows and event IDs.
     private(set) lazy var selectionContext = controller.container.newBackgroundContext()
-    private var observers: [NSObjectProtocol] = []
+    private var observers: [AnyCancellable] = []
     
     private var spec: EventFilterSpec?
     /// Bumped whenever results already being computed should be thrown away (a reload is due, or Clear).
@@ -89,12 +90,9 @@ final class EventQueryModel: ObservableObject {
         self.worker = Worker(context: controller.container.newBackgroundContext())
     }
     
-    deinit {
-        observers.forEach { NotificationCenter.default.removeObserver($0) }
-    }
-    
     // MARK: Lifecycle
-    /// Start following the event store and load every table.
+    /// Start following the event store and load every table, or, once following it, apply new filters
+    /// (``update(spec:)``).
     ///
     /// Also stops the view context from merging every save: nothing on screen needs it, and merging faults in every new
     /// event on the main thread.
@@ -105,21 +103,17 @@ final class EventQueryModel: ObservableObject {
         viewContext.automaticallyMergesChangesFromParent = false
         let center = NotificationCenter.default
         observers = [
-            center.addObserver(forName: CoreDataController.eventsInserted, object: controller, queue: nil) { [weak self] note in
+            center.publisher(for: CoreDataController.eventsInserted, object: controller).sink { [weak self] note in
                 guard let ids = note.userInfo?[CoreDataController.insertedObjectIDsKey] as? [NSManagedObjectID],
                       let batch = note.userInfo?[CoreDataController.insertBatchKey] as? Int64 else { return }
                 DispatchQueue.main.async { self?.received(ids, batch: batch) }
             },
             /// Posted on the main thread, right before the delete: handle it synchronously.
-            center.addObserver(forName: CoreDataController.eventsWillClear, object: controller, queue: nil) { [weak self] _ in
-                if Thread.isMainThread {
-                    self?.willClear()
-                } else {
-                    DispatchQueue.main.async { self?.willClear() }
-                }
+            center.publisher(for: CoreDataController.eventsWillClear, object: controller).sink { [weak self] _ in
+                MainActor.assumeIsolated { self?.willClear() }
             },
-            /// The delete finished: load whatever has been saved since.
-            center.addObserver(forName: CoreDataController.eventsDidClear, object: controller, queue: .main) { [weak self] _ in
+            /// Posted on the main thread once the delete finished: load whatever has been saved since.
+            center.publisher(for: CoreDataController.eventsDidClear, object: controller).sink { [weak self] _ in
                 self?.pump()
             },
         ]

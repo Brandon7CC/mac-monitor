@@ -51,13 +51,7 @@ public class ESFileDestination: NSManagedObject, Identifiable {
 extension ESFileDestination: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        
-        if let existingFile = self.value(forKey: "existing_file") as? ESFile {
-            try container.encode(existingFile, forKey: .existing_file)
-        }
-        
-        if let newPath = self.value(forKey: "new_path") as? ESNewPath {
-            try container.encode(newPath, forKey: .new_path)
-        }
+        try container.encodeIfPresent(existing_file, forKey: .existing_file)
+        try container.encodeIfPresent(new_path, forKey: .new_path)
     }
 }

@@ -23,9 +23,6 @@ public struct FileCloseEvent: Codable, IdentityHashable {
         
         target = File(from: event.target.pointee)
         modified = event.modified
-        
-        if version >= 6 {
-            was_mapped_writable = event.was_mapped_writable
-        }
+        was_mapped_writable = version >= 6 ? event.was_mapped_writable : nil
     }
 }

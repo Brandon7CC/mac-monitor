@@ -7,18 +7,13 @@
 
 import Foundation
 
-// Ensure FileDescriptor conforms to Codable and Equatable
-public struct FileDescriptor: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID.buffered()
-    
+public struct FileDescriptor: Identifiable, Codable, Hashable {
     public var fdtype, fd: Int
     public var type = ""
     public var pipe: FDPipe?
     
-    // Ignore id from being decoded
-    enum CodingKeys: String, CodingKey {
-        case fdtype, fd, type, pipe
-    }
+    /// The descriptor's number: unique among one exec's descriptors.
+    public var id: Int { fd }
     
     public init(from fd: es_fd_t) {
         self.fdtype = Int(fd.fdtype)

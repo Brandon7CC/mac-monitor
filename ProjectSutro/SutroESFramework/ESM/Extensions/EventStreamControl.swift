@@ -56,31 +56,15 @@ extension NewClientResult {
 }
 
 
-extension EndpointSecurityManager {
-    // @discussion this function is used when "dropping" platform binaries.
-    public func isEventCritical(message: Message) -> Bool {
-        switch message.event {
-        case .exec,
-             .fork,
-             .exit,
-             .mmap,
-             .create,
-             .open,
-             .close,
-             .write,
-             .unlink,
-             .rename,
-             .proc_suspend_resume,
-             .get_task,
-             .iokit_open,
-             .dup,
-             .deleteextattr,
-             .setextattr,
-             .signal,
-             .xpc_connect:
-            return false
-        default:
-            return true
+extension EventType {
+    /// Is the event kept from a platform binary while platform binaries are dropped
+    /// (``EndpointSecurityManager/togglePlatformBinaries()``)? The high-volume process, file and XPC events aren't.
+    public var isCritical: Bool {
+        switch self {
+        case .exec, .fork, .exit, .mmap, .create, .open, .close, .write, .unlink, .rename, .proc_suspend_resume,
+             .get_task, .iokit_open, .dup, .deleteextattr, .setextattr, .signal, .xpc_connect:
+            false
+        default: true
         }
     }
 }

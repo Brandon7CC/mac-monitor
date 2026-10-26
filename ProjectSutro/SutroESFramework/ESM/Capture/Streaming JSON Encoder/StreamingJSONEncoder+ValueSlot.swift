@@ -1,5 +1,5 @@
 //
-//  StreamingJSONEncoder+ScalarWriter.swift
+//  StreamingJSONEncoder+ValueSlot.swift
 //  SutroESFramework
 //
 //  Created by Brandon Dalton on 10/4/26.
@@ -8,29 +8,10 @@
 import Foundation
 
 
-// MARK: - Scalars
-extension StreamingJSONEncoder {
-    /// A single value's container: writes the value where it goes. A second value through it, as with `JSONEncoder`,
-    /// isn't allowed, and leaves the value to `JSONEncoder`.
-    struct ScalarWriter: SingleValueEncodingContainer, ValueSlot {
-        let encoder: StreamingJSONEncoder
-        /// How many frames were open when the value started.
-        let depth: Int
-        /// Where in the buffer the value started.
-        let start: Int
-        
-        /// May the value be written now (``StreamingJSONEncoder/beginScalar(depth:start:)``)?
-        ///
-        /// - Returns: `true` if it has written nothing yet.
-        func begin() -> Bool { encoder.beginScalar(depth: depth, start: start) }
-    }
-}
-
-
 // MARK: - One value at a time
 extension StreamingJSONEncoder {
     /// A container that takes one value at a time: an array's next element (``ArrayWriter``) or a single value
-    /// (``ScalarWriter``). Each writes the value only when ``begin()`` lets it.
+    /// (``ValueWriter``). Each writes the value only when ``begin()`` lets it.
     protocol ValueSlot {
         /// The encoder whose buffer the value goes to.
         var encoder: StreamingJSONEncoder { get }

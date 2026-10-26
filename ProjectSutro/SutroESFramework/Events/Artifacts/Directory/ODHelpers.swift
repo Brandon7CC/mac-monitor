@@ -6,7 +6,6 @@
 //
 
 import Foundation
-//import SwiftODConstants
 
 
 /// The name and meaning of an Open Directory error code, from `odconstants.h`.

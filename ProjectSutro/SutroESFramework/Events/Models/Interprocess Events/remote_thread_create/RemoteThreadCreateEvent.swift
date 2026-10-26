@@ -23,11 +23,6 @@ public struct RemoteThreadCreateEvent: Codable, IdentityHashable {
     /// (``ThreadStateFlavor``), which Mac Monitor wrote as `thread_state` before 3.0.0.
     public var thread_state_string: String?
     
-    /// eslogger's keys, then Mac Monitor's.
-    enum CodingKeys: String, CodingKey {
-        case id, target, thread_state, thread_state_string
-    }
-    
     /// Record the event of a message from Endpoint Security.
     ///
     /// - Parameter rawMessage: The message.

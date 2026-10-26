@@ -16,11 +16,6 @@ public struct MountEvent: Codable, IdentityHashable {
     public var disposition: Int16
     public var disposition_string = ""
     
-    /// eslogger's keys, then Mac Monitor's.
-    enum CodingKeys: String, CodingKey {
-        case id, statfs, disposition, disposition_string
-    }
-    
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let event: es_event_mount_t = rawMessage.pointee.event.mount
         

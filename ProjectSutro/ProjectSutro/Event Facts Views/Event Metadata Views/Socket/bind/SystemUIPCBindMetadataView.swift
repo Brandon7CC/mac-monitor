@@ -34,11 +34,7 @@ struct SystemUIPCBindMetadataView: View {
             
             GroupBox {
                 VStack(alignment: .leading) {
-                    if let dir = event.dir.path {
-                        let path = URL(fileURLWithPath: dir).appendingPathComponent(
-                            event.filename
-                        ).path()
-                        
+                    if let path = message.target_path {
                         HStack {
                             Text("\u{2022} File path:")
                                 .bold()

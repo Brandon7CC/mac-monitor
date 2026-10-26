@@ -88,39 +88,6 @@ final class StreamingExportTests: XCTestCase {
         XCTAssertEqual(different, [], "Encoded differently from eventToJSON")
     }
 
-    /// Every event, in file order, through `eventToJSON`, joined by newlines: what an export writes.
-    ///
-    /// - Parameter container: The store.
-    /// - Returns: The file's text.
-    /// - Throws: The error fetching the events.
-    private func expectedExport(of container: NSPersistentContainer) throws -> String {
-        let context = container.newBackgroundContext()
-        return try context.performAndWait {
-            let request = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-            request.sortDescriptors = [NSSortDescriptor(key: "mach_time", ascending: true),
-                                       NSSortDescriptor(key: "insert_order", ascending: true)]
-            return try context.fetch(request).map { ProcessHelpers.eventToJSON(value: $0) }.joined(separator: "\n")
-        }
-    }
-
-    /// Export every event of a store.
-    ///
-    /// - Parameters:
-    ///   - exporter: The export, pinned or not.
-    ///   - url: The destination.
-    /// - Returns: The number of events written.
-    /// - Throws: The export's error.
-    private func run(_ exporter: TelemetryExporter, to url: URL) throws -> Int {
-        let exported = expectation(description: "exported")
-        var result: Result<Int, Error>?
-        exporter.run(to: url, writeIfEmpty: true, choose: { try $0.allEvents(through: 1, from: .live) }) {
-            result = $0
-            exported.fulfill()
-        }
-        wait(for: [exported], timeout: 120)
-        return try XCTUnwrap(result).get()
-    }
-
     /// Every worker reads the store as it was when the export was pinned, through every batch it encodes: deleting
     /// every row afterwards changes nothing in the file.
     func testWorkersKeepTheSnapshotThroughADelete() throws {
@@ -153,22 +120,8 @@ final class StreamingExportTests: XCTestCase {
     /// A store in memory, as Mac Monitor keeps its events when their file can't be kept (SQLite at /dev/null), can't be
     /// pinned: the export runs unpinned rather than raising an exception Swift can't catch.
     func testStoreInMemoryExportsUnpinned() throws {
-        let container = NSPersistentContainer(name: "SystemEvents", managedObjectModel: eventModel)
-        container.persistentStoreDescriptions = [NSPersistentStoreDescription(url: URL(fileURLWithPath: "/dev/null"))]
-        var loadError: Error?
-        container.loadPersistentStores { _, error in loadError = error }
-        if let loadError { throw loadError }
         let messages = try SyntheticCorpus.records().map(\.message)
-        let context = container.newBackgroundContext()
-        try context.performAndWait {
-            for (order, message) in messages.enumerated() {
-                let stored = ESMessage(from: message, insertIntoManagedObjectContext: context)
-                stored.insert_order = Int64(order)
-                stored.insert_batch = 1
-                stored.denormalize(from: message)
-            }
-            try context.save()
-        }
+        let container = try makeExportStore(messages, at: URL(fileURLWithPath: "/dev/null"))
         let exporter = TelemetryExporter(container: container, pretty: false)
         exporter.pin()
         let url = try makeTemporaryDirectory().appendingPathComponent("trace.jsonl")
@@ -187,25 +140,11 @@ final class StreamingExportTests: XCTestCase {
             message.mach_time = Int64(count - order)
             return message
         })
-        let expected = try container.viewContext.performAndWait {
-            let request = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-            request.sortDescriptors = [NSSortDescriptor(key: "mach_time", ascending: true)]
-            return try container.viewContext.fetch(request).map { ProcessHelpers.eventToJSON(value: $0) }
-                .joined(separator: "\n")
-        }
+        let expected = try expectedExport(of: container)
         for workers in [1, 4] {
             let url = try makeTemporaryDirectory().appendingPathComponent("trace.jsonl")
-            let exported = expectation(description: "exported by \(workers)")
-            var result: Result<Int, Error>?
-            TelemetryExporter(container: container, pretty: false, workers: workers).run(to: url, writeIfEmpty: true,
-                                                                                         choose: {
-                try $0.allEvents(through: 1, from: .live)
-            }) {
-                result = $0
-                exported.fulfill()
-            }
-            wait(for: [exported], timeout: 120)
-            XCTAssertEqual(try XCTUnwrap(result).get(), count, "\(workers) workers")
+            let exporter = TelemetryExporter(container: container, pretty: false, workers: workers)
+            XCTAssertEqual(try run(exporter, to: url), count, "\(workers) workers")
             XCTAssertTrue(String(decoding: try Data(contentsOf: url), as: UTF8.self) == expected,
                           "\(workers) workers wrote a different file")
         }

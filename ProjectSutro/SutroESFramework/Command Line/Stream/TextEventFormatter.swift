@@ -38,8 +38,7 @@ public struct TextEventFormatter {
         let name = TerminalSafeText.text(CommandLineEvents.shortName(header.name))
         let padded = name.count < Self.nameWidth ? name + String(repeating: " ", count: Self.nameWidth - name.count)
             : name
-        let process = header.process.path.map { ($0 as NSString).lastPathComponent }.flatMap { $0.isEmpty ? nil : $0 }
-            ?? "?"
+        let process = (header.process.path?.lastPathComponent).nonEmpty ?? "?"
         let detail = [header.context, header.targetPath].compactMap { $0 }
             .first { !$0.isEmpty && $0 != "Not supported" } ?? ""
         return [clock(header.time), padded, "\(TerminalSafeText.text(process))[\(header.process.pid)]",

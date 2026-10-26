@@ -97,8 +97,6 @@ enum ForcedDarkMode {
 /// Mac Monitor's Settings, laid out as System Settings: a full-height sidebar with its search field and the Security
 /// Extension's status card above the panes, and the pane's name in the toolbar beside Back and Forward.
 struct AgentSettingsView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @EnvironmentObject var userPrefs: UserPrefs
     @Binding var allFilters: Filters
     @Binding var eventMaskEnabled: Bool
 

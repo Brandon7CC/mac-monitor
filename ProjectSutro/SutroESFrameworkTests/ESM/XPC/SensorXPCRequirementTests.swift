@@ -18,20 +18,6 @@ final class SensorXPCRequirementTests: XCTestCase {
     private let identifiers = ["com.swiftlydetecting.agent", "com.swiftlydetecting.agent.cli",
                                "com.swiftlydetecting.agent.securityextension"]
     
-    /// Does a file's code signature satisfy a requirement?
-    ///
-    /// - Parameters:
-    ///   - path: The file.
-    ///   - requirement: A requirement string.
-    /// - Returns: `true` if the signature is valid and satisfies it.
-    private func signature(of path: String, satisfies requirement: String) -> Bool {
-        var code: SecStaticCode?, compiled: SecRequirement?
-        guard SecStaticCodeCreateWithPath(URL(fileURLWithPath: path) as CFURL, [], &code) == errSecSuccess, let code,
-              SecRequirementCreateWithString(requirement as CFString, [], &compiled) == errSecSuccess, let compiled
-        else { return false }
-        return SecStaticCodeCheckValidity(code, SecCSFlags(rawValue: kSecCSStrictValidate), compiled) == errSecSuccess
-    }
-    
     /// A copy of `/usr/bin/true`, adhoc signed with an identifier, as a Community build signs its programs. Removed
     /// when the test ends.
     ///
@@ -39,11 +25,7 @@ final class SensorXPCRequirementTests: XCTestCase {
     /// - Returns: The copy's path.
     /// - Throws: If it can't be copied or `codesign` can't be run.
     private func adHocCopy(signedAs identifier: String) throws -> String {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("SensorXPCRequirement-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
-        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
-        let copy = directory.appendingPathComponent("program").path
+        let copy = try makeTemporaryDirectory(prefix: "SensorXPCRequirement").appendingPathComponent("program").path
         try FileManager.default.copyItem(atPath: "/usr/bin/true", toPath: copy)
         let codesign = Process()
         codesign.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
@@ -85,11 +67,12 @@ final class SensorXPCRequirementTests: XCTestCase {
                                          SensorXPC.communityRequirement(for: identifiers[1]))
         let developerID = SensorXPC.either(SensorXPC.developerIDRequirement(for: identifiers[0]),
                                            SensorXPC.developerIDRequirement(for: identifiers[1]))
-        XCTAssertEqual(copies.map { signature(of: $0, satisfies: community) }, [true, true, false])
-        XCTAssertEqual(copies.map { signature(of: $0, satisfies: developerID) }, [false, false, false])
+        XCTAssertEqual(copies.map { CommandLineToolLink.signature(of: $0, satisfies: community) }, [true, true, false])
+        XCTAssertEqual(copies.map { CommandLineToolLink.signature(of: $0, satisfies: developerID) },
+                       [false, false, false])
         XCTAssertTrue([community, developerID].contains(SensorXPC.listenerRequirement))
         for requirement in [community, developerID] {
-            XCTAssertFalse(signature(of: "/bin/ls", satisfies: requirement), requirement)
+            XCTAssertFalse(CommandLineToolLink.signature(of: "/bin/ls", satisfies: requirement), requirement)
         }
     }
     

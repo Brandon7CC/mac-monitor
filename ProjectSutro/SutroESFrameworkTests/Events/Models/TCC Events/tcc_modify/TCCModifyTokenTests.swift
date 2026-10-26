@@ -33,7 +33,7 @@ final class TCCModifyTokenTests: XCTestCase {
     /// An eslogger record without its responsible process exports the token eslogger wrote.
     func testImportedWithoutResponsible() throws {
         let token = try XCTUnwrap(try fixtureObject("eslogger-exit.jsonl")["process"] as? [String: Any])["audit_token"]
-        let record = try esloggerRecord("tcc_modify", type: Int(ES_EVENT_TYPE_NOTIFY_TCC_MODIFY.rawValue), [
+        let record = try esloggerRecord(ES_EVENT_TYPE_NOTIFY_TCC_MODIFY, [
             "service": "kTCCServiceCamera", "identity": "com.example.app", "identity_type": 0, "update_type": 1,
             "instigator_token": token as Any, "instigator": NSNull(), "responsible_token": token as Any,
             "responsible": NSNull(), "right": 2, "reason": 3,

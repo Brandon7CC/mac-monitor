@@ -15,33 +15,14 @@ import SutroESFramework
 /// it, its line count, Copy, and for a file still on disk Show in Finder, then the text, filling the rest of the tab
 /// (``ReadOnlyTextView``).
 struct FileContentView: View {
+    /// What the text is, such as "Event JSON", or the file it's from.
     let title: String
     /// Is the title a path, shown monospaced?
-    let titleIsPath: Bool
+    var titleIsPath = false
+    /// The text.
     let content: String
+    /// What the text is, for its colors.
     var language: ReadOnlyTextView.Language = .plain
-
-    /// - Parameters:
-    ///   - path: The file the text is from.
-    ///   - content: The text.
-    ///   - language: What the text is, for its colors.
-    init(path: String, content: String, language: ReadOnlyTextView.Language = .plain) {
-        title = path
-        titleIsPath = true
-        self.content = content
-        self.language = language
-    }
-
-    /// - Parameters:
-    ///   - title: What the text is, such as "Event JSON".
-    ///   - content: The text.
-    ///   - language: What the text is, for its colors.
-    init(title: String, content: String, language: ReadOnlyTextView.Language = .plain) {
-        self.title = title
-        titleIsPath = false
-        self.content = content
-        self.language = language
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -70,6 +51,18 @@ struct FileContentView: View {
     /// How many lines the text has.
     private var lineCount: Int {
         content.reduce(into: 1) { if $1 == "\n" { $0 += 1 } } - (content.hasSuffix("\n") ? 1 : 0)
+    }
+}
+
+extension FileContentView {
+    /// Text read from a file, under the file's path.
+    ///
+    /// - Parameters:
+    ///   - path: The file the text is from.
+    ///   - content: The text.
+    ///   - language: What the text is, for its colors.
+    init(path: String, content: String, language: ReadOnlyTextView.Language = .plain) {
+        self.init(title: path, titleIsPath: true, content: content, language: language)
     }
 }
 

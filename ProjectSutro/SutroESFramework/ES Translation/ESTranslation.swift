@@ -18,10 +18,7 @@ private let dateFormatter: DateFormatter = {
 
 
 public func eventTimeStamp(for message: ESMessage) -> String {
-    if let messageTime = message.message_darwin_time {
-        return dateFormatter.string(from: messageTime)
-    }
-    return "Unknown timestamp"
+    message.message_darwin_time.map(dateFormatter.string(from:)) ?? "Unknown timestamp"
 }
 
 

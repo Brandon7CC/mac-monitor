@@ -30,8 +30,7 @@ private func humanTime(seconds: Int, fraction: Int, digits: Int) -> String {
 
 /// Description: represents a simple calendar time, or an elapsed time, with sub-second resolution.
 /// https://www.gnu.org/software/libc/manual/html_node/Time-Types.html
-// Ensure TimeSpec conforms to Codable and Equatable
-public struct TimeSpec: Identifiable, Codable, Equatable, Hashable {
+public struct TimeSpec: Identifiable, Codable, Hashable {
     public var id = UUID.buffered()
     
     public var tv_sec, tv_nsec: Int
@@ -49,8 +48,7 @@ public struct TimeSpec: Identifiable, Codable, Equatable, Hashable {
 
 /// An older type for representing a simple calendar time, or an elapsed time, with sub-second resolution. It is almost the same as struct timespec, but provides only microsecond resolution.
 /// https://www.gnu.org/software/libc/manual/html_node/Time-Types.html
-// Ensure TimeVal conforms to Codable and Equatable
-public struct TimeVal: Identifiable, Codable, Equatable, Hashable {
+public struct TimeVal: Identifiable, Codable, Hashable {
     public var id = UUID.buffered()
     
     public var tv_sec, tv_usec: Int

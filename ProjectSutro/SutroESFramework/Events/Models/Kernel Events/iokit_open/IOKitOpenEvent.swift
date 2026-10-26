@@ -29,11 +29,8 @@ public struct IOKitOpenEvent: Codable, IdentityHashable {
         
         self.user_client_class = ioKitEvent.user_client_class.string ?? ""
         self.user_client_type = Int64(ioKitEvent.user_client_type)
-        
-        if version >= 10 {
-            /// A `uint64_t`, kept by bit pattern: one of 2^63 or more has no `Int64`.
-            self.parent_registry_id = Int64(bitPattern: ioKitEvent.parent_registry_id)
-            self.parent_path = ioKitEvent.parent_path.string
-        }
+        /// A `uint64_t`, kept by bit pattern: one of 2^63 or more has no `Int64`.
+        parent_registry_id = version >= 10 ? Int64(bitPattern: ioKitEvent.parent_registry_id) : nil
+        parent_path = version >= 10 ? ioKitEvent.parent_path.string : nil
     }
 }

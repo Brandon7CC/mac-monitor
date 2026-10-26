@@ -15,34 +15,26 @@ import XCTest
 final class ExecXPCServiceNameTests: XCTestCase {
     /// launchd's `0` (not an XPC service), an empty value, and no entry at all are no name.
     func testNoServiceName() {
-        XCTAssertNil(ESProcessExecEvent.xpcServiceName(in: ["XPC_SERVICE_NAME=0"]))
-        XCTAssertNil(ESProcessExecEvent.xpcServiceName(in: ["XPC_SERVICE_NAME="]))
-        XCTAssertNil(ESProcessExecEvent.xpcServiceName(in: []))
+        XCTAssertNil(ProcessExecEvent.xpcServiceName(in: ["XPC_SERVICE_NAME=0"]))
+        XCTAssertNil(ProcessExecEvent.xpcServiceName(in: ["XPC_SERVICE_NAME="]))
+        XCTAssertNil(ProcessExecEvent.xpcServiceName(in: []))
     }
     
     /// Only an entry named exactly `XPC_SERVICE_NAME` counts: not a longer name, nor the text inside another value.
     func testOnlyTheExactNameCounts() {
-        XCTAssertNil(ESProcessExecEvent.xpcServiceName(in: ["XPC_SERVICE_NAME_EXTRA=1"]))
-        XCTAssertNil(ESProcessExecEvent.xpcServiceName(in: ["FOO=XPC_SERVICE_NAME=com.example.agent"]))
+        XCTAssertNil(ProcessExecEvent.xpcServiceName(in: ["XPC_SERVICE_NAME_EXTRA=1"]))
+        XCTAssertNil(ProcessExecEvent.xpcServiceName(in: ["FOO=XPC_SERVICE_NAME=com.example.agent"]))
     }
     
     /// The first entry wins, as it does for `getenv`.
     func testFirstEntryWins() {
-        XCTAssertEqual(ESProcessExecEvent.xpcServiceName(in: ["XPC_SERVICE_NAME=a", "XPC_SERVICE_NAME=b"]), "a")
+        XCTAssertEqual(ProcessExecEvent.xpcServiceName(in: ["XPC_SERVICE_NAME=a", "XPC_SERVICE_NAME=b"]), "a")
     }
     
     /// A stored exec event finds the name in its own environment, as Event Facts read it.
     func testStoredExecEvent() throws {
-        var record = try fixtureObject("eslogger-exit.jsonl")
-        let exec: [String: Any] = [
-            "target": try XCTUnwrap(record["process"]), "script": NSNull(), "dyld_exec_path": "/usr/libexec/exampled",
-            "cwd": ["path": "/", "path_truncated": false, "stat": [:]], "last_fd": 2, "image_cputype": 16_777_228,
-            "image_cpusubtype": 2, "args": ["/usr/libexec/exampled"], "fds": [],
-            "env": ["PATH=/usr/bin:/bin", "XPC_SERVICE_NAME=com.example.agent"],
-        ]
-        record["event"] = ["exec": exec]
-        record["event_type"] = 9
-        let message = try importRecord(record)
+        let env = ["PATH=/usr/bin:/bin", "XPC_SERVICE_NAME=com.example.agent"]
+        let message = try importRecord(try esloggerExec(parent: (1, 1), env: env))
         XCTAssertEqual(withStoredEvent(message) { $0.event.exec?.xpcServiceName }, "com.example.agent")
     }
 }

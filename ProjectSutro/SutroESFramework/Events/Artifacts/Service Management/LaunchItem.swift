@@ -8,7 +8,7 @@
 
 /// Models a `es_btm_launch_item_t`:
 /// https://developer.apple.com/documentation/endpointsecurity/es_btm_launch_item_t
-public struct LaunchItem: Identifiable, Codable, Hashable {
+public struct LaunchItem: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
 
     // Type of launch item.
@@ -33,10 +33,6 @@ public struct LaunchItem: Identifiable, Codable, Hashable {
     // @note Mac Monitor enrichment
     public var plist_contents: String?
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
     init(from launchItem: es_btm_launch_item_t) {
         // MARK: - Legacy / Managed
         legacy = launchItem.legacy
@@ -57,17 +53,10 @@ public struct LaunchItem: Identifiable, Codable, Hashable {
         uid_human = Process.userName(Int(launchItem.uid), systemAccountsOnly: false) ?? uid_human
         
         // MARK: Plist
-        guard launchItem.item_type == ES_BTM_ITEM_TYPE_AGENT || launchItem.item_type == ES_BTM_ITEM_TYPE_DAEMON else { return }
-        var plistPath: String?
-        if legacy {
-            plistPath = item_path
-        } else if let app_path = app_path {
-            /// We need to resolve the relative plist path
-            plistPath = URL(fileURLWithPath: app_path).appendingPathComponent(item_path).path
-        }
-        if let plistPath = plistPath {
-            plist_contents = ProcessHelpers.getFileContents(at: plistPath)
-        }
+        guard [ES_BTM_ITEM_TYPE_AGENT, ES_BTM_ITEM_TYPE_DAEMON].contains(launchItem.item_type) else { return }
+        /// A legacy item's path is its plist's. Another's is relative to its app.
+        let plistPath = legacy ? item_path : app_path?.appendingPathComponent(item_path)
+        plist_contents = plistPath.flatMap(ProcessHelpers.getFileContents(at:))
     }
 }
 

@@ -47,10 +47,6 @@ public struct MuteFile: Codable, Equatable, Sendable {
     /// The mutes, one per path and type when the file is canonical.
     public var mutes: [Entry]
     
-    private enum CodingKeys: String, CodingKey {
-        case version, mutes
-    }
-    
     /// - Parameters:
     ///   - version: The format version.
     ///   - mutes: The entries.
@@ -142,43 +138,33 @@ extension MuteFile {
         /// The `ES_MUTE_PATH_TYPE_*` name.
         public var type: String
         /// `ES_EVENT_TYPE_*` names. Empty means every event.
-        public var events: [String]
-        
-        private enum CodingKeys: String, CodingKey {
-            case path, type, events
-        }
-        
-        /// - Parameters:
-        ///   - path: The path, or path prefix, to match.
-        ///   - type: The `ES_MUTE_PATH_TYPE_*` name.
-        ///   - events: `ES_EVENT_TYPE_*` names. Empty means every event.
-        public init(path: String, type: String, events: [String] = []) {
-            self.path = path
-            self.type = type
-            self.events = events
-        }
-        
-        /// A mute's entry, by Endpoint Security's names.
-        ///
-        /// - Parameter mute: The mute.
-        public init(_ mute: PathMute) {
-            self.init(path: mute.path, type: getMuteCaseString(muteType: mute.type),
-                      events: mute.events.map { eventTypeToString(from: $0) })
-        }
-        
-        /// Missing events mean every event, as an empty list does.
-        ///
-        /// - Parameter decoder: The decoder.
-        /// - Throws: A `DecodingError` for a missing path or type, or a value of the wrong type.
-        public init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            path = try container.decode(String.self, forKey: .path)
-            type = try container.decode(String.self, forKey: .type)
-            events = try container.decodeIfPresent([String].self, forKey: .events) ?? []
-        }
+        public var events: [String] = []
         
         /// Names the entry in messages: its path and type.
         public var label: String { "“\(path)” (\(type))" }
+    }
+}
+
+
+// MARK: - Entry initializers
+extension MuteFile.Entry {
+    /// A mute's entry, by Endpoint Security's names.
+    ///
+    /// - Parameter mute: The mute.
+    public init(_ mute: PathMute) {
+        self.init(path: mute.path, type: getMuteCaseString(muteType: mute.type),
+                  events: mute.events.map { eventTypeToString(from: $0) })
+    }
+    
+    /// Missing events mean every event, as an empty list does.
+    ///
+    /// - Parameter decoder: The decoder.
+    /// - Throws: A `DecodingError` for a missing path or type, or a value of the wrong type.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        path = try container.decode(String.self, forKey: .path)
+        type = try container.decode(String.self, forKey: .type)
+        events = try container.decodeIfPresent([String].self, forKey: .events) ?? []
     }
 }
 

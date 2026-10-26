@@ -52,7 +52,7 @@ public final class EventBatcher {
     public private(set) var isClosed: Bool = false
     private let limits: Limits
     private let overflowPolicy: EventOverflow
-    private let delivery: any EventBatchDelivery
+    private let delivery: EventBatchDelivery
     private let willSend: () -> Void
     /// Events waiting in memory, oldest first.
     private var buffer: [Data] = []
@@ -75,8 +75,8 @@ public final class EventBatcher {
     ///   - delivery: Sends each batch to the reader.
     ///   - willSend: Called on `queue` just before each batch is sent, such as to report the capture session's drops.
     ///   - label: Names the reader in the log.
-    public init(queue: DispatchQueue, limits: Limits, overflow: EventOverflow, delivery: any EventBatchDelivery,
-                willSend: @escaping () -> Void = {}, label: String) {
+    public init(queue: DispatchQueue, limits: Limits, overflow: EventOverflow,
+                delivery: @escaping EventBatchDelivery, willSend: @escaping () -> Void = {}, label: String) {
         self.queue = queue
         self.limits = limits
         self.overflowPolicy = overflow
@@ -152,7 +152,7 @@ extension EventBatcher {
         batchesInFlight += 1
         reportDrops()
         willSend()
-        delivery.deliver(batch) { [weak self, queue] delivered in
+        delivery(batch) { [weak self, queue] delivered in
             queue.async { self?.finished(count, delivered: delivered) }
         }
     }
@@ -262,5 +262,39 @@ extension EventBatcher {
             couldn't be written.
             """)
         unreportedDrops = 0
+    }
+}
+
+
+// MARK: - XPC delivery
+extension EventBatcher {
+    /// Delivers batches over an XPC connection whose remote object is ``AgentProtocol`` (Security Extension context):
+    /// Mac Monitor, or `macmonitor`. Each batch goes through ``AgentProtocol/receive(events:reply:)``, and NSXPC runs
+    /// exactly one of the reply block or the proxy's error handler for a message with a reply.
+    ///
+    /// The delivery holds the connection strongly. Its owner releases the batcher when the connection goes away, which
+    /// breaks the cycle between a connection, its exported object, and the batcher sending to it.
+    ///
+    /// - Parameters:
+    ///   - connection: The reader's connection, whose remote object interface is ``SensorXPC/agentInterface``.
+    ///   - label: Names the reader in the log, such as "Mac Monitor".
+    /// - Returns: The delivery: `true` once the reader replied, `false` if the message failed.
+    public static func xpcDelivery(over connection: NSXPCConnection, label: String) -> EventBatchDelivery {
+        { batch, completion in
+            /// Only the count: the error handler lives as long as the message, so it mustn't hold the batch.
+            let count = batch.count
+            let proxy = connection.remoteObjectProxyWithErrorHandler { error in
+                Self.logger.error("""
+                    Failed to deliver \(count) events to \(label, privacy: .public): \
+                    \(error.localizedDescription, privacy: .public)
+                    """)
+                completion(false)
+            }
+            guard let reader = proxy as? AgentProtocol else {
+                Self.logger.fault("The remote object proxy does not conform to AgentProtocol!")
+                return completion(false)
+            }
+            reader.receive(events: batch) { completion(true) }
+        }
     }
 }

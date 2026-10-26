@@ -28,7 +28,6 @@ public enum FileQuarantineType: String, Codable, CaseIterable {
 
 
 /// Models an `es_process_t`
-/// Ensure Process conforms to Codable and Equatable
 public struct Process: Identifiable, Codable, Hashable {
     public var id = UUID.buffered()
     
@@ -61,20 +60,17 @@ public struct Process: Identifiable, Codable, Hashable {
     public var euid_human, ruid_human: String?
     public var codesigning_type: CodeSigningType = .unknown
     public var file_quarantine_type: FileQuarantineType = .disabled
-    // public var command_line: String?
     public var is_adhoc_signed = false
     public var cs_validation_category_string: String?
     /// The names of the flags set in ``codesigning_flags`` (``ProcessHelpers/codeSigningFlagNames(_:)``).
     public var codesigning_flag_names: [String] = []
     
-    public init(from process: es_process_t, version: Int, isExecMessage: Bool = false) {
+    public init(from process: es_process_t, version: Int) {
         self.start_time = TimeVal(from: process.start_time)
 
         self.audit_token = AuditToken(from: process.audit_token)
         self.parent_audit_token = AuditToken(from: process.parent_audit_token)
-        self.responsible_audit_token = AuditToken(
-            from: process.responsible_audit_token
-        )
+        self.responsible_audit_token = AuditToken(from: process.responsible_audit_token)
 
         self.ppid = process.ppid
         self.original_ppid = process.original_ppid
@@ -83,9 +79,7 @@ public struct Process: Identifiable, Codable, Hashable {
         
         self.codesigning_flags = Int64(process.codesigning_flags)
         // macOS 26 support
-        if version >= 10 {
-            self.cs_validation_category = Int32(process.cs_validation_category.rawValue)
-        }
+        cs_validation_category = version >= 10 ? Int32(process.cs_validation_category.rawValue) : nil
         
         /// `nil` (eslogger's `null`) when Endpoint Security has none, and "" when it has an empty one.
         self.signing_id = process.signing_id.string
@@ -95,12 +89,9 @@ public struct Process: Identifiable, Codable, Hashable {
         
         self.is_platform_binary = process.is_platform_binary
         self.is_es_client = process.is_es_client
-
-        if let ttyPointer = process.tty {
-            self.tty = File(from: ttyPointer.pointee)
-        }
+        tty = process.tty.map { File(from: $0.pointee) }
         
-        self.cdhash = cdhashToString(cdhash: process.cdhash)
+        self.cdhash = ESLogger.hex(process.cdhash)
         
         derive(namingAllUsers: true)
         /// From the executable's code signing certificates, where its flags don't tell (a validly signed process that

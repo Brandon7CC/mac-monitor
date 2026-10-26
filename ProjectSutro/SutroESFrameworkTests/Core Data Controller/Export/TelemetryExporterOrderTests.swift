@@ -46,7 +46,7 @@ final class TelemetryExporterOrderTests: XCTestCase {
         let (url, events) = try exportAll(container, pretty: false, from: source)
         XCTAssertEqual(events, arrivals.count)
         return try String(contentsOf: url, encoding: .utf8).split(separator: "\n").map { line in
-            let record = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any])
+            let record = try jsonObject(Data(line.utf8))
             return try XCTUnwrap(record["global_seq_num"] as? Int)
         }
     }

@@ -54,21 +54,16 @@ final class OpenDirectoryExportTests: XCTestCase {
     
     // MARK: eslogger parity
     
-    /// Each eslogger record, opened and exported, has every value eslogger wrote, at eslogger's key path.
-    func testImportedRecordsMatchESLogger() throws {
+    /// Each eslogger record, opened and exported, or captured from Endpoint Security's structs and exported, has every
+    /// value eslogger wrote, at eslogger's key path.
+    func testRecordsMatchESLogger() throws {
         let records = try fixtureRecords(Self.esloggerFixture)
         XCTAssertEqual(records.count, 11)
         for record in records {
             let name = try onlyEvent(record).name
-            assertContains(record, try export(try importRecord(record)), ignoring: Self.esloggerSequenceNumbers, name)
-        }
-    }
-    
-    /// Each eslogger record, captured from Endpoint Security's structs and exported, has every value eslogger wrote.
-    func testCapturedRecordsMatchESLogger() throws {
-        for record in try fixtureRecords(Self.esloggerFixture) {
-            let name = try onlyEvent(record).name
-            assertContains(record, try export(capture(record)), ignoring: Self.esloggerSequenceNumbers, name)
+            for (read, message) in [("opened", try importRecord(record)), ("captured", capture(record))] {
+                assertContains(record, try export(message), ignoring: Self.esloggerSequenceNumbers, "\(name), \(read)")
+            }
         }
     }
     
@@ -112,35 +107,35 @@ final class OpenDirectoryExportTests: XCTestCase {
     
     /// The export of an Open Directory event from a Mac Monitor 2.1 export, which holds the legacy fixture's event.
     ///
-    /// - Parameter name: The event's key.
+    /// - Parameter type: The event's type.
     /// - Returns: The event's object.
     /// - Throws: The error reading a fixture or the record, or an `XCTest` failure if a fixture or the export has no
     ///   such event.
-    private func reexportLegacy(_ name: String) throws -> [String: Any] {
+    private func reexportLegacy(_ type: es_event_type_t) throws -> [String: Any] {
         let events = try XCTUnwrap(try fixtureObject("macmonitor-2.1-od.json")["events"] as? [String: Any])
-        let type = try XCTUnwrap(RawMessageFixture.openDirectoryEvents.first { $0.name == name }?.type)
-        let record = try legacyRecord(name, type: type, try XCTUnwrap(events[name]))
+        let name = esloggerKey(type)
+        let record = try legacyRecord(type, try XCTUnwrap(events[name]))
         return try event(name, in: try export(try importRecord(record)))
     }
     
     /// An Open Directory event exported before 3.0.0 is exported again with the numbers its names stand for, the names
     /// kept in the `*_string` fields, and `null` for what it didn't keep.
     func testLegacyExportsAreReadBack() throws {
-        let attribute = try reexportLegacy("od_attribute_value_add")
+        let attribute = try reexportLegacy(ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_VALUE_ADD)
         assertContains(["record_type": 1, "record_type_string": "GROUP", "instigator": NSNull(),
                         "instigator_token": NSNull(), "instigator_process_name": "dscl"], attribute, "attribute")
         
-        let added = try reexportLegacy("od_group_add")
+        let added = try reexportLegacy(ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD)
         assertContains(["member": ["member_type": 1, "member_value": NSNull()],
                         "member_string": "ES_OD_MEMBER_TYPE_USER_UUID"], added, "group add")
         
-        let removed = try reexportLegacy("od_group_remove")
+        let removed = try reexportLegacy(ES_EVENT_TYPE_NOTIFY_OD_GROUP_REMOVE)
         assertContains(["member": NSNull(), "member_string": "UNKNOWN", "db_path": ""], removed, "group remove")
         
-        let password = try reexportLegacy("od_modify_password")
+        let password = try reexportLegacy(ES_EVENT_TYPE_NOTIFY_OD_MODIFY_PASSWORD)
         assertContains(["account_type": 1, "account_type_string": "ES_OD_ACCOUNT_TYPE_COMPUTER"], password, "password")
         
-        let user = try reexportLegacy("od_create_user")
+        let user = try reexportLegacy(ES_EVENT_TYPE_NOTIFY_OD_CREATE_USER)
         assertContains(["error_code": 4102, "user_name": "testuser", "instigator_process_signing_id": "com.apple.dscl"],
                        user, "create user")
     }

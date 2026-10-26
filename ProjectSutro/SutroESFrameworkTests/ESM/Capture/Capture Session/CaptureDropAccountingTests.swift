@@ -14,13 +14,7 @@ import EndpointSecurity
 /// Pins how a capture session counts what Endpoint Security dropped: per client, from every message the client was
 /// handed, and reported once.
 final class CaptureDropAccountingTests: XCTestCase {
-    private var factory = FakeEndpointSecurityClientFactory()
-    
-    /// A fresh factory for each test.
-    override func setUp() {
-        super.setUp()
-        factory = FakeEndpointSecurityClientFactory()
-    }
+    private let factory = FakeEndpointSecurityClientFactory()
     
     /// Hand one client messages of one event type, as Endpoint Security would.
     ///

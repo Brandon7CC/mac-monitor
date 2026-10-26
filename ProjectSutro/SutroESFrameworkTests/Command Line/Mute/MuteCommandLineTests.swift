@@ -28,12 +28,7 @@ final class MuteCommandLineTests: XCTestCase {
     /// - Parameter line: The arguments after `mute`.
     /// - Returns: The error's message, or `nil` if it parses.
     private func usageError(_ line: String) -> String? {
-        do {
-            _ = try parse(line)
-            return nil
-        } catch {
-            return (error as? CommandLineUsageError)?.message
-        }
+        thrown(CommandLineUsageError.self) { try parse(line) }?.message
     }
     
     /// How `macmonitor` exits for a mute command line it can't act on.
@@ -41,12 +36,7 @@ final class MuteCommandLineTests: XCTestCase {
     /// - Parameter line: The arguments after `mute`.
     /// - Returns: The exit status, or `nil` if it parses.
     private func exitStatus(_ line: String) -> CommandLineExit? {
-        do {
-            _ = try parse(line)
-            return nil
-        } catch {
-            return CommandLineFailure.parsing(error).exit
-        }
+        thrown(Error.self) { try parse(line) }.map(CommandLineFailure.parsing)?.exit
     }
     
     /// `export` takes nothing, `list` only its format, and `reset` only `--yes`. Every mute command needs root.

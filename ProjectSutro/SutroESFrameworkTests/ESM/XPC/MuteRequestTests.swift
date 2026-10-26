@@ -41,14 +41,12 @@ final class MuteRequestTests: XCTestCase {
     /// A newer version or an unknown operation is unsupported. Missing mutes mean none.
     func testNewerRequestsAreUnsupported() throws {
         let newer = Data(#"{"version": 2, "operation": "list"}"#.utf8)
-        XCTAssertThrowsError(try MuteRequest.decode(newer)) { error in
-            XCTAssertEqual((error as? XPCRequestError)?.status(as: MuteReply.Status.self), .unsupported)
-        }
+        let newerError = thrown(XPCRequestError.self) { try MuteRequest.decode(newer) }
+        XCTAssertEqual(newerError?.status(as: MuteReply.Status.self), .unsupported)
         let unknown = Data(#"{"version": 1, "operation": "frobnicate"}"#.utf8)
-        XCTAssertThrowsError(try MuteRequest.decode(unknown)) { error in
-            XCTAssertEqual((error as? XPCRequestError)?.status(as: MuteReply.Status.self), .unsupported)
-            XCTAssertTrue("\(error)".contains("frobnicate"))
-        }
+        let unknownError = thrown(XPCRequestError.self) { try MuteRequest.decode(unknown) }
+        XCTAssertEqual(unknownError?.status(as: MuteReply.Status.self), .unsupported)
+        XCTAssertTrue(unknownError?.description.contains("frobnicate") == true)
         let bare = Data(#"{"version": 1, "operation": "reset"}"#.utf8)
         XCTAssertEqual(try MuteRequest.decode(bare), MuteRequest(.reset))
     }
@@ -60,9 +58,8 @@ final class MuteRequestTests: XCTestCase {
                         Data(#"{"version": -7, "operation": "reset"}"#.utf8),
                         Data(count: MuteLimits.maxFileBytes + 1)]
         for data in requests {
-            XCTAssertThrowsError(try MuteRequest.decode(data)) { error in
-                XCTAssertEqual((error as? XPCRequestError)?.status(as: MuteReply.Status.self), .invalid)
-            }
+            let error = thrown(XPCRequestError.self) { try MuteRequest.decode(data) }
+            XCTAssertEqual(error?.status(as: MuteReply.Status.self), .invalid)
         }
     }
 }

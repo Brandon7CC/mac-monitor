@@ -22,7 +22,7 @@ public struct FileCreateEvent: Codable, IdentityHashable {
     
     public var is_quarantined: Int16 = 0
     
-    init(from rawMessage: UnsafePointer<es_message_t>, shouldCheckQuarantine: Bool = false) {
+    init(from rawMessage: UnsafePointer<es_message_t>) {
         let messageVersion: Int = Int(rawMessage.pointee.version)
         let create: es_event_create_t = rawMessage.pointee.event.create
         /*
@@ -32,18 +32,10 @@ public struct FileCreateEvent: Codable, IdentityHashable {
         self.destination_type = Int(create.destination_type.rawValue)
         self.destination = FileDestination.from(create: create)
         enrich()
-        switch destination {
-        case .existing_file(let file):
-            self.is_quarantined = Int16(ProcessHelpers.isFileQuarantined(filePath: file.path))
-        case .new_path(let new_path):
-            self.is_quarantined = Int16(ProcessHelpers.isFileQuarantined(filePath: new_path.fullPath))
-        case .unknown:
-            break
+        if let path = destination.fullPath {
+            is_quarantined = Int16(ProcessHelpers.isFileQuarantined(filePath: path))
         }
-        
-        if messageVersion >= 2 {
-            self.acl = create.acl?.toString()
-        }
+        acl = messageVersion >= 2 ? create.acl.flatMap { $0.toString() } : nil
     }
 }
 

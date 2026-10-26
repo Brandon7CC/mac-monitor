@@ -38,7 +38,7 @@ public struct ProcessExecEvent: Codable, IdentityHashable {
     public var launched_by_parent: LaunchedByParent?
     
     // @note construct a new process_exec
-    init(from rawMessage: UnsafePointer<es_message_t>, forcedQuarantineSigningIDs: [String] = []) {
+    init(from rawMessage: UnsafePointer<es_message_t>) {
         es_retain_message(rawMessage)
         var execEvent: es_event_exec_t = rawMessage.pointee.event.exec
         
@@ -47,11 +47,7 @@ public struct ProcessExecEvent: Codable, IdentityHashable {
         let version = rawMessage.pointee.version
         
         // The new process that is being executed
-        self.target = Process(
-            from: execEvent.target.pointee,
-            version: Int(version),
-            isExecMessage: true
-        )
+        self.target = Process(from: execEvent.target.pointee, version: Int(version))
         
         // Arguments (the command line is joined from them by `enrich()`)
         self.argc = Int(es_exec_arg_count(&execEvent))
@@ -63,67 +59,35 @@ public struct ProcessExecEvent: Codable, IdentityHashable {
         // Open file descriptors
         self.fds = ProcessHelpers.getFds(event: &execEvent)
         
-        /// Script being executed by interpreter (e.g. `./foo.sh` not `/bin/sh ./foo.sh`).
-        if version >= 2, let script = execEvent.script {
-            self.script = File(from: script.pointee)
-            /// Pull the script content from the file path
-            if let path = self.script?.path {
-                self.script_content = ProcessHelpers
-                    .getFileContents(at: path)
-            }
+        /// Script being executed by interpreter (e.g. `./foo.sh` not `/bin/sh ./foo.sh`), and its content.
+        if version >= 2, let script = execEvent.script.map({ File(from: $0.pointee) }) {
+            self.script = script
+            script_content = ProcessHelpers.getFileContents(at: script.path)
         }
         
         // Current working directory at exec time.
         if version >= 3 {
-            self.cwd = File(from: execEvent.cwd.pointee)
-            
+            let cwd = File(from: execEvent.cwd.pointee)
+            self.cwd = cwd
             /// @note Mac Monitor enrichment -- script content
             /// If the process executed is a supported interpreter -- attempt to pull the script
-            if let exeName: String = self.target.executable?.name {
-                let isScripting: Bool = ProcessHelpers.isScriptingInterpreter(exeName)
-                if isScripting {
-                    if self.script_content == nil {
-                        if let cwd = self.cwd,
-                           let resolved_script_path = ProcessHelpers
-                            .parseScriptFromArgs(
-                                args: self.args,
-                                workingDirectory: cwd.path
-                            ){
-                            self.resolved_script_path = resolved_script_path
-                            self.script_content = ProcessHelpers
-                                .getFileContents(at: resolved_script_path)
-                        }
-                    }
-                }
+            if script_content == nil, let name = target.executable?.name, ProcessHelpers.isScriptingInterpreter(name),
+               let path = ProcessHelpers.parseScriptFromArgs(args: args, workingDirectory: cwd.path) {
+                resolved_script_path = path
+                script_content = ProcessHelpers.getFileContents(at: path)
             }
         }
         
-        // Highest open file descriptor after the exec completed
-        if version >= 4 {
-            self.last_fd = Int(execEvent.last_fd)
-        }
-        
-        if version >= 6 {
-            // The CPU type of the executable image which is being executed.
-            self.image_cputype = Int(execEvent.image_cputype)
-            // The CPU subtype of the executable image.
-            self.image_cpusubtype = Int(execEvent.image_cpusubtype)
-        }
-        
-        // Version 7 - macOS 13.3+
-        // The exec path passed up to dyld, before symlink resolution.
-        if version >= 7 {
-            self.dyld_exec_path = execEvent.dyld_exec_path.string
-        }
+        // Highest open file descriptor after the exec completed (4), the CPU type and subtype of the executable image
+        // (6), and the exec path passed up to dyld, before symlink resolution (7, macOS 13.3+).
+        last_fd = version >= 4 ? Int(execEvent.last_fd) : nil
+        image_cputype = version >= 6 ? Int(execEvent.image_cputype) : nil
+        image_cpusubtype = version >= 6 ? Int(execEvent.image_cpusubtype) : nil
+        dyld_exec_path = version >= 7 ? execEvent.dyld_exec_path.string : nil
         
         // MARK: - Code Signing certificate chain
-        if (UInt32(target.codesigning_flags) & UInt32(CS_VALID)) == UInt32(
-            CS_VALID
-        ) {
-            if let executable = self.target.executable {
-                self.certificate_chain = ProcessHelpers
-                    .getCodeSigningCerts(forBinaryAt: executable.path)
-            }
+        if target.codesigning_flags & Int64(CS_VALID) != 0, let executable = target.executable {
+            certificate_chain = ProcessHelpers.getCodeSigningCerts(forBinaryAt: executable.path)
         }
         
         enrich()
@@ -140,13 +104,9 @@ extension ProcessExecEvent: ESEnrichable {
     /// Not derived: the certificate chain and the script's content, which are read from the executable and the script.
     public mutating func enrich() {
         argc = args.count
-        if command_line == nil {
-            command_line = args.joined(separator: " ").trimmingCharacters(in: .whitespaces)
-        }
+        command_line = command_line ?? args.joined(separator: " ").trimmingCharacters(in: .whitespaces)
         /// Populate `resolved_script_path` if ES recognizes the scripting interpreter
-        if resolved_script_path == nil, let script {
-            resolved_script_path = script.path
-        }
+        resolved_script_path = resolved_script_path ?? script?.path
     }
 }
 

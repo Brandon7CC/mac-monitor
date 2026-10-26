@@ -7,43 +7,22 @@
 
 import Foundation
 import EndpointSecurity
-import OSLog
 
 
 public struct ESMutedPath: Identifiable, Codable, Hashable {
     public var id: String { "\(path)-\(type)" }
     public var type: String
-    public var events: [String] = []
-    public var path: String = ""
-    public var eventCount: Int = 0
+    public var events: [String]
+    public var path: String
+    public var eventCount: Int
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine("\(path) \(type)")
-    }
-    
-    public static func == (lhs: ESMutedPath, rhs: ESMutedPath) -> Bool {
-        // TODO: This may cause a problem in the future. Add in the individual events.
-        if lhs.path == rhs.path && lhs.type == rhs.type && lhs.eventCount == rhs.eventCount {
-            return true
-        }
-
-        return false
-    }
-    
+    /// A mute Endpoint Security reports, with the events the mute was requested for.
+    ///
+    /// - Parameter rawPath: The muted path.
     init(fromRawESPath rawPath: es_muted_path_t) {
-        // Set the path
-        self.path = rawPath.path.string ?? ""
-        
-        self.type = getMuteCaseString(muteType: rawPath.type)
-        
-        // Get the number of events
-        self.eventCount = rawPath.event_count
-        
-        // For each of those events...
-        // Add the events the muting request was submitted for
-        for index in 0..<eventCount {
-            self.events.append(eventTypeToString(from: rawPath.events[index]))
-        }
+        let events = UnsafeBufferPointer(start: rawPath.events, count: rawPath.event_count)
+        self.init(type: getMuteCaseString(muteType: rawPath.type), events: events.map { eventTypeToString(from: $0) },
+                  path: rawPath.path.string ?? "")
     }
     
     public init(type: String, events: [String], path: String) {
@@ -58,38 +37,5 @@ public struct ESMutedPath: Identifiable, Codable, Hashable {
     /// - Parameter entry: The entry.
     public init(_ entry: MuteFile.Entry) {
         self.init(type: entry.type, events: entry.events, path: entry.path)
-    }
-    
-}
-
-public struct ESMutedPaths: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
-    public var count: Int = 0
-    public var paths: [ESMutedPath] = []
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-        hasher.combine(count)
-    }
-    
-    public static func == (lhs: ESMutedPaths, rhs: ESMutedPaths) -> Bool {
-        // TODO: This may cause a problem in the future add in each path.
-        if lhs.id == rhs.id && lhs.count == rhs.count {
-            return true
-        }
-
-        return false
-    }
-    
-    init() {
-        
-    }
-    
-    init(fromRawESPaths rawPaths: UnsafeMutablePointer<es_muted_paths_t>) {
-        self.count = rawPaths.pointee.count
-        os_log("Parsing raw ES paths... there are \(rawPaths.pointee.count) of them")
-        for index in 0..<self.count {
-            self.paths.append(ESMutedPath(fromRawESPath: rawPaths.pointee.paths[index]))
-        }
     }
 }

@@ -32,19 +32,19 @@ public enum EventType: Hashable, Codable {
     case create(FileCreateEvent)
     case rename(FileRenameEvent)
     case open(FileOpenEvent)
-    case write(FileWriteEvent)
+    case write(TargetFileEvent)
     case close(FileCloseEvent)
     case unlink(FileDeleteEvent)
-    case dup(FDDuplicateEvent)
+    case dup(TargetFileEvent)
     
     // MARK: Symbolic Link events
     case link(LinkEvent)
     
     // MARK: File Metadata events
-    case setextattr(XattrSetEvent)
-    case deleteextattr(XattrDeleteEvent)
-    case listextattr(XattrListEvent)
-    case getextattr(XattrGetEvent)
+    case setextattr(XattrEvent)
+    case deleteextattr(XattrEvent)
+    case listextattr(TargetFileEvent)
+    case getextattr(XattrEvent)
     case setmode(SetModeEvent)
     
     // MARK: Pseudoterminal events
@@ -67,8 +67,8 @@ public enum EventType: Hashable, Codable {
     
     // MARK: Login events
     case login_login(LoginLoginEvent)
-    case lw_session_login(LWLoginEvent)
-    case lw_session_unlock(LWUnlockEvent)
+    case lw_session_login(LWSessionEvent)
+    case lw_session_unlock(LWSessionEvent)
     
     // MARK: Kernel events
     case iokit_open(IOKitOpenEvent)

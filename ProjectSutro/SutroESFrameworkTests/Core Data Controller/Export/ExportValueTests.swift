@@ -74,7 +74,7 @@ final class ExportValueTests: XCTestCase {
         let open = try XCTUnwrap(try fixtureObject("eslogger-open.jsonl")["event"] as? [String: Any])
         let file = try XCTUnwrap((open["open"] as? [String: Any])?["file"])
         for offset in ["9223372036854775808", "18446744073709551615"] {
-            let message = try importRecord(try esloggerRecord("mmap", type: Int(ES_EVENT_TYPE_NOTIFY_MMAP.rawValue), [
+            let message = try importRecord(try esloggerRecord(ES_EVENT_TYPE_NOTIFY_MMAP, [
                 "protection": 1, "max_protection": 7, "flags": 2, "file_pos": UInt64(offset)!, "source": file
             ]))
             XCTAssertTrue(exportText(message).contains(#""file_pos":"# + offset), offset)
@@ -112,13 +112,13 @@ final class ExportValueTests: XCTestCase {
             "source": ["path": "/private/tmp/example/a.txt", "path_truncated": false, "stat": [:]],
             "destination_type": 1, "destination": ["new_path": newPath(mode: nil)],
         ]
-        let path = try exportedNewPath("rename", try esloggerRecord("rename", type: 25, rename))
+        let path = try exportedNewPath("rename", try esloggerRecord(ES_EVENT_TYPE_NOTIFY_RENAME, rename))
         XCTAssertEqual(path?.keys.sorted(), ["dir", "filename"])
     }
     
     /// Mac Monitor up to 2.1.0 wrote a rename's `mode` as 0: it's dropped.
     func testMacMonitor21RenameModeIsDropped() throws {
-        let record = try legacyRecord("rename", type: ES_EVENT_TYPE_NOTIFY_RENAME, [
+        let record = try legacyRecord(ES_EVENT_TYPE_NOTIFY_RENAME, [
             "source": ["path": "/private/tmp/example/a.txt", "path_truncated": false, "stat": [:]],
             "destination_type": 1, "destination_type_string": "ES_DESTINATION_TYPE_NEW_PATH",
             "destination": ["new_path": newPath(mode: 0)], "destination_path": "/private/tmp/example/b.txt",
@@ -130,7 +130,7 @@ final class ExportValueTests: XCTestCase {
     func testCreateNewPathKeepsMode() throws {
         let create: [String: Any] = ["destination_type": 1, "destination": ["new_path": newPath(mode: 420)],
                                      "acl": NSNull()]
-        let path = try exportedNewPath("create", try esloggerRecord("create", type: 13, create))
+        let path = try exportedNewPath("create", try esloggerRecord(ES_EVENT_TYPE_NOTIFY_CREATE, create))
         XCTAssertEqual(path?["mode"] as? Int, 420)
     }
     
@@ -162,7 +162,7 @@ final class ExportValueTests: XCTestCase {
     /// - Throws: The error reading the record, or an `XCTest` failure if the export has no `iokit_open` event.
     private func exportedIOKitOpen(version: Int, parent: [String: Any] = [:]) throws -> [String: Any] {
         let event = ["user_client_type": 0, "user_client_class": "IOHIDLibUserClient"].merging(parent) { $1 }
-        let record = try esloggerRecord("iokit_open", type: 24, event, version: version)
+        let record = try esloggerRecord(ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN, event, version: version)
         return try self.event("iokit_open", in: try export(try importRecord(record)))
     }
     
@@ -209,23 +209,23 @@ final class ExportValueTests: XCTestCase {
     
     // MARK: Login user IDs
     
-    /// eslogger's login events without their `uid`, by key and type. eslogger writes no `has_uid`.
-    private static let logins: [(name: String, type: es_event_type_t, event: [String: Any])] = [
-        ("openssh_login", ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGIN,
+    /// eslogger's login events without their `uid`, by type. eslogger writes no `has_uid`.
+    private static let logins: [(type: es_event_type_t, event: [String: Any])] = [
+        (ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGIN,
          ["success": true, "result_type": 0, "source_address_type": 1, "source_address": "192.0.2.1",
           "username": "testuser"]),
-        ("login_login", ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN,
-         ["success": true, "failure_message": NSNull(), "username": "testuser"]),
+        (ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN, ["success": true, "failure_message": NSNull(), "username": "testuser"]),
     ]
     
     /// A login's `uid` in an eslogger record is read back and exported as eslogger wrote it: a number, one of 2^31 or
     /// more included, or `null`.
     func testLoginUIDRoundTrip() throws {
-        for (name, type, event) in Self.logins {
+        for (type, event) in Self.logins {
+            let name = esloggerKey(type)
             for uid: Any in [501, 4_294_967_294, NSNull()] {
                 var object = event
                 object["uid"] = uid
-                let record = try esloggerRecord(name, type: Int(type.rawValue), object)
+                let record = try esloggerRecord(type, object)
                 let exported = try self.event(name, in: try export(try importRecord(record)))
                 XCTAssertEqual(exported["uid"] as? NSObject, uid as? NSObject, "\(name) \(uid)")
                 XCTAssertEqual(exported["has_uid"] as? Bool, !(uid is NSNull), "\(name) \(uid)")
@@ -243,12 +243,8 @@ final class ExportValueTests: XCTestCase {
         let captured = Message(from: fixture.raw)
         
         let json = try JSONEncoder().encode(captured)
-        var sent = try XCTUnwrap(try JSONSerialization.jsonObject(with: json) as? [String: Any])
-        var event = try XCTUnwrap((sent["event"] as? [String: Any])?["login_login"] as? [String: Any])
-        var payload = try XCTUnwrap(event["_0"] as? [String: Any])
-        payload["uid"] = -1
-        event["_0"] = payload
-        sent["event"] = ["login_login": event]
+        var sent = try jsonObject(json)
+        sent[path: "event", "login_login", "_0", "uid"] = -1
         let older = try JSONDecoder().decode(Message.self, from: JSONSerialization.data(withJSONObject: sent))
         
         for message in [captured, older] {
@@ -265,7 +261,7 @@ final class ExportValueTests: XCTestCase {
     func testPetitionRightCount() throws {
         let rights = ["system.privilege.admin", "system.preferences"]
         let type = ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_PETITION
-        let record = try esloggerRecord("authorization_petition", type: Int(type.rawValue), [
+        let record = try esloggerRecord(type, [
             "instigator": NSNull(), "petitioner": NSNull(), "flags": 0, "right_count": 2, "rights": rights,
         ])
         

@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import Combine
 import EndpointSecurity
 @testable import SutroESFramework
 
@@ -20,7 +21,7 @@ final class SavedMuteSetTests: XCTestCase {
     private var followed: [MuteList] = []
     /// Who changed each set how, in order.
     private var changes: [MuteSetChange] = []
-    private var subscription: MuteSubscription?
+    private var subscription: AnyCancellable?
     
     /// A saved set in a fresh directory, followed by the test.
     ///
@@ -29,8 +30,6 @@ final class SavedMuteSetTests: XCTestCase {
         try super.setUpWithError()
         store = try makeMuteStore()
         saved = SavedMuteSet(testing: store)
-        followed = []
-        changes = []
     }
     
     /// Start following the saved set.
@@ -175,7 +174,6 @@ final class SavedMuteSetTests: XCTestCase {
     func testAFailedSaveChangesNothing() {
         follow()
         chmod(store.directory.path, 0o500)
-        defer { chmod(store.directory.path, 0o700) }
         let reply = saved.send(MuteRequest(.add, [entry("/x")]))
         XCTAssertEqual(reply.status, .storageFailed)
         XCTAssertEqual(reply.mutes, MuteFile(.testDefault).mutes)
@@ -216,7 +214,6 @@ final class SavedMuteSetTests: XCTestCase {
     /// A directory others can write is never written through: the default set applies and every change fails.
     func testAnUntrustedDirectoryRefusesEveryChange() {
         chmod(store.directory.path, 0o777)
-        defer { chmod(store.directory.path, 0o700) }
         XCTAssertEqual(follow(), .testDefault)
         XCTAssertEqual(saved.send(MuteRequest(.list)).status, .ok)
         XCTAssertNotNil(saved.send(MuteRequest(.list)).notice)

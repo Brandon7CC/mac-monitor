@@ -204,10 +204,7 @@ struct FilterSheet: View {
         let shown = appliedFinding(findings.usable)
         var actions = [FilterCard.Row.Action(title: "Open Predicate Editor", action: openPredicateEditor)]
         if search.applied != nil {
-            actions.insert(.init(title: "Remove", isDestructive: true) {
-                search.clear()
-                search.draft = ""
-            }, at: 0)
+            actions.insert(.init(title: "Remove", isDestructive: true, action: search.clear), at: 0)
         }
         let row = FilterCard.Row(id: "predicate",
                                  name: search.applied == nil ? "None applied" : shown.map { "From \($0)" } ?? "Applied",
@@ -290,10 +287,4 @@ struct FilterSheet: View {
         allFilters.rootIncludedTargetProcessPath = nil
         allFilters.shouldIncludeProcessSubTrees = false
     }
-}
-
-
-private extension String {
-    /// It with its first letter capitalized, as a sentence starts.
-    var capitalizedFirst: String { prefix(1).uppercased() + dropFirst() }
 }

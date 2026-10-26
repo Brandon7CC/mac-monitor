@@ -126,7 +126,7 @@ struct ReleaseNotesSheet: View {
     /// The release's name, or what's being loaded.
     private var title: String {
         guard let release = notes.release else { return "What's New in Mac Monitor \(ReleaseNotes.version)" }
-        return release.name.flatMap { $0.isEmpty ? nil : $0 } ?? "Mac Monitor \(release.tag)"
+        return release.name.nonEmpty ?? "Mac Monitor \(release.tag)"
     }
 
     /// GitHub's Markdown, with its line breaks kept.

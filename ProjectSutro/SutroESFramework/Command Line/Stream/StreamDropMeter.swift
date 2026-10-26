@@ -26,9 +26,6 @@ public final class StreamDropMeter {
     /// What each client's last report held.
     private var marks: [EventClass: DropReportMark] = [:]
     
-    /// A meter that has seen nothing.
-    public init() {}
-    
     /// Account for one event's sequence numbers.
     ///
     /// - Parameter header: The event's header.

@@ -32,9 +32,9 @@ extension StreamPlan {
     /// - Parameter options: The options.
     /// - Throws: ``XPCRequestError/invalid(_:)`` for more than ``maximumEvents`` names, or a name that isn't a
     ///   NOTIFY event Mac Monitor models on this Mac.
-    public init(_ options: StreamOptions) throws {
+    public init(_ options: StreamOptions) throws(XPCRequestError) {
         guard options.events.count <= Self.maximumEvents else {
-            throw XPCRequestError.invalid("""
+            throw .invalid("""
                 The request names \(options.events.count) events. A stream can name at most \(Self.maximumEvents).
                 """)
         }
@@ -46,7 +46,7 @@ extension StreamPlan {
         var events: [es_event_type_t] = [], seen = Set<UInt32>()
         for name in options.events {
             guard let event = supported[name] else {
-                throw XPCRequestError.invalid("\(name) isn't an event macmonitor can stream on this Mac.")
+                throw .invalid("\(name) isn't an event macmonitor can stream on this Mac.")
             }
             if seen.insert(event.rawValue).inserted { events.append(event) }
         }

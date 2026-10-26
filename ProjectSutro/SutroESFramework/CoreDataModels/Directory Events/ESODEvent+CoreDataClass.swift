@@ -40,12 +40,8 @@ public class ESODEvent: NSManagedObject {
     ///   - version: The message's version.
     ///   - context: The context this object is in.
     func store(_ event: some OpenDirectoryEvent, version: Int, in context: NSManagedObjectContext) {
-        if let process = event.instigator {
-            instigator = ESProcess(from: process, version: version, insertIntoManagedObjectContext: context)
-        }
-        if let token = event.instigator_token {
-            instigator_token = ESAuditToken(from: token, insertIntoManagedObjectContext: context)
-        }
+        instigator = ESProcess.insert(event.instigator, version: version, in: context)
+        instigator_token = ESAuditToken.insert(event.instigator_token, in: context)
         error_code = Int32(truncatingIfNeeded: event.error_code)
         node_name = event.node_name
         db_path = event.db_path

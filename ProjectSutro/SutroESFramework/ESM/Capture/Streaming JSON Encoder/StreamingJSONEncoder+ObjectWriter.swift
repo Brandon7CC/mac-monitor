@@ -17,13 +17,17 @@ extension StreamingJSONEncoder {
         let frame: FrameReference
         var codingPath: [CodingKey] { [] }
         
+        /// Start the member: its key and a colon (`StreamingJSONEncoder.member(_:in:)`).
+        ///
+        /// - Parameter key: The member's key.
+        /// - Returns: `false`, writing nothing, if the object was already closed.
+        private func begin(_ key: Key) -> Bool { encoder.member(key, in: frame) }
+        
         /// Write the member's key, then `null`.
         ///
         /// - Parameter key: The member's key.
         /// - Throws: Never: `null` always has a JSON form.
-        func encodeNil(forKey key: Key) throws {
-            if encoder.member(key, in: frame) { encoder.write(raw: "null" as StaticString) }
-        }
+        func encodeNil(forKey key: Key) throws { if begin(key) { encoder.write(raw: "null" as StaticString) } }
         
         /// Write the member's key, then the value.
         ///
@@ -31,9 +35,7 @@ extension StreamingJSONEncoder {
         ///   - value: The value.
         ///   - key: The member's key.
         /// - Throws: Never: a Boolean always has a JSON form.
-        func encode(_ value: Bool, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { encoder.write(bool: value) }
-        }
+        func encode(_ value: Bool, forKey key: Key) throws { if begin(key) { encoder.write(bool: value) } }
         
         /// Write the member's key, then the string.
         ///
@@ -41,9 +43,7 @@ extension StreamingJSONEncoder {
         ///   - value: The string.
         ///   - key: The member's key.
         /// - Throws: Never: a string always has a JSON form.
-        func encode(_ value: String, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { encoder.write(string: value) }
-        }
+        func encode(_ value: String, forKey key: Key) throws { if begin(key) { encoder.write(string: value) } }
         
         /// Write the member's key, then the number.
         ///
@@ -51,9 +51,7 @@ extension StreamingJSONEncoder {
         ///   - value: The number.
         ///   - key: The member's key.
         /// - Throws: `EncodingError.invalidValue` for NaN or infinity, as `JSONEncoder` throws.
-        func encode(_ value: Double, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { try encoder.write(floating: value) }
-        }
+        func encode(_ value: Double, forKey key: Key) throws { if begin(key) { try encoder.write(floating: value) } }
         
         /// Write the member's key, then the number.
         ///
@@ -61,9 +59,7 @@ extension StreamingJSONEncoder {
         ///   - value: The number.
         ///   - key: The member's key.
         /// - Throws: `EncodingError.invalidValue` for NaN or infinity, as `JSONEncoder` throws.
-        func encode(_ value: Float, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { try encoder.write(floating: value) }
-        }
+        func encode(_ value: Float, forKey key: Key) throws { if begin(key) { try encoder.write(floating: value) } }
         
         /// Write the member's key, then the integer.
         ///
@@ -71,9 +67,7 @@ extension StreamingJSONEncoder {
         ///   - value: The integer.
         ///   - key: The member's key.
         /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: Int, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { encoder.write(integer: value) }
-        }
+        func encode(_ value: Int, forKey key: Key) throws { if begin(key) { encoder.write(integer: value) } }
         
         /// Write the member's key, then the integer.
         ///
@@ -81,9 +75,7 @@ extension StreamingJSONEncoder {
         ///   - value: The integer.
         ///   - key: The member's key.
         /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: Int8, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { encoder.write(integer: value) }
-        }
+        func encode(_ value: Int8, forKey key: Key) throws { if begin(key) { encoder.write(integer: value) } }
         
         /// Write the member's key, then the integer.
         ///
@@ -91,9 +83,7 @@ extension StreamingJSONEncoder {
         ///   - value: The integer.
         ///   - key: The member's key.
         /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: Int16, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { encoder.write(integer: value) }
-        }
+        func encode(_ value: Int16, forKey key: Key) throws { if begin(key) { encoder.write(integer: value) } }
         
         /// Write the member's key, then the integer.
         ///
@@ -101,9 +91,7 @@ extension StreamingJSONEncoder {
         ///   - value: The integer.
         ///   - key: The member's key.
         /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: Int32, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { encoder.write(integer: value) }
-        }
+        func encode(_ value: Int32, forKey key: Key) throws { if begin(key) { encoder.write(integer: value) } }
         
         /// Write the member's key, then the integer.
         ///
@@ -111,9 +99,7 @@ extension StreamingJSONEncoder {
         ///   - value: The integer.
         ///   - key: The member's key.
         /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: Int64, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { encoder.write(integer: value) }
-        }
+        func encode(_ value: Int64, forKey key: Key) throws { if begin(key) { encoder.write(integer: value) } }
         
         /// Write the member's key, then the integer.
         ///
@@ -121,9 +107,7 @@ extension StreamingJSONEncoder {
         ///   - value: The integer.
         ///   - key: The member's key.
         /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: UInt, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { encoder.write(integer: value) }
-        }
+        func encode(_ value: UInt, forKey key: Key) throws { if begin(key) { encoder.write(integer: value) } }
         
         /// Write the member's key, then the integer.
         ///
@@ -131,9 +115,7 @@ extension StreamingJSONEncoder {
         ///   - value: The integer.
         ///   - key: The member's key.
         /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: UInt8, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { encoder.write(integer: value) }
-        }
+        func encode(_ value: UInt8, forKey key: Key) throws { if begin(key) { encoder.write(integer: value) } }
         
         /// Write the member's key, then the integer.
         ///
@@ -141,9 +123,7 @@ extension StreamingJSONEncoder {
         ///   - value: The integer.
         ///   - key: The member's key.
         /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: UInt16, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { encoder.write(integer: value) }
-        }
+        func encode(_ value: UInt16, forKey key: Key) throws { if begin(key) { encoder.write(integer: value) } }
         
         /// Write the member's key, then the integer.
         ///
@@ -151,9 +131,7 @@ extension StreamingJSONEncoder {
         ///   - value: The integer.
         ///   - key: The member's key.
         /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: UInt32, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { encoder.write(integer: value) }
-        }
+        func encode(_ value: UInt32, forKey key: Key) throws { if begin(key) { encoder.write(integer: value) } }
         
         /// Write the member's key, then the integer.
         ///
@@ -161,9 +139,7 @@ extension StreamingJSONEncoder {
         ///   - value: The integer.
         ///   - key: The member's key.
         /// - Throws: Never: an integer always has a JSON form.
-        func encode(_ value: UInt64, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { encoder.write(integer: value) }
-        }
+        func encode(_ value: UInt64, forKey key: Key) throws { if begin(key) { encoder.write(integer: value) } }
         
         /// Write the member's key, then the value.
         ///
@@ -171,9 +147,7 @@ extension StreamingJSONEncoder {
         ///   - value: The value.
         ///   - key: The member's key.
         /// - Throws: The error encoding the value throws.
-        func encode<T: Encodable>(_ value: T, forKey key: Key) throws {
-            if encoder.member(key, in: frame) { try encoder.write(value) }
-        }
+        func encode<T: Encodable>(_ value: T, forKey key: Key) throws { if begin(key) { try encoder.write(value) } }
         
         /// Write the member's key, then open an object for its value.
         ///
@@ -183,7 +157,7 @@ extension StreamingJSONEncoder {
         /// - Returns: The nested object's container.
         func nestedContainer<NestedKey: CodingKey>(keyedBy keyType: NestedKey.Type,
                                                    forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
-            let nested = encoder.member(key, in: frame) ? encoder.open(isObject: true) : .invalid
+            let nested = begin(key) ? encoder.open(isObject: true) : .invalid
             return KeyedEncodingContainer(ObjectWriter<NestedKey>(encoder: encoder, frame: nested))
         }
         
@@ -192,8 +166,7 @@ extension StreamingJSONEncoder {
         /// - Parameter key: The member's key.
         /// - Returns: The nested array's container.
         func nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer {
-            let nested = encoder.member(key, in: frame) ? encoder.open(isObject: false) : .invalid
-            return ArrayWriter(encoder: encoder, frame: nested)
+            ArrayWriter(encoder: encoder, frame: begin(key) ? encoder.open(isObject: false) : .invalid)
         }
         
         /// Not streamed: the value is left to `JSONEncoder`.

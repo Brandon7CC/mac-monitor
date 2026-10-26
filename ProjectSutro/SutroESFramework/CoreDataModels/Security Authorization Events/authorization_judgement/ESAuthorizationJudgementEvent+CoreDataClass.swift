@@ -50,14 +50,10 @@ public class ESAuthorizationJudgementEvent: NSManagedObject, Identifiable {
         
         /// Each process and token on its own: Endpoint Security can leave out a process (`NULL`) and still give its
         /// token.
-        let process = { (process: Process) in
-            ESProcess(from: process, version: message.version, insertIntoManagedObjectContext: context)
-        }
-        let token = { (token: AuditToken) in ESAuditToken(from: token, insertIntoManagedObjectContext: context) }
-        self.instigator = event.instigator.map(process)
-        self.instigator_token = event.instigator_token.map(token)
-        self.petitioner = event.petitioner.map(process)
-        self.petitioner_token = event.petitioner_token.map(token)
+        self.instigator = ESProcess.insert(event.instigator, version: message.version, in: context)
+        self.instigator_token = ESAuditToken.insert(event.instigator_token, in: context)
+        self.petitioner = ESProcess.insert(event.petitioner, version: message.version, in: context)
+        self.petitioner_token = ESAuditToken.insert(event.petitioner_token, in: context)
     }
 }
 

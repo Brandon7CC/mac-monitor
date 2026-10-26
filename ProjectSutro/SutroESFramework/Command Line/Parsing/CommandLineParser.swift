@@ -128,19 +128,19 @@ public enum CommandLineParser {
         guard let name = arguments.first else { return .help(command: nil) }
         if name == "--version" { return .version }
         if isHelp(name) { return .help(command: nil) }
-        guard let command = CommandLineHelp.command(named: name) else {
+        guard let command = CommandLineCommand(rawValue: name) else {
             let kind = name.hasPrefix("-") ? "option" : "command"
-            let names = kind == "option" ? ["--help", "--version"] : CommandLineHelp.commands.map(\.name)
+            let names = kind == "option" ? ["--help", "--version"] : CommandLineCommand.allCases.map(\.rawValue)
             let suggestion = CommandLineSuggestion.didYouMean(name, among: names)
             throw CommandLineUsageError("Unknown \(kind) '\(name)'.\(suggestion)")
         }
         let rest = arguments.dropFirst()
-        if rest.prefix(while: { $0 != "--" }).contains(where: isHelp), command.id != .help {
-            return .help(command: command.name)
+        if rest.prefix(while: { $0 != "--" }).contains(where: isHelp), command != .help {
+            return .help(command: command.rawValue)
         }
         var cursor = ArgumentCursor(rest)
         /// Every command, and no default: a new one doesn't build until it's parsed here.
-        switch command.id {
+        switch command {
         case .stream: return .stream(try stream(&cursor))
         case .mute: return .mute(try mute(&cursor))
         case .validate: return .validate(try validate(&cursor))
@@ -302,8 +302,9 @@ public enum CommandLineParser {
             guard case .positional(let name) = argument, topic == nil else {
                 throw CommandLineUsageError("help takes one command at most.", command: "help")
             }
-            guard CommandLineHelp.command(named: name) != nil else {
-                let suggestion = CommandLineSuggestion.didYouMean(name, among: CommandLineHelp.commands.map(\.name))
+            guard CommandLineCommand(rawValue: name) != nil else {
+                let names = CommandLineCommand.allCases.map(\.rawValue)
+                let suggestion = CommandLineSuggestion.didYouMean(name, among: names)
                 throw CommandLineUsageError("Unknown command '\(name)'.\(suggestion)")
             }
             topic = name

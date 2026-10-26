@@ -19,7 +19,8 @@ import CoreData
 /// **Threading:** not thread-safe. One per thread. Every call waits on its private-queue context.
 public final class ExportEncoder {
     /// The event model, loaded once per process from the framework: Core Data complains when two copies of a model
-    /// claim the same classes. `nil` if the framework's `SystemEvents.momd` is missing.
+    /// claim the same classes. The event store (``CoreDataController``) uses it too, and the app and the Security
+    /// Extension don't bundle their own. `nil` if the framework's `SystemEvents.momd` is missing.
     public static let model: NSManagedObjectModel? = Bundle(for: ESMessage.self)
         .url(forResource: "SystemEvents", withExtension: "momd")
         .flatMap { NSManagedObjectModel(contentsOf: $0) }

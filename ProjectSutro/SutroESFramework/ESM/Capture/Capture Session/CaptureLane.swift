@@ -26,8 +26,8 @@ import os
 /// closed and ``waitUntilIdle(until:)`` has taken the gate, the lane makes no Endpoint Security call (an event being
 /// built can hold the message with `es_retain_message`) and emits nothing more: its client can be deleted. Building an
 /// event has no time limit (an exec's script is read from disk, a signature checked with `trustd`), so the wait has a
-/// deadline, after which the event being built is dropped and ``deleteClientOnceIdle(completion:)`` deletes the client
-/// once it's done.
+/// deadline, after which the event being built is dropped and ``deleteClient(by:)`` deletes the client once it's
+/// done.
 ///
 /// **Counters:** every message the client is handed is counted first, under a lock of its own, recording or not. So
 /// sequence gaps are Endpoint Security's drops only, never messages ignored while stopped, and reading the counters
@@ -75,6 +75,8 @@ final class CaptureLane {
     
     /// The client this lane serves.
     let eventClass: EventClass
+    /// Names the lane's session in the log.
+    let label: String
     /// The lane's client: set while the session starts, cleared once it's deleted. Only the session's queue touches it.
     private(set) var client: (any EndpointSecurityClient)?
     private let control: OSAllocatedUnfairLock<Control>
@@ -94,13 +96,15 @@ final class CaptureLane {
     ///
     /// - Parameters:
     ///   - eventClass: The client this lane serves.
+    ///   - label: Names the lane's session in the log.
     ///   - sensorID: The Sensor ID to stamp on events.
     ///   - serializer: Builds each event's JSON.
     ///   - launchServices: Lets the exec lane hold app execs. `nil` holds nothing.
     ///   - emit: Receives each event in order, under the lane's locks. It must not block.
-    init(_ eventClass: EventClass, sensorID: String, serializer: any EventSerializing,
+    init(_ eventClass: EventClass, label: String, sensorID: String, serializer: any EventSerializing,
          launchServices: LaunchServicesReading? = nil, emit: @escaping (CapturedEvent) -> Void) {
         self.eventClass = eventClass
+        self.label = label
         self.serializer = serializer
         self.emit = emit
         control = OSAllocatedUnfairLock(initialState: Control(sensorID: sensorID))
@@ -160,6 +164,32 @@ final class CaptureLane {
     /// - Parameter client: The client whose handler is ``handle(_:)``.
     func attach(_ client: any EndpointSecurityClient) {
         self.client = client
+    }
+    
+    /// Mute this process on the lane's client, as eslogger mutes itself. A refusal is logged.
+    func muteSelf() {
+        guard client?.muteProcess(audit_token_t.currentProcess) != true else { return }
+        CaptureSession.logger.fault("""
+            \(self.label, privacy: .public): couldn't mute this process on the \
+            \(self.eventClass.rawValue, privacy: .public) client, so its own activity will be captured.
+            """)
+    }
+    
+    /// Make path mute calls on the lane's client, in order. A refusal is logged, with the client's count of them, and
+    /// the rest still apply.
+    ///
+    /// - Parameter changes: The calls, in order.
+    /// - Returns: `true` if the client accepted every call.
+    @discardableResult
+    func apply(_ changes: [MuteChange]) -> Bool {
+        let refused = changes.filter { client?.setPathMute($0.mute, muted: $0.muted) != true }
+        guard let first = refused.first else { return true }
+        CaptureSession.logger.error("""
+            \(self.label, privacy: .public): the \(self.eventClass.rawValue, privacy: .public) client refused \
+            \(refused.count) of \(changes.count) path mute changes, such as \
+            \(first.muted ? "muting" : "unmuting", privacy: .public) \(first.mute.path).
+            """)
+        return false
     }
     
     /// Start or stop serializing messages. Has no effect once the lane is closed.
@@ -236,18 +266,44 @@ final class CaptureLane {
         return client?.delete() ?? true
     }
     
-    /// Hand the lane's client to a background queue that deletes it once no event is being built. Call on the
-    /// session's queue, once ``waitUntilIdle(until:)`` gave up, so the session's queue never waits on a slow event.
+    /// Wait, after ``close()``, until no event is being built or until `deadline`, send any held execs, then delete the
+    /// lane's client: right away, or once a late event is done (it's dropped). Logs a late event, and a client whose
+    /// deletion leaked Endpoint Security's resources. Call on the session's queue.
     ///
-    /// Nothing else calls the client by then: the session is stopped, and the lane is closed.
-    ///
-    /// - Parameter completion: Called on that queue with whether Endpoint Security freed the client's resources.
-    func deleteClientOnceIdle(completion: @escaping (Bool) -> Void) {
-        guard let client else { return completion(true) }
+    /// - Parameter deadline: When to stop waiting for the event being built.
+    func deleteClient(by deadline: DispatchTime) {
+        guard waitUntilIdle(until: deadline) else {
+            CaptureSession.logger.fault("""
+                \(self.label, privacy: .public): the \(self.eventClass.rawValue, privacy: .public) client was still \
+                building an event at the deadline. Dropped the event; the client is deleted once it's done.
+                """)
+            releaseHeld()
+            return deleteClientOnceIdle()
+        }
+        releaseHeld()
+        logDeletion(freed: deleteClient())
+    }
+    
+    /// Hand the lane's client to a background queue that deletes it once no event is being built, so the session's
+    /// queue never waits on a slow event. Nothing else calls the client by then: the session is stopped, and the lane
+    /// is closed.
+    private func deleteClientOnceIdle() {
+        guard let client else { return }
         self.client = nil
         DispatchQueue.global(qos: .utility).async { [gate] in
             gate.withLock {}
-            completion(client.delete())
+            self.logDeletion(freed: client.delete())
         }
+    }
+    
+    /// Log a client whose deletion leaked Endpoint Security's resources.
+    ///
+    /// - Parameter freed: Whether Endpoint Security freed the client's resources.
+    private func logDeletion(freed: Bool) {
+        guard !freed else { return }
+        CaptureSession.logger.error("""
+            \(self.label, privacy: .public): Endpoint Security leaked the \
+            \(self.eventClass.rawValue, privacy: .public) client's resources while deleting it.
+            """)
     }
 }

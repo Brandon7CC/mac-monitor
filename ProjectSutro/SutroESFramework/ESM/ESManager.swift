@@ -133,7 +133,7 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     
     /// Should we be dropping platform binaries?
     ///
-    /// Utilizing the concept of "critical" eventing events see:  ``isEventCritical(message:)`` in `EventStreamControl.swift`.
+    /// Utilizing the concept of "critical" eventing events see: ``EventType/isCritical``.
     public func togglePlatformBinaries() {
         self.dropPlatformBinaries.toggle()
     }
@@ -185,7 +185,7 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// - Parameter message: A decoded event.
     /// - Returns: `true` unless platform binaries are being dropped and this event is a non-critical one from a platform binary.
     private func shouldInsert(_ message: Message) -> Bool {
-        guard dropPlatformBinaries, message.process.is_platform_binary, !isEventCritical(message: message) else {
+        guard dropPlatformBinaries, message.process.is_platform_binary, !message.event.isCritical else {
             return true
         }
         if let exec = message.event.exec { return !exec.target.is_platform_binary }
@@ -311,7 +311,7 @@ extension EndpointSecurityManager {
         let name = ConsoleUserSource.system.session()?.name ?? ""
         let consoleUser = name == "loginwindow" ? "" : name
         let hashData = Data((serialNumber + consoleUser).utf8)
-        return "\(SHA512.hash(data: hashData).description.trimmingPrefix("SHA512 digest: "))"
+        return SHA512.hash(data: hashData).withUnsafeBytes { ESLogger.hex(bytes: $0, uppercase: false) }
     }
 }
 

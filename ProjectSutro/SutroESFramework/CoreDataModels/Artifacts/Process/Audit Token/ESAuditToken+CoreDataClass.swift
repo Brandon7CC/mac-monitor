@@ -51,9 +51,19 @@ public class ESAuditToken: NSManagedObject, Identifiable {
     static func row(for token: AuditToken, in context: NSManagedObjectContext) -> ESAuditToken {
         EventRowCaches.row(\.tokens, for: token.rowKey, in: context) { ESAuditToken(from: token, insertIntoManagedObjectContext: context) }
     }
+    
+    /// A new row for `token`, owned by the event that stores it, or `nil` without one.
+    ///
+    /// - Parameters:
+    ///   - token: The audit token, or `nil` when Endpoint Security left it out.
+    ///   - context: The context to insert into.
+    /// - Returns: The new row, or `nil`.
+    static func insert(_ token: AuditToken?, in context: NSManagedObjectContext) -> ESAuditToken? {
+        token.map { ESAuditToken(from: $0, insertIntoManagedObjectContext: context) }
+    }
 }
 
-// MARK: - Encodable conformance and helper
+// MARK: - Encodable conformance
 extension ESAuditToken: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -65,9 +75,5 @@ extension ESAuditToken: Encodable {
         try container.encode(asid, forKey: .asid)
         try container.encode(auid, forKey: .auid)
         try container.encode(pidversion, forKey: .pidversion)
-    }
-    
-    public func toString() -> String {
-        return "pid:\(pid), euid:\(euid), ruid:\(ruid), rgid:\(rgid), egid:\(egid), asid:\(asid), auid:\(auid), pidversion:\(pidversion)"
     }
 }

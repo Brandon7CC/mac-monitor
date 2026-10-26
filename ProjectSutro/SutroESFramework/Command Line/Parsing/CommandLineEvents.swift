@@ -22,7 +22,7 @@ public enum CommandLineEvents {
     /// - Parameter fullName: An `ES_EVENT_TYPE_*` name.
     /// - Returns: `exec` for `ES_EVENT_TYPE_NOTIFY_EXEC`. A name without the NOTIFY prefix comes back lowercased.
     public static func shortName(_ fullName: String) -> String {
-        String(fullName.dropFirst(fullName.hasPrefix(notifyPrefix) ? notifyPrefix.count : 0)).lowercased()
+        fullName.droppingPrefix(notifyPrefix).lowercased()
     }
     
     /// The event a name stands for, if `macmonitor` can stream it on this Mac.

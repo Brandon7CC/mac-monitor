@@ -24,10 +24,6 @@ struct EventFilterSpec: Equatable {
     /// can't evaluate it, so the query model checks each event that passes the rest (``EventQueryModel/Worker``).
     var recordPredicate: StreamFilter.Predicate?
     
-    /// `ES_EVENT_TYPE_NOTIFY_EXEC` / `ES_EVENT_TYPE_NOTIFY_FORK`, as stored in `ESMessage.event_type`.
-    static let execEventType = ESMessage.execEventType
-    static let forkEventType = ESMessage.forkEventType
-    
     /// The paths of the selected process trees ("→ Only" / "↕ Full tree").
     var inclusionRoots: [String] {
         [filters.rootIncludedInitiatingProcessPath, filters.rootIncludedTargetProcessPath].compactMap { $0 }
@@ -47,9 +43,11 @@ struct EventFilterSpec: Equatable {
         if !inclusionRoots.isEmpty {
             if filters.shouldIncludeProcessSubTrees {
                 let tokens = Array(lineage ?? [])
-                clauses.append(NSPredicate(format: "instigator_audit_token IN %@ OR (event_type == %d AND created_audit_token IN %@)", tokens, Self.execEventType, tokens))
+                clauses.append(NSPredicate(format: "instigator_audit_token IN %@ OR (event_type == %d AND "
+                                           + "created_audit_token IN %@)", tokens, ESMessage.execEventType, tokens))
             } else {
-                clauses.append(NSPredicate(format: "initiating_path IN %@ OR (event_type == %d AND created_path IN %@)", inclusionRoots, Self.execEventType, inclusionRoots))
+                clauses.append(NSPredicate(format: "initiating_path IN %@ OR (event_type == %d AND created_path IN %@)",
+                                           inclusionRoots, ESMessage.execEventType, inclusionRoots))
             }
         }
         
@@ -113,12 +111,10 @@ struct ProcessLineageIndex {
     /// - Parameter predicate: The events to read.
     /// - Returns: A dictionary fetch request on `ESMessage`.
     static func fetchRequest(_ predicate: NSPredicate) -> NSFetchRequest<NSDictionary> {
-        let request = NSFetchRequest<NSDictionary>(entityName: "ESMessage")
-        request.resultType = .dictionaryResultType
-        request.predicate = predicate
+        let request = ESMessage.request(NSDictionary.self, where: predicate,
+                                        sortedBy: [NSSortDescriptor(key: "mach_time", ascending: false)])
         request.propertiesToFetch = ["instigator_audit_token", "instigator_parent_audit_token", "initiating_path", "initiating_pid",
                                      "event_type", "created_audit_token", "created_path", "created_pid"]
-        request.sortDescriptors = [NSSortDescriptor(key: "mach_time", ascending: false)]
         return request
     }
     
@@ -152,11 +148,11 @@ struct ProcessLineageIndex {
             
             guard let created = row["created_audit_token"] as? String else { continue }
             switch (row["event_type"] as? NSNumber)?.int32Value {
-            case EventFilterSpec.execEventType:
+            case ESMessage.execEventType:
                 /// An exec that keeps its pid replaces the process, so it hangs off the instigator's parent.
                 let samePid = (row["created_pid"] as? NSNumber)?.int32Value == (row["initiating_pid"] as? NSNumber)?.int32Value
                 sighting(created, parent: samePid ? parent : token, path: row["created_path"] as? String)
-            case EventFilterSpec.forkEventType:
+            case ESMessage.forkEventType:
                 sighting(created, parent: token, path: row["created_path"] as? String)
             default:
                 break
@@ -215,7 +211,7 @@ enum EventChartLabels {
     /// - Parameter eventType: An `ES_EVENT_TYPE_NOTIFY_*` name.
     /// - Returns: The chart label (e.g. `EXEC`, `LW_UNLOCK`).
     static func label(for eventType: String) -> String {
-        let name = eventType.hasPrefix(prefix) ? String(eventType.dropFirst(prefix.count)) : eventType
+        let name = eventType.droppingPrefix(prefix)
         return renamed[name] ?? name
     }
 }

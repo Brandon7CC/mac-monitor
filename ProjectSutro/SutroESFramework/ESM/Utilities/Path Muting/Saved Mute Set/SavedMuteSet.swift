@@ -6,28 +6,8 @@
 //
 
 import Foundation
+import Combine
 import OSLog
-
-
-// MARK: - Subscription
-/// Keeps a follower of the saved mute set until it's cancelled or released, from any thread.
-public final class MuteSubscription {
-    private let onCancel: () -> Void
-    
-    /// - Parameter onCancel: Stops the follower.
-    init(onCancel: @escaping () -> Void) {
-        self.onCancel = onCancel
-    }
-    
-    deinit {
-        cancel()
-    }
-    
-    /// Stop following. Changes already handed to the follower may still be on their way to its session.
-    public func cancel() {
-        onCancel()
-    }
-}
 
 
 // MARK: - Saved mute set
@@ -86,17 +66,15 @@ public final class SavedMuteSet {
     /// so a session never misses a change between reading the set and following it.
     ///
     /// - Parameter follower: Receives each new set and who changed it how, on ``queue``.
-    /// - Returns: The set now, and the subscription.
-    public func follow(_ follower: @escaping Follower) -> (MuteList, MuteSubscription) {
+    /// - Returns: The set now, and the subscription, which stops the follower once it's released, on any thread.
+    ///   Changes already handed to the follower may still be on their way to its session.
+    public func follow(_ follower: @escaping Follower) -> (MuteList, AnyCancellable) {
         queue.sync {
             loadIfNeeded()
             let id = nextFollower
             nextFollower += 1
             followers[id] = follower
-            let subscription = MuteSubscription { [weak self] in
-                self?.queue.async { self?.followers[id] = nil }
-            }
-            return (list, subscription)
+            return (list, AnyCancellable { [weak self] in self?.queue.async { self?.followers[id] = nil } })
         }
     }
     
@@ -137,8 +115,7 @@ public final class SavedMuteSet {
         do {
             request = try MuteRequest.decode(data)
         } catch {
-            let problem = (error as? XPCRequestError) ?? .invalid("\(error)")
-            return reply(problem.status(), problems: [problem.description])
+            return reply(error.status(), problems: [error.description])
         }
         guard request.operation != .list else { return reply(.ok) }
         if let refusal = access.refusal {

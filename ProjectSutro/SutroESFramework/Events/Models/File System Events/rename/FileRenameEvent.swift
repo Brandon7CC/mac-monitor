@@ -44,13 +44,6 @@ extension FileRenameEvent: ESEnrichable {
     /// Not derived: `is_quarantined`, which is read from the file.
     public mutating func enrich() {
         destination_type_string = FileDestination.typeName(destination_type)
-        switch destination {
-        case .existing_file(let file):
-            destination_path = file.path
-        case .new_path(let path):
-            destination_path = path.fullPath
-        case .unknown:
-            destination_path = ""
-        }
+        destination_path = destination.fullPath ?? ""
     }
 }

@@ -12,11 +12,11 @@ import Foundation
 extension StreamingJSONEncoder {
     // MARK: The encoder a value encodes to
     /// What a value's `encode(to:)` sees: containers that write into the ``StreamingJSONEncoder``'s buffer
-    /// (``ObjectWriter``, ``ArrayWriter`` and ``ScalarWriter``).
+    /// (``ObjectWriter`` and ``ArrayWriter``), and for a single value, itself.
     ///
     /// `codingPath` is always empty (`JSONEncoder` uses it only in error messages), and `userInfo` is empty, as
     /// `JSONEncoder`'s is by default.
-    struct ValueWriter: Encoder {
+    struct ValueWriter: Encoder, SingleValueEncodingContainer, ValueSlot {
         let encoder: StreamingJSONEncoder
         /// How many frames were open when the value started: its own container, once opened, is the next.
         let depth: Int
@@ -41,12 +41,16 @@ extension StreamingJSONEncoder {
             ArrayWriter(encoder: encoder, frame: encoder.container(at: depth, start: start, isObject: false))
         }
         
-        /// The value itself, as one scalar or one nested value.
+        /// The value itself, as one scalar or one nested value, written where it goes. A second value through it, as
+        /// with `JSONEncoder`, isn't allowed, and leaves the value to `JSONEncoder`.
         ///
-        /// - Returns: The container.
-        func singleValueContainer() -> SingleValueEncodingContainer {
-            ScalarWriter(encoder: encoder, depth: depth, start: start)
-        }
+        /// - Returns: The container: this writer.
+        func singleValueContainer() -> SingleValueEncodingContainer { self }
+        
+        /// May the value be written now as a single value (``StreamingJSONEncoder/beginScalar(depth:start:)``)?
+        ///
+        /// - Returns: `true` if it has written nothing yet.
+        func begin() -> Bool { encoder.beginScalar(depth: depth, start: start) }
     }
 }
 

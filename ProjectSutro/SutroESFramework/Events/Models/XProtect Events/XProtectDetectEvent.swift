@@ -28,9 +28,6 @@ public struct XProtectDetectEvent: Codable, IdentityHashable {
         self.malware_identifier = event.malware_identifier.string ?? ""
         self.incident_identifier = event.incident_identifier.string ?? ""
         self.detected_path = event.detected_path.string ?? ""
-        
-        if version >= 10 {
-            self.detected_executable = event.detected_executable.string
-        }
+        detected_executable = version >= 10 ? event.detected_executable.string : nil
     }
 }

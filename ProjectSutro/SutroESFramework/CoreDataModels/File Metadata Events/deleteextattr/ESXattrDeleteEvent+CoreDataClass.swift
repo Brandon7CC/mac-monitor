@@ -19,7 +19,7 @@ public class ESXattrDeleteEvent: NSManagedObject, Identifiable {
     }
     
     // MARK: - Custom Core Data initilizer for ESXattrDeleteEvent
-    convenience init(from event: XattrDeleteEvent, message: Message, in context: NSManagedObjectContext!) {
+    convenience init(from event: XattrEvent, message: Message, in context: NSManagedObjectContext!) {
         self.init(insertingInto: context)
         
         attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESXattrDeleteEvent.target))

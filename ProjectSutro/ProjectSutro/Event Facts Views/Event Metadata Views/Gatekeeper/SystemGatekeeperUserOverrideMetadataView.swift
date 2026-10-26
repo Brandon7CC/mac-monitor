@@ -17,16 +17,6 @@ struct SystemGatekeeperUserOverrideMetadataView: View {
         message.event.gatekeeper_user_override!
     }
     
-    private var overridePath: String {
-        if let path = event.file?.path {
-            return path
-        } else if let filePath = event.file_path {
-            return filePath
-        }
-        
-        return ""
-    }
-    
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
         if message.event.gatekeeper_user_override != nil {
@@ -47,7 +37,7 @@ struct SystemGatekeeperUserOverrideMetadataView: View {
                     HStack {
                         Text("\u{2022} **Override path:**")
                         GroupBox {
-                            Text(overridePath)
+                            Text(message.target_path ?? "")
                                 .monospaced()
                         }
                     }

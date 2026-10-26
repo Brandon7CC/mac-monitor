@@ -53,7 +53,6 @@ public class ESProcess: NSManagedObject, Identifiable {
     @NSManaged public var codesigning_type: String
     @NSManaged public var is_adhoc_signed: Bool
     @NSManaged public var file_quarantine_type: String
-    // @NSManaged public var command_line: String?
 
     convenience init(
         from process: Process,
@@ -100,12 +99,10 @@ public class ESProcess: NSManagedObject, Identifiable {
         self.is_adhoc_signed = process.is_adhoc_signed
         
         // macOS 26
-        if version >= 10 {
-            if let cs_validation_category = process.cs_validation_category,
-               let cs_validation_category_string = process.cs_validation_category_string {
-                self.cs_validation_category = cs_validation_category
-                self.cs_validation_category_string = cs_validation_category_string
-            }
+        if version >= 10, let cs_validation_category = process.cs_validation_category,
+           let cs_validation_category_string = process.cs_validation_category_string {
+            self.cs_validation_category = cs_validation_category
+            self.cs_validation_category_string = cs_validation_category_string
         }
         
         self.is_platform_binary = process.is_platform_binary
@@ -147,6 +144,17 @@ public class ESProcess: NSManagedObject, Identifiable {
         EventRowCaches.row(\.processes, for: ProcessRowKey(version: version, process: process.rowKey), in: context) {
             ESProcess(from: process, version: version, insertIntoManagedObjectContext: context)
         }
+    }
+    
+    /// A new row for `process`, owned by the event that stores it, or `nil` without one.
+    ///
+    /// - Parameters:
+    ///   - process: The process, or `nil` when Endpoint Security left it out.
+    ///   - version: The message's version.
+    ///   - context: The context to insert into.
+    /// - Returns: The new row, or `nil`.
+    static func insert(_ process: Process?, version: Int, in context: NSManagedObjectContext) -> ESProcess? {
+        process.map { ESProcess(from: $0, version: version, insertIntoManagedObjectContext: context) }
     }
 }
 

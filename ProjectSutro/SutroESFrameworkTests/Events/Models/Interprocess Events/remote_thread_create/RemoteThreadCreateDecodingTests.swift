@@ -46,7 +46,7 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
     /// - Throws: The error decoding it.
     private func decode(_ thread: [String: Any], with reader: Reader) throws -> RemoteThreadCreateEvent {
         var object = thread
-        object["target"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(target()))
+        object["target"] = try jsonObject(encoding: target())
         switch reader {
         case .wire:
             let data = try JSONSerialization.data(withJSONObject: object)
@@ -57,52 +57,52 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
         }
     }
     
-    /// Assert how each reader reads an event.
-    ///
-    /// - Parameters:
-    ///   - thread: The event's keys besides its target.
-    ///   - readers: The readers that check it.
-    ///   - state: The thread state expected.
-    ///   - name: The flavor name expected from a reader other than ``Reader/eslogger``, which derives its own.
-    ///   - line: The caller's line.
-    private func assertReads(_ thread: [String: Any], by readers: [Reader] = Reader.allCases, as state: ThreadState?,
-                             name: String?, line: UInt = #line) {
-        for reader in readers {
-            do {
-                let event = try decode(thread, with: reader)
-                XCTAssertEqual(event.thread_state, state, reader.rawValue, line: line)
-                let expected = reader == .eslogger ? state.flatMap { ThreadStateFlavor.name(of: $0.flavor) } : name
-                XCTAssertEqual(event.thread_state_string, expected, reader.rawValue, line: line)
-                XCTAssertEqual(event.target.executable?.path, "/bin/sleep", reader.rawValue, line: line)
-            } catch {
-                XCTFail("\(reader.rawValue): \(error)", line: line)
+    // MARK: Every form of thread_state
+    
+    /// Each form of an event's keys besides its target, the readers that see it, and the thread state and flavor name
+    /// they read, with what the case pins. ``Reader/eslogger`` derives its own name, from the flavor.
+    private static let forms: [(label: String, thread: [String: Any], readers: [Reader], state: ThreadState?,
+                                name: String?)] = [
+        ("eslogger's thread state: its flavor, no bytes, and the flavor's name when it's derived",
+         ["thread_state": ["flavor": 6, "state": NSNull()]], Reader.allCases, ThreadState(flavor: 6, state_base64: nil),
+         nil),
+        ("eslogger's null for thread_create", ["thread_state": NSNull()], Reader.allCases, nil, nil),
+        ("A flavor neither architecture names is kept, without a name (TraceDecoder made it null before 3.0.0)",
+         ["thread_state": ["flavor": 999, "state": NSNull()]], Reader.allCases,
+         ThreadState(flavor: 999, state_base64: nil), nil),
+        ("Should eslogger ever write state's bytes, as it writes an es_token_t, they're read",
+         ["thread_state": ["flavor": 6, "state": "AAEC/w=="]], Reader.allCases, exported, nil),
+        ("A 3.0.0 export or message reads back exactly: its bytes and its flavor's name",
+         ["thread_state": ["flavor": 6, "state": NSNull(), "state_base64": "AAEC/w=="],
+          "thread_state_string": "ARM_THREAD_STATE64"], [.wire, .export], exported, "ARM_THREAD_STATE64"),
+        ("The ARM name Mac Monitor wrote before 3.0.0 is read as its flavor, without bytes",
+         ["thread_state": "ARM_THREAD_STATE64"], [.wire, .export], ThreadState(flavor: 6, state_base64: nil),
+         "ARM_THREAD_STATE64"),
+        ("The x86 name Mac Monitor wrote before 3.0.0 is read as its flavor, without bytes",
+         ["thread_state": "x86_THREAD_STATE64"], [.wire, .export], ThreadState(flavor: 4, state_base64: nil),
+         "x86_THREAD_STATE64"),
+        ("A name before 3.0.0 that's no flavor's is kept as the name", ["thread_state": "BOGUS"], [.wire, .export],
+         nil, "BOGUS"),
+        ("Before 3.0.0 an unnamed flavor was written as null", ["thread_state": NSNull()], [.wire, .export], nil, nil),
+        ("Before 3.0.0 an unnamed flavor was left out", [:], Reader.allCases, nil, nil),
+    ]
+    
+    /// Each form of ``forms`` reads as its thread state and flavor name, by each of its readers.
+    func testForms() {
+        for (label, thread, readers, state, name) in Self.forms {
+            for reader in readers {
+                let message = "\(label) (\(reader.rawValue))"
+                do {
+                    let event = try decode(thread, with: reader)
+                    XCTAssertEqual(event.thread_state, state, message)
+                    let expected = reader == .eslogger ? state.flatMap { ThreadStateFlavor.name(of: $0.flavor) } : name
+                    XCTAssertEqual(event.thread_state_string, expected, message)
+                    XCTAssertEqual(event.target.executable?.path, "/bin/sleep", message)
+                } catch {
+                    XCTFail("\(message): \(error)")
+                }
             }
         }
-    }
-    
-    // MARK: eslogger
-    
-    /// eslogger's thread state: its flavor, no bytes, and the flavor's name when it's derived.
-    func testESLoggerThreadState() {
-        assertReads(["thread_state": ["flavor": 6, "state": NSNull()]], as: ThreadState(flavor: 6, state_base64: nil),
-                    name: nil)
-    }
-    
-    /// eslogger's `null` for `thread_create`.
-    func testESLoggerNullThreadState() {
-        assertReads(["thread_state": NSNull()], as: nil, name: nil)
-    }
-    
-    /// A flavor neither architecture names is kept, without a name. TraceDecoder bridged `thread_state` to its name
-    /// before 3.0.0, which made such a state `null`.
-    func testUnnamedFlavorIsKept() {
-        assertReads(["thread_state": ["flavor": 999, "state": NSNull()]],
-                    as: ThreadState(flavor: 999, state_base64: nil), name: nil)
-    }
-    
-    /// Should eslogger ever write `state`'s bytes, as eslogger writes an `es_token_t`, they're read.
-    func testESLoggerStateBytes() {
-        assertReads(["thread_state": ["flavor": 6, "state": "AAEC/w=="]], as: Self.exported, name: nil)
     }
     
     /// A `flavor` that isn't a number is an error, so the event is skipped and counted rather than read wrong.
@@ -115,33 +115,6 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
                 }
             }
         }
-    }
-    
-    // MARK: Mac Monitor
-    
-    /// A 3.0.0 export or message reads back exactly: its bytes and its flavor's name.
-    func testExportRoundTrips() {
-        let thread: [String: Any] = [
-            "thread_state": ["flavor": 6, "state": NSNull(), "state_base64": "AAEC/w=="],
-            "thread_state_string": "ARM_THREAD_STATE64",
-        ]
-        assertReads(thread, by: [.wire, .export], as: Self.exported, name: "ARM_THREAD_STATE64")
-    }
-    
-    /// The name Mac Monitor wrote before 3.0.0 is read as its flavor, without bytes, on either architecture.
-    func testLegacyNames() {
-        let legacy = [Reader.wire, .export]
-        assertReads(["thread_state": "ARM_THREAD_STATE64"], by: legacy, as: ThreadState(flavor: 6, state_base64: nil),
-                    name: "ARM_THREAD_STATE64")
-        assertReads(["thread_state": "x86_THREAD_STATE64"], by: legacy, as: ThreadState(flavor: 4, state_base64: nil),
-                    name: "x86_THREAD_STATE64")
-        assertReads(["thread_state": "BOGUS"], by: legacy, as: nil, name: "BOGUS")
-    }
-    
-    /// Before 3.0.0 an unnamed flavor was written as `null`, or left out.
-    func testLegacyMissingThreadState() {
-        assertReads(["thread_state": NSNull()], by: [.wire, .export], as: nil, name: nil)
-        assertReads([:], as: nil, name: nil)
     }
     
     // MARK: The Security Extension's messages
@@ -160,7 +133,7 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
         
         let created = RemoteThreadCreateEvent(target: target(), threadState: nil)
         let data = try JSONEncoder().encode(created)
-        let sent = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let sent = try jsonObject(data)
         XCTAssertNil(sent["thread_state"])
         XCTAssertNil(sent["thread_state_string"])
         let decoded = try JSONDecoder().decode(RemoteThreadCreateEvent.self, from: data)
@@ -177,12 +150,9 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
         let received = try JSONDecoder().decode(Message.self, from: sent)
         XCTAssertEqual(received.event.remote_thread_create?.thread_state, Self.exported)
         
-        var message = try XCTUnwrap(try JSONSerialization.jsonObject(with: sent) as? [String: Any])
-        let event = try XCTUnwrap((message["event"] as? [String: Any])?["remote_thread_create"] as? [String: Any])
-        var legacy = try XCTUnwrap(event["_0"] as? [String: Any])
-        legacy["thread_state"] = "ARM_THREAD_STATE64"
-        legacy["thread_state_string"] = nil
-        message["event"] = ["remote_thread_create": ["_0": legacy]]
+        var message = try jsonObject(sent)
+        message[path: "event", "remote_thread_create", "_0", "thread_state"] = "ARM_THREAD_STATE64"
+        message[path: "event", "remote_thread_create", "_0", "thread_state_string"] = nil
         let old = try JSONDecoder().decode(Message.self, from: JSONSerialization.data(withJSONObject: message))
         XCTAssertEqual(old.event.remote_thread_create?.thread_state, ThreadState(flavor: 6, state_base64: nil))
         XCTAssertEqual(old.event.remote_thread_create?.thread_state_string, "ARM_THREAD_STATE64")

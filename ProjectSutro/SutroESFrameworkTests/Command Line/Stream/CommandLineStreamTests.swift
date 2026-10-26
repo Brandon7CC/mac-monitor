@@ -7,7 +7,6 @@
 
 import XCTest
 import EndpointSecurity
-import os
 @testable import SutroESFramework
 
 
@@ -98,9 +97,7 @@ final class CommandLineStreamTests: XCTestCase {
         run.start(invocation)
         try deliverExits([1, 2], in: harness, to: run)
         XCTAssertTrue(waitUntil { run.output.lines.count == 2 })
-        let records = try run.output.lines.map { line in
-            try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any])
-        }
+        let records = try run.output.lines.map { line in try jsonObject(Data(line.utf8)) }
         XCTAssertEqual(records.map { $0["global_seq_num"] as? Int }, [1, 2])
         XCTAssertEqual(records.map { $0["es_event_type"] as? String },
                        Array(repeating: "ES_EVENT_TYPE_NOTIFY_EXIT", count: 2))
@@ -248,15 +245,15 @@ final class CommandLineStreamTests: XCTestCase {
     /// connection.
     func testTheLiveServiceAdmitsOnlyRoot() throws {
         XCTAssertFalse(StreamService.rootOnly(nil))
-        let asked = OSAllocatedUnfairLock<[uid_t?]>(uncheckedState: [])
+        let asked = Recorded<uid_t?>()
         let recording = StreamHarness(savedMutes: savedMutes, admitting: { connection in
-            asked.withLockUnchecked { $0.append(connection?.effectiveUserIdentifier) }
+            asked.append(connection?.effectiveUserIdentifier)
             return StreamService.rootOnly(connection)
         })
         let run = StreamCommandRun(harness: recording, formatter: .text(utc), scope: nobody)
         run.start()
         XCTAssertTrue(waitUntil { !run.reported.isEmpty || !recording.factories.isEmpty })
-        XCTAssertEqual(asked.withLockUnchecked { $0.first }, geteuid())
+        XCTAssertEqual(asked.all.first, geteuid())
         guard geteuid() != 0 else { return }
         guard case .failed(let failure) = run.reported.first else { return XCTFail("\(run.reported)") }
         XCTAssertEqual(failure.exit, .noPermission)

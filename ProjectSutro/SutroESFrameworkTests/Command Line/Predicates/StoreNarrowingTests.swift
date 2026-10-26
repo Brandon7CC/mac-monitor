@@ -100,13 +100,11 @@ final class StoreNarrowingTests: XCTestCase {
         let container = try makeExportStore(try messages())
         let context = container.newBackgroundContext()
         try context.performAndWait {
-            let all = try context.fetch(ESMessage.fetchRequest())
+            let all = try context.fetch(ESMessage.request())
             let source = "SUBQUERY(process_group, $e, $e.es_event_type == 'ES_EVENT_TYPE_NOTIFY_EXEC').@count > 0"
             let full = try StreamFilter.Predicate(source, for: .search), narrow = full.copy
             try all.forEach(full.collect)
-            let request = ESMessage.fetchRequest()
-            request.predicate = try XCTUnwrap(narrow.relatedStorePredicate)
-            let collected = try context.fetch(request)
+            let collected = try context.fetch(ESMessage.request(where: XCTUnwrap(narrow.relatedStorePredicate)))
             XCTAssertLessThan(collected.count, all.count)
             try collected.forEach(narrow.collect)
             let expected = try all.map { try full.evaluate(on: $0) }
@@ -120,7 +118,7 @@ final class StoreNarrowingTests: XCTestCase {
         let container = try makeExportStore(try messages())
         let context = container.newBackgroundContext()
         try context.performAndWait {
-            let all = try context.fetch(ESMessage.fetchRequest())
+            let all = try context.fetch(ESMessage.request())
             let sources = [
                 "es_event_type == 'ES_EVENT_TYPE_NOTIFY_EXEC'", "process.pid > 1 AND process.executable.path BEGINSWITH '/'",
                 "event.exec.target.executable.path ENDSWITH[c] 'SH' OR event.fork.child.pid > 0",
@@ -129,9 +127,7 @@ final class StoreNarrowingTests: XCTestCase {
             for source in sources {
                 let predicate = try StreamFilter.Predicate(source, for: .search)
                 let store = try XCTUnwrap(predicate.storePredicate, source)
-                let request = ESMessage.fetchRequest()
-                request.predicate = store
-                let kept = Set(try context.fetch(request).map(\.objectID))
+                let kept = Set(try context.fetch(ESMessage.request(where: store)).map(\.objectID))
                 let matching = try all.filter { try predicate.evaluate(on: $0) }
                 XCTAssertFalse(matching.isEmpty, source)
                 XCTAssertTrue(matching.allSatisfy { kept.contains($0.objectID) }, source)

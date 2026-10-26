@@ -23,7 +23,7 @@ struct CommandLineToolSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                SettingsSection("Command line tool") {
+                SettingsSection(title: "Command line tool") {
                     if let inspection = installer.inspection {
                         CommandLineToolStatusView(inspection: inspection, bundlePath: Bundle.main.bundlePath) {
                             actions(for: inspection)
@@ -33,11 +33,11 @@ struct CommandLineToolSettingsView: View {
                     }
                 }
                 if installer.inspection.map({ $0.link != .current }) ?? false {
-                    SettingsSection("Run it without installing") {
+                    SettingsSection(title: "Run it without installing") {
                         CommandRow(command: "sudo \"\(toolPath)\" stream")
                     }
                 }
-                SettingsSection("Usage") {
+                SettingsSection(title: "Usage") {
                     VStack(spacing: 0) {
                         CommandRow(command: "sudo macmonitor stream", meaning: "Mac Monitor's default events, as text")
                         Divider()
@@ -232,16 +232,10 @@ struct CommandLineToolStatusView<Actions: View>: View {
 // MARK: - Pieces
 /// A titled group, as in System Settings.
 struct SettingsSection<Content: View>: View {
+    /// The section's title.
     let title: String
+    /// Its rows.
     @ViewBuilder let content: Content
-
-    /// - Parameters:
-    ///   - title: The section's title.
-    ///   - content: Its rows.
-    init(_ title: String, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.content = content()
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

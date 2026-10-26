@@ -35,8 +35,6 @@ public class CoreDataController {
     /// event, and one `ESFile` per file and stat (#84). Kept in `privateMOC.userInfo`. Only touched on its queue.
     private let rowCaches = EventRowCaches()
     
-
-
     /// Where the event store lives: a SQLite file in Mac Monitor's caches folder, or `nil` if it couldn't be set up there
     /// and events are kept in memory instead.
     ///
@@ -53,10 +51,10 @@ public class CoreDataController {
     
     /// Set up the on-disk Core Data PSC named: `SystemEvents`, starting from an empty store.
     ///
-    /// - Parameter model: The events' model, or `nil` for the one in the main bundle, which a test runner hasn't.
-    init(model: NSManagedObjectModel? = nil) {
-        container = model.map { NSPersistentContainer(name: "SystemEvents", managedObjectModel: $0) }
-            ?? NSPersistentContainer(name: "SystemEvents")
+    /// - Parameter model: The events' model: the framework's (``ExportEncoder/model``) unless given. Mac Monitor stops
+    ///   at launch without it.
+    init(model: NSManagedObjectModel = ExportEncoder.model!) {
+        container = NSPersistentContainer(name: "SystemEvents", managedObjectModel: model)
         let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.swiftlydetecting.SutroESFramework", isDirectory: true)
         storeFile = EventStoreFile(in: caches)
@@ -236,12 +234,8 @@ public class CoreDataController {
             guard self.canSave.withLock({ $0 }) else { return }
             let batch = self.lastInsertBatch + 1
             for message in messages where keep(message) {
-                let systemESMessage = ESMessage(from: message, insertIntoManagedObjectContext: context)
-                systemESMessage.insert_order = self.nextInsertOrder
+                self.unsavedEvents.append(ESMessage(storing: message, order: self.nextInsertOrder, in: context))
                 self.nextInsertOrder += 1
-                systemESMessage.instigator_audit_token = message.process.audit_token_string
-                systemESMessage.denormalize(from: message)
-                self.unsavedEvents.append(systemESMessage)
             }
             
             guard context.hasChanges else { saved = true; return }
@@ -375,10 +369,8 @@ public class CoreDataController {
     
     /// The number of events in the store, counted by SQLite. Main thread only.
     public var eventCount: Int {
-        (try? container.viewContext.count(for: ESMessage.fetchRequest())) ?? 0
+        (try? container.viewContext.count(for: ESMessage.request())) ?? 0
     }
-    
-    
     
     /// Exports in progress and the files they write, so quitting can stop them before the store is deleted.
     let exports = OSAllocatedUnfairLock(initialState: [ObjectIdentifier: (exporter: TelemetryExporter, url: URL)]())

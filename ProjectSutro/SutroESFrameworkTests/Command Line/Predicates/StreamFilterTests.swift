@@ -120,9 +120,8 @@ final class StreamFilterTests: XCTestCase {
             }
         }
         let predicate = try StreamFilter.Predicate("process.pid MATCHES '1.*'")
-        XCTAssertThrowsError(try predicate.evaluate(on: ["process": ["pid": 1]])) { error in
-            XCTAssertEqual((error as? StreamFilterError)?.predicate, "process.pid MATCHES '1.*'")
-        }
+        let error = thrown(StreamFilterError.self) { try predicate.evaluate(on: ["process": ["pid": 1]]) }
+        XCTAssertEqual(error?.predicate, "process.pid MATCHES '1.*'")
         XCTAssertTrue(try predicate.evaluate(on: ["process": ["pid": "12"]]))
         XCTAssertThrowsError(try StreamFilter.Pattern("(", option: "--grep")) { error in
             XCTAssertEqual("\(error)", "--grep needs a regular expression, not '('. Run 'macmonitor help stream'.")
@@ -293,9 +292,7 @@ final class StreamFilterTests: XCTestCase {
     /// A predicate longer than ``StreamFilter/Predicate/maxLength`` is refused before it's parsed.
     func testPredicatesHaveAMaximumLength() {
         let long = "process.pid == 1" + String(repeating: " OR process.pid == 1", count: 300)
-        XCTAssertThrowsError(try StreamFilter.Predicate(long, for: .search)) { error in
-            XCTAssertEqual((error as? CommandLineUsageError)?.message,
-                           "The predicate can't be longer than 4096 characters.")
-        }
+        XCTAssertEqual(thrown(CommandLineUsageError.self) { try StreamFilter.Predicate(long, for: .search) }?.message,
+                       "The predicate can't be longer than 4096 characters.")
     }
 }

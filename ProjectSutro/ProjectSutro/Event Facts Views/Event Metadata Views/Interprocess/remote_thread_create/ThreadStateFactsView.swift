@@ -26,7 +26,6 @@ struct ThreadStateFactsView: View {
                     GroupBox {
                         Text((state.hexRows() ?? []).joined(separator: "\n"))
                             .monospaced()
-                            .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 } label: {

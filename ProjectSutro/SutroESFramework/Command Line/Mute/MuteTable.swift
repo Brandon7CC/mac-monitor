@@ -28,7 +28,8 @@ public enum MuteTable {
             + mutes.map { (type($0.type), events($0.events), TerminalSafeText.text($0.path)) }
         let typeWidth = rows.map(\.0.count).max() ?? 0, eventsWidth = rows.map(\.1.count).max() ?? 0
         return rows.map { row in
-            pad(row.0, typeWidth) + "   " + pad(row.1, eventsWidth) + "   " + row.2
+            [row.0.padding(toLength: typeWidth, withPad: " ", startingAt: 0),
+             row.1.padding(toLength: eventsWidth, withPad: " ", startingAt: 0), row.2].joined(separator: "   ")
         }.joined(separator: "\n") + "\n"
     }
     
@@ -54,15 +55,5 @@ public enum MuteTable {
     /// - Returns: Such as "create,rename", or "every event" for none.
     static func events(_ names: [String]) -> String {
         names.isEmpty ? "every event" : names.map(CommandLineEvents.shortName).joined(separator: ",")
-    }
-    
-    /// Text padded with spaces to a width.
-    ///
-    /// - Parameters:
-    ///   - text: The text.
-    ///   - width: The width.
-    /// - Returns: The padded text.
-    private static func pad(_ text: String, _ width: Int) -> String {
-        text + String(repeating: " ", count: max(0, width - text.count))
     }
 }

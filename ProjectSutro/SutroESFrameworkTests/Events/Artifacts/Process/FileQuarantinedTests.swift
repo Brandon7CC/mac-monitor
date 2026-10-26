@@ -54,8 +54,6 @@ final class FileQuarantinedTests: XCTestCase {
         try manager.createSymbolicLink(atPath: directory + "/Broken", withDestinationPath: directory + "/Missing")
         try manager.createSymbolicLink(atPath: directory + "/Loop", withDestinationPath: directory + "/Loop")
         chmod(locked, 0)
-        /// Searchable again before the temporary directory is removed (teardown blocks run last in, first out).
-        addTeardownBlock { chmod(locked, 0o755) }
         
         let paths = [
             quarantined, plain, empty, folder, quarantinedFolder, folder + "/", quarantined + "/", plain + "/child",

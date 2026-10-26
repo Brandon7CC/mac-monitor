@@ -11,28 +11,13 @@ import XCTest
 
 // MARK: - Mute stores in temporary directories
 extension XCTestCase {
-    /// A fresh 0700 directory, removed (whatever a test did to its mode) when the test ends.
-    ///
-    /// - Returns: The directory.
-    /// - Throws: If it can't be created.
-    func makeMuteDirectory() throws -> URL {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("MuteStoreTests-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false,
-                                                attributes: [.posixPermissions: 0o700])
-        addTeardownBlock {
-            chmod(directory.path, 0o700)
-            try? FileManager.default.removeItem(at: directory)
-        }
-        return directory
-    }
-    
-    /// A store in a fresh directory, owned by the user running the test as root owns the real one.
+    /// A store in a fresh 0700 directory, owned by the user running the test as root owns the real one, and removed
+    /// (whatever a test did to its mode) when the test ends.
     ///
     /// - Returns: The store.
     /// - Throws: If its directory can't be created.
     func makeMuteStore() throws -> MuteStore {
-        MuteStore(directory: try makeMuteDirectory(), owner: getuid())
+        MuteStore(directory: try makeTemporaryDirectory(prefix: "MuteStoreTests", mode: 0o700), owner: getuid())
     }
     
     /// Write a file as the saved set, bypassing the store.

@@ -50,13 +50,7 @@ public class ProcessHelpers {
         
         for arg in args.dropFirst() {
             guard !arg.hasPrefix("-") else { continue }
-            let pathToCheck: String
-            if arg.hasPrefix("/") {
-                pathToCheck = arg
-            } else {
-                pathToCheck = (workingDirectory as NSString).appendingPathComponent(arg)
-            }
-            
+            let pathToCheck = arg.hasPrefix("/") ? arg : workingDirectory.appendingPathComponent(arg)
             if fileIsNonBinary(at: pathToCheck) {
                 return pathToCheck
             }
@@ -167,13 +161,8 @@ public class ProcessHelpers {
     /// - Returns: The text, cut at the limit back to the end of a whole character, or `nil` if the file isn't UTF-8
     ///   text or isn't a regular file (``openRegularFile(at:)``).
     public static func getFileContents(at path: String) -> String? {
-        guard let file = openRegularFile(at: path) else { return nil }
-        let data: Data
-        do {
-            data = try file.read(upToCount: fileContentsLimit + 1) ?? Data()
-        } catch {
-            return nil
-        }
+        guard let file = openRegularFile(at: path),
+              let data = try? file.read(upToCount: fileContentsLimit + 1) ?? Data() else { return nil }
         guard data.count > fileContentsLimit else { return String(data: data, encoding: .utf8) }
         /// A UTF-8 character is at most 4 bytes, so one of the last 4 cuts ends on a whole one.
         for end in stride(from: fileContentsLimit, to: fileContentsLimit - 4, by: -1) {
@@ -193,7 +182,7 @@ public class ProcessHelpers {
     /// - Returns: The open file, closed when it's released, or `nil` if the path doesn't name a regular file or it
     ///   can't be opened.
     static func openRegularFile(at path: String) -> FileHandle? {
-        let path = URL(fileURLWithPath: String(path.trimmingPrefix("file://"))).path
+        let path = path.droppingPrefix("file://")
         var info = stat()
         guard stat(path, &info) == 0, info.st_mode & S_IFMT == S_IFREG else { return nil }
         let descriptor = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC)

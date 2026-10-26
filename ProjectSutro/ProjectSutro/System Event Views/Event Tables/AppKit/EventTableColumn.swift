@@ -31,10 +31,6 @@ struct EventTableColumn {
     var hideable = true
     var hiddenByDefault = false
     let content: Content
-    
-    /// - Parameter message: The event to show.
-    /// - Returns: The text of a ``Content/text(_:truncation:lines:selectable:)`` cell.
-    static func timestamp(_ message: ESMessage) -> String { eventTimeStamp(for: message) }
 }
 
 extension EventTableColumn {
@@ -48,7 +44,7 @@ extension EventTableColumn {
     static var unified: [EventTableColumn] {
         var columns = [
             EventTableColumn(title: "Timestamp", width: (100, 100, 100), sortKey: "message_darwin_time", sortsAsText: false,
-                             content: .text(timestamp)),
+                             content: .text(eventTimeStamp(for:))),
             EventTableColumn(title: "Event type", width: (150, 200, 400), sortKey: "es_event_type", hideable: false,
                              content: .view { message in
                                  AnyView(HStack(spacing: 4) {
@@ -83,7 +79,7 @@ extension EventTableColumn {
     static var exec: [EventTableColumn] {
         [
             EventTableColumn(title: "Timestamp", width: (100, 100, 100), sortKey: "message_darwin_time", sortsAsText: false,
-                             hiddenByDefault: customizable, content: .text(timestamp)),
+                             hiddenByDefault: customizable, content: .text(eventTimeStamp(for:))),
             EventTableColumn(title: "Process name", width: (80, 100, 400), sortKey: "created_name", hideable: false,
                              content: .view { AnyView(ProcessExecEventNameView(message: $0)) }),
             EventTableColumn(title: "Signing ID", width: (80, 100, 200), sortKey: "created_signing_id",

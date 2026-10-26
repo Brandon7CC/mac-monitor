@@ -126,7 +126,6 @@ struct SystemInitiatingProcessView: View {
                     }
                 }
         }
-            .textSelection(.enabled)
         }.frame(maxHeight: .infinity, alignment: .topLeading)
             .sheet(isPresented: $showAuditTokens) {
             AuditTokenView(

@@ -47,9 +47,7 @@ final class ValidateCommandTests: XCTestCase {
     /// - Returns: Each export's object, in the fixtures' order.
     /// - Throws: The error reading a fixture, or an `XCTest` failure if an export isn't a JSON object.
     private func exportedRecords() throws -> [[String: Any]] {
-        try fixtureExports().map { label, json in
-            try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any], label)
-        }
+        try fixtureExports().map { label, json in try jsonObject(Data(json.utf8), label) }
     }
     
     /// Records written as a trace.
@@ -86,9 +84,7 @@ final class ValidateCommandTests: XCTestCase {
     /// record starts on, the path of the value, and what's wrong with it.
     func testAnInvalidRecordExits65() throws {
         var records = try exportedRecords()
-        var process = try XCTUnwrap(records[1]["process"] as? [String: Any])
-        process["ppid"] = "1"
-        records[1]["process"] = process
+        records[1][path: "process", "ppid"] = "1"
         let path = try trace(records, named: "broken.jsonl")
         let run = try validate(path)
         XCTAssertEqual(run.outcome, .invalid)

@@ -32,12 +32,13 @@ struct SecurityExtensionSettingsView: View {
                 LabeledContent {
                     Button("Reinstall") { systemExtensionManager.activateSystemExtension() }
                 } label: {
-                    SettingsLabel("Reinstall", detail: "Asks macOS to activate this copy's Security Extension again.")
+                    SettingsLabel(title: "Reinstall",
+                                  detail: "Asks macOS to activate this copy's Security Extension again.")
                 }
                 LabeledContent {
                     Button("Uninstall…", role: .destructive) { confirmsUninstall = true }
                 } label: {
-                    SettingsLabel("Uninstall",
+                    SettingsLabel(title: "Uninstall",
                                   detail: "Stops all monitoring. macOS asks for an administrator's password.")
                 }
             }
@@ -54,16 +55,10 @@ struct SecurityExtensionSettingsView: View {
 
 /// A row's label: its name, and what it does underneath.
 struct SettingsLabel: View {
+    /// The row's name.
     let title: String
+    /// What it does.
     let detail: String
-
-    /// - Parameters:
-    ///   - title: The row's name.
-    ///   - detail: What it does.
-    init(_ title: String, detail: String) {
-        self.title = title
-        self.detail = detail
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {

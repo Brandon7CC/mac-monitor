@@ -75,10 +75,9 @@ final class MuteListTests: XCTestCase {
     func testNarrowingAnAllEventsMuteIsRefused() {
         var list = MuteList([mute()])
         let before = list
-        XCTAssertThrowsError(try list.remove(mute([open]))) { error in
-            XCTAssertEqual(error as? MuteListError, .narrowsAllEvents(path: "/a", type: ES_MUTE_PATH_TYPE_LITERAL))
-            XCTAssertTrue("\(error)".contains("Remove it, then add it back"))
-        }
+        let error = thrown(MuteListError.self) { try list.remove(mute([open])) }
+        XCTAssertEqual(error, .narrowsAllEvents(path: "/a", type: ES_MUTE_PATH_TYPE_LITERAL))
+        XCTAssertTrue(error?.description.contains("Remove it, then add it back") == true)
         XCTAssertEqual(list, before)
     }
     

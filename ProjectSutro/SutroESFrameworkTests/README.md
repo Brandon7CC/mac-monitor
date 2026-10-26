@@ -40,6 +40,7 @@ Look here before writing a helper of your own, and move one here once a second t
 | `ToolLinkFixture.swift` | A pretend `/` in a temporary directory, for linking `/usr/local/bin/macmonitor` |
 | `EndpointSecurityMuteModel.swift` | What `ESClient.h` says a client's mutes are, to check mute diffs against |
 | `XCTestCase+MuteStore.swift` | Mute stores in temporary directories, the saved file's bytes, a test console user, and `SavedMuteSet.send(_:access:)`, which sends a request and waits for the reply |
+| `Recorded.swift` | Values a test collects from any thread, such as what a fake was asked or what a session emitted, kept in order (`all`). `EmittedEvents` and `DiagnosticLines` are its aliases |
 
 ### Raw Messages
 
@@ -47,18 +48,19 @@ Look here before writing a helper of your own, and move one here once a second t
 |---|---|
 | `RawMessageFixture.swift` | An `es_message_t` in memory, freed when the test ends: `rawMessage(version:type:)`, then `file(_:)`, `process(…)`, `token(_:)` |
 | `RawMessageFixture+ESLogger.swift` | The same from an eslogger record, so capture tests run on real shapes: `capture(eslogger:fill:)` |
-| `RawMessageFixture+Lineage.swift` | Execs and forks with parents, responsible processes and launchd jobs |
+| `RawMessageFixture+Lineage.swift` | Execs and forks with parents, responsible processes and launchd jobs (`esloggerExec`, `esloggerExecEvent`), the launched-by parents tests expect (`LaunchedByParent.appJob`, `.shell`), and a `path` that fails the test if it's read (`noPaths`) |
 | `RawMessageFixture+RemoteThreadCreate.swift` | `remote_thread_create` with a thread state |
-| `XCTestCase+Capture.swift` | A capture session on fake clients (`makeSession`), messages with sequence numbers (`sequencedMessage`), a serializer a test controls (`StubSerializer`), collected output (`EmittedEvents`), and `waitUntil` |
+| `XCTestCase+Capture.swift` | A capture session on fake clients (`makeSession`), messages with sequence numbers (`sequencedMessage`), a serializer a test controls (`StubSerializer`), collected output (`EmittedEvents`), `waitUntil` for a condition another thread makes true, and `awaitCallback`, which starts something that calls back and waits for its first value |
 
 ### Export and JSON
 
 | File | What it's for |
 |---|---|
-| `XCTestCase+Export.swift` | Store an event and export it (`exportText`, `export`), read a record back (`importRecord`), and build eslogger and Mac Monitor 2.1 records (`esloggerRecord`, `legacyRecord`) |
-| `XCTestCase+Store.swift` | An in-memory event store filled the way the app fills it (`withEventStore`), and a SQLite one (`makeExportStore`) |
+| `XCTestCase+Export.swift` | Store an event and export it (`exportText`, `export`), read a record back (`importRecord`), and build eslogger and Mac Monitor 2.1 records by event type (`esloggerRecord`, `legacyRecord`, under the key `esloggerKey` gives) |
+| `XCTestCase+Store.swift` | An in-memory event store filled the way the app fills it (`withEventStore`), a SQLite one in a temporary folder or at `/dev/null` (`makeExportStore`), the text exporting it writes (`expectedExport`), and an export that waits until it's done, with its own timeout (`run`, or `exportAll` for "Export all") |
 | `XCTestCase+Wire.swift` | Every fixture as the `Message`s the app receives, and a message's wire JSON |
-| `XCTestCase+JSON.swift` | Compare JSON by value and key path (`differences`, `assertContains`), and the streaming encoder against `JSONEncoder` (`assertSameJSON`) |
+| `XCTestCase+JSON.swift` | Parse a JSON object (`jsonObject`, or `jsonObject(encoding:)` for a value), compare JSON by value and key path (`differences`, `assertContains`), and the streaming encoder against `JSONEncoder` (`assertSameJSON`) |
+| `JSONPath.swift` | Read or change the value at a path through objects and arrays in one step: `record[path: "event", "exec", "args", 0] = 7`, and `nil` removes the key |
 | `JSONCanonicalForm.swift` | JSON with every object's members sorted, for byte-for-byte comparisons |
 | `XCTestCase+Fixtures.swift` | Files in `Fixtures/` (`fixture`, `fixtureObject`, `fixtureRecords`) and scratch files and directories that clean up after the test |
 
@@ -69,3 +71,9 @@ Look here before writing a helper of your own, and move one here once a second t
 | `XCTestCase+TelemetrySchema.swift` | A validator for the generated schema, every synthetic and fixture export to validate, and the repository's root for the committed schema |
 | `SchemaKeyPaths.swift` | The schema's keys at the paths `Fixtures/eslogger-keys.json` uses |
 | `SchemaParts.swift` | Every part of a schema document, for checks that walk all of it |
+
+### Errors
+
+| File | What it's for |
+|---|---|
+| `Thrown.swift` | The error a call throws, to compare with the one expected (`thrown(_:by:)`, `nil` when it returns), and a `Result`'s error (`failure`) |

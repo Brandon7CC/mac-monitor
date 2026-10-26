@@ -8,7 +8,7 @@
 import Foundation
 
 /// Models a ``es_profile_t``
-public struct Profile: Codable, Equatable, Hashable {
+public struct Profile: Codable, Hashable {
     public var identifier: String
     public var uuid: String
     
@@ -24,9 +24,7 @@ public struct Profile: Codable, Equatable, Hashable {
         return "[Scope: \(scope)]  Name: \(display_name), ID: \(identifier)"
     }
     
-    public var installSourceShortName: String {
-        return install_source_string.replacingOccurrences(of: "ES_PROFILE_SOURCE_", with: "")
-    }
+    public var installSourceShortName: String { install_source_string.droppingPrefix("ES_PROFILE_SOURCE_") }
     
     public init(from profile: es_profile_t) {
         self.identifier = profile.identifier.string ?? ""

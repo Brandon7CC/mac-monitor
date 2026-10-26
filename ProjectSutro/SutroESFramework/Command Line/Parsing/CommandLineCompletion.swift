@@ -41,12 +41,12 @@ public enum CommandLineCompletion {
 
     /// Every command and mute command. A command added later doesn't build until it's described here.
     static var commands: [Command] {
-        let described = CommandLineCommand.Name.allCases.map { name -> Command in
+        let described = CommandLineCommand.allCases.map { name -> Command in
             switch name {
             case .stream: return Command("stream", CommandLineOption.stream, [.choice(["all"]), .event])
             case .mute: return Command("mute", [], [.choice(MuteInvocation.Name.allCases.map(\.rawValue))])
             case .validate: return Command("validate", CommandLineOption.validate, [.file])
-            case .help: return Command("help", [], [.choice(CommandLineHelp.commands.map(\.name))])
+            case .help: return Command("help", [], [.choice(CommandLineCommand.allCases.map(\.rawValue))])
             case .completion: return Command("completion", [], [.choice(CommandLineShell.allCases.map(\.rawValue))])
             case .events, .schema, .version: return Command(name.rawValue)
             }
@@ -90,12 +90,15 @@ public enum CommandLineCompletion {
     ///
     /// - Parameters:
     ///   - command: The command.
-    ///   - value: The line that completes an option's value, or `nil` for an option that takes none.
+    ///   - complete: The shell's command that completes a value, or `nil` for a value it doesn't complete. An option
+    ///     that takes a value gets a line that completes it, or completes nothing, and returns.
     ///   - rest: The lines that complete the command's options and operands.
     /// - Returns: The branch, indented for the script.
-    private static func branch(_ command: Command, value: (CommandLineOption) -> String?,
+    private static func branch(_ command: Command, complete: (CommandLineOption.Value) -> String?,
                                rest: [String]) -> String {
-        let values = command.options.compactMap { option in value(option).map { "        \(option.name)) \($0) ;;" } }
+        let values = command.options.filter { $0.value != .none }.map { option in
+            "        \(option.name)) \(complete(option.value).map { "\($0); return" } ?? "return") ;;"
+        }
         let previous = values.isEmpty ? [] : ["      case $previous in"] + values + ["      esac"]
         return (["    \(quoted(command.key)))"] + previous + rest.map { "      " + $0 } + ["      ;;"])
             .joined(separator: "\n")
@@ -109,25 +112,11 @@ extension CommandLineCompletion {
     ///
     /// - Returns: The script.
     static func zsh() -> String {
-        let summaries = CommandLineHelp.commands.map { "      \(quoted("\($0.name):\($0.summary)"))" }
+        let summaries = CommandLineCommand.allCases.map { "      \(quoted("\($0.rawValue):\($0.help.summary)"))" }
         let cases = commands.map { command in
-            branch(command, value: { option in
-                switch option.value {
-                case .none: return nil
-                case .choice(let words): return "\(compadd(words)); return"
-                case .event: return "compadd -a events; return"
-                case .file: return "_files; return"
-                case .text: return "return"
-                }
-            }, rest: (command.options.isEmpty ? [] : [compadd(command.options.map(\.name))])
-                + command.operands.compactMap { operand in
-                    switch operand {
-                    case .none, .text: return nil
-                    case .choice(let words): return compadd(words)
-                    case .event: return "compadd -a events"
-                    case .file: return "_files"
-                    }
-                })
+            /// The option names are offered as zsh offers any choice.
+            let options = command.options.isEmpty ? [] : [CommandLineOption.Value.choice(command.options.map(\.name))]
+            return branch(command, complete: \.zsh, rest: (options + command.operands).compactMap(\.zsh))
         }
         return """
             #compdef macmonitor
@@ -161,14 +150,6 @@ extension CommandLineCompletion {
 
             """
     }
-
-    /// zsh's command that offers some words.
-    ///
-    /// - Parameter words: The words, none needing quotes.
-    /// - Returns: `compadd -- word…`.
-    private static func compadd(_ words: [String]) -> String {
-        "compadd -- " + words.joined(separator: " ")
-    }
 }
 
 
@@ -180,24 +161,11 @@ extension CommandLineCompletion {
     /// - Returns: The script.
     static func bash() -> String {
         let cases = commands.map { command -> String in
-            var words = command.options.map(\.name)
-            for operand in command.operands {
-                switch operand {
-                case .none, .text, .file: break
-                case .choice(let choices): words += choices
-                case .event: words.append("$events")
-                }
-            }
+            let words = command.options.map(\.name) + command.operands.compactMap(\.bash)
             /// With a file operand, options are completed only after a dash, and bash completes the rest.
             let dash = command.operands.contains(.file) ? "[[ $cur == -* ]] && " : ""
-            return branch(command, value: { option in
-                switch option.value {
-                case .none: return nil
-                case .choice(let words): return "\(reply(words.joined(separator: " "))); return"
-                case .event: return "\(reply("$events")); return"
-                case .file, .text: return "return"
-                }
-            }, rest: words.isEmpty ? [] : [dash + reply(words.joined(separator: " "))])
+            return branch(command, complete: { $0.bash.map(reply) },
+                          rest: words.isEmpty ? [] : [dash + reply(words.joined(separator: " "))])
         }
         return """
             # macmonitor's completion for bash, from 'macmonitor completion bash'. Add
@@ -209,7 +177,7 @@ extension CommandLineCompletion {
               local events=\(quoted(events))
               COMPREPLY=()
               if (( COMP_CWORD == 1 )); then
-                \(reply(CommandLineHelp.commands.map(\.name).joined(separator: " ")))
+                \(reply(CommandLineCommand.allCases.map(\.rawValue).joined(separator: " ")))
                 return
               fi
               case $key in
@@ -230,5 +198,29 @@ extension CommandLineCompletion {
     /// - Returns: `COMPREPLY=($(compgen -W "word…" -- "$cur"))`.
     private static func reply(_ words: String) -> String {
         "COMPREPLY=($(compgen -W \"\(words)\" -- \"$cur\"))"
+    }
+}
+
+
+// MARK: - Option values
+extension CommandLineOption.Value {
+    /// zsh's command that offers the value, or `nil` for one zsh doesn't complete.
+    var zsh: String? {
+        switch self {
+        case .none, .text: return nil
+        case .choice(let words): return "compadd -- " + words.joined(separator: " ")
+        case .event: return "compadd -a events"
+        case .file: return "_files"
+        }
+    }
+
+    /// The words bash offers for the value, separated by spaces, or `nil` for one it leaves to bash's file names or
+    /// doesn't complete. `$events` expands to the events.
+    var bash: String? {
+        switch self {
+        case .none, .text, .file: return nil
+        case .choice(let words): return words.joined(separator: " ")
+        case .event: return "$events"
+        }
     }
 }

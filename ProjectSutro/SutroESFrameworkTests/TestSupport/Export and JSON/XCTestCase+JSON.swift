@@ -14,7 +14,27 @@ extension XCTestCase {
     /// Keys that count one Endpoint Security client's messages, which never match another client's: left out when
     /// Mac Monitor's export is compared with eslogger's record.
     static let esloggerSequenceNumbers: Set<String> = ["seq_num", "global_seq_num"]
-    
+
+    /// A JSON object, parsed so a test can read or change it.
+    ///
+    /// - Parameters:
+    ///   - data: The object's JSON text.
+    ///   - message: Names the object, for the failure message.
+    /// - Returns: The object.
+    /// - Throws: The error parsing it, or an `XCTest` failure if it isn't a JSON object.
+    func jsonObject(_ data: Data, _ message: String = "") throws -> [String: Any] {
+        try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any], message)
+    }
+
+    /// A value's JSON object, as `JSONEncoder` writes it.
+    ///
+    /// - Parameter value: The value.
+    /// - Returns: The object.
+    /// - Throws: The error encoding or parsing it, or an `XCTest` failure if it isn't a JSON object.
+    func jsonObject(encoding value: some Encodable) throws -> [String: Any] {
+        try jsonObject(try JSONEncoder().encode(value))
+    }
+
     /// The records of a JSON Lines fixture.
     ///
     /// - Parameter name: The fixture's file name, with its extension.
@@ -22,7 +42,7 @@ extension XCTestCase {
     /// - Throws: An `XCTest` failure if the fixture is missing or a line isn't a JSON object.
     func fixtureRecords(_ name: String) throws -> [[String: Any]] {
         try String(decoding: try fixture(name), as: UTF8.self).split(separator: "\n").map { line in
-            try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any])
+            try jsonObject(Data(line.utf8))
         }
     }
     

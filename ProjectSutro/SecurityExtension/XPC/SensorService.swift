@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 import EndpointSecurity
 import OSLog
 import notify
@@ -65,7 +66,7 @@ final class SensorService: NSObject {
     /// The saved mute set, shared with every `macmonitor` stream. Capture follows it while `muteSubscription` is held:
     /// each change is saved, then applied.
     private let savedMutes: SavedMuteSet
-    private var muteSubscription: MuteSubscription?
+    private var muteSubscription: AnyCancellable?
     /// Decides whose Mac Monitor may change the saved mute set: an administrator's.
     private let administrators: AdministratorCheck
     
@@ -303,7 +304,7 @@ extension SensorService {
     /// - Returns: The batcher. Each batch sent also logs what Endpoint Security dropped since the last report.
     private func makeBatcher(for connection: NSXPCConnection) -> EventBatcher {
         EventBatcher(queue: queue, limits: .app, overflow: .backlog { try EventSpool() },
-                     delivery: XPCBatchDelivery(connection: connection, label: "Mac Monitor"),
+                     delivery: EventBatcher.xpcDelivery(over: connection, label: "Mac Monitor"),
                      willSend: { [weak self] in self?.capture?.reportDrops() }, label: "Mac Monitor")
     }
 }

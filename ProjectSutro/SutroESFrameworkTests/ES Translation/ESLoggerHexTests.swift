@@ -71,9 +71,9 @@ final class ESLoggerHexTests: XCTestCase {
             let cdhash = randomized((0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) as es_cdhash_t)
             let sha256 = randomized((0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) as es_sha256_t)
-            XCTAssertEqual(cdhashToString(cdhash: cdhash),
+            XCTAssertEqual(ESLogger.hex(cdhash),
                            withUnsafeBytes(of: cdhash) { formatted(Array($0), uppercase: true) })
-            XCTAssertEqual(sha256HexString(sha256),
+            XCTAssertEqual(ESLogger.hex(sha256),
                            withUnsafeBytes(of: sha256) { formatted(Array($0), uppercase: true) })
         }
     }

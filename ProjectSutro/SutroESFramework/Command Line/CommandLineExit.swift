@@ -200,7 +200,7 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
     /// - Parameter code: The write's `errno`.
     /// - Returns: The failure: exit 74.
     public static func output(_ code: Int32) -> CommandLineFailure {
-        CommandLineFailure(.ioError, "Couldn't write the output: \(String(cString: strerror(code))).")
+        CommandLineFailure(.ioError, "Couldn't write the output: \(errnoText(code)).")
     }
     
     /// A file that can't be read.
@@ -218,13 +218,13 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
     /// - Parameter error: What opening or reading it threw.
     /// - Returns: Such as "No such file or directory", or "it isn't a regular file" for a folder, pipe or device.
     static func reason(_ error: Error) -> String {
-        if let posix = error as? POSIXError { return String(cString: strerror(posix.code.rawValue)) }
+        if let posix = error as? POSIXError { return errnoText(posix.code.rawValue) }
         if case .notAFile? = error as? TraceImporter.Failure { return "it isn't a regular file" }
         if (error as? CocoaError)?.code == .fileReadUnsupportedScheme { return "it isn't a regular file" }
         /// Foundation's errors for a file that can't be opened wrap the `errno` that says why.
         if let underlying = (error as NSError).userInfo[NSUnderlyingErrorKey] as? NSError,
            underlying.domain == NSPOSIXErrorDomain {
-            return String(cString: strerror(Int32(underlying.code)))
+            return errnoText(Int32(underlying.code))
         }
         return error.localizedDescription
     }

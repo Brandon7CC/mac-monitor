@@ -45,7 +45,7 @@ extension EventQueryModel {
             try await context.perform {
                 /// Parsed on the context's queue, which evaluates it.
                 let predicate = try StreamFilter.Predicate(source, for: audience)
-                var preview = Preview(total: try context.count(for: ESMessage.fetchRequest()))
+                var preview = Preview(total: try context.count(for: ESMessage.request()))
                 let byTime = [NSSortDescriptor(key: "mach_time", ascending: true)]
                 try Worker(context: context).forEachEvent(matching: predicate.storePredicate, sortedBy: byTime,
                                                           isCurrent: { !cancelled.withLock { $0 } }) { message in
@@ -60,7 +60,7 @@ extension EventQueryModel {
                     preview.matched += 1
                     if preview.examples.count < limit {
                         preview.examples.append(Preview.Example(
-                            id: message.objectID, time: EventTableColumn.timestamp(message),
+                            id: message.objectID, time: eventTimeStamp(for: message),
                             type: message.es_event_type ?? "", context: message.context ?? ""))
                     }
                 }

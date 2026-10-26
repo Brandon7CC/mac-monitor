@@ -95,48 +95,33 @@ public struct MuteReply: XPCReply, Equatable, Sendable {
     }
     
     /// The reply's version.
-    public var version: Int
+    public var version: Int = MuteRequest.currentVersion
     /// How the request went.
     public var status: Status
     /// Did the saved set change?
-    public var changed: Bool
+    public var changed: Bool = false
     /// The saved set after the request, in canonical order.
     public var mutes: [MuteFile.Entry]
     /// Why the request was refused or invalid, and what was left out of it, as sentences.
-    public var problems: [String]
+    public var problems: [String] = []
     /// Something to tell the user about the saved set: it was recovered from a damaged file, or is read-only.
     public var notice: String?
     /// What the caller may do with the saved set, or `nil` if the Security Extension didn't say (or said something
     /// this build doesn't know).
     public var access: MuteAccess?
-    
-    /// - Parameters:
-    ///   - status: How the request went.
-    ///   - changed: Did the saved set change?
-    ///   - mutes: The saved set after the request.
-    ///   - problems: Why the request was refused or invalid, and what was left out of it.
-    ///   - notice: Something to tell the user about the saved set.
-    ///   - access: What the caller may do with the saved set.
-    public init(status: Status, changed: Bool = false, mutes: [MuteFile.Entry], problems: [String] = [],
-                notice: String? = nil, access: MuteAccess? = nil) {
-        version = MuteRequest.currentVersion
-        self.status = status
-        self.changed = changed
-        self.mutes = mutes
-        self.problems = problems
-        self.notice = notice
-        self.access = access
-    }
-    
-    /// Everything but the version and status may be missing, an unknown status reads as ``Status/unsupported``, and
-    /// an unknown access as none, so a newer Security Extension's reply still reads.
+}
+
+
+extension MuteReply {
+    /// Everything but the version and status may be missing, an unknown status reads as ``Status/unsupported``
+    /// (``XPCFailureStatus``), and an unknown access as none, so a newer Security Extension's reply still reads.
     ///
     /// - Parameter decoder: The decoder.
     /// - Throws: A `DecodingError` for a missing version or status.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         version = try container.decode(Int.self, forKey: .version)
-        status = Status(rawValue: try container.decode(String.self, forKey: .status)) ?? .unsupported
+        status = try container.decode(Status.self, forKey: .status)
         changed = try container.decodeIfPresent(Bool.self, forKey: .changed) ?? false
         mutes = try container.decodeIfPresent([MuteFile.Entry].self, forKey: .mutes) ?? []
         problems = try container.decodeIfPresent([String].self, forKey: .problems) ?? []

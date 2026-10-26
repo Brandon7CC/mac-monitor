@@ -40,9 +40,8 @@ final class StreamPlanTests: XCTestCase {
     func testWhatIsRefused() {
         for name in ["ES_EVENT_TYPE_AUTH_EXEC", "ES_EVENT_TYPE_LAST", "ES_EVENT_TYPE_NOTIFY_KEXTLOAD", "exec", "",
                      "ES_EVENT_TYPE_NOTIFY_EXEC "] {
-            XCTAssertThrowsError(try StreamPlan(StreamOptions(events: [name])), name) { error in
-                XCTAssertEqual((error as? XPCRequestError)?.status(as: StreamReply.Status.self), .invalid, name)
-            }
+            let error = thrown(XPCRequestError.self) { try StreamPlan(StreamOptions(events: [name])) }
+            XCTAssertEqual(error?.status(as: StreamReply.Status.self), .invalid, name)
         }
         let tooMany = Array(repeating: "ES_EVENT_TYPE_NOTIFY_EXEC", count: StreamPlan.maximumEvents + 1)
         XCTAssertThrowsError(try StreamPlan(StreamOptions(events: tooMany)))

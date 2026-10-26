@@ -31,9 +31,7 @@ public class ESProcessCheckEvent: NSManagedObject, Identifiable {
         self.type_string = event.type_string
         self.flavor = Int32(truncatingIfNeeded: event.flavor)
         
-        if let target = event.target {
-            self.target = ESProcess(from: target, version: message.version, insertIntoManagedObjectContext: context)
-        }
+        self.target = ESProcess.insert(event.target, version: message.version, in: context)
     }
 }
 

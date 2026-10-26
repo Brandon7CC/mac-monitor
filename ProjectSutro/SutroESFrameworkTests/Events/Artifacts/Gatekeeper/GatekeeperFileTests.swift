@@ -24,7 +24,8 @@ final class GatekeeperFileTests: XCTestCase {
     /// - Returns: The export, and the exported event's object.
     /// - Throws: The error reading the record, or an `XCTest` failure if the export has no such event.
     private func exported(_ event: [String: Any]) throws -> (export: [String: Any], event: [String: Any]) {
-        let export = try export(try importRecord(try esloggerRecord("gatekeeper_user_override", type: 146, event)))
+        let record = try esloggerRecord(ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE, event)
+        let export = try export(try importRecord(record))
         return (export, try self.event("gatekeeper_user_override", in: export))
     }
     
@@ -66,7 +67,7 @@ final class GatekeeperFileTests: XCTestCase {
     
     /// Mac Monitor 2.1 wrote the path arm as `file_path` beside the union: it's read and exported under `file` too.
     func testMacMonitor21PathArm() throws {
-        let record = try legacyRecord("gatekeeper_user_override", type: ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE, [
+        let record = try legacyRecord(ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE, [
             "file_type": 0, "file_path": Self.path, "sha256": "NULL",
             "file_type_string": "ES_GATEKEEPER_USER_OVERRIDE_FILE_TYPE_PATH",
         ])

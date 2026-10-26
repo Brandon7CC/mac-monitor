@@ -37,11 +37,6 @@ public struct TCCModifyEvent: Codable, IdentityHashable {
         right = tccModifyEvent.right.rawValue
         reason = tccModifyEvent.reason.rawValue
         
-        // MARK: - Enrichment
-        
-        
-        
-        
         enrich()
     }
 }

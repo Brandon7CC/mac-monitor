@@ -140,7 +140,7 @@ struct AdvancedNonExecContextMenu: View {
         if userPrefs.contextTargetPathFilter && event.target_path != nil && !event.target_path!.isEmpty {
             if IntelligentEventTargeting.targetShouldBeParentDir(esEventType: event.es_event_type ?? "") {
                 let targetPath: String = event.target_path ?? ""
-                let parentDir = URL(fileURLWithPath: targetPath).deletingLastPathComponent().path
+                let parentDir = targetPath.deletingLastPathComponent
                 Button(action: {
                     allFilters.targetPaths.append(parentDir)
                 }) {
@@ -181,7 +181,7 @@ action: {
                 // MARK: Target path parent dir
                 if IntelligentEventTargeting.targetShouldBeParentDir(esEventType: event.es_event_type ?? "") {
                     let targetPath: String = event.target_path ?? ""
-                    let parentDir = URL(fileURLWithPath: targetPath).deletingLastPathComponent().path
+                    let parentDir = targetPath.deletingLastPathComponent
                     Button(action: {
                         // Mute the target path's parent directory for the specified event
                         systemExtensionManager.puntPathToMute(pathToMute: parentDir,

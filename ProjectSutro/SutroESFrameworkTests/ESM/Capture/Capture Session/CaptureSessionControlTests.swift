@@ -14,13 +14,9 @@ import EndpointSecurity
 /// Pins a running capture session: subscriptions go to the client of their class, mutes go to every client, and each
 /// lane emits its client's events in order while recording.
 final class CaptureSessionControlTests: XCTestCase {
-    private var factory = FakeEndpointSecurityClientFactory()
-    
-    /// A fresh factory for each test.
-    override func setUp() {
-        super.setUp()
-        factory = FakeEndpointSecurityClientFactory()
-    }
+    private let factory = FakeEndpointSecurityClientFactory()
+    /// What the session emitted.
+    private let emitted = EmittedEvents()
     
     /// Calls made after the session started.
     ///
@@ -129,7 +125,6 @@ final class CaptureSessionControlTests: XCTestCase {
     /// Events are serialized only while recording, each tagged with its lane's class and stamped with the current
     /// Sensor ID.
     func testRecordingGateAndSensorID() throws {
-        let emitted = EmittedEvents()
         var sensorIDs = ["S1", "S2"].makeIterator()
         let serializer = StubSerializer { _, lane in Data("\(lane.eventClass.rawValue) \(lane.sensorID)".utf8) }
         let session = try makeSession(factory: factory, serializer: serializer, sensorID: { sensorIDs.next() ?? "" },
@@ -152,7 +147,6 @@ final class CaptureSessionControlTests: XCTestCase {
     /// Turning recording off and on and changing the Sensor ID don't wait for an event being built, which still goes
     /// out with the Sensor ID it started with.
     func testControlNeverWaitsForAnEventBeingBuilt() throws {
-        let emitted = EmittedEvents()
         let building = DispatchSemaphore(value: 0)
         let finish = DispatchSemaphore(value: 0)
         var sensorIDs = ["S1", "S2"].makeIterator()
@@ -188,7 +182,6 @@ final class CaptureSessionControlTests: XCTestCase {
     
     /// Delivered from three threads at once, each class's events leave its lane in its client's order.
     func testLanesKeepTheirOrderUnderConcurrentDelivery() throws {
-        let emitted = EmittedEvents()
         let session = try makeSession(factory: factory, emitted: emitted)
         session.isRecording = true
         let types = [ES_EVENT_TYPE_NOTIFY_EXEC, ES_EVENT_TYPE_NOTIFY_OPEN, ES_EVENT_TYPE_NOTIFY_MMAP]
@@ -207,7 +200,6 @@ final class CaptureSessionControlTests: XCTestCase {
     
     /// An event that can't be serialized is skipped, and the next one still goes out.
     func testUnserializableEventsAreSkipped() throws {
-        let emitted = EmittedEvents()
         let serializer = StubSerializer { message, _ in
             message.pointee.global_seq_num == 1 ? nil : Data("\(message.pointee.global_seq_num)".utf8)
         }

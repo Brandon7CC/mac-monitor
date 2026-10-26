@@ -7,7 +7,6 @@
 
 import XCTest
 import EndpointSecurity
-import os
 @testable import SutroESFramework
 
 
@@ -37,25 +36,17 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     /// An app's label, as launchd names a LaunchServices instance.
     private let label = XCTestCase.lineageAppLabel
     /// The process that asked LaunchServices to launch the apps.
-    private let launcher = AuditToken(pid: 700, pidversion: 7000, asid: 100_001, auid: 501, euid: 501, ruid: 501,
-                                      rgid: 20, egid: 20)
+    private let launcher = LaunchedByParentUpgraderTests.target(700)
     /// eslogger's exec of `/usr/libexec/exampled` by launchd, which the apps' execs are made from.
     private var exec: Message!
     /// Events the hold sent, in order
-    private let emitted = OSAllocatedUnfairLock(uncheckedState: [CapturedEvent]())
+    private let emitted = EmittedEvents()
 
     /// Read the exec the apps' execs are made from.
     ///
     /// - Throws: The error reading the exec.
     override func setUpWithError() throws {
         exec = try importRecord(try esloggerExec(parent: (1, 1)))
-    }
-
-    /// What the Security Extension first says about an app: launchd started the app's job.
-    private var appJob: LaunchedByParent {
-        LaunchedByParent(source: .launchdJob, audit_token: .fixture(pid: 1, pidversion: 1),
-                         path: LaunchedByParent.launchdPath, launchd_job: .init(label: label),
-                         resolved_by: .securityExtension)
     }
 
     /// Launch Services' answer for an app that ``launcher`` launched
@@ -68,27 +59,29 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     ///
     /// - Parameters:
     ///   - pid: The app's pid. Its pid version is ten times that.
-    ///   - answer: Its launched-by parent, by default ``appJob``.
+    ///   - answer: Its launched-by parent, by default ``LaunchedByParent/appJob(label:)``.
     /// - Returns: The event.
     private func appExec(pid: Int32, answer: LaunchedByParent? = nil) -> Message {
         var message = exec!
         if case .exec(var event) = message.event {
             event.target.pid = pid
-            event.target.audit_token = AuditToken(pid: pid, pidversion: pid * 10, asid: 100_001, auid: 501, euid: 501,
-                                                  ruid: 501, rgid: 20, egid: 20)
+            event.target.audit_token = Self.target(pid)
             message.event = .exec(event)
         }
-        message.setLaunchedByParent(answer ?? appJob)
+        message.setLaunchedByParent(answer ?? .appJob())
         message.id = UUID()
         return message
     }
 
-    /// The target token of an exec from ``appExec(pid:answer:)``
+    /// The target token of an exec from ``appExec(pid:answer:)``: a user's process in audit session 100001.
     ///
-    /// - Parameter pid: The app's pid.
+    /// - Parameters:
+    ///   - pid: The app's pid.
+    ///   - pidversion: Its pid version, by default ten times its pid.
     /// - Returns: The token.
-    private func target(_ pid: Int32) -> AuditToken {
-        AuditToken(pid: pid, pidversion: pid * 10, asid: 100_001, auid: 501, euid: 501, ruid: 501, rgid: 20, egid: 20)
+    private static func target(_ pid: Int32, pidversion: Int32? = nil) -> AuditToken {
+        AuditToken(pid: pid, pidversion: pidversion ?? pid * 10, asid: 100_001, auid: 501, euid: 501, ruid: 501,
+                   rgid: 20, egid: 20)
     }
 
     /// A record of an app's launch by ``launcher``.
@@ -98,10 +91,8 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     ///   - pidversion: The pid version that checked in, by default the app's.
     /// - Returns: The record.
     private func launch(of pid: pid_t, pidversion: Int32? = nil) -> LaunchServicesRecord {
-        let token = AuditToken(pid: pid, pidversion: pidversion ?? pid * 10, asid: 100_001, auid: 501, euid: 501,
-                               ruid: 501, rgid: 20, egid: 20)
-        return LaunchServicesRecord(token: token, launchedByLaunchServices: true, hasParentASN: true,
-                                    parentToken: launcher)
+        LaunchServicesRecord(token: Self.target(pid, pidversion: pidversion), launchedByLaunchServices: true,
+                             hasParentASN: true, parentToken: launcher)
     }
 
     /// An upgrader reading at once, 10 and 20 ms later, naming the launcher `/path/of/<pid>`.
@@ -119,14 +110,7 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     ///   - reader: The reader.
     /// - Returns: What the lookup returned.
     private func lookUp(pid: Int32, with reader: FakeLaunchServicesReader) -> LaunchedByParent? {
-        let done = expectation(description: "Lookup finished")
-        let answer = OSAllocatedUnfairLock<LaunchedByParent?>(uncheckedState: nil)
-        upgrader(reader).lookUp(appJob, of: target(pid)) { better in
-            answer.withLockUnchecked { $0 = better }
-            done.fulfill()
-        }
-        wait(for: [done], timeout: 5)
-        return answer.withLockUnchecked { $0 }
+        try? awaitCallback(timeout: 5) { upgrader(reader).lookUp(.appJob(), of: Self.target(pid), completion: $0) }
     }
 
     /// A hold for the process lane that sends into ``emitted``
@@ -138,10 +122,8 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     /// - Returns: The hold.
     private func hold(_ reader: LaunchServicesReading, maxHeld: Int = 64,
                       maxWait: TimeInterval = 5) -> LaunchServicesHold {
-        LaunchServicesHold(eventClass: .process, upgrader: upgrader(reader), maxHeld: maxHeld,
-                           maxWait: maxWait) { event in
-            self.emitted.withLockUnchecked { $0.append(event) }
-        }
+        LaunchServicesHold(eventClass: .process, upgrader: upgrader(reader), maxHeld: maxHeld, maxWait: maxWait,
+                           emit: emitted.append)
     }
 
     /// A ready event whose JSON is just its name
@@ -154,7 +136,7 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
 
     /// What the hold sent. Ready events show their name, and execs show `exec <pid>` with their launched-by parent.
     private var emittedEvents: [(name: String, launchedByParent: LaunchedByParent?)] {
-        emitted.withLockUnchecked { $0 }.map { event in
+        emitted.all.map { event in
             guard let message = try? JSONDecoder().decode(Message.self, from: event.json),
                   case .exec(let exec) = message.event else { return (String(decoding: event.json, as: UTF8.self), nil) }
             return ("exec \(exec.target.pid)", exec.launched_by_parent)
@@ -167,23 +149,21 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     ///   - count: The number of events.
     ///   - line: The caller's line, for a failure.
     private func waitForEmitted(_ count: Int, line: UInt = #line) {
-        let deadline = Date(timeIntervalSinceNow: 5)
-        while emitted.withLockUnchecked({ $0.count }) < count, Date() < deadline { usleep(2_000) }
-        XCTAssertEqual(emitted.withLockUnchecked { $0.count }, count, line: line)
+        XCTAssertTrue(waitUntil { emitted.all.count == count }, "\(emitted.all.count) events", line: line)
     }
 
     // MARK: Which execs are held
 
     /// Only app execs with a target token are held.
     func testOnlyAppExecsAreHeld() throws {
-        var fork = try importRecord(try esloggerRecord("fork", type: Int(ES_EVENT_TYPE_NOTIFY_FORK.rawValue), [
+        var fork = try importRecord(try esloggerRecord(ES_EVENT_TYPE_NOTIFY_FORK, [
             "child": try XCTUnwrap(try fixtureObject("eslogger-exit.jsonl")["process"] as? [String: Any]),
         ]))
-        fork.setLaunchedByParent(appJob)
+        fork.setLaunchedByParent(.appJob())
         let exit = try importRecord(try fixtureObject("eslogger-exit.jsonl"))
-        var unixParent = appJob, agent = appJob
+        var unixParent = LaunchedByParent.appJob()
         unixParent.source = .unixParent
-        agent.launchd_job = .init(label: "com.example.agent")
+        let agent = LaunchedByParent.appJob(label: "com.example.agent")
         var unanswered = appExec(pid: 603)
         unanswered.setLaunchedByParent(nil)
 
@@ -259,7 +239,7 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
         let hold = hold(FakeLaunchServicesReader())
         hold.hold(appExec(pid: 606))
         waitForEmitted(1)
-        XCTAssertEqual(emittedEvents.first?.launchedByParent, appJob)
+        XCTAssertEqual(emittedEvents.first?.launchedByParent, .appJob())
     }
 
     /// Past the limit, an exec isn't held. It goes in line with the answer it has.
@@ -271,7 +251,7 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
 
         waitForEmitted(2)
         XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "exec 607"])
-        XCTAssertEqual(emittedEvents.map(\.launchedByParent), [launchedByLauncher, appJob])
+        XCTAssertEqual(emittedEvents.map(\.launchedByParent), [launchedByLauncher, .appJob()])
         XCTAssertEqual(reader.askedPIDs.filter { $0 == 607 }, [], "The exec past the bound isn't looked up")
     }
 
@@ -284,7 +264,7 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
         hold.submit(ready("fork"))
         waitForEmitted(2)
         XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "fork"])
-        XCTAssertEqual(emittedEvents.first?.launchedByParent, appJob)
+        XCTAssertEqual(emittedEvents.first?.launchedByParent, .appJob())
     }
     
     /// Once a held exec goes out, its place is free for the next one.
@@ -331,14 +311,10 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
         factory.client(.process).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXEC, global: 606))
         factory.client(.process).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 2))
         
-        let drained = expectation(description: "Drained")
-        let atCompletion = OSAllocatedUnfairLock(uncheckedState: 0)
-        session.drain(on: queue) {
-            atCompletion.withLockUnchecked { $0 = emitted.all.count }
-            drained.fulfill()
+        let atCompletion: Int = try awaitCallback(timeout: 5) { done in
+            session.drain(on: queue) { done(emitted.all.count) }
         }
-        wait(for: [drained], timeout: 5)
-        XCTAssertEqual(atCompletion.withLockUnchecked { $0 }, 2, "The held exec and the exit behind it")
+        XCTAssertEqual(atCompletion, 2, "The held exec and the exit behind it")
     }
     
     /// Closing sends everything right away, and nothing after.
@@ -349,7 +325,7 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
         hold.submit(ready("fork"))
         hold.close()
         XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "fork"])
-        XCTAssertEqual(emittedEvents.first?.launchedByParent, appJob)
+        XCTAssertEqual(emittedEvents.first?.launchedByParent, .appJob())
 
         hold.submit(ready("late"))
         usleep(50_000)

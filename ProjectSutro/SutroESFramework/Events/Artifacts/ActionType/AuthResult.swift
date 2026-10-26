@@ -8,7 +8,7 @@
 import Foundation
 
 /// Models an `es_auth_result_t`
-public struct AuthResult: Codable, Equatable, Hashable {
+public struct AuthResult: Codable, Hashable {
     public var auth: Int?
     public var auth_human: String?
     public var flags: Int64?

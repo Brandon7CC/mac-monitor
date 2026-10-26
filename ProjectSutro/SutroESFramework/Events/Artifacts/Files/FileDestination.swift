@@ -65,4 +65,7 @@ extension FileDestination {
         if case .new_path(let e) = self { return e }
         return nil
     }
+    
+    /// The existing file's path, or the new path's ``NewPath/fullPath``: `nil` for a destination that can't be read.
+    var fullPath: String? { existing_file?.path ?? new_path?.fullPath }
 }

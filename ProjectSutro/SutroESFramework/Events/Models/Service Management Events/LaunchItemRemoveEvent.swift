@@ -8,7 +8,6 @@
 import Foundation
 import EndpointSecurity
 import OSLog
-//import SwiftCSBlobs
 import Compression
 import Security
 import CryptoKit
@@ -33,10 +32,8 @@ public struct LaunchItemRemoveEvent: Codable, IdentityHashable {
         instigator = event.instigator.map { Process(from: $0.pointee, version: version) }
         app = event.app.map { Process(from: $0.pointee, version: version) }
         
-        if version >= 8 {
-            instigator_token = event.instigator_token.map { AuditToken(from: $0.pointee) }
-            app_token = event.app_token.map { AuditToken(from: $0.pointee) }
-        }
+        instigator_token = version >= 8 ? event.instigator_token.map { AuditToken(from: $0.pointee) } : nil
+        app_token = version >= 8 ? event.app_token.map { AuditToken(from: $0.pointee) } : nil
         
         // MARK: - Item
         item = LaunchItem(from: event.item.pointee)

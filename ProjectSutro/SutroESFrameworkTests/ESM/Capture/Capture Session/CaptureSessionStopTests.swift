@@ -14,9 +14,13 @@ import EndpointSecurity
 /// Pins how a capture session stops: every client is unsubscribed, then deleted once no event is being built, so
 /// `es_delete_client` never overlaps another call on its client.
 final class CaptureSessionStopTests: XCTestCase {
+    /// Makes the session's fake clients.
+    private let factory = FakeEndpointSecurityClientFactory()
+    /// What the session emitted.
+    private let emitted = EmittedEvents()
+    
     /// Stopping unsubscribes every client and then deletes it, once. Stopping again does nothing.
     func testStopUnsubscribesThenDeletesOnce() throws {
-        let factory = FakeEndpointSecurityClientFactory()
         let session = try makeSession(factory: factory)
         session.stop()
         session.stop()
@@ -29,8 +33,6 @@ final class CaptureSessionStopTests: XCTestCase {
     
     /// Stopping waits for an event being built before it deletes any client, and nothing is emitted once it returns.
     func testStopWaitsForAnEventBeingBuilt() throws {
-        let factory = FakeEndpointSecurityClientFactory()
-        let emitted = EmittedEvents()
         let building = DispatchSemaphore(value: 0)
         let finish = DispatchSemaphore(value: 0)
         let serializer = StubSerializer { _, _ in
@@ -63,8 +65,6 @@ final class CaptureSessionStopTests: XCTestCase {
     /// An event that outlasts the deadline doesn't hold up stopping: the other clients are deleted at once, the slow
     /// lane's client once its event is done, and that event is dropped rather than emitted after the session stopped.
     func testStopGivesUpOnASlowEvent() throws {
-        let factory = FakeEndpointSecurityClientFactory()
-        let emitted = EmittedEvents()
         let building = DispatchSemaphore(value: 0)
         let finish = DispatchSemaphore(value: 0)
         let serializer = StubSerializer { _, _ in
@@ -97,8 +97,6 @@ final class CaptureSessionStopTests: XCTestCase {
     
     /// A message Endpoint Security still hands over after the session stopped is ignored.
     func testMessagesAfterStopAreIgnored() throws {
-        let factory = FakeEndpointSecurityClientFactory()
-        let emitted = EmittedEvents()
         var serialized = 0
         let serializer = StubSerializer { _, _ in serialized += 1; return Data() }
         let session = try makeSession(factory: factory, serializer: serializer, emitted: emitted)
@@ -113,7 +111,6 @@ final class CaptureSessionStopTests: XCTestCase {
     
     /// After stopping, control calls fail without reaching Endpoint Security.
     func testControlCallsAfterStopDoNothing() throws {
-        let factory = FakeEndpointSecurityClientFactory()
         let session = try makeSession(factory: factory)
         session.stop()
         let stopped = factory.clients.map(\.calls.count)
@@ -125,7 +122,6 @@ final class CaptureSessionStopTests: XCTestCase {
     
     /// A session released without being stopped still unsubscribes and deletes every client.
     func testReleasingASessionStopsIt() throws {
-        let factory = FakeEndpointSecurityClientFactory()
         var session: CaptureSession? = try makeSession(factory: factory)
         XCTAssertNotNil(session)
         session = nil

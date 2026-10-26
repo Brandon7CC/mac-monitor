@@ -34,16 +34,15 @@ public struct ThreadState: Codable, Hashable {
         case flavor, state, state_base64
     }
     
-    /// A thread state from its values.
-    ///
-    /// - Parameters:
-    ///   - flavor: The state's flavor.
-    ///   - state_base64: The state's bytes in base64, or `nil` if they weren't recorded.
-    init(flavor: Int32, state_base64: String?) {
-        self.flavor = flavor
-        self.state_base64 = state_base64
+    /// The state's bytes, decoded from ``state_base64``: `nil` if they weren't recorded.
+    public var stateBytes: Data? {
+        state_base64.flatMap { Data(base64Encoded: $0) }
     }
-    
+}
+
+
+// MARK: - Coding
+extension ThreadState {
     /// Copy an event's thread state, keeping at most ``maxStateSize`` bytes. The bytes belong to the Endpoint Security
     /// message, so they're copied before the Security Extension's handler returns.
     ///
@@ -58,15 +57,6 @@ public struct ThreadState: Codable, Hashable {
         }
     }
     
-    /// The state's bytes, decoded from ``state_base64``: `nil` if they weren't recorded.
-    public var stateBytes: Data? {
-        state_base64.flatMap { Data(base64Encoded: $0) }
-    }
-}
-
-
-// MARK: - Coding
-extension ThreadState {
     /// Read `flavor`, and the bytes from Mac Monitor's `state_base64`, or from eslogger's `state` should it ever be a
     /// string.
     ///

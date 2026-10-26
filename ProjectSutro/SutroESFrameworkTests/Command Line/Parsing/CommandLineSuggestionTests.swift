@@ -18,12 +18,7 @@ final class CommandLineSuggestionTests: XCTestCase {
     /// - Parameter arguments: The arguments.
     /// - Returns: The error's message, or `nil` if it parses.
     private func usageError(_ arguments: String...) -> String? {
-        do {
-            _ = try CommandLineParser.parse(arguments)
-            return nil
-        } catch {
-            return (error as? CommandLineUsageError)?.description
-        }
+        thrown(CommandLineUsageError.self) { try CommandLineParser.parse(arguments) }?.description
     }
 
     /// Insertions, deletions, changes and swaps of neighbors each count one edit.

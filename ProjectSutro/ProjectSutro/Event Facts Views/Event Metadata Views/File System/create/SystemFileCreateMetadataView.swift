@@ -65,7 +65,15 @@ struct SystemFileCreateMetadataView: View {
         Int(create?.is_quarantined ?? 0)
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if create != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             FileCreateEventLabelView(message: esSystemEvent)

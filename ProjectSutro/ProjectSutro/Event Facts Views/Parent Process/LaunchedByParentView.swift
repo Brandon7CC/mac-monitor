@@ -76,22 +76,16 @@ extension LaunchedByParent.ResolvedBy {
 /// Launched-by parent badge, styled like ``GroupLeaderView``. Shows the launcher's name (e.g., "Dock"), or the
 /// source (e.g., "Launch Services") with `showsSource`.
 struct LaunchedByParentBadge: View {
+    /// The launched-by parent to show.
     let launchedByParent: LaunchedByParent
-    let showsSource: Bool
-    
-    /// - Parameters:
-    ///   - launchedByParent: The launched-by parent to show.
-    ///   - showsSource: Show the source instead of the launcher.
-    init(_ launchedByParent: LaunchedByParent, showsSource: Bool = false) {
-        self.launchedByParent = launchedByParent
-        self.showsSource = showsSource
-    }
+    /// Show the source instead of the launcher.
+    var showsSource = false
     
     private var source: LaunchedByParent.Source { launchedByParent.source }
     
     /// The launcher's name, else its pid. `nil` when no launcher was recorded.
     private var launcherName: String? {
-        if let name = launchedByParent.path.map({ ($0 as NSString).lastPathComponent }), !name.isEmpty { return name }
+        if let name = (launchedByParent.path?.lastPathComponent).nonEmpty { return name }
         return launchedByParent.pid.map { "pid \($0)" }
     }
     
@@ -129,8 +123,6 @@ struct LaunchedByParentBadge: View {
 /// the process that caused any other event, looked up in the store. Shows its source, its pid and executable, and its
 /// launchd job. Who named it, and whether its exec is in the trace, are in the heading's tooltip.
 struct LaunchedByParentFacts: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    
     /// The event.
     let message: ESMessage
     
@@ -138,11 +130,11 @@ struct LaunchedByParentFacts: View {
         GroupBox {
             /// The launched-by parent and the event that created it, or `nil` when the store doesn't have the
             /// process's creator.
-            let step = systemExtensionManager.coreDataContainer.lineage.launchedByParents(of: message, limit: 1).first
+            let step = CoreDataController.shared.lineage.launchedByParents(of: message, limit: 1).first
             VStack(alignment: .leading) {
                 HStack {
                     Text("**Launched by parent**").font(.title3)
-                    if let step { LaunchedByParentBadge(step.launchedByParent, showsSource: true) }
+                    if let step { LaunchedByParentBadge(launchedByParent: step.launchedByParent, showsSource: true) }
                 }
                 .help(details(step) ?? "")
                 if let step {

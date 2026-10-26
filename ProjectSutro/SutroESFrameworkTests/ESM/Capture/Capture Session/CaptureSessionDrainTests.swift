@@ -7,7 +7,6 @@
 
 import XCTest
 import EndpointSecurity
-import os
 @testable import SutroESFramework
 
 
@@ -17,7 +16,7 @@ import os
 final class CaptureSessionDrainTests: XCTestCase {
     private let queue = DispatchQueue(label: "CaptureSessionDrainTests")
     /// What reached the session's queue, in order: events by `global_seq_num`, and "drained".
-    private let arrivals = OSAllocatedUnfairLock<[String]>(initialState: [])
+    private let arrivals = Recorded<String>()
     
     /// A recording session whose events hop onto ``queue``, as a stream's do.
     ///
@@ -28,7 +27,7 @@ final class CaptureSessionDrainTests: XCTestCase {
         let session = try CaptureSession(CaptureConfiguration(label: "Test"), clients: factory,
                                          serializer: StubSerializer.globalSequence, sensorID: { "SENSOR" },
                                          emit: { [queue, arrivals] event in
-            queue.async { arrivals.withLock { $0.append(String(decoding: event.json, as: UTF8.self)) } }
+            queue.async { arrivals.append(String(decoding: event.json, as: UTF8.self)) }
         })
         session.isRecording = true
         return session
@@ -39,7 +38,7 @@ final class CaptureSessionDrainTests: XCTestCase {
     /// - Parameter session: The session.
     private func drain(_ session: CaptureSession) {
         queue.sync {
-            session.drain(on: queue) { [arrivals] in arrivals.withLock { $0.append("drained") } }
+            session.drain(on: queue) { [arrivals] in arrivals.append("drained") }
         }
     }
     
@@ -48,8 +47,8 @@ final class CaptureSessionDrainTests: XCTestCase {
     /// - Parameter drains: How many drains to wait for.
     /// - Returns: The arrivals.
     private func arrivals(after drains: Int = 1) -> [String] {
-        XCTAssertTrue(waitUntil { arrivals.withLock { $0.filter { $0 == "drained" }.count } >= drains })
-        return queue.sync { arrivals.withLock { $0 } }
+        XCTAssertTrue(waitUntil { arrivals.all.filter { $0 == "drained" }.count >= drains })
+        return queue.sync { arrivals.all }
     }
     
     /// Every client is unsubscribed from everything and then synced, and the drain completes after every event
@@ -79,7 +78,7 @@ final class CaptureSessionDrainTests: XCTestCase {
         factory.client(.process).releaseSyncs()
         factory.client(.memory).releaseSyncs()
         queue.sync {}
-        XCTAssertEqual(arrivals.withLock { $0 }, [])
+        XCTAssertEqual(arrivals.all, [])
         factory.client(.file).releaseSyncs()
         XCTAssertEqual(arrivals(), ["drained"])
     }

@@ -93,12 +93,14 @@ public final class CaptureSession {
         let events = Self.capturable(configuration.events, label: label)
         let sensorID = makeSensorID()
         let lanes = EventClass.allCases.map {
-            CaptureLane($0, sensorID: sensorID, serializer: serializer, launchServices: launchServices, emit: emit)
+            CaptureLane($0, label: label, sensorID: sensorID, serializer: serializer, launchServices: launchServices,
+                        emit: emit)
         }
         try Self.createClients(for: lanes, with: factory, label: label)
         appleMuteSet = Set((lanes.first?.client?.mutedPaths() ?? []).map { ProcessHelpers.eventToJSON(value: $0) })
-        if configuration.mutesSelf { Self.muteSelf(on: lanes, label: label) }
-        Self.apply(MuteList().changes(to: configuration.mutes), on: lanes, label: label)
+        if configuration.mutesSelf { lanes.forEach { $0.muteSelf() } }
+        let mutes = MuteList().changes(to: configuration.mutes)
+        lanes.forEach { $0.apply(mutes) }
         try Self.subscribe(lanes, to: events, label: label)
         
         self.label = label
@@ -164,7 +166,7 @@ public final class CaptureSession {
     public func stop() {
         guard !isStopped else { return }
         isStopped = true
-        Self.tearDown(lanes, label: label, timeout: closeTimeout)
+        Self.tearDown(lanes, timeout: closeTimeout)
         Self.logger.log("\(self.label, privacy: .public): stopped capturing and deleted its Endpoint Security clients.")
         logStatistics()
     }
@@ -236,7 +238,7 @@ extension CaptureSession {
     private static func subscribe(_ lanes: [CaptureLane], to events: [es_event_type_t], label: String) throws {
         let split = EventClassTable.split(events)
         for lane in lanes where lane.client?.subscribe(split[lane.eventClass] ?? []) != true {
-            tearDown(lanes, label: label, timeout: defaultCloseTimeout)
+            tearDown(lanes, timeout: defaultCloseTimeout)
             logger.error("""
                 \(label, privacy: .public): the \(lane.eventClass.rawValue, privacy: .public) client couldn't \
                 subscribe to its events. Deleted every client.
@@ -249,39 +251,11 @@ extension CaptureSession {
     ///
     /// - Parameters:
     ///   - lanes: The lanes.
-    ///   - label: Names the session in the log.
     ///   - timeout: How long to wait for the events being built.
-    private static func tearDown(_ lanes: [CaptureLane], label: String, timeout: DispatchTimeInterval) {
+    private static func tearDown(_ lanes: [CaptureLane], timeout: DispatchTimeInterval) {
         lanes.forEach { _ = $0.client?.unsubscribeAll() }
         lanes.forEach { $0.close() }
         let deadline = DispatchTime.now() + timeout
-        for lane in lanes {
-            let eventClass = lane.eventClass
-            guard lane.waitUntilIdle(until: deadline) else {
-                logger.fault("""
-                    \(label, privacy: .public): the \(eventClass.rawValue, privacy: .public) client was still building \
-                    an event at the deadline. Dropped the event; the client is deleted once it's done.
-                    """)
-                lane.releaseHeld()
-                lane.deleteClientOnceIdle { logDeletion(freed: $0, of: eventClass, label: label) }
-                continue
-            }
-            lane.releaseHeld()
-            logDeletion(freed: lane.deleteClient(), of: eventClass, label: label)
-        }
-    }
-    
-    /// Log a client whose deletion leaked Endpoint Security's resources.
-    ///
-    /// - Parameters:
-    ///   - freed: Whether Endpoint Security freed the client's resources.
-    ///   - eventClass: The client's class.
-    ///   - label: Names the session in the log.
-    private static func logDeletion(freed: Bool, of eventClass: EventClass, label: String) {
-        guard !freed else { return }
-        logger.error("""
-            \(label, privacy: .public): Endpoint Security leaked the \(eventClass.rawValue, privacy: .public) client's \
-            resources while deleting it.
-            """)
+        lanes.forEach { $0.deleteClient(by: deadline) }
     }
 }

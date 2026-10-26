@@ -230,7 +230,7 @@ final class UpdateInstaller {
 
 // MARK: - Errors
 extension UpdateInstaller {
-    enum UpdateError: Error, LocalizedError {
+    enum UpdateError: LocalizedError {
         case releaseLookupFailed
         case noNewerRelease
         case insecureDownload(URL)

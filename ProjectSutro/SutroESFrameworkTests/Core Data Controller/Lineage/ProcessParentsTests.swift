@@ -49,8 +49,7 @@ final class ProcessParentsTests: XCTestCase {
     /// it.
     func testLaunchdChildrenHaveTwoParents() throws {
         var messages = try lineageTrace()
-        let launcher = AuditToken(pid: 410, pidversion: 4102, asid: 100_001, auid: 4_294_967_295, euid: 0, ruid: 0,
-                                  rgid: 0, egid: 0)
+        let launcher = AuditToken.fixture(pid: 410, pidversion: 4102, asid: 100_001)
         messages[5].setLaunchedByParent(LaunchedByParent(source: .launchServices, audit_token: launcher, path: nil,
                                                          launchd_job: .init(label: Self.lineageAppLabel),
                                                          resolved_by: .app))

@@ -84,16 +84,9 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
         set { storedLaunchedByParent = newValue }
     }
     
-    /// The XPC service launchd started the process as: `XPC_SERVICE_NAME`'s value in ``env``, or `nil` without one.
-    public var xpcServiceName: String? {
-        Self.xpcServiceName(in: env)
-    }
-    
-    /// The XPC service name in a process's environment (``ProcessExecEvent/xpcServiceName(in:)``).
-    ///
-    /// - Parameter env: The environment's `KEY=value` entries, in order.
-    /// - Returns: The first `XPC_SERVICE_NAME`'s value, or `nil` without one or when it's empty or `0`.
-    static func xpcServiceName(in env: [String]) -> String? { ProcessExecEvent.xpcServiceName(in: env) }
+    /// The XPC service launchd started the process as: `XPC_SERVICE_NAME`'s value in ``env``, or `nil` without one
+    /// (``ProcessExecEvent/xpcServiceName(in:)``).
+    public var xpcServiceName: String? { ProcessExecEvent.xpcServiceName(in: env) }
     
     
     public var fds: [FileDescriptor] {

@@ -28,9 +28,7 @@ public struct ESAuthorizationResult: Identifiable, Codable, Hashable {
     public var right_name: String
     public var granted: Bool
     
-    public var ruleClassShortName: String {
-        return rule_class_string.replacingOccurrences(of: "ES_AUTHORIZATION_RULE_CLASS_", with: "")
-    }
+    public var ruleClassShortName: String { rule_class_string.droppingPrefix("ES_AUTHORIZATION_RULE_CLASS_") }
     
     public var description: String {
         return "Right name: \(self.ruleClassShortName), Rule class: \(rule_class), Granted: \(granted)"
@@ -83,10 +81,8 @@ public struct AuthorizationJudgementEvent: Codable, IdentityHashable {
         self.petitioner = event.petitioner.map { Process(from: $0.pointee, version: version) }
         
         /// Read whether or not Endpoint Security gave the processes, which are `_Nullable`.
-        if version >= 8 {
-            self.instigator_token = AuditToken(from: event.instigator_token)
-            self.petitioner_token = AuditToken(from: event.petitioner_token)
-        }
+        instigator_token = version >= 8 ? AuditToken(from: event.instigator_token) : nil
+        petitioner_token = version >= 8 ? AuditToken(from: event.petitioner_token) : nil
         
         if let rawResults = event.results {
             let esResults = (0..<event.result_count).map { index in

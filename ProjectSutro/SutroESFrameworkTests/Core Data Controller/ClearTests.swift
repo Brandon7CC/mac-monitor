@@ -89,7 +89,7 @@ final class ClearTests: XCTestCase {
         XCTAssertEqual(store.eventCount, 200)
         let context = store.container.newBackgroundContext()
         try context.performAndWait {
-            let request = NSFetchRequest<ESMessage>(entityName: "ESMessage")
+            let request = ESMessage.request()
             let model = store.container.managedObjectModel
             request.relationshipKeyPathsForPrefetching = ESMessage.recordPrefetchKeyPaths(in: model)
             XCTAssertTrue(try context.fetch(request).allSatisfy { $0.event.objectID.persistentStore != nil })
@@ -117,13 +117,7 @@ final class ClearTests: XCTestCase {
         let store = CoreDataController(model: eventModel)
         record(try events(2_000), in: store)
         let before = identifiers(of: store)
-        let context = store.container.newBackgroundContext()
-        let expected = try context.performAndWait {
-            let request = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-            request.sortDescriptors = [NSSortDescriptor(key: "mach_time", ascending: true),
-                                       NSSortDescriptor(key: "insert_order", ascending: true)]
-            return try context.fetch(request).map { ProcessHelpers.eventToJSON(value: $0) }.joined(separator: "\n")
-        }
+        let expected = try expectedExport(of: store.container)
 
         let url = try makeTemporaryDirectory().appendingPathComponent("trace.jsonl")
         let exported = expectation(description: "exported")
