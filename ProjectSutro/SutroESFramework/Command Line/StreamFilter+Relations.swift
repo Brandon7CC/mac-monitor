@@ -198,7 +198,7 @@ final class RelatedEvents {
     private func related(_ subquery: Subquery, to object: Any?) -> NSArray {
         guard failure == nil, let searched = object as? PredicateRecord else { return [] }
         do {
-            return try subquery.matches(for: searched) as NSArray
+            return try subquery.matches(for: searched)
         } catch {
             failure = "\(error)"
             return []
@@ -258,6 +258,9 @@ extension RelatedEvents {
         /// The events kept by group and their ``lookup`` path's value, built on first use. `nil` once a value
         /// can't be looked up by, an array or an object: those are each compared instead.
         private lazy var index: [Pair: [PredicateRecord]]? = makeIndex()
+        /// Which events each group kept are which event, to leave a searched event out of its own related events
+        /// without comparing it with each: built for a group on first use, and dropped when the group keeps another.
+        private var sameness: [AnyHashable: Sameness] = [:]
 
         /// A group and a value.
         private struct Pair: Hashable {
@@ -305,10 +308,11 @@ extension RelatedEvents {
             if let picks { guard try Self.evaluate(picks, searched: related, variable, related) else { return } }
             guard count < RelatedEvents.limit else {
                 overflowed = true
-                kept = [:]
+                (kept, sameness) = ([:], [:])
                 return
             }
             kept[group, default: []].append(related)
+            sameness[group] = nil
             count += 1
         }
 
@@ -316,7 +320,7 @@ extension RelatedEvents {
         /// - Returns: Its related events that the conditions on both events match.
         /// - Throws: ``Failure`` once the `SUBQUERY` kept too many events or compared too many pairs, or why the
         ///   conditions couldn't be evaluated.
-        func matches(for searched: PredicateRecord) throws -> [PredicateRecord] {
+        func matches(for searched: PredicateRecord) throws -> NSArray {
             guard !overflowed else {
                 throw Failure(description: """
                     SUBQUERY(\(relation.rawValue), $\(variable), …) picks more than \(RelatedEvents.limit) related \
@@ -324,12 +328,12 @@ extension RelatedEvents {
                     """)
             }
             guard let group = relation.group(ofSearched: searched.values), var related = kept[group] else {
-                return []
+                return NSArray()
             }
             if let lookup, let index, let value = try Self.lookupValue(lookup.searched, on: searched) {
                 related = index[Pair(group: group, value: value)] ?? []
             }
-            guard let joins else { return related.filter { !$0.isSame(as: searched) } }
+            guard let joins else { return excluding(searched, from: related, in: group) }
             compared += related.count
             guard compared <= RelatedEvents.pairLimit else {
                 throw Failure(description: """
@@ -340,7 +344,24 @@ extension RelatedEvents {
             }
             /// The searched event itself is left out after, from the few the conditions match.
             return try PredicateBridge.filter(related, with: joins, object: searched, variable: variable)
-                .compactMap { $0 as? PredicateRecord }.filter { !$0.isSame(as: searched) }
+                .compactMap { $0 as? PredicateRecord }.filter { !$0.isSame(as: searched) } as NSArray
+        }
+        
+        /// A group's events without the searched event itself (and any copy of it), in their order: the group's
+        /// array, or a view of it that skips those, never a copy. Filtering every one per searched event cost about
+        /// 10 ms with 20,000 kept.
+        ///
+        /// - Parameters:
+        ///   - searched: The searched event.
+        ///   - related: The group's events.
+        ///   - group: The group.
+        /// - Returns: Its related events.
+        private func excluding(_ searched: PredicateRecord, from related: [PredicateRecord],
+                               in group: AnyHashable) -> NSArray {
+            let same = sameness[group] ?? Sameness(related)
+            sameness[group] = same
+            let skipped = same.indexes(of: searched)
+            return skipped.isEmpty ? related as NSArray : SkippingArray(related, skipping: skipped)
         }
 
         /// - Returns: The events kept by group and ``lookup`` value, or `nil` if a value can't be looked up by.
@@ -464,14 +485,86 @@ extension RelatedEvents {
 
 
 // MARK: - Same event
+/// Which of a group's kept events are which event (``PredicateRecord/isSame(as:)``): by their storage, and by their
+/// type, sequence number and time, compared as `isEqual(_:)` compares them.
+struct Sameness {
+    /// An event's type, sequence number and time, if it has all three (`null` counts).
+    struct Identity: Hashable {
+        let values: [NSObject]
+        
+        /// - Parameter record: An event's record.
+        init?(_ record: NSDictionary) {
+            var values: [NSObject] = []
+            for key in PredicateRecord.identityKeys {
+                guard let value = record[key] as? NSObject else { return nil }
+                values.append(value)
+            }
+            self.values = values
+        }
+    }
+    
+    private var byStorage: [ObjectIdentifier: [Int]] = [:]
+    private var byIdentity: [Identity: [Int]] = [:]
+    
+    /// - Parameter records: A group's events, in order.
+    init(_ records: [PredicateRecord]) {
+        for (index, record) in records.enumerated() {
+            byStorage[ObjectIdentifier(record.values), default: []].append(index)
+            if let identity = Identity(record.values) { byIdentity[identity, default: []].append(index) }
+        }
+    }
+    
+    /// - Parameter searched: The searched event.
+    /// - Returns: The indexes of the group's events that are the same event, ascending.
+    func indexes(of searched: PredicateRecord) -> [Int] {
+        let identical = Identity(searched.values).flatMap { byIdentity[$0] } ?? []
+        return Set(identical + (byStorage[ObjectIdentifier(searched.values)] ?? [])).sorted()
+    }
+}
+
+
+/// Records without some of them, read in place, as `NSPredicate` reads a `SUBQUERY`'s related events.
+final class SkippingArray: NSArray {
+    private var records: [PredicateRecord] = []
+    /// The indexes left out, ascending.
+    private var skipped: [Int] = []
+    
+    /// - Parameters:
+    ///   - records: The records.
+    ///   - skipped: The indexes left out, ascending.
+    convenience init(_ records: [PredicateRecord], skipping skipped: [Int]) {
+        self.init()
+        self.records = records
+        self.skipped = skipped
+    }
+    
+    override init() { super.init() }
+    override init(objects: UnsafePointer<AnyObject>?, count: Int) { super.init(objects: objects, count: count) }
+    required init?(coder: NSCoder) { nil }
+    
+    override var count: Int { records.count - skipped.count }
+    
+    /// - Parameter index: A position among the records left in.
+    /// - Returns: The record there.
+    override func object(at index: Int) -> Any {
+        var position = index
+        for skip in skipped where skip <= position { position += 1 }
+        return records[position]
+    }
+}
+
+
 extension PredicateRecord {
+    /// The keys that tell one event from another (``isSame(as:)``).
+    static let identityKeys = ["mach_time", "global_seq_num", "es_event_type"]
+
     /// Is this the same event as another, by its type, sequence number and time? A searched event isn't related to
     /// itself.
     ///
     /// - Parameter other: Another record.
     /// - Returns: `true` if both have the same `es_event_type`, `global_seq_num` and `mach_time`.
     func isSame(as other: PredicateRecord) -> Bool {
-        values === other.values || ["mach_time", "global_seq_num", "es_event_type"].allSatisfy { key in
+        values === other.values || Self.identityKeys.allSatisfy { key in
             guard let value = values[key] as? NSObject else { return false }
             return value.isEqual(other.values[key])
         }

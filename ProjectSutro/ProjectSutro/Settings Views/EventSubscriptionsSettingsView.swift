@@ -265,40 +265,6 @@ private extension EventCatalog.Group {
     func matching(_ query: String) -> EventCatalog.Group? {
         guard !query.isEmpty else { return self }
         let events = events.filter { $0.title.lowercased().contains(query) || $0.name.lowercased().contains(query) }
-        return events.isEmpty ? nil : EventCatalog.Group(title: title, events: events)
-    }
-
-    /// The class's SF Symbol.
-    var symbol: String {
-        switch title {
-        case "Process": return "cpu"
-        case "File system": return "doc"
-        case "File metadata": return "tag"
-        case "Memory": return "memorychip"
-        case "Login and sessions": return "person.crop.circle"
-        case "Authorization and privacy": return "hand.raised"
-        case "Background items and profiles": return "gearshape.2"
-        case "Directory services": return "person.2"
-        case "IPC and kernel": return "arrow.left.arrow.right"
-        case "XProtect": return "xmark.shield"
-        default: return "ellipsis.circle"
-        }
-    }
-
-    /// The class's color, its tile's and its subscribed events'.
-    var tint: Color {
-        switch title {
-        case "Process": return .blue
-        case "File system": return .teal
-        case "File metadata": return .indigo
-        case "Memory": return .purple
-        case "Login and sessions": return .green
-        case "Authorization and privacy": return .orange
-        case "Background items and profiles": return .pink
-        case "Directory services": return .brown
-        case "IPC and kernel": return .cyan
-        case "XProtect": return .red
-        default: return .gray
-        }
+        return events.isEmpty ? nil : with(events)
     }
 }

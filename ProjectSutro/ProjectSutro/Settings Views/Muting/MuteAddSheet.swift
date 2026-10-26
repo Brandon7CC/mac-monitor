@@ -155,7 +155,7 @@ struct MuteAddSheet: View {
                 names.contains($0.name) && (query.isEmpty || $0.title.lowercased().contains(query)
                                             || $0.name.lowercased().contains(query))
             }
-            return events.isEmpty ? nil : EventCatalog.Group(title: group.title, events: events)
+            return events.isEmpty ? nil : group.with(events)
         }
     }
 

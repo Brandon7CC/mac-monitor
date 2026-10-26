@@ -78,17 +78,28 @@ public struct ConsoleUserSource: Sendable {
     /// - Parameter uid: The user ID.
     /// - Returns: `pw_dir`, or `nil` if there's no such user or the lookup fails.
     static func homeFolder(of uid: uid_t) -> String? {
+        passwordEntry(of: uid) { $0.pw_dir.map { String(cString: $0) } }
+    }
+    
+    /// Read a user's entry in the user database with `getpwuid_r`, which any thread may call at once (`getpwuid`
+    /// returns one buffer every caller shares).
+    ///
+    /// - Parameters:
+    ///   - uid: The user ID.
+    ///   - read: Reads what's wanted from the entry, whose strings last only for the call.
+    /// - Returns: What `read` returned, or `nil` if there's no such user or the lookup fails.
+    static func passwordEntry<Value>(of uid: uid_t, _ read: (passwd) -> Value?) -> Value? {
         var size = max(sysconf(_SC_GETPW_R_SIZE_MAX), 4_096)
         /// `getpwuid_r` asks for a larger buffer with `ERANGE`. A record never needs more than 1 MiB.
         while size <= 1 << 20 {
             var entry = passwd(), found: UnsafeMutablePointer<passwd>?
             var buffer = [CChar](repeating: 0, count: size)
-            let (code, home) = buffer.withUnsafeMutableBufferPointer { bytes in
+            let (code, value) = buffer.withUnsafeMutableBufferPointer { bytes in
                 let code = getpwuid_r(uid, &entry, bytes.baseAddress, bytes.count, &found)
-                /// `pw_dir` points into `bytes`, so it's read before they go.
-                return (code, found == nil ? nil : entry.pw_dir.map { String(cString: $0) })
+                /// The entry's strings point into `bytes`, so they're read before they go.
+                return (code, found == nil ? nil : read(entry))
             }
-            guard code == ERANGE else { return code == 0 ? home : nil }
+            guard code == ERANGE else { return code == 0 ? value : nil }
             size *= 2
         }
         return nil

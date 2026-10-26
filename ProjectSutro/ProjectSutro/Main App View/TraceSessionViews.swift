@@ -12,13 +12,23 @@ import SutroESFramework
 // MARK: - Toolbar
 /// The toolbar's trace status: while reading, the progress (by bytes) and Cancel; afterwards, what was skipped.
 ///
-/// Also shows "Clearing previous events…" while a Clear that takes a while (many events) is deleting.
+/// Also shows "Clearing previous events…" while a Clear that takes a while (many events) is deleting, and a save's
+/// progress and Cancel while one that takes a while is writing.
 struct TraceStatusView: View {
     /// The session whose trace this shows.
     @ObservedObject var session: TraceSession
     
-    /// Progress and Cancel while reading, clearing while a Clear deletes, or what was skipped.
+    /// A save's progress, then the trace's: each its own toolbar item, and none while there's nothing to show.
     var body: some View {
+        if session.showsSaving, let saving = session.saving {
+            TraceSaveStatus(name: saving.url.lastPathComponent, replacing: saving.replacing, progress: saving.progress,
+                            cancel: session.stopSaving)
+        }
+        trace
+    }
+    
+    /// Progress and Cancel while reading, clearing while a Clear deletes, or what was skipped.
+    @ViewBuilder private var trace: some View {
         if session.isOpening {
             HStack(spacing: 6) {
                 if session.isClearing {
@@ -74,6 +84,40 @@ struct TraceStatusView: View {
             details.append("Event types Mac Monitor doesn't show: \(types.joined(separator: ", ")).")
         }
         return text.isEmpty ? nil : (text.joined(separator: ", "), details.joined(separator: "\n"))
+    }
+}
+
+
+/// A save that's taking a while: its progress (by events) and Cancel, or a spinner until it knows its events.
+struct TraceSaveStatus: View {
+    /// The file being written.
+    let name: String
+    /// Is it replacing a file that's already there?
+    let replacing: Bool
+    /// How far the save has got, `nil` until it knows its events.
+    let progress: TelemetryExporter.Progress?
+    /// Stops the save, leaving the file as it was.
+    let cancel: () -> Void
+    
+    /// The progress bar or spinner, "Saving", and Cancel.
+    var body: some View {
+        HStack(spacing: 6) {
+            if let progress {
+                ProgressView(value: progress.fraction)
+                    .frame(width: 120)
+                Text("Saving \(TraceSession.percent(progress.fraction))")
+                    .monospacedDigit()
+            } else {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Saving…")
+                    .foregroundColor(.secondary)
+            }
+            Button("Cancel", action: cancel)
+                .help(replacing ? "Stop saving and leave “\(name)” as it was" : "Stop saving without creating “\(name)”")
+        }
+        .help(progress.map { "Saving \($0.written.formatted()) of \(TraceSession.counted($0.total, "event")) to “\(name)”" }
+              ?? "Saving “\(name)”")
     }
 }
 

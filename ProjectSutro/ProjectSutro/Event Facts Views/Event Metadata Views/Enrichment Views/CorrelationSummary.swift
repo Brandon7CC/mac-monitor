@@ -94,22 +94,15 @@ struct CorrelationSummary {
     }
 
     // MARK: Kinds
-    /// The kind each event is, by its `ES_EVENT_TYPE_NOTIFY_` name.
-    private static let groups: [String: String] = Dictionary(
-        EventCatalog.groups.flatMap { group in group.events.map { ($0.name, group.title) } },
+    /// The class each event is, by its `ES_EVENT_TYPE_NOTIFY_` name, colored as the catalog colors it.
+    private static let groups: [String: EventCatalog.Group] = Dictionary(
+        EventCatalog.groups.flatMap { group in group.events.map { ($0.name, group) } },
         uniquingKeysWith: { first, _ in first })
-    /// Each kind's color.
-    private static let colors: [String: Color] = [
-        "Process": .blue, "File system": .orange, "File metadata": .purple, "Memory": .teal,
-        "Login and sessions": .indigo, "Authorization and privacy": .yellow, "Background items and profiles": .green,
-        "Directory services": .brown, "IPC and kernel": .pink, "XProtect": .red,
-    ]
 
     /// - Parameter name: An `ES_EVENT_TYPE_NOTIFY_` name.
     /// - Returns: Its kind, or Other for one the catalog doesn't group.
     private static func kind(of name: String) -> Kind {
-        let title = groups[name] ?? "Other"
-        return Kind(title: title, color: colors[title] ?? .gray)
+        groups[name].map { Kind(title: $0.title, color: $0.tint) } ?? Kind(title: "Other", color: .gray)
     }
 
     // MARK: Details

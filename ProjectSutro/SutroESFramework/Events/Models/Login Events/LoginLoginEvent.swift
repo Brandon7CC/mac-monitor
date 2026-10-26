@@ -40,9 +40,9 @@ public struct LoginLoginEvent: Identifiable, Codable, Hashable {
         self.has_uid = loginLoginEvent.has_uid
         self.uid = loginLoginEvent.has_uid ? Int64(loginLoginEvent.uid.uid) : nil
         enrich()
-        /// Any user this Mac knows. A uid it doesn't (a directory user while the directory is offline, a deleted
-        /// account) keeps the name ``enrich()`` gave it.
-        if let uid, let name = Process.userName(Int(uid), systemAccountsOnly: false) {
+        /// Any user this Mac knows, read afresh: a login can be a new user's first. A uid it doesn't (a directory user
+        /// while the directory is offline, a deleted account) keeps the name ``enrich()`` gave it.
+        if let uid, let name = Process.userName(Int(uid), systemAccountsOnly: false, remembered: false) {
             self.uid_human = name
         }
     }

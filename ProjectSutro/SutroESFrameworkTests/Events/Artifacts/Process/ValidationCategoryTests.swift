@@ -66,6 +66,28 @@ final class ValidationCategoryTests: XCTestCase {
         XCTAssertEqual(process["cs_validation_category_string"] as? String, "ES_CS_VALIDATION_CATEGORY_PLATFORM")
     }
     
+    /// Every category exports its own name (a development-signed process was once named TestFlight), and one Mac
+    /// Monitor doesn't know is "UNKNOWN".
+    func testEveryCategoryHasItsOwnName() throws {
+        let categories = [ES_CS_VALIDATION_CATEGORY_NONE, ES_CS_VALIDATION_CATEGORY_OOPJIT,
+                          ES_CS_VALIDATION_CATEGORY_INVALID, ES_CS_VALIDATION_CATEGORY_ROSETTA,
+                          ES_CS_VALIDATION_CATEGORY_PLATFORM, ES_CS_VALIDATION_CATEGORY_ENTERPRISE,
+                          ES_CS_VALIDATION_CATEGORY_TESTFLIGHT, ES_CS_VALIDATION_CATEGORY_DEVELOPMENT,
+                          ES_CS_VALIDATION_CATEGORY_APP_STORE, ES_CS_VALIDATION_CATEGORY_DEVELOPER_ID,
+                          ES_CS_VALIDATION_CATEGORY_LOCAL_SIGNING]
+        let eslogger = try fixtureObject("eslogger-exit.jsonl")
+        var names: [String] = []
+        for category in categories + [es_cs_validation_category_t(rawValue: 9_999)] {
+            let process = try importedProcess(try record(eslogger, version: 10, category: Int(category.rawValue)))
+            names.append(try XCTUnwrap(process["cs_validation_category_string"] as? String))
+        }
+        XCTAssertEqual(names.last, "UNKNOWN")
+        XCTAssertEqual(names.dropLast(), [
+            "NONE", "OOPJIT", "INVALID", "ROSETTA", "PLATFORM", "ENTERPRISE", "TESTFLIGHT", "DEVELOPMENT", "APP_STORE",
+            "DEVELOPER_ID", "LOCAL_SIGNING",
+        ].map { "ES_CS_VALIDATION_CATEGORY_" + $0 })
+    }
+
     /// An eslogger record before message version 10 has no category, and neither has its export. Nor has a Mac
     /// Monitor 2.1 export of one, which wrote 0.
     func testImportedBeforeVersion10() throws {

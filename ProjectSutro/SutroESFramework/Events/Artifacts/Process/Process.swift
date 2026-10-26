@@ -7,6 +7,8 @@
 
 import Foundation
 import OSLog
+import notify
+import os
 
 
 public enum CodeSigningType: String, Codable, CaseIterable {
@@ -140,7 +142,7 @@ extension Process: ESEnrichable {
             ruid = Int(token.ruid)
             euid = Int(token.euid)
             ruid_human = Self.userName(ruid, systemAccountsOnly: !namingAllUsers)
-            euid_human = Self.userName(euid, systemAccountsOnly: !namingAllUsers)
+            euid_human = euid == ruid ? ruid_human : Self.userName(euid, systemAccountsOnly: !namingAllUsers)
         }
         
         // Code Signing Blobs: Exposes Kernel/kern/cs_blobs.h header file
@@ -157,45 +159,134 @@ extension Process: ESEnrichable {
         
         // macOS 26 support
         if let category = cs_validation_category {
-            switch es_cs_validation_category_t(rawValue: UInt32(truncatingIfNeeded: category)) {
-            case ES_CS_VALIDATION_CATEGORY_NONE:
-                self.cs_validation_category_string = "ES_CS_VALIDATION_CATEGORY_NONE"
-            case ES_CS_VALIDATION_CATEGORY_OOPJIT:
-                self.cs_validation_category_string = "ES_CS_VALIDATION_CATEGORY_OOPJIT"
-            case ES_CS_VALIDATION_CATEGORY_INVALID:
-                self.cs_validation_category_string = "ES_CS_VALIDATION_CATEGORY_INVALID"
-            case ES_CS_VALIDATION_CATEGORY_ROSETTA:
-                self.cs_validation_category_string = "ES_CS_VALIDATION_CATEGORY_ROSETTA"
-            case ES_CS_VALIDATION_CATEGORY_PLATFORM:
-                self.cs_validation_category_string = "ES_CS_VALIDATION_CATEGORY_PLATFORM"
-            case ES_CS_VALIDATION_CATEGORY_ENTERPRISE:
-                self.cs_validation_category_string = "ES_CS_VALIDATION_CATEGORY_ENTERPRISE"
-            case ES_CS_VALIDATION_CATEGORY_TESTFLIGHT:
-                self.cs_validation_category_string = "ES_CS_VALIDATION_CATEGORY_TESTFLIGHT"
-            case ES_CS_VALIDATION_CATEGORY_DEVELOPMENT:
-                self.cs_validation_category_string = "ES_CS_VALIDATION_CATEGORY_TESTFLIGHT"
-            case ES_CS_VALIDATION_CATEGORY_APP_STORE:
-                self.cs_validation_category_string = "ES_CS_VALIDATION_CATEGORY_APP_STORE"
-            case ES_CS_VALIDATION_CATEGORY_DEVELOPER_ID:
-                self.cs_validation_category_string = "ES_CS_VALIDATION_CATEGORY_DEVELOPER_ID"
-            case ES_CS_VALIDATION_CATEGORY_LOCAL_SIGNING:
-                self.cs_validation_category_string = "ES_CS_VALIDATION_CATEGORY_LOCAL_SIGNING"
-            default:
-                self.cs_validation_category_string = "UNKNOWN"
-            }
+            let name = Self.validationCategoryNames[UInt32(truncatingIfNeeded: category)]
+            cs_validation_category_string = name ?? "UNKNOWN"
         }
     }
     
-    /// A user's name, from this Mac's user database.
+    /// Each code signing validation category's name (macOS 26 and later), as `es_cs_validation_category_t` spells it.
+    static let validationCategoryNames: [UInt32: String] = Dictionary(uniqueKeysWithValues: [
+        (ES_CS_VALIDATION_CATEGORY_NONE, "NONE"), (ES_CS_VALIDATION_CATEGORY_OOPJIT, "OOPJIT"),
+        (ES_CS_VALIDATION_CATEGORY_INVALID, "INVALID"), (ES_CS_VALIDATION_CATEGORY_ROSETTA, "ROSETTA"),
+        (ES_CS_VALIDATION_CATEGORY_PLATFORM, "PLATFORM"), (ES_CS_VALIDATION_CATEGORY_ENTERPRISE, "ENTERPRISE"),
+        (ES_CS_VALIDATION_CATEGORY_TESTFLIGHT, "TESTFLIGHT"), (ES_CS_VALIDATION_CATEGORY_DEVELOPMENT, "DEVELOPMENT"),
+        (ES_CS_VALIDATION_CATEGORY_APP_STORE, "APP_STORE"), (ES_CS_VALIDATION_CATEGORY_DEVELOPER_ID, "DEVELOPER_ID"),
+        (ES_CS_VALIDATION_CATEGORY_LOCAL_SIGNING, "LOCAL_SIGNING"),
+    ].map { ($0.rawValue, "ES_CS_VALIDATION_CATEGORY_" + $1) })
+    
+    /// A user's name, from this Mac's user database (``UserNames``).
     ///
     /// - Parameters:
     ///   - uid: The user's ID.
     ///   - systemAccountsOnly: Name only system accounts (IDs below 500), which every Mac shares: an event from a trace
     ///     recorded on another Mac belongs to that Mac's users, whose IDs this Mac may give to others.
+    ///   - remembered: Use a name remembered from before, rather than asking the user database again.
     /// - Returns: The name, or `nil` if there's no such user (or it isn't a system account).
-    static func userName(_ uid: Int?, systemAccountsOnly: Bool) -> String? {
-        guard let uid, !systemAccountsOnly || (0..<500).contains(uid),
-              let entry = getpwuid(uid_t(truncatingIfNeeded: uid)) else { return nil }
-        return String(cString: entry.pointee.pw_name)
+    static func userName(_ uid: Int?, systemAccountsOnly: Bool, remembered: Bool = true) -> String? {
+        guard let uid, !systemAccountsOnly || (0..<500).contains(uid) else { return nil }
+        let id = uid_t(truncatingIfNeeded: uid)
+        return remembered ? UserNames.shared.name(of: id) : UserNames.databaseName(of: id)
+    }
+}
+
+
+// MARK: - User names
+/// Users' names, from this Mac's user database, remembered for a few minutes.
+///
+/// Every process in every event names its real and effective users. libinfo remembers only the last 20 users it looked
+/// up, for the whole process, so with more users running (this Mac had 42) most lookups went to opendirectoryd and
+/// back: 45 to 61 µs on an Endpoint Security thread, and about 200 µs, every time, for an ID with no user. Names are
+/// kept for five minutes, and forgotten at once when Directory Services posts the notifications libinfo itself
+/// forgets on (a user changed on this Mac); a change made on a directory server posts nothing, so the five minutes
+/// bound how long an old name lasts. IDs with no user are kept for a few seconds. If the notifications can't be had,
+/// nothing is kept.
+///
+/// Any thread.
+final class UserNames {
+    /// The one every event uses.
+    static let shared = UserNames(changedBy: [kNotifyDSCacheInvalidation, kNotifyDSCacheInvalidationUser])
+    /// The most IDs remembered: past this, the names start over.
+    static let capacity = 1_024
+    
+    /// The names, and how many times the user database has changed.
+    private struct State {
+        var names: [uid_t: (name: String?, until: UInt64)] = [:]
+        var changes = 0
+        var remembers = true
+    }
+    
+    private let state = OSAllocatedUnfairLock(initialState: State())
+    /// Reads a name from the user database.
+    private let lookUp: (uid_t) -> String?
+    /// How long a name is remembered, in nanoseconds.
+    private let hitLifetime: UInt64
+    /// How long an ID with no user is remembered, in nanoseconds.
+    private let missLifetime: UInt64
+    /// Where the notifications arrive.
+    private let queue = DispatchQueue(label: "com.swiftlydetecting.agent.UserNames")
+    private var tokens: [Int32] = []
+    
+    /// - Parameters:
+    ///   - notifications: The notifications that mean the user database changed.
+    ///   - hitLifetime: How long a name is remembered, in nanoseconds: 5 minutes, since a change made on a directory
+    ///     server (Active Directory, LDAP) posts nothing until Directory Services reads it again.
+    ///   - missLifetime: How long an ID with no user is remembered, in nanoseconds: 10 seconds.
+    ///   - lookUp: Reads a name from the user database.
+    init(changedBy notifications: [String], hitLifetime: UInt64 = 300_000_000_000,
+         missLifetime: UInt64 = 10_000_000_000, lookUp: @escaping (uid_t) -> String? = UserNames.databaseName(of:)) {
+        self.lookUp = lookUp
+        self.hitLifetime = hitLifetime
+        self.missLifetime = missLifetime
+        for notification in notifications {
+            var token: Int32 = 0
+            guard notify_register_dispatch(notification, &token, queue, { [weak self] _ in self?.forget() })
+                    == NOTIFY_STATUS_OK else {
+                state.withLock { $0.remembers = false }
+                continue
+            }
+            tokens.append(token)
+        }
+    }
+    
+    deinit { tokens.forEach { notify_cancel($0) } }
+    
+    /// How many times the user database has changed, for tests.
+    var changes: Int { state.withLock { $0.changes } }
+    
+    /// A user's name: remembered, or read from the user database (outside the lock) and remembered, unless the
+    /// database changed meanwhile.
+    ///
+    /// - Parameter uid: The user's ID.
+    /// - Returns: The name, or `nil` if there's no such user.
+    func name(of uid: uid_t) -> String? {
+        let now = DispatchTime.now().uptimeNanoseconds
+        let (known, changes, remembers) = state.withLock { state in
+            (state.names[uid].flatMap { $0.until > now ? $0 : nil }, state.changes, state.remembers)
+        }
+        if let known { return known.name }
+        let name = lookUp(uid)
+        guard remembers else { return name }
+        state.withLock { state in
+            guard state.changes == changes else { return }
+            if state.names.count >= Self.capacity { state.names.removeAll(keepingCapacity: true) }
+            state.names[uid] = (name, now + (name == nil ? missLifetime : hitLifetime))
+        }
+        return name
+    }
+    
+    /// The user database changed: forget every name.
+    func forget() {
+        state.withLock { state in
+            state.changes += 1
+            state.names.removeAll()
+        }
+    }
+    
+    /// A user's name, read from the user database.
+    ///
+    /// - Parameter uid: The user's ID.
+    /// - Returns: `pw_name`, or `nil` if there's no such user.
+    static func databaseName(of uid: uid_t) -> String? {
+        ConsoleUserSource.passwordEntry(of: uid) { $0.pw_name.map { String(cString: $0) } }
     }
 }

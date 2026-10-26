@@ -54,9 +54,7 @@ public struct LaunchItem: Identifiable, Codable, Hashable {
         uid = Int64(launchItem.uid)
         
         enrich()
-        if let rpw = getpwuid(launchItem.uid) {
-            self.uid_human = String(cString: rpw.pointee.pw_name)
-        }
+        uid_human = Process.userName(Int(launchItem.uid), systemAccountsOnly: false) ?? uid_human
         
         // MARK: Plist
         guard launchItem.item_type == ES_BTM_ITEM_TYPE_AGENT || launchItem.item_type == ES_BTM_ITEM_TYPE_DAEMON else { return }
