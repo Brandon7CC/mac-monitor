@@ -29,7 +29,7 @@ struct SystemBTMRemoveMetadataView: View {
         ScrollView {
             VStack(alignment: .leading) {
                 // MARK: Event label
-                BTMLaunchItemRemoveEventLabelView(message: esSystemEvent)
+                SystemEventTypeLabel(message: esSystemEvent)
                     .font(.title2)
 
                 GroupBox {

@@ -29,11 +29,7 @@ struct SystemOpenDirectoryMetadataView: View {
     var body: some View {
         if let event = message.event.openDirectoryEvent {
             OpenDirectoryFactsView(message: message, event: event, role: Self.role(of: event)) {
-                switch event {
-                case is ESODCreateUserEvent: OpenDirectoryCreateUserEventLabelView(message: message)
-                case is ESODModifyPasswordEvent: OpenDirectoryModifyPasswordEventLabelView(message: message)
-                default: OrangeEventLabelView(message: message)
-                }
+                SystemEventTypeLabel(message: message, tint: .orange)
             } facts: {
                 switch event {
                 case let event as ESODCreateUserEvent:

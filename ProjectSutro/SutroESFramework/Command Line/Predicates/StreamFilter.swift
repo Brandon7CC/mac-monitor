@@ -77,7 +77,17 @@ public struct StreamFilter: Equatable {
         /// - Throws: ``CommandLineUsageError`` if it's too long, `NSPredicate` can't read it, or it does more than
         ///   compare values.
         public init(_ source: String, for audience: PredicateAudience = .commandLine) throws {
-            guard source.count <= Self.maxLength else {
+            try self.init(source, for: audience, maxLength: Self.maxLength)
+        }
+
+        /// - Parameters:
+        ///   - source: The predicate's format.
+        ///   - audience: Who its errors are for.
+        ///   - maxLength: The longest predicate taken, in characters.
+        /// - Throws: ``CommandLineUsageError`` if it's too long, `NSPredicate` can't read it, or it does more than
+        ///   compare values.
+        private init(_ source: String, for audience: PredicateAudience, maxLength: Int) throws {
+            guard source.count <= maxLength else {
                 throw CommandLineUsageError("\(audience.name) can't be longer than \(Self.maxLength) characters.",
                                             command: audience.command)
             }
@@ -141,7 +151,54 @@ public struct StreamFilter: Equatable {
         /// The same predicate, parsed again, for another thread: `NSPredicate` doesn't say it's thread-safe. It has
         /// no related events yet.
         public var copy: Predicate {
-            (try? Predicate(source, for: audience)) ?? self
+            (try? Predicate(source, for: audience, maxLength: .max)) ?? self
+        }
+
+        /// A predicate that matches an event only when every source does. Each source is checked on its own first,
+        /// so an error names only that source. The sources together may be longer than ``maxLength``.
+        ///
+        /// - Parameters:
+        ///   - sources: The predicates. Blank ones are left out.
+        ///   - audience: Who their errors are for.
+        /// - Returns: The one source alone, the sources in parentheses joined by `AND`, or `nil` when all are blank.
+        /// - Throws: ``CommandLineUsageError`` for the first source that can't be used.
+        public static func all(_ sources: [String], for audience: PredicateAudience = .commandLine) throws
+            -> Predicate? {
+            let parts = try sources.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .map { try Predicate($0, for: audience) }
+            return try all(parts, for: audience)
+        }
+
+        /// A predicate that matches an event only when every predicate does. The predicates together may be longer
+        /// than ``maxLength``.
+        ///
+        /// - Parameters:
+        ///   - predicates: The predicates, each already checked.
+        ///   - audience: Who the combined predicate's errors are for.
+        /// - Returns: The one predicate alone, the predicates in parentheses joined by `AND`, or `nil` for none.
+        /// - Throws: ``CommandLineUsageError`` if they can't be read together.
+        public static func all(_ predicates: [Predicate], for audience: PredicateAudience) throws -> Predicate? {
+            guard predicates.count > 1 else { return predicates.first }
+            return try Predicate(predicates.map { "(\($0.source))" }.joined(separator: " AND "), for: audience,
+                                 maxLength: .max)
+        }
+
+        /// A predicate that matches an event when any source does. Each source is checked on its own first, and one
+        /// that can't be used is left out. The sources together may be longer than ``maxLength``.
+        ///
+        /// - Parameters:
+        ///   - sources: The predicates. Blank ones are left out.
+        ///   - audience: Who their errors are for.
+        /// - Returns: The one usable source alone, the usable sources in parentheses joined by `OR`, or `nil` when
+        ///   none can be used.
+        public static func any(_ sources: [String], for audience: PredicateAudience = .commandLine) -> Predicate? {
+            let parts = sources.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .compactMap { try? Predicate($0, for: audience) }
+            guard parts.count > 1 else { return parts.first }
+            return try? Predicate(parts.map { "(\($0.source))" }.joined(separator: " OR "), for: audience,
+                                  maxLength: .max)
         }
 
         /// Two predicates are the same if they were typed the same.

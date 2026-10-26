@@ -11,11 +11,22 @@ import Foundation
 // MARK: - Findings
 /// What's worth a look among an event's related events: a predicate on each event's record, with what Event Facts
 /// calls it. Correlation shows the findings among the events of the process an exec created, Groups among a group's
-/// execs. Mac Monitor ships ``defaults``, and people add their own in Settings ▸ Findings.
+/// execs. The tables mark the events of those with ``showsInTables``. Mac Monitor ships ``defaults``, and people add
+/// their own in Settings ▸ Findings. The tables also draw ``builtInMarks``, which aren't listed there.
 public struct Finding: Codable, Identifiable, Hashable {
-    /// A finding's color, by name, for its card and its rows' dots.
+    /// A finding's color, by name, for its card, its rows' dots and its symbol.
     public enum Color: String, Codable, CaseIterable {
-        case red, orange, yellow, green, teal, blue, indigo, purple, pink, gray
+        case red, orange, yellow, green, teal, blue, indigo, purple, pink, gray, black, primary
+    }
+
+    /// How its symbol is drawn.
+    public enum Rendering: String, Codable, CaseIterable {
+        /// In ``color``.
+        case monochrome
+        /// In ``palette``'s colors, one a layer.
+        case palette
+        /// In the symbol's own colors.
+        case multicolor
     }
 
     public var id: UUID
@@ -26,13 +37,17 @@ public struct Finding: Codable, Identifiable, Hashable {
     /// Its SF Symbol.
     public var symbol: String
     public var color: Color
+    /// How its symbol is drawn.
+    public var rendering: Rendering
+    /// The colors of its symbol's layers, for ``Rendering/palette``.
+    public var palette: [Color]
     /// The predicate an event matches, on the event's record, as `macmonitor stream --predicate` takes one.
     public var predicate: String
     /// Does it show in Correlation, among the events of the process an exec created?
     public var showsInCorrelation: Bool
     /// Does it show in Groups, among a process group's or session's execs?
     public var showsInGroups: Bool
-    /// Does its symbol mark its events in the event tables, as a script's exec is marked?
+    /// Does its symbol mark its events in the event tables, and is it offered under the Filters button?
     public var showsInTables: Bool
     public var isEnabled: Bool
 
@@ -42,18 +57,23 @@ public struct Finding: Codable, Identifiable, Hashable {
     ///   - explanation: Why it's worth a look.
     ///   - symbol: Its SF Symbol.
     ///   - color: Its color.
+    ///   - rendering: How its symbol is drawn.
+    ///   - palette: The colors of its symbol's layers, for a palette.
     ///   - predicate: The predicate an event matches.
     ///   - correlation: Does it show in Correlation?
     ///   - groups: Does it show in Groups?
     ///   - tables: Does its symbol mark its events in the event tables?
     ///   - isEnabled: Is it on?
-    public init(id: UUID = UUID(), name: String, explanation: String, symbol: String, color: Color, predicate: String,
+    public init(id: UUID = UUID(), name: String, explanation: String, symbol: String, color: Color,
+                rendering: Rendering = .monochrome, palette: [Color] = [], predicate: String,
                 correlation: Bool, groups: Bool, tables: Bool = false, isEnabled: Bool = true) {
         self.id = id
         self.name = name
         self.explanation = explanation
         self.symbol = symbol
         self.color = color
+        self.rendering = rendering
+        self.palette = palette
         self.predicate = predicate
         showsInCorrelation = correlation
         showsInGroups = groups
@@ -73,8 +93,8 @@ public struct Finding: Codable, Identifiable, Hashable {
 }
 
 extension Finding {
-    /// A saved finding from before ``showsInTables``: a default takes Mac Monitor's choice, and one of its own doesn't
-    /// mark the tables.
+    /// A saved finding. One saved before ``showsInTables`` takes the default's choice, or doesn't mark the tables. One
+    /// saved before ``rendering`` is drawn in its color.
     ///
     /// - Parameter decoder: The saved findings.
     public init(from decoder: Decoder) throws {
@@ -85,6 +105,8 @@ extension Finding {
         explanation = try container.decode(String.self, forKey: .explanation)
         symbol = try container.decode(String.self, forKey: .symbol)
         color = try container.decode(Color.self, forKey: .color)
+        rendering = try container.decodeIfPresent(Rendering.self, forKey: .rendering) ?? .monochrome
+        palette = try container.decodeIfPresent([Color].self, forKey: .palette) ?? []
         predicate = try container.decode(String.self, forKey: .predicate)
         showsInCorrelation = try container.decode(Bool.self, forKey: .showsInCorrelation)
         showsInGroups = try container.decode(Bool.self, forKey: .showsInGroups)
@@ -95,104 +117,35 @@ extension Finding {
 }
 
 
-// MARK: - Defaults
-public extension Finding {
-    /// The findings Mac Monitor ships, each with an identity of its own, so Restore Defaults puts back the same ones.
-    static let defaults: [Finding] = [
-        Finding(id: uuid(1), name: "Reflective loading",
-                explanation: "Wrote or mapped the image NSCreateObjectFileImageFromMemory makes of a Mach-O it loads "
-                    + "from memory: reflective code loading (T1620).",
-                symbol: "memorychip", color: .red,
-                predicate: #"es_event_type IN {"ES_EVENT_TYPE_NOTIFY_CREATE", "ES_EVENT_TYPE_NOTIFY_WRITE", "#
-                    + #""ES_EVENT_TYPE_NOTIFY_MMAP"} AND target_path CONTAINS "/NSCreateObjectFileImageFromMemory-""#,
-                correlation: true, groups: false),
-        Finding(id: uuid(2), name: "Not quarantined",
-                explanation: "Written without the quarantine attribute by a process whose files macOS quarantines, so "
-                    + "Gatekeeper won't check it when it's opened.",
-                symbol: "exclamationmark.shield", color: .orange,
-                predicate: #"es_event_type IN {"ES_EVENT_TYPE_NOTIFY_CREATE", "ES_EVENT_TYPE_NOTIFY_RENAME"} "#
-                    + #"AND process.file_quarantine_type != "DISABLED" "#
-                    + "AND (event.create.is_quarantined == 0 OR event.rename.is_quarantined == 0)",
-                correlation: true, groups: false),
-        Finding(id: uuid(3), name: "Quarantine removed",
-                explanation: "Deleted com.apple.quarantine, so Gatekeeper won't check the file when it's opened.",
-                symbol: "xmark.shield", color: .red,
-                predicate: #"es_event_type == "ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR" "#
-                    + #"AND event.deleteextattr.extattr == "com.apple.quarantine""#,
-                correlation: true, groups: false),
-        Finding(id: uuid(4), name: "Background item added",
-                explanation: "Added a background item, which runs again at login.",
-                symbol: "gearshape.2", color: .green,
-                predicate: #"es_event_type == "ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD""#,
-                correlation: true, groups: false),
-        Finding(id: uuid(5), name: "XProtect detection",
-                explanation: "XProtect detected or remediated malware.",
-                symbol: "xmark.octagon", color: .red,
-                predicate: #"es_event_type IN {"ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED", "#
-                    + #""ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED"}"#,
-                correlation: true, groups: false),
-        Finding(id: uuid(6), name: "AppleScript loaded",
-                explanation: "Mapped an Open Scripting Architecture component, as a process running AppleScript does.",
-                symbol: "applescript", color: .purple,
-                predicate: #"es_event_type == "ES_EVENT_TYPE_NOTIFY_MMAP" AND (target_path CONTAINS "#
-                    + #""AppleScript.component" OR target_path CONTAINS "JavaScript.component" "#
-                    + #"OR target_path CONTAINS ".osax")"#,
-                correlation: true, groups: false),
-        Finding(id: uuid(7), name: "Keychain opened",
-                explanation: "Opened a keychain, which holds passwords and keys.",
-                symbol: "key", color: .blue,
-                predicate: #"es_event_type == "ES_EVENT_TYPE_NOTIFY_OPEN" AND target_path CONTAINS "/Keychains/""#,
-                correlation: true, groups: false),
-        Finding(id: uuid(8), name: "Login",
-                explanation: "A login, by the login window, login(1), or SSH.",
-                symbol: "person.badge.key", color: .blue,
-                predicate: #"es_event_type IN {"ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN", "#
-                    + #""ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN", "ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGIN"}"#,
-                correlation: true, groups: false),
-        Finding(id: uuid(9), name: "New executable",
-                explanation: "Its executable was created less than five minutes before it ran, as a dropper's payload "
-                    + "is.",
-                symbol: "clock.badge.exclamationmark", color: .orange,
-                predicate: #"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC" AND event.exec.executable_age_ms < 300000"#,
-                correlation: false, groups: true, tables: true),
-        Finding(id: uuid(10), name: "Adhoc or unsigned",
-                explanation: "Ran code that isn't signed by a known developer: adhoc, as a freshly compiled or "
-                    + "modified binary is, or not at all.",
-                symbol: "xmark.seal", color: .orange,
-                predicate: #"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC" "#
-                    + #"AND event.exec.target.codesigning_type IN {"ADHOC", "UNSIGNED"}"#,
-                correlation: false, groups: true),
-        Finding(id: uuid(11), name: "Ran a script",
-                explanation: "An interpreter ran a script Mac Monitor read. That exec's Script tab shows its content.",
-                symbol: "scroll.fill", color: .purple,
-                predicate: #"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC" AND event.exec.script_content != nil "#
-                    + #"AND event.exec.script_content != """#,
-                correlation: false, groups: true, tables: true),
-        Finding(id: uuid(12), name: "osascript",
-                explanation: "osascript ran AppleScript or JXA, which stealers use for fake password prompts and to "
-                    + "drive other apps.",
-                symbol: "applescript", color: .indigo,
-                predicate: #"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC" "#
-                    + #"AND event.exec.target.executable.name == "osascript""#,
-                correlation: false, groups: true),
-        Finding(id: uuid(13), name: "Download tool",
-                explanation: "A command line download tool ran, as a dropper does to fetch its payload.",
-                symbol: "arrow.down.circle", color: .blue,
-                predicate: #"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC" AND event.exec.target.executable.name "#
-                    + #"IN {"curl", "wget", "nscurl", "ftp", "tftp", "scp", "sftp"}"#,
-                correlation: false, groups: true),
-        Finding(id: uuid(14), name: "Non-Apple as root",
-                explanation: "Ran as root without Apple's signature.",
-                symbol: "bolt.shield", color: .red,
-                predicate: #"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC" AND event.exec.target.euid == 0 "#
-                    + #"AND event.exec.target.codesigning_type != "PLATFORM""#,
-                correlation: false, groups: true),
-    ]
+// MARK: - Finding filter
+/// The findings whose events the Filters sheet shows only: one finding, or any finding. It's kept by identity, so its
+/// predicate is read from the findings as they are now.
+public enum FindingSelection: Hashable {
+    /// Every offered finding's events.
+    case any
+    /// One finding's events, by its identity.
+    case finding(UUID)
 
-    /// - Parameter number: A default finding's number.
-    /// - Returns: Its identity: the same on every Mac, so a saved set knows which defaults it has.
-    private static func uuid(_ number: Int) -> UUID {
-        UUID(uuidString: String(format: "6D4D0F1D-0000-4000-8000-%012X", number))!
+    /// The findings it can filter by: those on, marked in the tables, and whose predicate can be used.
+    ///
+    /// - Parameter findings: Every finding, in order.
+    /// - Returns: Those offered under the Filters button.
+    public static func offered(_ findings: [Finding]) -> [Finding] {
+        findings.filter { $0.isEnabled && $0.showsInTables && $0.problem == nil }
+    }
+
+    /// - Parameters:
+    ///   - findings: Every finding, in order.
+    ///   - audience: Who the predicate is for.
+    /// - Returns: Its predicate, any offered finding's for ``any``. It's `nil` when no finding it names is offered.
+    public func predicate(among findings: [Finding], for audience: PredicateAudience) -> StreamFilter.Predicate? {
+        let offered = Self.offered(findings)
+        switch self {
+        case .any:
+            return .any(offered.map(\.predicate), for: audience)
+        case .finding(let id):
+            return offered.first { $0.id == id }.flatMap { .any([$0.predicate], for: audience) }
+        }
     }
 }
 
@@ -218,7 +171,7 @@ public final class FindingMatcher {
     /// The findings an event is part of. The store's columns rule most out first
     /// (``StreamFilter/Predicate/storePredicate``). A finding that only compares values the stored event holds as its
     /// record does is evaluated on the event itself (``StoredEventValues``); the record is encoded only for the rest:
-    /// about 380 µs an exec row, which the default findings never need.
+    /// about 380 µs an exec row, which Mac Monitor's own findings and marks never need.
     ///
     /// - Parameter message: The event.
     /// - Returns: Its findings, in order.
@@ -245,15 +198,21 @@ public final class FindingMatcher {
 /// predicate that compares only those is evaluated without encoding the record.
 final class StoredEventValues: NSObject {
     /// The key paths whose value on the stored event is the record's.
-    static let keyPaths = emptyWhenNil.union([
+    static let keyPaths = emptyWhenNil.union(arrays).union([
         "es_event_type", "event_type", "context", "target_path", "event.exec.executable_age_ms",
-        "event.exec.script_content", "event.exec.target.euid", "event.create.is_quarantined",
-        "event.rename.is_quarantined", "event.deleteextattr.extattr",
+        "event.exec.script_content", "event.exec.target.euid", "event.exec.target.ruid",
+        "event.exec.target.is_adhoc_signed", "event.exec.target.signing_id", "event.exec.target.executable.path",
+        "event.exec.dyld_exec_path", "event.create.is_quarantined", "event.rename.is_quarantined",
+        "event.deleteextattr.extattr", "event.setextattr.extattr", "event.iokit_open.user_client_class",
+        "event.exit.stat", "process.executable.name",
     ])
     /// Strings the store keeps as `nil` where the record writes "".
     static let emptyWhenNil: Set<String> = [
         "event.exec.target.codesigning_type", "process.file_quarantine_type", "event.exec.target.executable.name",
+        "event.exec.target.file_quarantine_type",
     ]
+    /// Arrays of strings the store keeps encoded, which `ANY` compares.
+    static let arrays: Set<String> = ["event.exec.env"]
     /// The comparisons that read a value as the record path reads it.
     private static let operators: Set<NSComparisonPredicate.Operator> = [
         .equalTo, .notEqualTo, .lessThan, .lessThanOrEqualTo, .greaterThan, .greaterThanOrEqualTo, .in, .beginsWith,
@@ -267,26 +226,31 @@ final class StoredEventValues: NSObject {
         self.message = message
     }
     
-    /// Can a predicate be evaluated on a stored event, as on its record? Only ANDs and ORs of plain comparisons (no
-    /// `ANY` or `ALL`) of those key paths with constants: no `NOT`, `MATCHES`, `SUBQUERY`, aggregates or functions.
+    /// Can a predicate be evaluated on a stored event, as on its record? Only `AND`, `OR` and `NOT` of comparisons of
+    /// those key paths with constants or with each other. `ANY` only for ``arrays``. No `ALL`, `MATCHES`, `SUBQUERY`,
+    /// aggregates or functions.
     ///
     /// - Parameter predicate: A parsed predicate.
     /// - Returns: Whether it can.
     static func canEvaluate(_ predicate: NSPredicate) -> Bool {
         switch predicate {
         case let compound as NSCompoundPredicate:
-            return compound.compoundPredicateType != .not
-                && compound.subpredicates.allSatisfy { ($0 as? NSPredicate).map(canEvaluate) ?? false }
+            return compound.subpredicates.allSatisfy { ($0 as? NSPredicate).map(canEvaluate) ?? false }
         case let comparison as NSComparisonPredicate:
-            return comparison.comparisonPredicateModifier == .direct
-                && operators.contains(comparison.predicateOperatorType)
-                && comparison.leftExpression.expressionType == .keyPath
-                && keyPaths.contains(comparison.leftExpression.keyPath) && isConstant(comparison.rightExpression)
+            let left = comparison.leftExpression
+            guard left.expressionType == .keyPath, keyPaths.contains(left.keyPath),
+                  operators.contains(comparison.predicateOperatorType) else { return false }
+            switch comparison.comparisonPredicateModifier {
+            case .direct: break
+            case .any where arrays.contains(left.keyPath): break
+            default: return false
+            }
+            return isConstant(comparison.rightExpression) || isStoredKeyPath(comparison.rightExpression)
         default:
             return false
         }
     }
-    
+
     /// - Parameter expression: The right side of a comparison.
     /// - Returns: Whether it's a constant, or a set of constants (`IN {"a", "b"}`).
     private static func isConstant(_ expression: NSExpression) -> Bool {
@@ -296,7 +260,13 @@ final class StoredEventValues: NSObject {
         default: return false
         }
     }
-    
+
+    /// - Parameter expression: The right side of a comparison.
+    /// - Returns: Whether it's one of ``keyPaths``, other than an array.
+    private static func isStoredKeyPath(_ expression: NSExpression) -> Bool {
+        expression.expressionType == .keyPath && keyPaths.subtracting(arrays).contains(expression.keyPath)
+    }
+
     /// Evaluate a predicate ``canEvaluate(_:)`` passed. One that raises doesn't match, as on the record.
     ///
     /// - Parameter predicate: The predicate.
@@ -306,11 +276,12 @@ final class StoredEventValues: NSObject {
     }
     
     /// A key path's value on the stored event: "" for a string the record writes as "" and the store keeps as `nil`,
-    /// where the object holding it is there.
+    /// where the object holding it is there. An exec's environment is decoded from the store.
     ///
     /// - Parameter keyPath: One of ``keyPaths``.
     /// - Returns: The value.
     override func value(forKeyPath keyPath: String) -> Any? {
+        if keyPath == "event.exec.env" { return message.event.exec.map { $0.env as NSArray } }
         let value = message.value(forKeyPath: keyPath)
         guard value == nil, Self.emptyWhenNil.contains(keyPath),
               let dot = keyPath.lastIndex(of: "."), message.value(forKeyPath: String(keyPath[..<dot])) != nil

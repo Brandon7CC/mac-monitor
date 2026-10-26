@@ -48,7 +48,7 @@ extension EventTableColumn {
             EventTableColumn(title: "Event type", width: (150, 200, 400), sortKey: "es_event_type", hideable: false,
                              content: .view { message in
                                  AnyView(HStack(spacing: 4) {
-                                     FindingMarks(message: message)
+                                     FindingMarks(message: message, besides: Finding.labelMarks)
                                      SystemEventTypeLabel(message: message).truncationMode(.middle)
                                  })
                              }),

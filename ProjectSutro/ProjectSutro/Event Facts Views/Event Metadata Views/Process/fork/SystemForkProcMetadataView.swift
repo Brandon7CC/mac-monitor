@@ -29,7 +29,7 @@ struct SystemForkProcMetadataView: View {
     private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            ForkEventLabelView(message: selectedMessage)
+            SystemEventTypeLabel(message: selectedMessage)
                 .font(.title2)
             
             // MARK: Process

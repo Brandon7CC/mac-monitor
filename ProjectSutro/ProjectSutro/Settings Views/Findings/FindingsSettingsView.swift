@@ -154,19 +154,24 @@ struct FindingEditorSheet: View {
                         HStack(spacing: 8) {
                             TextField(text: $finding.symbol, prompt: Text("memorychip")) { Text("Symbol") }
                                 .labelsHidden().font(.body.monospaced())
-                            Image(systemName: finding.symbol).foregroundStyle(finding.tint)
-                                .frame(width: 20, alignment: .center)
+                            FindingSymbol(finding: finding).frame(width: 20, alignment: .center)
                         }
                     }
-                    Picker("Color", selection: $finding.color) {
-                        ForEach(Finding.Color.allCases, id: \.self) { color in
-                            Text(color.rawValue.capitalized).tag(color)
+                    colorPicker("Color", selection: $finding.color)
+                    Picker("Rendering", selection: $finding.rendering) {
+                        ForEach(Finding.Rendering.allCases, id: \.self) { rendering in
+                            Text(rendering.rawValue.capitalized).tag(rendering)
                         }
+                    }
+                    if finding.rendering == .palette {
+                        colorPicker("First layer", selection: layer(0))
+                        colorPicker("Second layer", selection: layer(1))
                     }
                     Toggle("Show in Correlation", isOn: $finding.showsInCorrelation)
                     Toggle("Show in Groups", isOn: $finding.showsInGroups)
-                    Toggle("Mark in Event Tables", isOn: $finding.showsInTables)
-                        .help("Its symbol before its events' names in the Unified and Process Execution tables")
+                    Toggle("Event tables and Filters", isOn: $finding.showsInTables)
+                        .help("Mark its events in the Unified and Process Execution tables, and offer it under the "
+                              + "Filters button")
                 }
                 Section {
                     PredicateTextView(text: $finding.predicate, editor: editor)
@@ -204,6 +209,29 @@ struct FindingEditorSheet: View {
         }
         .frame(width: 560)
         .frame(minHeight: 520, idealHeight: 760, maxHeight: 860)
+    }
+
+    /// - Parameters:
+    ///   - title: What the menu is called.
+    ///   - selection: The color it sets.
+    /// - Returns: A menu of the colors.
+    private func colorPicker(_ title: String, selection: Binding<Finding.Color>) -> some View {
+        Picker(title, selection: selection) {
+            ForEach(Finding.Color.allCases, id: \.self) { color in
+                Text(color.rawValue.capitalized).tag(color)
+            }
+        }
+    }
+
+    /// - Parameter layer: A layer of the symbol's palette.
+    /// - Returns: Its color. A layer without one takes the finding's color.
+    private func layer(_ layer: Int) -> Binding<Finding.Color> {
+        Binding {
+            finding.palette.indices.contains(layer) ? finding.palette[layer] : finding.color
+        } set: { color in
+            while finding.palette.count <= layer { finding.palette.append(finding.color) }
+            finding.palette[layer] = color
+        }
     }
 }
 

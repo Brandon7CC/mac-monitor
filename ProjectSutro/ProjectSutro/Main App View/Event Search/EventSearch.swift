@@ -7,12 +7,15 @@
 
 import SwiftUI
 import AppKit
+import Combine
 import SutroESFramework
 
 
 // MARK: - Search
-/// The event tables' predicate search: the predicate the tables are filtered by, and the predicate editor's draft,
-/// saved predicates and recent ones. The search field's context narrows the predicate's matches.
+/// The event tables' predicate search: the finding filter and the predicate the tables are filtered by, and the
+/// predicate editor's draft, saved predicates and recent ones. An event must match both the finding filter and the
+/// predicate. The search field's context narrows their matches. The finding filter follows edits in Settings ▸
+/// Findings.
 @MainActor
 final class EventSearchController: ObservableObject {
     /// A predicate kept under a name, in the predicate editor's Saved list.
@@ -22,8 +25,17 @@ final class EventSearchController: ObservableObject {
         var id: String { name }
     }
 
-    /// The predicate the event tables are filtered by.
+    /// The predicate applied in the predicate editor.
     @Published private(set) var applied: StreamFilter.Predicate?
+    /// The finding filter, set from the Filters sheet. It never shows in the predicate editor.
+    @Published private(set) var findingSelection: FindingSelection?
+    /// The finding filter's name, "Any finding" or the finding's. A deleted finding keeps the name it had.
+    @Published private(set) var findingName: String?
+    /// The finding filter's predicate, from the findings as they are now. It's `nil` when the filter is dropped
+    /// because no finding it names is offered.
+    @Published private(set) var findingPredicate: StreamFilter.Predicate?
+    /// What the event tables are filtered by: the finding filter and the applied predicate, joined by `AND`.
+    @Published private(set) var recordPredicate: StreamFilter.Predicate?
     /// Is the predicate editor showing, beside the tables or in its own window?
     @Published var showsEditor = false
     /// Is the predicate editor in its own window (``PredicateEditorWindow``) rather than beside the tables?
@@ -37,6 +49,8 @@ final class EventSearchController: ObservableObject {
     /// Applied predicates, newest first.
     @Published private(set) var recents: [String]
     @Published private(set) var saved: [SavedPredicate]
+    /// Rebuilds the finding filter when the findings change.
+    private var findingsChange: AnyCancellable?
 
     /// The most recent predicates kept.
     private static let recentLimit = 10
@@ -66,6 +80,12 @@ final class EventSearchController: ObservableObject {
         recents = defaults.stringArray(forKey: Key.recents) ?? []
         saved = defaults.data(forKey: Key.saved).flatMap { try? JSONDecoder().decode([SavedPredicate].self, from: $0) }
             ?? Self.starterPredicates
+        /// After the change: `revision` publishes before it's set.
+        findingsChange = FindingStore.shared.$revision.dropFirst().receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                layer(findingSelection, with: applied)
+            }
     }
 
     /// Show the predicate editor with the predicate applied, or the draft left in it.
@@ -95,22 +115,69 @@ final class EventSearchController: ObservableObject {
         }
     }
 
+    /// The finding filter's name while it filters the tables, or `nil` when it's off or dropped.
+    var filteringFinding: String? { findingPredicate == nil ? nil : findingName }
+
+    /// What the tables are filtered by, such as "showing only Any finding, filtering by …". It's `nil` when neither
+    /// is on.
+    var summary: String? {
+        let parts = [filteringFinding.map { "showing only \($0)" },
+                     applied.map { "filtering by \(Self.oneLine($0.source))" }].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    }
+
     /// Filter the tables by a predicate, or by none when it's empty. A predicate that can't be applied changes
-    /// nothing: the editor says why.
+    /// nothing: the editor says why. The finding filter stays.
     ///
     /// - Parameter source: The predicate.
     func apply(_ source: String) {
         let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return applied = nil }
-        guard let predicate = try? StreamFilter.Predicate(trimmed, for: .search) else { return }
-        applied = predicate
+        guard !trimmed.isEmpty else { return clear() }
+        guard let predicate = try? StreamFilter.Predicate(trimmed, for: .search),
+              layer(findingSelection, with: predicate) else { return }
         remember(trimmed)
     }
 
-    /// Stop filtering by a predicate, and empty the predicate editor.
+    /// Stop filtering by the applied predicate, and empty the predicate editor. The finding filter stays.
     func clear() {
-        applied = nil
+        layer(findingSelection, with: nil)
         draft = ""
+    }
+
+    /// Show only a finding's events, or stop. The applied predicate and the predicate editor stay.
+    ///
+    /// - Parameter finding: The finding filter, or `nil` for none.
+    func filter(by finding: FindingSelection?) {
+        layer(finding, with: applied)
+    }
+
+    /// Filter the tables by a finding filter and a predicate together. The finding filter's predicate is read from
+    /// the findings as they are now. A filter no offered finding matches is dropped, and its selection stays.
+    ///
+    /// - Parameters:
+    ///   - finding: The finding filter.
+    ///   - predicate: The predicate applied in the editor.
+    /// - Returns: Could they be parsed together? Nothing changes when they can't.
+    @discardableResult
+    private func layer(_ finding: FindingSelection?, with predicate: StreamFilter.Predicate?) -> Bool {
+        let findings = FindingStore.shared.findings
+        let findingPredicate = finding?.predicate(among: findings, for: .search)
+        let combined: StreamFilter.Predicate?
+        do {
+            combined = try StreamFilter.Predicate.all([findingPredicate, predicate].compactMap { $0 }, for: .search)
+        } catch {
+            return false
+        }
+        findingSelection = finding
+        findingName = switch finding {
+        case .any: "Any finding"
+        case .finding(let id): findings.first { $0.id == id }?.name ?? findingName
+        case nil: nil
+        }
+        self.findingPredicate = findingPredicate
+        applied = predicate
+        recordPredicate = combined
+        return true
     }
 
     /// Keep a predicate under a name in Saved, replacing one of the same name.
@@ -190,10 +257,10 @@ extension NSView {
 }
 
 /// The event tables' search field, AppKit's own, which filters by each event's context as you type, and with a
-/// predicate applied narrows its matches.
+/// finding filter or predicate applied narrows its matches.
 struct EventSearchField: NSViewRepresentable {
     @Binding var text: String
-    /// Is a predicate applied?
+    /// Is a finding filter or predicate applied?
     let narrowsPredicate: Bool
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -212,7 +279,7 @@ struct EventSearchField: NSViewRepresentable {
         context.coordinator.parent = self
         if field.stringValue != text { field.stringValue = text }
         field.placeholderString = narrowsPredicate ? "Filter matches by context" : "Filter by context"
-        field.toolTip = narrowsPredicate ? "Narrow the predicate's matches to events whose context contains this" : nil
+        field.toolTip = narrowsPredicate ? "Narrow the matches to events whose context contains this" : nil
     }
 
     @MainActor

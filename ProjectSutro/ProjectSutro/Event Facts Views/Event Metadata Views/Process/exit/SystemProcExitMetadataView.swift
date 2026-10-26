@@ -27,7 +27,7 @@ struct SystemProcExitMetadataView: View {
     private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            ExitEventLabelView(message: esSystemEvent)
+            SystemEventTypeLabel(message: esSystemEvent)
                 .font(.title2)
                 .padding([.top, .leading], 5.0)
             

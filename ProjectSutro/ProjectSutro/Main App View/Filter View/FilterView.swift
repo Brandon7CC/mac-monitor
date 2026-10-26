@@ -29,7 +29,7 @@ public struct Filters: Equatable {
 
 
 // MARK: - Filters sheet
-/// The toolbar's Filters sheet: what's hidden from the tables, which finding or predicate they show only, and what
+/// The toolbar's Filters sheet: what's hidden from the tables, which finding and predicate they show only, and what
 /// isn't recorded at all. It reads the Security Extension's subscriptions; ``FilterSheet`` lays it out.
 struct FilterView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
@@ -40,7 +40,7 @@ struct FilterView: View {
     @Binding var filteredTelemetryShown: Bool
     @Binding var eventMaskEnabled: Bool
     @Binding var filterPlatform: Bool
-    /// The tables' predicate, which a finding's events are shown by.
+    /// The tables' finding filter and predicate.
     @ObservedObject var search: EventSearchController
     /// Opens the predicate editor.
     let openPredicateEditor: () -> Void
@@ -184,37 +184,42 @@ struct FilterSheet: View {
     }
 
     private var findingsCard: FilterCard {
-        let on = findings.usable
+        /// Only the findings the event tables mark, as ``FindingStore/matcher(for:)`` picks them for the tables.
+        let on = FindingSelection.offered(findings.findings)
         var rows: [FilterCard.Row] = []
-        if on.count > 1 {
-            rows.append(findingRow("Any finding", detail: "The events of every finding that's on",
-                                   symbol: "sparkle.magnifyingglass", tint: .orange, predicate: anyFinding(on)))
+        if on.count > 1 || (search.findingSelection == .any && !on.isEmpty) {
+            rows.append(findingRow(.any, "Any finding", detail: "The events of every finding that's on",
+                                   symbol: "sparkle.magnifyingglass", tint: .orange))
         }
-        rows += on.map { findingRow($0.name, detail: $0.explanation, symbol: $0.symbol, tint: $0.tint,
-                                    predicate: $0.predicate) }
-        let shown = appliedFinding(on)
+        rows += on.map { findingRow(.finding($0.id), $0.name, detail: $0.explanation, symbol: $0.symbol,
+                                    tint: $0.tint) }
+        /// A finding filter that's dropped keeps its row, which says why, so it can be switched off.
+        if let selection = search.findingSelection, search.findingPredicate == nil {
+            let detail = "\(droppedReason(selection)), so its events aren't filtered. Switch it off"
+            rows.insert(findingRow(selection, search.findingName ?? "Finding", detail: detail,
+                                   symbol: "sparkle.magnifyingglass", tint: .gray), at: 0)
+        }
+        let shown = search.findingName
         return FilterCard(kind: .findings, title: "Findings",
                           about: "Show only a finding's events. Settings ▸ Findings sets what each finds",
                           symbol: "sparkle.magnifyingglass", tint: .orange, summary: shown ?? "Off",
                           isOn: shown != nil, rows: rows,
-                          empty: rows.isEmpty ? "Turn findings on in Settings ▸ Findings." : nil)
+                          empty: rows.isEmpty ? "Turn on Event tables and Filters for a finding in Settings ▸ Findings."
+                            : nil)
     }
 
     private var predicateCard: FilterCard {
-        let shown = appliedFinding(findings.usable)
         var actions = [FilterCard.Row.Action(title: "Open Predicate Editor", action: openPredicateEditor)]
         if search.applied != nil {
             actions.insert(.init(title: "Remove", isDestructive: true, action: search.clear), at: 0)
         }
-        let row = FilterCard.Row(id: "predicate",
-                                 name: search.applied == nil ? "None applied" : shown.map { "From \($0)" } ?? "Applied",
+        let row = FilterCard.Row(id: "predicate", name: search.applied == nil ? "None applied" : "Applied",
                                  detail: search.applied.map { EventSearchController.oneLine($0.source) }
                                     ?? "Write one in the predicate editor (⌥⌘F)",
                                  isMonospacedDetail: search.applied != nil, control: .buttons(actions))
         return FilterCard(kind: .predicate, title: "Predicate",
                           about: "Show only the events whose record matches, as macmonitor stream --predicate does",
-                          symbol: "curlybraces", tint: .purple,
-                          summary: search.applied == nil ? "Off" : shown.map { "From \($0)" } ?? "Applied",
+                          symbol: "curlybraces", tint: .purple, summary: search.applied == nil ? "Off" : "Applied",
                           isOn: search.applied != nil, rows: [row], empty: nil)
     }
 
@@ -237,48 +242,42 @@ struct FilterSheet: View {
     /// What the header says is on.
     private var status: String {
         let count = allFilters.totalFilters
-        let shown = appliedFinding(findings.usable)
         let parts = [count > 0 ? "\(count) artifact \(count == 1 ? "filter" : "filters") on" : nil,
-                     search.applied == nil ? nil : shown.map { "showing only \($0)" } ?? "a predicate applied",
+                     search.filteringFinding.map { "showing only \($0)" },
+                     search.applied == nil ? nil : "a predicate applied",
                      filterPlatform ? "dropping platform binaries" : nil].compactMap { $0 }
         return parts.isEmpty ? "Every event shows." : parts.joined(separator: " · ").capitalizedFirst
     }
 
     // MARK: Findings
     /// - Parameters:
+    ///   - selection: The finding filter it sets.
     ///   - name: The finding's name.
     ///   - detail: Why it's worth a look.
     ///   - symbol: Its SF Symbol.
     ///   - tint: Its color.
-    ///   - predicate: Its predicate.
-    /// - Returns: Its row, whose switch is on while its predicate is applied, and applies it or removes it.
-    private func findingRow(_ name: String, detail: String, symbol: String, tint: Color,
-                            predicate: String) -> FilterCard.Row {
-        FilterCard.Row(id: "finding:\(name)", name: name, detail: detail, tile: (symbol, tint),
-                       control: .toggle(Binding { isApplied(predicate) } set: { on in
-                           search.draft = on ? predicate : ""
-                           on ? search.apply(predicate) : search.clear()
-                       }))
+    /// - Returns: Its row, whose switch is on while it's the finding filter, and sets the finding filter or removes
+    ///   it. The predicate editor and its predicate stay.
+    private func findingRow(_ selection: FindingSelection, _ name: String, detail: String, symbol: String,
+                            tint: Color) -> FilterCard.Row {
+        let id = switch selection {
+        case .any: "any"
+        case .finding(let id): id.uuidString
+        }
+        return FilterCard.Row(id: "finding:\(id)", name: name, detail: detail, tile: (symbol, tint),
+                              control: .toggle(Binding { search.findingSelection == selection } set: { on in
+                                  search.filter(by: on ? selection : nil)
+                              }))
     }
 
-    /// - Parameter findings: The findings that are on.
-    /// - Returns: The predicate of any of them.
-    private func anyFinding(_ findings: [Finding]) -> String {
-        findings.map { "(\(EventSearchController.oneLine($0.predicate)))" }.joined(separator: " OR ")
-    }
-
-    /// - Parameter findings: The findings that are on.
-    /// - Returns: The name of the finding whose predicate is applied, "Any finding", or `nil`.
-    private func appliedFinding(_ findings: [Finding]) -> String? {
-        if findings.count > 1, isApplied(anyFinding(findings)) { return "Any finding" }
-        return findings.first { isApplied($0.predicate) }?.name
-    }
-
-    /// - Parameter predicate: A predicate.
-    /// - Returns: Is it the one applied?
-    private func isApplied(_ predicate: String) -> Bool {
-        search.applied.map { EventSearchController.oneLine($0.source) == EventSearchController.oneLine(predicate) }
-            ?? false
+    /// - Parameter selection: A finding filter that's dropped.
+    /// - Returns: Why, from Settings ▸ Findings.
+    private func droppedReason(_ selection: FindingSelection) -> String {
+        guard case .finding(let id) = selection else { return "No finding is offered anymore" }
+        guard let finding = findings.findings.first(where: { $0.id == id }) else { return "It was deleted" }
+        if !finding.isEnabled { return "It's switched off in Settings ▸ Findings" }
+        if !finding.showsInTables { return "Event tables and Filters is off for it in Settings ▸ Findings" }
+        return finding.problem == nil ? "It can't be used" : "Its predicate can't be used"
     }
 
     /// Stop showing only one process's events.

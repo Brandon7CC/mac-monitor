@@ -308,7 +308,6 @@
 		CA4CE5A42E53E70C00C057EB /* SignedFileInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE5A32E53E70400C057EB /* SignedFileInfo.swift */; };
 		CA4CE5BB2E53F80B00C057EB /* ESGatekeeperUserOverrideEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE5B72E53F80B00C057EB /* ESGatekeeperUserOverrideEvent+CoreDataClass.swift */; };
 		CA4CE5BF2E53F80B00C057EB /* ESSignedFileInfo+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE5B92E53F80B00C057EB /* ESSignedFileInfo+CoreDataClass.swift */; };
-		CA4CE6402E58FD8900C057EB /* EventCriticality.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE63F2E58FD8300C057EB /* EventCriticality.swift */; };
 		CA4CE6462E59041400C057EB /* SystemGatekeeperUserOverrideMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE6452E59040800C057EB /* SystemGatekeeperUserOverrideMetadataView.swift */; };
 		CA5936432E875F7B008A115D /* ESLaunchItem+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA59363E2E875F05008A115D /* ESLaunchItem+CoreDataClass.swift */; };
 		CA5936472E8873B9008A115D /* LaunchItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA5936462E8873B6008A115D /* LaunchItem.swift */; };
@@ -440,9 +439,6 @@
 		D15C00000000000000000129 /* EventTableColumn.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000128 /* EventTableColumn.swift */; };
 		D15C0000000000000000012B /* TraceSessionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000012A /* TraceSessionViews.swift */; };
 		D15C0000000000000000012D /* EventFactsLabels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000012C /* EventFactsLabels.swift */; };
-		D15C0000000000000000012F /* SystemEventLabelViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000012E /* SystemEventLabelViews.swift */; };
-		D15C00000000000000000131 /* FileEventLabelViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000130 /* FileEventLabelViews.swift */; };
-		D15C00000000000000000133 /* ProcessEventLabelViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000132 /* ProcessEventLabelViews.swift */; };
 		D15C00000000000000000135 /* EventStoreFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000134 /* EventStoreFile.swift */; };
 		D15C00000000000000000137 /* CoreDataController+Export.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000136 /* CoreDataController+Export.swift */; };
 		D15C00000000000000000139 /* CoreDataController+Lookups.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000138 /* CoreDataController+Lookups.swift */; };
@@ -460,6 +456,7 @@
 		D15C00000000000000000162 /* BoundedMatches.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000161 /* BoundedMatches.swift */; };
 		D15C00000000000000000164 /* StreamFilter+Records.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000163 /* StreamFilter+Records.swift */; };
 		F17E00000000000000000032 /* Findings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000031 /* Findings.swift */; };
+		F17E0000000000000000003A /* Findings+Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000039 /* Findings+Defaults.swift */; };
 		F17E00000000000000000030 /* StreamFilter+Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002F /* StreamFilter+Store.swift */; };
 		F17E0000000000000000002C /* PredicateText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002B /* PredicateText.swift */; };
 		F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000029 /* StreamFilter+Relations.swift */; };
@@ -890,7 +887,6 @@
 		CA4CE5A32E53E70400C057EB /* SignedFileInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignedFileInfo.swift; sourceTree = "<group>"; };
 		CA4CE5B72E53F80B00C057EB /* ESGatekeeperUserOverrideEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESGatekeeperUserOverrideEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CA4CE5B92E53F80B00C057EB /* ESSignedFileInfo+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESSignedFileInfo+CoreDataClass.swift"; sourceTree = "<group>"; };
-		CA4CE63F2E58FD8300C057EB /* EventCriticality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCriticality.swift; sourceTree = "<group>"; };
 		CA4CE6452E59040800C057EB /* SystemGatekeeperUserOverrideMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemGatekeeperUserOverrideMetadataView.swift; sourceTree = "<group>"; };
 		CA59363E2E875F05008A115D /* ESLaunchItem+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLaunchItem+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CA5936462E8873B6008A115D /* LaunchItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchItem.swift; sourceTree = "<group>"; };
@@ -1021,9 +1017,6 @@
 		D15C00000000000000000128 /* EventTableColumn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTableColumn.swift; sourceTree = "<group>"; };
 		D15C0000000000000000012A /* TraceSessionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceSessionViews.swift; sourceTree = "<group>"; };
 		D15C0000000000000000012C /* EventFactsLabels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventFactsLabels.swift; sourceTree = "<group>"; };
-		D15C0000000000000000012E /* SystemEventLabelViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventLabelViews.swift; sourceTree = "<group>"; };
-		D15C00000000000000000130 /* FileEventLabelViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileEventLabelViews.swift; sourceTree = "<group>"; };
-		D15C00000000000000000132 /* ProcessEventLabelViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessEventLabelViews.swift; sourceTree = "<group>"; };
 		D15C00000000000000000134 /* EventStoreFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventStoreFile.swift; sourceTree = "<group>"; };
 		D15C00000000000000000136 /* CoreDataController+Export.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoreDataController+Export.swift"; sourceTree = "<group>"; };
 		D15C00000000000000000138 /* CoreDataController+Lookups.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoreDataController+Lookups.swift"; sourceTree = "<group>"; };
@@ -1041,6 +1034,7 @@
 		D15C00000000000000000161 /* BoundedMatches.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoundedMatches.swift; sourceTree = "<group>"; };
 		D15C00000000000000000163 /* StreamFilter+Records.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Records.swift"; sourceTree = "<group>"; };
 		F17E00000000000000000031 /* Findings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Findings.swift; sourceTree = "<group>"; };
+		F17E00000000000000000039 /* Findings+Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Findings+Defaults.swift"; sourceTree = "<group>"; };
 		F17E0000000000000000002F /* StreamFilter+Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Store.swift"; sourceTree = "<group>"; };
 		F17E0000000000000000002B /* PredicateText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateText.swift; sourceTree = "<group>"; };
 		F17E00000000000000000029 /* StreamFilter+Relations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Relations.swift"; sourceTree = "<group>"; };
@@ -2865,12 +2859,8 @@
 		CA4CE63A2E58FC0800C057EB /* Labels */ = {
 			isa = PBXGroup;
 			children = (
-				CA4CE63F2E58FD8300C057EB /* EventCriticality.swift */,
 				28EC62E4292595C100EAC8AD /* EventLabelViews.swift */,
-				D15C00000000000000000132 /* ProcessEventLabelViews.swift */,
 				28EC62E929259BB900EAC8AD /* ProcessSystemEventsViews.swift */,
-				D15C00000000000000000130 /* FileEventLabelViews.swift */,
-				D15C0000000000000000012E /* SystemEventLabelViews.swift */,
 			);
 			path = Labels;
 			sourceTree = "<group>";
@@ -3649,6 +3639,7 @@
 				F17E0000000000000000002B /* PredicateText.swift */,
 				F17E00000000000000000037 /* NSExpression+Walking.swift */,
 				F17E00000000000000000031 /* Findings.swift */,
+				F17E00000000000000000039 /* Findings+Defaults.swift */,
 			);
 			path = Predicates;
 			sourceTree = "<group>";
@@ -3929,6 +3920,7 @@
 				D15C00000000000000000162 /* BoundedMatches.swift in Sources */,
 				D15C00000000000000000164 /* StreamFilter+Records.swift in Sources */,
 				F17E00000000000000000032 /* Findings.swift in Sources */,
+				F17E0000000000000000003A /* Findings+Defaults.swift in Sources */,
 				F17E00000000000000000030 /* StreamFilter+Store.swift in Sources */,
 				F17E0000000000000000002C /* PredicateText.swift in Sources */,
 				F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */,
@@ -4222,7 +4214,6 @@
 				28CEF0F529776CE0003057D2 /* SystemBTMRemoveMetadataView.swift in Sources */,
 				28302B4B294D32E6001A616D /* FilterView.swift in Sources */,
 				D15C00000000000000000153 /* FilterCard.swift in Sources */,
-				CA4CE6402E58FD8900C057EB /* EventCriticality.swift in Sources */,
 				284F855D2E7210B4001542E3 /* MuteTypeBadgeView.swift in Sources */,
 				28B9A93329DBEAC1006619FF /* SystemLinkEventMetadataView.swift in Sources */,
 				28CEF10129776D79003057D2 /* XPCMetadataView.swift in Sources */,
@@ -4292,9 +4283,6 @@
 				284CFE152A16EDEA00D0038B /* UserSettingsView.swift in Sources */,
 				CA59364B2E8B06EC008A115D /* SystemSetModeMetadataView.swift in Sources */,
 				28EC62E5292595C100EAC8AD /* EventLabelViews.swift in Sources */,
-				D15C00000000000000000133 /* ProcessEventLabelViews.swift in Sources */,
-				D15C00000000000000000131 /* FileEventLabelViews.swift in Sources */,
-				D15C0000000000000000012F /* SystemEventLabelViews.swift in Sources */,
 				D15C0000000000000000012D /* EventFactsLabels.swift in Sources */,
 				28EBAA8C2A1C3B6F00AE80F9 /* ContextTargetResolver.swift in Sources */,
 				28CEF10729776E46003057D2 /* SystemTargetProcessView.swift in Sources */,

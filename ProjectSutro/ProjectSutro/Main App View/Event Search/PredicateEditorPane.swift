@@ -279,8 +279,8 @@ private struct CaretPosition: View {
     }
 }
 
-/// What's applied and how it's going, Revert or Remove, and Apply (⌘↩). It alone follows the tables' queries, which
-/// change with every event saved.
+/// What's applied and how it's going, Revert or Remove, and Apply (⌘↩). It names the finding filter the predicate
+/// narrows, if there is one. It alone follows the tables' queries, which change with every event saved.
 private struct PredicateEditorFooter: View {
     @ObservedObject var search: EventSearchController
     @ObservedObject var model: EventQueryModel
@@ -291,6 +291,7 @@ private struct PredicateEditorFooter: View {
         let draft = EventSearchController.oneLine(search.draft)
         let applied = search.applied.map { EventSearchController.oneLine($0.source) } ?? ""
         let unchanged = draft == applied
+        let finding = search.filteringFinding
         HStack(spacing: 8) {
             Group {
                 if problem != nil {
@@ -302,8 +303,8 @@ private struct PredicateEditorFooter: View {
                     }
                 } else if unchanged && !applied.isEmpty {
                     VStack(alignment: .leading, spacing: 1) {
-                        Label("Applied · \(model.filteredCount.formatted()) of \(model.totalCount.formatted()) "
-                              + "events match", systemImage: "circle.fill")
+                        Label("Applied\(finding.map { " with \($0)" } ?? "") · \(model.filteredCount.formatted()) "
+                              + "of \(model.totalCount.formatted()) events match", systemImage: "circle.fill")
                         if model.unchecked.count > 0 {
                             let reason = model.unchecked.reason ?? ""
                             Text("\(model.unchecked.count.formatted()) couldn't be checked: \(reason)")
@@ -311,7 +312,8 @@ private struct PredicateEditorFooter: View {
                         }
                     }
                 } else {
-                    Label(draft.isEmpty ? "No predicate applied." : "Not applied yet.", systemImage: "circle")
+                    Label((draft.isEmpty ? "No predicate applied." : "Not applied yet.")
+                          + (finding.map { " Showing only \($0)." } ?? ""), systemImage: "circle")
                         .foregroundStyle(.secondary)
                 }
             }

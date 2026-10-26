@@ -85,7 +85,7 @@ struct EventView: View {
     
     /// Everything that decides which events the event tables show.
     private var filterSpec: EventFilterSpec {
-        EventFilterSpec(filters: allFilters, searchText: filterText, recordPredicate: search.applied)
+        EventFilterSpec(filters: allFilters, searchText: filterText, recordPredicate: search.recordPredicate)
     }
     
     /// The number of System Events in the store.
@@ -288,9 +288,9 @@ struct EventView: View {
             /// principal and status items together, a status group's own spacer with them, and lays what follows
             /// right after them.
             ToolbarItemGroup(placement: .primaryAction) { Spacer() }
-            /// The context search field, which narrows a predicate's matches.
+            /// The context search field, which narrows a finding filter's or predicate's matches.
             ToolbarItem(placement: .primaryAction) {
-                EventSearchField(text: $filterText, narrowsPredicate: search.applied != nil)
+                EventSearchField(text: $filterText, narrowsPredicate: search.recordPredicate != nil)
                     .frame(width: 300)
             }
             /// Its own glass, apart from the search field's.
@@ -302,9 +302,7 @@ struct EventView: View {
                 Button { search.toggleEditor(openWindow) } label: {
                     Label("Predicate Editor", systemImage: "sidebar.right")
                 }
-                .help(search.applied.map {
-                    "Predicate Editor (⌥⌘F): filtering by \(EventSearchController.oneLine($0.source))"
-                } ?? "Predicate Editor (⌥⌘F)")
+                .help(search.summary.map { "Predicate Editor (⌥⌘F): \($0)" } ?? "Predicate Editor (⌥⌘F)")
             }
         }
         .navigationTitle(traceSession.title)
