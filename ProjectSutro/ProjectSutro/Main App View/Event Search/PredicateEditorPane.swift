@@ -14,8 +14,13 @@ import SutroESFramework
 /// The pane beside the event tables for writing a predicate on each event's record: a code editor that colors its
 /// syntax, completes as it's typed (``CompletingTextView``), marks keys the schema doesn't name and checks it as
 /// `macmonitor stream --predicate` does, over one search of the record's keys, related events, and saved and recent
-/// predicates to insert. Apply (⌘↩) filters the tables.
+/// predicates to insert. Apply (⌘↩) filters the tables. The handle under the text drags its height.
 struct PredicateEditorPane: View {
+    /// The shortest the editor's text can be dragged.
+    private static let minEditorHeight = 120.0
+    /// The room the rest of the pane keeps below the editor's text.
+    private static let reservedHeight = 240.0
+
     @ObservedObject var search: EventSearchController
     /// The tables' queries, which only the footer follows: they change with every event saved. `nil` with no main
     /// window.
@@ -33,6 +38,15 @@ struct PredicateEditorPane: View {
     @State private var libraryQuery = ""
     @State private var naming = false
     @State private var newName = ""
+    /// The editor's text height, kept between launches.
+    @AppStorage("predicateEditorHeight") private var editorHeight = 180.0
+    /// The pane's height, which bounds the editor's.
+    @State private var paneHeight = 0.0
+
+    /// The tallest the editor's text can be dragged: most of the pane.
+    private var maxEditorHeight: Double {
+        paneHeight > 0 ? max(Self.minEditorHeight, paneHeight - Self.reservedHeight) : .greatestFiniteMagnitude
+    }
 
     var body: some View {
         let problem = search.isDraftBlank ? nil : search.problem(with: search.draft)
@@ -65,6 +79,11 @@ struct PredicateEditorPane: View {
             }
         }
         .frame(minWidth: 340)
+        .background(GeometryReader { proxy in
+            Color.clear
+                .onAppear { paneHeight = proxy.size.height }
+                .onChange(of: proxy.size.height) { paneHeight = $0 }
+        })
         .modifier(WindowToolbar(isWindow: isWindow) { tools.labelStyle(.iconOnly) })
         .alert("Save Predicate", isPresented: $naming) {
             TextField("Name", text: $newName)
@@ -121,8 +140,9 @@ struct PredicateEditorPane: View {
         let color: Color = empty ? .secondary : problem == nil ? .green : .red
         return VStack(spacing: 0) {
             PredicateTextView(text: $search.draft, editor: editor)
-                .frame(minHeight: 150, idealHeight: 180, maxHeight: 260)
-            Divider()
+                .frame(height: min(max(editorHeight, Self.minEditorHeight), maxEditorHeight))
+                .clipped()
+            ResizeHandle(height: $editorHeight, range: Self.minEditorHeight...maxEditorHeight)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Image(systemName: empty ? "info.circle" : problem == nil ? "checkmark.circle.fill"
                       : "exclamationmark.triangle.fill")
@@ -215,6 +235,38 @@ struct PredicateEditorWindow: View {
             search.isPoppedOut = false
             search.showsEditor = false
         }
+    }
+}
+
+/// A divider the editor's height is dragged by, as a split view's is. The pointer shows it resizes up and down.
+private struct ResizeHandle: View {
+    @Binding var height: Double
+    /// The heights it can be dragged between.
+    let range: ClosedRange<Double>
+    /// The height when the drag began.
+    @State private var start: Double?
+    /// Is the pointer over it, with its cursor pushed?
+    @State private var hovering = false
+
+    var body: some View {
+        Divider()
+            .padding(.vertical, 3)
+            .contentShape(Rectangle())
+            .onHover { inside in
+                guard inside != hovering else { return }
+                hovering = inside
+                inside ? NSCursor.resizeUpDown.push() : NSCursor.pop()
+            }
+            .onDisappear { if hovering { NSCursor.pop() } }
+            /// In the window's space: the handle moves with the drag, so its own space would shift under it.
+            .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                .onChanged { drag in
+                    let start = start ?? min(max(height, range.lowerBound), range.upperBound)
+                    self.start = start
+                    height = min(max(start + drag.translation.height, range.lowerBound), range.upperBound)
+                }
+                .onEnded { _ in start = nil })
+            .help("Drag to make the predicate editor taller or shorter")
     }
 }
 
