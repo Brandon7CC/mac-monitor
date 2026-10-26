@@ -68,6 +68,12 @@ struct PredicateTextView: NSViewRepresentable {
         scrollView.verticalRulerView = LineNumberRuler(textView: textView)
         scrollView.hasVerticalRuler = true
         scrollView.rulersVisible = true
+        scrollView.automaticallyAdjustsContentInsets = false
+        /// Views stopped clipping to their bounds in macOS 14. The ruler's line drew past the editor.
+        if #available(macOS 14.0, *) {
+            scrollView.clipsToBounds = true
+            scrollView.verticalRulerView?.clipsToBounds = true
+        }
         editor.textView = textView
         return scrollView
     }

@@ -35,6 +35,7 @@ struct TelemetrySchemaView: View {
             switch model.schema {
             case .success:
                 ReadOnlyTextView(text: model.schemaText, language: .json)
+                    .clipped()
             case .failure(let error):
                 unavailable(error)
             }

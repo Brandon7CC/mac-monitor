@@ -51,6 +51,13 @@ struct ReadOnlyTextView: NSViewRepresentable {
         scrollView.verticalRulerView = LineNumberRuler(textView: textView)
         scrollView.hasVerticalRuler = true
         scrollView.rulersVisible = true
+        /// The text starts under the window's header, not its title bar.
+        scrollView.automaticallyAdjustsContentInsets = false
+        /// Views stopped clipping to their bounds in macOS 14. The gutter's line drew up through the header.
+        if #available(macOS 14.0, *) {
+            scrollView.clipsToBounds = true
+            scrollView.verticalRulerView?.clipsToBounds = true
+        }
         return scrollView
     }
 
