@@ -33,7 +33,7 @@ final class UpdateInstaller {
     // MARK: - Check for updates
     /// Check GitHub for a newer release.
     ///
-    /// - Parameter reply: A JSON encoded `UpdateDetails`, or `nil` if there is no newer release or the check failed.
+    /// - Parameter reply: A JSON encoded `UpdateCheck`. A failed lookup is `.failed`, never `.upToDate`.
     func check(reply: @escaping (Data?) -> Void) {
 #if COMMUNITY_BUILD
         logger.log("Update checks are disabled in Community builds.")
@@ -41,13 +41,14 @@ final class UpdateInstaller {
 #else
         logger.log("Mac Monitor requested an update check.")
         Task {
+            let outcome: UpdateCheck
             do {
-                guard let details = try await newerRelease() else { return reply(nil) }
-                reply(try JSONEncoder().encode(details))
+                outcome = try await newerRelease().map { .newer($0) } ?? .upToDate
             } catch {
                 logger.error("Update check failed: \(error.localizedDescription, privacy: .public)")
-                reply(nil)
+                outcome = .failed
             }
+            reply(try? JSONEncoder().encode(outcome))
         }
 #endif
     }
@@ -121,9 +122,9 @@ final class UpdateInstaller {
     // MARK: - Release lookup
     /// Fetch the latest GitHub release and keep it only if it's newer than this build.
     ///
-    /// - Returns: What Mac Monitor shows in its update sheet about the newer release, whose first asset is the update
-    ///   package, or `nil` if we're up-to-date.
-    /// - Throws: ``UpdateError/releaseLookupFailed`` for a failed lookup or a release without assets, or why the
+    /// - Returns: What Mac Monitor shows in its update sheet about the newer release, or `nil` if we're up-to-date.
+    ///   The update package is the release's first asset whose name ends in `.pkg`.
+    /// - Throws: ``UpdateError/releaseLookupFailed`` for a failed lookup or a release without a package, or why the
     ///   release couldn't be downloaded or read.
     private func newerRelease() async throws -> UpdateDetails? {
         let (data, response) = try await URLSession.shared.data(from: Self.latestReleaseURL)
@@ -132,7 +133,7 @@ final class UpdateInstaller {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let release = try decoder.decode(GitHubRelease.self, from: data)
         
-        guard let package = release.assets.first?.browserDownloadUrl,
+        guard let package = release.assets.first(where: \.isPackage)?.browserDownloadUrl,
               let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
             throw UpdateError.releaseLookupFailed
         }
@@ -267,13 +268,21 @@ extension UpdateInstaller {
 // MARK: - GitHub Release JSON Decoder
 /// The fields Mac Monitor reads from GitHub's latest release. The decoder converts GitHub's snake_case keys.
 private struct GitHubRelease: Decodable {
-    /// A file attached to the release. The first one is the update package.
-    struct Asset: Decodable { let browserDownloadUrl: URL }
+    /// A file attached to the release. Releases also attach the telemetry schema.
+    struct Asset: Decodable {
+        let name: String
+        let browserDownloadUrl: URL
+        
+        /// Is this the installer package?
+        var isPackage: Bool { name.lowercased().hasSuffix(".pkg") }
+    }
     
     let tagName: String
     let assets: [Asset]
-    let body: String
-    let publishedAt: String
+    /// The release notes. GitHub sends `null` for a release without any.
+    let body: String?
+    /// When the release was published. `null` for a draft.
+    let publishedAt: String?
     
     /// The release version without the tag's `v` prefix.
     var version: String { String(tagName.trimmingPrefix("v")) }

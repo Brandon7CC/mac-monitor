@@ -14,9 +14,14 @@ import SutroESFramework
 /// process tree follows.
 struct GeneralSettingsView: View {
     @EnvironmentObject var userPrefs: UserPrefs
+    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @StateObject private var releaseNotes = ReleaseNotes()
     @State private var confirmsReset = false
     @State private var showsReleaseNotes = false
+    /// The last Check Now's state. The update sheet opens over Settings when one is found.
+    @State private var isChecking = false
+    @State private var lastCheck: UpdateCheck?
+    @State private var update: UpdateDetails?
 
     var body: some View {
         SettingsForm(pane: .general) {
@@ -26,13 +31,12 @@ struct GeneralSettingsView: View {
                         Link("Releases", destination: ReleaseNotes.releasesPage)
                             .help("Every version of Mac Monitor, on GitHub")
                         Button("Release Notes…") { showsReleaseNotes = true }
+                        Button("Check Now", action: checkNow)
+                            .disabled(isChecking || !EndpointSecurityManager.supportsUpdates)
                     }
                 } label: {
                     SettingsIconLabel("Mac Monitor \(ReleaseNotes.version) (\(ReleaseNotes.build))",
-                                      detail: EndpointSecurityManager.supportsUpdates
-                                        ? "What's new, and every release, are on GitHub."
-                                        : "Community builds don't update themselves.",
-                                      symbol: "shippingbox.fill", tint: .green)
+                                      detail: versionDetail, symbol: "shippingbox.fill", tint: .green)
                 }
                 Toggle(isOn: userPrefs.$autoUpdates) {
                     SettingsIconLabel("Check for updates", detail: "Mac Monitor looks for a new release when it opens.",
@@ -77,6 +81,27 @@ struct GeneralSettingsView: View {
         }
         .sheet(isPresented: $showsReleaseNotes) {
             ReleaseNotesSheet(notes: releaseNotes)
+        }
+        .sheet(item: $update) { UpdateAvailableSheet(updateDetails: $0) }
+    }
+
+    /// The version row's second line. It says how the last Check Now went.
+    private var versionDetail: String {
+        if !EndpointSecurityManager.supportsUpdates { return "Community builds don't update themselves." }
+        if isChecking { return "Checking for updates…" }
+        switch lastCheck {
+        case .upToDate: return "Mac Monitor is up to date."
+        case .failed: return "No internet connection."
+        case .newer, nil: return "What's new, and every release, are on GitHub."
+        }
+    }
+
+    /// Asks the Security Extension for a newer release. A newer one opens the update sheet.
+    private func checkNow() {
+        (isChecking, lastCheck) = (true, nil)
+        systemExtensionManager.checkForUpdates { check in
+            (isChecking, lastCheck) = (false, check)
+            if case .newer(let details) = check { update = details }
         }
     }
 }

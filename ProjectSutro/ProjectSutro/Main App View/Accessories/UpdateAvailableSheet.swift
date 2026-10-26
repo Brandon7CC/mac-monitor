@@ -55,7 +55,9 @@ struct UpdateAvailableSheet: View {
                     .bold()
                 }
 
-                Text("**Released:** `\(updateDetails.releaseDate)`")
+                if let releaseDate = updateDetails.releaseDate {
+                    Text("**Released:** `\(releaseDate)`")
+                }
 
                 Text("Release Notes")
                     .font(.title3)
@@ -63,7 +65,7 @@ struct UpdateAvailableSheet: View {
                     .padding(.top)
 
                 ScrollView {
-                    Text(LocalizedStringKey(stringLiteral: updateDetails.releaseNotes))
+                    Text(LocalizedStringKey(stringLiteral: updateDetails.releaseNotes ?? "This release has no notes."))
                         .font(.body)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(10)
