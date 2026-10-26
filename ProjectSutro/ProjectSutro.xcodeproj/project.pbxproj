@@ -41,7 +41,10 @@
 		282FEDEA295FCE3600572E22 /* ESXProtectRemediate+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282FEDE6295FCE3600572E22 /* ESXProtectRemediate+CoreDataClass.swift */; };
 		282FEDEC295FCE3600572E22 /* ESXProtectDetect+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282FEDE8295FCE3600572E22 /* ESXProtectDetect+CoreDataClass.swift */; };
 		28302B4B294D32E6001A616D /* FilterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28302B4A294D32E6001A616D /* FilterView.swift */; };
+		D15C00000000000000000153 /* FilterCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000152 /* FilterCard.swift */; };
 		283C4D3D29E0983A009FF6D3 /* CoreDataController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D3C29E0983A009FF6D3 /* CoreDataController.swift */; };
+		CBA100000000000000000004 /* CoreDataController+Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBA100000000000000000003 /* CoreDataController+Store.swift */; };
+		CBA100000000000000000006 /* CoreDataController+OpenTrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBA100000000000000000005 /* CoreDataController+OpenTrace.swift */; };
 		283C4D3F29E09D89009FF6D3 /* MutingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D3E29E09D89009FF6D3 /* MutingEngine.swift */; };
 		283C4D4329E0B633009FF6D3 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D4229E0B633009FF6D3 /* Helpers.swift */; };
 		283C4D4629E0B761009FF6D3 /* EventStreamControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283C4D4529E0B761009FF6D3 /* EventStreamControl.swift */; };
@@ -68,6 +71,8 @@
 		F17E0000000000000000001C /* ReleaseNotesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000001B /* ReleaseNotesSheet.swift */; };
 		F17E0000000000000000001A /* TelemetrySchemaSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000019 /* TelemetrySchemaSettingsView.swift */; };
 		284CFE1B2A16F03200D0038B /* PathMutingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284CFE1A2A16F03200D0038B /* PathMutingSettingsView.swift */; };
+		D15C00000000000000000158 /* MuteTableRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000157 /* MuteTableRows.swift */; };
+		D15C0000000000000000015A /* MuteInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000159 /* MuteInspector.swift */; };
 		284CFE1D2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284CFE1C2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift */; };
 		284F855D2E7210B4001542E3 /* MuteTypeBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284F855C2E7210B1001542E3 /* MuteTypeBadgeView.swift */; };
 		284F85602E736A00001542E3 /* MuteSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284F855F2E7369F5001542E3 /* MuteSet.swift */; };
@@ -290,6 +295,10 @@
 		BA97AFD22875471D0099C035 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA97AFD12875471D0099C035 /* ContentView.swift */; };
 		F17E00000000000000000020 /* EventSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000001F /* EventSearch.swift */; };
 		F17E00000000000000000028 /* PredicateEditorPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000027 /* PredicateEditorPane.swift */; };
+		D15C0000000000000000014B /* PredicateLibraryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000014A /* PredicateLibraryList.swift */; };
+		D15C0000000000000000014D /* PredicateSyntax.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000014C /* PredicateSyntax.swift */; };
+		D15C0000000000000000014F /* PredicateTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000014E /* PredicateTextView.swift */; };
+		D15C00000000000000000151 /* RecordKeyLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000150 /* RecordKeyLibrary.swift */; };
 		3B09005499A6B2009E0C7197 /* PredicateCompletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = A62BA102FB28AAA1A05A4B05 /* PredicateCompletion.swift */; };
 		BA97AFD42875471E0099C035 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BA97AFD32875471E0099C035 /* Assets.xcassets */; };
 		BA97AFD72875471E0099C035 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BA97AFD62875471E0099C035 /* Preview Assets.xcassets */; };
@@ -409,6 +418,8 @@
 		CC9900000000000000000004 /* StreamingJSONEncoder+ObjectWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000003 /* StreamingJSONEncoder+ObjectWriter.swift */; };
 		CC9900000000000000000006 /* StreamingJSONEncoder+ArrayWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000005 /* StreamingJSONEncoder+ArrayWriter.swift */; };
 		CC9900000000000000000008 /* StreamingJSONEncoder+ScalarWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000007 /* StreamingJSONEncoder+ScalarWriter.swift */; };
+		CB9800000000000000000014 /* StreamingJSONEncoder+Artifacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000013 /* StreamingJSONEncoder+Artifacts.swift */; };
+		CB9800000000000000000016 /* StreamingJSONEncoder+SortedKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000015 /* StreamingJSONEncoder+SortedKeys.swift */; };
 		CC990000000000000000000A /* ProcessHelpers+Quarantine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000009 /* ProcessHelpers+Quarantine.swift */; };
 		CC990000000000000000000C /* ProcessHelpers+CodeSigning.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC990000000000000000000B /* ProcessHelpers+CodeSigning.swift */; };
 		CD0F00000000000000000002 /* XPCMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F00000000000000000001 /* XPCMessage.swift */; };
@@ -433,6 +444,9 @@
 		D15C0000000000000000010E /* TraceDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000010D /* TraceDecoder.swift */; };
 		D15C00000000000000000110 /* TraceDecoderContainers.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000010F /* TraceDecoderContainers.swift */; };
 		D15C00000000000000000121 /* EventQueryModel+Worker.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000120 /* EventQueryModel+Worker.swift */; };
+		D15C00000000000000000141 /* EventQueryModel+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000140 /* EventQueryModel+Selection.swift */; };
+		D15C00000000000000000143 /* EventQueryModel+Preview.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000142 /* EventQueryModel+Preview.swift */; };
+		D15C00000000000000000145 /* EventQueryModel+WorkerFetches.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000144 /* EventQueryModel+WorkerFetches.swift */; };
 		D15C00000000000000000123 /* EventTableQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000122 /* EventTableQuery.swift */; };
 		D15C00000000000000000125 /* AppKitEventTablesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000124 /* AppKitEventTablesView.swift */; };
 		D15C00000000000000000127 /* EventTableCells.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000126 /* EventTableCells.swift */; };
@@ -456,10 +470,15 @@
 		F17E00000000000000000008 /* CommandLineOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000007 /* CommandLineOptions.swift */; };
 		F17E0000000000000000000A /* CommandLineCompletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000009 /* CommandLineCompletion.swift */; };
 		F17E0000000000000000000C /* StreamFilter+Predicates.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000B /* StreamFilter+Predicates.swift */; };
+		D15C00000000000000000162 /* BoundedMatches.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000161 /* BoundedMatches.swift */; };
+		D15C00000000000000000164 /* StreamFilter+Records.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000163 /* StreamFilter+Records.swift */; };
 		F17E00000000000000000032 /* Findings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000031 /* Findings.swift */; };
 		F17E00000000000000000030 /* StreamFilter+Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002F /* StreamFilter+Store.swift */; };
 		F17E0000000000000000002C /* PredicateText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002B /* PredicateText.swift */; };
 		F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000029 /* StreamFilter+Relations.swift */; };
+		D15C00000000000000000166 /* RelatedEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000165 /* RelatedEvents.swift */; };
+		D15C00000000000000000168 /* RelatedEvents+Subquery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000167 /* RelatedEvents+Subquery.swift */; };
+		D15C0000000000000000016A /* PredicateRecord+Sameness.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000169 /* PredicateRecord+Sameness.swift */; };
 		F17E00000000000000000038 /* NSExpression+Walking.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000037 /* NSExpression+Walking.swift */; };
 		F17E0000000000000000000E /* SetupRequirements.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000D /* SetupRequirements.swift */; };
 		F17E00000000000000000010 /* RequirementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000F /* RequirementsView.swift */; };
@@ -618,7 +637,10 @@
 		282FEDE6295FCE3600572E22 /* ESXProtectRemediate+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESXProtectRemediate+CoreDataClass.swift"; sourceTree = "<group>"; };
 		282FEDE8295FCE3600572E22 /* ESXProtectDetect+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESXProtectDetect+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28302B4A294D32E6001A616D /* FilterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterView.swift; sourceTree = "<group>"; };
+		D15C00000000000000000152 /* FilterCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterCard.swift; sourceTree = "<group>"; };
 		283C4D3C29E0983A009FF6D3 /* CoreDataController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataController.swift; sourceTree = "<group>"; };
+		CBA100000000000000000003 /* CoreDataController+Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoreDataController+Store.swift"; sourceTree = "<group>"; };
+		CBA100000000000000000005 /* CoreDataController+OpenTrace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoreDataController+OpenTrace.swift"; sourceTree = "<group>"; };
 		283C4D3E29E09D89009FF6D3 /* MutingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutingEngine.swift; sourceTree = "<group>"; };
 		283C4D4229E0B633009FF6D3 /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 		283C4D4529E0B761009FF6D3 /* EventStreamControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventStreamControl.swift; sourceTree = "<group>"; };
@@ -644,6 +666,8 @@
 		F17E0000000000000000001B /* ReleaseNotesSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotesSheet.swift; sourceTree = "<group>"; };
 		F17E00000000000000000019 /* TelemetrySchemaSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaSettingsView.swift; sourceTree = "<group>"; };
 		284CFE1A2A16F03200D0038B /* PathMutingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathMutingSettingsView.swift; sourceTree = "<group>"; };
+		D15C00000000000000000157 /* MuteTableRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteTableRows.swift; sourceTree = "<group>"; };
+		D15C00000000000000000159 /* MuteInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteInspector.swift; sourceTree = "<group>"; };
 		284CFE1C2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSubscriptionsSettingsView.swift; sourceTree = "<group>"; };
 		284F855C2E7210B1001542E3 /* MuteTypeBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteTypeBadgeView.swift; sourceTree = "<group>"; };
 		284F855F2E7369F5001542E3 /* MuteSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteSet.swift; sourceTree = "<group>"; };
@@ -864,6 +888,10 @@
 		BA97AFD12875471D0099C035 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F17E0000000000000000001F /* EventSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSearch.swift; sourceTree = "<group>"; };
 		F17E00000000000000000027 /* PredicateEditorPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateEditorPane.swift; sourceTree = "<group>"; };
+		D15C0000000000000000014A /* PredicateLibraryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateLibraryList.swift; sourceTree = "<group>"; };
+		D15C0000000000000000014C /* PredicateSyntax.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateSyntax.swift; sourceTree = "<group>"; };
+		D15C0000000000000000014E /* PredicateTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateTextView.swift; sourceTree = "<group>"; };
+		D15C00000000000000000150 /* RecordKeyLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordKeyLibrary.swift; sourceTree = "<group>"; };
 		A62BA102FB28AAA1A05A4B05 /* PredicateCompletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateCompletion.swift; sourceTree = "<group>"; };
 		BA97AFD32875471E0099C035 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BA97AFD62875471E0099C035 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
@@ -983,6 +1011,8 @@
 		CC9900000000000000000003 /* StreamingJSONEncoder+ObjectWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+ObjectWriter.swift"; sourceTree = "<group>"; };
 		CC9900000000000000000005 /* StreamingJSONEncoder+ArrayWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+ArrayWriter.swift"; sourceTree = "<group>"; };
 		CC9900000000000000000007 /* StreamingJSONEncoder+ScalarWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+ScalarWriter.swift"; sourceTree = "<group>"; };
+		CB9800000000000000000013 /* StreamingJSONEncoder+Artifacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+Artifacts.swift"; sourceTree = "<group>"; };
+		CB9800000000000000000015 /* StreamingJSONEncoder+SortedKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+SortedKeys.swift"; sourceTree = "<group>"; };
 		CC9900000000000000000009 /* ProcessHelpers+Quarantine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessHelpers+Quarantine.swift"; sourceTree = "<group>"; };
 		CC990000000000000000000B /* ProcessHelpers+CodeSigning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessHelpers+CodeSigning.swift"; sourceTree = "<group>"; };
 		CD0F00000000000000000001 /* XPCMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCMessage.swift; sourceTree = "<group>"; };
@@ -1007,6 +1037,9 @@
 		D15C0000000000000000010D /* TraceDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceDecoder.swift; sourceTree = "<group>"; };
 		D15C0000000000000000010F /* TraceDecoderContainers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceDecoderContainers.swift; sourceTree = "<group>"; };
 		D15C00000000000000000120 /* EventQueryModel+Worker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventQueryModel+Worker.swift"; sourceTree = "<group>"; };
+		D15C00000000000000000140 /* EventQueryModel+Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventQueryModel+Selection.swift"; sourceTree = "<group>"; };
+		D15C00000000000000000142 /* EventQueryModel+Preview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventQueryModel+Preview.swift"; sourceTree = "<group>"; };
+		D15C00000000000000000144 /* EventQueryModel+WorkerFetches.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventQueryModel+WorkerFetches.swift"; sourceTree = "<group>"; };
 		D15C00000000000000000122 /* EventTableQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTableQuery.swift; sourceTree = "<group>"; };
 		D15C00000000000000000124 /* AppKitEventTablesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitEventTablesView.swift; sourceTree = "<group>"; };
 		D15C00000000000000000126 /* EventTableCells.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTableCells.swift; sourceTree = "<group>"; };
@@ -1030,10 +1063,15 @@
 		F17E00000000000000000007 /* CommandLineOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineOptions.swift; sourceTree = "<group>"; };
 		F17E00000000000000000009 /* CommandLineCompletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineCompletion.swift; sourceTree = "<group>"; };
 		F17E0000000000000000000B /* StreamFilter+Predicates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Predicates.swift"; sourceTree = "<group>"; };
+		D15C00000000000000000161 /* BoundedMatches.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoundedMatches.swift; sourceTree = "<group>"; };
+		D15C00000000000000000163 /* StreamFilter+Records.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Records.swift"; sourceTree = "<group>"; };
 		F17E00000000000000000031 /* Findings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Findings.swift; sourceTree = "<group>"; };
 		F17E0000000000000000002F /* StreamFilter+Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Store.swift"; sourceTree = "<group>"; };
 		F17E0000000000000000002B /* PredicateText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateText.swift; sourceTree = "<group>"; };
 		F17E00000000000000000029 /* StreamFilter+Relations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Relations.swift"; sourceTree = "<group>"; };
+		D15C00000000000000000165 /* RelatedEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelatedEvents.swift; sourceTree = "<group>"; };
+		D15C00000000000000000167 /* RelatedEvents+Subquery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RelatedEvents+Subquery.swift"; sourceTree = "<group>"; };
+		D15C00000000000000000169 /* PredicateRecord+Sameness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PredicateRecord+Sameness.swift"; sourceTree = "<group>"; };
 		F17E00000000000000000037 /* NSExpression+Walking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSExpression+Walking.swift"; sourceTree = "<group>"; };
 		F17E0000000000000000000D /* SetupRequirements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupRequirements.swift; sourceTree = "<group>"; };
 		F17E0000000000000000000F /* RequirementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequirementsView.swift; sourceTree = "<group>"; };
@@ -1194,6 +1232,7 @@
 			isa = PBXGroup;
 			children = (
 				28CEF0DE29776B51003057D2 /* SystemTargetExecProcMetadataView.swift */,
+				28CEF10029776D79003057D2 /* XPCMetadataView.swift */,
 			);
 			path = exec;
 			sourceTree = "<group>";
@@ -1663,6 +1702,7 @@
 			isa = PBXGroup;
 			children = (
 				28302B4A294D32E6001A616D /* FilterView.swift */,
+				D15C00000000000000000152 /* FilterCard.swift */,
 			);
 			path = "Filter View";
 			sourceTree = "<group>";
@@ -1701,22 +1741,6 @@
 				282E64D428F9C4320060ABFA /* module.modulemap */,
 			);
 			path = SwiftCSBlobs;
-			sourceTree = "<group>";
-		};
-		283C4D3729DF4F58009FF6D3 /* Enrichment Views */ = {
-			isa = PBXGroup;
-			children = (
-				28CEF10429776D9A003057D2 /* InitiatingUserView.swift */,
-				28CEF10229776D8A003057D2 /* TargetUserView.swift */,
-				28CEF10029776D79003057D2 /* XPCMetadataView.swift */,
-				28CEF0E829776C40003057D2 /* AuditTokenView.swift */,
-				28CEF0E429776BE0003057D2 /* SystemEventJSONView.swift */,
-				28CEF0E229776BC7003057D2 /* FileContentView.swift */,
-				28EC62F929280F8A00EAC8AD /* SystemEnrichedEventView.swift */,
-				F17E00000000000000000021 /* CorrelationSummary.swift */,
-				28CEF0E629776C05003057D2 /* SystemInitatingProcessView.swift */,
-			);
-			path = "Enrichment Views";
 			sourceTree = "<group>";
 		};
 		283C4D4029E0B3B7009FF6D3 /* ESM */ = {
@@ -1762,6 +1786,8 @@
 			isa = PBXGroup;
 			children = (
 				284CFE1A2A16F03200D0038B /* PathMutingSettingsView.swift */,
+				D15C00000000000000000157 /* MuteTableRows.swift */,
+				D15C00000000000000000159 /* MuteInspector.swift */,
 				284F855C2E7210B1001542E3 /* MuteTypeBadgeView.swift */,
 				CA970000000000000000005A /* MuteAddSheet.swift */,
 				CA970000000000000000005C /* MuteFileMenu.swift */,
@@ -1777,12 +1803,8 @@
 				283C4D3E29E09D89009FF6D3 /* MutingEngine.swift */,
 				CA9700000000000000000034 /* MuteList.swift */,
 				CA9700000000000000000036 /* MuteList+Changes.swift */,
-				CA970000000000000000003E /* MuteFile.swift */,
-				CA9700000000000000000040 /* MuteFile+Validation.swift */,
-				CA9700000000000000000042 /* MuteFileReader.swift */,
-				CA9700000000000000000048 /* MuteStore.swift */,
-				CA970000000000000000004A /* SavedMuteSet.swift */,
-				DA2200000000000000000001 /* MuteAccess.swift */,
+				CBA200000000000000000001 /* Mute Files */,
+				CBA200000000000000000002 /* Saved Mute Set */,
 			);
 			path = "Path Muting";
 			sourceTree = "<group>";
@@ -1800,15 +1822,12 @@
 			isa = PBXGroup;
 			children = (
 				283C4D3C29E0983A009FF6D3 /* CoreDataController.swift */,
-				D15C00000000000000000138 /* CoreDataController+Lookups.swift */,
-				7E5A1C300000000000000001 /* LineageLookup.swift */,
-				7E5A1C300000000000000003 /* ProcessParents.swift */,
-				D15C00000000000000000136 /* CoreDataController+Export.swift */,
+				CBA100000000000000000003 /* CoreDataController+Store.swift */,
 				D15C00000000000000000134 /* EventStoreFile.swift */,
 				D15C00000000000000000101 /* RowCache.swift */,
-				D15C00000000000000000079 /* TelemetryExporter.swift */,
+				CBA100000000000000000001 /* Export */,
+				CBA100000000000000000002 /* Lineage */,
 				D15C00000000000000000111 /* Trace Import */,
-				CB1C0000000000000000003D /* ExportEncoder.swift */,
 			);
 			path = "Core Data Controller";
 			sourceTree = "<group>";
@@ -2597,7 +2616,6 @@
 				CAC48AF62E247C1600260C5F /* Code Signing */,
 				CAC48AF22E2471B900260C5F /* Process */,
 				CAC48AF52E247B6100260C5F /* Interprocess */,
-				283C4D3729DF4F58009FF6D3 /* Enrichment Views */,
 			);
 			path = "Event Metadata Views";
 			sourceTree = "<group>";
@@ -2617,9 +2635,6 @@
 			children = (
 				BA97AFCF2875471D0099C035 /* ProjectSutroApp.swift */,
 				BA97AFD12875471D0099C035 /* ContentView.swift */,
-				F17E0000000000000000001F /* EventSearch.swift */,
-				F17E00000000000000000027 /* PredicateEditorPane.swift */,
-				A62BA102FB28AAA1A05A4B05 /* PredicateCompletion.swift */,
 				F17E0000000000000000000F /* RequirementsView.swift */,
 				D15C00000000000000000105 /* TraceSession.swift */,
 				D15C0000000000000000012A /* TraceSessionViews.swift */,
@@ -2628,6 +2643,7 @@
 				28B865D32A31142300F06441 /* Delegates */,
 				28B865D22A31141300F06441 /* Accessories */,
 				2829D4192E7B472800B7E977 /* Filter View */,
+				D15C00000000000000000149 /* Event Search */,
 			);
 			path = "Main App View";
 			sourceTree = "<group>";
@@ -2635,12 +2651,14 @@
 		28EC62B82924239400EAC8AD /* Event Facts Views */ = {
 			isa = PBXGroup;
 			children = (
+				D15C00000000000000000146 /* Components */,
+				D15C00000000000000000147 /* Event Correlation */,
 				2854A5492E6DE7FD004149AF /* Event Grouping */,
+				D15C00000000000000000148 /* Parent Process */,
 				28A169CC2DA206E600CA630B /* EventViewProvider.swift */,
 				28CEF10629776E46003057D2 /* SystemTargetProcessView.swift */,
 				28EC62F52925AA7100EAC8AD /* SystemEventFactsView.swift */,
-				F17E00000000000000000023 /* FactsDashboard.swift */,
-				0D0D0D00000000000000001D /* FactRow.swift */,
+				28CEF0E429776BE0003057D2 /* SystemEventJSONView.swift */,
 				7E5A1C30000000000000000D /* ProcessLineageSidebar.swift */,
 				28B9A93929DC8AC7006619FF /* Event Metadata Views */,
 			);
@@ -2650,21 +2668,17 @@
 		28EC62B9292423B000EAC8AD /* Settings Views */ = {
 			isa = PBXGroup;
 			children = (
+				D15C00000000000000000154 /* General */,
+				D15C00000000000000000155 /* Command Line Tool */,
+				D15C00000000000000000156 /* Findings */,
 				284F855B2E7210AC001542E3 /* Muting */,
 				28FFA9B5290F0D0000977D3F /* AgentSettingsView.swift */,
-				284CFE142A16EDEA00D0038B /* UserSettingsView.swift */,
-				7E5A1C900000000000000003 /* ProcessTreePrefsView.swift */,
 				284CFE162A16EE1900D0038B /* SystemDetailsSettingsView.swift */,
 				F17E00000000000000000017 /* EventCatalog.swift */,
 				F17E0000000000000000001D /* ContextMenuSettingsView.swift */,
-				F17E0000000000000000001B /* ReleaseNotesSheet.swift */,
 				F17E00000000000000000019 /* TelemetrySchemaSettingsView.swift */,
 				284CFE1C2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift */,
-				C11D00000000000000000011 /* CommandLineToolInstaller.swift */,
-				C11D00000000000000000013 /* CommandLineToolSettingsView.swift */,
 				F17E00000000000000000015 /* SettingsComponents.swift */,
-				F17E00000000000000000035 /* FindingsSettingsView.swift */,
-				F17E00000000000000000033 /* FindingStore.swift */,
 				F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */,
 			);
 			path = "Settings Views";
@@ -2675,7 +2689,6 @@
 			children = (
 				CA4CE63B2E58FC5F00C057EB /* Event Tables */,
 				CA4CE63A2E58FC0800C057EB /* Labels */,
-				28EC62EB2925A09D00EAC8AD /* Telemetry Metadata Views */,
 			);
 			path = "System Event Views";
 			sourceTree = "<group>";
@@ -2686,13 +2699,6 @@
 				28EC62E72925966D00EAC8AD /* EventChartViews.swift */,
 			);
 			path = "Chart Views";
-			sourceTree = "<group>";
-		};
-		28EC62EB2925A09D00EAC8AD /* Telemetry Metadata Views */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = "Telemetry Metadata Views";
 			sourceTree = "<group>";
 		};
 		28F37F502E25E76600B6E59C /* OpenSSH */ = {
@@ -2757,6 +2763,7 @@
 				7E5A1C00000000000000001E /* LaunchServicesRecord.swift */,
 				7E5A1C000000000000000022 /* LaunchedByParentUpgrader.swift */,
 				7E5A1C00000000000000002F /* LaunchServicesReader.swift */,
+				7E5A1C0000000000000F0001 /* LaunchServicesHold.swift */,
 			);
 			path = LaunchedByParent;
 			sourceTree = "<group>";
@@ -2923,9 +2930,9 @@
 				CA4CE63F2E58FD8300C057EB /* EventCriticality.swift */,
 				28EC62E4292595C100EAC8AD /* EventLabelViews.swift */,
 				D15C00000000000000000132 /* ProcessEventLabelViews.swift */,
+				28EC62E929259BB900EAC8AD /* ProcessSystemEventsViews.swift */,
 				D15C00000000000000000130 /* FileEventLabelViews.swift */,
 				D15C0000000000000000012E /* SystemEventLabelViews.swift */,
-				D15C0000000000000000012C /* EventFactsLabels.swift */,
 			);
 			path = Labels;
 			sourceTree = "<group>";
@@ -2933,18 +2940,10 @@
 		CA4CE63B2E58FC5F00C057EB /* Event Tables */ = {
 			isa = PBXGroup;
 			children = (
-				CA4CE63D2E58FC9200C057EB /* Process */,
 				D15C00000000000000000070 /* AppKit */,
+				D15C0000000000000000013A /* Query */,
 			);
 			path = "Event Tables";
-			sourceTree = "<group>";
-		};
-		CA4CE63D2E58FC9200C057EB /* Process */ = {
-			isa = PBXGroup;
-			children = (
-				28EC62E929259BB900EAC8AD /* ProcessSystemEventsViews.swift */,
-			);
-			path = Process;
 			sourceTree = "<group>";
 		};
 		CA4CE6442E5903FE00C057EB /* Gatekeeper */ = {
@@ -2998,29 +2997,54 @@
 		CA9700000000000000000001 /* Capture */ = {
 			isa = PBXGroup;
 			children = (
-				CA970000000000000000002E /* SequenceGapCounter.swift */,
-				CA970000000000000000002C /* CaptureStatistics.swift */,
+				CA970000000000000000005E /* Capture Session */,
+				CA970000000000000000005F /* Event Classes */,
+				CA9700000000000000000060 /* Streaming JSON Encoder */,
+				CA9700000000000000000010 /* EndpointSecurityClient.swift */,
+				CA970000000000000000000E /* LiveEndpointSecurityClient.swift */,
+				CA9700000000000000000018 /* MessageSerializer.swift */,
+			);
+			path = Capture;
+			sourceTree = "<group>";
+		};
+		CA970000000000000000005E /* Capture Session */ = {
+			isa = PBXGroup;
+			children = (
+				CA9700000000000000000014 /* CaptureSession.swift */,
+				CB1C00000000000000000012 /* CaptureSession+Drain.swift */,
+				CA9700000000000000000056 /* CaptureSession+Mutes.swift */,
 				CA970000000000000000002A /* CaptureSession+Statistics.swift */,
 				CA970000000000000000001A /* CaptureConfiguration.swift */,
+				CA970000000000000000002C /* CaptureStatistics.swift */,
+				CA9700000000000000000016 /* CaptureLane.swift */,
+				CA970000000000000000002E /* SequenceGapCounter.swift */,
+			);
+			path = "Capture Session";
+			sourceTree = "<group>";
+		};
+		CA970000000000000000005F /* Event Classes */ = {
+			isa = PBXGroup;
+			children = (
+				CA9700000000000000000002 /* EventClass.swift */,
+				CA9700000000000000000004 /* AppleEventCategory.swift */,
+				CA9700000000000000000006 /* EventClassTable.swift */,
+			);
+			path = "Event Classes";
+			sourceTree = "<group>";
+		};
+		CA9700000000000000000060 /* Streaming JSON Encoder */ = {
+			isa = PBXGroup;
+			children = (
 				CB980000000000000000000D /* StreamingJSONEncoder.swift */,
+				CB9800000000000000000013 /* StreamingJSONEncoder+Artifacts.swift */,
+				CB9800000000000000000015 /* StreamingJSONEncoder+SortedKeys.swift */,
 				CB980000000000000000000F /* StreamingJSONEncoder+Scalars.swift */,
 				CB9800000000000000000011 /* StreamingJSONEncoder+Containers.swift */,
 				CC9900000000000000000003 /* StreamingJSONEncoder+ObjectWriter.swift */,
 				CC9900000000000000000005 /* StreamingJSONEncoder+ArrayWriter.swift */,
 				CC9900000000000000000007 /* StreamingJSONEncoder+ScalarWriter.swift */,
-				CA9700000000000000000018 /* MessageSerializer.swift */,
-				7E5A1C0000000000000F0001 /* LaunchServicesHold.swift */,
-				CA9700000000000000000016 /* CaptureLane.swift */,
-				CA9700000000000000000014 /* CaptureSession.swift */,
-				CA9700000000000000000010 /* EndpointSecurityClient.swift */,
-				CA970000000000000000000E /* LiveEndpointSecurityClient.swift */,
-				CA9700000000000000000006 /* EventClassTable.swift */,
-				CA9700000000000000000004 /* AppleEventCategory.swift */,
-				CA9700000000000000000002 /* EventClass.swift */,
-				CA9700000000000000000056 /* CaptureSession+Mutes.swift */,
-				CB1C00000000000000000012 /* CaptureSession+Drain.swift */,
 			);
-			path = Capture;
+			path = "Streaming JSON Encoder";
 			sourceTree = "<group>";
 		};
 		CA9C06192E907C8C00A0D5C8 /* lw_session_login */ = {
@@ -3169,8 +3193,7 @@
 				280C78E02E8DEB3800B172E5 /* fork */,
 				280C78DF2E8DEB3200B172E5 /* exec */,
 				CAC48AF32E24720700260C5F /* ProcessView.swift */,
-				7E5A1C300000000000000009 /* LaunchedByParentView.swift */,
-				7E5A1C30000000000000000B /* ParentsView.swift */,
+				28CEF10229776D8A003057D2 /* TargetUserView.swift */,
 			);
 			path = Process;
 			sourceTree = "<group>";
@@ -3336,10 +3359,8 @@
 				CC9900000000000000000009 /* ProcessHelpers+Quarantine.swift */,
 				28B343A92D8769D2004127E8 /* AuditToken.swift */,
 				7E5A1C000000000000000005 /* AuditToken+Values.swift */,
-				7E5A1C000000000000000001 /* LaunchedByParent.swift */,
-				7E5A1C000000000000000003 /* LaunchedByParent+Resolve.swift */,
-				7E5A1C000000000000000013 /* ProcessPathMemory.swift */,
 				28EF8F032D7E47D600223464 /* Process.swift */,
+				CBA300000000000000000001 /* Launched By Parent */,
 			);
 			path = Process;
 			sourceTree = "<group>";
@@ -3462,39 +3483,15 @@
 		CB1C0000000000000000002E /* Command Line */ = {
 			isa = PBXGroup;
 			children = (
-				CB1C0000000000000000002F /* CommandLineEvents.swift */,
-				CB1C00000000000000000031 /* EventHeader.swift */,
-				CB1C00000000000000000033 /* PipelineScope.swift */,
-				F17E00000000000000000005 /* StreamFilter.swift */,
-				F17E0000000000000000000B /* StreamFilter+Predicates.swift */,
-				F17E00000000000000000031 /* Findings.swift */,
-				F17E0000000000000000002F /* StreamFilter+Store.swift */,
-				F17E0000000000000000002B /* PredicateText.swift */,
-				F17E00000000000000000029 /* StreamFilter+Relations.swift */,
-				F17E00000000000000000037 /* NSExpression+Walking.swift */,
-				F17E00000000000000000009 /* CommandLineCompletion.swift */,
-				F17E00000000000000000007 /* CommandLineOptions.swift */,
-				CB1C00000000000000000035 /* StreamDropMeter.swift */,
+				D15C0000000000000000015B /* Parsing */,
+				D15C0000000000000000015C /* Stream */,
+				D15C0000000000000000015D /* Mute */,
+				D15C0000000000000000015E /* Predicates */,
+				D15C00000000000000000160 /* Tool Link */,
 				CB1C00000000000000000037 /* TerminalSafeText.swift */,
-				CB1C00000000000000000039 /* TextEventFormatter.swift */,
-				CB1C0000000000000000003B /* StreamPipeline.swift */,
-				CB1C0000000000000000004D /* CommandLineInvocation.swift */,
-				CB1C0000000000000000004F /* CommandLineParser.swift */,
-				CB1C00000000000000000051 /* CommandLineHelp.swift */,
 				CB1C00000000000000000053 /* CommandLineExit.swift */,
-				CB1C00000000000000000073 /* StreamClient.swift */,
-				CB1C00000000000000000075 /* StreamCommand.swift */,
 				CB1C00000000000000000077 /* FileOutput.swift */,
 				CD0F00000000000000000005 /* String+Counted.swift */,
-				CB1C0000000000000000007F /* MuteInvocation.swift */,
-				CB1C00000000000000000081 /* MuteCommand.swift */,
-				CB1C00000000000000000083 /* MuteTable.swift */,
-				C11D00000000000000000001 /* CommandLineToolLink.swift */,
-				C11D00000000000000000003 /* CommandLineToolLink+Trust.swift */,
-				C11D00000000000000000005 /* CommandLineToolLinker.swift */,
-				C11D00000000000000000007 /* CommandLineToolAuthorization.swift */,
-				CB1C00000000000000000089 /* MuteCommand+Confirmation.swift */,
-				CB1C0000000000000000008B /* TerminalPrompt.swift */,
 				D5A100000000000000000001 /* SchemaCommand.swift */,
 				D5A100000000000000000003 /* ValidateCommand.swift */,
 			);
@@ -3512,6 +3509,56 @@
 				CB1C00000000000000000071 /* ToolVersion.swift */,
 			);
 			path = macmonitor;
+			sourceTree = "<group>";
+		};
+		CBA100000000000000000001 /* Export */ = {
+			isa = PBXGroup;
+			children = (
+				D15C00000000000000000136 /* CoreDataController+Export.swift */,
+				D15C00000000000000000079 /* TelemetryExporter.swift */,
+				CB1C0000000000000000003D /* ExportEncoder.swift */,
+			);
+			path = Export;
+			sourceTree = "<group>";
+		};
+		CBA100000000000000000002 /* Lineage */ = {
+			isa = PBXGroup;
+			children = (
+				D15C00000000000000000138 /* CoreDataController+Lookups.swift */,
+				7E5A1C300000000000000001 /* LineageLookup.swift */,
+				7E5A1C300000000000000003 /* ProcessParents.swift */,
+			);
+			path = Lineage;
+			sourceTree = "<group>";
+		};
+		CBA200000000000000000001 /* Mute Files */ = {
+			isa = PBXGroup;
+			children = (
+				CA970000000000000000003E /* MuteFile.swift */,
+				CA9700000000000000000040 /* MuteFile+Validation.swift */,
+				CA9700000000000000000042 /* MuteFileReader.swift */,
+			);
+			path = "Mute Files";
+			sourceTree = "<group>";
+		};
+		CBA200000000000000000002 /* Saved Mute Set */ = {
+			isa = PBXGroup;
+			children = (
+				CA970000000000000000004A /* SavedMuteSet.swift */,
+				CA9700000000000000000048 /* MuteStore.swift */,
+				DA2200000000000000000001 /* MuteAccess.swift */,
+			);
+			path = "Saved Mute Set";
+			sourceTree = "<group>";
+		};
+		CBA300000000000000000001 /* Launched By Parent */ = {
+			isa = PBXGroup;
+			children = (
+				7E5A1C000000000000000001 /* LaunchedByParent.swift */,
+				7E5A1C000000000000000003 /* LaunchedByParent+Resolve.swift */,
+				7E5A1C000000000000000013 /* ProcessPathMemory.swift */,
+			);
+			path = "Launched By Parent";
 			sourceTree = "<group>";
 		};
 		D15C00000000000000000001 /* XPC */ = {
@@ -3540,10 +3587,6 @@
 		D15C00000000000000000070 /* AppKit */ = {
 			isa = PBXGroup;
 			children = (
-				D15C00000000000000000071 /* EventFilterSpec.swift */,
-				D15C00000000000000000073 /* EventQueryModel.swift */,
-				D15C00000000000000000122 /* EventTableQuery.swift */,
-				D15C00000000000000000120 /* EventQueryModel+Worker.swift */,
 				D15C00000000000000000075 /* AppKitEventTable.swift */,
 				D15C00000000000000000128 /* EventTableColumn.swift */,
 				D15C00000000000000000126 /* EventTableCells.swift */,
@@ -3556,6 +3599,7 @@
 		D15C00000000000000000111 /* Trace Import */ = {
 			isa = PBXGroup;
 			children = (
+				CBA100000000000000000005 /* CoreDataController+OpenTrace.swift */,
 				D15C00000000000000000103 /* TraceImporter.swift */,
 				7E5A1C000000000000000019 /* TraceImporter+LaunchedByParent.swift */,
 				D15C00000000000000000107 /* TraceImporter+Summary.swift */,
@@ -3565,6 +3609,171 @@
 				D15C0000000000000000010F /* TraceDecoderContainers.swift */,
 			);
 			path = "Trace Import";
+			sourceTree = "<group>";
+		};
+		D15C0000000000000000013A /* Query */ = {
+			isa = PBXGroup;
+			children = (
+				D15C00000000000000000071 /* EventFilterSpec.swift */,
+				D15C00000000000000000073 /* EventQueryModel.swift */,
+				D15C00000000000000000122 /* EventTableQuery.swift */,
+				D15C00000000000000000120 /* EventQueryModel+Worker.swift */,
+				D15C00000000000000000140 /* EventQueryModel+Selection.swift */,
+				D15C00000000000000000142 /* EventQueryModel+Preview.swift */,
+				D15C00000000000000000144 /* EventQueryModel+WorkerFetches.swift */,
+			);
+			path = Query;
+			sourceTree = "<group>";
+		};
+		D15C00000000000000000146 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				0D0D0D00000000000000001D /* FactRow.swift */,
+				F17E00000000000000000023 /* FactsDashboard.swift */,
+				D15C0000000000000000012C /* EventFactsLabels.swift */,
+				28CEF0E829776C40003057D2 /* AuditTokenView.swift */,
+				28CEF0E229776BC7003057D2 /* FileContentView.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		D15C00000000000000000147 /* Event Correlation */ = {
+			isa = PBXGroup;
+			children = (
+				28EC62F929280F8A00EAC8AD /* SystemEnrichedEventView.swift */,
+				F17E00000000000000000021 /* CorrelationSummary.swift */,
+			);
+			path = "Event Correlation";
+			sourceTree = "<group>";
+		};
+		D15C00000000000000000148 /* Parent Process */ = {
+			isa = PBXGroup;
+			children = (
+				28CEF0E629776C05003057D2 /* SystemInitatingProcessView.swift */,
+				28CEF10429776D9A003057D2 /* InitiatingUserView.swift */,
+				7E5A1C30000000000000000B /* ParentsView.swift */,
+				7E5A1C300000000000000009 /* LaunchedByParentView.swift */,
+			);
+			path = "Parent Process";
+			sourceTree = "<group>";
+		};
+		D15C00000000000000000149 /* Event Search */ = {
+			isa = PBXGroup;
+			children = (
+				F17E0000000000000000001F /* EventSearch.swift */,
+				F17E00000000000000000027 /* PredicateEditorPane.swift */,
+				D15C0000000000000000014A /* PredicateLibraryList.swift */,
+				D15C0000000000000000014C /* PredicateSyntax.swift */,
+				D15C0000000000000000014E /* PredicateTextView.swift */,
+				D15C00000000000000000150 /* RecordKeyLibrary.swift */,
+				A62BA102FB28AAA1A05A4B05 /* PredicateCompletion.swift */,
+			);
+			path = "Event Search";
+			sourceTree = "<group>";
+		};
+		D15C00000000000000000154 /* General */ = {
+			isa = PBXGroup;
+			children = (
+				284CFE142A16EDEA00D0038B /* UserSettingsView.swift */,
+				7E5A1C900000000000000003 /* ProcessTreePrefsView.swift */,
+				F17E0000000000000000001B /* ReleaseNotesSheet.swift */,
+			);
+			path = General;
+			sourceTree = "<group>";
+		};
+		D15C00000000000000000155 /* Command Line Tool */ = {
+			isa = PBXGroup;
+			children = (
+				C11D00000000000000000013 /* CommandLineToolSettingsView.swift */,
+				C11D00000000000000000011 /* CommandLineToolInstaller.swift */,
+			);
+			path = "Command Line Tool";
+			sourceTree = "<group>";
+		};
+		D15C00000000000000000156 /* Findings */ = {
+			isa = PBXGroup;
+			children = (
+				F17E00000000000000000035 /* FindingsSettingsView.swift */,
+				F17E00000000000000000033 /* FindingStore.swift */,
+			);
+			path = Findings;
+			sourceTree = "<group>";
+		};
+		D15C0000000000000000015B /* Parsing */ = {
+			isa = PBXGroup;
+			children = (
+				CB1C0000000000000000004F /* CommandLineParser.swift */,
+				CB1C0000000000000000004D /* CommandLineInvocation.swift */,
+				F17E00000000000000000007 /* CommandLineOptions.swift */,
+				CB1C00000000000000000051 /* CommandLineHelp.swift */,
+				F17E00000000000000000009 /* CommandLineCompletion.swift */,
+				CB1C0000000000000000002F /* CommandLineEvents.swift */,
+			);
+			path = Parsing;
+			sourceTree = "<group>";
+		};
+		D15C0000000000000000015C /* Stream */ = {
+			isa = PBXGroup;
+			children = (
+				CB1C00000000000000000075 /* StreamCommand.swift */,
+				CB1C00000000000000000073 /* StreamClient.swift */,
+				CB1C0000000000000000003B /* StreamPipeline.swift */,
+				CB1C00000000000000000033 /* PipelineScope.swift */,
+				CB1C00000000000000000035 /* StreamDropMeter.swift */,
+				CB1C00000000000000000031 /* EventHeader.swift */,
+				CB1C00000000000000000039 /* TextEventFormatter.swift */,
+			);
+			path = Stream;
+			sourceTree = "<group>";
+		};
+		D15C0000000000000000015D /* Mute */ = {
+			isa = PBXGroup;
+			children = (
+				CB1C00000000000000000081 /* MuteCommand.swift */,
+				CB1C00000000000000000089 /* MuteCommand+Confirmation.swift */,
+				CB1C0000000000000000007F /* MuteInvocation.swift */,
+				CB1C00000000000000000083 /* MuteTable.swift */,
+				CB1C0000000000000000008B /* TerminalPrompt.swift */,
+			);
+			path = Mute;
+			sourceTree = "<group>";
+		};
+		D15C0000000000000000015E /* Predicates */ = {
+			isa = PBXGroup;
+			children = (
+				D15C0000000000000000015F /* Related Events */,
+				F17E00000000000000000005 /* StreamFilter.swift */,
+				F17E0000000000000000000B /* StreamFilter+Predicates.swift */,
+				D15C00000000000000000161 /* BoundedMatches.swift */,
+				D15C00000000000000000163 /* StreamFilter+Records.swift */,
+				F17E0000000000000000002F /* StreamFilter+Store.swift */,
+				F17E0000000000000000002B /* PredicateText.swift */,
+				F17E00000000000000000037 /* NSExpression+Walking.swift */,
+				F17E00000000000000000031 /* Findings.swift */,
+			);
+			path = Predicates;
+			sourceTree = "<group>";
+		};
+		D15C0000000000000000015F /* Related Events */ = {
+			isa = PBXGroup;
+			children = (
+				F17E00000000000000000029 /* StreamFilter+Relations.swift */,
+				D15C00000000000000000165 /* RelatedEvents.swift */,
+				D15C00000000000000000167 /* RelatedEvents+Subquery.swift */,
+				D15C00000000000000000169 /* PredicateRecord+Sameness.swift */,
+			);
+			path = "Related Events";
+			sourceTree = "<group>";
+		};
+		D15C00000000000000000160 /* Tool Link */ = {
+			isa = PBXGroup;
+			children = (
+				C11D00000000000000000001 /* CommandLineToolLink.swift */,
+				C11D00000000000000000003 /* CommandLineToolLink+Trust.swift */,
+				C11D00000000000000000005 /* CommandLineToolLinker.swift */,
+				C11D00000000000000000007 /* CommandLineToolAuthorization.swift */,
+			);
+			path = "Tool Link";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -3818,10 +4027,15 @@
 				CB1C00000000000000000034 /* PipelineScope.swift in Sources */,
 				F17E00000000000000000006 /* StreamFilter.swift in Sources */,
 				F17E0000000000000000000C /* StreamFilter+Predicates.swift in Sources */,
+				D15C00000000000000000162 /* BoundedMatches.swift in Sources */,
+				D15C00000000000000000164 /* StreamFilter+Records.swift in Sources */,
 				F17E00000000000000000032 /* Findings.swift in Sources */,
 				F17E00000000000000000030 /* StreamFilter+Store.swift in Sources */,
 				F17E0000000000000000002C /* PredicateText.swift in Sources */,
 				F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */,
+				D15C00000000000000000166 /* RelatedEvents.swift in Sources */,
+				D15C00000000000000000168 /* RelatedEvents+Subquery.swift in Sources */,
+				D15C0000000000000000016A /* PredicateRecord+Sameness.swift in Sources */,
 				F17E00000000000000000038 /* NSExpression+Walking.swift in Sources */,
 				F17E0000000000000000000A /* CommandLineCompletion.swift in Sources */,
 				F17E00000000000000000008 /* CommandLineOptions.swift in Sources */,
@@ -3864,6 +4078,8 @@
 				CA970000000000000000002B /* CaptureSession+Statistics.swift in Sources */,
 				CA970000000000000000001B /* CaptureConfiguration.swift in Sources */,
 				CB980000000000000000000E /* StreamingJSONEncoder.swift in Sources */,
+				CB9800000000000000000014 /* StreamingJSONEncoder+Artifacts.swift in Sources */,
+				CB9800000000000000000016 /* StreamingJSONEncoder+SortedKeys.swift in Sources */,
 				CB9800000000000000000010 /* StreamingJSONEncoder+Scalars.swift in Sources */,
 				CB9800000000000000000012 /* StreamingJSONEncoder+Containers.swift in Sources */,
 				CC9900000000000000000004 /* StreamingJSONEncoder+ObjectWriter.swift in Sources */,
@@ -4032,6 +4248,8 @@
 				28B343A52D87688F004127E8 /* File.swift in Sources */,
 				281BBE812A397C41009B94F8 /* ESODGroupRemoveEvent+CoreDataClass.swift in Sources */,
 				283C4D3D29E0983A009FF6D3 /* CoreDataController.swift in Sources */,
+				CBA100000000000000000004 /* CoreDataController+Store.swift in Sources */,
+				CBA100000000000000000006 /* CoreDataController+OpenTrace.swift in Sources */,
 				D15C00000000000000000139 /* CoreDataController+Lookups.swift in Sources */,
 				7E5A1C300000000000000002 /* LineageLookup.swift in Sources */,
 				7E5A1C300000000000000004 /* ProcessParents.swift in Sources */,
@@ -4112,6 +4330,7 @@
 				28B9A92F29DBE976006619FF /* SystemFileOpenMetadataView.swift in Sources */,
 				28CEF0F529776CE0003057D2 /* SystemBTMRemoveMetadataView.swift in Sources */,
 				28302B4B294D32E6001A616D /* FilterView.swift in Sources */,
+				D15C00000000000000000153 /* FilterCard.swift in Sources */,
 				289646BF2A4B8C6A000E9564 /* SystemOpenDirectoryGroupRemoveMetadataView.swift in Sources */,
 				289646C12A4B8C77000E9564 /* SystemOpenDirectoryGroupAddMetadataView.swift in Sources */,
 				CA4CE6402E58FD8900C057EB /* EventCriticality.swift in Sources */,
@@ -4122,11 +4341,17 @@
 				BA97AFD22875471D0099C035 /* ContentView.swift in Sources */,
 				F17E00000000000000000020 /* EventSearch.swift in Sources */,
 				F17E00000000000000000028 /* PredicateEditorPane.swift in Sources */,
+				D15C0000000000000000014B /* PredicateLibraryList.swift in Sources */,
+				D15C0000000000000000014D /* PredicateSyntax.swift in Sources */,
+				D15C0000000000000000014F /* PredicateTextView.swift in Sources */,
+				D15C00000000000000000151 /* RecordKeyLibrary.swift in Sources */,
 				3B09005499A6B2009E0C7197 /* PredicateCompletion.swift in Sources */,
 				F17E00000000000000000010 /* RequirementsView.swift in Sources */,
 				D15C00000000000000000106 /* TraceSession.swift in Sources */,
 				D15C0000000000000000012B /* TraceSessionViews.swift in Sources */,
 				284CFE1B2A16F03200D0038B /* PathMutingSettingsView.swift in Sources */,
+				D15C00000000000000000158 /* MuteTableRows.swift in Sources */,
+				D15C0000000000000000015A /* MuteInspector.swift in Sources */,
 				CA7D0EE82E42A07B0024243F /* UpdateAvailableSheet.swift in Sources */,
 				28823F5D2ED14D5F000B7F5C /* SystemListExtattrMetadataView.swift in Sources */,
 				28EC62EA29259BB900EAC8AD /* ProcessSystemEventsViews.swift in Sources */,
@@ -4148,6 +4373,9 @@
 				D15C00000000000000000074 /* EventQueryModel.swift in Sources */,
 				D15C00000000000000000123 /* EventTableQuery.swift in Sources */,
 				D15C00000000000000000121 /* EventQueryModel+Worker.swift in Sources */,
+				D15C00000000000000000141 /* EventQueryModel+Selection.swift in Sources */,
+				D15C00000000000000000143 /* EventQueryModel+Preview.swift in Sources */,
+				D15C00000000000000000145 /* EventQueryModel+WorkerFetches.swift in Sources */,
 				D15C00000000000000000076 /* AppKitEventTable.swift in Sources */,
 				D15C00000000000000000129 /* EventTableColumn.swift in Sources */,
 				D15C00000000000000000127 /* EventTableCells.swift in Sources */,

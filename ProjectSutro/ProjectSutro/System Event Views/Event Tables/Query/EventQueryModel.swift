@@ -48,10 +48,11 @@ final class EventQueryModel: ObservableObject {
     /// The "Process Execution" table.
     let exec = EventTableQuery(execOnly: true)
     
-    private let controller: CoreDataController
+    /// The event store.
+    let controller: CoreDataController
     private let worker: Worker
     /// Maps selections between rows and event IDs.
-    private lazy var selectionContext = controller.container.newBackgroundContext()
+    private(set) lazy var selectionContext = controller.container.newBackgroundContext()
     private var observers: [NSObjectProtocol] = []
     
     private var spec: EventFilterSpec?
@@ -175,69 +176,6 @@ final class EventQueryModel: ObservableObject {
         filteredCount = 0
         chartCounts = [:]
         unchecked = Unchecked()
-    }
-    
-    // MARK: Selection
-    /// Find the events `rows` hold, off the main thread.
-    ///
-    /// - Parameters:
-    ///   - rows: Rows of a table.
-    ///   - completion: Called on the main thread with the events' IDs.
-    func eventIDs(of rows: [NSManagedObjectID], completion: @escaping (Set<UUID>) -> Void) {
-        mapSelection({ try Self.eventIDs(of: rows, context: $0) }, completion: completion)
-    }
-    
-    /// Find which of `rows` hold the events `ids`, off the main thread.
-    ///
-    /// - Parameters:
-    ///   - ids: Event IDs.
-    ///   - rows: Rows of a table.
-    ///   - completion: Called on the main thread with the indexes of the rows holding those events.
-    func indexes(of ids: Set<UUID>, in rows: [NSManagedObjectID], completion: @escaping (IndexSet) -> Void) {
-        mapSelection({ try Self.indexes(of: ids, in: rows, context: $0) }, completion: completion)
-    }
-    
-    /// Run selection work on ``selectionContext`` (not the worker, whose reloads can take a while).
-    ///
-    /// - Parameters:
-    ///   - work: Reads from the context it's given.
-    ///   - completion: Called on the main thread with the result, or an empty one if the work failed.
-    private func mapSelection<Value: SetAlgebra>(_ work: @escaping (NSManagedObjectContext) throws -> Value, completion: @escaping (Value) -> Void) {
-        let context = selectionContext
-        context.perform {
-            let value = (try? work(context)) ?? Value()
-            context.reset()
-            DispatchQueue.main.async { completion(value) }
-        }
-    }
-    
-    /// - Parameters:
-    ///   - rows: Rows of a table.
-    ///   - context: The context to fetch with. Call on its queue.
-    /// - Returns: The IDs of the events in `rows`.
-    static func eventIDs(of rows: [NSManagedObjectID], context: NSManagedObjectContext) throws -> Set<UUID> {
-        guard !rows.isEmpty else { return [] }
-        let request = NSFetchRequest<NSDictionary>(entityName: "ESMessage")
-        request.resultType = .dictionaryResultType
-        request.propertiesToFetch = ["id"]
-        request.predicate = NSPredicate(format: "self IN %@", rows)
-        return Set(try context.fetch(request).compactMap { $0["id"] as? UUID })
-    }
-    
-    /// - Parameters:
-    ///   - ids: Event IDs.
-    ///   - rows: Rows of a table.
-    ///   - context: The context to fetch with. Call on its queue.
-    /// - Returns: The indexes of the rows holding the events `ids` (looked up by the indexed `id`, then one pass over
-    ///   `rows`).
-    static func indexes(of ids: Set<UUID>, in rows: [NSManagedObjectID], context: NSManagedObjectContext) throws -> IndexSet {
-        guard !ids.isEmpty, !rows.isEmpty else { return [] }
-        let request = NSFetchRequest<NSManagedObjectID>(entityName: "ESMessage")
-        request.resultType = .managedObjectIDResultType
-        request.predicate = NSPredicate(format: "id IN %@", Array(ids))
-        let wanted = Set(try context.fetch(request))
-        guard !wanted.isEmpty else { return [] }
-        return IndexSet(rows.indices.lazy.filter { wanted.contains(rows[$0]) })
     }
     
     // MARK: Jobs
@@ -381,69 +319,6 @@ extension EventQueryModel {
         mutating func add(_ other: Unchecked) {
             count += other.count
             reason = reason ?? other.reason
-        }
-    }
-}
-
-
-// MARK: - Preview
-extension EventQueryModel {
-    /// What a predicate matches among every event the tables show from, whatever their filters: how many, and the
-    /// first few.
-    struct Preview: Equatable {
-        /// A matching event, as its row in the Unified table starts.
-        struct Example: Identifiable, Equatable {
-            let id: NSManagedObjectID
-            let time: String
-            let type: String
-            let context: String
-        }
-
-        var matched = 0
-        var total = 0
-        /// The events it couldn't be checked on.
-        var unchecked = 0
-        var examples: [Example] = []
-    }
-
-    /// Check a predicate on every event, on a context of its own, without changing the tables.
-    ///
-    /// - Parameters:
-    ///   - source: The predicate.
-    ///   - audience: What it's for, which decides what it may use.
-    ///   - limit: How many matching events to keep as examples.
-    /// - Returns: What it matches.
-    /// - Throws: The predicate's or the fetch's error, or `CancellationError` once the task is cancelled.
-    func preview(_ source: String, for audience: PredicateAudience, examples limit: Int = 5) async throws -> Preview {
-        let context = controller.container.newBackgroundContext()
-        let cancelled = OSAllocatedUnfairLock(initialState: false)
-        return try await withTaskCancellationHandler {
-            try await context.perform {
-                /// Parsed on the context's queue, which evaluates it.
-                let predicate = try StreamFilter.Predicate(source, for: audience)
-                var preview = Preview(total: try context.count(for: ESMessage.fetchRequest()))
-                let byTime = [NSSortDescriptor(key: "mach_time", ascending: true)]
-                try Worker(context: context).forEachEvent(matching: predicate.storePredicate, sortedBy: byTime,
-                                                          isCurrent: { !cancelled.withLock { $0 } }) { message in
-                    let matches: Bool
-                    do {
-                        matches = try predicate.evaluate(on: message)
-                    } catch {
-                        preview.unchecked += 1
-                        return
-                    }
-                    guard matches else { return }
-                    preview.matched += 1
-                    if preview.examples.count < limit {
-                        preview.examples.append(Preview.Example(
-                            id: message.objectID, time: EventTableColumn.timestamp(message),
-                            type: message.es_event_type ?? "", context: message.context ?? ""))
-                    }
-                }
-                return preview
-            }
-        } onCancel: {
-            cancelled.withLock { $0 = true }
         }
     }
 }

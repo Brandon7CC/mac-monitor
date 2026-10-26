@@ -11,7 +11,6 @@ import OSLog
 import os
 import AppKit
 import UniformTypeIdentifiers
-import SQLite3
 
 /// Exposes functions and helpers to manage system event entities stored in Core Data
 ///
@@ -173,7 +172,7 @@ public class CoreDataController {
     private var nextInsertOrder: Int64 = 0
     
     /// The trace being read, stopped by the next Clear. Main thread only.
-    private weak var currentImport: TraceImporter?
+    weak var currentImport: TraceImporter?
     
     /// Inserts a batch of system events into the private context in a single background transaction.
     ///
@@ -372,124 +371,6 @@ public class CoreDataController {
             }
         }
         return clear
-    }
-    
-    /// Replace the store with an empty one: every Clear's way of emptying it, and the way left when deletes fail (SQLite
-    /// logs a delete before making it, which a full disk, most easily filled by a trace, has no room for, while emptying
-    /// the store's files frees space). Not while an export reads the store. On `privateMOC`'s queue only, after it has let
-    /// go of every object.
-    ///
-    /// Objects the other contexts loaded from the old store read `nil` once their context forgets them, but looking one
-    /// up by ID with `object(with:)` raises an exception: readers use `existingObject(with:)`, which throws.
-    ///
-    /// - Returns: Whether the store was taken away, so every context must forget the objects it loaded from it. `false`
-    ///   with the store as it was, if it couldn't be emptied.
-    private func replaceStore() -> Bool {
-        let coordinator = container.persistentStoreCoordinator
-        guard canSave.withLock({ $0 }), exports.withLock({ $0.isEmpty }), let url = storeURL,
-              let store = coordinator.persistentStore(for: url) else { return false }
-        privateMOC.reset()
-        let options = store.options
-        var removed = false
-        coordinator.performAndWait {
-            do { try coordinator.remove(store) } catch { return }
-            removed = true
-            do {
-                try coordinator.destroyPersistentStore(at: url, type: .sqlite, options: options)
-            } catch {
-                CoreDataController.logger.error("Unable to empty the event store: \(error.localizedDescription)")
-                /// Its events are still there: put it back, for the deletes to empty instead.
-                if (try? coordinator.addPersistentStore(type: .sqlite, at: url, options: options)) != nil {
-                    removed = false
-                    return
-                }
-            }
-            /// The emptied store, or (as when one can't be made at launch) one in memory.
-            for location in [url, URL(fileURLWithPath: "/dev/null")] {
-                guard (try? coordinator.addPersistentStore(type: .sqlite, at: location, options: options)) != nil else {
-                    continue
-                }
-                if location == url { Self.dropUnusedIndexes(at: url, in: coordinator) }
-                if coordinator.persistentStore(for: location) != nil { return }
-            }
-            canSave.withLock { $0 = false }
-            CoreDataController.logger.fault("Unable to reopen the event store; no more events can be kept")
-        }
-        return removed
-    }
-    
-    // MARK: - Unused indexes
-    /// Drop the index SQLite keeps for each of `ESEventType`'s 51 relationships, which nothing looks up: a query
-    /// reaches an event's payload from its `ESEventType` row, never back. Every event's row updated all 51 as it was
-    /// saved, about a quarter of the time a save took (82 to 92 µs an event rather than 110 to 118, measured with this
-    /// model).
-    ///
-    /// Core Data makes them with the store, and the store is new at every launch and every Clear, so this runs after
-    /// each, with the store taken out of the coordinator so that SQLite has the only connection. It fails safe: on an
-    /// error the indexes stay, which only costs the speed. Never for a store in memory.
-    ///
-    /// - Parameters:
-    ///   - url: The store's file.
-    ///   - coordinator: The coordinator the store is added to. It's added back with the same options.
-    static func dropUnusedIndexes(at url: URL, in coordinator: NSPersistentStoreCoordinator) {
-        guard let store = coordinator.persistentStore(for: url),
-              let entity = coordinator.managedObjectModel.entitiesByName["ESEventType"] else { return }
-        let table = "Z" + entity.name!.uppercased()
-        let names = Set(entity.relationshipsByName.values.filter { !$0.isToMany && $0.inverseRelationship == nil }
-            .map { "\(table)_Z\($0.name.uppercased())_INDEX" })
-        let options = store.options
-        do { try coordinator.remove(store) } catch { return }
-        defer {
-            if (try? coordinator.addPersistentStore(type: .sqlite, at: url, options: options)) == nil {
-                logger.error("Unable to reopen the event store after dropping its indexes")
-            }
-        }
-        var database: OpaquePointer?
-        defer { sqlite3_close(database) }
-        guard sqlite3_open_v2(url.path, &database, SQLITE_OPEN_READWRITE, nil) == SQLITE_OK else { return }
-        /// Only the ones there: a future Core Data may name or make them differently.
-        var statement: OpaquePointer?
-        var present: [String] = []
-        let query = "SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = '\(table)'"
-        if sqlite3_prepare_v2(database, query, -1, &statement, nil) == SQLITE_OK {
-            while sqlite3_step(statement) == SQLITE_ROW {
-                if let name = sqlite3_column_text(statement, 0).map({ String(cString: $0) }), names.contains(name) {
-                    present.append(name)
-                }
-            }
-        }
-        sqlite3_finalize(statement)
-        guard !present.isEmpty else { return }
-        let drops = present.map { "DROP INDEX \"\($0)\";" }.joined()
-        if sqlite3_exec(database, "PRAGMA synchronous = OFF; BEGIN; \(drops) COMMIT;", nil, nil, nil) != SQLITE_OK {
-            let message = String(cString: sqlite3_errmsg(database))
-            logger.error("Unable to drop the event store's unused indexes: \(message, privacy: .public)")
-            sqlite3_exec(database, "ROLLBACK;", nil, nil, nil)
-        }
-    }
-    
-    // MARK: - Open Trace
-    
-    /// Replace the store's events with a trace file's, read in the background (see ``TraceImporter``), like opening a
-    /// saved Process Monitor log (#38).
-    ///
-    /// Clears the store first (``eventsWillClear`` and ``eventsDidClear``). Then the trace's events arrive the way a
-    /// recording's do (``eventsInserted``), so the tables fill in as the file is read. Recorded events are dropped until
-    /// the next ``clearSystemEvents(source:)`` closes the trace. Call on the main thread, once
-    /// ``TraceImporter/preflight(_:)`` has accepted the file.
-    ///
-    /// - Parameters:
-    ///   - url: The trace.
-    ///   - progress: Called on the main thread, at most ten times a second.
-    ///   - completion: Called on the main thread once, when the file has been read, or reading stopped or failed.
-    /// - Returns: The import, to stop it.
-    @discardableResult
-    public func openTrace(at url: URL, progress: @escaping (TraceImporter.Progress) -> Void = { _ in },
-                          completion: @escaping (TraceImporter.Summary) -> Void) -> TraceImporter {
-        let importer = TraceImporter(url: url, store: self, clear: clearSystemEvents(source: .trace(url)))
-        currentImport = importer
-        importer.run(progress: progress, completion: completion)
-        return importer
     }
     
     /// The number of events in the store, counted by SQLite. Main thread only.

@@ -10,9 +10,9 @@ xcodebuild test -project ProjectSutro/ProjectSutro.xcodeproj -scheme SutroESFram
 ## Layout
 
 The folders mirror `SutroESFramework`'s, so a test sits at the same path as the code it tests: the tests for
-`ESM/Capture/EventClassTable.swift` are in `ESM/Capture/EventClassTableTests.swift`, and an event's own tests are in its
-folder under `Events/Models`. A test of several files goes with the one it's mostly about. The launched-by parent's
-tests are all in `ESM/LaunchedByParent`, though its code spans capture, export and import.
+`ESM/Capture/Event Classes/EventClassTable.swift` are in `ESM/Capture/Event Classes/EventClassTableTests.swift`, and an
+event's own tests are in its folder under `Events/Models`. A test of several files goes with the one it's mostly about.
+The launched-by parent's tests are all in `ESM/LaunchedByParent`, though its code spans capture, export and import.
 
 | Folder | What's there |
 |---|---|
