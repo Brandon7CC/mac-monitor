@@ -140,8 +140,12 @@ public final class StreamCommand: NSObject {
     /// Stop: no new events, write every event already captured, then end with the summary. Once a stop has been asked
     /// for, or the stream has ended, this does nothing.
     ///
-    /// - Parameter timeout: How long to wait for the Security Extension's answer.
-    public func stop(timeout: DispatchTimeInterval = .seconds(2)) {
+    /// A signal's stop keeps the 2 second limit, and the tool's watchdog backs it up. The stream's own stops at its
+    /// `--count` or `--for` wait as long as it takes. The answer comes only after every queued batch is written, which
+    /// takes a while under a slow reader.
+    ///
+    /// - Parameter timeout: How long to wait for the Security Extension's answer, or `nil` to wait as long as it takes.
+    public func stop(timeout: DispatchTimeInterval? = .seconds(2)) {
         queue.async { [self] in
             guard completion != nil, !isStopping else { return }
             isStopping = true
@@ -183,7 +187,7 @@ extension StreamCommand: StreamReaderProtocol {
                 saidUnchecked = true
                 diagnose("macmonitor: \(reason)")
             }
-            if pipeline.isFull { stop() }
+            if pipeline.isFull { stop(timeout: nil) }
         }
     }
     
@@ -207,7 +211,7 @@ extension StreamCommand {
     /// - Parameter reply: The stream request's answer.
     private func started(_ reply: StreamReply) {
         if let duration {
-            queue.asyncAfter(deadline: .now() + duration) { [weak self] in self?.stop() }
+            queue.asyncAfter(deadline: .now() + duration) { [weak self] in self?.stop(timeout: nil) }
         }
         if reply.sensorVersion != toolVersion {
             diagnose("""
@@ -234,10 +238,11 @@ extension StreamCommand {
     
     /// A time in words.
     ///
-    /// - Parameter seconds: The time.
+    /// - Parameter seconds: The time. It's held between 0 and a year, so any value converts.
     /// - Returns: Such as "30 seconds", "5 minutes" or "1 hour, 30 minutes".
     static func describe(_ seconds: TimeInterval) -> String {
-        Duration.milliseconds(Int64((seconds * 1_000).rounded()))
+        let held = seconds.isNaN ? 0 : min(max(seconds, 0), CommandLineParser.longestDuration)
+        return Duration.milliseconds(Int64((held * 1_000).rounded()))
             .formatted(.units(allowed: [.hours, .minutes, .seconds, .milliseconds], width: .wide)
                 .locale(Locale(identifier: "en_US")))
     }

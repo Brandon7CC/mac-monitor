@@ -26,12 +26,17 @@ import CryptoKit
 public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtensionRequestDelegate, AgentProtocol {
     /// Decodes incoming events. Only used on the XPC connection's serial queue.
     let decoder = JSONDecoder()
+    /// Batch events that didn't decode since the last fault, and the first one's error. Only used on the XPC
+    /// connection's serial queue.
+    private var undecodable: (count: Int, firstError: Error?) = (0, nil)
+    /// When that fault was last logged, in uptime nanoseconds. Only used on the XPC connection's serial queue.
+    private var undecodableFaultTime: UInt64?
     
     // MARK: XPC
     /// Our connection to the Security Extension (agent context).
     ///
     /// Created on first use. The first use is always on the main thread (an XPC request from the UI or the System
-    /// Extension activation delegate), before any connection handler can run.
+    /// Extension activation delegate), before any connection handler can run. Its signals arrive on the main thread.
     lazy var sensor = SensorClient(agent: self) { [weak self] signal in
         /// Anyone can post these signals, so one that arrives while the same kind is already pending is dropped: a flood
         /// of posts costs at most one handshake per kind per second.
@@ -110,7 +115,9 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     private let recordingState = OSAllocatedUnfairLock(initialState: false)
     
     /// Should we drop platform binaries?
-    private var dropPlatformBinaries: Bool = false
+    ///
+    /// Thread-safe. It's read from the XPC queue and toggled from the main thread.
+    private let dropPlatformBinaries = OSAllocatedUnfairLock(initialState: false)
     
     // MARK: - Batching Properties
     /// A temporary, thread-safe buffer for incoming events before they are sent to Core Data.
@@ -135,7 +142,7 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     ///
     /// Utilizing the concept of "critical" eventing events see: ``EventType/isCritical``.
     public func togglePlatformBinaries() {
-        self.dropPlatformBinaries.toggle()
+        dropPlatformBinaries.withLock { $0.toggle() }
     }
     
     // MARK: - Incoming events
@@ -160,8 +167,18 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     ///   - reply: Lets the Security Extension send its next batch.
     public func receive(events: [Data], reply: @escaping () -> Void) {
         // Quickly decode the JSON.
-        let decoded: [Message] = events.compactMap { try? decoder.decode(Message.self, from: $0) }
-        var messages: [Message] = decoded.filter(shouldInsert)
+        var firstError: Error?
+        let decoded: [Message] = events.compactMap { event in
+            do {
+                return try decoder.decode(Message.self, from: event)
+            } catch {
+                firstError = firstError ?? error
+                return nil
+            }
+        }
+        if let firstError { noteUndecodable(events.count - decoded.count, firstError) }
+        let dropping = dropPlatformBinaries.withLock { $0 }
+        var messages: [Message] = decoded.filter { shouldInsert($0, droppingPlatformBinaries: dropping) }
         guard !messages.isEmpty else { return reply() }
         /// An exec or fork without a launched-by parent (from an older Security Extension) gets one, with its parent's
         /// path read now.
@@ -180,12 +197,35 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         }
     }
     
+    /// Log a fault for batch events that didn't decode, at most once a minute. Call on the XPC connection's queue.
+    ///
+    /// The fault counts every event lost since the last one and gives the first error.
+    ///
+    /// - Parameters:
+    ///   - count: This batch's events that didn't decode.
+    ///   - error: The first one's error.
+    private func noteUndecodable(_ count: Int, _ error: Error) {
+        undecodable.count += count
+        undecodable.firstError = undecodable.firstError ?? error
+        let now = DispatchTime.now().uptimeNanoseconds
+        if let last = undecodableFaultTime, now - last < 60_000_000_000 { return }
+        undecodableFaultTime = now
+        let (lost, first) = (undecodable.count, String(describing: undecodable.firstError ?? error))
+        Logger(subsystem: "com.swiftlydetecting.agent", category: "EndpointSecurityManager").fault("""
+            \(lost) events from the Security Extension didn't decode and were dropped. The first error: \
+            \(first, privacy: .public)
+            """)
+        undecodable = (0, nil)
+    }
+    
     /// Should this event be kept given the "drop platform binaries" setting?
     ///
-    /// - Parameter message: A decoded event.
+    /// - Parameters:
+    ///   - message: A decoded event.
+    ///   - dropping: Are platform binaries being dropped?
     /// - Returns: `true` unless platform binaries are being dropped and this event is a non-critical one from a platform binary.
-    private func shouldInsert(_ message: Message) -> Bool {
-        guard dropPlatformBinaries, message.process.is_platform_binary, !message.event.isCritical else {
+    private func shouldInsert(_ message: Message, droppingPlatformBinaries dropping: Bool) -> Bool {
+        guard dropping, message.process.is_platform_binary, !message.event.isCritical else {
             return true
         }
         if let exec = message.event.exec { return !exec.target.is_platform_binary }

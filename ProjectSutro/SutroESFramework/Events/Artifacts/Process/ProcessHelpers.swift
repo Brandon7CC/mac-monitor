@@ -103,11 +103,22 @@ public class ProcessHelpers {
     ///   - pretty: Pretty-print it, rather than write it on one line.
     /// - Returns: The JSON, or `{}` if the value can't be encoded.
     public static func eventToJSON(value: Encodable, pretty: Bool = false) -> String {
+        guard let encodedData = try? eventJSON(value, pretty: pretty) else { return "{}" }
+        return String(data: encodedData, encoding: .utf8) ?? ""
+    }
+    
+    /// The same JSON as ``eventToJSON(value:pretty:)``, as bytes, or the encoder's error.
+    ///
+    /// - Parameters:
+    ///   - value: The value, such as an `ESMessage`.
+    ///   - pretty: Pretty-print it, rather than write it on one line.
+    /// - Returns: The JSON.
+    /// - Throws: Why the value can't be encoded.
+    static func eventJSON(_ value: Encodable, pretty: Bool) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = pretty ? [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
             : [.withoutEscapingSlashes, .sortedKeys]
-        guard let encodedData = try? encoder.encode(value) else { return "{}" }
-        return String(data: encodedData, encoding: .utf8) ?? ""
+        return try encoder.encode(value)
     }
     
     // MARK: - Add to when supporting new ES events (if it has a process struct)

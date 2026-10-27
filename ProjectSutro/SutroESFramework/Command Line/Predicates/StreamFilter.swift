@@ -14,8 +14,10 @@ import Foundation
 ///
 /// An option given more than once matches an event if any of its values does, and an event is written only if every
 /// option given matches it: `--process curl --process wget --signing-id '^com\.apple\.'` writes Apple's curl and
-/// wget. A pattern is a regular expression (`NSRegularExpression`), found anywhere in the value unless it's anchored,
-/// and case-sensitive unless it starts with `(?i)`. `--predicate` is an `NSPredicate` on the event's record.
+/// wget. `--predicate` is the exception. Every one given must match, checked in order until one doesn't.
+///
+/// A pattern is a regular expression (`NSRegularExpression`), found anywhere in the value unless it's anchored, and
+/// case-sensitive unless it starts with `(?i)`. `--predicate` is an `NSPredicate` on the event's record.
 ///
 /// `--pid`, `--process` and `--target` read the event's header, which every format decodes. `--signing-id`, `--grep`
 /// and `--predicate` read its export record, the line `--format jsonl` writes, so text output with one of them encodes
@@ -249,16 +251,13 @@ public struct StreamFilter: Equatable {
     ///
     /// - Parameter record: The event's export record.
     /// - Returns: `true` if it does.
-    /// - Throws: ``StreamFilterError`` if a `--predicate` can't be evaluated on it.
+    /// - Throws: ``StreamFilterError`` if a `--predicate` can't be evaluated on it. A predicate after one that didn't
+    ///   match is never evaluated, so it can't throw.
     public func admits(record: NSDictionary) throws -> Bool {
         let signingID = record.value(forKeyPath: "process.signing_id") as? String ?? ""
         guard Self.any(signingIDs, { $0.matches(signingID) }),
               Self.any(greps, { pattern in Self.containsString(record, where: pattern.matches) }) else { return false }
-        guard !predicates.isEmpty else { return true }
-        for predicate in predicates {
-            if try predicate.evaluate(on: record) { return true }
-        }
-        return false
+        return try predicates.allSatisfy { try $0.evaluate(on: record) }
     }
 
     /// Does any value pass, or are there none to pass?

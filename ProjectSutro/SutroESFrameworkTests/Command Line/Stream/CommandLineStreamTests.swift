@@ -126,20 +126,42 @@ final class CommandLineStreamTests: XCTestCase {
         XCTAssertEqual(run.reported.count, 1)
     }
     
+    /// A stream that stops itself at its `--count` waits for the stop's answer however long the drain takes. The old
+    /// 2 second limit ended such a stream with exit 69 and lost what was still queued.
+    func testASelfStopWaitsForItsAnswer() throws {
+        let harness = makeHarness()
+        let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody, limit: 1)
+        var invocation = StreamInvocation()
+        invocation.events = [ES_EVENT_TYPE_NOTIFY_EXIT]
+        invocation.limit = 1
+        run.start(invocation)
+        XCTAssertTrue(waitUntil { !run.diagnostics.all.isEmpty }, "The stream never started.")
+        /// The drain waits on Endpoint Security's sync, so the answer waits too.
+        let clients = try XCTUnwrap(harness.factories.last?.clients)
+        clients.forEach { $0.holdSyncs() }
+        try deliverExits([1], in: harness, to: run)
+        XCTAssertTrue(waitUntil { run.output.lines.count == 1 })
+        XCTAssertFalse(waitUntil(timeout: 2.5) { !run.reported.isEmpty }, "\(run.reported)")
+        clients.forEach { $0.releaseSyncs() }
+        XCTAssertTrue(waitUntil { !run.reported.isEmpty })
+        guard case .stopped(let summary?) = run.reported.first else { return XCTFail("\(run.reported)") }
+        XCTAssertEqual(summary.delivered, 1)
+    }
+    
     /// `--for` stops the stream itself once the time is up, with every event captured before then written.
     func testATimeStopsTheStream() throws {
         let harness = makeHarness()
         let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody)
         var invocation = StreamInvocation()
         invocation.events = [ES_EVENT_TYPE_NOTIFY_EXIT]
-        invocation.duration = 1
+        invocation.duration = 3
         run.start(invocation)
         try deliverExits([1, 2], in: harness, to: run)
         XCTAssertTrue(waitUntil { !run.reported.isEmpty })
         guard case .stopped(let summary?) = run.reported.first else { return XCTFail("\(run.reported)") }
         XCTAssertEqual(summary.delivered, 2)
         XCTAssertEqual(run.output.lines.count, 2)
-        XCTAssertEqual(run.diagnostics.all.first?.hasSuffix(" Stops after 1 second, or press Ctrl-C."), true)
+        XCTAssertEqual(run.diagnostics.all.first?.hasSuffix(" Stops after 3 seconds, or press Ctrl-C."), true)
         XCTAssertEqual(StreamCommand.describe(5_400), "1 hour, 30 minutes")
         XCTAssertEqual(StreamCommand.describe(30), "30 seconds")
     }

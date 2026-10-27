@@ -60,9 +60,10 @@ final class EventBatcherTests: XCTestCase {
         queue.sync {}
     }
     
-    /// A batch goes out as soon as it's full, and a partial one after the flush delay.
+    /// A batch goes out as soon as it's full, and a partial one after the flush delay. The delay is a second, so a
+    /// slow machine can't send the partial batch before the check that it hasn't gone yet.
     func testFullBatchesGoRightAwayAndPartialOnesAfterTheDelay() {
-        let batcher = makeBatcher(limits(batch: 3, window: 4, memory: 100, delay: .milliseconds(20)),
+        let batcher = makeBatcher(limits(batch: 3, window: 4, memory: 100, delay: .seconds(1)),
                                   overflow: .pause { _ in })
         enqueue(1...3, to: batcher)
         XCTAssertEqual(delivery.events, ["1", "2", "3"])

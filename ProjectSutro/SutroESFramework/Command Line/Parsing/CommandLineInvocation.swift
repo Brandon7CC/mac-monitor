@@ -134,7 +134,10 @@ public struct CommandLineUsageError: Error, Equatable, CustomStringConvertible {
     }
     
     /// The message and where to read more, such as "Run 'macmonitor help stream'."
+    ///
+    /// It's escaped for a terminal here, once, so whatever was typed into it is safe to print. That includes file names
+    /// a shell expanded.
     public var description: String {
-        "\(message) \(hint ?? "Run 'macmonitor help\(command.map { " \($0)" } ?? "")'.")"
+        TerminalSafeText.text("\(message) \(hint ?? "Run 'macmonitor help\(command.map { " \($0)" } ?? "")'.")")
     }
 }

@@ -114,6 +114,9 @@ final class CommandLineParserTests: XCTestCase {
         XCTAssertEqual(usageError("stream --format"), "--format needs a value. Run 'macmonitor help stream'.")
         XCTAssertEqual(usageError("stream --format --no-mutes"),
                        "--format needs a value. Run 'macmonitor help stream'.")
+        XCTAssertEqual(usageError("stream --grep -v"), "--grep needs a value. Use --grep=-v for a value that starts "
+                       + "with -. Run 'macmonitor help stream'.")
+        XCTAssertEqual(try stream("--grep=-v").filter.greps.map(\.source), ["-v"])
         XCTAssertEqual(usageError("stream --no-mutes=yes"), "--no-mutes takes no value. Run 'macmonitor help stream'.")
         XCTAssertEqual(usageError("stream --frobnicate 7"),
                        "Unknown option '--frobnicate' for stream. Run 'macmonitor help stream'.")
@@ -138,6 +141,28 @@ final class CommandLineParserTests: XCTestCase {
                            + "'\(value)'. Run 'macmonitor help stream'.", value)
         }
         XCTAssertEqual(usageError("stream --count"), "--count needs a value. Run 'macmonitor help stream'.")
+    }
+    
+    /// A usage error is escaped for a terminal as a whole, whatever part of it was typed.
+    func testUsageErrorsAreEscaped() {
+        XCTAssertEqual(usageError("stream --format x\u{1B}[31m"),
+                       #"--format must be text, jsonl or pretty, not 'x\x1B[31m'. Run 'macmonitor help stream'."#)
+        XCTAssertEqual(usageError("stream --grep -\u{202E}"),
+                       #"--grep needs a value. Use --grep=-\u{202E} for a value that starts with -. Run "#
+                       + "'macmonitor help stream'.")
+        XCTAssertEqual(CommandLineUsageError("a\u{07}", hint: "b\u{9B}").description, #"a\x07 b\u{9B}"#)
+    }
+    
+    /// `--for` is at most a year. A longer one, such as 1e16 seconds, is a usage error rather than a crash.
+    func testTheLongestDuration() throws {
+        XCTAssertEqual(try stream("--for 8760h").duration, CommandLineParser.longestDuration)
+        for value in ["1e16", "8761h", "31536001"] {
+            XCTAssertEqual(usageError("stream --for=\(value)"),
+                           "--for can be at most a year (8760h), not '\(value)'. Run 'macmonitor help stream'.", value)
+        }
+        XCTAssertEqual(StreamCommand.describe(1e16), StreamCommand.describe(CommandLineParser.longestDuration))
+        XCTAssertEqual(StreamCommand.describe(-1), StreamCommand.describe(0))
+        XCTAssertEqual(StreamCommand.describe(.nan), StreamCommand.describe(0))
     }
     
     /// Each filter option may be given more than once, and keeps its values in order. Bad values are usage errors.
@@ -233,8 +258,8 @@ final class CommandLineParserTests: XCTestCase {
         }
     }
     
-    /// Every command parses as itself, its help starts with its usage, and the overview lists it and names the
-    /// commands that need root.
+    /// Every command parses as itself, and the overview lists it and names the commands that need root. The help for
+    /// stream, validate and mute names every option they take.
     func testTheHelpMatchesTheCommands() throws {
         XCTAssertTrue(CommandLineHelp.text(for: nil).contains(" stream and mute need root: run them with sudo."))
         let lines: [CommandLineCommand: String] = [.mute: "mute list", .validate: "validate trace.jsonl",
@@ -243,8 +268,19 @@ final class CommandLineParserTests: XCTestCase {
             let invocation = try parse(lines[command] ?? command.rawValue)
             XCTAssertEqual(invocation.id, command)
             XCTAssertEqual(invocation.command, command.rawValue)
-            XCTAssertTrue(CommandLineHelp.text(for: command.rawValue).hasPrefix("Usage: \(command.help.usage)\n"))
             XCTAssertTrue(CommandLineHelp.text(for: nil).contains("  \(command.rawValue)"))
+        }
+        let options: [CommandLineCommand: [CommandLineOption]] = [
+            .stream: CommandLineOption.stream, .validate: CommandLineOption.validate,
+            .mute: MuteInvocation.Name.allCases.flatMap(CommandLineOption.mute)
+        ]
+        for (command, options) in options {
+            let help = CommandLineHelp.text(for: command.rawValue)
+            for name in Set(options.map(\.name)) {
+                /// The whole option, so --for doesn't count as named by --format.
+                let whole = "(?<![-\\w])\(NSRegularExpression.escapedPattern(for: name))(?![-\\w])"
+                XCTAssertNotNil(help.range(of: whole, options: .regularExpression), "\(command.rawValue) \(name)")
+            }
         }
     }
     
