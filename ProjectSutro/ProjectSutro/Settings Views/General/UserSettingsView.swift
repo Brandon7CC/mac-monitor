@@ -18,10 +18,11 @@ struct GeneralSettingsView: View {
     @StateObject private var releaseNotes = ReleaseNotes()
     @State private var confirmsReset = false
     @State private var showsReleaseNotes = false
-    /// The last Check Now's state. The update sheet opens over Settings when one is found.
+    /// The last Check Now's state, for the version row.
     @State private var isChecking = false
     @State private var lastCheck: UpdateCheck?
-    @State private var update: UpdateDetails?
+    /// The check to show over Settings, as Mac Monitor ▸ Check for Updates shows it.
+    @State private var shownCheck: UpdateCheck?
 
     var body: some View {
         SettingsForm(pane: .general) {
@@ -82,7 +83,7 @@ struct GeneralSettingsView: View {
         .sheet(isPresented: $showsReleaseNotes) {
             ReleaseNotesSheet(notes: releaseNotes)
         }
-        .sheet(item: $update) { UpdateAvailableSheet(updateDetails: $0) }
+        .updateCheckResult($shownCheck)
     }
 
     /// The version row's second line. It says how the last Check Now went.
@@ -96,12 +97,11 @@ struct GeneralSettingsView: View {
         }
     }
 
-    /// Asks the Security Extension for a newer release. A newer one opens the update sheet.
+    /// Asks the Security Extension for a newer release, then shows the update sheet or the alert that says there's none.
     private func checkNow() {
         (isChecking, lastCheck) = (true, nil)
         systemExtensionManager.checkForUpdates { check in
-            (isChecking, lastCheck) = (false, check)
-            if case .newer(let details) = check { update = details }
+            (isChecking, lastCheck, shownCheck) = (false, check, check)
         }
     }
 }

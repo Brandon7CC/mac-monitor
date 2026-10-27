@@ -18,10 +18,11 @@ import CryptoKit
 ///
 /// The "Endpoint Security Manager" (ESM) exposes functionality to interact with the Mac Monitor Security Extension `com.swiftlydetecting.agent.securityextension`
 ///
-/// **Context:** Mac Monitor (the agent). It talks to the Security Extension through `sensor` and receives events as an
-/// ``AgentProtocol``. In the Security Extension (the sensor), `SensorService` runs capture with a ``CaptureSession``.
+/// **Context:** Mac Monitor (the agent). It talks to the Security Extension through `sensor` and receives events, and
+/// an update's progress, as an ``AppAgentProtocol``. In the Security Extension (the sensor), `SensorService` runs
+/// capture with a ``CaptureSession``.
 ///
-public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtensionRequestDelegate, AgentProtocol {
+public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtensionRequestDelegate, AppAgentProtocol {
     /// Decodes incoming events. Only used on the XPC connection's serial queue.
     let decoder = JSONDecoder()
     /// Batch events that didn't decode since the last fault, and the first one's error. Only used on the XPC
@@ -61,6 +62,10 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     
     /// Signals from ``sensor`` waiting out their one-second delay. Main thread only.
     private var pendingSignals: Set<SensorClient.Signal> = []
+    
+    // MARK: Updates
+    /// Where the update being installed is, or `nil` when none is (see ``installUpdate(completion:)``).
+    @Published public var installProgress: UpdateProgress?
     
     // MARK: Event subscriptions
     /// The Security Extension's event subscriptions, as `ES_EVENT_TYPE_*` names (see ``requestEventSubscriptions()``).

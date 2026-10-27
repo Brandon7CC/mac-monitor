@@ -57,11 +57,13 @@ final class UpdateInstaller {
     // MARK: - Install updates
     /// Download, verify, and install the latest release.
     ///
-    /// - Parameter reply: `true` if the update was installed.
-    func install(reply: @escaping (Bool) -> Void) {
+    /// - Parameters:
+    ///   - progress: Called as each step starts, and as the download goes.
+    ///   - reply: `nil` if the update was installed, else why not.
+    func install(progress: @escaping (UpdateProgress) -> Void, reply: @escaping (UpdateFailure?) -> Void) {
 #if COMMUNITY_BUILD
         logger.error("Updates are disabled in Community builds.")
-        reply(false)
+        reply(.unavailable)
 #else
         let claimed: Bool = isInstalling.withLock { installing in
             guard !installing else { return false }
@@ -70,25 +72,27 @@ final class UpdateInstaller {
         }
         guard claimed else {
             logger.error("An update is already being installed.")
-            return reply(false)
+            return reply(.alreadyInstalling)
         }
         
         Task {
             defer { isInstalling.withLock { $0 = false } }
             do {
-                try await installLatestRelease()
+                try await installLatestRelease(progress: progress)
                 logger.log("🎉 Update installation complete!")
-                reply(true)
+                reply(nil)
             } catch {
                 logger.error("❌ Update failed: \(error.localizedDescription, privacy: .public)")
-                reply(false)
+                reply((error as? UpdateError)?.failure ?? (error is URLError ? .download : .installer))
             }
         }
 #endif
     }
     
     /// Securely downloads, validates, and installs the latest release.
-    private func installLatestRelease() async throws {
+    ///
+    /// - Parameter progress: Called as each step starts, and as the download goes.
+    private func installLatestRelease(progress: @escaping (UpdateProgress) -> Void) async throws {
         guard let release = try await newerRelease() else { throw UpdateError.noNewerRelease }
         guard release.downloadURL.scheme == "https" else { throw UpdateError.insecureDownload(release.downloadURL) }
         
@@ -102,7 +106,9 @@ final class UpdateInstaller {
             logger.log("🧹 Cleaned up temporary directory at \(workDirectory.path, privacy: .public)")
         }
         
-        let (downloadedURL, response) = try await URLSession.shared.download(from: release.downloadURL)
+        progress(.downloading(fraction: 0))
+        let (downloadedURL, response) = try await URLSession.shared.download(from: release.downloadURL,
+                                                                             delegate: DownloadProgress(progress))
         /// We don't trust the server's file name: the package always lands at a fixed name inside our directory.
         let package = workDirectory.appendingPathComponent("MacMonitorUpdate.pkg")
         try fm.moveItem(at: downloadedURL, to: package)
@@ -110,10 +116,12 @@ final class UpdateInstaller {
         
         /// 2. Validate the package with Gatekeeper and pin the Team ID
         logger.log("2. Validating the package signature")
+        progress(.verifying)
         try await verifySignature(of: package)
         
         /// 3. Install the update package
         logger.log("3. Installing update...")
+        progress(.installing)
         let (status, errors) = try await run("/usr/sbin/installer", ["-pkg", package.path, "-target", "/"],
                                              capturing: .standardError)
         guard status == 0 else {
@@ -197,15 +205,7 @@ final class UpdateInstaller {
     }
     
     // MARK: - Process helper
-    /// Which output stream ``run(_:_:capturing:)`` returns. The other is discarded.
-    private enum OutputStream {
-        case standardOutput
-        case standardError
-    }
-    
-    /// Run a tool to completion off the Swift concurrency thread pool.
-    ///
-    /// The captured stream is drained before waiting on the process so a chatty tool can't fill the pipe and deadlock.
+    /// Run a tool to completion off the Swift concurrency thread pool (``ToolRunner``).
     ///
     /// - Parameters:
     ///   - tool: Absolute path to the executable.
@@ -213,24 +213,10 @@ final class UpdateInstaller {
     ///   - stream: The stream to capture.
     /// - Returns: The exit status and the captured output.
     private func run(_ tool: String, _ arguments: [String],
-                     capturing stream: OutputStream) async throws -> (status: Int32, output: Data) {
+                     capturing stream: ToolRunner.Stream) async throws -> (status: Int32, output: Data) {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {
-                let process = Foundation.Process()
-                process.executableURL = URL(fileURLWithPath: tool)
-                process.arguments = arguments
-                let pipe = Pipe()
-                process.standardOutput = stream == .standardOutput ? pipe : FileHandle.nullDevice
-                process.standardError = stream == .standardError ? pipe : FileHandle.nullDevice
-                
-                do {
-                    try process.run()
-                    let output = pipe.fileHandleForReading.readDataToEndOfFile()
-                    process.waitUntilExit()
-                    continuation.resume(returning: (process.terminationStatus, output))
-                } catch {
-                    continuation.resume(throwing: error)
-                }
+                continuation.resume(with: Result { try ToolRunner.run(tool, arguments, capturing: stream) })
             }
         }
     }
@@ -270,6 +256,49 @@ extension UpdateInstaller {
                 return "The installer process failed with exit code \(exitCode). Log: \(errorLog)"
             }
         }
+        
+        /// What Mac Monitor is told.
+        var failure: UpdateFailure {
+            switch self {
+            case .releaseLookupFailed, .insecureDownload, .downloadFailed: return .download
+            case .noNewerRelease: return .noNewerRelease
+            case .unreadableAssessment, .rejectedByGatekeeper: return .gatekeeper
+            case .invalidTeamID: return .teamID
+            case .installFailed: return .installer
+            }
+        }
+    }
+}
+
+
+// MARK: - Download progress
+/// Reports a download's progress, at most once a percent.
+private final class DownloadProgress: NSObject, URLSessionTaskDelegate {
+    private let report: (UpdateProgress) -> Void
+    private let lastPercent = OSAllocatedUnfairLock(initialState: -1)
+    private var observation: NSKeyValueObservation?
+    
+    /// - Parameter report: Called with each new percent.
+    init(_ report: @escaping (UpdateProgress) -> Void) {
+        self.report = report
+    }
+    
+    func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
+        observation = task.progress.observe(\.fractionCompleted) { [weak self] progress, _ in
+            self?.update(progress.fractionCompleted)
+        }
+    }
+    
+    /// Report a fraction when its percent is new.
+    ///
+    /// - Parameter fraction: How much is downloaded, from 0 to 1.
+    private func update(_ fraction: Double) {
+        let percent = Int(fraction * 100)
+        let isNew = lastPercent.withLock { last in
+            defer { last = percent }
+            return percent != last
+        }
+        if isNew { report(.downloading(fraction: fraction)) }
     }
 }
 

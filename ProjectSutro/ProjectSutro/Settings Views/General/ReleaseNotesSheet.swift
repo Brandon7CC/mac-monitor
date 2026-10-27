@@ -97,7 +97,7 @@ struct ReleaseNotesSheet: View {
             Group {
                 if let release = notes.release {
                     ScrollView {
-                        Text(Self.markdown(release.body ?? "No notes."))
+                        Text(ReleaseNotesText.attributed(release.body ?? "No notes."))
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -127,14 +127,5 @@ struct ReleaseNotesSheet: View {
     private var title: String {
         guard let release = notes.release else { return "What's New in Mac Monitor \(ReleaseNotes.version)" }
         return release.name.nonEmpty ?? "Mac Monitor \(release.tag)"
-    }
-
-    /// GitHub's Markdown, with its line breaks kept.
-    ///
-    /// - Parameter text: The release's body.
-    /// - Returns: The text to show.
-    private static func markdown(_ text: String) -> AttributedString {
-        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        return (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
     }
 }
