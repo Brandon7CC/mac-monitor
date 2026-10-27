@@ -138,9 +138,16 @@ struct SystemEventFactsView : View {
         case .metadata:
             SystemEventDetailsView(selectedMessage: selectedMessage).padding(.bottom)
         case .script:
-            if let script { FileContentView(path: script.path, content: script.content) }
+            if let script {
+                FileContentView(path: script.path, content: script.content,
+                                language: .of(path: script.path, content: script.content,
+                                              interpreter: selectedMessage.event.exec?.target.executable?.path))
+            }
         case .plist:
-            if let plist { FileContentView(path: plist.path, content: plist.content) }
+            if let plist {
+                FileContentView(path: plist.path, content: plist.content,
+                                language: .of(path: plist.path, content: plist.content))
+            }
         case .correlation:
             SystemEnrichedEventView(allFilters: $allFilters, selectedMessage: selectedMessage)
         case .groups:

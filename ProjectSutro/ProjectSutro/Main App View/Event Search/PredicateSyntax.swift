@@ -19,6 +19,7 @@ enum PredicateSyntax {
     static let stringColor = dynamic(light: 0xC41A16, dark: 0xFC6A5D)
     static let numberColor = dynamic(light: 0x1C00CF, dark: 0xD0BF69)
     static let variableColor = dynamic(light: 0x6C36A9, dark: 0xA167E6)
+    static let commentColor = dynamic(light: 0x5D6C79, dark: 0x6C7986)
 
     /// Color a predicate's text, and underline each key path from its first key that isn't where it puts it, as the
     /// predicate is refused for it.
