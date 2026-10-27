@@ -21,7 +21,8 @@ import SutroESFramework
 /// closing it never asks. Replacing recorded events asks first, under the same "warn before clearing" setting as Clear.
 ///
 /// A file is checked (``TraceImporter/preflight(_:)``) in the background before anything is cleared. Opening another
-/// file or a Clear meanwhile drops it.
+/// file or a Clear meanwhile drops it. Reading still going after half a second shows a sheet on a main window, which
+/// blocks it until the trace is read.
 ///
 /// Export telemetry saves the events to a file in the background, one save at a time
 /// (``save(eventIDs:jsonl:showWindow:)``). A save still going after half a second shows a sheet on the main window
@@ -41,6 +42,10 @@ final class TraceSession: ObservableObject {
     @Published private(set) var recents: [URL] = NSDocumentController.shared.recentDocumentURLs
     /// The file being read.
     @Published private var importer: TraceImporter?
+    /// Has reading run for half a second, long enough to show its sheet?
+    @Published private(set) var showsOpening = false
+    /// The main window whose sheet shows the trace being read. It's `nil` until a main window opens.
+    @Published var openingWindow: UUID?
     /// The events being saved to a file, while they are, and a save that failed until its sheet's OK. Only
     /// TraceSession+Saving.swift sets it.
     @Published var saving: Saving?
@@ -85,11 +90,9 @@ final class TraceSession: ObservableObject {
     /// The window title: the trace's name, or the app's.
     var title: String { url?.lastPathComponent ?? "Mac Monitor" }
     
-    /// The window subtitle: how far reading has got, or what the trace holds. Empty while live.
+    /// The window subtitle: what the trace holds, or "Opening…" while it's read. Empty while live.
     var subtitle: String {
-        if isOpening {
-            return progress.map { "Opening… \(Self.bytes($0.bytesRead)) of \(Self.bytes($0.totalBytes))" } ?? "Opening…"
-        }
+        if isOpening { return "Opening…" }
         guard let summary else { return "" }
         var parts = [Self.counted(summary.saved, "event")]
         if let range = summary.timeRange {
@@ -175,7 +178,12 @@ final class TraceSession: ObservableObject {
             self.finished(summary)
         }
         (self.importer, self.url, progress, summary) = (importer, url, nil, nil)
+        (openingWindow, showsOpening) = (windows.first, false)
         if windows.isEmpty { showWindow() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self, self.importer === importer else { return }
+            self.showsOpening = true
+        }
     }
     
     /// Open the first file dropped on a window.
@@ -246,7 +254,7 @@ final class TraceSession: ObservableObject {
     ///
     /// - Parameter count: A number of bytes.
     /// - Returns: The size, e.g. "12.3 MB".
-    private static func bytes(_ count: Int64) -> String {
+    static func bytes(_ count: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: count, countStyle: .file)
     }
     

@@ -113,7 +113,16 @@ extension TraceSession {
     }
 
     // MARK: Windows
-    /// A main window opened. A save no window shows yet is shown in it.
+    /// A main window's sheet: the trace being read, or the save.
+    ///
+    /// - Parameter window: The main window.
+    /// - Returns: What its sheet shows, or `nil` for no sheet.
+    func sheet(shownIn window: UUID) -> TraceSheet? {
+        if isOpening, showsOpening, openingWindow == window { return .opening }
+        return save(shownIn: window).map(TraceSheet.saving)
+    }
+
+    /// A main window opened. A trace being read or a save that no window shows yet is shown in it.
     ///
     /// - Parameters:
     ///   - window: The window's identity.
@@ -122,6 +131,7 @@ extension TraceSession {
         windows.removeAll { $0 == window }
         windows.insert(window, at: isKey ? 0 : windows.endIndex)
         if saving != nil && saving?.window == nil { saving?.window = window }
+        if isOpening && openingWindow == nil { openingWindow = window }
     }
 
     /// A main window became key, so the next save's sheet belongs to it.
@@ -132,11 +142,12 @@ extension TraceSession {
         windows.insert(window, at: 0)
     }
 
-    /// A main window closed. The main window key last takes over its save's sheet.
+    /// A main window closed. The main window key last takes over its sheet.
     ///
     /// - Parameter window: The window's identity.
     func windowDisappeared(_ window: UUID) {
         windows.removeAll { $0 == window }
         if saving?.window == window { saving?.window = windows.first }
+        if openingWindow == window { openingWindow = windows.first }
     }
 }

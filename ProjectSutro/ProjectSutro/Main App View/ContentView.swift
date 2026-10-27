@@ -330,7 +330,7 @@ struct EventView: View {
         }
         /// Counted so a trace opened from the File menu with no main window open gets one. A save shows its sheet
         /// here when it started in this window.
-        .traceSaveSheet(traceSession)
+        .traceSheets(traceSession)
         /// Activates the Security Extension only if it's running: otherwise the checklist's Install button does, when
         /// macOS's prompt to open System Settings follows from it.
         .onAppear {

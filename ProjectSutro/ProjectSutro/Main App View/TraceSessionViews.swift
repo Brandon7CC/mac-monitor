@@ -12,31 +12,17 @@ import SutroESFramework
 
 
 // MARK: - Toolbar
-/// The toolbar's trace status: while reading, the progress (by bytes) and Cancel; afterwards, what was skipped.
-///
-/// Also shows "Clearing previous events…" while a Clear that takes a while (many events) is deleting. A save shows in
-/// its window's sheet (``TraceSaveSheet``).
+/// The toolbar's trace status: what a trace held that isn't showing, or "Clearing previous events…" while a Clear
+/// that takes a while (many events) is deleting. Reading a trace and saving one show in a window's sheet
+/// (``TraceOpenSheet``, ``TraceSaveSheet``).
 struct TraceStatusView: View {
     /// The session whose trace this shows.
     @ObservedObject var session: TraceSession
     
-    /// Progress and Cancel while reading, clearing while a Clear deletes, or what was skipped.
+    /// Clearing while a Clear deletes, or what was skipped. Nothing while a trace is read.
     @ViewBuilder var body: some View {
         if session.isOpening {
-            HStack(spacing: 6) {
-                if session.isClearing {
-                    clearing
-                } else {
-                    let fraction = session.progress?.fraction ?? 0
-                    ProgressView(value: fraction)
-                        .frame(width: 120)
-                        .help(session.subtitle)
-                    Text(TraceSession.percent(fraction))
-                        .monospacedDigit()
-                }
-                Button("Cancel") { session.stop() }
-                    .help("Stop reading and keep the events read so far")
-            }
+            EmptyView()
         } else if session.isClearing {
             clearing
         } else if let summary = session.summary, let problems = Self.problems(summary) {
@@ -81,6 +67,49 @@ struct TraceStatusView: View {
 }
 
 
+// MARK: - Opening
+/// The sheet a main window shows while a trace is read. It names the file and its folder, shows how much is read and
+/// how many events, and offers Cancel, which keeps the events read so far.
+struct TraceOpenSheet: View {
+    @ObservedObject var session: TraceSession
+    /// Was Cancel clicked? Reading stops at its next batch.
+    @State private var isCancelled = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Opening Trace").font(.headline)
+            if let url = session.url { TraceFileLabel(url: url) }
+            if let progress = session.progress, !session.isClearing {
+                ProgressView(value: progress.fraction)
+                Text("\(TraceSession.bytes(progress.bytesRead)) of \(TraceSession.bytes(progress.totalBytes)) read · "
+                     + TraceSession.counted(progress.events, "event"))
+                    .font(.callout)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            } else {
+                ProgressView().progressViewStyle(.linear)
+                Text(isCancelled ? "Stopping…" : session.isClearing ? "Clearing previous events…" : "Reading…")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+            HStack {
+                Spacer()
+                Button("Cancel") {
+                    isCancelled = true
+                    session.stop()
+                }
+                .keyboardShortcut(.cancelAction)
+                .disabled(isCancelled)
+                .help("Stop reading and keep the events read so far")
+            }
+        }
+        .padding(20)
+        .frame(width: 440)
+        .interactiveDismissDisabled()
+    }
+}
+
+
 // MARK: - Saving
 /// The sheet a main window shows while it saves a trace. It names the file and its folder, counts the events written,
 /// and offers Cancel. A save that failed says why, with OK.
@@ -107,7 +136,7 @@ struct TraceSaveSheet: View {
                 buttons { Button("OK", action: close).keyboardShortcut(.defaultAction) }
             } else {
                 Text("Saving Trace").font(.headline)
-                file
+                TraceFileLabel(url: saving.url)
                 progress
                 buttons {
                     Button("Cancel", action: cancel)
@@ -121,24 +150,6 @@ struct TraceSaveSheet: View {
         .padding(20)
         .frame(width: 440)
         .interactiveDismissDisabled()
-    }
-
-    /// The file's icon, its name, and its folder.
-    private var file: some View {
-        HStack(spacing: 10) {
-            Image(nsImage: NSWorkspace.shared.icon(for: UTType(filenameExtension: saving.url.pathExtension) ?? .json))
-                .resizable()
-                .frame(width: 32, height: 32)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name).lineLimit(1).truncationMode(.middle)
-                Text((saving.url.deletingLastPathComponent().path as NSString).abbreviatingWithTildeInPath)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-            .help(saving.url.path)
-        }
     }
 
     /// The bar, by events written, and how many. Until the export knows its events, the bar is indeterminate.
@@ -168,9 +179,47 @@ struct TraceSaveSheet: View {
 }
 
 
-/// Makes a view a main window's content. The window counts as a main window, and shows a save's sheet when it's the
-/// window the save belongs to.
-private struct TraceSaveSheetHost: ViewModifier {
+/// A trace file in a sheet: its icon, its name, and its folder.
+struct TraceFileLabel: View {
+    let url: URL
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(nsImage: NSWorkspace.shared.icon(for: UTType(filenameExtension: url.pathExtension) ?? .json))
+                .resizable()
+                .frame(width: 32, height: 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(url.lastPathComponent).lineLimit(1).truncationMode(.middle)
+                Text((url.deletingLastPathComponent().path as NSString).abbreviatingWithTildeInPath)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .help(url.path)
+        }
+    }
+}
+
+
+/// What a main window's sheet shows: a trace being read, or a save.
+enum TraceSheet: Identifiable {
+    case opening
+    case saving(TraceSession.Saving)
+
+    /// The same while a save's progress changes.
+    var id: AnyHashable {
+        switch self {
+        case .opening: "opening"
+        case .saving(let saving): saving.id
+        }
+    }
+}
+
+
+/// Makes a view a main window's content. The window counts as a main window, and shows the sheet for a trace being
+/// read or a save when it belongs to the window.
+private struct TraceSheetHost: ViewModifier {
     @ObservedObject var session: TraceSession
     @Environment(\.controlActiveState) private var activeState
     /// The window's identity, for as long as its content lives.
@@ -178,8 +227,12 @@ private struct TraceSaveSheetHost: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .sheet(item: Binding { session.save(shownIn: window) } set: { _ in }) { saving in
-                TraceSaveSheet(saving: saving, cancel: session.stopSaving, close: session.closeSaveFailure)
+            .sheet(item: Binding { session.sheet(shownIn: window) } set: { _ in }) { sheet in
+                switch sheet {
+                case .opening: TraceOpenSheet(session: session)
+                case .saving(let saving):
+                    TraceSaveSheet(saving: saving, cancel: session.stopSaving, close: session.closeSaveFailure)
+                }
             }
             .onAppear { session.windowAppeared(window, isKey: activeState == .key) }
             .onDisappear { session.windowDisappeared(window) }
@@ -191,12 +244,13 @@ private struct TraceSaveSheetHost: ViewModifier {
 
 
 extension View {
-    /// Makes the view a main window's content, which shows a save's sheet when the save belongs to its window.
+    /// Makes the view a main window's content, which shows the sheet for a trace being read or a save when it belongs
+    /// to its window.
     ///
-    /// - Parameter session: The session that saves.
+    /// - Parameter session: The session that reads and saves traces.
     /// - Returns: The view, counted as a main window.
-    func traceSaveSheet(_ session: TraceSession) -> some View {
-        modifier(TraceSaveSheetHost(session: session))
+    func traceSheets(_ session: TraceSession) -> some View {
+        modifier(TraceSheetHost(session: session))
     }
 }
 
