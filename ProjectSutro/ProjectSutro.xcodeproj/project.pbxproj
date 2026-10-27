@@ -324,6 +324,7 @@
 		CA5936582E8B163E008A115D /* ESPTYGrantEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA5936562E8B163E008A115D /* ESPTYGrantEvent+CoreDataClass.swift */; };
 		CA59365C2E8B1920008A115D /* SystemPTYGrantMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA59365B2E8B1913008A115D /* SystemPTYGrantMetadataView.swift */; };
 		CA59365E2E8B51A0008A115D /* FDPipe.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA59365D2E8B519A008A115D /* FDPipe.swift */; };
+		FD351B35FAAB287624161D8A /* ToolRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BE084741F7325B96F4E8AF5 /* ToolRunner.swift */; };
 		CA7D0EE62E427E850024243F /* UpdateEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7D0EE52E427E770024243F /* UpdateEngine.swift */; };
 		CA7D0EE82E42A07B0024243F /* UpdateAvailableSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7D0EE72E42A0600024243F /* UpdateAvailableSheet.swift */; };
 		CA9700000000000000000003 /* EventClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000002 /* EventClass.swift */; };
@@ -909,6 +910,7 @@
 		CA5936562E8B163E008A115D /* ESPTYGrantEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESPTYGrantEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CA59365B2E8B1913008A115D /* SystemPTYGrantMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPTYGrantMetadataView.swift; sourceTree = "<group>"; };
 		CA59365D2E8B519A008A115D /* FDPipe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FDPipe.swift; sourceTree = "<group>"; };
+		0BE084741F7325B96F4E8AF5 /* ToolRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolRunner.swift; sourceTree = "<group>"; };
 		CA7D0EE52E427E770024243F /* UpdateEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateEngine.swift; sourceTree = "<group>"; };
 		CA7D0EE72E42A0600024243F /* UpdateAvailableSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateAvailableSheet.swift; sourceTree = "<group>"; };
 		CA9700000000000000000002 /* EventClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventClass.swift; sourceTree = "<group>"; };
@@ -1718,6 +1720,7 @@
 			isa = PBXGroup;
 			children = (
 				284F855E2E7369E7001542E3 /* Path Muting */,
+				0BE084741F7325B96F4E8AF5 /* ToolRunner.swift */,
 				CA7D0EE52E427E770024243F /* UpdateEngine.swift */,
 				7E5A1C0000000000000F0003 /* CommandLineToolEngine.swift */,
 				283C4D4729E0E16F009FF6D3 /* SubscriptionEngine.swift */,
@@ -4041,6 +4044,7 @@
 				2885A33A29EF99CE001C0420 /* TargetPathEvents.swift in Sources */,
 				2881CE19294AFFC700F97F99 /* ESLaunchItemRemoveEvent+CoreDataClass.swift in Sources */,
 				284BAED62A4D09BE007F1193 /* ESODAttributeValueAddEvent+CoreDataClass.swift in Sources */,
+				FD351B35FAAB287624161D8A /* ToolRunner.swift in Sources */,
 				CA7D0EE62E427E850024243F /* UpdateEngine.swift in Sources */,
 				7E5A1C0000000000000F0004 /* CommandLineToolEngine.swift in Sources */,
 				CADD9D7F2E8DBE52009EC919 /* ESUIPCConnectEvent+CoreDataClass.swift in Sources */,

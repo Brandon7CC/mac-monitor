@@ -65,12 +65,8 @@ struct ProjectSutroApp: App {
     @AppStorage(ProcessLineageMode.storageKey) private var processLineageMode = ProcessLineageMode.defaultMode
     
     // MARK: - Update Check State
-    /// Holds the details of an available update. If nil, it means no update is available or the check hasn't run.
-    @State private var updateToShow: UpdateDetails?
-    /// Controls presentation for the "No Update Found" alert.
-    @State private var showNoUpdateAlert: Bool = false
-    /// Did the last Check for Updates fail? The same alert then says there's no internet connection.
-    @State private var updateCheckFailed: Bool = false
+    /// The check to show (``SwiftUI/View/updateCheckResult(_:)``): the update sheet, or the alert that says there's none.
+    @State private var updateCheck: UpdateCheck?
     /// Used to disable the update button while a check is in progress.
     @State private var isCheckingForUpdate: Bool = false
     
@@ -112,9 +108,10 @@ struct ProjectSutroApp: App {
                 /// If auto-updates are enabled then check at app launch
                 if userPrefs.autoUpdates && EndpointSecurityManager.supportsUpdates {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        /// Quiet unless there's an update. A failed check says nothing.
+                        /// Quiet unless there's an update that wasn't skipped. A failed check says nothing.
+                        let skipped = UserDefaults.standard.string(forKey: UpdateAvailableSheet.skippedVersionKey)
                         systemExtensionManager.checkForUpdates { check in
-                            if case .newer(let details) = check { updateToShow = details }
+                            if case .newer(let details) = check, details.version != skipped { updateCheck = check }
                         }
                     }
                 }
@@ -124,15 +121,7 @@ struct ProjectSutroApp: App {
             /// A trace opened from Finder's Open With or `open -a` goes to a window that's already open (see
             /// `EventView`'s `onOpenURL`) rather than a new one. With no window open, SwiftUI opens one for it.
             .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
-            .sheet(item: $updateToShow) { details in
-                UpdateAvailableSheet(updateDetails: details)
-            }
-            .alert(updateCheckFailed ? "No internet connection" : "✅ Up-to-date!", isPresented: $showNoUpdateAlert) {
-                Button("Ok") { }
-            } message: {
-                Text(updateCheckFailed ? "Mac Monitor couldn't reach GitHub to check for updates."
-                                       : "You're on the latest version of Mac Monitor!")
-            }
+            .updateCheckResult($updateCheck)
             /// Last, so the window's content and its update sheet both have them.
             .environmentObject(systemExtensionManager)
             .environmentObject(userPrefs)
@@ -186,12 +175,7 @@ struct ProjectSutroApp: App {
                 Button("Check for Updates") {
                     isCheckingForUpdate = true
                     systemExtensionManager.checkForUpdates { check in
-                        isCheckingForUpdate = false
-                        switch check {
-                        case .newer(let details): updateToShow = details
-                        case .upToDate: (updateCheckFailed, showNoUpdateAlert) = (false, true)
-                        case .failed: (updateCheckFailed, showNoUpdateAlert) = (true, true)
-                        }
+                        (isCheckingForUpdate, updateCheck) = (false, check)
                     }
                 }
                 .disabled(isCheckingForUpdate || !EndpointSecurityManager.supportsUpdates)

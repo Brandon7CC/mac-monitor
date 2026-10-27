@@ -31,7 +31,7 @@ public final class SensorClient {
     /// Guards `connection`. Requests are sent from the main thread, handlers run on the connection's queue.
     private let lock = NSLock()
     private var connection: NSXPCConnection?
-    private let agent: AgentProtocol
+    private let agent: AppAgentProtocol
     private let onSignal: (Signal) -> Void
     /// Our Darwin notification registrations.
     private var notifyTokens: [Int32] = []
@@ -48,9 +48,9 @@ public final class SensorClient {
     /// Create a client. No connection is made until the first request.
     ///
     /// - Parameters:
-    ///   - agent: The object exported to the Security Extension (receives events).
+    ///   - agent: The object exported to the Security Extension (receives events and an update's progress).
     ///   - onSignal: Called on the main queue when the owner should consider a new handshake.
-    public init(agent: AgentProtocol, onSignal: @escaping (Signal) -> Void) {
+    public init(agent: AppAgentProtocol, onSignal: @escaping (Signal) -> Void) {
         self.agent = agent
         self.onSignal = onSignal
         observe(SensorXPC.sensorReadyNotification, as: .restarted)

@@ -14,8 +14,8 @@ import Foundation
 ///
 /// This is the only XPC source the three processes share: it ships in `SutroESFramework`, which they all link. The
 /// Security Extension exports ``SensorProtocol`` to Mac Monitor and ``StreamProtocol`` to `macmonitor`, on one Mach
-/// service. To receive events, Mac Monitor exports ``AgentProtocol`` on its connection, and `macmonitor`
-/// ``StreamReaderProtocol``, which adds what it tells the user while it streams.
+/// service. To receive events, Mac Monitor exports ``AppAgentProtocol`` on its connection, which adds an update's
+/// progress, and `macmonitor` ``StreamReaderProtocol``, which adds what it tells the user while it streams.
 ///
 /// **Implementations:**
 /// - Agent: ``SensorClient``
@@ -76,7 +76,7 @@ public enum SensorXPC {
     public static var sensorInterface: NSXPCInterface { NSXPCInterface(with: SensorProtocol.self) }
     
     /// The interface Mac Monitor exports and the Security Extension calls.
-    public static var agentInterface: NSXPCInterface { NSXPCInterface(with: AgentProtocol.self) }
+    public static var agentInterface: NSXPCInterface { NSXPCInterface(with: AppAgentProtocol.self) }
     
     /// The interface `macmonitor` exports and the Security Extension calls.
     public static var streamReaderInterface: NSXPCInterface { NSXPCInterface(with: StreamReaderProtocol.self) }
@@ -213,12 +213,14 @@ public enum SensorXPC {
     /// - Parameter reply: A JSON encoded ``UpdateCheck``. It says whether a newer release is out or the check failed.
     func checkForUpdate(reply: @escaping (Data?) -> Void)
     
-    /// Download, verify, and install the latest release.
+    /// Download, verify, and install the latest release, reporting progress to the caller
+    /// (``AppAgentProtocol/updateProgress(_:)``).
     ///
     /// The Security Extension resolves the package itself. Nothing about the package comes from the caller.
     ///
-    /// - Parameter reply: `true` if the update was installed, or `false` if another connection owns the event stream.
-    func installUpdate(reply: @escaping (Bool) -> Void)
+    /// - Parameter reply: `nil` if the update was installed, else an ``UpdateFailure`` raw value: the caller isn't an
+    ///   administrator, another connection owns the event stream, or a step failed.
+    func installUpdate(reply: @escaping (String?) -> Void)
 
     // MARK: Command line tool
     /// Install or remove `/usr/local/bin/macmonitor` as root.
@@ -250,6 +252,17 @@ public enum SensorXPC {
     ///   - events: JSON serializations of `Message`, oldest first.
     ///   - reply: Call once the batch's events have been saved (or turned out to need no saving).
     func receive(events: [Data], reply: @escaping () -> Void)
+}
+
+
+// MARK: - AppAgentProtocol
+/// Exported by Mac Monitor (agent), not `macmonitor`, and called by the Security Extension (sensor): events, and an
+/// update's progress.
+@objc public protocol AppAgentProtocol: AgentProtocol {
+    /// Where the update Mac Monitor asked to install is.
+    ///
+    /// - Parameter progress: A JSON encoded ``UpdateProgress``.
+    func updateProgress(_ progress: Data)
 }
 
 

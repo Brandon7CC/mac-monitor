@@ -237,13 +237,21 @@ extension SensorService: SensorProtocol {
         }
     }
 
-    func installUpdate(reply: @escaping (Bool) -> Void) {
+    func installUpdate(reply: @escaping (String?) -> Void) {
+        /// Read on the thread delivering the message, as `mutes(_:reply:)` does.
         let caller = NSXPCConnection.current()
+        let isAdministrator = administrators.isAdministrator(caller)
         queue.async { [self] in
-            /// Any Mac Monitor may install while nobody owns the stream (e.g. one launched with
-            /// `--deactivate-security-extension`). While someone does, only they may.
-            guard sink == nil || owns(caller) else { return reply(false) }
-            updates.install(reply: reply)
+            /// Only an administrator's Mac Monitor may install, since the installer runs as root. It may while nobody
+            /// owns the stream (e.g. one launched with `--deactivate-security-extension`). While someone does, only
+            /// they may.
+            guard isAdministrator else { return reply(UpdateFailure.notAdministrator.rawValue) }
+            guard sink == nil || owns(caller) else { return reply(UpdateFailure.streamOwned.rawValue) }
+            /// Progress goes to the Mac Monitor that asked, in order, ahead of the reply.
+            let agent = caller?.remoteObjectProxy as? AppAgentProtocol
+            updates.install(progress: { progress in
+                if let data = try? JSONEncoder().encode(progress) { agent?.updateProgress(data) }
+            }, reply: { reply($0?.rawValue) })
         }
     }
 }

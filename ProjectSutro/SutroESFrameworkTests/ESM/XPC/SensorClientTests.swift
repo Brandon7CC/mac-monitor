@@ -13,9 +13,10 @@ import XCTest
 /// Pins where `SensorClient` delivers its signals. `EndpointSecurityManager` keeps its pending signals on the main
 /// thread, so a signal from the connection's queue would race it.
 final class SensorClientTests: XCTestCase {
-    /// An agent that takes every batch.
-    private final class SilentAgent: NSObject, AgentProtocol {
+    /// An agent that takes every batch and ignores an update's progress.
+    private final class SilentAgent: NSObject, AppAgentProtocol {
         func receive(events: [Data], reply: @escaping () -> Void) { reply() }
+        func updateProgress(_ progress: Data) {}
     }
 
     /// An interruption fired off the main thread reaches `onSignal` on the main thread.
