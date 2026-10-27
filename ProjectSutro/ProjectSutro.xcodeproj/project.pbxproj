@@ -426,6 +426,8 @@
 		D15C00000000000000000102 /* RowCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000101 /* RowCache.swift */; };
 		D15C00000000000000000104 /* TraceImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000103 /* TraceImporter.swift */; };
 		D15C00000000000000000106 /* TraceSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000105 /* TraceSession.swift */; };
+		D15C000000000000000006A1 /* TraceSession+Saving.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C000000000000000006A0 /* TraceSession+Saving.swift */; };
+		D15C000000000000000006A3 /* TraceSession+Alerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C000000000000000006A2 /* TraceSession+Alerts.swift */; };
 		D15C00000000000000000108 /* TraceImporter+Summary.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000107 /* TraceImporter+Summary.swift */; };
 		D15C0000000000000000010A /* TraceRecordReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000109 /* TraceRecordReader.swift */; };
 		D15C0000000000000000010C /* TraceImport+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000010B /* TraceImport+Extensions.swift */; };
@@ -1006,6 +1008,8 @@
 		D15C00000000000000000101 /* RowCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RowCache.swift; sourceTree = "<group>"; };
 		D15C00000000000000000103 /* TraceImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceImporter.swift; sourceTree = "<group>"; };
 		D15C00000000000000000105 /* TraceSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceSession.swift; sourceTree = "<group>"; };
+		D15C000000000000000006A0 /* TraceSession+Saving.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TraceSession+Saving.swift"; sourceTree = "<group>"; };
+		D15C000000000000000006A2 /* TraceSession+Alerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TraceSession+Alerts.swift"; sourceTree = "<group>"; };
 		D15C00000000000000000107 /* TraceImporter+Summary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TraceImporter+Summary.swift"; sourceTree = "<group>"; };
 		D15C00000000000000000109 /* TraceRecordReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceRecordReader.swift; sourceTree = "<group>"; };
 		D15C0000000000000000010B /* TraceImport+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TraceImport+Extensions.swift"; sourceTree = "<group>"; };
@@ -2565,6 +2569,8 @@
 				BA97AFD12875471D0099C035 /* ContentView.swift */,
 				F17E0000000000000000000F /* RequirementsView.swift */,
 				D15C00000000000000000105 /* TraceSession.swift */,
+				D15C000000000000000006A0 /* TraceSession+Saving.swift */,
+				D15C000000000000000006A2 /* TraceSession+Alerts.swift */,
 				D15C0000000000000000012A /* TraceSessionViews.swift */,
 				7E5A1C900000000000000001 /* ProcessTreeCommands.swift */,
 				7E5A1C900000000000000005 /* ProcessLineageMode.swift */,
@@ -4234,6 +4240,8 @@
 				3B09005499A6B2009E0C7197 /* PredicateCompletion.swift in Sources */,
 				F17E00000000000000000010 /* RequirementsView.swift in Sources */,
 				D15C00000000000000000106 /* TraceSession.swift in Sources */,
+				D15C000000000000000006A1 /* TraceSession+Saving.swift in Sources */,
+				D15C000000000000000006A3 /* TraceSession+Alerts.swift in Sources */,
 				D15C0000000000000000012B /* TraceSessionViews.swift in Sources */,
 				284CFE1B2A16F03200D0038B /* PathMutingSettingsView.swift in Sources */,
 				D15C00000000000000000158 /* MuteTableRows.swift in Sources */,

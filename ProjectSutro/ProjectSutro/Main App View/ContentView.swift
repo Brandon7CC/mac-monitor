@@ -328,9 +328,9 @@ struct EventView: View {
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             traceSession.open(dropped: providers, recording: $recordingEvents, esm: systemExtensionManager)
         }
-        /// Counted so a trace opened from the File menu with no main window open gets one.
-        .onAppear { traceSession.mainWindows += 1 }
-        .onDisappear { traceSession.mainWindows -= 1 }
+        /// Counted so a trace opened from the File menu with no main window open gets one. A save shows its sheet
+        /// here when it started in this window.
+        .traceSaveSheet(traceSession)
         /// Activates the Security Extension only if it's running: otherwise the checklist's Install button does, when
         /// macOS's prompt to open System Settings follows from it.
         .onAppear {

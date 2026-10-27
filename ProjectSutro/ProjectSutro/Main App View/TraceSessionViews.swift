@@ -6,29 +6,22 @@
 //
 
 import SwiftUI
+import AppKit
+import UniformTypeIdentifiers
 import SutroESFramework
 
 
 // MARK: - Toolbar
 /// The toolbar's trace status: while reading, the progress (by bytes) and Cancel; afterwards, what was skipped.
 ///
-/// Also shows "Clearing previous events…" while a Clear that takes a while (many events) is deleting, and a save's
-/// progress and Cancel while one that takes a while is writing.
+/// Also shows "Clearing previous events…" while a Clear that takes a while (many events) is deleting. A save shows in
+/// its window's sheet (``TraceSaveSheet``).
 struct TraceStatusView: View {
     /// The session whose trace this shows.
     @ObservedObject var session: TraceSession
     
-    /// A save's progress, then the trace's: each its own toolbar item, and none while there's nothing to show.
-    var body: some View {
-        if session.showsSaving, let saving = session.saving {
-            TraceSaveStatus(name: saving.url.lastPathComponent, replacing: saving.replacing, progress: saving.progress,
-                            cancel: session.stopSaving)
-        }
-        trace
-    }
-    
     /// Progress and Cancel while reading, clearing while a Clear deletes, or what was skipped.
-    @ViewBuilder private var trace: some View {
+    @ViewBuilder var body: some View {
         if session.isOpening {
             HStack(spacing: 6) {
                 if session.isClearing {
@@ -88,39 +81,122 @@ struct TraceStatusView: View {
 }
 
 
-/// A save that's taking a while: its progress (by events) and Cancel, or a spinner until it knows its events.
-struct TraceSaveStatus: View {
-    /// The file being written.
-    let name: String
-    /// Is it replacing a file that's already there?
-    let replacing: Bool
-    /// How far the save has got, `nil` until it knows its events.
-    let progress: TelemetryExporter.Progress?
+// MARK: - Saving
+/// The sheet a main window shows while it saves a trace. It names the file and its folder, counts the events written,
+/// and offers Cancel. A save that failed says why, with OK.
+struct TraceSaveSheet: View {
+    /// The save.
+    let saving: TraceSession.Saving
     /// Stops the save, leaving the file as it was.
     let cancel: () -> Void
-    
-    /// The progress bar or spinner, "Saving", and Cancel.
+    /// Closes a failed save's sheet.
+    let close: () -> Void
+
+    /// The file being written.
+    private var name: String { saving.url.lastPathComponent }
+
     var body: some View {
-        HStack(spacing: 6) {
-            if let progress {
-                ProgressView(value: progress.fraction)
-                    .frame(width: 120)
-                Text("Saving \(TraceSession.percent(progress.fraction))")
-                    .monospacedDigit()
+        VStack(alignment: .leading, spacing: 14) {
+            if let failure = saving.failure {
+                Label("Mac Monitor couldn't save “\(name)”.", systemImage: "exclamationmark.triangle.fill")
+                    .font(.headline)
+                    .symbolRenderingMode(.multicolor)
+                Text(failure)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                buttons { Button("OK", action: close).keyboardShortcut(.defaultAction) }
             } else {
-                ProgressView()
-                    .controlSize(.small)
-                Text("Saving…")
-                    .foregroundColor(.secondary)
+                Text("Saving Trace").font(.headline)
+                file
+                progress
+                buttons {
+                    Button("Cancel", action: cancel)
+                        .keyboardShortcut(.cancelAction)
+                        .disabled(saving.isCancelled)
+                        .help(saving.replacing ? "Stop saving and leave “\(name)” as it was"
+                              : "Stop saving without creating “\(name)”")
+                }
             }
-            Button("Cancel", action: cancel)
-                .help(replacing
-                      ? "Stop saving and leave “\(name)” as it was"
-                      : "Stop saving without creating “\(name)”")
         }
-        .help(progress.map {
-            "Saving \($0.written.formatted()) of \(TraceSession.counted($0.total, "event")) to “\(name)”"
-        } ?? "Saving “\(name)”")
+        .padding(20)
+        .frame(width: 440)
+        .interactiveDismissDisabled()
+    }
+
+    /// The file's icon, its name, and its folder.
+    private var file: some View {
+        HStack(spacing: 10) {
+            Image(nsImage: NSWorkspace.shared.icon(for: UTType(filenameExtension: saving.url.pathExtension) ?? .json))
+                .resizable()
+                .frame(width: 32, height: 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name).lineLimit(1).truncationMode(.middle)
+                Text((saving.url.deletingLastPathComponent().path as NSString).abbreviatingWithTildeInPath)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .help(saving.url.path)
+        }
+    }
+
+    /// The bar, by events written, and how many. Until the export knows its events, the bar is indeterminate.
+    @ViewBuilder private var progress: some View {
+        if let progress = saving.progress {
+            ProgressView(value: progress.fraction)
+            Text("\(progress.written.formatted()) of \(TraceSession.counted(progress.total, "event")) written")
+                .font(.callout)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        } else {
+            ProgressView().progressViewStyle(.linear)
+            Text(saving.isCancelled ? "Stopping…" : "Gathering the events…")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    /// - Parameter content: The sheet's buttons.
+    /// - Returns: The buttons at the trailing edge.
+    private func buttons<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        HStack {
+            Spacer()
+            content()
+        }
+    }
+}
+
+
+/// Makes a view a main window's content. The window counts as a main window, and shows a save's sheet when it's the
+/// window the save belongs to.
+private struct TraceSaveSheetHost: ViewModifier {
+    @ObservedObject var session: TraceSession
+    @Environment(\.controlActiveState) private var activeState
+    /// The window's identity, for as long as its content lives.
+    @State private var window = UUID()
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(item: Binding { session.save(shownIn: window) } set: { _ in }) { saving in
+                TraceSaveSheet(saving: saving, cancel: session.stopSaving, close: session.closeSaveFailure)
+            }
+            .onAppear { session.windowAppeared(window, isKey: activeState == .key) }
+            .onDisappear { session.windowDisappeared(window) }
+            .onChange(of: activeState) { state in
+                if state == .key { session.windowBecameKey(window) }
+            }
+    }
+}
+
+
+extension View {
+    /// Makes the view a main window's content, which shows a save's sheet when the save belongs to its window.
+    ///
+    /// - Parameter session: The session that saves.
+    /// - Returns: The view, counted as a main window.
+    func traceSaveSheet(_ session: TraceSession) -> some View {
+        modifier(TraceSaveSheetHost(session: session))
     }
 }
 

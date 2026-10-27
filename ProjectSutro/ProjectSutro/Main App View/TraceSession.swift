@@ -23,8 +23,9 @@ import SutroESFramework
 /// A file is checked (``TraceImporter/preflight(_:)``) in the background before anything is cleared. Opening another
 /// file or a Clear meanwhile drops it.
 ///
-/// Export telemetry saves the events to a file in the background, one save at a time (``save(eventIDs:jsonl:)``). A
-/// save still going after half a second shows its progress, as opening a trace does.
+/// Export telemetry saves the events to a file in the background, one save at a time
+/// (``save(eventIDs:jsonl:showWindow:)``). A save still going after half a second shows a sheet on the main window
+/// that started it, which blocks that window until the save ends.
 ///
 /// Main thread only.
 final class TraceSession: ObservableObject {
@@ -40,15 +41,17 @@ final class TraceSession: ObservableObject {
     @Published private(set) var recents: [URL] = NSDocumentController.shared.recentDocumentURLs
     /// The file being read.
     @Published private var importer: TraceImporter?
-    /// The events being saved to a file, while they are.
-    @Published private(set) var saving: Saving?
-    /// Has the save run for half a second, long enough to show its progress? Most finish well before.
-    @Published private(set) var showsSaving = false
-    /// Main windows showing the events, counted by `EventView`: with none, a trace opened from the File menu opens one.
-    var mainWindows = 0
+    /// The events being saved to a file, while they are, and a save that failed until its sheet's OK. Only
+    /// TraceSession+Saving.swift sets it.
+    @Published var saving: Saving?
+    /// Has the save run for half a second, long enough to show its sheet? Most finish well before.
+    @Published var showsSaving = false
+    /// Main windows showing the events, most recently key first, by the identity each `EventView` gives itself. With
+    /// none, a trace opened from the File menu opens one.
+    var windows: [UUID] = []
     
     /// The event store every window shows.
-    private let store: CoreDataController
+    let store: CoreDataController
     /// The store's Clear notifications, and the app becoming active (Open Recent may have changed meanwhile).
     private var observers: [AnyCancellable] = []
     /// Opens started, and Clears: a file whose check finishes after either has started is dropped.
@@ -76,7 +79,7 @@ final class TraceSession: ObservableObject {
     var isLive: Bool { url == nil }
     /// Is a trace being read?
     var isOpening: Bool { importer != nil }
-    /// Are events being saved to a file?
+    /// Are events being saved to a file, or is a failed save's sheet up?
     var isSaving: Bool { saving != nil }
     
     /// The window title: the trace's name, or the app's.
@@ -172,7 +175,7 @@ final class TraceSession: ObservableObject {
             self.finished(summary)
         }
         (self.importer, self.url, progress, summary) = (importer, url, nil, nil)
-        if mainWindows == 0 { showWindow() }
+        if windows.isEmpty { showWindow() }
     }
     
     /// Open the first file dropped on a window.
@@ -236,139 +239,6 @@ final class TraceSession: ObservableObject {
         }
         self.summary = summary
         if let error = summary.error { Self.alert(stoppedReading: summary, error) }
-    }
-    
-    // MARK: Saving
-    /// A save in progress.
-    struct Saving {
-        /// The file being written. It changes only once every event is written.
-        let url: URL
-        /// Was there a file there already, which a save that doesn't finish leaves as it was?
-        let replacing: Bool
-        /// The export, to cancel.
-        let exporter: TelemetryExporter
-        /// How far it has got, once it knows its events.
-        var progress: TelemetryExporter.Progress?
-    }
-    
-    /// Export telemetry: choose a file and save the full trace or the selected events to it in the background, unless a
-    /// save is already going.
-    ///
-    /// - Parameters:
-    ///   - eventIDs: The selected events, or `nil` for the full trace.
-    ///   - jsonl: JSON Lines (`true`) or pretty-printed JSON (`false`).
-    func save(eventIDs: [UUID]? = nil, jsonl: Bool) {
-        guard saving == nil,
-              let url = store.showSavePanel(numberOfEvents: eventIDs?.count ?? 0, jsonl: jsonl) else { return }
-        /// Reports from a save that has since finished are ignored.
-        var exporter: TelemetryExporter?
-        let progress = { [weak self] (state: TelemetryExporter.Progress) in
-            guard let self, self.saving?.exporter === exporter else { return }
-            self.saving?.progress = state
-        }
-        let completion = { [weak self] (result: Swift.Result<Int, Error>) in
-            guard let self, let saving = self.saving, saving.exporter === exporter else { return }
-            self.saved(saving, result)
-        }
-        /// Checked first: a short save can rename over the file before the next line runs.
-        let replacing = FileManager.default.fileExists(atPath: url.path)
-        let started = store.exportEvents(eventIDs, to: url, jsonl: jsonl, progress: progress, completion: completion)
-        exporter = started
-        (saving, showsSaving) = (Saving(url: url, replacing: replacing, exporter: started), false)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            guard let self, self.saving?.exporter === started else { return }
-            self.showsSaving = true
-        }
-    }
-    
-    /// Cancel: stop saving and leave the file as it was.
-    func stopSaving() { saving?.exporter.cancel() }
-    
-    /// A save ended: one long enough to show asks for attention if Mac Monitor is in the background, and one that
-    /// failed says why.
-    ///
-    /// - Parameters:
-    ///   - saving: The save.
-    ///   - result: The number of events written, or why the file wasn't.
-    private func saved(_ saving: Saving, _ result: Swift.Result<Int, Error>) {
-        let shown = showsSaving
-        (self.saving, showsSaving) = (nil, false)
-        switch result {
-        case .success:
-            if shown && !NSApp.isActive { NSApp.requestUserAttention(.informationalRequest) }
-        case .failure(let error) where !(error is CancellationError):
-            Self.show("Mac Monitor couldn't save “\(saving.url.lastPathComponent)”.", error.localizedDescription
-                      + (saving.replacing ? " The file is as it was." : " Nothing was saved."))
-        case .failure:
-            break
-        }
-    }
-    
-    // MARK: Alerts
-    /// Ask before a trace replaces recorded events, unless the user turned the warning off. A trace replacing a trace,
-    /// or a recording that hasn't recorded anything yet, loses nothing and never asks.
-    ///
-    /// - Parameters:
-    ///   - url: The trace.
-    ///   - recording: Is Mac Monitor recording?
-    /// - Returns: Whether to go ahead.
-    private func confirmReplacingRecordedEvents(with url: URL, recording: Bool) -> Bool {
-        guard isLive, UserDefaults.standard.bool(forKey: "lifecycleWarnBeforeClear") else { return true }
-        let events = store.eventCount
-        guard events > 0 else { return true }
-        let alert = NSAlert()
-        alert.messageText = "Replace \(Self.counted(events, "recorded event"))?"
-        alert.informativeText = "Opening “\(url.lastPathComponent)” removes the recorded events"
-            + (recording ? " and stops recording" : "") + ". Export them first to keep them."
-        alert.addButton(withTitle: "Open")
-        alert.addButton(withTitle: "Cancel")
-        alert.showsSuppressionButton = true
-        let response = alert.runModal()
-        if alert.suppressionButton?.state == .on {
-            UserDefaults.standard.set(false, forKey: "lifecycleWarnBeforeClear")
-        }
-        return response == .alertFirstButtonReturn
-    }
-    
-    /// The file can't be opened. Nothing has been cleared.
-    ///
-    /// - Parameters:
-    ///   - url: The file.
-    ///   - error: Why.
-    private static func alert(cantOpen url: URL, _ error: Error) {
-        let name = url.lastPathComponent
-        switch error {
-        case TraceImporter.Failure.empty:
-            show("“\(name)” is empty.", "There are no events to show.")
-        case TraceImporter.Failure.notATrace:
-            show("“\(name)” isn't a trace.", "Mac Monitor opens eslogger's JSON and Mac Monitor's JSON exports.")
-        default:
-            show("Mac Monitor can't open “\(name)”.", error.localizedDescription)
-        }
-    }
-    
-    /// Reading stopped partway. The events read so far are showing.
-    ///
-    /// - Parameters:
-    ///   - summary: What was read.
-    ///   - error: Why reading stopped.
-    private static func alert(stoppedReading summary: TraceImporter.Summary, _ error: Error) {
-        let first = summary.saved == 1 ? "event is" : "\(summary.saved.formatted()) events are"
-        show("Mac Monitor stopped reading “\(summary.url.lastPathComponent)”.",
-             "\(error.localizedDescription) The first \(first) shown.")
-    }
-    
-    /// Show a warning.
-    ///
-    /// - Parameters:
-    ///   - message: The alert's title.
-    ///   - information: The alert's text.
-    private static func show(_ message: String, _ information: String) {
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = message
-        alert.informativeText = information
-        alert.runModal()
     }
     
     // MARK: Formatting
