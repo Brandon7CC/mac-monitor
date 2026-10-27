@@ -135,7 +135,8 @@ public class CoreDataController {
     /// The last ``ESMessage/insert_batch`` saved (0 before the first save). Readable from any thread, so a reader that
     /// starts following ``eventsInserted`` mid-trace knows which batches it missed.
     public var lastInsertBatch: Int64 { savedBatch.withLock { $0 } }
-    private let savedBatch = OSAllocatedUnfairLock(initialState: Int64(0))
+    /// Internal so a trace's pipelined save (``saveTraceEvents(_:clear:completion:)``) can set it.
+    let savedBatch = OSAllocatedUnfairLock(initialState: Int64(0))
     
     /// Events inserted but not yet saved. Normally just the current batch. After a failed save the earlier events stay
     /// here and are saved (and announced) with the next batch. Only touched on `privateMOC`'s queue.
@@ -168,14 +169,19 @@ public class CoreDataController {
     /// Clears requested so far. Main thread only.
     private var clearsRequested = 0
     /// The last Clear to reach `privateMOC`. A trace's inserts carry the Clear that opened it, so a trace that has
-    /// since been closed or replaced can't add to the store. Only touched on `privateMOC`'s queue.
-    private var currentClear = 0
+    /// since been closed or replaced can't add to the store. Only touched on `privateMOC`'s queue. Internal so
+    /// ``saveTraceEvents(_:clear:completion:)`` can check it.
+    var currentClear = 0
     
-    /// The ``ESMessage/insert_order`` of the next event inserted. Only touched on `privateMOC`'s queue.
-    private var nextInsertOrder: Int64 = 0
+    /// The ``ESMessage/insert_order`` of the next event inserted. Only touched on `privateMOC`'s queue. Internal so
+    /// ``saveTraceEvents(_:clear:completion:)`` can advance it.
+    var nextInsertOrder: Int64 = 0
     
     /// The trace being read, stopped by the next Clear. Main thread only.
     weak var currentImport: TraceImporter?
+    
+    /// Keeps a trace's batch builds (``TraceInsertPipeline``) out while a Clear takes the store away.
+    let traceBuildGate = TraceBuildGate()
     
     /// Inserts a batch of system events into the private context in a single background transaction.
     ///
@@ -333,6 +339,8 @@ public class CoreDataController {
             /// Anything recorded up to the Clear goes, including events still on their way from the Security Extension
             /// and any left unsaved by a failed save. A trace keeps out every recorded event until it's closed.
             self.discardBefore = source == .live ? clearedAt : .distantFuture
+            /// A trace's batch being built finishes first. None starts until the store is replaced.
+            self.traceBuildGate.close(for: clear)
             self.currentClear = clear
             /// The shared rows are deleted (or, unsaved, rolled back) with everything else.
             self.discardUnsavedEvents()
@@ -357,6 +365,7 @@ public class CoreDataController {
                     replaced = self.replaceStore()
                 }
             }
+            self.traceBuildGate.open()
             
             DispatchQueue.main.async {
                 /// The view context is not aware of the changes yet, so we merge them, or, if the store was taken away,

@@ -23,17 +23,32 @@ final class CommandLineBinaryTests: XCTestCase {
 
     /// The built `macmonitor`, preferring the test bundle's own configuration.
     ///
+    /// A tool older than the framework beside it was built from other sources and can't load it, so it's passed over.
+    ///
     /// - Returns: Its URL.
-    /// - Throws: `XCTSkip` when none has been built.
+    /// - Throws: `XCTSkip` when no current one has been built.
     private func tool() throws -> URL {
         let products = Bundle(for: Self.self).bundleURL.deletingLastPathComponent()
         let configurations = (try? FileManager.default.contentsOfDirectory(
             at: products.deletingLastPathComponent(), includingPropertiesForKeys: nil)) ?? []
         let candidates = [products] + configurations.filter { $0.standardized != products.standardized }
-        let found = candidates.map { $0.appendingPathComponent("macmonitor") }
-            .first { FileManager.default.isExecutableFile(atPath: $0.path) }
-        guard let found else { throw XCTSkip("No macmonitor is built. Build the macmonitor scheme first.") }
+        let found = candidates.map { $0.appendingPathComponent("macmonitor") }.first { tool in
+            FileManager.default.isExecutableFile(atPath: tool.path) && !Self.isStale(tool)
+        }
+        guard let found else { throw XCTSkip("No current macmonitor is built. Build the macmonitor scheme first.") }
         return found
+    }
+
+    /// - Parameter tool: A built `macmonitor`.
+    /// - Returns: `true` when the framework beside it was built after it.
+    private static func isStale(_ tool: URL) -> Bool {
+        let framework = tool.deletingLastPathComponent()
+            .appendingPathComponent("SutroESFramework.framework/Versions/A/SutroESFramework")
+        let modified = { (url: URL) in
+            (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        }
+        guard let toolDate = modified(tool), let frameworkDate = modified(framework) else { return false }
+        return toolDate < frameworkDate
     }
 
     /// Run `macmonitor` to completion.

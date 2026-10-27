@@ -429,6 +429,7 @@
 		D15C000000000000000006A1 /* TraceSession+Saving.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C000000000000000006A0 /* TraceSession+Saving.swift */; };
 		D15C000000000000000006A3 /* TraceSession+Alerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C000000000000000006A2 /* TraceSession+Alerts.swift */; };
 		D15C00000000000000000108 /* TraceImporter+Summary.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000107 /* TraceImporter+Summary.swift */; };
+		D15C000000000000000006A5 /* TraceInsertPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C000000000000000006A4 /* TraceInsertPipeline.swift */; };
 		D15C0000000000000000010A /* TraceRecordReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000109 /* TraceRecordReader.swift */; };
 		D15C0000000000000000010C /* TraceImport+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000010B /* TraceImport+Extensions.swift */; };
 		D15C0000000000000000010E /* TraceDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000010D /* TraceDecoder.swift */; };
@@ -1011,6 +1012,7 @@
 		D15C000000000000000006A0 /* TraceSession+Saving.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TraceSession+Saving.swift"; sourceTree = "<group>"; };
 		D15C000000000000000006A2 /* TraceSession+Alerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TraceSession+Alerts.swift"; sourceTree = "<group>"; };
 		D15C00000000000000000107 /* TraceImporter+Summary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TraceImporter+Summary.swift"; sourceTree = "<group>"; };
+		D15C000000000000000006A4 /* TraceInsertPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceInsertPipeline.swift; sourceTree = "<group>"; };
 		D15C00000000000000000109 /* TraceRecordReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceRecordReader.swift; sourceTree = "<group>"; };
 		D15C0000000000000000010B /* TraceImport+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TraceImport+Extensions.swift"; sourceTree = "<group>"; };
 		D15C0000000000000000010D /* TraceDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceDecoder.swift; sourceTree = "<group>"; };
@@ -3502,6 +3504,7 @@
 				D15C00000000000000000103 /* TraceImporter.swift */,
 				7E5A1C000000000000000019 /* TraceImporter+LaunchedByParent.swift */,
 				D15C00000000000000000107 /* TraceImporter+Summary.swift */,
+				D15C000000000000000006A4 /* TraceInsertPipeline.swift */,
 				D15C00000000000000000109 /* TraceRecordReader.swift */,
 				D15C0000000000000000010B /* TraceImport+Extensions.swift */,
 				D15C0000000000000000010D /* TraceDecoder.swift */,
@@ -4157,6 +4160,7 @@
 				D15C00000000000000000104 /* TraceImporter.swift in Sources */,
 				7E5A1C00000000000000001A /* TraceImporter+LaunchedByParent.swift in Sources */,
 				D15C00000000000000000108 /* TraceImporter+Summary.swift in Sources */,
+				D15C000000000000000006A5 /* TraceInsertPipeline.swift in Sources */,
 				D15C0000000000000000010A /* TraceRecordReader.swift in Sources */,
 				D15C0000000000000000010C /* TraceImport+Extensions.swift in Sources */,
 				D15C0000000000000000010E /* TraceDecoder.swift in Sources */,

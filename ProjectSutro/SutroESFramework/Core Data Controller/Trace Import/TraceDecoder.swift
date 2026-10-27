@@ -105,8 +105,10 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
         default:
             let object = NSMutableDictionary(object: value!, forKey: "_0" as NSString)
             if let text = value as? String, let time = ESLogger.utcTimespec(from: text) {
-                object.addEntries(from: ["tv_sec": time.tv_sec, "tv_nsec": time.tv_nsec,
-                                         "tv_usec": time.tv_nsec / 1_000])
+                /// One at a time. A Swift dictionary literal would be bridged to an `NSDictionary` and copied.
+                object.setObject(NSNumber(value: time.tv_sec), forKey: "tv_sec" as NSString)
+                object.setObject(NSNumber(value: time.tv_nsec), forKey: "tv_nsec" as NSString)
+                object.setObject(NSNumber(value: time.tv_nsec / 1_000), forKey: "tv_usec" as NSString)
             }
             return KeyedDecodingContainer(TraceKeyedContainer<Key>(object, decoder: self))
         }
@@ -146,7 +148,9 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
         case is UInt64.Type: return try integer(UInt64.self) as! T
         case is Double.Type: return try float(Double.self) as! T
         case is Float.Type: return try float(Float.self) as! T
-        case is UUID.Type: return ((value as? String).flatMap(UUID.init(uuidString:)) ?? UUID()) as! T
+        /// A new one comes from ``RandomUUIDBuffer``. `UUID()` takes corecrypto's lock for each one, and the decoding
+        /// threads queued on it.
+        case is UUID.Type: return ((value as? String).flatMap(UUID.init(uuidString:)) ?? .buffered()) as! T
         default: break
         }
         if let fallback = Self.fallbacks[ObjectIdentifier(type)] {
