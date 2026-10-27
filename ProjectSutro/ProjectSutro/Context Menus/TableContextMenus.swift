@@ -11,8 +11,8 @@ import OSLog
 
 
 // MARK: Non-exec Context menu
-/// The right-click menu of a non-exec event in the SwiftUI tables. While a trace is open, mute and unsubscribe are left out
-/// (``AdvancedNonExecContextMenu``), and so is "Advanced" if that leaves it empty.
+/// The right-click menu of a non-exec event in the SwiftUI tables. While a trace is open, mute and unsubscribe are left
+/// out (``AdvancedNonExecContextMenu``), and so is "Advanced" if that leaves it empty.
 struct TableNonExecContextMenus: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @Environment(\.openWindow) private var openEventJSON
@@ -177,7 +177,8 @@ action: {
         }
         
         Group {
-            if isRecorded && userPrefs.contextTargetPathMute && event.target_path != nil && !event.target_path!.isEmpty {
+            if isRecorded && userPrefs.contextTargetPathMute
+                && event.target_path != nil && !event.target_path!.isEmpty {
                 // MARK: Target path parent dir
                 if IntelligentEventTargeting.targetShouldBeParentDir(esEventType: event.es_event_type ?? "") {
                     let targetPath: String = event.target_path ?? ""

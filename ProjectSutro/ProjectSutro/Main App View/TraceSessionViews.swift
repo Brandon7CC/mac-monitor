@@ -114,10 +114,13 @@ struct TraceSaveStatus: View {
                     .foregroundColor(.secondary)
             }
             Button("Cancel", action: cancel)
-                .help(replacing ? "Stop saving and leave “\(name)” as it was" : "Stop saving without creating “\(name)”")
+                .help(replacing
+                      ? "Stop saving and leave “\(name)” as it was"
+                      : "Stop saving without creating “\(name)”")
         }
-        .help(progress.map { "Saving \($0.written.formatted()) of \(TraceSession.counted($0.total, "event")) to “\(name)”" }
-              ?? "Saving “\(name)”")
+        .help(progress.map {
+            "Saving \($0.written.formatted()) of \(TraceSession.counted($0.total, "event")) to “\(name)”"
+        } ?? "Saving “\(name)”")
     }
 }
 

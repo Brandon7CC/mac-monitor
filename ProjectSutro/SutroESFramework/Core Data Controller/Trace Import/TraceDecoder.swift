@@ -14,9 +14,9 @@ import Foundation
 ///
 /// The export (`ESMessage.encode(to:)` and the event types' encoders) presents each event rather than encoding its
 /// `Message`. The differences are regular, so the types' own `Decodable` conformances can read it given these rules:
-/// - A missing key or `null` takes a default by type: `nil` for an optional, `false`, `0`, `""`, `[]`, a new `UUID`, and
-///   these, recursively, for a nested type. The export leaves out values the app doesn't keep or show (each artifact's
-///   `id`, `argc`, `message_darwin_time`).
+/// - A missing key or `null` takes a default by type: `nil` for an optional, `false`, `0`, `""`, `[]`, a new `UUID`,
+///   and these, recursively, for a nested type. The export leaves out values the app doesn't keep or show (each
+///   artifact's `id`, `argc`, `message_darwin_time`).
 /// - A scalar where an object is expected is the object's `_0`: an enum case's payload. If it's a UTC time, it's also
 ///   `{tv_sec, tv_nsec, tv_usec}` (``ESLogger/utcTimespec(from:)``): the export writes ``TimeSpec`` and ``TimeVal`` as
 ///   ``TimeSpec/humanFormat()``.
@@ -70,8 +70,8 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
     ///   - path: The path to `parent`.
     ///   - last: `value`'s key, as a coding key.
     ///   - enriching: Derive Mac Monitor's fields of each value decoded.
-    init(_ value: AnyObject?, in parent: NSDictionary? = nil, at key: String? = nil, path: [CodingKey] = [], last: CodingKey? = nil,
-         enriching: Bool = false) {
+    init(_ value: AnyObject?, in parent: NSDictionary? = nil, at key: String? = nil, path: [CodingKey] = [],
+         last: CodingKey? = nil, enriching: Bool = false) {
         self.value = value
         self.parent = parent
         self.key = key
@@ -92,7 +92,8 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
         return .typeMismatch(type, .init(codingPath: codingPath, debugDescription: "expected \(type), found \(found)"))
     }
     
-    /// The value as an object: itself, an empty one if it's missing, or an object holding a scalar (see ``TraceDecoder``).
+    /// The value as an object: itself, an empty one if it's missing, or an object holding a scalar (see
+    /// ``TraceDecoder``).
     func container<Key: CodingKey>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> {
         switch value {
         case let object as NSDictionary:
@@ -104,7 +105,8 @@ struct TraceDecoder: Decoder, SingleValueDecodingContainer {
         default:
             let object = NSMutableDictionary(object: value!, forKey: "_0" as NSString)
             if let text = value as? String, let time = ESLogger.utcTimespec(from: text) {
-                object.addEntries(from: ["tv_sec": time.tv_sec, "tv_nsec": time.tv_nsec, "tv_usec": time.tv_nsec / 1_000])
+                object.addEntries(from: ["tv_sec": time.tv_sec, "tv_nsec": time.tv_nsec,
+                                         "tv_usec": time.tv_nsec / 1_000])
             }
             return KeyedDecodingContainer(TraceKeyedContainer<Key>(object, decoder: self))
         }

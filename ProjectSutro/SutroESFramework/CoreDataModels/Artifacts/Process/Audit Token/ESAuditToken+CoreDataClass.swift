@@ -49,7 +49,9 @@ public class ESAuditToken: NSManagedObject, Identifiable {
     ///   - context: The context to insert into.
     /// - Returns: The row, which may be a fault: attach it with ``NSManagedObject/attach(_:to:)``.
     static func row(for token: AuditToken, in context: NSManagedObjectContext) -> ESAuditToken {
-        EventRowCaches.row(\.tokens, for: token.rowKey, in: context) { ESAuditToken(from: token, insertIntoManagedObjectContext: context) }
+        EventRowCaches.row(\.tokens, for: token.rowKey, in: context) {
+            ESAuditToken(from: token, insertIntoManagedObjectContext: context)
+        }
     }
     
     /// A new row for `token`, owned by the event that stores it, or `nil` without one.

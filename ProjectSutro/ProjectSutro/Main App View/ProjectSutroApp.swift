@@ -79,10 +79,12 @@ struct ProjectSutroApp: App {
     /// Was Mac Monitor launched only to deactivate the Security Extension? Then it never checks or activates it.
     static let deactivating = CommandLine.arguments.contains("--deactivate-security-extension")
     
+    private static let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "ProjectSutroApp")
+    
     init() {
         /// Secondary entry-point for handling Security Extension deactivation ``--deactivate-security-extension``
         if Self.deactivating {
-            print("[Mac Monitor]\tSubmitting deactivation request to the system. User interaction IS required.")
+            Self.logger.notice("Submitting deactivation request to the system. User interaction is required.")
             systemExtensionManager.uninstallSystemExtension()
         }
     }
@@ -139,14 +141,16 @@ struct ProjectSutroApp: App {
         .commands {
             CommandGroup(after: .newItem) {
                 Button("Open Trace…") {
-                    traceSession.chooseTrace(recording: $recordingEvents, esm: systemExtensionManager, showWindow: showMainWindow)
+                    traceSession.chooseTrace(recording: $recordingEvents, esm: systemExtensionManager,
+                                             showWindow: showMainWindow)
                 }
                 .keyboardShortcut("o")
                 
                 Menu("Open Recent") {
                     ForEach(traceSession.recents, id: \.self) { url in
                         Button(url.lastPathComponent) {
-                            traceSession.open(url, recording: $recordingEvents, esm: systemExtensionManager, showWindow: showMainWindow)
+                            traceSession.open(url, recording: $recordingEvents, esm: systemExtensionManager,
+                                              showWindow: showMainWindow)
                         }
                     }
                     Divider()

@@ -30,6 +30,9 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 * Next, System Settings will automatically open to `Full Disk Access`. Flip the switch for the `Mac Monitor Security Extension`. Full Disk Access is a [*requirement* of Endpoint Security](https://developer.apple.com/documentation/endpointsecurity/3259700-es_new_client#:~:text=The%20user%20does%20this%20in%20the%20Security%20and%20Privacy%20pane%20of%20System%20Preferences%2C%20by%20adding%20the%20app%20to%20Full%20Disk%20Access.).
 * 🏎️ Click the "Start" button in the app and you'll be prompted to reopen the app. Done!
 
+**Updates**
+* (`3.0.0+`) Settings ▸ General ▸ **Check Now** looks for a new release, and **Release Notes…** shows what changed in yours.
+
 ![Install process](./Resources/v1.9.0/Install+Graphic.png)
 
 ### Install footprint
@@ -48,10 +51,10 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 ## Path mutes
 (`3.0.0+`) Mac Monitor keeps one **saved mute set**. The Security Extension applies it to every Endpoint Security client it creates, keeps it across restarts, and shares it with `sudo macmonitor`. A change applies right away, even to a running trace.
 
-- **Settings ▸ Path Muting** shows the set. Right-click an event, or use "Add path to mute", to add to it.
-- **Import…** reads a mute file or a 2.1 export, then replaces the set or adds to it. Mutes that only name `AUTH` events are left out, since Mac Monitor subscribes to `NOTIFY` events.
-- **Export ▸ Saved mute set…** writes the set as a mute file. **Export ▸ Apple mute set…** writes Endpoint Security's own defaults.
-- **Reset to Default** restores Mac Monitor's set. Its `~/Library/Caches/` and `~/Library/Biome/streams/` mutes use the home folder of whoever is logged in at the console.
+- **Settings ▸ Path Muting** shows the set. Right-click an event, or use **Add a path mute** (the + button), to add to it.
+- **Import Mutes…** reads a mute file or a 2.1 export, then replaces the set or adds to it. Mutes that only name `AUTH` events are left out, since Mac Monitor subscribes to `NOTIFY` events.
+- **Export Saved Mute Set…** writes the set as a mute file. **Export Apple Mute Set…** writes Endpoint Security's own defaults.
+- **Reset to Default…** restores Mac Monitor's set. Its `~/Library/Caches/` and `~/Library/Biome/streams/` mutes use the home folder of whoever is logged in at the console.
 - **Only an administrator can change it.** Everyone else sees it read-only.
 
 Coming from 2.1? Its mutes only lived in memory. Use Export ▸ Current mute set… in 2.1 before updating, then import the file.
@@ -117,13 +120,17 @@ macmonitor completion zsh                  # shell completion (or bash)
 ![Event facts overview](./Resources/v1.9.0/event-metadata-overview-v1.9.png)
 
 - **Event correlation** is an *exceptionally* important component in any analyst's tool belt. The ability to see which events are "related" to one-another enables you to manipulate the telemetry in a way that makes sense (other than simply dumping to JSON or representing an individual event). We perform event correlation at the process level. This means that for any given event (which have an initiating and/or target process) we can deeply link events that any given process instigated. 
+  - (`3.0.0+`) Event Facts' **Correlation** tab is a dashboard. A summary and a bar of the event kinds sit above cards for the findings worth a look. Below them are a search, a chip for each event type, and the events, with the selected one's details beside them.
+- (`3.0.0+`) **Findings** point out events worth a look. Each is a predicate on an event's record, shown as a card in Event Facts. Settings ▸ Findings lists Mac Monitor's own. You can change them, turn them off, or add your own. Filters ▸ Findings shows only the events a finding matches.
 - **Process grouping** is another helpful way to represent process telemetry around a given `ES_EVENT_TYPE_NOTIFY_EXEC` or `ES_EVENT_TYPE_NOTIFY_FORK` event. By grouping processes in this way you can easily identify the chain of activity.
 - **Artifact filtering** enabled users to remove (but not destroy) events from view based on: event type, initiating process path, or target process path. This standout feature enables analysts to cut through the noise quickly while still retaining all data.
   - Lossy filtering (i.e. events that are dropped from the trace) is also available in the form of "dropping platform binaries", another useful technique to cut through the noise.
+  - (`3.0.0+`) The Filters sheet can also show only the events whose record matches a predicate, as `macmonitor stream --predicate` does. Write it in the predicate editor (View ▸ Predicate Editor, ⌥⌘F).
 
 ![Artifact filtering overview](./Resources/v1.9.0/lossless-filtering-v1.9.png)
 
 - **Telemetry export**. Right now we support pretty JSON and JSONL (one JSON object per-line) for the full or partial system trace (keyboard shortcuts too). You can access these options in the menu bar under "Export Telemetry". (`3.0.0+`) Every record follows the [telemetry schema](#telemetry-schema).
+- (`3.0.0+`) **Open a trace**. File ▸ Open Trace… replaces the events on screen with a saved trace: a Mac Monitor export, or eslogger's JSON. Open Recent and dropping a file on a window work too.
 - **Process subtree generation**. When viewing the event facts window for any given event we’ll attempt to generate a process lineage subtree in the left hand sidebar. This tree is intractable: click on any process and you’ll be taken to its event facts. **Similarly, you can right click on any process in the tree to pop out the facts for that event**.
 - **Dynamic event distribution chart**. This is a fun one enabled by the SwiftUI team. The graph shows the distribution of events you're subscribed to, currently in-scope (i.e. not filtered), and have a count of more than nothing. This enables you to *very* quickly identify noisy events. The chart auto-shows/hides itself, but you can bring it back with the: "Mini-chart" button in the toolbar.
 

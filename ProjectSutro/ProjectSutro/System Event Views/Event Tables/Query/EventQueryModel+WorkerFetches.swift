@@ -76,8 +76,10 @@ extension EventQueryModel.Worker {
     /// - Returns: The events' object IDs, or `nil` when SQLite must sort: the first key isn't text, most values are
     ///   distinct (grouping can't win), two different values compare as equal (SQLite would interleave their rows),
     ///   or the fetches disagree.
-    private func textSorted(matching predicate: NSPredicate, sortedBy sort: [NSSortDescriptor]) throws -> [NSManagedObjectID]? {
-        guard let first = sort.first, let key = first.key, first.selector == #selector(NSString.localizedStandardCompare(_:)) else { return nil }
+    private func textSorted(matching predicate: NSPredicate,
+                            sortedBy sort: [NSSortDescriptor]) throws -> [NSManagedObjectID]? {
+        guard let first = sort.first, let key = first.key,
+              first.selector == #selector(NSString.localizedStandardCompare(_:)) else { return nil }
         let byBytes = NSSortDescriptor(key: key, ascending: true)
         
         let count = NSExpressionDescription()

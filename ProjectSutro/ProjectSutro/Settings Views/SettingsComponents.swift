@@ -94,15 +94,24 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     /// Words the sidebar's search finds the pane by, beside its name.
     private var keywords: [String] {
         switch self {
-        case .securityExtension: return ["full disk access", "fda", "install", "uninstall", "requirements"]
-        case .subscriptions: return ["events", "exec", "fork", "subscribe"]
-        case .pathMuting: return ["mute", "unmute", "path", "import", "export"]
-        case .findings: return ["detections", "correlation", "groups", "predicate", "reflective", "applescript", "script", "marks"]
-        case .commandLine: return ["macmonitor", "terminal", "cli", "sudo"]
-        case .telemetrySchema: return ["schema", "json", "validate", "trace", "export"]
-        case .general: return ["update", "release notes", "version", "quit", "clear", "dark", "process tree"]
-        case .eventTables: return ["event tables", "right click", "filter", "mute"]
-        case .systemDetails: return ["sip", "csr", "macos", "sensor id", "processor", "memory"]
+        case .securityExtension:
+            return ["full disk access", "fda", "install", "uninstall", "requirements"]
+        case .subscriptions:
+            return ["events", "exec", "fork", "subscribe"]
+        case .pathMuting:
+            return ["mute", "unmute", "path", "import", "export"]
+        case .findings:
+            return ["detections", "correlation", "groups", "predicate", "reflective", "applescript", "script", "marks"]
+        case .commandLine:
+            return ["macmonitor", "terminal", "cli", "sudo"]
+        case .telemetrySchema:
+            return ["schema", "json", "validate", "trace", "export"]
+        case .general:
+            return ["update", "release notes", "version", "quit", "clear", "dark", "process tree"]
+        case .eventTables:
+            return ["event tables", "right click", "filter", "mute"]
+        case .systemDetails:
+            return ["sip", "csr", "macos", "sensor id", "processor", "memory"]
         }
     }
 

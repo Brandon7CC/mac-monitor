@@ -143,8 +143,10 @@ public protocol ESEnrichable {
 }
 
 extension Message: ESEnrichable {
-    /// Derive the event's name, the action type's name, and the event's context and target path (the "context" is a
-    /// context item independent of `target_path`, the path "targeted" by the event: see ``EventType/summary(initiatingPath:)``).
+    /// Derive the event's name, the action type's name, and the event's context and target path.
+    ///
+    /// The "context" is a context item independent of `target_path`, the path "targeted" by the event. See
+    /// ``EventType/summary(initiatingPath:)``.
     public mutating func enrich() {
         if case .unknown = event {
             es_event_type = "NOT MAPPED"

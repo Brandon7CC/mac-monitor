@@ -45,7 +45,9 @@ public class ESFile: NSManagedObject, Identifiable {
     ///   - context: The context to insert into.
     /// - Returns: The row, which may be a fault: attach it with ``NSManagedObject/attach(_:to:)``.
     static func row(for file: File, in context: NSManagedObjectContext) -> ESFile {
-        EventRowCaches.row(\.files, for: file.rowKey, in: context) { ESFile(from: file, insertIntoManagedObjectContext: context) }
+        EventRowCaches.row(\.files, for: file.rowKey, in: context) {
+            ESFile(from: file, insertIntoManagedObjectContext: context)
+        }
     }
 }
 

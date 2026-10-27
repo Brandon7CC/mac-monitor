@@ -8,9 +8,9 @@
 //  Author: Brandon Dalton
 //  Co-author: Claude
 //
-//  Usage (command line):
-//    xcodebuild -project ProjectSutro.xcodeproj -scheme ProjectSutro \
-//        -configuration Debug -xcconfig Community.xcconfig build
+//  Usage (command line): Scripts/community-build.sh, or
+//    xcodebuild -project ProjectSutro.xcodeproj -scheme "ProjectSutro (Community)" \
+//        -configuration Community build
 //
 //  Xcode refuses to adhoc sign a target whose entitlements include restricted
 //  keys (com.apple.developer.endpoint-security.client,

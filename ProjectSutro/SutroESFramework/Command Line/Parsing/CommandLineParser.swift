@@ -164,7 +164,8 @@ public enum CommandLineParser {
     }
     
     /// `stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes] [--include-self]
-    /// [--for DURATION] [--count N] [--pid PID] [--process|--signing-id|--target|--grep REGEX] [--predicate PREDICATE]`.
+    /// [--for DURATION] [--count N] [--pid PID] [--process|--signing-id|--target|--grep REGEX]
+    /// [--predicate PREDICATE]`.
     ///
     /// `--json`, `--pretty` and `--text` are short for `--format jsonl|pretty|text`. Each filter option may be given
     /// more than once (``StreamFilter``).

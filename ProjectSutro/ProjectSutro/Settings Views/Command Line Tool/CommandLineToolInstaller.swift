@@ -47,7 +47,8 @@ final class CommandLineToolInstaller: ObservableObject {
         isChanging = true
         // The password prompt blocks.
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            switch CommandLineToolAuthorization.requestApproval(prompt: CommandLineToolAuthorization.prompt(for: plan)) {
+            let prompt = CommandLineToolAuthorization.prompt(for: plan)
+            switch CommandLineToolAuthorization.requestApproval(prompt: prompt) {
             case .success(let approval):
                 // Keep the authorization alive until the Security Extension has checked it.
                 manager.changeCommandLineTool(plan, authorization: approval.externalForm) { outcome in

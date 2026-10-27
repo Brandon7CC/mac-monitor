@@ -167,8 +167,9 @@ final class StreamPipelineTests: XCTestCase {
         XCTAssertEqual(unchecked.process(batch), Data())
         XCTAssertEqual(unchecked.unchecked, 3)
         XCTAssertEqual(unchecked.filtered, 0)
-        XCTAssertEqual(unchecked.uncheckedReason?.hasPrefix("--predicate 'global_seq_num MATCHES '1'' can't be checked"),
-                       true)
+        XCTAssertEqual(
+            unchecked.uncheckedReason?.hasPrefix("--predicate 'global_seq_num MATCHES '1'' can't be checked"), true
+        )
     }
     
     /// A large batch filtered across several encoders, each with its own copy of the predicate, is filtered as one

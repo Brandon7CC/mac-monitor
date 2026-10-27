@@ -33,8 +33,8 @@ struct EventTimeView: View {
 }
 
 
-/// The title of a file path in Event Facts, with whether the file exists. The check is made on this Mac, which for a trace
-/// may not be the Mac the event happened on, so for a trace the label says so.
+/// The title of a file path in Event Facts, with whether the file exists. The check is made on this Mac, which for a
+/// trace may not be the Mac the event happened on, so for a trace the label says so.
 struct FileExistsLabel: View {
     /// The label's title (Markdown).
     let title: LocalizedStringKey

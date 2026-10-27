@@ -17,14 +17,14 @@ import SutroESFramework
 /// One trace at a time, like Process Monitor: every main window is a view of the same event store, so opening a trace
 /// replaces the events in all of them. Clear and Start close the trace and return to recording: any Clear returns the
 /// store to live (``CoreDataController/clearSystemEvents(source:)``), which the session follows through
-/// ``CoreDataController/eventsWillClear``. An open trace is a copy of a file that's still on disk, so replacing or closing
-/// it never asks. Replacing recorded events asks first, under the same "warn before clearing" setting as Clear.
+/// ``CoreDataController/eventsWillClear``. An open trace is a copy of a file that's still on disk, so replacing or
+/// closing it never asks. Replacing recorded events asks first, under the same "warn before clearing" setting as Clear.
 ///
-/// A file is checked (``TraceImporter/preflight(_:)``) in the background before anything is cleared. Opening another file
-/// or a Clear meanwhile drops it.
+/// A file is checked (``TraceImporter/preflight(_:)``) in the background before anything is cleared. Opening another
+/// file or a Clear meanwhile drops it.
 ///
-/// Export telemetry saves the events to a file in the background, one save at a time (``save(eventIDs:jsonl:)``). A save
-/// still going after half a second shows its progress, as opening a trace does.
+/// Export telemetry saves the events to a file in the background, one save at a time (``save(eventIDs:jsonl:)``). A
+/// save still going after half a second shows its progress, as opening a trace does.
 ///
 /// Main thread only.
 final class TraceSession: ObservableObject {
@@ -89,7 +89,9 @@ final class TraceSession: ObservableObject {
         }
         guard let summary else { return "" }
         var parts = [Self.counted(summary.saved, "event")]
-        if let range = summary.timeRange { parts.append(Self.interval.string(from: range.lowerBound, to: range.upperBound)) }
+        if let range = summary.timeRange {
+            parts.append(Self.interval.string(from: range.lowerBound, to: range.upperBound))
+        }
         if let stoppedAt = summary.stoppedAt { parts.append("stopped at \(Self.percent(stoppedAt))") }
         return parts.joined(separator: " · ")
     }
@@ -115,15 +117,16 @@ final class TraceSession: ObservableObject {
     
     /// Open a trace from the Open panel, Open Recent, Finder's Open With, `open -a`, or a drop on a window.
     ///
-    /// The file is checked in the background before anything is cleared, so one that isn't a trace never costs the events
-    /// on screen.
+    /// The file is checked in the background before anything is cleared, so one that isn't a trace never costs the
+    /// events on screen.
     ///
     /// - Parameters:
     ///   - url: The trace.
     ///   - recording: The app's recording state, stopped if the trace replaces the recording.
     ///   - esm: Stops the recording.
     ///   - showWindow: Opens a main window, called if none is open once the trace starts opening.
-    func open(_ url: URL, recording: Binding<Bool>, esm: EndpointSecurityManager, showWindow: @escaping () -> Void = {}) {
+    func open(_ url: URL, recording: Binding<Bool>, esm: EndpointSecurityManager,
+              showWindow: @escaping () -> Void = {}) {
         opens += 1
         let ticket = opens
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -150,7 +153,8 @@ final class TraceSession: ObservableObject {
     ///   - showWindow: Opens a main window, called if none is open.
     private func start(_ url: URL, recording: Binding<Bool>, esm: EndpointSecurityManager, showWindow: () -> Void) {
         let ticket = opens
-        guard confirmReplacingRecordedEvents(with: url, recording: recording.wrappedValue), opens == ticket else { return }
+        guard confirmReplacingRecordedEvents(with: url, recording: recording.wrappedValue),
+              opens == ticket else { return }
         if recording.wrappedValue {
             recording.wrappedValue = false
             esm.stopRecordingEvents()
@@ -203,9 +207,9 @@ final class TraceSession: ObservableObject {
         if urls != recents { recents = urls }
     }
     
-    /// A Clear started, which drops a file still being checked. One that returns the store to live (the toolbar's Clear,
-    /// Start) closes the trace. A Clear still deleting after half a second shows "Clearing previous events…" (most finish
-    /// well before).
+    /// A Clear started, which drops a file still being checked. One that returns the store to live (the toolbar's
+    /// Clear, Start) closes the trace. A Clear still deleting after half a second shows "Clearing previous events…"
+    /// (most finish well before).
     private func storeWillClear() {
         opens += 1
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -225,7 +229,9 @@ final class TraceSession: ObservableObject {
             /// Nothing to show (cancelled before the first event, or the file changed since it was checked): back to an
             /// empty, live window.
             store.clearSystemEvents()
-            if summary.stoppedAt == nil { Self.alert(cantOpen: summary.url, summary.error ?? TraceImporter.Failure.notATrace) }
+            if summary.stoppedAt == nil {
+                Self.alert(cantOpen: summary.url, summary.error ?? TraceImporter.Failure.notATrace)
+            }
             return
         }
         self.summary = summary
@@ -252,7 +258,8 @@ final class TraceSession: ObservableObject {
     ///   - eventIDs: The selected events, or `nil` for the full trace.
     ///   - jsonl: JSON Lines (`true`) or pretty-printed JSON (`false`).
     func save(eventIDs: [UUID]? = nil, jsonl: Bool) {
-        guard saving == nil, let url = store.showSavePanel(numberOfEvents: eventIDs?.count ?? 0, jsonl: jsonl) else { return }
+        guard saving == nil,
+              let url = store.showSavePanel(numberOfEvents: eventIDs?.count ?? 0, jsonl: jsonl) else { return }
         /// Reports from a save that has since finished are ignored.
         var exporter: TelemetryExporter?
         let progress = { [weak self] (state: TelemetryExporter.Progress) in
@@ -277,8 +284,8 @@ final class TraceSession: ObservableObject {
     /// Cancel: stop saving and leave the file as it was.
     func stopSaving() { saving?.exporter.cancel() }
     
-    /// A save ended: one long enough to show asks for attention if Mac Monitor is in the background, and one that failed
-    /// says why.
+    /// A save ended: one long enough to show asks for attention if Mac Monitor is in the background, and one that
+    /// failed says why.
     ///
     /// - Parameters:
     ///   - saving: The save.
@@ -317,7 +324,9 @@ final class TraceSession: ObservableObject {
         alert.addButton(withTitle: "Cancel")
         alert.showsSuppressionButton = true
         let response = alert.runModal()
-        if alert.suppressionButton?.state == .on { UserDefaults.standard.set(false, forKey: "lifecycleWarnBeforeClear") }
+        if alert.suppressionButton?.state == .on {
+            UserDefaults.standard.set(false, forKey: "lifecycleWarnBeforeClear")
+        }
         return response == .alertFirstButtonReturn
     }
     
@@ -344,8 +353,9 @@ final class TraceSession: ObservableObject {
     ///   - summary: What was read.
     ///   - error: Why reading stopped.
     private static func alert(stoppedReading summary: TraceImporter.Summary, _ error: Error) {
-        let shown = summary.saved == 1 ? "The first event is shown." : "The first \(summary.saved.formatted()) events are shown."
-        show("Mac Monitor stopped reading “\(summary.url.lastPathComponent)”.", "\(error.localizedDescription) \(shown)")
+        let first = summary.saved == 1 ? "event is" : "\(summary.saved.formatted()) events are"
+        show("Mac Monitor stopped reading “\(summary.url.lastPathComponent)”.",
+             "\(error.localizedDescription) The first \(first) shown.")
     }
     
     /// Show a warning.
@@ -366,7 +376,9 @@ final class TraceSession: ObservableObject {
     ///
     /// - Parameter count: A number of bytes.
     /// - Returns: The size, e.g. "12.3 MB".
-    private static func bytes(_ count: Int64) -> String { ByteCountFormatter.string(fromByteCount: count, countStyle: .file) }
+    private static func bytes(_ count: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: count, countStyle: .file)
+    }
     
     /// A fraction as a whole percentage.
     ///
@@ -380,7 +392,9 @@ final class TraceSession: ObservableObject {
     ///   - count: How many.
     ///   - noun: What they are, singular: an "s" makes it plural.
     /// - Returns: For example "1 event" or "1,024 events".
-    static func counted(_ count: Int, _ noun: String) -> String { "\(count.formatted()) \(noun)\(count == 1 ? "" : "s")" }
+    static func counted(_ count: Int, _ noun: String) -> String {
+        "\(count.formatted()) \(noun)\(count == 1 ? "" : "s")"
+    }
     
     /// A trace's time range, e.g. "Oct 2, 2026, 5:15:49 AM – 5:16:14 AM", in this Mac's time zone.
     private static let interval: DateIntervalFormatter = {

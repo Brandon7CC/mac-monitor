@@ -14,8 +14,8 @@ import SutroESFramework
 /// The rows of one AppKit event table: the object IDs of the events that pass the filters, in the table's sort order.
 ///
 /// Only object IDs are kept. The table asks the view context for the few events on screen, so a table costs about the
-/// same whether it holds a hundred events or millions. ``EventQueryModel`` fills it from a background context and pushes
-/// each change straight to the table view, never through SwiftUI (which would diff every row on every change).
+/// same whether it holds a hundred events or millions. ``EventQueryModel`` fills it from a background context and
+/// pushes each change straight to the table view, never through SwiftUI (which would diff every row on every change).
 ///
 /// Main thread only.
 final class EventTableQuery {
@@ -26,8 +26,8 @@ final class EventTableQuery {
     let execOnly: Bool
     /// The sort chosen in the table's header. Fetches add `mach_time` descending to break ties.
     var sortDescriptors: [NSSortDescriptor] = defaultSort
-    /// The columns' order, widths, and visibility, kept so a table rebuilt by SwiftUI (e.g. the mini-chart toggle) looks
-    /// the same. Empty until the table's columns first change.
+    /// The columns' order, widths, and visibility, kept so a table rebuilt by SwiftUI (e.g. the mini-chart toggle)
+    /// looks the same. Empty until the table's columns first change.
     var columnLayout: [ColumnLayout] = []
     /// The rows, top to bottom.
     private(set) var rows: [NSManagedObjectID] = []

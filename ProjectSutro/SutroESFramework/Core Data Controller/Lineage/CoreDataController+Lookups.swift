@@ -19,7 +19,8 @@ extension CoreDataController {
     /// Get all `EXEC` events in a given process group.
     ///
     /// - Parameters:
-    ///   - message: Provide a system event and we'll extract the `group_id` field to find the others in the same process group.
+    ///   - message: Provide a system event and we'll extract the `group_id` field to find the others in the same
+    ///     process group.
     /// - Returns: `[ESMessage]` the list of `EXEC` events in the same process group, newest first.
     ///
     public func getProcGroup(message: ESMessage) -> [ESMessage] {
@@ -30,7 +31,8 @@ extension CoreDataController {
     /// Get all `EXEC` events in a given process session.
     ///
     /// - Parameters:
-    ///   - message: Provide a system event and we'll extract the `session_id` field to find the others in the same session.
+    ///   - message: Provide a system event and we'll extract the `session_id` field to find the others in the same
+    ///     session.
     /// - Returns: `[ESMessage]` the list of `EXEC` events in the same process session, newest first.
     ///
     public func getProcSessionGroup(message: ESMessage) -> [ESMessage] {
@@ -51,7 +53,8 @@ extension CoreDataController {
         do {
             return try container.viewContext.fetch(request).sorted { $0.mach_time > $1.mach_time }
         } catch {
-            CoreDataController.logger.error("Error obtaining \(group) for \(message.process.executable?.name ?? "") ==> \(message.es_event_type ?? "")")
+            let name = message.process.executable?.name ?? "", eventType = message.es_event_type ?? ""
+            CoreDataController.logger.error("Error obtaining \(group) for \(name) ==> \(eventType)")
             return []
         }
     }
@@ -64,7 +67,8 @@ extension CoreDataController {
     ///  - Parameters:
     ///    - targetEvent: The event (`ESMessage`) to find the parent process for
     ///    - tree: Ancestors already found, to continue from
-    ///  - Returns: A list of system events: `[ESMessage]` the flat representation of the process tree, nearest parent first.
+    ///  - Returns: A list of system events: `[ESMessage]` the flat representation of the process tree, nearest parent
+    ///    first.
     ///
     public func getProcTree(targetEvent: ESMessage, tree: [ESMessage] = []) -> [ESMessage] {
         var tree = tree, current = targetEvent
@@ -79,8 +83,8 @@ extension CoreDataController {
     /// Find the parent process of a given system event
     ///
     /// Each `ESMessage` has an `initiating_process` we can attempt to find the corresponding `EXEC` and/or
-    /// `FORK` event. What we're essentially doing here is looking for the event that created the process with the event's
-    /// audit token: the indexed ``ESMessage/created_audit_token`` of an `EXEC` (preferred) or `FORK` event
+    /// `FORK` event. What we're essentially doing here is looking for the event that created the process with the
+    /// event's audit token: the indexed ``ESMessage/created_audit_token`` of an `EXEC` (preferred) or `FORK` event
     /// (``LineageLookup/creator(ofToken:)``).
     ///
     /// - Parameters:
@@ -92,7 +96,8 @@ extension CoreDataController {
         do {
             return try lineage.creator(ofToken: token)
         } catch {
-            CoreDataController.logger.error("We could not find the parent proc for: \(message.process.executable?.name ?? "")")
+            CoreDataController.logger.error(
+                "We could not find the parent proc for: \(message.process.executable?.name ?? "")")
             return nil
         }
     }

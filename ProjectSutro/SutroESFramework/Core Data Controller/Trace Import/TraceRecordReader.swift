@@ -11,17 +11,17 @@ import Foundation
 // MARK: - Record reader
 /// Splits a trace into its JSON objects, reading the file a chunk at a time, and numbers the lines they start on.
 ///
-/// A byte scanner that tracks strings (and their escapes) and object and array nesting, so it finds each top-level object
-/// whatever separates them: newlines (JSONL), "\n" between pretty-printed objects, or the brackets and commas of a JSON
-/// array. Text before an object on the object's own line is a prefix, such as the timestamp and process that `log show`
-/// writes before each message, and is dropped. A line of text without an object is a malformed record.
+/// A byte scanner that tracks strings (and their escapes) and object and array nesting, so it finds each top-level
+/// object whatever separates them: newlines (JSONL), "\n" between pretty-printed objects, or the brackets and commas of
+/// a JSON array. Text before an object on the object's own line is a prefix, such as the timestamp and process that
+/// `log show` writes before each message, and is dropped. A line of text without an object is a malformed record.
 ///
 /// A record cut short is skipped as soon as the next one starts, so one bad line doesn't swallow the rest of the file:
-/// a raw newline can't occur inside a JSON string, and a `{` at the start of a line only starts an event (JSONL lines and
-/// pretty events written by any JSON encoder start there, and their nested objects are indented). The exception is an
-/// element of an array inside a JSON array file, which an encoder that doesn't indent (Python's `indent=0`) also starts
-/// at the start of a line. A file whose first object follows text on its line is a text log: each object is on one line
-/// (a message the unified log cut at its size limit ends with its line), so a newline also ends a record.
+/// a raw newline can't occur inside a JSON string, and a `{` at the start of a line only starts an event (JSONL lines
+/// and pretty events written by any JSON encoder start there, and their nested objects are indented). The exception is
+/// an element of an array inside a JSON array file, which an encoder that doesn't indent (Python's `indent=0`) also
+/// starts at the start of a line. A file whose first object follows text on its line is a text log: each object is on
+/// one line (a message the unified log cut at its size limit ends with its line), so a newline also ends a record.
 ///
 /// Only the bytes the file had when it was opened are read, so a file still being written ends where it ended then.
 final class TraceRecordReader {
@@ -40,8 +40,8 @@ final class TraceRecordReader {
     static let maxRecordSize = 32 << 20
     /// The bytes the scanner looks for.
     private static let (openBrace, closeBrace, openBracket, closeBracket, quote, backslash, comma, newline) =
-        (UInt8(ascii: "{"), UInt8(ascii: "}"), UInt8(ascii: "["), UInt8(ascii: "]"), UInt8(ascii: "\""), UInt8(ascii: "\\"),
-         UInt8(ascii: ","), UInt8(ascii: "\n"))
+        (UInt8(ascii: "{"), UInt8(ascii: "}"), UInt8(ascii: "["), UInt8(ascii: "]"), UInt8(ascii: "\""),
+         UInt8(ascii: "\\"), UInt8(ascii: ","), UInt8(ascii: "\n"))
     
     /// The file's size when it was opened: where reading stops.
     let totalBytes: Int64
@@ -64,7 +64,8 @@ final class TraceRecordReader {
     private var garbage = false
     /// Skipping an oversized record.
     private var skipping = false
-    /// Is the file a text log, whose records end with their line? Decided by whether text comes before its first object.
+    /// Is the file a text log, whose records end with their line? Decided by whether text comes before its first
+    /// object.
     private var textLog: Bool?
     /// Has a `[` been seen between records, so the records are elements of a JSON array?
     private var arrayFile = false
@@ -170,7 +171,8 @@ final class TraceRecordReader {
                         return .malformed(line: recordLine)
                     } else if byte == Self.openBracket && !garbage {
                         arrayFile = true
-                    } else if !blank && byte != Self.openBracket && byte != Self.closeBracket && byte != Self.comma && !garbage {
+                    } else if !blank && byte != Self.openBracket && byte != Self.closeBracket
+                                && byte != Self.comma && !garbage {
                         garbage = true
                         recordLine = line
                     }

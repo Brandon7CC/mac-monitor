@@ -45,10 +45,11 @@ struct AppKitEventTablesView: View {
     ///   - columns: The table's columns.
     ///   - layout: Where the table's column layout is saved.
     /// - Returns: An AppKit event table sharing the selection and filters.
-    private func table(_ query: EventTableQuery, columns: [EventTableColumn], layout: Binding<String>) -> AppKitEventTable {
-        AppKitEventTable(model: model, query: query, columns: columns, selection: $messageSelections, filters: $allFilters,
-                         manager: systemExtensionManager, prefs: userPrefs, openWindow: openWindow, savedLayout: layout,
-                         openFile: openFile)
+    private func table(_ query: EventTableQuery, columns: [EventTableColumn],
+                       layout: Binding<String>) -> AppKitEventTable {
+        AppKitEventTable(model: model, query: query, columns: columns, selection: $messageSelections,
+                         filters: $allFilters, manager: systemExtensionManager, prefs: userPrefs,
+                         openWindow: openWindow, savedLayout: layout, openFile: openFile)
     }
     
     /// The shortest either table's pane can be dragged to.
@@ -66,9 +67,11 @@ struct AppKitEventTablesView: View {
                             GeometryReader { geo in
                                 HStack {
                                     unifiedTable
-                                        .frame(width: geo.size.width * (hasEvents ? 0.80 : 1.0), height: geo.size.height)
+                                        .frame(width: geo.size.width * (hasEvents ? 0.80 : 1.0),
+                                               height: geo.size.height)
                                     SystemChartEventView(counts: model.chartCounts)
-                                        .frame(width: geo.size.width * (hasEvents ? 0.20 : 0.0), height: geo.size.height)
+                                        .frame(width: geo.size.width * (hasEvents ? 0.20 : 0.0),
+                                               height: geo.size.height)
                                 }
                             }
                         } else {

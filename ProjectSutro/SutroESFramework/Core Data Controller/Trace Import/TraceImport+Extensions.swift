@@ -53,8 +53,11 @@ extension DecodingError {
     /// Where and why decoding failed.
     var context: Context? {
         switch self {
-        case .typeMismatch(_, let context), .valueNotFound(_, let context), .keyNotFound(_, let context), .dataCorrupted(let context): context
-        @unknown default: nil
+        case .typeMismatch(_, let context), .valueNotFound(_, let context), .keyNotFound(_, let context),
+             .dataCorrupted(let context):
+            context
+        @unknown default:
+            nil
         }
     }
 }

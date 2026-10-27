@@ -74,7 +74,8 @@ struct SystemEventFactsView : View {
             switch tab {
             case .script: return script != nil
             case .plist: return plist != nil
-            /// EXEC only: the enrichment view describes the exec target, and FORK events can have correlated events too.
+            /// EXEC only. The enrichment view describes the exec target,
+            /// and FORK events can have correlated events too.
             case .correlation: return selectedMessage.event.exec != nil && selectedMessage.correlatedCount() > 1
             case .groups: return !procSessionGroup.isEmpty || !procGroup.isEmpty
             case .metadata, .parent, .json: return true

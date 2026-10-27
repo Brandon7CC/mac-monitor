@@ -91,9 +91,9 @@ final class SetupRequirementsTests: XCTestCase {
     /// Outside Applications only matters when macOS refuses it there. A translocated copy never works.
     func testTheLocation() {
         let developer = requirements(.running(version: nil), .success,
-                                     at: .elsewhere("/Users/marcus/mac-monitor/Mac Monitor.app"))
+                                     at: .elsewhere("/Users/alice/mac-monitor/Mac Monitor.app"))
         XCTAssertTrue(developer.isReady)
-        let refused = requirements(.wrongLocation, at: .elsewhere("/Users/marcus/Downloads/Mac Monitor.app"))
+        let refused = requirements(.wrongLocation, at: .elsewhere("/Users/alice/Downloads/Mac Monitor.app"))
         XCTAssertEqual(statuses(refused), [.needed, .pending, .pending])
         XCTAssertEqual(refused.nextStep?.action, .showInFinder)
         XCTAssertEqual(statuses(requirements(.checking, at: .translocated)), [.needed, .pending, .pending])

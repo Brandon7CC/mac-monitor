@@ -3,3 +3,4 @@
 #   <version> <shasum -a 256 Schema/mac-monitor-telemetry.schema.json>
 # Add the line before tagging a release. A released version's schema never changes:
 # TelemetrySchemaFileTests fails if the file's hash differs from its version's line.
+1.0.0 4663ee116ca61e8b71810b083b777f6e25601cf6663fc79c44255eddc12a9ffa

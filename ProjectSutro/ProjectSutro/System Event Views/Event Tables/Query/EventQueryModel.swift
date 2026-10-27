@@ -20,13 +20,13 @@ import SutroESFramework
 /// every save (the SwiftUI tables of v2.1) stops scaling around a million events (#84). This model does that work with
 /// Core Data on a background context instead, and keeps only what the screen needs:
 ///
-/// - **Reload** (filters, search, sort, or Clear changed): fetch each table's rows as object IDs, sorted and filtered by
-///   SQLite, plus the totals and per-event-type counts.
+/// - **Reload** (filters, search, sort, or Clear changed): fetch each table's rows as object IDs, sorted and filtered
+///   by SQLite, plus the totals and per-event-type counts.
 /// - **Insert** (``CoreDataController/eventsInserted``): fetch just the new events that pass the filters and merge them
 ///   into each table's rows.
 ///
-/// One job runs at a time. Changes that arrive meanwhile are coalesced into the next job, so typing in the search field or
-/// a burst of events never queues up work. A reload covers every batch saved up to the newest one received
+/// One job runs at a time. Changes that arrive meanwhile are coalesced into the next job, so typing in the search field
+/// or a burst of events never queues up work. A reload covers every batch saved up to the newest one received
 /// (``ESMessage/insert_batch``), so no event is shown twice or missed.
 ///
 /// Main thread only. Inactive (no observers, no work) until ``activate(spec:)``.
@@ -157,8 +157,8 @@ final class EventQueryModel: ObservableObject {
     
     /// Events are about to be deleted: drop every row now, before the table can draw a deleted event.
     ///
-    /// No job starts until the delete finishes (``CoreDataController/eventsDidClear``); then a reload loads what was saved
-    /// after it.
+    /// No job starts until the delete finishes (``CoreDataController/eventsDidClear``). Then a reload loads what was
+    /// saved after it.
     private func willClear() {
         generation += 1
         needsReload = true

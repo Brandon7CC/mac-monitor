@@ -65,8 +65,8 @@ final class RowCache<Key: Hashable> {
         }
     }
     
-    /// Forget every row: after a Clear (the rows are gone) and after a failed save (the rows not yet saved may be rolled
-    /// back, and are saved, if at all, only with the events already holding them).
+    /// Forget every row: after a Clear (the rows are gone) and after a failed save (the rows not yet saved may be
+    /// rolled back, and are saved, if at all, only with the events already holding them).
     func forget() {
         unsaved = [:]
         recent = [:]
@@ -98,8 +98,9 @@ final class EventRowCaches {
     ///   - context: The context to insert into.
     ///   - make: Inserts a new row.
     /// - Returns: The row, which may be a fault.
-    static func row<Key, Row: NSManagedObject>(_ cache: KeyPath<EventRowCaches, RowCache<Key>>, for key: @autoclosure () -> Key,
-                                               in context: NSManagedObjectContext, make: () -> Row) -> Row {
+    static func row<Key, Row: NSManagedObject>(_ cache: KeyPath<EventRowCaches, RowCache<Key>>,
+                                               for key: @autoclosure () -> Key, in context: NSManagedObjectContext,
+                                               make: () -> Row) -> Row {
         guard let caches = context.userInfo[userInfoKey] as? EventRowCaches else { return make() }
         return caches[keyPath: cache].row(for: key(), in: context, make: make)
     }

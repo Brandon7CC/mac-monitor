@@ -180,7 +180,9 @@ struct EventView: View {
         }
         .task(id: filterSpec) { eventQueries.activate(spec: filterSpec) }
         /// The selected events are about to be deleted, so "Export telemetry" > "Selected events" mustn't offer them.
-        .onReceive(NotificationCenter.default.publisher(for: CoreDataController.eventsWillClear)) { _ in eventSelection = [] }
+        .onReceive(NotificationCenter.default.publisher(for: CoreDataController.eventsWillClear)) { _ in
+            eventSelection = []
+        }
         .toolbar {
             ToolbarItemGroup(placement: .principal) {
                 if #unavailable(macOS 14) {

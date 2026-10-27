@@ -54,16 +54,17 @@ func errnoText(_ code: Int32 = errno) -> String {
 
 
 // MARK: - eslogger format
-/// The rules Mac Monitor's exports and CLI follow so that every field `eslogger(1)` writes has eslogger's key path and value.
+/// The rules Mac Monitor's exports and CLI follow so that every field `eslogger(1)` writes has eslogger's key path
+/// and value.
 ///
-/// Mac Monitor's JSON is eslogger's JSON plus Mac Monitor's own fields. `eslogger` has no published schema. These rules were
-/// verified against its output on macOS 27.0 (26A5353q):
+/// Mac Monitor's JSON is eslogger's JSON plus Mac Monitor's own fields. `eslogger` has no published schema. These
+/// rules were verified against its output on macOS 27.0 (26A5353q):
 /// * `time` is UTC with nine fractional digits (``time(_:)``).
 /// * Hashes are uppercase hex (``hex(_:)``).
-/// * A field eslogger writes is always written: `null` when the value is absent (encode the optional with `encode`, never
-///   `encodeIfPresent`). Mac Monitor's own fields may be left out.
-/// * `seq_num` and `global_seq_num` count the messages one Endpoint Security client received, so they're Mac Monitor's own
-///   and never equal eslogger's.
+/// * A field eslogger writes is always written: `null` when the value is absent (encode the optional with `encode`,
+///   never `encodeIfPresent`). Mac Monitor's own fields may be left out.
+/// * `seq_num` and `global_seq_num` count the messages one Endpoint Security client received, so they're Mac
+///   Monitor's own and never equal eslogger's.
 /// * `remote_thread_create`'s `thread_state.state` is always `null`: eslogger writes no thread state bytes. Mac Monitor
 ///   keeps them in its own `state_base64` (``ThreadState``).
 enum ESLogger {
@@ -228,9 +229,10 @@ enum ESLogger {
     
     /// When an event happened, from its `time` as eslogger or any version of Mac Monitor wrote it.
     ///
-    /// eslogger's `time` (and Mac Monitor's since 3.0.0) is UTC to the nanosecond, and is read exactly. Up to 2.1.0 Mac
-    /// Monitor wrote the recording Mac's local time to the millisecond with a literal `Z`. That's read in this Mac's time
-    /// zone with the formatter that wrote it, so it's exact to the millisecond when both Macs share a time zone.
+    /// eslogger's `time` (and Mac Monitor's since 3.0.0) is UTC to the nanosecond, and is read exactly. Up to 2.1.0
+    /// Mac Monitor wrote the recording Mac's local time to the millisecond with a literal `Z`. That's read in this
+    /// Mac's time zone with the formatter that wrote it, so it's exact to the millisecond when both Macs share a time
+    /// zone.
     ///
     /// - Parameters:
     ///   - time: An event's `time`.
@@ -262,8 +264,9 @@ enum ESLogger {
                 }
                 return result
             }
-            guard let year = number(0..<4), let month = number(5..<7), let day = number(8..<10), let hour = number(11..<13),
-                  let minute = number(14..<16), let second = number(17..<19), (1...12).contains(month),
+            guard let year = number(0..<4), let month = number(5..<7), let day = number(8..<10),
+                  let hour = number(11..<13), let minute = number(14..<16), let second = number(17..<19),
+                  (1...12).contains(month),
                   let fraction = utf8.count == 20 ? 0 : number(20..<utf8.count - 1) else { return nil }
             /// Days since 1970-01-01 in the proleptic Gregorian calendar (Howard Hinnant's `days_from_civil`).
             let y = month <= 2 ? year - 1 : year, era = y / 400, yearOfEra = y - era * 400

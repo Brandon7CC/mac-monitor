@@ -104,7 +104,9 @@ public final class SensorClient {
         }
         
         let proxy = liveConnection.remoteObjectProxyWithErrorHandler { [logger] error in
-            logger.error("XPC request \(caller, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            logger.error(
+                "XPC request \(caller, privacy: .public) failed: \(error.localizedDescription, privacy: .public)"
+            )
             deliver(nil)
         }
         guard let sensor = proxy as? SensorProtocol else {

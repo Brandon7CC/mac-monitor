@@ -32,7 +32,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             alert.informativeText = "Quitting stops the save before it finishes and clears any system trace."
             alert.addButton(withTitle: "Keep Saving")
             alert.addButton(withTitle: "Quit")
-            /// Esc keeps saving, as it cancels the usual quit warning: NSAlert gives Esc only to a button titled Cancel.
+            /// Esc keeps saving, as it cancels the usual quit warning.
+            /// NSAlert gives Esc only to a button titled Cancel.
             let escape = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 guard event.keyCode == 53, event.window === alert.window else { return event }
                 alert.buttons[0].performClick(nil)

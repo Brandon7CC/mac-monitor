@@ -194,7 +194,8 @@ public class ESMessage: NSManagedObject, Identifiable {
         self.global_seq_num = Int64(message.global_seq_num ?? 0)
         
         // MARK: Time
-        /// eslogger's format even when an older Security Extension sent local time (see ``ESLogger/time(_:darwinTime:)``).
+        /// eslogger's format even when an older Security Extension sent local time (see
+        /// ``ESLogger/time(_:darwinTime:)``).
         self.time = ESLogger.time(message.time, darwinTime: message.message_darwin_time)
         self.mach_time = Int64(message.mach_time)
         self.message_darwin_time = message.message_darwin_time
@@ -207,7 +208,8 @@ public class ESMessage: NSManagedObject, Identifiable {
         // MARK: Process and thread
         /// The initiating process is shared with its other events (see ``EventRowCaches``), so the event keeps the
         /// process `id` it exports itself.
-        attach(ESProcess.row(for: message.process, version: message.version, in: context), to: #keyPath(ESMessage.process))
+        attach(ESProcess.row(for: message.process, version: message.version, in: context),
+               to: #keyPath(ESMessage.process))
         self.process_id = message.process.id
         self.thread = message.thread.map { ESThread(from: $0, insertIntoManagedObjectContext: context) }
         

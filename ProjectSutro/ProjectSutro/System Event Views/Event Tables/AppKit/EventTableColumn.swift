@@ -16,7 +16,8 @@ struct EventTableColumn {
     /// What a cell shows.
     enum Content {
         /// Monospaced text.
-        case text((ESMessage) -> String, truncation: NSLineBreakMode = .byTruncatingTail, lines: Int = 1, selectable: Bool = false)
+        case text((ESMessage) -> String, truncation: NSLineBreakMode = .byTruncatingTail, lines: Int = 1,
+                  selectable: Bool = false)
         /// One of the SwiftUI label views (event type, process name), hosted as is.
         case view((ESMessage) -> AnyView)
     }
@@ -43,8 +44,8 @@ extension EventTableColumn {
     /// macOS 14.
     static var unified: [EventTableColumn] {
         var columns = [
-            EventTableColumn(title: "Timestamp", width: (100, 100, 100), sortKey: "message_darwin_time", sortsAsText: false,
-                             content: .text(eventTimeStamp(for:))),
+            EventTableColumn(title: "Timestamp", width: (100, 100, 100), sortKey: "message_darwin_time",
+                             sortsAsText: false, content: .text(eventTimeStamp(for:))),
             EventTableColumn(title: "Event type", width: (150, 200, 400), sortKey: "es_event_type", hideable: false,
                              content: .view { message in
                                  AnyView(HStack(spacing: 4) {
@@ -61,15 +62,18 @@ extension EventTableColumn {
         ]
         if customizable {
             columns += [
-                EventTableColumn(title: "Initiating pid", width: (30, 50, 80), sortKey: "initiating_pid", sortsAsText: false,
-                                 hiddenByDefault: true, content: .text({ String($0.initiating_pid) })),
+                EventTableColumn(title: "Initiating pid", width: (30, 50, 80), sortKey: "initiating_pid",
+                                 sortsAsText: false, hiddenByDefault: true,
+                                 content: .text({ String($0.initiating_pid) })),
                 EventTableColumn(title: "ppid", width: (20, 30, 50), sortKey: "initiating_ppid", sortsAsText: false,
                                  hiddenByDefault: true, content: .text({ String($0.initiating_ppid) })),
                 EventTableColumn(title: "Source process path", width: (50, 200, 500), sortKey: "initiating_path",
-                                 hiddenByDefault: true, content: .text({ $0.initiating_path ?? "" }, truncation: .byTruncatingMiddle)),
+                                 hiddenByDefault: true,
+                                 content: .text({ $0.initiating_path ?? "" }, truncation: .byTruncatingMiddle)),
             ]
         }
-        columns.append(EventTableColumn(title: "Source Signing ID", width: (80, 100, 200), sortKey: "initiating_signing_id",
+        columns.append(EventTableColumn(title: "Source Signing ID", width: (80, 100, 200),
+                                        sortKey: "initiating_signing_id",
                                         content: .text({ $0.initiating_signing_id ?? "" })))
         return columns
     }
@@ -78,15 +82,17 @@ extension EventTableColumn {
     /// SwiftUI table of v2.1 and earlier.
     static var exec: [EventTableColumn] {
         [
-            EventTableColumn(title: "Timestamp", width: (100, 100, 100), sortKey: "message_darwin_time", sortsAsText: false,
-                             hiddenByDefault: customizable, content: .text(eventTimeStamp(for:))),
+            EventTableColumn(title: "Timestamp", width: (100, 100, 100), sortKey: "message_darwin_time",
+                             sortsAsText: false, hiddenByDefault: customizable, content: .text(eventTimeStamp(for:))),
             EventTableColumn(title: "Process name", width: (80, 100, 400), sortKey: "created_name", hideable: false,
                              content: .view { AnyView(ProcessExecEventNameView(message: $0)) }),
             EventTableColumn(title: "Signing ID", width: (80, 100, 200), sortKey: "created_signing_id",
                              content: .text({ $0.created_signing_id ?? "" })),
             EventTableColumn(title: "Process path", width: (50, 60, 300), sortKey: "created_path",
-                             content: .text({ $0.created_path ?? "" }, truncation: .byTruncatingMiddle, selectable: true)),
-            EventTableColumn(title: "Command line", width: (200, 600, .infinity), sortKey: "exec_command_line", hideable: false,
+                             content: .text({ $0.created_path ?? "" }, truncation: .byTruncatingMiddle,
+                                            selectable: true)),
+            EventTableColumn(title: "Command line", width: (200, 600, .infinity), sortKey: "exec_command_line",
+                             hideable: false,
                              content: .text({ $0.exec_command_line ?? "" }, lines: 8, selectable: true)),
         ]
     }

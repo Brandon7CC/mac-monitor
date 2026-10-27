@@ -10,11 +10,13 @@ import AppKit
 
 
 // MARK: - Table view
-/// The event tables' `NSTableView`, which takes right-clicks, Control-clicks, and double-clicks anywhere on a row itself.
+/// The event tables' `NSTableView`, which takes right-clicks, Control-clicks, and double-clicks anywhere on a row
+/// itself.
 ///
-/// Otherwise the cell under the pointer gets them first, and a text field there decides: a selectable one (Process path,
-/// Command line) can show its own text menu, or no menu at all, and selects a word on a double-click. Sending them to the
-/// table always opens the row's menu, or its Event Facts, with `clickedRow` set, wherever on the row the click lands.
+/// Otherwise the cell under the pointer gets them first, and a text field there decides: a selectable one (Process
+/// path, Command line) can show its own text menu, or no menu at all, and selects a word on a double-click. Sending
+/// them to the table always opens the row's menu, or its Event Facts, with `clickedRow` set, wherever on the row the
+/// click lands.
 ///
 /// Edit ▸ Copy (⌘C) copies the selected events' JSON, as Export telemetry ▸ Pretty JSON writes them.
 final class EventTableView: NSTableView, NSMenuItemValidation {
@@ -126,7 +128,8 @@ final class EventHostingCell: NSTableCellView {
     /// SwiftUI table's selected rows.
     private func render() {
         if #available(macOS 14, *) {
-            host.rootView = AnyView(content.environment(\.backgroundProminence, backgroundStyle == .emphasized ? .increased : .standard))
+            let prominence: BackgroundProminence = backgroundStyle == .emphasized ? .increased : .standard
+            host.rootView = AnyView(content.environment(\.backgroundProminence, prominence))
         } else {
             host.rootView = content
         }

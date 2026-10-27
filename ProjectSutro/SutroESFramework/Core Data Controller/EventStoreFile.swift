@@ -11,10 +11,10 @@ import Foundation
 // MARK: - Event store files
 /// The event store's files on disk: one store per running Mac Monitor, each claimed with a lock.
 ///
-/// Every process gets its own SQLite store in the caches folder and holds an exclusive `flock` on a `.lock` file beside it
-/// for as long as it runs. A second copy of Mac Monitor (`open -n`, or a development build with the same bundle ID) gets a
-/// store of its own instead of deleting the first one's trace. A store whose lock can be taken belongs to a process that
-/// has quit or crashed, so it's deleted.
+/// Every process gets its own SQLite store in the caches folder and holds an exclusive `flock` on a `.lock` file beside
+/// it for as long as it runs. A second copy of Mac Monitor (`open -n`, or a development build with the same bundle ID)
+/// gets a store of its own instead of deleting the first one's trace. A store whose lock can be taken belongs to a
+/// process that has quit or crashed, so it's deleted.
 struct EventStoreFile {
     /// The store's SQLite file.
     let url: URL
@@ -22,20 +22,22 @@ struct EventStoreFile {
     private static let prefix = "Events"
     private static let storeSuffixes = [".sqlite", ".sqlite-wal", ".sqlite-shm"]
     
-    /// Claim `Events.sqlite`, or a store of its own if another Mac Monitor has that one, then delete every store left by a
-    /// process that's gone (including this store's, from a run that crashed).
+    /// Claim `Events.sqlite`, or a store of its own if another Mac Monitor has that one, then delete every store left
+    /// by a process that's gone (including this store's, from a run that crashed).
     ///
     /// - Parameter directory: Mac Monitor's caches folder.
     /// - Returns: `nil` if no store could be claimed (for example, the folder can't be written).
     init?(in directory: URL) {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        guard let name = [Self.prefix, "\(Self.prefix)-\(UUID().uuidString)"].first(where: { Self.claim($0, in: directory) != nil }) else { return nil }
+        let candidates = [Self.prefix, "\(Self.prefix)-\(UUID().uuidString)"]
+        guard let name = candidates.first(where: { Self.claim($0, in: directory) != nil }) else { return nil }
         url = directory.appendingPathComponent(name + ".sqlite")
         Self.removeStore(name, in: directory)
         
         let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
         let stores = Set(names.compactMap { file in
-            (Self.storeSuffixes + [".lock"]).first { file.hasPrefix(Self.prefix) && file.hasSuffix($0) }.map { String(file.dropLast($0.count)) }
+            (Self.storeSuffixes + [".lock"]).first { file.hasPrefix(Self.prefix) && file.hasSuffix($0) }
+                .map { String(file.dropLast($0.count)) }
         })
         for store in stores where store != name {
             /// Still claimed: another Mac Monitor is using it.
@@ -69,7 +71,8 @@ struct EventStoreFile {
         let path = directory.appendingPathComponent(name + ".lock").path
         let lock = open(path, O_RDWR | O_CREAT | O_CLOEXEC, 0o600)
         guard lock >= 0 else { return nil }
-        /// Another launch may have deleted the lock file between `open` and `flock`. A lock on a deleted file guards nothing.
+        /// Another launch may have deleted the lock file between `open` and `flock`. A lock on a deleted file guards
+        /// nothing.
         var held = stat(), current = stat()
         guard flock(lock, LOCK_EX | LOCK_NB) == 0, fstat(lock, &held) == 0, stat(path, &current) == 0,
               held.st_dev == current.st_dev, held.st_ino == current.st_ino else {

@@ -31,22 +31,22 @@ public class CoreDataController {
     /// Designed for asyncronous operations like batch inserting.
     let privateMOC: NSManagedObjectContext
     
-    /// The rows `privateMOC`'s events share: one `ESProcess` (with its tokens and files) per process rather than one per
-    /// event, and one `ESFile` per file and stat (#84). Kept in `privateMOC.userInfo`. Only touched on its queue.
+    /// The rows `privateMOC`'s events share: one `ESProcess` (with its tokens and files) per process rather than one
+    /// per event, and one `ESFile` per file and stat (#84). Kept in `privateMOC.userInfo`. Only touched on its queue.
     private let rowCaches = EventRowCaches()
     
-    /// Where the event store lives: a SQLite file in Mac Monitor's caches folder, or `nil` if it couldn't be set up there
-    /// and events are kept in memory instead.
+    /// Where the event store lives: a SQLite file in Mac Monitor's caches folder, or `nil` if it couldn't be set up
+    /// there and events are kept in memory instead.
     ///
-    /// Events used to live in an in-memory store (`/dev/null`), so a long trace could exhaust memory (#84). On disk, only
-    /// SQLite's page cache and the objects being shown stay in memory, and the trace is bounded by disk space, like
-    /// Process Monitor's backing file. It's still one trace per launch, and each running copy of Mac Monitor has its own:
-    /// the file is deleted at quit (or, after a crash, at the next launch).
+    /// Events used to live in an in-memory store (`/dev/null`), so a long trace could exhaust memory (#84). On disk,
+    /// only SQLite's page cache and the objects being shown stay in memory, and the trace is bounded by disk space,
+    /// like Process Monitor's backing file. It's still one trace per launch, and each running copy of Mac Monitor has
+    /// its own: the file is deleted at quit (or, after a crash, at the next launch).
     public var storeURL: URL? { storeFile?.url }
     private let storeFile: EventStoreFile?
     
-    /// Can events be saved? Not without a store (a save or batch delete would raise an exception Swift can't catch), and
-    /// not once Mac Monitor is quitting and the store's files are gone (Core Data would make a new, empty store).
+    /// Can events be saved? Not without a store (a save or batch delete would raise an exception Swift can't catch),
+    /// and not once Mac Monitor is quitting and the store's files are gone (Core Data would make a new, empty store).
     let canSave: OSAllocatedUnfairLock<Bool>
     
     /// Set up the on-disk Core Data PSC named: `SystemEvents`, starting from an empty store.
@@ -56,11 +56,13 @@ public class CoreDataController {
     init(model: NSManagedObjectModel = ExportEncoder.model!) {
         container = NSPersistentContainer(name: "SystemEvents", managedObjectModel: model)
         let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.swiftlydetecting.SutroESFramework", isDirectory: true)
+            .appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.swiftlydetecting.SutroESFramework",
+                                    isDirectory: true)
         storeFile = EventStoreFile(in: caches)
         
         let description = container.persistentStoreDescriptions[0]
-        /// The store is thrown away at every launch, so fsync-level durability buys nothing and would slow every insert.
+        /// The store is thrown away at every launch, so fsync-level durability buys nothing and would slow every
+        /// insert.
         description.setOption(["synchronous": "OFF"] as NSDictionary, forKey: NSSQLitePragmasOption)
         if let storeURL = storeFile?.url {
             description.url = storeURL
@@ -86,7 +88,8 @@ public class CoreDataController {
         
         /// Give the disk space back when Mac Monitor quits, after stopping any export still reading the store. (A crash
         /// leaves the files for the next launch to delete.)
-        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: nil) { [storeFile, exports, canSave] _ in
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil,
+                                               queue: nil) { [storeFile, exports, canSave] _ in
             let running = exports.withLock { $0.values.map(\.exporter) }
             running.forEach { $0.cancel() }
             running.forEach { $0.waitUntilIdle() }
@@ -108,16 +111,17 @@ public class CoreDataController {
     
     // MARK: - Mutators
     
-    /// Posted (on the private context's queue) after each batch of events is saved. `userInfo[insertedObjectIDsKey]` holds
-    /// the permanent `NSManagedObjectID`s of the new `ESMessage`s, in insert order, and `userInfo[insertBatchKey]` the
-    /// `Int64` stamped on them as ``ESMessage/insert_batch``. Batches count up from 1 and are posted in order.
+    /// Posted (on the private context's queue) after each batch of events is saved. `userInfo[insertedObjectIDsKey]`
+    /// holds the permanent `NSManagedObjectID`s of the new `ESMessage`s, in insert order, and
+    /// `userInfo[insertBatchKey]` the `Int64` stamped on them as ``ESMessage/insert_batch``. Batches count up from 1
+    /// and are posted in order.
     public static let eventsInserted = Notification.Name("com.swiftlydetecting.agent.eventsInserted")
     public static let insertedObjectIDsKey = "insertedObjectIDs"
     public static let insertBatchKey = "insertBatch"
     
-    /// Posted on the calling thread (the main thread) by ``clearSystemEvents(source:)`` before anything is deleted. Views
-    /// must let go of every event (and anything reached through one) right away: the delete starts on the next turn of the
-    /// run loop.
+    /// Posted on the calling thread (the main thread) by ``clearSystemEvents(source:)`` before anything is deleted.
+    /// Views must let go of every event (and anything reached through one) right away: the delete starts on the next
+    /// turn of the run loop.
     public static let eventsWillClear = Notification.Name("com.swiftlydetecting.agent.eventsWillClear")
     
     /// Posted on the main thread once ``clearSystemEvents(source:)`` has deleted everything, so views can load events
@@ -137,13 +141,14 @@ public class CoreDataController {
     /// here and are saved (and announced) with the next batch. Only touched on `privateMOC`'s queue.
     private var unsavedEvents: [ESMessage] = []
     
-    /// The most events kept for another try after failed saves. Past this, saves are failing for good (the disk is full)
-    /// and the events are dropped, rather than kept in memory until Mac Monitor runs out of it (#84).
+    /// The most events kept for another try after failed saves. Past this, saves are failing for good (the disk is
+    /// full) and the events are dropped, rather than kept in memory until Mac Monitor runs out of it (#84).
     private static let maxUnsavedEvents = 20_000
     
-    /// Recorded events that happened before this are discarded on insert. Set by ``clearSystemEvents(source:)`` so events
-    /// recorded before a Clear, but still on their way from the Security Extension, can't refill the table. While a trace
-    /// is open it's `.distantFuture`, so no recorded event mixes into the trace. Only touched on `privateMOC`'s queue.
+    /// Recorded events that happened before this are discarded on insert. Set by ``clearSystemEvents(source:)`` so
+    /// events recorded before a Clear, but still on their way from the Security Extension, can't refill the table.
+    /// While a trace is open it's `.distantFuture`, so no recorded event mixes into the trace. Only touched on
+    /// `privateMOC`'s queue.
     ///
     /// Wall-clock time, not `mach_time`: under Rosetta this process's `mach_absolute_time()` uses a different timebase
     /// than the (native) Security Extension's, so the two can't be compared.
@@ -162,8 +167,8 @@ public class CoreDataController {
     
     /// Clears requested so far. Main thread only.
     private var clearsRequested = 0
-    /// The last Clear to reach `privateMOC`. A trace's inserts carry the Clear that opened it, so a trace that has since
-    /// been closed or replaced can't add to the store. Only touched on `privateMOC`'s queue.
+    /// The last Clear to reach `privateMOC`. A trace's inserts carry the Clear that opened it, so a trace that has
+    /// since been closed or replaced can't add to the store. Only touched on `privateMOC`'s queue.
     private var currentClear = 0
     
     /// The ``ESMessage/insert_order`` of the next event inserted. Only touched on `privateMOC`'s queue.
@@ -174,9 +179,9 @@ public class CoreDataController {
     
     /// Inserts a batch of system events into the private context in a single background transaction.
     ///
-    /// Each event records the audit token of the process that instigated it and, for `EXEC` and `FORK`, the token of the
-    /// process it created. ``ESMessage/correlated_array`` uses those (indexed) to find a process's events when they're
-    /// viewed, so inserting never has to look up or modify a parent (#84).
+    /// Each event records the audit token of the process that instigated it and, for `EXEC` and `FORK`, the token of
+    /// the process it created. ``ESMessage/correlated_array`` uses those (indexed) to find a process's events when
+    /// they're viewed, so inserting never has to look up or modify a parent (#84).
     ///
     /// Events of the same process share one `ESProcess` row (with its audit tokens, executable, tty, and stats), and
     /// equal files share one `ESFile` (see ``EventRowCaches``): about 3 events per process, each of which used to store
@@ -185,8 +190,8 @@ public class CoreDataController {
     /// After a successful save the context is reset so it doesn't accumulate every event ever inserted. On failure the
     /// objects are kept and retried with the next batch's save rather than lost (up to 20,000 events).
     ///
-    /// Recorded events that happened before the last Clear are discarded, and while a trace is open every recorded event
-    /// is (see ``clearSystemEvents(source:)``).
+    /// Recorded events that happened before the last Clear are discarded, and while a trace is open every recorded
+    /// event is (see ``clearSystemEvents(source:)``).
     ///
     ///  - Parameters:
     ///    - messages: An array of system events (`Message`) to insert.
@@ -200,13 +205,13 @@ public class CoreDataController {
     
     /// Inserts a batch of events read from a trace file (see ``TraceImporter``), however long ago they happened.
     ///
-    /// A batch that fails to save is dropped rather than retried with the next save: the trace can be read again, and the
-    /// store then holds exactly the events reported saved.
+    /// A batch that fails to save is dropped rather than retried with the next save: the trace can be read again, and
+    /// the store then holds exactly the events reported saved.
     ///
     /// - Parameters:
     ///   - messages: The events, in file order.
-    ///   - clear: The Clear that opened the trace (``clearSystemEvents(source:)``). Once another Clear has run the trace is
-    ///     gone, and the batch is dropped.
+    ///   - clear: The Clear that opened the trace (``clearSystemEvents(source:)``). Once another Clear has run the
+    ///     trace is gone, and the batch is dropped.
     ///   - completion: Called on the private context's queue with whether the batch was saved.
     func insertTraceEvents(_ messages: [Message], clear: Int, completion: @escaping (Bool) -> Void) {
         insert(messages, keeping: { _ in clear == self.currentClear }) { saved in
@@ -215,13 +220,14 @@ public class CoreDataController {
         }
     }
     
-    /// Insert the events `keep` accepts in a single background transaction, save, and announce them (``eventsInserted``).
+    /// Insert the events `keep` accepts in a single background transaction, save, and announce them
+    /// (``eventsInserted``).
     ///
     /// - Parameters:
     ///   - messages: The events.
     ///   - keep: Decides, on the private context's queue, which events to store.
-    ///   - completion: Called on the private context's queue with whether the batch was saved (`true` when nothing needed
-    ///     saving).
+    ///   - completion: Called on the private context's queue with whether the batch was saved (`true` when nothing
+    ///     needed saving).
     private func insert(_ messages: [Message], keeping keep: @escaping (Message) -> Bool,
                         completion: @escaping (Bool) -> Void) {
         guard !messages.isEmpty else { return completion(true) }
@@ -249,12 +255,15 @@ public class CoreDataController {
                 /// Before the reset: the shared rows are kept by their (now permanent) IDs.
                 self.rowCaches.didSave()
                 context.reset()
-                NotificationCenter.default.post(name: Self.eventsInserted, object: self, userInfo: [Self.insertedObjectIDsKey: insertedIDs, Self.insertBatchKey: batch])
+                NotificationCenter.default.post(name: Self.eventsInserted, object: self, userInfo: [
+                    Self.insertedObjectIDsKey: insertedIDs, Self.insertBatchKey: batch
+                ])
             } catch {
-                /// The unsaved rows are still retried with the next save (or dropped with their events below), but they're
-                /// no longer handed out: a failed save may leave them with IDs that aren't stored.
+                /// The unsaved rows are still retried with the next save (or dropped with their events below), but
+                /// they're no longer handed out: a failed save may leave them with IDs that aren't stored.
                 self.rowCaches.forget()
-                CoreDataController.logger.error("Error saving context after batch insert: \(error.localizedDescription)")
+                CoreDataController.logger.error(
+                    "Error saving context after batch insert: \(error.localizedDescription)")
                 guard self.unsavedEvents.count > Self.maxUnsavedEvents else { return }
                 CoreDataController.logger.fault("Dropped \(self.unsavedEvents.count) events that could not be saved")
                 self.discardUnsavedEvents()
@@ -271,25 +280,26 @@ public class CoreDataController {
     
     ///  Remove all events from the event store
     ///
-    ///  Removes every entity in the `SystemEvents` store: the `ESMessage`s and the process, file, and event records they
-    ///  point to (deleting only the `ESMessage`s left about three quarters of the store behind until quit). To do this we:
+    ///  Removes every entity in the `SystemEvents` store: the `ESMessage`s and the process, file, and event records
+    ///  they point to (deleting only the `ESMessage`s left about three quarters of the store behind until quit). To do
+    ///  this we:
     ///  1) Post ``eventsWillClear`` so the event tables (and Event Facts windows) let go of their events
     ///  2) On the next turn of the run loop, replace the store with an empty one on the private context
     ///  3) Have the `container.viewContext` connected to the UI forget what it loaded, and post ``eventsDidClear``
     ///
     ///  The store is thrown away at quit, so replacing it loses nothing, and takes a fraction of a second at any size,
-    ///  behind inserts already queued: a recording or a trace that starts right after carries on at once. While an export
-    ///  reads the store (which a replace would take from under it), or if the replace fails, each entity is batch deleted
-    ///  instead, as every Clear did before: 32 s at 300,000 events, which inserts that come after wait for. Events that
-    ///  happened before this call are discarded even if they arrive later.
+    ///  behind inserts already queued: a recording or a trace that starts right after carries on at once. While an
+    ///  export reads the store (which a replace would take from under it), or if the replace fails, each entity is
+    ///  batch deleted instead, as every Clear did before: 32 s at 300,000 events, which inserts that come after wait
+    ///  for. Events that happened before this call are discarded even if they arrive later.
     ///
     ///  A Clear also closes any trace: a trace still being read stops, and its batches still on their way are dropped.
     ///
     ///  Call on the main thread.
     ///
-    /// - Parameter source: What the store holds after the Clear: ``EventSource/live`` (the toolbar's Clear and Start), or a
-    ///   trace about to be read (``openTrace(at:progress:completion:)``), which keeps out every recorded event until the
-    ///   next Clear.
+    /// - Parameter source: What the store holds after the Clear: ``EventSource/live`` (the toolbar's Clear and Start),
+    ///   or a trace about to be read (``openTrace(at:progress:completion:)``), which keeps out every recorded event
+    ///   until the next Clear.
     /// - Returns: The Clear's number, which a trace's inserts carry.
     @discardableResult
     public func clearSystemEvents(source: EventSource = .live) -> Int {
@@ -301,8 +311,8 @@ public class CoreDataController {
         currentImport?.stop()
         NotificationCenter.default.post(name: Self.eventsWillClear, object: self)
         
-        /// Everything is deleted, but only what the view context has loaded needs to hear about it. Asking the deletes for
-        /// every deleted ID would build (and merge) one per row.
+        /// Everything is deleted, but only what the view context has loaded needs to hear about it. Asking the deletes
+        /// for every deleted ID would build (and merge) one per row.
         let viewContext = container.viewContext
         let loaded = viewContext.registeredObjects.map(\.objectID)
         
@@ -310,18 +320,18 @@ public class CoreDataController {
         let turn = DispatchSemaphore(value: 0)
         RunLoop.main.perform {
             /// Once views have let go: the view context deletes what it holds while the store still has it, as a delete
-            /// would, so fetches showing those events (an Event Facts window's) drop them rather than keep an event whose
-            /// store is about to be replaced, which raises when it's read.
-            NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: viewContext.registeredObjects
-                .map(\.objectID)], into: [viewContext])
+            /// would, so fetches showing those events (an Event Facts window's) drop them rather than keep an event
+            /// whose store is about to be replaced, which raises when it's read.
+            let held = viewContext.registeredObjects.map(\.objectID)
+            NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: held], into: [viewContext])
             turn.signal()
         }
         privateMOC.perform {
             /// One turn of the main run loop lets SwiftUI apply what views did on ``eventsWillClear`` before rows start
             /// disappearing.
             turn.wait()
-            /// Anything recorded up to the Clear goes, including events still on their way from the Security Extension and
-            /// any left unsaved by a failed save. A trace keeps out every recorded event until it's closed.
+            /// Anything recorded up to the Clear goes, including events still on their way from the Security Extension
+            /// and any left unsaved by a failed save. A trace keeps out every recorded event until it's closed.
             self.discardBefore = source == .live ? clearedAt : .distantFuture
             self.currentClear = clear
             /// The shared rows are deleted (or, unsaved, rolled back) with everything else.

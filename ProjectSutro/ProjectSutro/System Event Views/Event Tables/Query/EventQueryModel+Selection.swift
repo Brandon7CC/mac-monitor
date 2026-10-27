@@ -35,7 +35,8 @@ extension EventQueryModel {
     /// - Parameters:
     ///   - work: Reads from the context it's given.
     ///   - completion: Called on the main thread with the result, or an empty one if the work failed.
-    private func mapSelection<Value: SetAlgebra>(_ work: @escaping (NSManagedObjectContext) throws -> Value, completion: @escaping (Value) -> Void) {
+    private func mapSelection<Value: SetAlgebra>(_ work: @escaping (NSManagedObjectContext) throws -> Value,
+                                                 completion: @escaping (Value) -> Void) {
         let context = selectionContext
         context.perform {
             let value = (try? work(context)) ?? Value()
@@ -61,7 +62,8 @@ extension EventQueryModel {
     ///   - context: The context to fetch with. Call on its queue.
     /// - Returns: The indexes of the rows holding the events `ids` (looked up by the indexed `id`, then one pass over
     ///   `rows`).
-    static func indexes(of ids: Set<UUID>, in rows: [NSManagedObjectID], context: NSManagedObjectContext) throws -> IndexSet {
+    static func indexes(of ids: Set<UUID>, in rows: [NSManagedObjectID],
+                        context: NSManagedObjectContext) throws -> IndexSet {
         guard !ids.isEmpty, !rows.isEmpty else { return [] }
         let request = ESMessage.request(NSManagedObjectID.self, where: NSPredicate(format: "id IN %@", Array(ids)))
         let wanted = Set(try context.fetch(request))

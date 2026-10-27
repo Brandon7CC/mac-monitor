@@ -32,15 +32,17 @@ struct TraceKeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
     }
     
     /// The keys of `object` that `Key` has.
-    private static func keys(of object: NSDictionary) -> [Key] { object.allKeys.compactMap { ($0 as? String).flatMap(Key.init(stringValue:)) } }
+    private static func keys(of object: NSDictionary) -> [Key] {
+        object.allKeys.compactMap { ($0 as? String).flatMap(Key.init(stringValue:)) }
+    }
     
     /// For an enum the export flattened into its parent (see ``TraceDecoder``): its one case and payload.
     ///
     /// - Parameters:
     ///   - object: The object.
     ///   - decoder: The decoder of the object.
-    /// - Returns: The case and payload, or `nil` for a dictionary (whose keys take any string) and for an object that has
-    ///   one of `Key`'s names.
+    /// - Returns: The case and payload, or `nil` for a dictionary (whose keys take any string) and for an object that
+    ///   has one of `Key`'s names.
     private static func flattened(_ object: NSDictionary, decoder: TraceDecoder) -> NSDictionary? {
         guard Key(stringValue: "\u{0}") == nil else { return nil }
         let names = object.keyEnumerator()
@@ -51,8 +53,12 @@ struct TraceKeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
             return [named?.stringValue ?? key: object]
         }
         if decoder.value == nil, let parent = decoder.parent {
-            let cases = parent.filter { ($0.key as? String).flatMap(Key.init(stringValue:)) != nil && !($0.value is NSNull) }
-            if cases.count == 1, let (name, payload) = cases.first.map({ ($0.key as! String, $0.value) }) { return [name: payload] }
+            let cases = parent.filter {
+                ($0.key as? String).flatMap(Key.init(stringValue:)) != nil && !($0.value is NSNull)
+            }
+            if cases.count == 1, let (name, payload) = cases.first.map({ ($0.key as! String, $0.value) }) {
+                return [name: payload]
+            }
         }
         return object.count == 0 && Key(stringValue: "unknown") != nil ? ["unknown": NSDictionary()] : nil
     }
@@ -70,7 +76,9 @@ struct TraceKeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
     /// into its parent, its payload.
     private func value(of key: Key) -> AnyObject? {
         let name = key.stringValue
-        if let value = object.object(forKey: name) ?? TraceDecoder.renamed[name].flatMap(object.object(forKey:)) { return value as AnyObject }
+        if let value = object.object(forKey: name) ?? TraceDecoder.renamed[name].flatMap(object.object(forKey:)) {
+            return value as AnyObject
+        }
         if name == "_0" { return object }
         /// Every type has an `id` the export leaves out, and no enum has a case of that name.
         return name == "id" ? nil : flattened?.object(forKey: name).map { $0 as AnyObject }
@@ -81,7 +89,8 @@ struct TraceKeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
     /// - Parameter key: The key.
     /// - Returns: A decoder that knows the value's place in this object.
     private func child(_ key: Key) -> TraceDecoder {
-        TraceDecoder(value(of: key), in: object, at: key.stringValue, path: codingPath, last: key, enriching: decoder.enriching)
+        TraceDecoder(value(of: key), in: object, at: key.stringValue, path: codingPath, last: key,
+                     enriching: decoder.enriching)
     }
     
     /// Is `key`'s value missing or `null`?
@@ -94,7 +103,9 @@ struct TraceKeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
         try child(key).container(keyedBy: type)
     }
     /// `key`'s value as an array.
-    func nestedUnkeyedContainer(forKey key: Key) throws -> UnkeyedDecodingContainer { try child(key).unkeyedContainer() }
+    func nestedUnkeyedContainer(forKey key: Key) throws -> UnkeyedDecodingContainer {
+        try child(key).unkeyedContainer()
+    }
     /// The object's decoder.
     func superDecoder() throws -> Decoder { decoder }
     /// `key`'s value's decoder.
@@ -140,11 +151,12 @@ struct TraceUnkeyedContainer: UnkeyedDecodingContainer {
     /// The decoder of the next element.
     private mutating func next() throws -> TraceDecoder {
         guard !isAtEnd else {
-            throw DecodingError.valueNotFound(Any.self, .init(codingPath: codingPath, debugDescription: "no more elements"))
+            throw DecodingError.valueNotFound(Any.self,
+                                              .init(codingPath: codingPath, debugDescription: "no more elements"))
         }
         defer { currentIndex += 1 }
-        return TraceDecoder(array.object(at: currentIndex) as AnyObject, path: codingPath, last: Index(intValue: currentIndex),
-                            enriching: decoder.enriching)
+        return TraceDecoder(array.object(at: currentIndex) as AnyObject, path: codingPath,
+                            last: Index(intValue: currentIndex), enriching: decoder.enriching)
     }
     
     /// Is the next element `null`? If so, it's decoded.

@@ -72,9 +72,12 @@ struct AppKitEventTable: NSViewRepresentable {
             tableColumn.minWidth = column.width.min
             tableColumn.maxWidth = column.width.max
             tableColumn.width = column.width.ideal
-            tableColumn.resizingMask = column.width.min == column.width.max ? [] : [.autoresizingMask, .userResizingMask]
+            tableColumn.resizingMask = column.width.min == column.width.max
+                ? []
+                : [.autoresizingMask, .userResizingMask]
             tableColumn.sortDescriptorPrototype = column.sortsAsText
-                ? NSSortDescriptor(key: column.sortKey, ascending: true, selector: #selector(NSString.localizedStandardCompare(_:)))
+                ? NSSortDescriptor(key: column.sortKey, ascending: true,
+                                   selector: #selector(NSString.localizedStandardCompare(_:)))
                 : NSSortDescriptor(key: column.sortKey, ascending: true)
             tableColumn.isHidden = column.hiddenByDefault
             tableView.addTableColumn(tableColumn)
@@ -171,12 +174,15 @@ struct AppKitEventTable: NSViewRepresentable {
         }
         
         func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-            guard let identifier = tableColumn?.identifier, let column = columns[identifier.rawValue], let message = event(at: row) else { return nil }
+            guard let identifier = tableColumn?.identifier,
+                  let column = columns[identifier.rawValue],
+                  let message = event(at: row) else { return nil }
             
             switch column.content {
             case .text(let text, let truncation, let lines, let selectable):
                 let cell = tableView.makeView(withIdentifier: identifier, owner: nil) as? EventTextCell
-                    ?? EventTextCell(identifier: identifier, truncation: truncation, lines: lines, selectable: selectable)
+                    ?? EventTextCell(identifier: identifier, truncation: truncation, lines: lines,
+                                     selectable: selectable)
                 cell.textField?.stringValue = text(message)
                 return cell
             case .view(let view):
@@ -201,7 +207,8 @@ struct AppKitEventTable: NSViewRepresentable {
         /// - Parameter notification: The table's selection change.
         func tableViewSelectionDidChange(_ notification: Notification) {
             let query = parent.query
-            guard !query.isUpdating, let tableView = query.tableView, notification.object as? NSTableView === tableView else { return }
+            guard !query.isUpdating, let tableView = query.tableView,
+                  notification.object as? NSTableView === tableView else { return }
             let rows = query.rows
             let selected = tableView.selectedRowIndexes.compactMap { $0 < rows.count ? rows[$0] : nil }
             selectionRequest += 1
@@ -236,7 +243,9 @@ struct AppKitEventTable: NSViewRepresentable {
             parent.model.indexes(of: wanted, in: query.rows) { [weak self] indexes in
                 guard let self, request == self.selectionRequest else { return }
                 /// Rows inserted meanwhile shift the indexes; rows replaced meanwhile mean looking again.
-                guard let current = query.current(indexes, from: version) else { return self.syncSelection(force: true) }
+                guard let current = query.current(indexes, from: version) else {
+                    return self.syncSelection(force: true)
+                }
                 query.select(current, showing: wanted)
             }
         }
@@ -265,7 +274,8 @@ struct AppKitEventTable: NSViewRepresentable {
             if menu === tableView.menu {
                 /// Right-clicking below the last row shows no menu.
                 guard tableView.clickedRow >= 0, let message = event(at: tableView.clickedRow) else { return }
-                EventRowMenu(message: message, prefs: parent.prefs, filters: parent.filters, manager: parent.manager, openWindow: parent.openWindow)
+                EventRowMenu(message: message, prefs: parent.prefs, filters: parent.filters, manager: parent.manager,
+                             openWindow: parent.openWindow)
                     .items().forEach(menu.addItem)
                 return
             }
@@ -283,7 +293,8 @@ struct AppKitEventTable: NSViewRepresentable {
         
         /// Open a double-clicked row's event in an "Event Facts" window, like the row menu's "Event metadata".
         ///
-        /// - Parameter tableView: The double-clicked table. A double-click on the header or below the last row is ignored.
+        /// - Parameter tableView: The double-clicked table. A double-click on the header or below the last row is
+        ///   ignored.
         @objc func openEventFacts(_ tableView: NSTableView) {
             guard tableView.clickedRow >= 0, let message = event(at: tableView.clickedRow) else { return }
             parent.openWindow(value: message.id)
@@ -333,18 +344,21 @@ struct AppKitEventTable: NSViewRepresentable {
         /// - Parameter info: A drag.
         /// - Returns: The first file it carries, if any.
         private static func droppedFile(_ info: NSDraggingInfo) -> URL? {
-            let urls = info.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true])
+            let urls = info.draggingPasteboard.readObjects(forClasses: [NSURL.self],
+                                                           options: [.urlReadingFileURLsOnly: true])
             return (urls as? [URL])?.first
         }
         
         // MARK: Column layout
-        /// Remember the columns' order, widths, and visibility on the query, so the table SwiftUI builds next (it builds
-        /// the new one before taking this one down) looks the same.
+        /// Remember the columns' order, widths, and visibility on the query, so the table SwiftUI builds next (it
+        /// builds the new one before taking this one down) looks the same.
         ///
         /// - Parameter tableView: The table whose columns changed.
         private func saveLayout(of tableView: NSTableView?) {
             guard let tableView, tableView === parent.query.tableView else { return }
-            let layout = tableView.tableColumns.map { ColumnLayout(id: $0.identifier.rawValue, width: $0.width, isHidden: $0.isHidden) }
+            let layout = tableView.tableColumns.map {
+                ColumnLayout(id: $0.identifier.rawValue, width: $0.width, isHidden: $0.isHidden)
+            }
             parent.query.columnLayout = layout
             /// Columns also resize while SwiftUI lays out, when scene storage can't be written.
             let saved = parent.savedLayout, encoded = ColumnLayout.encode(layout)

@@ -14,8 +14,8 @@ extension CoreDataController {
     /// saved Process Monitor log (#38).
     ///
     /// Clears the store first (``eventsWillClear`` and ``eventsDidClear``). Then the trace's events arrive the way a
-    /// recording's do (``eventsInserted``), so the tables fill in as the file is read. Recorded events are dropped until
-    /// the next ``clearSystemEvents(source:)`` closes the trace. Call on the main thread, once
+    /// recording's do (``eventsInserted``), so the tables fill in as the file is read. Recorded events are dropped
+    /// until the next ``clearSystemEvents(source:)`` closes the trace. Call on the main thread, once
     /// ``TraceImporter/preflight(_:)`` has accepted the file.
     ///
     /// - Parameters:
