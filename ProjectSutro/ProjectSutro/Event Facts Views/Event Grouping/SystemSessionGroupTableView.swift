@@ -12,9 +12,8 @@ import SutroESFramework
 
 // MARK: - Groups tab
 /// Event Facts' Groups tab: the execs in the event's process group or session, as a dashboard like Correlation's. A
-/// summary and a bar of how they're signed sit above cards for the findings worth a look, then a search, a chip for
-/// each executable, and the execs, with the selected one's details beside them. A way of signing, a finding or a chip
-/// keeps only its execs.
+/// summary and a bar of how they're signed sit above cards for the indicators worth a look, then a search and the
+/// execs, with the selected one's details beside them. A way of signing or an indicator keeps only its execs.
 struct SystemEventGroupTableViews: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @EnvironmentObject var userPrefs: UserPrefs
@@ -35,8 +34,6 @@ struct SystemEventGroupTableViews: View {
     @State private var finding: Finding?
     /// Settings ▸ Indicators: the summary is made again when they change.
     @ObservedObject private var findingStore = FindingStore.shared
-    /// The executables whose chips are on, by name.
-    @State private var names: Set<String> = []
     @State private var selection: NSManagedObjectID?
 
     /// The groups the event has.
@@ -63,7 +60,7 @@ struct SystemEventGroupTableViews: View {
         .task(id: "\(selectedMessage.objectID)|\(scope)|\(execs(scope).count)|\(findingStore.revision)") {
             summary = GroupSummary(scope: scope, execs: execs(scope), current: selectedMessage,
                                    matcher: findingStore.matcher(for: .groups))
-            (query, signing, finding, names, selection) = ("", nil, nil, [], nil)
+            (query, signing, finding, selection) = ("", nil, nil, nil)
         }
     }
 
@@ -106,7 +103,6 @@ struct SystemEventGroupTableViews: View {
                                 color: finding.tint) { self.finding = nil }
                 }
             }
-            FilterChips(chips: FilterChips.chips(summary.rows.map { ($0.name, nil) }, limit: 12), selection: $names)
             HStack(spacing: 0) {
                 table(rows)
                 if let row = summary.rows.first(where: { $0.id == selection }) {
@@ -120,7 +116,7 @@ struct SystemEventGroupTableViews: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    /// The execs that pass the way of signing, the finding, the chips and the search.
+    /// The execs that pass the way of signing, the indicator and the search.
     ///
     /// - Parameter summary: The group's execs.
     /// - Returns: The rows to show, oldest first.
@@ -129,7 +125,7 @@ struct SystemEventGroupTableViews: View {
         return summary.rows.filter { row in
             (signing == nil || row.signing.rawValue == signing)
                 && (finding.map { row.findings.contains($0.id) } ?? true)
-                && (names.isEmpty || names.contains(row.name)) && (query.isEmpty || row.mentions(query))
+                && (query.isEmpty || row.mentions(query))
         }
     }
 
