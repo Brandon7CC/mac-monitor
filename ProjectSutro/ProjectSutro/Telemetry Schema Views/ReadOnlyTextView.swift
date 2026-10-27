@@ -11,14 +11,14 @@ import AppKit
 
 // MARK: - Read-only text
 /// Long text to read, select, and search with ⌘F: monospaced and wrapped in a scrolling AppKit text view, with line
-/// numbers, and JSON colored as Xcode colors it (``PredicateSyntax``'s colors).
+/// numbers, and colored for its language as Xcode colors code (ReadOnlyTextView+Syntax.swift).
 ///
 /// SwiftUI's `Text` lays out all of its string at once, which is slow for the telemetry schema's hundred-odd kilobytes;
 /// `NSTextView` lays out what's on screen.
 struct ReadOnlyTextView: NSViewRepresentable {
     /// What the text is, for its colors.
     enum Language {
-        case plain, json
+        case plain, json, shell, python, javascript, applescript, ruby, perl, xml
     }
 
     /// The text shown.
@@ -84,30 +84,7 @@ struct ReadOnlyTextView: NSViewRepresentable {
         storage.beginEditing()
         storage.setAttributes([.font: PredicateSyntax.font, .foregroundColor: NSColor.textColor],
                               range: NSRange(location: 0, length: storage.length))
-        if language == .json { Self.colorJSON(storage) }
+        language.color(storage)
         storage.endEditing()
-    }
-
-    /// A JSON token: a string and whether a colon follows it (a key), a literal, or a number.
-    private static let jsonToken = try! NSRegularExpression(
-        pattern: #"("(?:[^"\\]|\\.)*")(\s*:)?|\b(true|false|null)\b|-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b"#)
-
-    /// Color JSON's keys, strings, literals and numbers.
-    ///
-    /// - Parameter storage: The text.
-    private static func colorJSON(_ storage: NSTextStorage) {
-        let range = NSRange(location: 0, length: storage.length)
-        for match in jsonToken.matches(in: storage.string, range: range) {
-            if match.range(at: 1).location != NSNotFound {
-                let color = match.range(at: 2).location != NSNotFound ? PredicateSyntax.keyColor
-                    : PredicateSyntax.stringColor
-                storage.addAttribute(.foregroundColor, value: color, range: match.range(at: 1))
-            } else if match.range(at: 3).location != NSNotFound {
-                storage.addAttributes([.foregroundColor: PredicateSyntax.keywordColor, .font: PredicateSyntax.boldFont],
-                                      range: match.range)
-            } else {
-                storage.addAttribute(.foregroundColor, value: PredicateSyntax.numberColor, range: match.range)
-            }
-        }
     }
 }

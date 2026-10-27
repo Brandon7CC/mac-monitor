@@ -237,6 +237,7 @@
 		F17E0000000000000000002E /* RecordKeyPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002D /* RecordKeyPaths.swift */; };
 		5C4E0000000000000000003C /* mac-monitor-telemetry.schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000003B /* mac-monitor-telemetry.schema.json */; };
 		5C4E00000000000000000043 /* ReadOnlyTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000042 /* ReadOnlyTextView.swift */; };
+		5C4E0000000000000000A002 /* ReadOnlyTextView+Syntax.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E0000000000000000A001 /* ReadOnlyTextView+Syntax.swift */; };
 		5C4E00000000000000000045 /* TelemetrySchemaModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000044 /* TelemetrySchemaModel.swift */; };
 		5C4E00000000000000000047 /* TraceValidationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000046 /* TraceValidationSheet.swift */; };
 		5C4E00000000000000000049 /* TelemetrySchemaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000048 /* TelemetrySchemaView.swift */; };
@@ -821,6 +822,7 @@
 		F17E0000000000000000002D /* RecordKeyPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordKeyPaths.swift; sourceTree = "<group>"; };
 		5C4E0000000000000000003B /* mac-monitor-telemetry.schema.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = "mac-monitor-telemetry.schema.json"; path = "../../../Schema/mac-monitor-telemetry.schema.json"; sourceTree = "<group>"; };
 		5C4E00000000000000000042 /* ReadOnlyTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadOnlyTextView.swift; sourceTree = "<group>"; };
+		5C4E0000000000000000A001 /* ReadOnlyTextView+Syntax.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReadOnlyTextView+Syntax.swift"; sourceTree = "<group>"; };
 		5C4E00000000000000000044 /* TelemetrySchemaModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaModel.swift; sourceTree = "<group>"; };
 		5C4E00000000000000000046 /* TraceValidationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceValidationSheet.swift; sourceTree = "<group>"; };
 		5C4E00000000000000000048 /* TelemetrySchemaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaView.swift; sourceTree = "<group>"; };
@@ -2689,6 +2691,7 @@
 				5C4E00000000000000000046 /* TraceValidationSheet.swift */,
 				5C4E00000000000000000044 /* TelemetrySchemaModel.swift */,
 				5C4E00000000000000000042 /* ReadOnlyTextView.swift */,
+				5C4E0000000000000000A001 /* ReadOnlyTextView+Syntax.swift */,
 			);
 			path = "Telemetry Schema Views";
 			sourceTree = "<group>";
@@ -4213,6 +4216,7 @@
 				5C4E00000000000000000047 /* TraceValidationSheet.swift in Sources */,
 				5C4E00000000000000000045 /* TelemetrySchemaModel.swift in Sources */,
 				5C4E00000000000000000043 /* ReadOnlyTextView.swift in Sources */,
+				5C4E0000000000000000A002 /* ReadOnlyTextView+Syntax.swift in Sources */,
 				7E571500000000000000001A /* ThreadStateFactsView.swift in Sources */,
 				0D0D0D000000000000000018 /* OpenDirectoryFactsViews.swift in Sources */,
 				0D0D0D00000000000000001E /* FactRow.swift in Sources */,
