@@ -57,7 +57,7 @@ struct CorrelationSummary {
     let rows: [Row]
     /// Each kind with its number of events, most first.
     let kinds: [(kind: Kind, count: Int)]
-    /// Each finding with its events, in Settings ▸ Findings' order.
+    /// Each finding with its events, in Settings ▸ Indicators' order.
     let findings: [(finding: Finding, rows: [Row])]
     /// Seconds from the exec to the last event.
     let duration: Double

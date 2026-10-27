@@ -25,8 +25,8 @@ public struct PredicateAudience: Equatable, Sendable {
     public static let commandLine = PredicateAudience(name: "--predicate",
                                                       schema: "'macmonitor schema' describes them.",
                                                       command: "stream", relatesEvents: false)
-    /// A finding's predicate, in Settings ▸ Findings, which compares one event at a time.
-    public static let finding = PredicateAudience(name: "The finding's predicate",
+    /// A finding's predicate, in Settings ▸ Indicators, which compares one event at a time.
+    public static let finding = PredicateAudience(name: "The indicator's predicate",
                                                   schema: "Settings ▸ Telemetry Schema describes them.", command: nil,
                                                   relatesEvents: false)
     /// The event tables' predicate search.

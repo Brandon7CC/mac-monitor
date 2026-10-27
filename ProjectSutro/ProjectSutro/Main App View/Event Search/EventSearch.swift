@@ -15,7 +15,7 @@ import SutroESFramework
 /// The event tables' predicate search: the finding filter and the predicate the tables are filtered by, and the
 /// predicate editor's draft, saved predicates and recent ones. An event must match both the finding filter and the
 /// predicate. The search field's context narrows their matches. The finding filter follows edits in Settings ▸
-/// Findings.
+/// Indicators.
 @MainActor
 final class EventSearchController: ObservableObject {
     /// A predicate kept under a name, in the predicate editor's Saved list.
@@ -29,7 +29,7 @@ final class EventSearchController: ObservableObject {
     @Published private(set) var applied: StreamFilter.Predicate?
     /// The finding filter, set from the Filters sheet. It never shows in the predicate editor.
     @Published private(set) var findingSelection: FindingSelection?
-    /// The finding filter's name, "Any finding" or the finding's. A deleted finding keeps the name it had.
+    /// The finding filter's name, "Any indicator" or the indicator's. A deleted finding keeps the name it had.
     @Published private(set) var findingName: String?
     /// The finding filter's predicate, from the findings as they are now. It's `nil` when the filter is dropped
     /// because no finding it names is offered.
@@ -134,7 +134,7 @@ final class EventSearchController: ObservableObject {
     /// The finding filter's name while it filters the tables, or `nil` when it's off or dropped.
     var filteringFinding: String? { findingPredicate == nil ? nil : findingName }
 
-    /// What the tables are filtered by, such as "showing only Any finding, filtering by …". It's `nil` when neither
+    /// What the tables are filtered by, such as "showing only Any indicator, filtering by …". It's `nil` when neither
     /// is on.
     var summary: String? {
         let parts = [filteringFinding.map { "showing only \($0)" },
@@ -186,7 +186,7 @@ final class EventSearchController: ObservableObject {
         }
         findingSelection = finding
         findingName = switch finding {
-        case .any: "Any finding"
+        case .any: "Any indicator"
         case .finding(let id): findings.first { $0.id == id }?.name ?? findingName
         case nil: nil
         }

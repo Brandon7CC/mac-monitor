@@ -105,7 +105,7 @@ struct GroupSummary {
     let rows: [Row]
     /// Each way of signing with its number of execs, most first.
     let signings: [(signing: Signing, count: Int)]
-    /// Each finding with its execs, in Settings ▸ Findings' order.
+    /// Each finding with its execs, in Settings ▸ Indicators' order.
     let findings: [(finding: Finding, rows: [Row])]
     /// Seconds from the first exec to the last.
     let span: Double

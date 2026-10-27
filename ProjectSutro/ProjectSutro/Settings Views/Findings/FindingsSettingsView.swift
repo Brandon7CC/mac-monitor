@@ -9,10 +9,10 @@ import SwiftUI
 import SutroESFramework
 
 
-// MARK: - Settings ▸ Findings
-/// Settings ▸ Findings: what Event Facts points out, each a predicate on an event's record, as a card in Correlation
-/// (among the events of the process an exec created) or Groups (among a group's execs). Mac Monitor's own are there
-/// to start, to change, turn off, or restore.
+// MARK: - Settings ▸ Indicators
+/// Settings ▸ Indicators: what Event Facts points out, each a predicate on an event's record, as a card in
+/// Correlation (among the events of the process an exec created) or Groups (among a group's execs). Mac Monitor's own
+/// are there to start, to change, turn off, or restore.
 struct FindingsSettingsView: View {
     @ObservedObject private var store = FindingStore.shared
     /// The main window's search, whose queries preview what a finding finds.
@@ -30,14 +30,14 @@ struct FindingsSettingsView: View {
                     Spacer()
                     Button("Restore Defaults…") { confirmsRestore = true }
                         .disabled(store.isDefault)
-                    Button("Add Finding…") { editing = Self.newFinding }
+                    Button("Add Indicator…") { editing = Self.newFinding }
                 }
             } footer: {
-                Text("A finding's predicate compares one event's record, as macmonitor stream --predicate does. "
+                Text("An indicator's predicate compares one event's record, as macmonitor stream --predicate does. "
                      + "Settings ▸ Telemetry Schema describes every key.")
                     .foregroundStyle(.secondary)
             }
-            Section("Findings") {
+            Section("Indicators") {
                 ForEach(store.findings) { finding in
                     FindingRow(finding: finding, isOn: Binding { finding.isEnabled } set: { on in
                         var changed = finding
@@ -59,16 +59,17 @@ struct FindingsSettingsView: View {
             }
         }
         .sheet(item: $editing) { finding in
-            FindingEditorSheet(finding: finding, model: search.queries) { store.save($0) }
+            FindingEditorSheet(finding: finding, model: search.queries, save: { store.save($0) },
+                               delete: store.findings.contains { $0.id == finding.id } ? { store.delete($0) } : nil)
         }
-        .confirmationDialog("Restore Mac Monitor's findings?", isPresented: $confirmsRestore) {
+        .confirmationDialog("Restore Mac Monitor's indicators?", isPresented: $confirmsRestore) {
             Button("Restore Defaults", role: .destructive) { store.restoreDefaults() }
         } message: {
-            Text("Findings you added or changed are removed.")
+            Text("Indicators you added or changed are removed.")
         }
     }
 
-    /// What Add Finding starts from.
+    /// What Add Indicator starts from.
     private static var newFinding: Finding {
         Finding(name: "", explanation: "", symbol: "exclamationmark.magnifyingglass", color: .orange,
                 predicate: #"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC""#, correlation: true, groups: false)
@@ -130,18 +131,25 @@ struct FindingEditorSheet: View {
     @State private var choosesEvent = false
     /// Did Choose Representative Event find no events?
     @State private var hasNoEvents = false
+    /// Is the delete confirmation showing?
+    @State private var confirmsDelete = false
     /// The main window's queries, for the preview, or `nil` with no main window.
     let model: EventQueryModel?
     let save: (Finding) -> Void
+    /// Removes the finding. `nil` for one that isn't saved yet.
+    let delete: ((Finding) -> Void)?
 
     /// - Parameters:
     ///   - finding: The finding to start from.
     ///   - model: The main window's queries.
     ///   - save: Keeps the finding.
-    init(finding: Finding, model: EventQueryModel?, save: @escaping (Finding) -> Void) {
+    ///   - delete: Removes it, or `nil` when it's new.
+    init(finding: Finding, model: EventQueryModel?, save: @escaping (Finding) -> Void,
+         delete: ((Finding) -> Void)? = nil) {
         _finding = State(initialValue: finding)
         self.model = model
         self.save = save
+        self.delete = delete
     }
 
     var body: some View {
@@ -195,6 +203,9 @@ struct FindingEditorSheet: View {
             .formStyle(.grouped)
             Divider()
             HStack {
+                if delete != nil {
+                    Button("Delete Indicator…", role: .destructive) { confirmsDelete = true }
+                }
                 Spacer()
                 Button("Cancel", role: .cancel) { dismiss() }.keyboardShortcut(.cancelAction)
                 Button("Save") {
@@ -206,6 +217,14 @@ struct FindingEditorSheet: View {
                           || !(finding.showsInCorrelation || finding.showsInGroups || finding.showsInTables))
             }
             .padding(.horizontal, 20).padding(.vertical, 12)
+        }
+        .confirmationDialog("Delete \(finding.name)?", isPresented: $confirmsDelete) {
+            Button("Delete", role: .destructive) {
+                delete?(finding)
+                dismiss()
+            }
+        } message: {
+            Text("Restore Defaults brings back Mac Monitor's own indicators.")
         }
         .frame(width: 560)
         .frame(minHeight: 520, idealHeight: 760, maxHeight: 860)

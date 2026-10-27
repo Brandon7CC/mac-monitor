@@ -28,7 +28,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .securityExtension: return "Security Extension"
         case .subscriptions: return "Subscriptions"
         case .pathMuting: return "Path Muting"
-        case .findings: return "Findings"
+        case .findings: return "Indicators"
         case .commandLine: return "Command Line"
         case .telemetrySchema: return "Telemetry Schema"
         case .general: return "General"
@@ -101,7 +101,8 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .pathMuting:
             return ["mute", "unmute", "path", "import", "export"]
         case .findings:
-            return ["detections", "correlation", "groups", "predicate", "reflective", "applescript", "script", "marks"]
+            return ["findings", "detections", "correlation", "groups", "predicate", "reflective", "applescript",
+                    "script", "marks"]
         case .commandLine:
             return ["macmonitor", "terminal", "cli", "sudo"]
         case .telemetrySchema:

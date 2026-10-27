@@ -92,7 +92,7 @@ struct EventView: View {
     /// The number of System Events in the store.
     private var totalEventCount: Int { eventQueries.totalCount }
 
-    /// The filters on, as the Filters button counts them. A finding filter counts once, Any finding too. One that's
+    /// The filters on, as the Filters button counts them. A finding filter counts once, Any indicator too. One that's
     /// dropped doesn't count.
     private var filterCount: Int {
         allFilters.totalFilters + (filterPlatform ? 1 : 0) + (search.filteringFinding == nil ? 0 : 1)

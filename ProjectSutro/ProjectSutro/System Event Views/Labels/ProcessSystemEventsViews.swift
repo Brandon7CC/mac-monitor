@@ -10,7 +10,7 @@ import SutroESFramework
 
 
 /// An exec's process name in the Process Execution table. Its built-in marks come first (``Finding/nameMarks``), then
-/// the findings that mark it (Settings ▸ Findings), then how it's signed. A name without a signing ID is bold.
+/// the findings that mark it (Settings ▸ Indicators), then how it's signed. A name without a signing ID is bold.
 struct ProcessExecEventNameView: View {
     var message: ESMessage
 
