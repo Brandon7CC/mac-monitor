@@ -48,6 +48,40 @@ final class CommandLineCompletionTests: XCTestCase {
         return try run("/bin/bash", [], script: script).output.split(separator: "\n").map(String.init).sorted()
     }
 
+    /// At a terminal, `completion` shows the line that turns completion on, not the script. Read by `eval`, piped or
+    /// saved, it writes the script.
+    func testATerminalGetsTheSetupLine() {
+        for shell in CommandLineShell.allCases {
+            XCTAssertEqual(CommandLineCompletion.output(for: shell, isTerminal: false),
+                           CommandLineCompletion.script(for: shell), shell.rawValue)
+            let setup = CommandLineCompletion.output(for: shell, isTerminal: true)
+            XCTAssertTrue(setup.contains(#"eval "$(macmonitor completion \#(shell.rawValue))""#), shell.rawValue)
+            XCTAssertLessThanOrEqual(setup.split(separator: "\n").count, 3, shell.rawValue)
+            XCTAssertTrue(setup.hasSuffix("\n"), shell.rawValue)
+        }
+    }
+
+    /// The eval line works in a plain zsh, as macOS's is, which doesn't start the completion system: the script starts
+    /// it, then registers itself, with nothing on standard error.
+    func testZshEvalWorksWithoutCompinit() throws {
+        let file = try temporaryFile(containing: CommandLineCompletion.script(for: .zsh), named: "completion.zsh")
+        let home = file.deletingLastPathComponent().path
+        let process = Process()
+        let output = Pipe(), errors = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        process.arguments = ["-f", "-c", #"eval "$(<"$1")"; print -r -- $_comps[macmonitor]"#, "zsh", file.path]
+        process.environment = ["HOME": home, "ZDOTDIR": home, "PATH": "/usr/bin:/bin"]
+        process.standardOutput = output
+        process.standardError = errors
+        try process.run()
+        let printed = output.fileHandleForReading.readDataToEndOfFile()
+        let complaints = errors.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        XCTAssertEqual(process.terminationStatus, 0)
+        XCTAssertEqual(String(decoding: printed, as: UTF8.self), "_macmonitor\n")
+        XCTAssertEqual(String(decoding: complaints, as: UTF8.self), "")
+    }
+
     /// Both scripts parse in their shell.
     func testTheScriptsAreValid() throws {
         XCTAssertEqual(try run("/bin/zsh", ["-n"], script: CommandLineCompletion.script(for: .zsh)).status, 0)

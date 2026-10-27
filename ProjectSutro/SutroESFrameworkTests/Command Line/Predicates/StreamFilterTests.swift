@@ -10,9 +10,9 @@ import XCTest
 
 
 // MARK: - Stream filter
-/// Pins which events `macmonitor stream` writes: an option given more than once matches any of its values, different
-/// options must all match, a pattern is found anywhere unless it's anchored, and a predicate `NSPredicate` can't parse
-/// or evaluate is an error, never a crash.
+/// Pins which events `macmonitor stream` writes: an option given more than once matches any of its values, except
+/// `--predicate`, whose values must all match. Different options must all match, a pattern is found anywhere unless
+/// it's anchored, and a predicate `NSPredicate` can't parse or evaluate is an error, never a crash.
 final class StreamFilterTests: XCTestCase {
     /// An exec's header.
     ///
@@ -72,11 +72,30 @@ final class StreamFilterTests: XCTestCase {
         filter.greps = try patterns("--grep", "^curl -H")
         XCTAssertFalse(try filter.admits(record: record))
         filter.greps = []
-        filter.predicates = [try StreamFilter.Predicate("process.audit_token.euid == 501"),
+        filter.predicates = [try StreamFilter.Predicate("process.audit_token.euid == 0"),
                              try StreamFilter.Predicate("ANY event.exec.args CONTAINS[c] 'TOKEN'")]
         XCTAssertTrue(try filter.admits(record: record))
-        filter.predicates.removeLast()
+        filter.predicates[0] = try StreamFilter.Predicate("process.audit_token.euid == 501")
         XCTAssertFalse(try filter.admits(record: record))
+    }
+    
+    /// `--predicate` given more than once must all match, checked in order. One that throws leaves the event
+    /// unchecked, unless an earlier one already didn't match, which rejects it.
+    func testRepeatedPredicatesMustAllMatch() throws {
+        let record: NSDictionary = ["process": ["pid": 1]]
+        let (yes, no) = (try StreamFilter.Predicate("process.pid == 1"), try StreamFilter.Predicate("process.pid == 2"))
+        let throwing = try StreamFilter.Predicate("process.pid MATCHES '1.*'")
+        var filter = StreamFilter()
+        let cases = [([yes, yes], true), ([yes, no], false), ([no, yes], false), ([no, throwing], false)]
+        for (predicates, admits) in cases {
+            filter.predicates = predicates
+            XCTAssertEqual(try filter.admits(record: record), admits, "\(predicates.map(\.source))")
+        }
+        for predicates in [[throwing, no], [yes, throwing], [throwing, yes]] {
+            filter.predicates = predicates
+            let error = thrown(StreamFilterError.self) { try filter.admits(record: record) }
+            XCTAssertEqual(error?.predicate, throwing.source, "\(predicates.map(\.source))")
+        }
     }
 
     /// A predicate only compares the record's values: anything that calls a method, casts to a class, or takes a

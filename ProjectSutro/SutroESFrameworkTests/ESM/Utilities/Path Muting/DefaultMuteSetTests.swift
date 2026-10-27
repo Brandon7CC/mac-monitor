@@ -90,6 +90,7 @@ final class DefaultMuteSetTests: XCTestCase {
     /// Xcode counts as root's only when root owns every folder its mutes cover, and the folders above them in the
     /// bundle, and no one else can change them.
     func testOnlyAnXcodeItsOwnerAloneCanChangeCounts() throws {
+        try XCTSkipIf(getuid() == 0, "The test's Xcode is root's when root runs the tests.")
         let base = try XCTUnwrap(CommandLineToolLink.realPath(try makeTemporaryDirectory(prefix: "MuteSetTests").path))
         let xcode = base + "/Xcode.app", toolchain = xcode + "/Contents/Developer/Toolchains/XcodeDefault.xctoolchain"
         for folder in [toolchain, xcode + "/Contents/SharedFrameworks"] {

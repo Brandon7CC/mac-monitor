@@ -205,6 +205,8 @@ public final class TelemetryExporter {
         var finished = false
         defer { if !finished { unlink(temporary.path) } }
         var buffer = Data(), written = 0, reported = DispatchTime.now().uptimeNanoseconds
+        workers.forEach { $0.unencodable = 0 }
+        defer { Worker.logUnencodable(workers.reduce(0) { $0 + $1.unencodable }, of: written) }
         let batches = stride(from: 0, to: ids.count, by: Self.batchSize).map {
             Array(ids[$0..<min($0 + Self.batchSize, ids.count)])
         }
@@ -281,6 +283,11 @@ extension TelemetryExporter {
         /// Writes JSONL records where it sorts keys as `JSONEncoder` does
         /// (``ProcessHelpers/eventToJSON(value:pretty:)`` otherwise).
         private let encoder: StreamingJSONEncoder?
+        /// Events this worker couldn't encode in the current export.
+        var unencodable = 0
+        /// How many unencodable events each worker names in the log. Past that it only counts them.
+        private static let namedLimit = 10
+        private static let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "TelemetryExporter")
         
         /// - Parameters:
         ///   - context: Its own context.
@@ -293,7 +300,8 @@ extension TelemetryExporter {
         }
         
         /// Fetch a batch, fully loaded with every relationship its events encode, and encode its events in `batch`
-        /// order: the events still in the store, each as `eventToJSON` writes it (`{}` for one it can't encode).
+        /// order: the events still in the store, each as `eventToJSON` writes it (`{}` for one it can't encode, see
+        /// ``record(_:)``).
         ///
         /// - Parameters:
         ///   - batch: The events' object IDs.
@@ -310,12 +318,7 @@ extension TelemetryExporter {
                         var json = Data(), count = 0
                         for message in batch.compactMap({ loaded[$0] }) {
                             if count > 0 { json.append(0x0A) }
-                            if let encoder {
-                                json.append((try? encoder.encode(message)) ?? Data("{}".utf8))
-                            } else {
-                                let text = ProcessHelpers.eventToJSON(value: message, pretty: pretty)
-                                json.append(contentsOf: text.utf8)
-                            }
+                            json.append(record(message))
                             count += 1
                         }
                         /// Not reset(): that would also unpin the context from the snapshot.
@@ -324,6 +327,40 @@ extension TelemetryExporter {
                     }
                 }
             }
+        }
+        
+        /// One event's record.
+        ///
+        /// An event that can't be encoded is logged by ID and type, counted, and written as `{}`. Dropping it would
+        /// leave the file with fewer records than the export's total and the count it reports. Old exports wrote `{}`
+        /// too.
+        ///
+        /// - Parameter message: The event.
+        /// - Returns: Its JSON, or `{}`.
+        private func record(_ message: ESMessage) -> Data {
+            do {
+                return try encoder?.encode(message) ?? ProcessHelpers.eventJSON(message, pretty: pretty)
+            } catch {
+                unencodable += 1
+                if unencodable <= Self.namedLimit {
+                    Self.logger.error("""
+                        Event \(message.id.uuidString, privacy: .public) \
+                        (\(message.es_event_type ?? String(message.event_type), privacy: .public)) couldn't be \
+                        encoded and was written as {}: \(error.localizedDescription, privacy: .public)
+                        """)
+                }
+                return Data("{}".utf8)
+            }
+        }
+        
+        /// Log how many events an export wrote as `{}`, if any.
+        ///
+        /// - Parameters:
+        ///   - count: The events that couldn't be encoded.
+        ///   - written: The events written.
+        static func logUnencodable(_ count: Int, of written: Int) {
+            guard count > 0 else { return }
+            logger.fault("\(count) of \(written) exported events couldn't be encoded. Each was written as {}.")
         }
     }
 }

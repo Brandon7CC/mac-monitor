@@ -67,6 +67,17 @@ public enum CommandLineCompletion {
         CommandLineEvents.catalog().map(\.name).joined(separator: " ")
     }
 
+    /// What `macmonitor completion` writes. On a terminal it's the line that turns completion on. Read by
+    /// `eval "$(macmonitor completion zsh)"`, piped or saved to a file, it's the script.
+    ///
+    /// - Parameters:
+    ///   - shell: The shell.
+    ///   - isTerminal: Is standard output a terminal?
+    /// - Returns: The text to write, ending in a newline.
+    public static func output(for shell: CommandLineShell, isTerminal: Bool) -> String {
+        isTerminal ? setup(for: shell) : script(for: shell)
+    }
+
     /// The script for a shell.
     ///
     /// - Parameter shell: The shell.
@@ -75,6 +86,28 @@ public enum CommandLineCompletion {
         switch shell {
         case .zsh: return zsh()
         case .bash: return bash()
+        }
+    }
+
+    /// How to turn completion on, for someone who ran `macmonitor completion` at a terminal.
+    ///
+    /// - Parameter shell: The shell.
+    /// - Returns: The line to add and where, ending in a newline.
+    static func setup(for shell: CommandLineShell) -> String {
+        switch shell {
+        case .zsh:
+            return """
+                Add this line to ~/.zshrc for Tab completion:
+                  eval "$(macmonitor completion zsh)"
+                'macmonitor help completion' shows how to save the script instead.
+
+                """
+        case .bash:
+            return """
+                Add this line to ~/.bash_profile for Tab completion:
+                  eval "$(macmonitor completion bash)"
+
+                """
         }
     }
 
@@ -121,8 +154,9 @@ extension CommandLineCompletion {
         return """
             #compdef macmonitor
             # macmonitor's completion for zsh, from 'macmonitor completion zsh'. Save it as _macmonitor in a folder on
-            # $fpath before compinit runs, or add 'eval "$(macmonitor completion zsh)"' to ~/.zshrc after it. The events
-            # are those this Mac's macmonitor streams: write it again after updating Mac Monitor.
+            # $fpath before compinit runs, or add 'eval "$(macmonitor completion zsh)"' to ~/.zshrc, which starts
+            # compinit if nothing has. The events are those this Mac's macmonitor streams: write it again after
+            # updating Mac Monitor.
 
             _macmonitor() {
               local -a events=(\(events))
@@ -145,6 +179,8 @@ extension CommandLineCompletion {
             if [[ ${zsh_eval_context[-1]} == loadautofunc ]]; then
               _macmonitor "$@"
             else
+              # macOS's zsh doesn't start the completion system, so start it when ~/.zshrc hasn't.
+              (( $+functions[compdef] )) || { autoload -Uz compinit && compinit }
               compdef _macmonitor macmonitor
             fi
 

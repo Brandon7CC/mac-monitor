@@ -60,11 +60,14 @@ struct ArgumentCursor {
     ///   - attached: The value attached with `=`, if any.
     ///   - command: The command, for the error.
     /// - Returns: The value.
-    /// - Throws: ``CommandLineUsageError`` if there's no value.
+    /// - Throws: ``CommandLineUsageError`` if there's no value. When the next argument looks like a short option, such
+    ///   as `-v`, the error says to attach it with `=`.
     mutating func value(of option: String, attached: String?, command: String) throws -> String {
         if let attached { return attached }
         guard let value = remaining.first, !value.hasPrefix("-") || value == "-" else {
-            throw CommandLineUsageError("\(option) needs a value.", command: command)
+            let next = remaining.first.flatMap { $0.hasPrefix("--") ? nil : $0 }
+            let hint = next.map { " Use \(option)=\($0) for a value that starts with -." } ?? ""
+            throw CommandLineUsageError("\(option) needs a value.\(hint)", command: command)
         }
         remaining.removeFirst()
         return value
@@ -81,8 +84,9 @@ struct ArgumentCursor {
         throw CommandLineUsageError("\(name) takes no arguments, not '\(argument.text)'.", command: command)
     }
     
-    /// Read the rest of a command that takes options without values, and one positional at most. A positional the
-    /// message repeats is escaped for a terminal: `validate *.jsonl` expands to file names anyone can choose.
+    /// Read the rest of a command that takes options without values, and one positional at most. The error escapes a
+    /// positional it repeats (``CommandLineUsageError/description``), since `validate *.jsonl` expands to file names
+    /// anyone can choose.
     ///
     /// - Parameters:
     ///   - name: The command, such as "validate" or "mute import", for the messages.
@@ -100,8 +104,7 @@ struct ArgumentCursor {
                 given = value
             case .positional(let value):
                 let takes = positional.map { "one \($0), not also" } ?? "no arguments, not"
-                throw CommandLineUsageError("\(name) takes \(takes) '\(TerminalSafeText.text(value))'.",
-                                            command: command)
+                throw CommandLineUsageError("\(name) takes \(takes) '\(value)'.", command: command)
             case .option(let option, let value) where options.contains(where: { $0.name == option }):
                 guard value == nil else { throw CommandLineUsageError("\(option) takes no value.", command: command) }
                 flags.insert(option)
@@ -232,19 +235,25 @@ public enum CommandLineParser {
     /// The units `--for` takes, longest first so `ms` isn't read as `m`.
     static let durationUnits: [(suffix: String, seconds: TimeInterval)] = [("ms", 0.001), ("s", 1), ("m", 60),
                                                                           ("h", 3_600)]
+    /// The longest `--for`: a year, in seconds.
+    static let longestDuration: TimeInterval = 365 * 24 * 3_600
     
     /// A `--for` value in seconds.
     ///
     /// - Parameter value: A number of seconds, or a number with a unit: 500ms, 30s, 5m, 1.5h.
     /// - Returns: The seconds.
-    /// - Throws: ``CommandLineUsageError`` for anything else, or a time that isn't above 0.
+    /// - Throws: ``CommandLineUsageError`` for anything else, a time that isn't above 0, or one over a year.
     static func duration(_ value: String) throws -> TimeInterval {
         let unit = durationUnits.first { value.hasSuffix($0.suffix) }
         guard let amount = Double(value.dropLast(unit?.suffix.count ?? 0)), amount.isFinite, amount > 0 else {
             throw CommandLineUsageError("--for must be a time such as 30s, 5m or 1h, not '\(value)'.",
                                         command: "stream")
         }
-        return amount * (unit?.seconds ?? 1)
+        let seconds = amount * (unit?.seconds ?? 1)
+        guard seconds <= longestDuration else {
+            throw CommandLineUsageError("--for can be at most a year (8760h), not '\(value)'.", command: "stream")
+        }
+        return seconds
     }
     
     /// Set the format, refusing a second, different one.

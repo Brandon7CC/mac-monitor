@@ -46,6 +46,7 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                   --no-mutes        Don't apply the saved mute set that Mac Monitor and macmonitor share.
                   --include-self    Show the events of macmonitor's own pipeline, such as jq's.
                   --for DURATION    Stop after DURATION: seconds, or with a unit, such as 500ms, 30s, 5m or 1h.
+                                    At most a year.
                   --count N         Stop after writing N events.
 
                 Filters:
@@ -61,11 +62,12 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                                           'ANY event.exec.args CONTAINS[c] "token"'
                                           'process.audit_token.euid == 0 AND event_type == 9'
 
-                A filter given more than once matches any of its values, and an event is written only if every \
-                filter given matches it. REGEX is found anywhere in the value unless anchored with ^ or $, and is \
-                case-sensitive unless it starts with (?i). The record is what --format jsonl writes ('macmonitor \
-                schema' describes it). --signing-id, --grep and --predicate read it, so they make text output as slow \
-                as JSONL. Filtered events are never counted as lost, and --count counts only events written.
+                A filter given more than once matches any of its values. --predicate is the exception. Every one \
+                given must match. An event is written only if every filter given matches it. REGEX is found \
+                anywhere in the value unless anchored with ^ or $, and is case-sensitive unless it starts with (?i). \
+                The record is what --format jsonl writes ('macmonitor schema' describes it). --signing-id, --grep and \
+                --predicate read it, so they make text output as slow as JSONL. Filtered events are never counted as \
+                lost, and --count counts only events written.
 
                 A stream stops at Ctrl-C, or at --for or --count, whichever comes first. Either way it writes every \
                 event captured before it stopped, up to N, and exits 0 unless it was interrupted.
@@ -130,14 +132,16 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                 checking, prints the report so far, and exits 130.
                 """)
         case .completion:
-            return ("Print a shell completion script.", "macmonitor completion zsh|bash", """
-                Completes commands, options, their values, and the events this Mac's macmonitor streams. Write it \
-                again after updating Mac Monitor.
+            return ("Set up Tab completion, or print its script.", "macmonitor completion zsh|bash", """
+                On a terminal, it shows the line that turns Tab completion on. Read by eval, piped or redirected, \
+                it writes the script, which completes commands, options, their values, and the events this Mac's \
+                macmonitor streams.
 
-                  zsh    Save it as _macmonitor in a folder on $fpath, before compinit runs:
+                  zsh    Add eval "$(macmonitor completion zsh)" to ~/.zshrc. It starts compinit if nothing
+                         has. Or save the script as _macmonitor in a folder on $fpath, before compinit runs:
                            macmonitor completion zsh > ~/.zsh/completions/_macmonitor
-                         with fpath=(~/.zsh/completions $fpath) in ~/.zshrc. Or add
-                         eval "$(macmonitor completion zsh)" to ~/.zshrc, after compinit.
+                         with fpath=(~/.zsh/completions $fpath) in ~/.zshrc. Save it again after
+                         updating Mac Monitor.
                   bash   Add eval "$(macmonitor completion bash)" to ~/.bash_profile.
                 """)
         case .version: return ("Show macmonitor's version.", "macmonitor version", "")

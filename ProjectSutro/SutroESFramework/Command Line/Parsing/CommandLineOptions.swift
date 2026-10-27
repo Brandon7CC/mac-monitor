@@ -133,7 +133,7 @@ extension CommandLineParser {
     static func unknownOption(_ option: String, for name: String,
                               among options: [CommandLineOption]) -> CommandLineUsageError {
         let suggestion = CommandLineSuggestion.didYouMean(option, among: options.map(\.name))
-        return CommandLineUsageError("Unknown option '\(TerminalSafeText.text(option))' for \(name).\(suggestion)",
+        return CommandLineUsageError("Unknown option '\(option)' for \(name).\(suggestion)",
                                      command: String(name.prefix { $0 != " " }))
     }
 }

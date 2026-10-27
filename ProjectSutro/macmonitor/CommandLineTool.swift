@@ -37,7 +37,7 @@ enum CommandLineTool {
         case .events:
             write(CommandLineHelp.eventList(legend: isatty(STDOUT_FILENO) == 1))
         case .completion(let shell):
-            write(CommandLineCompletion.script(for: shell))
+            write(CommandLineCompletion.output(for: shell, isTerminal: isatty(STDOUT_FILENO) == 1))
         case .version:
             write("macmonitor \(ToolVersion.current)\n")
             if geteuid() == 0 && getuid() == 0 { write("Security Extension \(sensorVersion())\n") }

@@ -49,8 +49,7 @@ public final class SensorClient {
     ///
     /// - Parameters:
     ///   - agent: The object exported to the Security Extension (receives events).
-    ///   - onSignal: Called when the owner should consider a new handshake. Runs on the connection's queue for an
-    ///     interruption and on the main queue for a Darwin notification.
+    ///   - onSignal: Called on the main queue when the owner should consider a new handshake.
     public init(agent: AgentProtocol, onSignal: @escaping (Signal) -> Void) {
         self.agent = agent
         self.onSignal = onSignal
@@ -123,25 +122,34 @@ public final class SensorClient {
             if let connection { return connection }
             
             let newConnection = NSXPCConnection(machServiceName: SensorXPC.machServiceName, options: [])
-            newConnection.remoteObjectInterface = SensorXPC.sensorInterface
-            newConnection.exportedInterface = SensorXPC.agentInterface
-            newConnection.exportedObject = agent
-            /// Only talk to our own Security Extension. A mismatched peer invalidates the connection.
-            newConnection.setCodeSigningRequirement(SensorXPC.sensorRequirement)
-            
-            newConnection.interruptionHandler = { [weak self] in
-                self?.logger.error("The Security Extension exited or crashed.")
-                self?.onSignal(.restarted)
-            }
-            /// Invalidation is final: forget this connection so the next request creates a new one.
-            newConnection.invalidationHandler = { [weak self, weak newConnection] in
-                self?.logger.error("The connection to the Security Extension was invalidated.")
-                self?.forget(newConnection)
-            }
-            
+            configure(newConnection)
             newConnection.activate()
             connection = newConnection
             return newConnection
+        }
+    }
+    
+    /// Set up a new connection to the Security Extension before it's activated.
+    ///
+    /// The handlers run on the connection's queue. An interruption hops to the main queue before it reaches
+    /// `onSignal`, since the owner keeps its pending signals there.
+    ///
+    /// - Parameter newConnection: The connection. Tests pass one that's never activated.
+    func configure(_ newConnection: NSXPCConnection) {
+        newConnection.remoteObjectInterface = SensorXPC.sensorInterface
+        newConnection.exportedInterface = SensorXPC.agentInterface
+        newConnection.exportedObject = agent
+        /// Only talk to our own Security Extension. A mismatched peer invalidates the connection.
+        newConnection.setCodeSigningRequirement(SensorXPC.sensorRequirement)
+        
+        newConnection.interruptionHandler = { [weak self] in
+            self?.logger.error("The Security Extension exited or crashed.")
+            DispatchQueue.main.async { self?.onSignal(.restarted) }
+        }
+        /// Invalidation is final. Forget this connection so the next request creates a new one.
+        newConnection.invalidationHandler = { [weak self, weak newConnection] in
+            self?.logger.error("The connection to the Security Extension was invalidated.")
+            self?.forget(newConnection)
         }
     }
     

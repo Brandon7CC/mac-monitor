@@ -136,6 +136,7 @@ final class CommandLineToolLinkTests: XCTestCase {
     /// A tool someone other than root can change, or that sits in a directory they can change, is refused: sudo would
     /// run it as root.
     func testAToolOthersCanChangeIsRefused() throws {
+        try XCTSkipIf(getuid() == 0, "Root owns what the fixture makes, so no one else can change it.")
         let fixture = try ToolLinkFixture(for: self)
         let me = CommandLineToolLink.userName(getuid())
         var rootOwned = fixture.layout()

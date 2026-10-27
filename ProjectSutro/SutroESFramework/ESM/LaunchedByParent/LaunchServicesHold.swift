@@ -141,19 +141,23 @@ final class LaunchServicesHold {
 
     /// Send from the front of the line up to the first exec still held. Call under the lock.
     ///
+    /// The sent slots are removed together at the end, so a long line isn't shifted once per slot.
+    ///
     /// - Parameter state: The line.
     private func release(_ state: inout State) {
-        while let first = state.line.first {
-            switch first {
+        var sent = 0
+        walk: while sent < state.line.count {
+            switch state.line[sent] {
             case .ready(let event):
                 emit(event)
             case .held(let held):
-                guard held.isSettled else { return }
+                guard held.isSettled else { break walk }
                 state.held -= 1
                 if let event = encoded(held.message) { emit(event) }
             }
-            state.line.removeFirst()
+            sent += 1
         }
+        state.line.removeFirst(sent)
     }
 
     /// Send an exec as it is, keeping its place in line.
