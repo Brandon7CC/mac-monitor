@@ -24,7 +24,8 @@ import SutroESFramework
 /// Updates are disabled in Community builds: they're adhoc signed for SIP-off development VMs, only enforce the
 /// signing identifier on XPC peers, and shouldn't be replaced by a release build.
 final class UpdateInstaller {
-    private static let latestReleaseURL: URL = URL(string: "https://api.github.com/repos/Brandon7CC/mac-monitor/releases/latest")!
+    private static let latestReleaseURL: URL =
+        URL(string: "https://api.github.com/repos/Brandon7CC/mac-monitor/releases/latest")!
     
     private let logger = Logger(subsystem: "com.swiftlydetecting.agent.securityextension", category: "UpdateInstaller")
     /// Only one install may run at a time.
@@ -113,7 +114,8 @@ final class UpdateInstaller {
         
         /// 3. Install the update package
         logger.log("3. Installing update...")
-        let (status, errors) = try await run("/usr/sbin/installer", ["-pkg", package.path, "-target", "/"], capturing: .standardError)
+        let (status, errors) = try await run("/usr/sbin/installer", ["-pkg", package.path, "-target", "/"],
+                                             capturing: .standardError)
         guard status == 0 else {
             throw UpdateError.installFailed(exitCode: status, errorLog: String(decoding: errors, as: UTF8.self))
         }
@@ -137,7 +139,10 @@ final class UpdateInstaller {
               let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
             throw UpdateError.releaseLookupFailed
         }
-        logger.log("(Mac Monitor Update) Latest version found: \(release.version, privacy: .public). Current version: \(currentVersion, privacy: .public)")
+        logger.log("""
+            (Mac Monitor Update) Latest version found: \(release.version, privacy: .public). \
+            Current version: \(currentVersion, privacy: .public)
+            """)
         guard release.version.compare(currentVersion, options: .numeric) == .orderedDescending else { return nil }
         return UpdateDetails(version: release.tagName, downloadURL: package, releaseNotes: release.body,
                              releaseDate: release.publishedAt)
@@ -152,7 +157,8 @@ final class UpdateInstaller {
     ///
     /// - Parameter package: The downloaded package.
     private func verifySignature(of package: URL) async throws {
-        let (status, output) = try await run("/usr/sbin/spctl", ["--assess", "--type", "install", "--enforce-assessment", "-v", "-v", "--raw", package.path], capturing: .standardOutput)
+        let arguments = ["--assess", "--type", "install", "--enforce-assessment", "-v", "-v", "--raw", package.path]
+        let (status, output) = try await run("/usr/sbin/spctl", arguments, capturing: .standardOutput)
         let assessment: [String: Any] = try Self.assessment(from: output)
         let authority = assessment["assessment:authority"] as? [String: Any]
         
@@ -183,7 +189,8 @@ final class UpdateInstaller {
         guard let start = text.range(of: "<?xml"),
               let end = text.range(of: "</plist>", options: .backwards),
               start.lowerBound < end.upperBound,
-              let plist = try PropertyListSerialization.propertyList(from: Data(text[start.lowerBound..<end.upperBound].utf8), format: nil) as? [String: Any] else {
+              let plist = try PropertyListSerialization.propertyList(
+                from: Data(text[start.lowerBound..<end.upperBound].utf8), format: nil) as? [String: Any] else {
             throw UpdateError.unreadableAssessment
         }
         return plist
@@ -205,7 +212,8 @@ final class UpdateInstaller {
     ///   - arguments: Its arguments.
     ///   - stream: The stream to capture.
     /// - Returns: The exit status and the captured output.
-    private func run(_ tool: String, _ arguments: [String], capturing stream: OutputStream) async throws -> (status: Int32, output: Data) {
+    private func run(_ tool: String, _ arguments: [String],
+                     capturing stream: OutputStream) async throws -> (status: Int32, output: Data) {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {
                 let process = Foundation.Process()
@@ -256,7 +264,8 @@ extension UpdateInstaller {
             case .rejectedByGatekeeper(let reason):
                 return "Gatekeeper rejected the package. Reason: \(reason)"
             case .invalidTeamID(let found):
-                return "The Team ID of the package was invalid. Found: \(found ?? "none"), expected: \(SensorXPC.teamID)"
+                return "The Team ID of the package was invalid. "
+                    + "Found: \(found ?? "none"), expected: \(SensorXPC.teamID)"
             case .installFailed(let exitCode, let errorLog):
                 return "The installer process failed with exit code \(exitCode). Log: \(errorLog)"
             }

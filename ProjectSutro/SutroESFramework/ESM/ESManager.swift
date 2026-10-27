@@ -13,8 +13,6 @@ import os
 import AppKit
 import CryptoKit
 
-// TODO: Candidate for `@Observable`
-
 /// Manages XPC, System Extension, and event producer functionality
 ///
 ///
@@ -38,12 +36,12 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// Created on first use. The first use is always on the main thread (an XPC request from the UI or the System
     /// Extension activation delegate), before any connection handler can run. Its signals arrive on the main thread.
     lazy var sensor = SensorClient(agent: self) { [weak self] signal in
-        /// Anyone can post these signals, so one that arrives while the same kind is already pending is dropped: a flood
-        /// of posts costs at most one handshake per kind per second.
+        /// Anyone can post these signals, so one that arrives while the same kind is already pending is dropped: a
+        /// flood of posts costs at most one handshake per kind per second.
         guard let self, self.pendingSignals.insert(signal).inserted else { return }
         /// Give launchd / sysextd a moment to settle, then decide whether to redo the `start` handshake:
-        /// - Never if we haven't handshaked before: an app launched with `--deactivate-security-extension` (or one that only
-        ///   checked for updates) must not start monitoring on its own.
+        /// - Never if we haven't handshaked before: an app launched with `--deactivate-security-extension` (or one that
+        ///   only checked for updates) must not start monitoring on its own.
         /// - `.restarted`: the previous owner, or an instance Endpoint Security refused, takes the stream. An instance
         ///   the owner refused doesn't, so it can't win the race.
         /// - `.released`: only an instance that was refused, by the owner (`.streamOwned`) or by Endpoint Security
@@ -98,7 +96,8 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     
     /// Reference to the shared Core Data Controller (agent context).
     ///
-    /// Lazy so the Security Extension, which never stores events, doesn't create a Core Data stack or store file as root.
+    /// Lazy so the Security Extension, which never stores events, doesn't create a Core Data stack or store file as
+    /// root.
     public lazy var coreDataContainer = CoreDataController.shared
     
     /// The Sensor ID for this Mac and console user, as shown in Mac Monitor (agent context). Computed on first use.
@@ -153,14 +152,14 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// Its job is to quickly decode the incoming JSON and add the resulting `Message` objects to a buffer.
     /// A separate, timer-based process flushes this buffer to Core Data, preventing the UI from being blocked by high event volume.
     ///
-    /// The reply is held until the batch has been saved to Core Data. That's the back-pressure: when inserts fall behind,
-    /// the Security Extension stops sending and spools to disk instead of this process growing without bound.
+    /// The reply is held until the batch has been saved to Core Data. That's the back-pressure: when inserts fall
+    /// behind, the Security Extension stops sending and spools to disk instead of this process growing without bound.
     ///
     /// Execs and forks from an older Security Extension get their launched-by parent here.
     ///
-    /// Batches are accepted even after recording stops: the Security Extension stops serializing at the source, so anything
-    /// still arriving was recorded before Stop and belongs in the trace. (A Clear discards older events by time instead;
-    /// see ``CoreDataController/clearSystemEvents(source:)``.)
+    /// Batches are accepted even after recording stops: the Security Extension stops serializing at the source, so
+    /// anything still arriving was recorded before Stop and belongs in the trace. A Clear discards older events by time
+    /// instead. See ``CoreDataController/clearSystemEvents(source:)``.
     ///
     /// - Parameters:
     ///   - events: JSON serializations of `Message`, oldest first.
@@ -223,7 +222,8 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// - Parameters:
     ///   - message: A decoded event.
     ///   - dropping: Are platform binaries being dropped?
-    /// - Returns: `true` unless platform binaries are being dropped and this event is a non-critical one from a platform binary.
+    /// - Returns: `true` unless platform binaries are being dropped and this event is a non-critical one from a
+    ///   platform binary.
     private func shouldInsert(_ message: Message, droppingPlatformBinaries dropping: Bool) -> Bool {
         guard dropping, message.process.is_platform_binary, !message.event.isCritical else {
             return true
@@ -249,8 +249,8 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         flushTimer?.schedule(deadline: .now() + Self.flushInterval, repeating: Self.flushInterval)
     }
     
-    /// Takes the current batch of events from the buffer and sends them to the CoreDataController, then acknowledges the
-    /// XPC batches they came from once they're saved.
+    /// Takes the current batch of events from the buffer and sends them to the CoreDataController, then acknowledges
+    /// the XPC batches they came from once they're saved.
     /// This function is always called on the `eventBufferQueue`.
     private func flushEvents() {
         guard !self.eventBuffer.isEmpty || !self.pendingReplies.isEmpty else { return }
@@ -307,8 +307,8 @@ extension EndpointSecurityManager {
         }
         self.isRecording = true
         sensor.call { $0.setRecording(true, reply: $1) } completion: { hasClient in
-            /// No ES client (e.g. the extension was re-enabled after we last handshaked): handshake again. `start` carries
-            /// `isRecording`, so recording resumes as part of it.
+            /// No ES client (e.g. the extension was re-enabled after we last handshaked): handshake again. `start`
+            /// carries `isRecording`, so recording resumes as part of it.
             if hasClient != true { self.kickoffXPCCommunication() }
         }
     }
@@ -335,10 +335,12 @@ extension EndpointSecurityManager {
     /// ``CaptureSession`` as it starts and on every `start` handshake (sensor), and once for display (agent), never per
     /// event.
     ///
-    /// - Returns: The hex digest, or `SENSOR-ID-ERROR-<date>` if the serial number can't be read. When no user is at the
-    ///   console (e.g. `loginwindow`) only the serial number is hashed.
+    /// - Returns: The hex digest, or `SENSOR-ID-ERROR-<date>` if the serial number can't be read. When no user is at
+    ///   the console (e.g. `loginwindow`) only the serial number is hashed.
     static func makeSensorID() -> String {
-        let platformExpert = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"))
+        let platformExpert = IOServiceGetMatchingService(
+            kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice")
+        )
         defer { IOObjectRelease(platformExpert) }
         /// `IORegistryEntryCreateCFProperty` follows the Create rule, so we take ownership of the returned value.
         guard platformExpert > 0, let serialNumber = (IORegistryEntryCreateCFProperty(

@@ -33,12 +33,14 @@ extension TraceImporter {
         public internal(set) var skipped = 0
         /// The line the first skipped record starts on, counting from 1.
         public internal(set) var firstSkippedLine: Int?
-        /// Events of types Mac Monitor doesn't have (eslogger logs every notify event), by eslogger's name for the type:
-        /// the first ``maxUnsupportedTypes`` names, each cut to ``maxTypeNameLength`` characters.
+        /// Events of types Mac Monitor doesn't have (eslogger logs every notify event), by eslogger's name for the
+        /// type: the first ``maxUnsupportedTypes`` names, each cut to ``maxTypeNameLength`` characters.
         public internal(set) var unsupported: [String: Int] = [:]
-        /// Events of types Mac Monitor doesn't have, past the first ``maxUnsupportedTypes`` names (the file names them).
+        /// Events of types Mac Monitor doesn't have, past the first ``maxUnsupportedTypes`` names (the file names
+        /// them).
         public internal(set) var unsupportedOther = 0
-        /// How far through the file reading stopped, from 0 to 1, if ``TraceImporter/stop()`` (or a Clear) ended it early.
+        /// How far through the file reading stopped, from 0 to 1, if ``TraceImporter/stop()`` (or a Clear) ended it
+        /// early.
         public internal(set) var stoppedAt: Double?
         /// Why reading ended early: the file couldn't be read, or ``Failure/storeFull``.
         public internal(set) var error: Error?
@@ -68,8 +70,11 @@ extension TraceImporter {
         /// - Parameter name: eslogger's name for the event's type.
         mutating func countUnsupported(_ name: String) {
             let name = String(name.prefix(Self.maxTypeNameLength))
-            if unsupported[name] != nil || unsupported.count < Self.maxUnsupportedTypes { unsupported[name, default: 0] += 1 }
-            else { unsupportedOther += 1 }
+            if unsupported[name] != nil || unsupported.count < Self.maxUnsupportedTypes {
+                unsupported[name, default: 0] += 1
+            } else {
+                unsupportedOther += 1
+            }
         }
     }
     

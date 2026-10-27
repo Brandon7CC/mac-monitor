@@ -4,14 +4,12 @@
 Event Facts JSON tab, and the `macmonitor` command line's output. We wrote it so a pipeline consuming Mac Monitor's
 telemetry can check what it receives instead of trusting that the shape didn't move between releases.
 
-It's a [JSON Schema](https://json-schema.org/draft/2020-12) (draft 2020-12). Each GitHub release attaches it beside
-`Mac-Monitor.pkg` as `Mac-Monitor.telemetry.schema.json`, a name that sorts after the installer's (GitHub lists a
-release's assets by name), and the latest is at
+Each GitHub release attaches it as `Mac-Monitor.telemetry.schema.json`, and the latest is at
 `https://github.com/Brandon7CC/mac-monitor/releases/latest/download/Mac-Monitor.telemetry.schema.json`.
 
 ## eslogger's keys and Mac Monitor's
 
-A record is eslogger's JSON for an Endpoint Security message (`es_message_t`) plus Mac Monitor's enrichments. Every
+A record is eslogger's JSON for an ES message (`es_message_t`) plus Mac Monitor's enrichments. Every
 eslogger key keeps eslogger's key path and value; Mac Monitor's keys sit beside them. The schema marks every property
 with `x-mac-monitor-origin`:
 
@@ -23,7 +21,7 @@ eslogger's shapes: `launched_by_parent.audit_token` is written the way eslogger 
 enrichment.
 
 Two of eslogger's integers that Mac Monitor can't reproduce keep eslogger's keys: `seq_num` and `global_seq_num` count
-the messages of the Endpoint Security client that received them, so Mac Monitor's numbers never match eslogger's.
+the messages of the ES client that received them, so Mac Monitor's numbers never match eslogger's.
 
 ## Versions
 
@@ -38,7 +36,6 @@ Telemetry 1.0.0 is the version Mac Monitor 3.0.0 ships. `released-versions.txt` 
 SHA-256 of the file released with it, and a test fails if a released version's file changes. To validate an older
 trace, use the schema attached to the release that wrote it. A trace exported before Mac Monitor 3.0.0 names no
 telemetry version, and no schema describes it: open it with File > Open Trace… and export it again to check it.
-Each release attaches its schema beside the installer as `Mac-Monitor.telemetry.schema.json`.
 
 ## Checking a trace
 
@@ -52,12 +49,12 @@ every record is valid, 65 when one isn't or the trace has no records, and 66 whe
 
 ## How it's made
 
-The schema is generated, never edited by hand. Its source is a declarative description of the export in
+The schema is generated and its source is a declarative description of the export in
 `ProjectSutro/SutroESFrameworkTests/Telemetry Schema/Source`, and
-`ProjectSutro/Scripts/generate-telemetry-schema.sh` writes it here. The framework bundles this file, so the app and
+`ProjectSutro/Scripts/generate-telemetry-schema.sh` writes it. The framework bundles this file, so the app and
 the command line validate against exactly the bytes in the repository.
 
-The tests keep the schema and the exports in step. Every object has `additionalProperties: false` and every key
+The tests keep the schema and the exports in sync. Every object has `additionalProperties: false` and every key
 that's always written is `required`, so an added or dropped key fails. Synthetic events of every type, with every
 field filled and with every optional field left out, are exported and validated, and every part of the schema has to
 be exercised by them, so a stale part fails too. The keys marked `eslogger` are checked against eslogger's own keys

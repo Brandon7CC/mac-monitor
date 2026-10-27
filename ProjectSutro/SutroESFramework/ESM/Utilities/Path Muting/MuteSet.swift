@@ -34,12 +34,14 @@ public struct MuteSet {
         let caches = homePaths("Library/Caches", in: home)
         let biomeStreams = homePaths("Library/Biome/streams", in: home)
         /// Processes muted for both mmap and mprotect.
-        let mappers = [
+        let mappers: [String] = [
             "/usr/bin/tailspin",
             "/usr/libexec/spindump",
             "/private/var/db/KernelExtensionManagement/KernelCollections/BootKernelCollection.kc",
-            "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared",
-            "/System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService",
+            "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/"
+                + "Support/mdworker_shared",
+            "/System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/"
+                + "MTLCompilerService",
             "/usr/libexec/knowledge-agent",
             "/usr/libexec/locationd",
             "/System/Library/PrivateFrameworks/BiomeStreams.framework/Support/BiomeAgent",

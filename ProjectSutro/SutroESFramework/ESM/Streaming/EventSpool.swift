@@ -11,9 +11,9 @@ import Foundation
 // MARK: - Event spool
 /// A first-in, first-out queue of serialized events backed by files, for the Security Extension.
 ///
-/// `SensorService` doesn't drop events when Mac Monitor falls behind. It keeps a bounded number in memory and spills the
-/// rest here, similar to how Process Monitor backs its event log with a file. Events are read back in the order they
-/// were written.
+/// `SensorService` doesn't drop events when Mac Monitor falls behind. It keeps a bounded number in memory and spills
+/// the rest here, similar to how Process Monitor backs its event log with a file. Events are read back in the order
+/// they were written.
 ///
 /// **Bounds:** this is a root process writing to the system's Data volume, so a Mac Monitor that stays connected but
 /// stops replying (paused in a debugger, `SIGSTOP`ped) must not fill the disk. The spool refuses events once it holds

@@ -64,8 +64,13 @@ struct EventFilterSpec: Equatable {
         }
         let contained = Set(filters.targetPaths.filter { !$0.isEmpty })
         if !contained.isEmpty {
-            let any = NSCompoundPredicate(orPredicateWithSubpredicates: contained.map { NSPredicate(format: "target_path CONTAINS %@", $0) })
-            clauses.append(NSCompoundPredicate(orPredicateWithSubpredicates: [NSPredicate(format: "target_path == nil"), NSCompoundPredicate(notPredicateWithSubpredicate: any)]))
+            let any = NSCompoundPredicate(orPredicateWithSubpredicates: contained.map {
+                NSPredicate(format: "target_path CONTAINS %@", $0)
+            })
+            clauses.append(NSCompoundPredicate(orPredicateWithSubpredicates: [
+                NSPredicate(format: "target_path == nil"),
+                NSCompoundPredicate(notPredicateWithSubpredicate: any),
+            ]))
         }
         
         if !searchText.isEmpty {
@@ -94,12 +99,12 @@ struct EventFilterSpec: Equatable {
 
 
 // MARK: - Process lineage
-/// Process trees built from the denormalized lineage columns, matching the resolver they replaced (`ProcessLineageResolver`,
-/// v2.1) exactly.
+/// Process trees built from the denormalized lineage columns, matching the resolver they replaced
+/// (`ProcessLineageResolver`, v2.1) exactly.
 ///
 /// That resolver walked every `ESMessage` and its relationships. This builds the same graph from a dictionary
-/// fetch of a few columns (``fetchRequest(_:)``), so "↕ Full tree" works without loading every event, and it can be kept
-/// up to date one batch of new events at a time.
+/// fetch of a few columns (``fetchRequest(_:)``), so "↕ Full tree" works without loading every event, and it can be
+/// kept up to date one batch of new events at a time.
 struct ProcessLineageIndex {
     private struct Node: Equatable { let parent: String; let path: String }
     private var nodes: [String: Node] = [:]
@@ -114,15 +119,17 @@ struct ProcessLineageIndex {
     static func fetchRequest(_ predicate: NSPredicate) -> NSFetchRequest<NSDictionary> {
         let request = ESMessage.request(NSDictionary.self, where: predicate,
                                         sortedBy: [NSSortDescriptor(key: "mach_time", ascending: false)])
-        request.propertiesToFetch = ["instigator_audit_token", "instigator_parent_audit_token", "initiating_path", "initiating_pid",
-                                     "event_type", "created_audit_token", "created_path", "created_pid"]
+        request.propertiesToFetch = ["instigator_audit_token", "instigator_parent_audit_token", "initiating_path",
+                                     "initiating_pid", "event_type", "created_audit_token", "created_path",
+                                     "created_pid"]
         return request
     }
     
     /// Add events newer than everything added so far.
     ///
-    /// Like the resolver (fed newest first), the newest sighting of a process decides its parent and path, and sightings
-    /// without a path are ignored. So within `rows` the first sighting wins, and it replaces what older rows said.
+    /// Like the resolver (fed newest first), the newest sighting of a process decides its parent and path, and
+    /// sightings without a path are ignored. So within `rows` the first sighting wins, and it replaces what older rows
+    /// said.
     ///
     /// - Parameter rows: Rows from ``fetchRequest(_:)``, newest first.
     /// - Returns: The audit tokens no earlier event mentioned.
@@ -151,7 +158,8 @@ struct ProcessLineageIndex {
             switch (row["event_type"] as? NSNumber)?.int32Value {
             case ESMessage.execEventType:
                 /// An exec that keeps its pid replaces the process, so it hangs off the instigator's parent.
-                let samePid = (row["created_pid"] as? NSNumber)?.int32Value == (row["initiating_pid"] as? NSNumber)?.int32Value
+                let samePid = (row["created_pid"] as? NSNumber)?.int32Value
+                    == (row["initiating_pid"] as? NSNumber)?.int32Value
                 sighting(created, parent: samePid ? parent : token, path: row["created_path"] as? String)
             case ESMessage.forkEventType:
                 sighting(created, parent: token, path: row["created_path"] as? String)
@@ -164,9 +172,9 @@ struct ProcessLineageIndex {
     
     /// The tokens in the tree of every process with `path`: each match, its ancestors, and its descendants.
     ///
-    /// Mirrors `ProcessLineageResolver.computeLineageSet(includedPath:includeAncestors:)` (v2.1) with ancestors included.
-    /// Each root gets its own set (as Mac Monitor does for the initiating and target roots) because a shared set would
-    /// stop walking descendants at processes another root already added.
+    /// Mirrors `ProcessLineageResolver.computeLineageSet(includedPath:includeAncestors:)` (v2.1) with ancestors
+    /// included. Each root gets its own set (as Mac Monitor does for the initiating and target roots) because a shared
+    /// set would stop walking descendants at processes another root already added.
     ///
     /// - Parameter path: The selected executable path.
     /// - Returns: The audit tokens in that path's lineage.

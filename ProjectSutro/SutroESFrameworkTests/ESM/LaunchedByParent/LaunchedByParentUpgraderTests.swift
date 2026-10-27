@@ -138,7 +138,9 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     private var emittedEvents: [(name: String, launchedByParent: LaunchedByParent?)] {
         emitted.all.map { event in
             guard let message = try? JSONDecoder().decode(Message.self, from: event.json),
-                  case .exec(let exec) = message.event else { return (String(decoding: event.json, as: UTF8.self), nil) }
+                  case .exec(let exec) = message.event else {
+                return (String(decoding: event.json, as: UTF8.self), nil)
+            }
             return ("exec \(exec.target.pid)", exec.launched_by_parent)
         }
     }
@@ -305,7 +307,8 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     func testDrainSendsHeldExecs() throws {
         let reader = WaitingLaunchServicesReader()
         defer { reader.open() }
-        let factory = FakeEndpointSecurityClientFactory(), queue = DispatchQueue(label: "Test"), emitted = EmittedEvents()
+        let factory = FakeEndpointSecurityClientFactory(), queue = DispatchQueue(label: "Test")
+        let emitted = EmittedEvents()
         let session = try holdingSession(factory, reader: reader, queue: queue, emitted: emitted)
         defer { session.stop() }
         factory.client(.process).deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXEC, global: 606))

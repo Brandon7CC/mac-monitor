@@ -36,8 +36,8 @@ public enum SensorXPC {
     /// extension is re-enabled). Mac Monitor re-runs the idempotent `start` handshake when it sees it.
     ///
     /// Anyone can post a Darwin notification, so this is only ever a hint: the handshake itself runs over a connection
-    /// that verifies the Security Extension's code signature, and a spoofed post just causes a harmless re-handshake (at
-    /// most one a second, however fast they're posted).
+    /// that verifies the Security Extension's code signature, and a spoofed post just causes a harmless re-handshake
+    /// (at most one a second, however fast they're posted).
     public static let sensorReadyNotification: String = "com.swiftlydetecting.agent.securityextension.ready"
     
     /// Darwin notification the Security Extension posts when the Mac Monitor that owned the event stream goes away,
@@ -185,7 +185,8 @@ public enum SensorXPC {
     /// - Parameters:
     ///   - event: The `ES_EVENT_TYPE_*` name.
     ///   - enabled: `true` to subscribe, `false` to unsubscribe.
-    ///   - reply: `true` if Endpoint Security accepted the request, or `false` if the caller doesn't own the event stream.
+    ///   - reply: `true` if Endpoint Security accepted the request, or `false` if the caller doesn't own the event
+    ///     stream.
     func setSubscription(_ event: String, enabled: Bool, reply: @escaping (Bool) -> Void)
     
     // MARK: Path muting
@@ -228,7 +229,8 @@ public enum SensorXPC {
     ///   - action: `install` or `remove` (``CommandLineToolLink/Action``).
     ///   - tool: The tool to link, or empty for a removal.
     ///   - expected: What Settings saw at the link's path, or empty for nothing.
-    ///   - authorization: The authorization's external form (``CommandLineToolAuthorization/requestApproval(prompt:)``).
+    ///   - authorization: The authorization's external form
+    ///     (``CommandLineToolAuthorization/requestApproval(prompt:)``).
     ///   - reply: A ``CommandLineToolLinker/Outcome`` raw value.
     func changeCommandLineTool(action: String, tool: String, expected: String, authorization: Data,
                                reply: @escaping (Int) -> Void)

@@ -41,8 +41,8 @@ public enum UpdateCheck: Codable {
     
     /// Read the Security Extension's reply.
     ///
-    /// A reply that isn't an `UpdateCheck` is read as a bare ``UpdateDetails``, which is what the Security Extension sent
-    /// before it said why there was no update.
+    /// A reply that isn't an `UpdateCheck` is read as a bare ``UpdateDetails``, which is what the Security Extension
+    /// sent before it said why there was no update.
     ///
     /// - Parameter reply: The reply's bytes, or `nil` when the request failed.
     /// - Returns: The outcome. A missing or unreadable reply is `.failed`.

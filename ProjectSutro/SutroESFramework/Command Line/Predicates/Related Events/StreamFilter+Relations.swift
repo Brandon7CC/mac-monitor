@@ -14,8 +14,8 @@ import Foundation
 /// `SUBQUERY(process_group, $e, $e.es_event_type == "ES_EVENT_TYPE_NOTIFY_CREATE").@count > 0` matches an event whose
 /// process group created a file. Inside a `SUBQUERY`, `$e.path` is the related event's and a plain key path the
 /// searched event's, so `$e.process.pid == process.pid` joins the two, and `$e.mach_time > mach_time` puts the related
-/// event after. Not `global_seq_num`: each Endpoint Security client numbers its own events. `events` relates every event to every other, for events nothing else relates. An event is
-/// never related to itself.
+/// event after. Not `global_seq_num`: each Endpoint Security client numbers its own events. `events` relates every
+/// event to every other, for events nothing else relates. An event is never related to itself.
 public enum PredicateRelation: String, CaseIterable {
     /// Every event recorded, or in the trace.
     case events

@@ -72,8 +72,8 @@ public class ESProcess: NSManagedObject, Identifiable {
         self.group_id = process.group_id
         self.session_id = process.session_id
         
-        /// Audit tokens: rows shared with every process that has the same token (see ``EventRowCaches``). The strings are
-        /// formatted from the values, as reading a shared row would load it.
+        /// Audit tokens: rows shared with every process that has the same token (see ``EventRowCaches``). The strings
+        /// are formatted from the values, as reading a shared row would load it.
         if let audit_token = process.audit_token {
             attach(ESAuditToken.row(for: audit_token, in: context), to: #keyPath(ESProcess.audit_token))
             self.audit_token_string = audit_token.toString()
@@ -85,7 +85,8 @@ public class ESProcess: NSManagedObject, Identifiable {
         }
         
         if let responsible_audit_token = process.responsible_audit_token {
-            attach(ESAuditToken.row(for: responsible_audit_token, in: context), to: #keyPath(ESProcess.responsible_audit_token))
+            attach(ESAuditToken.row(for: responsible_audit_token, in: context),
+                   to: #keyPath(ESProcess.responsible_audit_token))
             self.responsible_audit_token_string = responsible_audit_token.toString()
         }
         

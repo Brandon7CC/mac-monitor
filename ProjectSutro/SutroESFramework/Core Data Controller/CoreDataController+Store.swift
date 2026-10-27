@@ -11,10 +11,10 @@ import OSLog
 import SQLite3
 
 extension CoreDataController {
-    /// Replace the store with an empty one: every Clear's way of emptying it, and the way left when deletes fail (SQLite
-    /// logs a delete before making it, which a full disk, most easily filled by a trace, has no room for, while emptying
-    /// the store's files frees space). Not while an export reads the store. On `privateMOC`'s queue only, after it has let
-    /// go of every object.
+    /// Replace the store with an empty one: every Clear's way of emptying it, and the way left when deletes fail
+    /// (SQLite logs a delete before making it, which a full disk, most easily filled by a trace, has no room for, while
+    /// emptying the store's files frees space). Not while an export reads the store. On `privateMOC`'s queue only,
+    /// after it has let go of every object.
     ///
     /// Objects the other contexts loaded from the old store read `nil` once their context forgets them, but looking one
     /// up by ID with `object(with:)` raises an exception: readers use `existingObject(with:)`, which throws.

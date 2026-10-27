@@ -78,7 +78,9 @@ final class TelemetryExporterProgressTests: XCTestCase {
 
             let (result, reports) = try export(to: url, cancelAt: cancelAt)
 
-            XCTAssertThrowsError(try result.get(), moment) { XCTAssertTrue($0 is CancellationError, "\(moment): \($0)") }
+            XCTAssertThrowsError(try result.get(), moment) {
+                XCTAssertTrue($0 is CancellationError, "\(moment): \($0)")
+            }
             XCTAssertEqual(try Data(contentsOf: url), earlier, moment)
             XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path), ["trace.jsonl"], moment)
             /// Nothing after the Cancel: no report of the file in place.

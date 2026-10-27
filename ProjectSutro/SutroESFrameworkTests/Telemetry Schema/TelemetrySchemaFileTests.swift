@@ -73,9 +73,10 @@ final class TelemetrySchemaFileTests: XCTestCase {
     }
     
     /// A released version's schema never changes: if `Schema/released-versions.txt` lists the current version, the
-    /// file must have the hash it was released with. No version listed is newer than the current one.
+    /// file must have the hash it was released with. No version listed is newer than the current one. A file that
+    /// can't be read fails.
     func testReleasedSchemasAreFrozen() throws {
-        let text = (try? String(contentsOf: Self.releasedVersionsURL, encoding: .utf8)) ?? ""
+        let text = try String(contentsOf: Self.releasedVersionsURL, encoding: .utf8)
         let hash = try Self.schemaSHA256
         let lines = text.split(separator: "\n").filter { !$0.hasPrefix("#") && !$0.allSatisfy(\.isWhitespace) }
         for line in lines {

@@ -9,7 +9,7 @@ fi
 # Open the app with the deactivation flag. The user will have 60 seconds to enter their password.
 /usr/bin/open -a "/Applications/Mac Monitor.app" --args --deactivate-security-extension
 
-# We're going to keep checking to see if the Red Canary Security Extension is activated
+# We're going to keep checking to see if the Mac Monitor Security Extension is activated
 # If it is we need to wait because the user is entering their password
 # If we've been waiting for more than a minute bail
 counter=0

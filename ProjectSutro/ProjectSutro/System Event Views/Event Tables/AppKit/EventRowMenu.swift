@@ -15,9 +15,9 @@ import SutroESFramework
 // MARK: - Row menu
 /// The right-click menu of a row in the AppKit event tables.
 ///
-/// Item for item the same as ``TableNonExecContextMenus`` and ``TableExecEventContextMenu``: the same items, titles, order,
-/// and preferences. Those views, through ``FactsRowMenu``, are the menus of the Event Facts window's Correlation and
-/// Groups tables, so keep the two in sync.
+/// Item for item the same as ``TableNonExecContextMenus`` and ``TableExecEventContextMenu``: the same items, titles,
+/// order, and preferences. Those views, through ``FactsRowMenu``, are the menus of the Event Facts window's Correlation
+/// and Groups tables, so keep the two in sync.
 ///
 /// Everything an item needs is read when the menu is built. An item never touches the event again, which may have been
 /// cleared by the time the item is chosen.
@@ -58,7 +58,9 @@ struct EventRowMenu {
         
         var items = [eventMetadata(), .separator()]
         if prefs.contextInitiatingPathFilter {
-            items.append(Self.item("Filter initiating path: \"\(name ?? "")\"") { filters.wrappedValue.initiatingPaths.append(path ?? "") })
+            items.append(Self.item("Filter initiating path: \"\(name ?? "")\"") {
+                filters.wrappedValue.initiatingPaths.append(path ?? "")
+            })
         }
         items.append(filterEvent(eventType))
         if prefs.contextInitiatingEUIDFilter {
@@ -67,7 +69,9 @@ struct EventRowMenu {
         
         items += [.separator(), Self.header("Select")]
         if let name, let path {
-            items.append(Self.item("→ Only: \"\(name)\" events") { filters.wrappedValue.rootIncludedInitiatingProcessPath = path })
+            items.append(Self.item("→ Only: \"\(name)\" events") {
+                filters.wrappedValue.rootIncludedInitiatingProcessPath = path
+            })
             items.append(Self.item("↕ Full tree: \"\(name)\" events") {
                 filters.wrappedValue.rootIncludedInitiatingProcessPath = path
                 filters.wrappedValue.shouldIncludeProcessSubTrees = true
@@ -76,11 +80,14 @@ struct EventRowMenu {
         
         var advanced: [NSMenuItem] = []
         /// File and `MMAP` events filter and mute the directory they target rather than the file.
-        let byDirectory = !targetPath.isEmpty && IntelligentEventTargeting.targetShouldBeParentDir(esEventType: eventType)
+        let byDirectory = !targetPath.isEmpty
+            && IntelligentEventTargeting.targetShouldBeParentDir(esEventType: eventType)
         let directory = targetPath.deletingLastPathComponent
         if prefs.contextTargetPathFilter && !targetPath.isEmpty {
             let filtered = byDirectory ? directory : targetPath
-            advanced.append(Self.item("Filter target path: \"\(filtered)/\"") { filters.wrappedValue.targetPaths.append(filtered) })
+            advanced.append(Self.item("Filter target path: \"\(filtered)/\"") {
+                filters.wrappedValue.targetPaths.append(filtered)
+            })
         }
         if isRecorded && prefs.contextInitiatingPathMute {
             advanced.append(Self.item("Mute initiating path: \"\(path ?? "")\"") {
@@ -126,7 +133,9 @@ struct EventRowMenu {
         
         var items = [eventMetadata(), .separator()]
         if prefs.contextExecTargetPathFilter, let targetPath {
-            items.append(Self.item("Filter target path: \"\(targetPath)\"") { filters.wrappedValue.targetPaths.append(targetPath) })
+            items.append(Self.item("Filter target path: \"\(targetPath)\"") {
+                filters.wrappedValue.targetPaths.append(targetPath)
+            })
         }
         items.append(filterEvent(eventType))
         if prefs.contextExecInitiatingEUIDFilter {
@@ -173,7 +182,8 @@ struct EventRowMenu {
     }
     
     // MARK: Shared items
-    /// The "Advanced" section, as the SwiftUI menus show it: always while recording, and only if it has items for a trace.
+    /// The "Advanced" section, as the SwiftUI menus show it.
+    /// It's always shown while recording, and for a trace only if it has items.
     ///
     /// - Parameter items: The section's items.
     /// - Returns: A separator, the "Advanced" header, and the items; or nothing.

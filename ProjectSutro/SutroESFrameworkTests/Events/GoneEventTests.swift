@@ -23,7 +23,8 @@ final class GoneEventTests: XCTestCase {
         try assertClearForgetsWhatLoadedDuringIt(whileExporting: false)
     }
     
-    /// The same for a Clear that deletes the rows, while an export reads the store: not left alive with its rows deleted.
+    /// The same for a Clear that deletes the rows, while an export reads the store: not left alive with its rows
+    /// deleted.
     func testClearDuringAnExportDeletesWhatLoadedDuringIt() throws {
         try assertClearForgetsWhatLoadedDuringIt(whileExporting: true)
     }
@@ -67,7 +68,8 @@ final class GoneEventTests: XCTestCase {
         
         for (name, message) in [("loaded before", early), ("loaded during", late)] {
             XCTAssertTrue(message.isDeleted || message.managedObjectContext == nil,
-                          "An exec \(name) the Clear is still alive, its exec \(String(describing: message.event.exec))")
+                          "An exec \(name) the Clear is still alive, "
+                              + "its exec \(String(describing: message.event.exec))")
         }
     }
 

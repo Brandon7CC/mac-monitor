@@ -51,7 +51,8 @@ extension CoreDataController {
             }) { result in
                 self.exports.withLock { $0[key] = nil }
                 if case .failure(let error) = result, !(error is CancellationError) {
-                    CoreDataController.logger.error("Failed to export telemetry: \(error.localizedDescription, privacy: .public)")
+                    CoreDataController.logger.error(
+                        "Failed to export telemetry: \(error.localizedDescription, privacy: .public)")
                 }
                 DispatchQueue.main.async { completion(result) }
             }
@@ -64,7 +65,8 @@ extension CoreDataController {
     
     /// AppKit UI to save system traces.
     ///
-    /// Show the `NSSavePanel`. A JSONL export is named `.jsonl` (JSON Lines, which the app declares), pretty JSON `.json`.
+    /// Show the `NSSavePanel`. A JSONL export is named `.jsonl` (JSON Lines, which the app declares), pretty JSON
+    /// `.json`.
     ///
     /// - Parameters:
     ///   - numberOfEvents: The number of events to save (to be displayed in the UI)

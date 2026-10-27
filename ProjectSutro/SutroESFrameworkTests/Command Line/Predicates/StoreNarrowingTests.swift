@@ -120,7 +120,8 @@ final class StoreNarrowingTests: XCTestCase {
         try context.performAndWait {
             let all = try context.fetch(ESMessage.request())
             let sources = [
-                "es_event_type == 'ES_EVENT_TYPE_NOTIFY_EXEC'", "process.pid > 1 AND process.executable.path BEGINSWITH '/'",
+                "es_event_type == 'ES_EVENT_TYPE_NOTIFY_EXEC'",
+                "process.pid > 1 AND process.executable.path BEGINSWITH '/'",
                 "event.exec.target.executable.path ENDSWITH[c] 'SH' OR event.fork.child.pid > 0",
                 "event_type IN {9, 11} AND context CONTAINS 'e'",
             ]

@@ -39,8 +39,9 @@ extension ProcessHelpers {
     
     /// Which bundle identifiers are forced into File Quarantine?
     ///
-    /// Bundle identifiers forced into File Quarantine by Apple are located in a property list file by the name of `Exceptions.plist`.
-    /// We read from that property list and pull out all identiifers with a `LSFileQuarantineEnabled` key value set to `true`.
+    /// Bundle identifiers forced into File Quarantine by Apple are located in a property list file by the name of
+    /// `Exceptions.plist`. We read from that property list and pull out all identifiers with a
+    /// `LSFileQuarantineEnabled` key value set to `true`.
     ///
     public static let forcedQuarantineSigningIDs: [String] = {
         let path = "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/Exceptions.plist"

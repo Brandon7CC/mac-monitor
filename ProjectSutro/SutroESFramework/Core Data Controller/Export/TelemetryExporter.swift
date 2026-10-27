@@ -23,8 +23,9 @@ import os
 /// (``TelemetrySchema/versionKey``), which ``ESMessage`` encodes.
 ///
 /// The context is pinned to the store as it was when the export started (``pin()``), so events cleared meanwhile still
-/// export. While pinned, SQLite can't fold its write-ahead log back into the store, so the log grows with whatever changes
-/// during the export (measured: about 4 KB per event cleared, plus each inserted event's size) until the export finishes.
+/// export. While pinned, SQLite can't fold its write-ahead log back into the store, so the log grows with whatever
+/// changes during the export (measured: about 4 KB per event cleared, plus each inserted event's size) until the export
+/// finishes.
 ///
 /// A large trace takes a while to encode, so the export reports how many of its events it has written, and fetches and
 /// encodes several batches at once, each on its own context pinned to the same snapshot (``Worker``), writing them in
@@ -75,7 +76,9 @@ public final class TelemetryExporter {
         self.pretty = pretty
         self.reportInterval = reportInterval
         prefetch = ESMessage.recordPrefetchKeyPaths(in: container.managedObjectModel)
-        self.workers = (0..<max(1, workers)).map { _ in Worker(context: container.newBackgroundContext(), pretty: pretty) }
+        self.workers = (0..<max(1, workers)).map { _ in
+            Worker(context: container.newBackgroundContext(), pretty: pretty)
+        }
     }
     
     /// Stop after the current batch, leaving the destination untouched. Any thread.
@@ -86,12 +89,12 @@ public final class TelemetryExporter {
     
     /// Pin the exporter's contexts to the store as it is now, before anything else can change it.
     ///
-    /// A context pins itself when it first loads data, so this loads one row. The workers take the same snapshot. Call it
-    /// from the queue that would make the next change (`privateMOC`), so that change can't come first.
+    /// A context pins itself when it first loads data, so this loads one row. The workers take the same snapshot. Call
+    /// it from the queue that would make the next change (`privateMOC`), so that change can't come first.
     func pin() {
         let token = context.performAndWait { () -> NSQueryGenerationToken? in
-            /// A store in memory (Mac Monitor's at /dev/null, when its file can't be kept) can't: setting the generation
-            /// succeeds there, and the next fetch raises an exception Swift can't catch.
+            /// A store in memory (Mac Monitor's at /dev/null, when its file can't be kept) can't: setting the
+            /// generation succeeds there, and the next fetch raises an exception Swift can't catch.
             let stores = context.persistentStoreCoordinator?.persistentStores ?? []
             guard !stores.isEmpty,
                   stores.allSatisfy({ $0.type == NSSQLiteStoreType && $0.url?.path != "/dev/null" }) else { return nil }
@@ -117,8 +120,8 @@ public final class TelemetryExporter {
     ///   - url: The destination, from the save panel.
     ///   - writeIfEmpty: Write an empty file when no events are chosen (the full trace does, but a selection doesn't).
     ///   - choose: Returns the events in file order. Runs on the exporter's context.
-    ///   - progress: Called on the exporter's queue once the events are chosen, at most ten times a second while they're
-    ///     written, and once more when the last is.
+    ///   - progress: Called on the exporter's queue once the events are chosen, at most ten times a second while
+    ///     they're written, and once more when the last is.
     ///   - completion: Called on the exporter's queue with the number of events written.
     func run(to url: URL, writeIfEmpty: Bool, choose: @escaping (TelemetryExporter) throws -> [NSManagedObjectID],
              progress: @escaping (Progress) -> Void = { _ in }, completion: @escaping (Result<Int, Error>) -> Void) {
@@ -192,8 +195,8 @@ public final class TelemetryExporter {
     }
     
     // MARK: Writing
-    /// Encode `ids` into a temporary file, a round of batches at a time (one per worker, in parallel), then move it over
-    /// `url`.
+    /// Encode `ids` into a temporary file, a round of batches at a time (one per worker, in parallel), then move it
+    /// over `url`.
     ///
     /// - Parameters:
     ///   - ids: The events, in file order.
@@ -252,7 +255,8 @@ public final class TelemetryExporter {
     /// - Parameter url: The destination.
     /// - Returns: The open file and its path.
     private static func temporaryFile(beside url: URL) throws -> (FileHandle, URL) {
-        let temporary = url.deletingLastPathComponent().appendingPathComponent(".\(url.lastPathComponent).\(UUID().uuidString)")
+        let temporary = url.deletingLastPathComponent()
+            .appendingPathComponent(".\(url.lastPathComponent).\(UUID().uuidString)")
         /// Created like any new file (0666 less the umask), so a new export gets the same permissions as before.
         let descriptor = open(temporary.path, O_WRONLY | O_CREAT | O_EXCL, 0o666)
         guard descriptor >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
@@ -371,7 +375,8 @@ public extension ESMessage {
     /// Every to-one relationship an event's record encodes, for `relationshipKeyPathsForPrefetching`: derived from the
     /// model, so new event types are prefetched too.
     ///
-    /// Six deep reaches the deepest path an event encodes, `event.rename.destination.new_path.dir.stat` (and `create`'s).
+    /// Six deep reaches the deepest path an event encodes, `event.rename.destination.new_path.dir.stat` (and
+    /// `create`'s).
     ///
     /// - Parameter model: The event store's model.
     /// - Returns: The key paths, or none if the model has no `ESMessage`.

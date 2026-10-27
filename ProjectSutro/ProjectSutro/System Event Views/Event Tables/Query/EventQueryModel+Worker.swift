@@ -90,7 +90,8 @@ extension EventQueryModel {
         /// - Parameters:
         ///   - work: The job.
         ///   - completion: Called on the main queue with the job's result.
-        func perform<Value>(_ work: @escaping (Worker) throws -> Value, completion: @escaping (Swift.Result<Value, Error>) -> Void) {
+        func perform<Value>(_ work: @escaping (Worker) throws -> Value,
+                            completion: @escaping (Swift.Result<Value, Error>) -> Void) {
             context.perform {
                 let result = Swift.Result { try work(self) }
                 /// The job only read: drop the objects it loaded.
@@ -120,10 +121,12 @@ extension EventQueryModel {
             let found = try snapshot.spec.recordPredicate.map {
                 try search(filter, for: $0.copy, relatedAmong: covered, snapshot)
             }
-            func table(_ table: Snapshot.Table) throws -> (rows: [NSManagedObjectID], selection: IndexSet, shown: Set<UUID>) {
+            func table(_ table: Snapshot.Table) throws
+                -> (rows: [NSManagedObjectID], selection: IndexSet, shown: Set<UUID>) {
                 var rows = try ids(matching: predicate(filter, for: table), sortedBy: table.sort)
                 if let found { rows = rows.filter(found.ids.contains) }
-                return (rows, try EventQueryModel.indexes(of: table.selection, in: rows, context: context), table.selection)
+                let selection = try EventQueryModel.indexes(of: table.selection, in: rows, context: context)
+                return (rows, selection, table.selection)
             }
             return Reload(total: try count(covered),
                           unified: try table(snapshot.unified),
@@ -152,8 +155,8 @@ extension EventQueryModel {
                 let current = trees(snapshot.spec, in: index)
                 lineage = index
                 tokens = current
-                /// Older events only reference processes they've already seen, so they stay in or out of the trees as long
-                /// as no tree lost a process and every process that joined one is new.
+                /// Older events only reference processes they've already seen, so they stay in or out of the trees as
+                /// long as no tree lost a process and every process that joined one is new.
                 guard current.isSuperset(of: old), current.subtracting(old).isSubset(of: fresh) else {
                     result.needsReload = true
                     return result
@@ -183,7 +186,8 @@ extension EventQueryModel {
         ///   - filter: The new events that pass the filters.
         ///   - table: The table's sort and current rows.
         /// - Returns: The merged rows and the new events' positions in them.
-        private func merge(_ filter: NSPredicate, into table: Snapshot.Table) throws -> (rows: [NSManagedObjectID], inserted: IndexSet) {
+        private func merge(_ filter: NSPredicate, into table: Snapshot.Table) throws
+            -> (rows: [NSManagedObjectID], inserted: IndexSet) {
             let request = ESMessage.request(where: predicate(filter, for: table), sortedBy: table.sort, loaded: true)
             let new = try context.fetch(request)
             guard !new.isEmpty else { return (table.rows, []) }

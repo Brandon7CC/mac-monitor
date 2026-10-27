@@ -126,7 +126,8 @@ extension TelemetrySchemaSource {
             enrichment("label", .string, "The job's label, from XPC_SERVICE_NAME in its exec environment."),
         ])
         return SchemaObject("The process that really caused another to run, and how Mac Monitor knows.", [
-            enrichment("source", .values(LaunchedByParent.Source.allCases.map(\.rawValue)), "The signal that named it."),
+            enrichment("source", .values(LaunchedByParent.Source.allCases.map(\.rawValue)),
+                       "The signal that named it."),
             enrichment("audit_token", .nullable(.ref("audit_token")),
                      "The launched-by parent's audit token, as eslogger writes one; null when only its pid is known."),
             enrichment("pid", .nullable(.integer), "The launched-by parent's pid."),

@@ -13,12 +13,12 @@ import os
 // MARK: - Trace importer
 /// Reads a trace file into the event store for File > Open Trace… (#38), like opening a saved Process Monitor log.
 ///
-/// Takes what `/usr/bin/eslogger` writes and what Mac Monitor writes or receives from its Security Extension, told apart by
-/// their content rather than the file's extension:
+/// Takes what `/usr/bin/eslogger` writes and what Mac Monitor writes or receives from its Security Extension, told
+/// apart by their content rather than the file's extension:
 /// - eslogger's JSON Lines, and its `--oslog` events read back with `log show` (`--style json` or `ndjson`, whose
 ///   entries carry the event as their `eventMessage`, or a text style, whose lines end with it);
-/// - Mac Monitor's exports: JSONL (one compact event per line) and pretty JSON (pretty-printed events joined by "\n", not
-///   an array). Since 3.0.0 an export is eslogger's JSON plus Mac Monitor's own fields, among them its telemetry
+/// - Mac Monitor's exports: JSONL (one compact event per line) and pretty JSON (pretty-printed events joined by "\n",
+///   not an array). Since 3.0.0 an export is eslogger's JSON plus Mac Monitor's own fields, among them its telemetry
 ///   version (``TelemetrySchema/versionKey``), which is ignored: a re-export carries the version it's written in. 2.0
 ///   and 2.1 wrote their own shape;
 /// - the Security Extension's own `Message` JSON (the XPC wire format), one per line;
@@ -30,10 +30,10 @@ import os
 /// (``Message/enrich()``, ``ESEnrichable``), and so is the launched-by parent of each process an exec or fork creates,
 /// from the trace alone (``TraceLaunchedByParents``).
 ///
-/// The file is read incrementally (``TraceRecordReader``), decoded in parallel a batch at a time, and each batch is saved
-/// while the next is decoded, so memory stays flat whatever the file's size. Records that aren't events (malformed or
-/// truncated JSON, other objects, events without a type or a time) are skipped and counted, and events of a type Mac
-/// Monitor doesn't have are counted by name. A failed save (the disk is full) stops the import.
+/// The file is read incrementally (``TraceRecordReader``), decoded in parallel a batch at a time, and each batch is
+/// saved while the next is decoded, so memory stays flat whatever the file's size. Records that aren't events
+/// (malformed or truncated JSON, other objects, events without a type or a time) are skipped and counted, and events of
+/// a type Mac Monitor doesn't have are counted by name. A failed save (the disk is full) stops the import.
 ///
 /// Start one with ``CoreDataController/openTrace(at:progress:completion:)``. Any Clear stops it.
 public final class TraceImporter {
@@ -211,7 +211,8 @@ public final class TraceImporter {
         (summary.saved, summary.timeRange) = (events, range)
         if failed { summary.error = Failure.storeFull }
         if let firstProblem {
-            Self.logger.info("Skipped \(summary.skipped) records, first on line \(firstProblem.line): \(firstProblem.reason, privacy: .public)")
+            let line = firstProblem.line, reason = firstProblem.reason
+            Self.logger.info("Skipped \(summary.skipped) records, first on line \(line): \(reason, privacy: .public)")
         }
         report(state())
         return summary
@@ -220,11 +221,11 @@ public final class TraceImporter {
     /// One event, from its JSON in any shape ``TraceImporter`` reads.
     ///
     /// Exports and eslogger don't carry `message_darwin_time`, the event's time as a `Date`: it's read back from `time`
-    /// (``ESLogger/date(fromTime:legacy:)``), and `time` is kept in eslogger's format (``ESLogger/time(_:darwinTime:)``).
-    /// A new path's directory, which exports from 2.0.0 to 2.1.0 leave out, is read back from the event's destination
-    /// path, and a rename's `mode`, which 2.0.0 to 2.1.0 wrote as 0, is dropped (see ``Message/repairNewPath()``). An
-    /// event without Mac Monitor's own fields (one of eslogger's) gets them derived from its Endpoint Security fields
-    /// (``Message/enrich()``).
+    /// (``ESLogger/date(fromTime:legacy:)``), and `time` is kept in eslogger's format
+    /// (``ESLogger/time(_:darwinTime:)``). A new path's directory, which exports from 2.0.0 to 2.1.0 leave out, is read
+    /// back from the event's destination path, and a rename's `mode`, which 2.0.0 to 2.1.0 wrote as 0, is dropped (see
+    /// ``Message/repairNewPath()``). An event without Mac Monitor's own fields (one of eslogger's) gets them derived
+    /// from its Endpoint Security fields (``Message/enrich()``).
     ///
     /// - Parameter json: The event's JSON object, or a unified log entry whose `eventMessage` is one.
     /// - Returns: The event.
@@ -246,7 +247,9 @@ public final class TraceImporter {
         /// than about 3,000 years away) is read from `time` instead.
         let darwinTime = (object["message_darwin_time"] as? NSNumber)?.doubleValue
         if !(darwinTime.map { abs($0) < Self.maxDarwinTime } ?? false) {
-            guard let date = ESLogger.date(fromTime: message.time, legacy: !enriching) else { throw TraceImportError.incomplete("no time") }
+            guard let date = ESLogger.date(fromTime: message.time, legacy: !enriching) else {
+                throw TraceImportError.incomplete("no time")
+            }
             message.message_darwin_time = date
         }
         message.time = ESLogger.time(message.time, darwinTime: message.message_darwin_time)
@@ -268,7 +271,8 @@ public final class TraceImporter {
         if let text = object["eventMessage"] as? String, let start = text.firstIndex(of: "{") {
             return try event(in: try JSONSerialization.jsonObject(with: Data(text[start...].utf8)))
         }
-        throw object.count == 2 && object["finished"] != nil && object["count"] != nil ? TraceImportError.logTrailer : TraceImportError.notAnEvent
+        let trailer = object.count == 2 && object["finished"] != nil && object["count"] != nil
+        throw trailer ? TraceImportError.logTrailer : TraceImportError.notAnEvent
     }
     
     /// Describe why a record was skipped, for the log.
@@ -276,7 +280,9 @@ public final class TraceImporter {
     /// - Parameter error: The error decoding it.
     /// - Returns: A short reason, with the offending key path for a decoding error.
     static func describe(_ error: Error) -> String {
-        guard let decoding = error as? DecodingError else { return (error as? LocalizedError)?.errorDescription ?? "not valid JSON" }
+        guard let decoding = error as? DecodingError else {
+            return (error as? LocalizedError)?.errorDescription ?? "not valid JSON"
+        }
         guard let context = decoding.context else { return "\(decoding)" }
         return "\(context.codingPath.map(\.stringValue).joined(separator: ".")): \(context.debugDescription)"
     }

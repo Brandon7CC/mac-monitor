@@ -17,7 +17,7 @@ final class PathNameTests: XCTestCase {
     /// A path's last component, with spaces or without, a folder's without its slash, and "" for "".
     func testLastPathComponent() {
         let names = [("/Applications/Mac Monitor.app/Contents/MacOS/macmonitor", "macmonitor"),
-                     ("/Users/marcus/My Scripts/run me.sh", "run me.sh"), ("/usr/bin/true", "true"),
+                     ("/Users/alice/My Scripts/run me.sh", "run me.sh"), ("/usr/bin/true", "true"),
                      ("/Library/Caches/", "Caches"), ("relative/name", "name"), ("", "")]
         for (path, name) in names {
             XCTAssertEqual(path.lastPathComponent, name, path)
@@ -34,7 +34,9 @@ final class PathNameTests: XCTestCase {
         var offenders: [String] = [], scanned = 0
         for folder in ["ProjectSutro", "SutroESFramework", "SecurityExtension", "macmonitor"] {
             let root = project.appendingPathComponent(folder)
-            guard let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil) else { continue }
+            guard let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil) else {
+                continue
+            }
             for case let file as URL in files where file.pathExtension == "swift" {
                 let source = try String(contentsOf: file, encoding: .utf8)
                 scanned += 1

@@ -146,7 +146,10 @@ extension SensorService: SensorProtocol {
         
         queue.async { [self] in
             if let owner = sink, owner.connection !== caller {
-                logger.error("Refusing start from a second Mac Monitor connection (pid \(caller.processIdentifier)). A connection from pid \(owner.connection.processIdentifier) owns the event stream.")
+                logger.error("""
+                    Refusing start from a second Mac Monitor connection (pid \(caller.processIdentifier)). \
+                    A connection from pid \(owner.connection.processIdentifier) owns the event stream.
+                    """)
                 return reply(.streamOwned)
             }
             let claims = sink == nil
