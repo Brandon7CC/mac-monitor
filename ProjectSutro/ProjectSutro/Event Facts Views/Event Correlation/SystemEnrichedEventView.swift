@@ -28,7 +28,7 @@ struct SystemEnrichedEventView: View {
     /// The kind kept, by title.
     @State private var kind: String?
     @State private var finding: Finding?
-    /// Settings ▸ Findings: the summary is made again when they change.
+    /// Settings ▸ Indicators: the summary is made again when they change.
     @ObservedObject private var findingStore = FindingStore.shared
     /// The event types whose chips are on, by short name.
     @State private var types: Set<String> = []

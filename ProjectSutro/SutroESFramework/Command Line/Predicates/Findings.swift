@@ -12,7 +12,7 @@ import Foundation
 /// What's worth a look among an event's related events: a predicate on each event's record, with what Event Facts
 /// calls it. Correlation shows the findings among the events of the process an exec created, Groups among a group's
 /// execs. The tables mark the events of those with ``showsInTables``. Mac Monitor ships ``defaults``, and people add
-/// their own in Settings ▸ Findings. The tables also draw ``builtInMarks``, which aren't listed there.
+/// their own in Settings ▸ Indicators. The tables also draw ``builtInMarks``, which aren't listed there.
 public struct Finding: Codable, Identifiable, Hashable {
     /// A finding's color, by name, for its card, its rows' dots and its symbol.
     public enum Color: String, Codable, CaseIterable {

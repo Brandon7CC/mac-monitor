@@ -108,7 +108,7 @@ final class FindingTests: XCTestCase {
         let finding = Finding(name: "x", explanation: "", symbol: "star", color: .red,
                               predicate: "SUBQUERY(correlated, $e, TRUEPREDICATE).@count > 0",
                               correlation: true, groups: false)
-        XCTAssertTrue(finding.problem?.hasPrefix("The finding's predicate can't use SUBQUERY") == true,
+        XCTAssertTrue(finding.problem?.hasPrefix("The indicator's predicate can't use SUBQUERY") == true,
                       finding.problem ?? "")
         XCTAssertNil(Finding(name: "x", explanation: "", symbol: "star", color: .red, predicate: "process.pid == 1",
                              correlation: true, groups: false).problem)

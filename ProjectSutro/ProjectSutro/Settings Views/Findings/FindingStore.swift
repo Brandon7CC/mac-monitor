@@ -11,8 +11,8 @@ import SutroESFramework
 
 
 // MARK: - Store
-/// The findings Event Facts looks for, as Settings ▸ Findings edits them: Mac Monitor's defaults until they're changed,
-/// kept in user defaults. Its matchers find them in Correlation, Groups, and the event tables.
+/// The findings Event Facts looks for, as Settings ▸ Indicators edits them: Mac Monitor's defaults until they're
+/// changed, kept in user defaults. Its matchers find them in Correlation, Groups, and the event tables.
 @MainActor
 final class FindingStore: ObservableObject {
     static let shared = FindingStore()
@@ -148,7 +148,7 @@ final class EventMarks {
 
 
 /// An event's findings that mark it in the tables, before its type or name. Each shows its symbol, with its name and
-/// explanation as help. Settings ▸ Findings chooses which mark the tables.
+/// explanation as help. Settings ▸ Indicators chooses which mark the tables.
 struct FindingMarks: View {
     let message: ESMessage
     /// The built-in marks drawn beside them. A finding that's a matched mark's twin isn't drawn again.

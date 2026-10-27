@@ -33,7 +33,7 @@ struct SystemEventGroupTableViews: View {
     /// The way of signing kept, by title.
     @State private var signing: String?
     @State private var finding: Finding?
-    /// Settings ▸ Findings: the summary is made again when they change.
+    /// Settings ▸ Indicators: the summary is made again when they change.
     @ObservedObject private var findingStore = FindingStore.shared
     /// The executables whose chips are on, by name.
     @State private var names: Set<String> = []

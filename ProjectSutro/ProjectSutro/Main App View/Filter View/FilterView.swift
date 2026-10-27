@@ -92,7 +92,7 @@ struct FilterSheet: View {
                     Text(status).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                SettingsSearchField(text: $query, prompt: "Search filters, paths, findings")
+                SettingsSearchField(text: $query, prompt: "Search filters, paths, indicators")
                     .frame(width: 300)
             }
             .padding(.horizontal, 24)
@@ -188,7 +188,7 @@ struct FilterSheet: View {
         let on = findings.offered
         var rows: [FilterCard.Row] = []
         if on.count > 1 || (search.findingSelection == .any && !on.isEmpty) {
-            rows.append(findingRow(.any, "Any finding", detail: "The events of every finding that's on",
+            rows.append(findingRow(.any, "Any indicator", detail: "The events of every indicator that's on",
                                    symbol: "sparkle.magnifyingglass", tint: .orange))
         }
         rows += on.map { findingRow(.finding($0.id), $0.name, detail: $0.explanation, symbol: $0.symbol,
@@ -196,18 +196,18 @@ struct FilterSheet: View {
         /// A finding filter that's dropped keeps its row, which says why, so it can be switched off.
         if let selection = search.findingSelection, search.findingPredicate == nil {
             let detail = "\(droppedReason(selection)), so its events aren't filtered. Switch it off"
-            rows.insert(findingRow(selection, search.findingName ?? "Finding", detail: detail,
+            rows.insert(findingRow(selection, search.findingName ?? "Indicator", detail: detail,
                                    symbol: "sparkle.magnifyingglass", tint: .gray), at: 0)
         }
         /// A dropped finding filter isn't on.
         let shown = search.filteringFinding
-        return FilterCard(kind: .findings, title: "Findings",
-                          about: "Show only a finding's events. Settings ▸ Findings sets what each finds",
+        return FilterCard(kind: .findings, title: "Indicators",
+                          about: "Show only an indicator's events. Settings ▸ Indicators sets what each finds",
                           symbol: "sparkle.magnifyingglass", tint: .orange,
                           summary: shown ?? (search.findingSelection == nil ? "Off" : "Dropped"),
                           isOn: shown != nil, rows: rows,
-                          empty: rows.isEmpty ? "Turn on Event tables and Filters for a finding in Settings ▸ Findings."
-                            : nil)
+                          empty: rows.isEmpty
+                            ? "Turn on Event tables and Filters for an indicator in Settings ▸ Indicators." : nil)
     }
 
     private var predicateCard: FilterCard {
@@ -273,12 +273,12 @@ struct FilterSheet: View {
     }
 
     /// - Parameter selection: A finding filter that's dropped.
-    /// - Returns: Why, from Settings ▸ Findings.
+    /// - Returns: Why, from Settings ▸ Indicators.
     private func droppedReason(_ selection: FindingSelection) -> String {
-        guard case .finding(let id) = selection else { return "No finding is offered anymore" }
+        guard case .finding(let id) = selection else { return "No indicator is offered anymore" }
         guard let finding = findings.findings.first(where: { $0.id == id }) else { return "It was deleted" }
-        if !finding.isEnabled { return "It's switched off in Settings ▸ Findings" }
-        if !finding.showsInTables { return "Event tables and Filters is off for it in Settings ▸ Findings" }
+        if !finding.isEnabled { return "It's switched off in Settings ▸ Indicators" }
+        if !finding.showsInTables { return "Event tables and Filters is off for it in Settings ▸ Indicators" }
         return "Its predicate can't be used"
     }
 
