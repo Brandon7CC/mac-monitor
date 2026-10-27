@@ -72,3 +72,20 @@ extension ClosedRange {
         Swift.min(lowerBound, other.lowerBound)...Swift.max(upperBound, other.upperBound)
     }
 }
+
+
+// MARK: - Dictionary lookups
+extension NSDictionary {
+    /// The object under `key`, as the object it is. `object(forKey:)` bridges it to `Any` and back, which looks up its
+    /// class's Swift metadata each time.
+    ///
+    /// - Parameter key: The key.
+    /// - Returns: The object, or `nil`.
+    func value(at key: String) -> AnyObject? {
+        let name = key as NSString
+        return withExtendedLifetime(name) {
+            CFDictionaryGetValue(self as CFDictionary, Unmanaged.passUnretained(name).toOpaque())
+                .map { Unmanaged<AnyObject>.fromOpaque($0).takeUnretainedValue() }
+        }
+    }
+}

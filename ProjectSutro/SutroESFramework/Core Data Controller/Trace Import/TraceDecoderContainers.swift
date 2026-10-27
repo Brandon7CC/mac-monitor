@@ -76,12 +76,10 @@ struct TraceKeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
     /// into its parent, its payload.
     private func value(of key: Key) -> AnyObject? {
         let name = key.stringValue
-        if let value = object.object(forKey: name) ?? TraceDecoder.renamed[name].flatMap(object.object(forKey:)) {
-            return value as AnyObject
-        }
+        if let value = object.value(at: name) ?? TraceDecoder.renamed[name].flatMap(object.value(at:)) { return value }
         if name == "_0" { return object }
         /// Every type has an `id` the export leaves out, and no enum has a case of that name.
-        return name == "id" ? nil : flattened?.object(forKey: name).map { $0 as AnyObject }
+        return name == "id" ? nil : flattened?.value(at: name)
     }
     
     /// The decoder of `key`'s value.

@@ -343,7 +343,8 @@ struct ProjectSutroApp: App {
         openEventJSON(id: Self.mainWindow)
     }
 
-    /// Export telemetry: stop recording, then choose a file and save the events to it in the background.
+    /// Export telemetry: stop recording, then choose a file and save the events to it in the background. The main
+    /// window key last shows the save's sheet, and one opens if none is open.
     ///
     /// - Parameters:
     ///   - eventIDs: The selected events, or `nil` for the full trace.
@@ -351,6 +352,6 @@ struct ProjectSutroApp: App {
     private func save(_ eventIDs: [UUID]? = nil, jsonl: Bool) {
         recordingEvents = false
         systemExtensionManager.stopRecordingEvents()
-        traceSession.save(eventIDs: eventIDs, jsonl: jsonl)
+        traceSession.save(eventIDs: eventIDs, jsonl: jsonl, showWindow: showMainWindow)
     }
 }

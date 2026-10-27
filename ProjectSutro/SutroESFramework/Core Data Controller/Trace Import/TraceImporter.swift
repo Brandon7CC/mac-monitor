@@ -30,15 +30,19 @@ import os
 /// (``Message/enrich()``, ``ESEnrichable``), and so is the launched-by parent of each process an exec or fork creates,
 /// from the trace alone (``TraceLaunchedByParents``).
 ///
-/// The file is read incrementally (``TraceRecordReader``), decoded in parallel a batch at a time, and each batch is
-/// saved while the next is decoded, so memory stays flat whatever the file's size. Records that aren't events
-/// (malformed or truncated JSON, other objects, events without a type or a time) are skipped and counted, and events of
-/// a type Mac Monitor doesn't have are counted by name. A failed save (the disk is full) stops the import.
+/// The file is read incrementally (``TraceRecordReader``) and each batch goes through three stages at once. One batch
+/// is decoded in parallel while the batch before is built into objects (``TraceInsertPipeline``) and the one before
+/// that is saved. So memory stays flat whatever the file's size. Records that aren't events (malformed or truncated
+/// JSON, other objects, events without a type or a time) are skipped and counted. Events of a type Mac Monitor doesn't
+/// have are counted by name. A failed save (the disk is full) stops the import.
 ///
 /// Start one with ``CoreDataController/openTrace(at:progress:completion:)``. Any Clear stops it.
 public final class TraceImporter {
     /// The most events decoded and saved at a time.
     static let batchSize = 500
+    /// Build each batch outside the store's queue while the one before saves (``TraceInsertPipeline``). Tests turn it
+    /// off to compare with building and saving on the store's queue.
+    static var pipelined = true
     /// The most bytes of records decoded at a time: a batch of large records is flushed before it has ``batchSize``.
     static let batchBytes = 64 << 20
     /// How much of a file ``preflight(_:)`` reads looking for an event.
@@ -119,18 +123,38 @@ public final class TraceImporter {
     private func read(report: (Progress) -> Void) -> Summary {
         var summary = Summary(url: url), records: [(line: Int, json: Data)] = [], recordBytes = 0, handed = 0
         var firstProblem: (line: Int, reason: String)?
-        /// One batch saving while the next is read and decoded, and what the saves did.
+        /// One batch saving while the next is built and the one after is decoded, and what the saves did.
         let saving = DispatchSemaphore(value: 1)
         let saves = OSAllocatedUnfairLock(initialState: (events: 0, failed: false, range: ClosedRange<Date>?.none))
         let launchedByParents = TraceLaunchedByParents()
+        /// Builds each batch here while the one before saves. It's made once the Clear that opened the trace has
+        /// replaced the store, so no row gets an ID in the store that was replaced.
+        store.privateMOC.performAndWait {}
+        let pipeline = Self.pipelined ? TraceInsertPipeline(store: store, clear: clear) : nil
         
-        /// Decode the records read, wait for the batch being saved, and hand these to the store.
+        /// A batch decoded and given its launched-by parents, waiting to be built and saved.
+        var pending: [Message]?
+        
+        /// Decode the records read, in parallel, while the batch decoded before is built and handed to the store.
         ///
         /// - Returns: `false` once a save has failed.
         func flush() -> Bool {
+            let batch = records
+            records.removeAll(keepingCapacity: true)
+            recordBytes = 0
+            var decoded: [Result<Message, Error>] = []
+            let decoding = DispatchGroup()
+            if !batch.isEmpty {
+                DispatchQueue.global(qos: .userInitiated).async(group: decoding) {
+                    decoded = batch.concurrentMap { record in Result { try Self.message(from: record.json) } }
+                }
+            }
+            let handedOK = pending.map(hand) ?? true
+            pending = nil
+            decoding.wait()
+            guard handedOK else { return false }
             var messages: [Message] = []
-            let decoded = records.concurrentMap { record in Result { try Self.message(from: record.json) } }
-            for (record, result) in zip(records, decoded) {
+            for (record, result) in zip(batch, decoded) {
                 switch result {
                 case .success(let message):
                     messages.append(message)
@@ -146,17 +170,26 @@ public final class TraceImporter {
             /// In file order, after the parallel decode: each event's launched-by parent is named from the events
             /// before it.
             launchedByParents.fill(&messages)
-            records.removeAll(keepingCapacity: true)
-            recordBytes = 0
+            pending = messages
+            return true
+        }
+        
+        /// Build a decoded batch while the batch before saves, wait for that save, and hand this one to the store.
+        ///
+        /// - Parameter messages: The batch, in file order.
+        /// - Returns: `false` once a save has failed.
+        func hand(_ messages: [Message]) -> Bool {
+            let built = messages.isEmpty ? nil : pipeline?.build(messages)
             saving.wait()
             let failed = saves.withLock { $0.failed }
             let times = messages.map(\.message_darwin_time)
             guard !failed, let earliest = times.min(), let latest = times.max() else {
+                if case .built(let batch)? = built { pipeline?.discard(batch) }
                 saving.signal()
                 return !failed
             }
             let span = earliest...latest
-            store.insertTraceEvents(messages, clear: clear) { [count = messages.count] saved in
+            let done = { [count = messages.count] (saved: Bool) in
                 saves.withLock { state in
                     guard saved else {
                         state.failed = true
@@ -166,6 +199,13 @@ public final class TraceImporter {
                     state.range = state.range?.including(span) ?? span
                 }
                 saving.signal()
+            }
+            switch built {
+            case nil: store.insertTraceEvents(messages, clear: clear, completion: done)
+            case .built(let batch)?: store.saveTraceEvents(batch, clear: clear, completion: done)
+            /// As ``CoreDataController/insertTraceEvents(_:clear:completion:)`` reports a batch of a closed trace.
+            case .closed?: done(true)
+            case .failed?: done(false)
             }
             handed += messages.count
             return true
@@ -203,7 +243,7 @@ public final class TraceImporter {
             summary.error = error
         }
         /// The events read so far, unless a save has failed.
-        _ = flush()
+        if flush(), let last = pending { _ = hand(last) }
         saving.wait()
         saving.signal()
         
