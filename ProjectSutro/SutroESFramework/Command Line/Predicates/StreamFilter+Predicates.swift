@@ -11,7 +11,7 @@ import Foundation
 // MARK: - Audience
 /// Who a predicate's errors are written for: `macmonitor stream --predicate`, or the predicate search in Mac Monitor's
 /// window.
-public struct PredicateAudience: Equatable {
+public struct PredicateAudience: Equatable, Sendable {
     /// What the errors call the predicate, such as "--predicate".
     let name: String
     /// Where the record's keys are described.

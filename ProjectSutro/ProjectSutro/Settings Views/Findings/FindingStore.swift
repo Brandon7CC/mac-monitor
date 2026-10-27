@@ -17,13 +17,15 @@ import SutroESFramework
 final class FindingStore: ObservableObject {
     static let shared = FindingStore()
 
+    /// Only an edit saves them. Loading never does, so saved findings that didn't decode stay as they are until then.
     @Published private(set) var findings: [Finding] {
         didSet {
             revision += 1
             matchers = [:]
-            usableCache = nil
+            offeredCache = nil
             marks.removeAllObjects()
-            defaults.set(try? JSONEncoder().encode(findings), forKey: Self.key)
+            saved.findings = findings
+            defaults.set(saved.encoded(), forKey: Self.key)
         }
     }
     /// Changes with every edit, for views to make their summaries again.
@@ -36,29 +38,32 @@ final class FindingStore: ObservableObject {
 
     private static let key = "findings"
     private let defaults: UserDefaults
+    /// The findings as saved, with the entries this build couldn't decode, which are written back after the rest.
+    private var saved: SavedFindings
     private var matchers: [Tab: FindingMatcher] = [:]
     /// Each event's marks, by its object ID, found once until the findings change.
     private let marks = NSCache<NSManagedObjectID, EventMarks>()
     /// Mac Monitor's built-in marks, always on.
     private let builtInMarks = FindingMatcher(Finding.builtInMarks)
 
-    /// The saved findings, without the built-in marks an earlier build saved among them.
+    /// The saved findings that decode, or Mac Monitor's defaults when none were saved or they aren't an array.
     ///
     /// - Parameter defaults: Where the findings are kept.
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        findings = defaults.data(forKey: Self.key).flatMap { try? JSONDecoder().decode([Finding].self, from: $0) }
-            .map(Finding.droppingBuiltInMarks) ?? Finding.defaults
+        saved = defaults.data(forKey: Self.key).flatMap(SavedFindings.init(data:)) ?? SavedFindings(Finding.defaults)
+        findings = saved.findings
     }
 
-    /// The findings that are on and whose predicates can be used, worked out once until they change.
-    var usable: [Finding] {
-        if let usableCache { return usableCache }
-        let usable = findings.filter { $0.isEnabled && $0.problem == nil }
-        usableCache = usable
-        return usable
+    /// The findings the Filters sheet offers (``FindingSelection/offered(_:)``). Their predicates are parsed once until
+    /// the findings change.
+    var offered: [Finding] {
+        if let offeredCache { return offeredCache }
+        let offered = FindingSelection.offered(findings)
+        offeredCache = offered
+        return offered
     }
-    private var usableCache: [Finding]?
+    private var offeredCache: [Finding]?
 
     /// The findings on for a tab, parsed once until they change.
     ///
@@ -78,10 +83,12 @@ final class FindingStore: ObservableObject {
     }
 
     /// The built-in marks an event matches, and the findings that mark it in the tables, as a script's exec is marked.
+    /// An event that's gone has none, as a Clear's events are while the views let go of them.
     ///
     /// - Parameter message: An event on the main queue's context.
     /// - Returns: Its marks.
     func marks(for message: ESMessage) -> EventMarks {
+        guard !message.isDeleted, message.es_event_type != nil else { return EventMarks(builtIn: [], findings: []) }
         if let found = marks.object(forKey: message.objectID) { return found }
         let found = EventMarks(builtIn: Set(builtInMarks.matches(message).map(\.id)),
                                findings: matcher(for: .tables).matches(message))
@@ -105,13 +112,14 @@ final class FindingStore: ObservableObject {
         findings.removeAll { $0.id == finding.id }
     }
 
-    /// Put Mac Monitor's findings back, and drop the rest.
+    /// Put Mac Monitor's findings back, and drop the rest, those that didn't decode too.
     func restoreDefaults() {
+        saved = SavedFindings(Finding.defaults)
         findings = Finding.defaults
     }
 
     /// Are the findings Mac Monitor's own, unchanged?
-    var isDefault: Bool { findings == Finding.defaults }
+    var isDefault: Bool { findings == Finding.defaults && saved.undecodableCount == 0 }
 }
 
 
@@ -173,11 +181,16 @@ struct BuiltInMarks: View {
 }
 
 
-/// A finding's symbol, drawn in its color, its palette, or the symbol's own colors.
+/// A finding's symbol, drawn in its color, its palette, or the symbol's own colors. VoiceOver reads its name.
 struct FindingSymbol: View {
     let finding: Finding
 
     var body: some View {
+        symbol.accessibilityLabel(finding.name)
+    }
+
+    @ViewBuilder
+    private var symbol: some View {
         let image = Image(systemName: finding.symbol)
         let layers = finding.palette.map(\.swiftUI)
         switch finding.rendering {

@@ -300,6 +300,8 @@
 		C11D00000000000000000012 /* CommandLineToolInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000011 /* CommandLineToolInstaller.swift */; };
 		C11D00000000000000000014 /* CommandLineToolSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000013 /* CommandLineToolSettingsView.swift */; };
 		F17E00000000000000000016 /* SettingsComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000015 /* SettingsComponents.swift */; };
+		F17E0000000000000000003C /* SymbolPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000003B /* SymbolPicker.swift */; };
+		F17E0000000000000000003E /* RepresentativeEventPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000003D /* RepresentativeEventPicker.swift */; };
 		F17E00000000000000000036 /* FindingsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000035 /* FindingsSettingsView.swift */; };
 		F17E00000000000000000034 /* FindingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000033 /* FindingStore.swift */; };
 		CA4CE59B2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE59A2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift */; };
@@ -879,6 +881,8 @@
 		C11D00000000000000000011 /* CommandLineToolInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolInstaller.swift; sourceTree = "<group>"; };
 		C11D00000000000000000013 /* CommandLineToolSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolSettingsView.swift; sourceTree = "<group>"; };
 		F17E00000000000000000015 /* SettingsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsComponents.swift; sourceTree = "<group>"; };
+		F17E0000000000000000003B /* SymbolPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymbolPicker.swift; sourceTree = "<group>"; };
+		F17E0000000000000000003D /* RepresentativeEventPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepresentativeEventPicker.swift; sourceTree = "<group>"; };
 		F17E00000000000000000035 /* FindingsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindingsSettingsView.swift; sourceTree = "<group>"; };
 		F17E00000000000000000033 /* FindingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindingStore.swift; sourceTree = "<group>"; };
 		CA4CE59A2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemTCCModifyMetadataView.swift; sourceTree = "<group>"; };
@@ -3584,6 +3588,8 @@
 			children = (
 				F17E00000000000000000035 /* FindingsSettingsView.swift */,
 				F17E00000000000000000033 /* FindingStore.swift */,
+				F17E0000000000000000003D /* RepresentativeEventPicker.swift */,
+				F17E0000000000000000003B /* SymbolPicker.swift */,
 			);
 			path = Findings;
 			sourceTree = "<group>";
@@ -4322,6 +4328,8 @@
 				C11D00000000000000000014 /* CommandLineToolSettingsView.swift in Sources */,
 				F17E00000000000000000016 /* SettingsComponents.swift in Sources */,
 				F17E00000000000000000036 /* FindingsSettingsView.swift in Sources */,
+				F17E0000000000000000003E /* RepresentativeEventPicker.swift in Sources */,
+				F17E0000000000000000003C /* SymbolPicker.swift in Sources */,
 				F17E00000000000000000034 /* FindingStore.swift in Sources */,
 				F17E00000000000000000012 /* SecurityExtensionSettingsView.swift in Sources */,
 			);

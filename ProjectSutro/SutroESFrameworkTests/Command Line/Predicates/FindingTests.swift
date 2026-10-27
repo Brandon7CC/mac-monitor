@@ -71,21 +71,36 @@ final class FindingTests: XCTestCase {
         }
     }
 
-    /// The tables are marked for a script and a new executable, and a finding saved before ``Finding/showsInTables``
-    /// takes the default's choice, or doesn't mark them. One saved before ``Finding/rendering`` is drawn in its color.
-    func testTableMarks() throws {
+    /// The tables are marked for a script and a new executable.
+    func testTableMarks() {
         XCTAssertEqual(Set(Finding.defaults.filter(\.showsInTables).map(\.name)), ["Ran a script", "New executable"])
-        let script = try XCTUnwrap(Finding.defaults.first { $0.name == "Ran a script" })
-        let saved = try JSONEncoder().encode([script, Finding(name: "x", explanation: "", symbol: "star",
-                                                                             color: .red, predicate: "process.pid == 1",
-                                                                             correlation: true, groups: false)])
-        var objects = try XCTUnwrap(JSONSerialization.jsonObject(with: saved) as? [[String: Any]])
-        for index in objects.indices {
-            for key in ["showsInTables", "rendering", "palette"] { objects[index][key] = nil }
-        }
-        let decoded = try JSONDecoder().decode([Finding].self, from: JSONSerialization.data(withJSONObject: objects))
-        XCTAssertEqual(decoded.map(\.showsInTables), [true, false])
-        XCTAssertEqual(decoded.first, script)
+    }
+
+    /// Saved findings decode one entry at a time. An entry with a color or rendering this build doesn't know is kept
+    /// as it was saved and written back after the rest. Data that isn't an array decodes to nothing.
+    func testSavedFindingsKeepWhatDoesNotDecode() throws {
+        let own = Finding(name: "Mine", explanation: "", symbol: "star", color: .red, predicate: "process.pid == 1",
+                          correlation: true, groups: false)
+        var objects = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(Finding.defaults))
+                                    as? [[String: Any]])
+        objects[1]["color"] = "mauve"
+        objects[3]["rendering"] = "hierarchical"
+        objects[5]["symbol"] = nil
+        var saved = try XCTUnwrap(SavedFindings(data: JSONSerialization.data(withJSONObject: objects)))
+        XCTAssertEqual(saved.findings, Finding.defaults.enumerated().filter { ![1, 3, 5].contains($0.offset) }
+            .map(\.element))
+        XCTAssertEqual(saved.undecodableCount, 3)
+        saved.findings.append(own)
+        let written = try XCTUnwrap(saved.encoded())
+        let entries = try XCTUnwrap(JSONSerialization.jsonObject(with: written) as? [[String: Any]])
+        XCTAssertEqual(entries.count, Finding.defaults.count + 1)
+        XCTAssertEqual(entries.suffix(3).map { $0["id"] as? String }, [1, 3, 5].map { objects[$0]["id"] as? String })
+        XCTAssertEqual(entries.suffix(3).first?["color"] as? String, "mauve")
+        let again = try XCTUnwrap(SavedFindings(data: written))
+        XCTAssertEqual(again.findings, saved.findings)
+        XCTAssertEqual(again.undecodableCount, 3)
+        XCTAssertNil(SavedFindings(data: Data(#"{"findings": []}"#.utf8)))
+        XCTAssertEqual(SavedFindings([own]).encoded().flatMap { SavedFindings(data: $0) }?.findings, [own])
     }
 
     /// A finding compares one event at a time: a `SUBQUERY` of related events can't be one.
@@ -165,24 +180,27 @@ final class FindingTests: XCTestCase {
     /// new predicate, and one that's off, not in the tables, or unusable is dropped. Any finding's is every offered
     /// finding's joined by `OR`, however long.
     func testFindingSelectionFollowsTheFindings() throws {
+        func predicate(_ selection: FindingSelection, _ findings: [Finding]) -> StreamFilter.Predicate? {
+            selection.predicate(offered: FindingSelection.offered(findings), for: .search)
+        }
         var findings = Finding.defaults
         let index = try XCTUnwrap(findings.firstIndex { $0.name == "Ran a script" })
         let selection = FindingSelection.finding(findings[index].id)
-        XCTAssertEqual(selection.predicate(among: findings, for: .search)?.source, findings[index].predicate)
+        XCTAssertEqual(predicate(selection, findings)?.source, findings[index].predicate)
         findings[index].predicate = "process.pid == 1"
-        XCTAssertEqual(selection.predicate(among: findings, for: .search)?.source, "process.pid == 1")
+        XCTAssertEqual(predicate(selection, findings)?.source, "process.pid == 1")
         for change in [{ (finding: inout Finding) in finding.isEnabled = false }, { $0.showsInTables = false },
                        { $0.predicate = "process.nothing == 1" }] {
             var changed = findings
             change(&changed[index])
-            XCTAssertNil(selection.predicate(among: changed, for: .search))
+            XCTAssertNil(predicate(selection, changed))
         }
-        XCTAssertNil(selection.predicate(among: findings.filter { $0.id != findings[index].id }, for: .search))
-        let any = try XCTUnwrap(FindingSelection.any.predicate(among: findings, for: .search))
+        XCTAssertNil(predicate(selection, findings.filter { $0.id != findings[index].id }))
+        let any = try XCTUnwrap(predicate(.any, findings))
         let offered = FindingSelection.offered(findings)
         XCTAssertEqual(any.source, offered.map { "(\($0.predicate))" }.joined(separator: " OR "))
         XCTAssertEqual(offered.map(\.name), ["New executable", "Ran a script"])
-        XCTAssertNil(FindingSelection.any.predicate(among: [], for: .search))
+        XCTAssertNil(predicate(.any, []))
         let both = try XCTUnwrap(StreamFilter.Predicate.all([any, try StreamFilter.Predicate("process.pid == 2")],
                                                              for: .search))
         XCTAssertTrue(both.source.hasSuffix(" AND (process.pid == 2)"))

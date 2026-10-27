@@ -184,8 +184,8 @@ struct FilterSheet: View {
     }
 
     private var findingsCard: FilterCard {
-        /// Only the findings the event tables mark, as ``FindingStore/matcher(for:)`` picks them for the tables.
-        let on = FindingSelection.offered(findings.findings)
+        /// The findings on that mark the tables, parsed once until they change (``FindingStore/offered``).
+        let on = findings.offered
         var rows: [FilterCard.Row] = []
         if on.count > 1 || (search.findingSelection == .any && !on.isEmpty) {
             rows.append(findingRow(.any, "Any finding", detail: "The events of every finding that's on",
@@ -199,10 +199,12 @@ struct FilterSheet: View {
             rows.insert(findingRow(selection, search.findingName ?? "Finding", detail: detail,
                                    symbol: "sparkle.magnifyingglass", tint: .gray), at: 0)
         }
-        let shown = search.findingName
+        /// A dropped finding filter isn't on.
+        let shown = search.filteringFinding
         return FilterCard(kind: .findings, title: "Findings",
                           about: "Show only a finding's events. Settings ▸ Findings sets what each finds",
-                          symbol: "sparkle.magnifyingglass", tint: .orange, summary: shown ?? "Off",
+                          symbol: "sparkle.magnifyingglass", tint: .orange,
+                          summary: shown ?? (search.findingSelection == nil ? "Off" : "Dropped"),
                           isOn: shown != nil, rows: rows,
                           empty: rows.isEmpty ? "Turn on Event tables and Filters for a finding in Settings ▸ Findings."
                             : nil)
@@ -277,7 +279,7 @@ struct FilterSheet: View {
         guard let finding = findings.findings.first(where: { $0.id == id }) else { return "It was deleted" }
         if !finding.isEnabled { return "It's switched off in Settings ▸ Findings" }
         if !finding.showsInTables { return "Event tables and Filters is off for it in Settings ▸ Findings" }
-        return finding.problem == nil ? "It can't be used" : "Its predicate can't be used"
+        return "Its predicate can't be used"
     }
 
     /// Stop showing only one process's events.

@@ -144,16 +144,10 @@ final class BuiltInFindingTests: XCTestCase {
         }
     }
 
-    /// A set an earlier build saved with every built-in loses those that aren't defaults, and keeps its own. Each
-    /// default with a twin shares its name, predicate and symbol. The marks keep the numbers an earlier build saved.
-    func testSavedSetsDropBuiltInMarks() throws {
-        let own = Finding(name: "Mine", explanation: "", symbol: "star", color: .red, predicate: "process.pid == 1",
-                          correlation: true, groups: false)
+    /// Each built-in mark has its own identity and keeps its number. Each default with a twin shares its name,
+    /// predicate and symbol.
+    func testBuiltInMarksKeepTheirNumbers() throws {
         let twins = Finding.builtInMarks.filter { mark in Finding.defaults.contains { $0.id == mark.id } }
-        let saved = [own] + Finding.builtInMarks + Finding.defaults.filter { !twins.map(\.id).contains($0.id) }
-        XCTAssertEqual(Set(Finding.droppingBuiltInMarks(from: saved).map(\.id)),
-                       Set(Finding.defaults.map(\.id) + [own.id]))
-        XCTAssertEqual(Finding.droppingBuiltInMarks(from: saved).count, 15)
         XCTAssertEqual(Set(Finding.builtInMarks.map(\.id)).count, Finding.builtInMarks.count)
         XCTAssertEqual(Finding.builtInMarks.count, 30)
         XCTAssertEqual(Set(twins.map(\.name)), ["New executable", "Ran a script"])

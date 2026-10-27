@@ -239,6 +239,7 @@ struct PredicateEditorWindow: View {
 }
 
 /// A divider the editor's height is dragged by, as a split view's is. The pointer shows it resizes up and down.
+/// VoiceOver reads the height and steps it by ``step``.
 private struct ResizeHandle: View {
     @Binding var height: Double
     /// The heights it can be dragged between.
@@ -247,6 +248,8 @@ private struct ResizeHandle: View {
     @State private var start: Double?
     /// Is the pointer over it, with its cursor pushed?
     @State private var hovering = false
+    /// How far VoiceOver's increment and decrement move it, in points.
+    private let step = 20.0
 
     var body: some View {
         Divider()
@@ -261,12 +264,28 @@ private struct ResizeHandle: View {
             /// In the window's space: the handle moves with the drag, so its own space would shift under it.
             .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
                 .onChanged { drag in
-                    let start = start ?? min(max(height, range.lowerBound), range.upperBound)
+                    let start = start ?? clamped(height)
                     self.start = start
-                    height = min(max(start + drag.translation.height, range.lowerBound), range.upperBound)
+                    height = clamped(start + drag.translation.height)
                 }
                 .onEnded { _ in start = nil })
             .help("Drag to make the predicate editor taller or shorter")
+            .accessibilityElement()
+            .accessibilityLabel("Predicate editor height")
+            .accessibilityValue("\(Int(height)) points")
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment: height = clamped(height + step)
+                case .decrement: height = clamped(height - step)
+                @unknown default: break
+                }
+            }
+    }
+
+    /// - Parameter height: A height.
+    /// - Returns: It, within ``range``.
+    private func clamped(_ height: Double) -> Double {
+        min(max(height, range.lowerBound), range.upperBound)
     }
 }
 

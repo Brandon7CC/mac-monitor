@@ -40,8 +40,11 @@ final class EventSearchController: ObservableObject {
     @Published var showsEditor = false
     /// Is the predicate editor in its own window (``PredicateEditorWindow``) rather than beside the tables?
     @Published var isPoppedOut = false
-    /// The main window's queries, for the editor's footer wherever it is.
-    weak var queries: EventQueryModel?
+    /// A main window's queries, for the editor's footer wherever it is and the finding editor's preview. They're the
+    /// newest main window's. When it closes, another open main window's take their place, or none.
+    @Published private(set) var queries: EventQueryModel?
+    /// Each open main window's queries, oldest first.
+    private var openQueries: [EventQueryModel] = []
     /// The predicate editor's text.
     @Published var draft = ""
     /// Is the predicate editor's text only white space?
@@ -86,6 +89,19 @@ final class EventSearchController: ObservableObject {
                 guard let self else { return }
                 layer(findingSelection, with: applied)
             }
+    }
+
+    /// - Parameter model: The queries of a main window that just appeared.
+    func attach(_ model: EventQueryModel) {
+        openQueries.removeAll { $0 === model }
+        openQueries.append(model)
+        queries = model
+    }
+
+    /// - Parameter model: The queries of a main window that's closing.
+    func detach(_ model: EventQueryModel) {
+        openQueries.removeAll { $0 === model }
+        if queries === model { queries = openQueries.last }
     }
 
     /// Show the predicate editor with the predicate applied, or the draft left in it.
@@ -161,7 +177,7 @@ final class EventSearchController: ObservableObject {
     @discardableResult
     private func layer(_ finding: FindingSelection?, with predicate: StreamFilter.Predicate?) -> Bool {
         let findings = FindingStore.shared.findings
-        let findingPredicate = finding?.predicate(among: findings, for: .search)
+        let findingPredicate = finding?.predicate(offered: FindingStore.shared.offered, for: .search)
         let combined: StreamFilter.Predicate?
         do {
             combined = try StreamFilter.Predicate.all([findingPredicate, predicate].compactMap { $0 }, for: .search)

@@ -126,6 +126,10 @@ struct FindingEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var finding: Finding
     @StateObject private var editor = PredicateEditorController()
+    /// Are the newest events showing, to start the predicate from one?
+    @State private var choosesEvent = false
+    /// Did Choose Representative Event find no events?
+    @State private var hasNoEvents = false
     /// The main window's queries, for the preview, or `nil` with no main window.
     let model: EventQueryModel?
     let save: (Finding) -> Void
@@ -149,14 +153,7 @@ struct FindingEditorSheet: View {
                     TextField("Explanation", text: $finding.explanation,
                               prompt: Text("Why it's worth a look"), axis: .vertical)
                         .lineLimit(2...4)
-                    LabeledContent("Symbol") {
-                        /// The symbol after its name, where the Color menu's arrows are.
-                        HStack(spacing: 8) {
-                            TextField(text: $finding.symbol, prompt: Text("memorychip")) { Text("Symbol") }
-                                .labelsHidden().font(.body.monospaced())
-                            FindingSymbol(finding: finding).frame(width: 20, alignment: .center)
-                        }
-                    }
+                    LabeledContent("Symbol") { SymbolPicker(finding: $finding) }
                     colorPicker("Color", selection: $finding.color)
                     Picker("Rendering", selection: $finding.rendering) {
                         ForEach(Finding.Rendering.allCases, id: \.self) { rendering in
@@ -181,6 +178,9 @@ struct FindingEditorSheet: View {
                     if let problem {
                         Label(problem, systemImage: "exclamationmark.triangle.fill").font(.caption)
                             .foregroundStyle(.red).textSelection(.enabled)
+                    }
+                    Button("Choose Representative Event…") {
+                        if RepresentativeEvent.anyRecorded { choosesEvent = true } else { hasNoEvents = true }
                     }
                 } header: {
                     Text("Predicate")
@@ -209,6 +209,15 @@ struct FindingEditorSheet: View {
         }
         .frame(width: 560)
         .frame(minHeight: 520, idealHeight: 760, maxHeight: 860)
+        .sheet(isPresented: $choosesEvent) {
+            let written = !finding.predicate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            RepresentativeEventSheet(replacesPredicate: written) { finding.predicate = $0 }
+        }
+        .alert("No events are recorded", isPresented: $hasNoEvents) {
+            Button("OK") {}
+        } message: {
+            Text("Record some events or open a trace, then choose one to start the predicate from.")
+        }
     }
 
     /// - Parameters:

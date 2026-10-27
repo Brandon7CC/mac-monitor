@@ -92,27 +92,48 @@ public struct Finding: Codable, Identifiable, Hashable {
     }
 }
 
-extension Finding {
-    /// A saved finding. One saved before ``showsInTables`` takes the default's choice, or doesn't mark the tables. One
-    /// saved before ``rendering`` is drawn in its color.
+// MARK: - Saving
+/// The findings as user defaults keep them, a JSON array. Each entry is decoded on its own, so one that doesn't decode
+/// loses only itself. It might have a color or rendering a newer build added. It's kept as it was saved and written
+/// back after the rest.
+public struct SavedFindings {
+    /// The entries that decoded, in order.
+    public var findings: [Finding]
+    /// The entries that didn't decode, as `JSONSerialization` read them.
+    private var undecodable: [Any] = []
+
+    /// How many entries didn't decode.
+    public var undecodableCount: Int { undecodable.count }
+
+    /// - Parameter findings: The findings, with no undecodable entries.
+    public init(_ findings: [Finding]) {
+        self.findings = findings
+    }
+
+    /// Decode saved findings one entry at a time.
     ///
-    /// - Parameter decoder: The saved findings.
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let id = try container.decode(UUID.self, forKey: .id)
-        self.id = id
-        name = try container.decode(String.self, forKey: .name)
-        explanation = try container.decode(String.self, forKey: .explanation)
-        symbol = try container.decode(String.self, forKey: .symbol)
-        color = try container.decode(Color.self, forKey: .color)
-        rendering = try container.decodeIfPresent(Rendering.self, forKey: .rendering) ?? .monochrome
-        palette = try container.decodeIfPresent([Color].self, forKey: .palette) ?? []
-        predicate = try container.decode(String.self, forKey: .predicate)
-        showsInCorrelation = try container.decode(Bool.self, forKey: .showsInCorrelation)
-        showsInGroups = try container.decode(Bool.self, forKey: .showsInGroups)
-        showsInTables = try container.decodeIfPresent(Bool.self, forKey: .showsInTables)
-            ?? Self.defaults.first { $0.id == id }?.showsInTables ?? false
-        isEnabled = try container.decode(Bool.self, forKey: .isEnabled)
+    /// - Parameter data: The saved JSON array.
+    /// - Returns: `nil` when the data isn't a JSON array.
+    public init?(data: Data) {
+        guard let entries = try? JSONSerialization.jsonObject(with: data) as? [Any] else { return nil }
+        findings = []
+        for entry in entries {
+            if let entryData = try? JSONSerialization.data(withJSONObject: entry, options: .fragmentsAllowed),
+               let finding = try? JSONDecoder().decode(Finding.self, from: entryData) {
+                findings.append(finding)
+            } else {
+                undecodable.append(entry)
+            }
+        }
+    }
+
+    /// The findings, then the entries that didn't decode, as a JSON array.
+    ///
+    /// - Returns: The data to save, or `nil` if it can't be encoded.
+    public func encoded() -> Data? {
+        guard let data = try? JSONEncoder().encode(findings),
+              let entries = try? JSONSerialization.jsonObject(with: data) as? [Any] else { return nil }
+        return try? JSONSerialization.data(withJSONObject: entries + undecodable)
     }
 }
 
@@ -135,11 +156,10 @@ public enum FindingSelection: Hashable {
     }
 
     /// - Parameters:
-    ///   - findings: Every finding, in order.
+    ///   - offered: The findings offered, as ``offered(_:)`` picks them.
     ///   - audience: Who the predicate is for.
     /// - Returns: Its predicate, any offered finding's for ``any``. It's `nil` when no finding it names is offered.
-    public func predicate(among findings: [Finding], for audience: PredicateAudience) -> StreamFilter.Predicate? {
-        let offered = Self.offered(findings)
+    public func predicate(offered: [Finding], for audience: PredicateAudience) -> StreamFilter.Predicate? {
         switch self {
         case .any:
             return .any(offered.map(\.predicate), for: audience)

@@ -165,6 +165,8 @@ struct AppWrapperForFacts: View {
     /// Is the Correlation tab showing?
     @State private var showsCorrelation = false
     @State private var visibility: NavigationSplitViewVisibility = .all
+    /// Is the event gone, so the window should close?
+    @State private var isGone = false
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -179,11 +181,15 @@ struct AppWrapperForFacts: View {
                 Text("No event selected")
             }
         }
-        /// An event that's gone closes its window.
+        /// An event that's gone closes its window. On macOS 13 `dismiss()` may not close a WindowGroup's window, so
+        /// ``WindowCloser`` closes it too.
         .onAppear {
             selectedEventTree = coreDataEvents.first
-            if selectedEventTree == nil { dismiss() }
+            guard selectedEventTree == nil else { return }
+            isGone = true
+            dismiss()
         }
+        .background(WindowCloser(isClosing: isGone))
         /// Clear deletes the events (and processes) this window shows, or takes their store away: let go of them first,
         /// the fetch too, which would otherwise keep an event whose store is gone and raise when it's next read.
         .onReceive(NotificationCenter.default.publisher(for: CoreDataController.eventsWillClear)) { _ in
@@ -226,6 +232,34 @@ struct AppWrapperForFacts: View {
     init(id: UUID, allFilters: Binding<Filters>) {
         _coreDataEvents = FetchRequest<ESMessage>(sortDescriptors: [], predicate: NSPredicate(format: "id == %@", id as CVarArg))
         _allFilters = allFilters
+    }
+}
+
+
+/// Closes the window it's in once ``isClosing`` is true, as soon as it's in one.
+private struct WindowCloser: NSViewRepresentable {
+    let isClosing: Bool
+
+    func makeNSView(context: Context) -> CloserView { CloserView() }
+
+    func updateNSView(_ view: CloserView, context: Context) {
+        view.isClosing = isClosing
+        view.closeIfAsked()
+    }
+
+    final class CloserView: NSView {
+        var isClosing = false
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            closeIfAsked()
+        }
+
+        /// Close the window after this update. Closing one `dismiss()` already closed does nothing.
+        func closeIfAsked() {
+            guard isClosing, let window else { return }
+            DispatchQueue.main.async { [weak window] in window?.close() }
+        }
     }
 }
 

@@ -129,15 +129,6 @@ public extension Finding {
     static let builtInMarks: [Finding] = labelMarks + nameMarks.filter { !labelMarks.contains($0) }
         + nameSignatureMarks
 
-    /// Saved findings without the built-in marks an earlier build saved among them. The defaults' twins stay.
-    ///
-    /// - Parameter saved: The findings as they were saved.
-    /// - Returns: The findings Settings ▸ Findings lists.
-    static func droppingBuiltInMarks(from saved: [Finding]) -> [Finding] {
-        let marks = Set(builtInMarks.map(\.id)).subtracting(defaults.map(\.id))
-        return saved.filter { !marks.contains($0.id) }
-    }
-
     /// The findings marking an event in the tables that are drawn beside the built-in marks it matches. A finding that
     /// is a matched mark's twin, with the mark's symbol, is drawn once, as the mark.
     ///
