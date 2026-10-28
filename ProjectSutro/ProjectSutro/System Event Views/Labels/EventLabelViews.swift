@@ -113,13 +113,15 @@ extension EventLabelLook {
         }
     }
 
-    /// An exec's label or process name, as its new process is signed. Adhoc is a seal crossed out in orange. A signing
-    /// ID is a checked seal. Neither is a seal crossed out in red.
+    /// An exec's label or process name, as its new process is signed. Adhoc is a seal crossed out in orange, whose help
+    /// says whether the linker signed it. A signing ID is a checked seal. Neither is a seal crossed out in red.
     ///
     /// - Parameter process: The exec's new process.
     init(signatureOf process: ESProcess) {
         if process.is_adhoc_signed {
-            self.init(symbol: "xmark.seal", tint: .orange, palette: true)
+            let help = process.isLinkerSignedAdhoc
+                ? "Adhoc signed by the linker, as a freshly compiled binary is." : "Adhoc signed."
+            self.init(symbol: "xmark.seal", tint: .orange, palette: true, help: help)
         } else if process.hasSigningID {
             self.init(symbol: "checkmark.seal")
         } else {
@@ -203,9 +205,9 @@ extension ESProcessExecEvent {
     var executableAgeText: String? {
         guard let age = executableAge else { return nil }
         switch age {
-        case ..<60: return String(format: "%.2f s", age)
-        case ..<3600: return "\(Int(age) / 60) min"
-        case ..<86_400: return "\(Int(age) / 3600) h"
+        case ..<60: return String(format: "%.2fs", age)
+        case ..<3600: return "\(Int(age) / 60)min"
+        case ..<86_400: return "\(Int(age) / 3600)h"
         default: return "\(Int(age) / 86_400) days"
         }
     }

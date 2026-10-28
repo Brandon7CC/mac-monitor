@@ -93,47 +93,167 @@ public struct Finding: Codable, Identifiable, Hashable {
 }
 
 // MARK: - Saving
-/// The findings as user defaults keep them, a JSON array. Each entry is decoded on its own, so one that doesn't decode
-/// loses only itself. It might have a color or rendering a newer build added. It's kept as it was saved and written
-/// back after the rest.
+/// The findings as user defaults keep them: only what someone changed, on top of the ``Finding/defaults`` this
+/// build ships. An update can then change, add or drop a shipped finding for everyone who didn't edit it.
+///
+/// It's a JSON object. `entries` lists the findings in order. A shipped finding nobody edited is saved by identity with
+/// its switches (`{"default": id, "isEnabled": …}`) and takes its rule from this build. An edited shipped finding, and
+/// one someone added, is saved in full. `deleted` lists the shipped findings someone deleted, so they don't come back.
+///
+/// Each entry is decoded on its own, so one that doesn't decode loses only itself. It might have a color or rendering
+/// a newer build added. It's kept as it was saved and written back after the rest.
 public struct SavedFindings {
-    /// The entries that decoded, in order.
+    /// The findings, in order: the saved ones, then shipped findings that are new since the last save.
     public var findings: [Finding]
+    /// The shipped findings they're saved against.
+    private let defaults: [Finding]
+    /// The shipped findings someone deleted, by identity.
+    private var deleted: Set<UUID> = []
     /// The entries that didn't decode, as `JSONSerialization` read them.
     private var undecodable: [Any] = []
 
     /// How many entries didn't decode.
     public var undecodableCount: Int { undecodable.count }
 
-    /// - Parameter findings: The findings, with no undecodable entries.
-    public init(_ findings: [Finding]) {
+    /// The JSON keys of a shipped finding's switches, which a saved reference keeps.
+    private static let switchKeys = ["isEnabled", "showsInCorrelation", "showsInGroups", "showsInTables"]
+
+    /// - Parameters:
+    ///   - findings: The findings, with no undecodable entries.
+    ///   - defaults: The shipped findings.
+    public init(_ findings: [Finding], defaults: [Finding] = Finding.defaults) {
         self.findings = findings
+        self.defaults = defaults
     }
 
-    /// Decode saved findings one entry at a time.
+    /// Decode saved findings one entry at a time, and apply them to the shipped ones.
     ///
-    /// - Parameter data: The saved JSON array.
-    /// - Returns: `nil` when the data isn't a JSON array.
-    public init?(data: Data) {
-        guard let entries = try? JSONSerialization.jsonObject(with: data) as? [Any] else { return nil }
+    /// An array is the format earlier 3.0 builds saved, every finding in full. A shipped finding in it that matches
+    /// this build's version or an earlier one (``Finding/previousDefaults``) was never edited, so it follows this
+    /// build. A shipped finding it doesn't list was deleted.
+    ///
+    /// - Parameters:
+    ///   - data: The saved JSON.
+    ///   - defaults: The shipped findings.
+    /// - Returns: `nil` when the data is neither an object with `entries` nor an array.
+    public init?(data: Data, defaults: [Finding] = Finding.defaults) {
+        let object = try? JSONSerialization.jsonObject(with: data)
+        let entries: [Any]
+        if let saved = object as? [String: Any], let listed = saved["entries"] as? [Any] {
+            entries = listed
+            deleted = Set((saved["deleted"] as? [String] ?? []).compactMap(UUID.init(uuidString:)))
+        } else if let array = object as? [Any] {
+            entries = array
+        } else {
+            return nil
+        }
+        self.defaults = defaults
         findings = []
+        let shipped = Dictionary(uniqueKeysWithValues: defaults.map { ($0.id, $0) })
         for entry in entries {
-            if let entryData = try? JSONSerialization.data(withJSONObject: entry, options: .fragmentsAllowed),
-               let finding = try? JSONDecoder().decode(Finding.self, from: entryData) {
+            if let reference = entry as? [String: Any], let id = reference["default"] {
+                guard let id = (id as? String).flatMap(UUID.init(uuidString:)) else {
+                    undecodable.append(entry)
+                    continue
+                }
+                // A shipped finding this build no longer ships goes.
+                guard var finding = shipped[id] else { continue }
+                finding.applySwitches(from: reference)
+                findings.append(finding)
+            } else if let entryData = try? JSONSerialization.data(withJSONObject: entry, options: .fragmentsAllowed),
+                      let saved = try? JSONDecoder().decode(Finding.self, from: entryData) {
+                guard Finding.previousDefaults.contains(where: { $0.hasSameRule(as: saved) })
+                        || shipped[saved.id].map({ $0.hasSameRule(as: saved) }) == true else {
+                    findings.append(saved)
+                    continue
+                }
+                // An unedited shipped finding from an earlier build: this build's version, with its switches.
+                guard var finding = shipped[saved.id] else { continue }
+                finding.copySwitches(from: saved)
                 findings.append(finding)
             } else {
                 undecodable.append(entry)
             }
         }
+        let listed = Set(findings.map(\.id))
+        if !(object is [String: Any]) {
+            deleted = Set(defaults.map(\.id)).subtracting(listed)
+        }
+        findings += defaults.filter { !listed.contains($0.id) && !deleted.contains($0.id) }
     }
 
-    /// The findings, then the entries that didn't decode, as a JSON array.
+    /// The findings, then the entries that didn't decode, as the JSON object ``init(data:defaults:)`` reads.
     ///
     /// - Returns: The data to save, or `nil` if it can't be encoded.
     public func encoded() -> Data? {
-        guard let data = try? JSONEncoder().encode(findings),
-              let entries = try? JSONSerialization.jsonObject(with: data) as? [Any] else { return nil }
-        return try? JSONSerialization.data(withJSONObject: entries + undecodable)
+        let shipped = Dictionary(uniqueKeysWithValues: defaults.map { ($0.id, $0) })
+        var entries: [Any] = []
+        for finding in findings {
+            guard let data = try? JSONEncoder().encode(finding),
+                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+            if let original = shipped[finding.id], original.hasSameRule(as: finding) {
+                entries.append(object.filter { Self.switchKeys.contains($0.key) }
+                    .merging(["default": finding.id.uuidString]) { $1 })
+            } else {
+                entries.append(object)
+            }
+        }
+        let present = Set(findings.map(\.id))
+        let deleted = deleted.union(defaults.map(\.id)).subtracting(present)
+        return try? JSONSerialization.data(withJSONObject: [
+            "entries": entries + undecodable, "deleted": deleted.map(\.uuidString).sorted(),
+        ])
+    }
+}
+
+
+// MARK: - Searching
+public extension Finding {
+    /// Does Settings ▸ Indicators' search find it? Every word of the search has to be in its name, its explanation or
+    /// its predicate, ignoring case and accents.
+    ///
+    /// - Parameter search: What was typed. An empty one finds every finding.
+    /// - Returns: `true` when each word is found.
+    func matches(search: String) -> Bool {
+        let fields = [name, explanation, predicate]
+        return search.split(whereSeparator: \.isWhitespace).allSatisfy { word in
+            fields.contains { $0.localizedStandardContains(word) }
+        }
+    }
+}
+
+
+// MARK: - Switches
+extension Finding {
+    /// Is it the same finding with the same rule, whatever its switches? The switches are whether it's on and where
+    /// it shows.
+    ///
+    /// - Parameter other: Another finding.
+    /// - Returns: `true` when only their switches differ.
+    func hasSameRule(as other: Finding) -> Bool {
+        var mine = self
+        mine.copySwitches(from: other)
+        return mine == other
+    }
+
+    /// Take another finding's switches.
+    ///
+    /// - Parameter other: The finding whose switches to take.
+    mutating func copySwitches(from other: Finding) {
+        isEnabled = other.isEnabled
+        showsInCorrelation = other.showsInCorrelation
+        showsInGroups = other.showsInGroups
+        showsInTables = other.showsInTables
+    }
+
+    /// Take the switches a saved reference keeps. A switch it doesn't have stays as shipped.
+    ///
+    /// - Parameter reference: The saved reference.
+    mutating func applySwitches(from reference: [String: Any]) {
+        isEnabled = reference["isEnabled"] as? Bool ?? isEnabled
+        showsInCorrelation = reference["showsInCorrelation"] as? Bool ?? showsInCorrelation
+        showsInGroups = reference["showsInGroups"] as? Bool ?? showsInGroups
+        showsInTables = reference["showsInTables"] as? Bool ?? showsInTables
     }
 }
 

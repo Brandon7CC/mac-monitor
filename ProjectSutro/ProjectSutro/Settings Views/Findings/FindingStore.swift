@@ -11,8 +11,9 @@ import SutroESFramework
 
 
 // MARK: - Store
-/// The findings Event Facts looks for, as Settings ▸ Indicators edits them: Mac Monitor's defaults until they're
-/// changed, kept in user defaults. Its matchers find them in Correlation, Groups, and the event tables.
+/// The findings Event Facts looks for, as Settings ▸ Indicators edits them: Mac Monitor's defaults, with what someone
+/// changed kept in user defaults (``SavedFindings``). Its matchers find them in Correlation, Groups, and the event
+/// tables.
 @MainActor
 final class FindingStore: ObservableObject {
     static let shared = FindingStore()
@@ -46,12 +47,12 @@ final class FindingStore: ObservableObject {
     /// Mac Monitor's built-in marks, always on.
     private let builtInMarks = FindingMatcher(Finding.builtInMarks)
 
-    /// The saved findings that decode, or Mac Monitor's defaults when none were saved or they aren't an array.
+    /// The saved findings applied to Mac Monitor's defaults, or the defaults when none were saved or can't be read.
     ///
     /// - Parameter defaults: Where the findings are kept.
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        saved = defaults.data(forKey: Self.key).flatMap(SavedFindings.init(data:)) ?? SavedFindings(Finding.defaults)
+        saved = defaults.data(forKey: Self.key).flatMap { SavedFindings(data: $0) } ?? SavedFindings(Finding.defaults)
         findings = saved.findings
     }
 
@@ -222,18 +223,15 @@ extension Finding {
         count > 1 ? "\(name) ×\(count)" : name
     }
 
-    /// A built-in mark's help on an event. It's the mark's explanation, with the exec's executable age, its script's
-    /// path and how it's adhoc signed in place of `{age}`, `{script}` and `{adhoc}`.
+    /// A built-in mark's help on an event. It's the mark's explanation, with the exec's executable age and its
+    /// script's path in place of `{age}` and `{script}`.
     ///
     /// - Parameter message: The event.
     /// - Returns: The help.
     func help(on message: ESMessage) -> String {
         guard explanation.contains("{"), let exec = message.event.exec else { return explanation }
-        let adhoc = exec.target.isLinkerSignedAdhoc
-            ? "Adhoc signed by the linker, as a freshly compiled binary is." : "Adhoc signed."
         return explanation.replacingOccurrences(of: "{age}", with: exec.executableAgeText ?? "")
             .replacingOccurrences(of: "{script}", with: exec.resolved_script_path ?? "a script")
-            .replacingOccurrences(of: "{adhoc}", with: adhoc)
     }
 }
 

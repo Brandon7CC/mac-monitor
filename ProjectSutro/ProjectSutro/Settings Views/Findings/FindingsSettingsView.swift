@@ -20,8 +20,11 @@ struct FindingsSettingsView: View {
     /// The finding being edited, or a new one.
     @State private var editing: Finding?
     @State private var confirmsRestore = false
+    /// What's typed in the search field, matched against each indicator's name, explanation and predicate.
+    @State private var query = ""
 
     var body: some View {
+        let shown = store.findings.filter { $0.matches(search: query) }
         SettingsForm(pane: .findings) {
             Section {
                 HStack(spacing: 10) {
@@ -38,7 +41,11 @@ struct FindingsSettingsView: View {
                     .foregroundStyle(.secondary)
             }
             Section("Indicators") {
-                ForEach(store.findings) { finding in
+                SettingsSearchField(text: $query, prompt: "Search names, explanations and predicates")
+                if shown.isEmpty {
+                    Text("No indicators match.").foregroundStyle(.secondary)
+                }
+                ForEach(shown) { finding in
                     FindingRow(finding: finding, isOn: Binding { finding.isEnabled } set: { on in
                         var changed = finding
                         changed.isEnabled = on

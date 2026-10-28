@@ -41,8 +41,9 @@ public extension Finding {
                 explanation: "XProtect detected or remediated malware.",
                 symbol: "xmark.octagon", color: .red, predicate: type("XP_MALWARE_DETECTED", "XP_MALWARE_REMEDIATED"),
                 correlation: true, groups: false),
-        Finding(id: uuid(6), name: "AppleScript loaded",
-                explanation: "Mapped an Open Scripting Architecture component, as a process running AppleScript does.",
+        Finding(id: uuid(6), name: "AppleScript / JXA",
+                explanation: "Mapped an Open Scripting Architecture component, as a process running AppleScript or JXA "
+                    + "does.",
                 symbol: "applescript", color: .purple,
                 predicate: type("MMAP") + #" AND (target_path CONTAINS "AppleScript.component" "#
                     + #"OR target_path CONTAINS "JavaScript.component" OR target_path CONTAINS ".osax")"#,
@@ -57,11 +58,10 @@ public extension Finding {
                 predicate: type("LOGIN_LOGIN", "LW_SESSION_LOGIN", "OPENSSH_LOGIN"),
                 correlation: true, groups: false),
         Finding(id: uuid(9), name: "New executable",
-                explanation: "Its executable was created less than five minutes before it ran, as a dropper's payload "
-                    + "is.",
+                explanation: "Its executable was created less than a second before it ran, as a dropper's payload is.",
                 symbol: "clock.badge.exclamationmark", color: .orange,
                 predicate: type("EXEC") + " AND event.exec.executable_age_ms >= 0 "
-                    + "AND event.exec.executable_age_ms < 300000",
+                    + "AND event.exec.executable_age_ms < 1000",
                 correlation: false, groups: true, tables: true),
         Finding(id: uuid(10), name: "Adhoc or unsigned",
                 explanation: "Ran code that isn't signed by a known developer: adhoc, as a freshly compiled or "
@@ -88,6 +88,28 @@ public extension Finding {
                 predicate: type("EXEC") + " AND event.exec.target.executable.name "
                     + #"IN {"curl", "wget", "nscurl", "ftp", "tftp", "scp", "sftp"}"#,
                 correlation: false, groups: true),
+    ]
+}
+
+
+// MARK: - Earlier defaults
+extension Finding {
+    /// Shipped findings as earlier 3.0 builds had them, before this build changed or dropped them. Those builds saved
+    /// every finding in full, so a saved copy that matches one of these was never edited (``SavedFindings``).
+    static let previousDefaults: [Finding] = [
+        Finding(id: uuid(6), name: "AppleScript loaded",
+                explanation: "Mapped an Open Scripting Architecture component, as a process running AppleScript does.",
+                symbol: "applescript", color: .purple,
+                predicate: type("MMAP") + #" AND (target_path CONTAINS "AppleScript.component" "#
+                    + #"OR target_path CONTAINS "JavaScript.component" OR target_path CONTAINS ".osax")"#,
+                correlation: true, groups: false),
+        Finding(id: uuid(9), name: "New executable",
+                explanation: "Its executable was created less than five minutes before it ran, as a dropper's payload "
+                    + "is.",
+                symbol: "clock.badge.exclamationmark", color: .orange,
+                predicate: type("EXEC") + " AND event.exec.executable_age_ms >= 0 "
+                    + "AND event.exec.executable_age_ms < 300000",
+                correlation: false, groups: true, tables: true),
         Finding(id: uuid(14), name: "Non-Apple as root",
                 explanation: "Ran as root without Apple's signature.",
                 symbol: "bolt.shield", color: .red,
@@ -97,13 +119,12 @@ public extension Finding {
     ]
 }
 
-
 // MARK: - Built-in marks
 public extension Finding {
     /// The marks an event type's label draws before its name, in the Unified table and Event Facts, as its hard-coded
-    /// label drew them. A mark's explanation is its help. In it, `{age}`, `{script}` and `{adhoc}` stand for the
-    /// exec's executable age, its script's path and how it's adhoc signed. A mark with a default's identity is that
-    /// default's twin. Their order is the marks' order.
+    /// label drew them. A mark's explanation is its help. In it, `{age}` and `{script}` stand for the exec's
+    /// executable age and its script's path. A mark with a default's identity is that default's twin. Their order is
+    /// the marks' order.
     static let labelMarks: [Finding] = execMarks + fileMarks + systemMarks
 
     /// The marks the Process Execution table draws before an exec's findings and process name.
@@ -119,15 +140,8 @@ public extension Finding {
              rendering: .multicolor, predicate: quarantineAware),
     ]
 
-    /// The marks the Process Execution table draws after an exec's findings, before its process name.
-    static let nameSignatureMarks: [Finding] = [
-        warning(41, "Adhoc signed binary", "Binary is adhoc signed!", color: .orange, adhoc),
-        warning(42, "Unknown signing ID", "Unknown signing ID", color: .red, unsigned),
-    ]
-
     /// Every built-in mark, once. They aren't listed or edited anywhere.
     static let builtInMarks: [Finding] = labelMarks + nameMarks.filter { !labelMarks.contains($0) }
-        + nameSignatureMarks
 
     /// The findings marking an event in the tables that are drawn beside the built-in marks it matches. A finding that
     /// is a matched mark's twin, with the mark's symbol, is drawn once, as the mark.
@@ -146,17 +160,11 @@ public extension Finding {
 private extension Finding {
     /// The marks an exec's label draws.
     static let execMarks: [Finding] = [
-        twin(9, "Its executable was created {age} before it ran.", rendering: .palette, palette: [.orange, .primary]),
+        twin(9, "Its executable was {age} old at exec.", rendering: .palette, palette: [.orange, .primary]),
         twin(11, "Ran {script}. Event Facts' Script tab shows its content."),
-        mark(18, "Dyld exec path mismatch", "Dyld exec path does not match the process path.",
-             symbol: "curlybraces.square",
-             predicate: type("EXEC") + " AND event.exec.dyld_exec_path != nil "
-                + "AND event.exec.dyld_exec_path != event.exec.target.executable.path"),
         dyldInsertion,
         mark(19, "File Quarantine-aware", "Target is File Quarantine-aware.", symbol: "lock.icloud",
              rendering: .multicolor, predicate: quarantineAware),
-        warning(32, "Adhoc signed", "{adhoc}", adhoc),
-        warning(33, "Unsigned", "", color: .red, unsigned),
     ]
 
     /// The mark for a dyld injection, which the label and the process name both draw.
@@ -167,11 +175,6 @@ private extension Finding {
 
     /// An exec of a process that's File Quarantine-aware.
     static let quarantineAware = type("EXEC") + #" AND event.exec.target.file_quarantine_type != "DISABLED""#
-    /// An exec of an adhoc signed process.
-    static let adhoc = type("EXEC") + " AND event.exec.target.is_adhoc_signed == YES"
-    /// An exec of a process that isn't adhoc signed and has no signing ID.
-    static let unsigned = type("EXEC") + " AND event.exec.target.is_adhoc_signed == NO "
-        + #"AND (event.exec.target.signing_id == nil OR event.exec.target.signing_id IN {"", "Unknown"})"#
 }
 
 

@@ -21,7 +21,6 @@ struct ProcessExecEventNameView: View {
             HStack {
                 BuiltInMarks(message: message, marks: Finding.nameMarks)
                 FindingMarks(message: message)
-                BuiltInMarks(message: message, marks: Finding.nameSignatureMarks)
                 if exec.target.hasSigningID {
                     Label(name, systemImage: "checkmark.seal")
                 } else {

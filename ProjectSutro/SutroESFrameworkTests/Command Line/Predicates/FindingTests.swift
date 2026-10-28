@@ -23,7 +23,7 @@ final class FindingTests: XCTestCase {
             let predicate = try? StreamFilter.Predicate(finding.predicate, for: .finding)
             XCTAssertNotNil(predicate?.storePredicate, "\(finding.name) reads every event's record")
         }
-        XCTAssertEqual(Finding.defaults.count, 14)
+        XCTAssertEqual(Finding.defaults.count, 13)
         XCTAssertEqual(Finding.defaults.first?.id, UUID(uuidString: "6D4D0F1D-0000-4000-8000-000000000001"))
     }
 
@@ -47,21 +47,19 @@ final class FindingTests: XCTestCase {
               "event": ["deleteextattr": ["extattr": "com.apple.quarantine"]]],
              ["es_event_type": "ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR",
               "event": ["deleteextattr": ["extattr": "com.apple.lastuseddate#PS"]]]),
-            ("AppleScript loaded",
+            ("AppleScript / JXA",
              ["es_event_type": mmap, "target_path": "/System/Library/ScriptingAdditions/StandardAdditions.osax/x"],
              ["es_event_type": mmap, "target_path": "/usr/lib/libSystem.B.dylib"]),
             ("Keychain opened",
              ["es_event_type": "ES_EVENT_TYPE_NOTIFY_OPEN",
               "target_path": "/Users/a/Library/Keychains/login.keychain-db"],
              ["es_event_type": "ES_EVENT_TYPE_NOTIFY_OPEN", "target_path": "/Users/a/Library/Keychain.txt"]),
-            ("New executable", exec([:], ["executable_age_ms": 4]), exec([:], ["executable_age_ms": 400_000])),
+            ("New executable", exec([:], ["executable_age_ms": 4]), exec([:], ["executable_age_ms": 1_000])),
             ("Adhoc or unsigned", exec(["codesigning_type": "ADHOC", "signing_id": "a.out"]),
              exec(["codesigning_type": "DEVELOPER_ID", "signing_id": "com.example.app"])),
             ("Ran a script", exec([:], ["script_content": "echo hi"]), exec([:], ["script_content": ""])),
             ("osascript", exec(["executable": ["name": "osascript"]]), exec(["executable": ["name": "osacompile"]])),
             ("Download tool", exec(["executable": ["name": "curl"]]), exec(["executable": ["name": "curly"]])),
-            ("Non-Apple as root", exec(["euid": 0, "codesigning_type": "ADHOC"]),
-             exec(["euid": 0, "codesigning_type": "PLATFORM"])),
         ]
         for (name, matching, other) in cases {
             let finding = try XCTUnwrap(Finding.defaults.first { $0.name == name }, name)
@@ -77,7 +75,8 @@ final class FindingTests: XCTestCase {
     }
 
     /// Saved findings decode one entry at a time. An entry with a color or rendering this build doesn't know is kept
-    /// as it was saved and written back after the rest. Data that isn't an array decodes to nothing.
+    /// as it was saved and written back after the rest. Data that's neither an object with entries nor an array
+    /// decodes to nothing.
     func testSavedFindingsKeepWhatDoesNotDecode() throws {
         let own = Finding(name: "Mine", explanation: "", symbol: "star", color: .red, predicate: "process.pid == 1",
                           correlation: true, groups: false)
@@ -92,15 +91,96 @@ final class FindingTests: XCTestCase {
         XCTAssertEqual(saved.undecodableCount, 3)
         saved.findings.append(own)
         let written = try XCTUnwrap(saved.encoded())
-        let entries = try XCTUnwrap(JSONSerialization.jsonObject(with: written) as? [[String: Any]])
-        XCTAssertEqual(entries.count, Finding.defaults.count + 1)
-        XCTAssertEqual(entries.suffix(3).map { $0["id"] as? String }, [1, 3, 5].map { objects[$0]["id"] as? String })
-        XCTAssertEqual(entries.suffix(3).first?["color"] as? String, "mauve")
+        let listed = try entries(of: written)
+        XCTAssertEqual(listed.count, Finding.defaults.count + 1)
+        XCTAssertEqual(listed.suffix(3).map { $0["id"] as? String }, [1, 3, 5].map { objects[$0]["id"] as? String })
+        XCTAssertEqual(listed.suffix(3).first?["color"] as? String, "mauve")
         let again = try XCTUnwrap(SavedFindings(data: written))
         XCTAssertEqual(again.findings, saved.findings)
         XCTAssertEqual(again.undecodableCount, 3)
         XCTAssertNil(SavedFindings(data: Data(#"{"findings": []}"#.utf8)))
         XCTAssertEqual(SavedFindings([own]).encoded().flatMap { SavedFindings(data: $0) }?.findings, [own])
+    }
+
+    /// A shipped finding nobody edited is saved by identity with its switches, so it follows what an update ships: a
+    /// changed rule, a new finding, a dropped one. One turned off stays off.
+    func testSavedFindingsFollowShippedFindings() throws {
+        var mine = Finding.defaults
+        mine[2].isEnabled = false
+        let written = try XCTUnwrap(SavedFindings(mine).encoded())
+        let listed = try entries(of: written)
+        XCTAssertEqual(listed.count, Finding.defaults.count)
+        XCTAssertTrue(listed.allSatisfy { $0["default"] is String && $0["predicate"] == nil })
+        var update = Finding.defaults
+        update[2].predicate += " AND process.pid > 1"
+        update.remove(at: 4)
+        update.append(Finding(name: "Added", explanation: "", symbol: "star", color: .red,
+                              predicate: "process.pid == 2", correlation: true, groups: false))
+        var expected = update
+        expected[2].isEnabled = false
+        XCTAssertEqual(SavedFindings(data: written, defaults: update)?.findings, expected)
+    }
+
+    /// An edited shipped finding keeps its edit through an update that changes or drops it, and a deleted one stays
+    /// deleted.
+    func testSavedFindingsKeepEditsAndDeletions() throws {
+        var edited = Finding.defaults[0]
+        edited.predicate += " AND process.pid > 1"
+        let mine = [edited] + Finding.defaults.dropFirst(2)
+        let written = try XCTUnwrap(SavedFindings(mine).encoded())
+        var changed = Finding.defaults
+        changed[0].explanation = "Changed."
+        XCTAssertEqual(SavedFindings(data: written, defaults: changed)?.findings, mine)
+        XCTAssertEqual(SavedFindings(data: written, defaults: Array(Finding.defaults.dropFirst()))?.findings, mine)
+        XCTAssertEqual(SavedFindings(data: written)?.findings, mine)
+    }
+
+    /// Earlier 3.0 builds saved every finding in full. A shipped finding they saved unedited, even an earlier version
+    /// of it, follows this build with its switches: the five minute New executable becomes the one second one,
+    /// AppleScript loaded becomes AppleScript / JXA, and Non-Apple as root goes. An edited one, someone's own, and a
+    /// deletion stay as saved.
+    func testEarlierSavedListsFollowShippedFindings() throws {
+        let own = Finding(name: "Applet", explanation: "", symbol: "star", color: .red, predicate: "process.pid == 1",
+                          correlation: true, groups: false, isEnabled: false)
+        var oldAge = try XCTUnwrap(Finding.previousDefaults.first { $0.name == "New executable" })
+        oldAge.showsInTables = false
+        let oldScript = try XCTUnwrap(Finding.previousDefaults.first { $0.name == "AppleScript loaded" })
+        var edited = Finding.defaults[0]
+        edited.name = "Mine"
+        let earlier = [edited] + Finding.defaults.dropFirst().map { $0.id == oldAge.id ? oldAge : $0 }
+            .map { $0.id == oldScript.id ? oldScript : $0 }
+            + Finding.previousDefaults.filter { $0.name == "Non-Apple as root" } + [own]
+        let saved = try XCTUnwrap(SavedFindings(data: JSONEncoder().encode(earlier)))
+        var age = try XCTUnwrap(Finding.defaults.first { $0.id == oldAge.id })
+        age.showsInTables = false
+        XCTAssertEqual(saved.findings,
+                       [edited] + Finding.defaults.dropFirst().map { $0.id == age.id ? age : $0 } + [own])
+        XCTAssertTrue(age.predicate.hasSuffix("< 1000"))
+        let deleted = try XCTUnwrap(SavedFindings(data: JSONEncoder().encode(Array(Finding.defaults.dropFirst()))))
+        XCTAssertEqual(deleted.findings, Array(Finding.defaults.dropFirst()))
+    }
+
+    /// Settings ▸ Indicators' search finds a finding by its name, its explanation or its predicate, ignoring case and
+    /// accents. Every word has to be found, in any of them. An empty search finds every finding.
+    func testSearchMatchesNameExplanationAndPredicate() throws {
+        let script = try XCTUnwrap(Finding.defaults.first { $0.name == "AppleScript / JXA" })
+        for search in ["applescript", "JXA", "scripting architecture", "javascript.COMPONENT", ".osax", "",
+                       "   ", "Opén Scripting", "jxa mmap"] {
+            XCTAssertTrue(script.matches(search: search), search)
+        }
+        for search in ["keychain", "jxa keychain", "XProtect"] {
+            XCTAssertFalse(script.matches(search: search), search)
+        }
+        XCTAssertEqual(Finding.defaults.filter { $0.matches(search: "executable_age_ms") }.map(\.name),
+                       ["New executable"])
+        XCTAssertEqual(Finding.defaults.filter { $0.matches(search: "") }.count, Finding.defaults.count)
+    }
+
+    /// - Parameter data: Saved findings.
+    /// - Returns: Their entries.
+    private func entries(of data: Data) throws -> [[String: Any]] {
+        let saved = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        return try XCTUnwrap(saved["entries"] as? [[String: Any]])
     }
 
     /// A finding compares one event at a time: a `SUBQUERY` of related events can't be one.

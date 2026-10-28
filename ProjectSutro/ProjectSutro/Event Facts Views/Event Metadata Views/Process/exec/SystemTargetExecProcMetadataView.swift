@@ -162,7 +162,7 @@ struct SystemTargetExecProcMetadataView: View {
                         HStack {
                             Text("\u{2022} **Executable age:**")
                             GroupBox {
-                                Label("Created \(age) before it ran",
+                                Label("\(age) old at exec",
                                       systemImage: event.isNewExecutable ? "clock.badge.exclamationmark" : "clock")
                                     .foregroundStyle(event.isNewExecutable ? .orange : .primary)
                             }
