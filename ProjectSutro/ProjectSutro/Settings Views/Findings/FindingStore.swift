@@ -222,18 +222,15 @@ extension Finding {
         count > 1 ? "\(name) ×\(count)" : name
     }
 
-    /// A built-in mark's help on an event. It's the mark's explanation, with the exec's executable age, its script's
-    /// path and how it's adhoc signed in place of `{age}`, `{script}` and `{adhoc}`.
+    /// A built-in mark's help on an event. It's the mark's explanation, with the exec's executable age and its
+    /// script's path in place of `{age}` and `{script}`.
     ///
     /// - Parameter message: The event.
     /// - Returns: The help.
     func help(on message: ESMessage) -> String {
         guard explanation.contains("{"), let exec = message.event.exec else { return explanation }
-        let adhoc = exec.target.isLinkerSignedAdhoc
-            ? "Adhoc signed by the linker, as a freshly compiled binary is." : "Adhoc signed."
         return explanation.replacingOccurrences(of: "{age}", with: exec.executableAgeText ?? "")
             .replacingOccurrences(of: "{script}", with: exec.resolved_script_path ?? "a script")
-            .replacingOccurrences(of: "{adhoc}", with: adhoc)
     }
 }
 

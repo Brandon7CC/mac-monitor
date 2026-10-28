@@ -31,9 +31,6 @@ final class BuiltInFindingTests: XCTestCase {
 
     /// Each label's event, and a near miss, by the built-in mark that marks it now.
     private var cases: [(String, NSDictionary, NSDictionary)] {
-        let signed: [String: Any] = ["codesigning_type": "DEVELOPER_ID", "signing_id": "com.example.app",
-                                     "is_adhoc_signed": false]
-        let unsigned = exec(signed.merging(["signing_id": "Unknown"]) { $1 })
         let btm = "/private/var/db/com.apple.backgroundtaskmanagement"
         let image = "/private/var/folders/T\\/NSCreateObjectFileImageFromMemory-x"
         let archiver: [String: Any] = ["executable": ["name": "ArchiveService"], "file_quarantine_type": "DISABLED"]
@@ -47,19 +44,12 @@ final class BuiltInFindingTests: XCTestCase {
             ("Elevated to root", exec(["euid": 0, "ruid": 501]), exec(["euid": 0, "ruid": 0])),
             ("DYLD_INSERT_LIBRARIES", exec([:], ["env": ["HOME=/var/root", "DYLD_INSERT_LIBRARIES=/tmp/a.dylib"]]),
              exec([:], ["env": ["DYLD_LIBRARY_PATH=/tmp"]])),
-            ("Dyld exec path mismatch", exec(["executable": ["path": "/bin/ls"]], ["dyld_exec_path": "/tmp/ls"]),
-             exec(["executable": ["path": "/bin/ls"]], ["dyld_exec_path": "/bin/ls"])),
             ("File Quarantine-aware", exec(["file_quarantine_type": "OPT_IN"]),
              exec(["file_quarantine_type": "DISABLED"])),
             ("File Quarantine-aware process", exec(["file_quarantine_type": "OPT_IN"]),
              exec(["file_quarantine_type": "DISABLED"])),
             ("New executable", exec([:], ["executable_age_ms": 3_250]), exec([:], ["executable_age_ms": -5])),
             ("Ran a script", exec([:], ["script_content": "echo"]), exec([:], ["script_content": ""])),
-            ("Adhoc signed", exec(signed.merging(["is_adhoc_signed": true]) { $1 }), exec(signed)),
-            ("Adhoc signed binary", exec(signed.merging(["is_adhoc_signed": true]) { $1 }), unsigned),
-            ("Unsigned", unsigned, exec(signed)),
-            ("Unknown signing ID", exec(signed.merging(["signing_id": ""]) { $1 }),
-             exec(signed.merging(["signing_id": "Unknown", "is_adhoc_signed": true]) { $1 })),
             ("Reflective loading image", file("CREATE", "create", 0, image), file("WRITE", "write", 0, image)),
             ("Unquarantined file created", file("CREATE", "create", 0, "/Users/a/Downloads\\/a.app", archiver),
              file("CREATE", "create", 0, "/private/var/folders/T\\/a.app", archiver)),
@@ -132,7 +122,7 @@ final class BuiltInFindingTests: XCTestCase {
         create.process.file_quarantine_type = .disabled
         create.process.executable?.path = "/System/Library/CoreServices/ArchiveService"
         create.target_path = "/Users/a/Downloads/x"
-        let names = ["DYLD_INSERT_LIBRARIES", "Dyld exec path mismatch", "Root user", "Unquarantined file created"]
+        let names = ["DYLD_INSERT_LIBRARIES", "Root user", "Unquarantined file created"]
         let findings = Finding.builtInMarks.filter { names.contains($0.name) }
         for finding in findings {
             let predicate = try StreamFilter.Predicate(finding.predicate, for: .finding)
@@ -149,9 +139,10 @@ final class BuiltInFindingTests: XCTestCase {
     func testBuiltInMarksKeepTheirNumbers() throws {
         let twins = Finding.builtInMarks.filter { mark in Finding.defaults.contains { $0.id == mark.id } }
         XCTAssertEqual(Set(Finding.builtInMarks.map(\.id)).count, Finding.builtInMarks.count)
-        XCTAssertEqual(Finding.builtInMarks.count, 30)
+        XCTAssertEqual(Finding.builtInMarks.count, 25)
         XCTAssertEqual(Set(twins.map(\.name)), ["New executable", "Ran a script"])
-        for number in 15...37 {
+        /// 18, 32 and 33 were the dyld exec path mismatch and the adhoc and unsigned warnings, now removed.
+        for number in (15...37).filter({ ![18, 32, 33].contains($0) }) {
             let id = try XCTUnwrap(UUID(uuidString: String(format: "6D4D0F1D-0000-4000-8000-%012X", number)))
             XCTAssertTrue(Finding.builtInMarks.contains { $0.id == id }, "\(number)")
         }
@@ -174,16 +165,16 @@ final class BuiltInFindingTests: XCTestCase {
         changed.symbol = "clock"
         XCTAssertEqual(Finding.findings([changed], besides: [mark]), [changed])
         XCTAssertEqual(mark.palette, [.orange, .primary])
-        XCTAssertEqual(mark.explanation, "Its executable was created {age} before it ran.")
+        XCTAssertEqual(mark.explanation, "Its executable was {age} old at exec.")
     }
 
-    /// Each place draws its own marks, as its label did. The process name draws root, elevation and its signature's
-    /// warning. The event type's label draws the rest. Both draw the dyld injection mark.
+    /// Each place draws its own marks, as its label did. The process name draws root and elevation. The event type's
+    /// label draws the rest. Both draw the dyld injection mark.
     func testEachPlaceDrawsItsMarks() {
         let label = Set(Finding.labelMarks.map(\.name))
-        let name = Set((Finding.nameMarks + Finding.nameSignatureMarks).map(\.name))
+        let name = Set(Finding.nameMarks.map(\.name))
         XCTAssertEqual(label.intersection(name), ["DYLD_INSERT_LIBRARIES"])
-        XCTAssertTrue(name.isSuperset(of: ["Root user", "Elevated to root", "Unknown signing ID"]))
+        XCTAssertTrue(name.isSuperset(of: ["Root user", "Elevated to root"]))
         XCTAssertFalse(label.contains("Root user"))
     }
 }
