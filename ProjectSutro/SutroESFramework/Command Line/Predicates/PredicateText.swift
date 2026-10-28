@@ -142,7 +142,7 @@ public enum PredicateText {
     /// The most key paths completed by their last key alone, `is_adhoc` for `event.exec.target.is_adhoc_signed`.
     private static let byLastKeyLimit = 40
 
-    /// What completes the word before a location: a key path's next key (`event.exec.ta` → `event.exec.target`), a
+    /// What completes the word before a location: a key path's next key (`event.exec.target` for `event.exec.ta`), a
     /// keyword or related events, a key path by its last key (`is_adhoc`), or inside quotes a value the schema
     /// lists, such as an event type's name.
     ///
