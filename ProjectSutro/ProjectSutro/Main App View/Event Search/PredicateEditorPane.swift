@@ -14,7 +14,7 @@ import SutroESFramework
 /// The pane beside the event tables for writing a predicate on each event's record: a code editor that colors its
 /// syntax, completes as it's typed (``CompletingTextView``), marks keys the schema doesn't name and checks it as
 /// `macmonitor stream --predicate` does, over one search of the record's keys, related events, and saved and recent
-/// predicates to insert. Apply (⌘↩) filters the tables. The handle under the text drags its height.
+/// predicates to insert. Apply (Command-Return) filters the tables. The handle under the text drags its height.
 struct PredicateEditorPane: View {
     /// The shortest the editor's text can be dragged.
     private static let minEditorHeight = 120.0
@@ -298,8 +298,8 @@ private struct CaretPosition: View {
     }
 }
 
-/// What's applied and how it's going, Revert or Remove, and Apply (⌘↩). It names the finding filter the predicate
-/// narrows, if there is one. It alone follows the tables' queries, which change with every event saved.
+/// What's applied and how it's going, Revert or Remove, and Apply (Command-Return). It names the finding filter the
+/// predicate narrows, if there is one. It alone follows the tables' queries, which change with every event saved.
 private struct PredicateEditorFooter: View {
     @ObservedObject var search: EventSearchController
     @ObservedObject var model: EventQueryModel

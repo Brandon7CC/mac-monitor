@@ -13,17 +13,30 @@ import SutroESFramework
 // MARK: - Completing text view
 /// The predicate editor's text view, which completes the word being typed as Xcode does: a list under the cursor of
 /// what completes it (``PredicateText/completions(in:at:)``), the rest of the chosen one in grey after the cursor,
-/// ↑ and ↓ to choose, Tab or Return to take one, and Escape to put the list away until the next keystroke.
+/// the Up and Down Arrow keys to choose, Tab or Return to take one, and Escape to put the list away until the next
+/// keystroke.
 final class CompletingTextView: NSTextView {
     private var completion: PredicateText.Completion?
     private var selected = 0
     /// Escape put the list away: it stays away until the text changes.
     private var dismissed = false
-    private lazy var panel = CompletionPanel()
+    /// Is SwiftUI setting the text (``setText(_:)``)? The list neither shows nor hides then.
+    private var isSettingText = false
+    /// The list's panel, once it has shown. Hiding never makes one: SwiftUI sets the text while it builds the view, and
+    /// macOS 13 aborts when a new panel's hosting view lays out then.
+    private var loadedPanel: CompletionPanel?
+    private var panel: CompletionPanel {
+        if let loadedPanel { return loadedPanel }
+        let made = CompletionPanel()
+        loadedPanel = made
+        return made
+    }
+    /// Is the list showing?
+    private var isListShowing: Bool { loadedPanel?.isVisible == true }
 
     /// The rest of the chosen completion, drawn in grey after the cursor, when the cursor ends the word.
     private var ghost: String? {
-        guard let completion, panel.isVisible, completion.items.indices.contains(selected) else { return nil }
+        guard let completion, isListShowing, completion.items.indices.contains(selected) else { return nil }
         let typed = (string as NSString).substring(with: completion.range), word = completion.items[selected].word
         let caret = selectedRange().location, text = string as NSString
         let next = caret < text.length ? text.substring(with: NSRange(location: caret, length: 1)) : " "
@@ -40,7 +53,20 @@ final class CompletingTextView: NSTextView {
     override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity,
                                     stillSelecting stillSelectingFlag: Bool) {
         super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelectingFlag)
-        if !stillSelectingFlag { refreshCompletion() }
+        if !stillSelectingFlag && !isSettingText { refreshCompletion() }
+    }
+
+    /// Replace the text and color its syntax, as SwiftUI does from the binding. A list left showing goes away after
+    /// the update.
+    ///
+    /// - Parameter text: The new text.
+    func setText(_ text: String) {
+        isSettingText = true
+        string = text
+        if let textStorage { PredicateSyntax.highlight(textStorage) }
+        isSettingText = false
+        guard completion != nil else { return }
+        DispatchQueue.main.async { [weak self] in self?.hideCompletion() }
     }
 
     override func resignFirstResponder() -> Bool {
@@ -53,9 +79,10 @@ final class CompletingTextView: NSTextView {
         super.viewWillMove(toWindow: newWindow)
     }
 
-    /// The list's keys while it shows: ↑, ↓, Tab, Return and Escape. Tab with the list away brings it back.
+    /// The list's keys while it shows: Up Arrow, Down Arrow, Tab, Return and Escape. Tab with the list away brings it
+    /// back.
     override func doCommand(by selector: Selector) {
-        if panel.isVisible, let completion, !completion.items.isEmpty {
+        if isListShowing, let completion, !completion.items.isEmpty {
             switch selector {
             case #selector(moveDown(_:)):
                 selected = (selected + 1) % completion.items.count
@@ -118,8 +145,8 @@ final class CompletingTextView: NSTextView {
     }
 
     private func hideCompletion() {
-        guard panel.isVisible || completion != nil else { return }
-        panel.hide()
+        guard isListShowing || completion != nil else { return }
+        loadedPanel?.hide()
         completion = nil
         needsDisplay = true
     }

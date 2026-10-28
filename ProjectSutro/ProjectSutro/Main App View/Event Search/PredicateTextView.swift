@@ -63,8 +63,7 @@ struct PredicateTextView: NSViewRepresentable {
         textView.isContinuousSpellCheckingEnabled = false
         textView.isGrammarCheckingEnabled = false
         textView.setAccessibilityLabel("Predicate")
-        textView.string = text
-        PredicateSyntax.highlight(textView.textStorage!)
+        textView.setText(text)
         scrollView.verticalRulerView = LineNumberRuler(textView: textView)
         scrollView.hasVerticalRuler = true
         scrollView.rulersVisible = true
@@ -80,9 +79,8 @@ struct PredicateTextView: NSViewRepresentable {
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         context.coordinator.parent = self
-        guard let textView = scrollView.documentView as? NSTextView, textView.string != text else { return }
-        textView.string = text
-        PredicateSyntax.highlight(textView.textStorage!)
+        guard let textView = scrollView.documentView as? CompletingTextView, textView.string != text else { return }
+        textView.setText(text)
         scrollView.verticalRulerView?.needsDisplay = true
     }
 
