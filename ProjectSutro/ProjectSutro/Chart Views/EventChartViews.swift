@@ -34,18 +34,40 @@ struct SystemChartEventView: View {
         }
     }
 
+    /// macOS 27's Swift Charts draws each event type's label on its band's top edge, over the bar above it, so there
+    /// each bar carries its own label. macOS 13 ignores a bar's height on this axis, so it keeps the axis labels.
+    private static let barsCarryLabels = ProcessInfo.processInfo.isOperatingSystemAtLeast(
+        OperatingSystemVersion(majorVersion: 27, minorVersion: 0, patchVersion: 0))
+
     var body: some View {
         let eventFrequency = esEventFrequency(for: counts)
         VStack {
             if !counts.isEmpty {
-                Chart {
+                let chart = Chart {
                     ForEach(eventFrequency, id: \.eventType) { esEvent in
-                        BarMark(
-                            x: .value("Frequency", esEvent.frequency),
-                            y: .value("Event Type", esEvent.eventType)
-                        ).foregroundStyle(by: .value("Event type", esEvent.eventType))
+                        if Self.barsCarryLabels {
+                            BarMark(
+                                x: .value("Frequency", esEvent.frequency),
+                                y: .value("Event Type", esEvent.eventType),
+                                height: .fixed(10)
+                            )
+                            .foregroundStyle(by: .value("Event type", esEvent.eventType))
+                            .annotation(position: .top, alignment: .leading, spacing: 2) {
+                                Text(esEvent.eventType).font(.caption).foregroundStyle(.secondary)
+                            }
+                        } else {
+                            BarMark(
+                                x: .value("Frequency", esEvent.frequency),
+                                y: .value("Event Type", esEvent.eventType)
+                            ).foregroundStyle(by: .value("Event type", esEvent.eventType))
+                        }
                     }
                 }.chartLegend(.hidden)
+                if Self.barsCarryLabels {
+                    chart.chartYAxis { AxisMarks { AxisGridLine() } }
+                } else {
+                    chart
+                }
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
     }
