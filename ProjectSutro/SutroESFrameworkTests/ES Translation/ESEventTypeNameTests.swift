@@ -98,6 +98,17 @@ final class ESEventTypeNameTests: XCTestCase {
         XCTAssertEqual(allESEvents.map(\.rawValue), Array(0..<UInt32(Self.knownNames.count)))
     }
 
+    /// Every event type the SDK Mac Monitor builds with defines has its name, so nothing Mac Monitor shows or exports,
+    /// such as Apple's mute set, says `ES_EVENT_TYPE_LAST` for a real type. A newer SDK that adds a type fails here
+    /// until ``esEventTypeNames`` names it.
+    func testEverySDKEventTypeIsNamed() {
+        XCTAssertGreaterThanOrEqual(esEventTypeNames.count, Int(ES_EVENT_TYPE_LAST.rawValue),
+                                    "Name the SDK's new event types in esEventTypeNames, in ESTypes.h's order")
+        for raw in 0..<ES_EVENT_TYPE_LAST.rawValue {
+            XCTAssertNotEqual(eventTypeToString(from: es_event_type_t(rawValue: raw)), "ES_EVENT_TYPE_LAST", "\(raw)")
+        }
+    }
+
     /// Each name reads back as its type, and a name Mac Monitor doesn't know, matched exactly, reads back as
     /// `ES_EVENT_TYPE_LAST`.
     func testNamesRoundTrip() {
