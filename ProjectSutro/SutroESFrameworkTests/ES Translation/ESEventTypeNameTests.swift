@@ -73,26 +73,39 @@ final class ESEventTypeNameTests: XCTestCase {
         "ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE", "ES_EVENT_TYPE_NOTIFY_TCC_MODIFY"
     ]
 
-    /// Raw values 0 to 170 are named as they were, so everything past `ES_EVENT_TYPE_NOTIFY_TCC_MODIFY`, including a
-    /// newer SDK's reserved, XPC and bootstrap types, is `ES_EVENT_TYPE_LAST`.
+    /// The macOS 26.3 to 27 SDK's types after `ES_EVENT_TYPE_NOTIFY_TCC_MODIFY`, raw values 148 to 161, in
+    /// `ESTypes.h`'s order.
+    private static let sdk27Names = [
+        "ES_EVENT_TYPE_RESERVED_0", "ES_EVENT_TYPE_RESERVED_1", "ES_EVENT_TYPE_RESERVED_2", "ES_EVENT_TYPE_RESERVED_3",
+        "ES_EVENT_TYPE_RESERVED_4", "ES_EVENT_TYPE_RESERVED_5", "ES_EVENT_TYPE_RESERVED_6", "ES_EVENT_TYPE_RESERVED_7",
+        "ES_EVENT_TYPE_RESERVED_8", "ES_EVENT_TYPE_AUTH_XPC_CONNECT", "ES_EVENT_TYPE_AUTH_BOOTSTRAP_CHECK_IN",
+        "ES_EVENT_TYPE_NOTIFY_BOOTSTRAP_CHECK_IN", "ES_EVENT_TYPE_AUTH_BOOTSTRAP_LOOK_UP",
+        "ES_EVENT_TYPE_NOTIFY_BOOTSTRAP_LOOK_UP"
+    ]
+
+    /// Every name Mac Monitor knows, by raw value.
+    private static var knownNames: [String] { frozenNames + sdk27Names }
+
+    /// Raw values 0 to 147 are named as they were, then the macOS 27 SDK's types follow, and everything past those up
+    /// to 170 is `ES_EVENT_TYPE_LAST`.
     func testNamesAreFrozen() {
         XCTAssertEqual(Self.frozenNames.count, Int(ES_EVENT_TYPE_NOTIFY_TCC_MODIFY.rawValue) + 1)
         for raw in UInt32(0)...170 {
             let index = Int(raw)
-            let expected = index < Self.frozenNames.count ? Self.frozenNames[index] : "ES_EVENT_TYPE_LAST"
+            let expected = index < Self.knownNames.count ? Self.knownNames[index] : "ES_EVENT_TYPE_LAST"
             XCTAssertEqual(eventTypeToString(from: es_event_type_t(rawValue: raw)), expected, "\(raw)")
         }
-        XCTAssertEqual(allESEvents.map(\.rawValue), Array(0..<UInt32(Self.frozenNames.count)))
+        XCTAssertEqual(allESEvents.map(\.rawValue), Array(0..<UInt32(Self.knownNames.count)))
     }
 
     /// Each name reads back as its type, and a name Mac Monitor doesn't know, matched exactly, reads back as
     /// `ES_EVENT_TYPE_LAST`.
     func testNamesRoundTrip() {
-        for (raw, name) in Self.frozenNames.enumerated() {
+        for (raw, name) in Self.knownNames.enumerated() {
             XCTAssertEqual(eventStringToType(from: name).rawValue, UInt32(raw), name)
         }
-        let unknown = ["ES_EVENT_TYPE_LAST", "ES_EVENT_TYPE_RESERVED_0", "ES_EVENT_TYPE_AUTH_XPC_CONNECT",
-                       "es_event_type_notify_exec", "NOTIFY_EXEC", " ES_EVENT_TYPE_NOTIFY_EXEC", ""]
+        let unknown = ["ES_EVENT_TYPE_LAST", "ES_EVENT_TYPE_RESERVED_9", "es_event_type_notify_exec", "NOTIFY_EXEC",
+                       " ES_EVENT_TYPE_NOTIFY_EXEC", ""]
         for name in unknown {
             XCTAssertEqual(eventStringToType(from: name), ES_EVENT_TYPE_LAST, name)
         }

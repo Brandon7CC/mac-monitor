@@ -12,8 +12,8 @@ import Foundation
 /// The `ESTypes.h` name of every `es_event_type_t` Mac Monitor knows, indexed by raw value: the only place an event
 /// type is named. One name per line, in the header's order, so it can be checked against `ESTypes.h`.
 ///
-/// Types a newer SDK adds after `ES_EVENT_TYPE_NOTIFY_TCC_MODIFY` (the reserved types, `AUTH_XPC_CONNECT` and the
-/// bootstrap types) aren't listed, so ``eventTypeToString(from:)`` names them `ES_EVENT_TYPE_LAST`.
+/// It runs through the macOS 27 SDK's types. A type a newer SDK adds isn't listed, so ``eventTypeToString(from:)``
+/// names it `ES_EVENT_TYPE_LAST`.
 let esEventTypeNames: [String] = [
     "ES_EVENT_TYPE_AUTH_EXEC",
     "ES_EVENT_TYPE_AUTH_OPEN",
@@ -162,7 +162,21 @@ let esEventTypeNames: [String] = [
     "ES_EVENT_TYPE_NOTIFY_OD_DELETE_GROUP",
     "ES_EVENT_TYPE_NOTIFY_XPC_CONNECT",
     "ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE",
-    "ES_EVENT_TYPE_NOTIFY_TCC_MODIFY"
+    "ES_EVENT_TYPE_NOTIFY_TCC_MODIFY",
+    "ES_EVENT_TYPE_RESERVED_0",
+    "ES_EVENT_TYPE_RESERVED_1",
+    "ES_EVENT_TYPE_RESERVED_2",
+    "ES_EVENT_TYPE_RESERVED_3",
+    "ES_EVENT_TYPE_RESERVED_4",
+    "ES_EVENT_TYPE_RESERVED_5",
+    "ES_EVENT_TYPE_RESERVED_6",
+    "ES_EVENT_TYPE_RESERVED_7",
+    "ES_EVENT_TYPE_RESERVED_8",
+    "ES_EVENT_TYPE_AUTH_XPC_CONNECT",
+    "ES_EVENT_TYPE_AUTH_BOOTSTRAP_CHECK_IN",
+    "ES_EVENT_TYPE_NOTIFY_BOOTSTRAP_CHECK_IN",
+    "ES_EVENT_TYPE_AUTH_BOOTSTRAP_LOOK_UP",
+    "ES_EVENT_TYPE_NOTIFY_BOOTSTRAP_LOOK_UP"
 ]
 
 /// Every event type ``esEventTypeNames`` names, in raw value order.
