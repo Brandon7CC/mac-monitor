@@ -45,7 +45,7 @@ final class EventClassTableTests: XCTestCase {
         let listed = listedEvents.map(\.rawValue)
         XCTAssertEqual(listed.count, Set(listed).count, "An event is listed twice")
         XCTAssertEqual(Set(listed), Set(namedNotifyEvents.map(\.rawValue)))
-        XCTAssertEqual(listed.count, 104)
+        XCTAssertEqual(listed.count, 106)
     }
     
     /// Every event Mac Monitor can subscribe to is listed by name rather than classed by the fallback.
@@ -103,17 +103,19 @@ final class EventClassTableTests: XCTestCase {
                     go: .process, as: .uncategorized)
     }
     
-    /// An event the table doesn't list, such as one a newer SDK adds (macOS 27's `bootstrap_check_in` and
-    /// `bootstrap_look_up`), is uncategorized, so it goes to the process client.
-    func testUnlistedEventsFallBackToTheProcessClient() {
-        let newer = (ES_EVENT_TYPE_NOTIFY_TCC_MODIFY.rawValue + 1...ES_EVENT_TYPE_LAST.rawValue)
+    /// Every type after `ES_EVENT_TYPE_NOTIFY_TCC_MODIFY` is uncategorized, so it goes to the process client: macOS
+    /// 27's bootstrap events, which the table lists, and the rest, which it doesn't (the AUTH and reserved types, and
+    /// whatever a newer SDK adds).
+    func testNewerEventsGoToTheProcessClient() {
+        let newer = (ES_EVENT_TYPE_NOTIFY_TCC_MODIFY.rawValue + 1...ES_EVENT_TYPE_LAST.rawValue + 8)
             .map { es_event_type_t(rawValue: $0) }
+        let bootstrap = ["ES_EVENT_TYPE_NOTIFY_BOOTSTRAP_CHECK_IN", "ES_EVENT_TYPE_NOTIFY_BOOTSTRAP_LOOK_UP"]
         for event in newer {
-            XCTAssertFalse(listedEvents.contains(event), "\(event.rawValue)")
+            let name = eventTypeToString(from: event)
+            XCTAssertEqual(listedEvents.contains(event), bootstrap.contains(name), "\(event.rawValue) \(name)")
             XCTAssertEqual(EventClassTable.category(of: event), .uncategorized, "\(event.rawValue)")
             XCTAssertEqual(EventClassTable.eventClass(of: event), .process, "\(event.rawValue)")
         }
-        XCTAssertTrue(newer.contains(ES_EVENT_TYPE_LAST))
     }
     
     /// Splitting the default subscriptions gives each client its own events, in their order, and loses none.

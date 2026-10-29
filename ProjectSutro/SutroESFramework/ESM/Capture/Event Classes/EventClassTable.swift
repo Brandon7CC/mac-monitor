@@ -18,8 +18,9 @@ import EndpointSecurity
 /// takes the process and interprocess syscalls plus every userspace security event, which Apple leaves uncategorized,
 /// while the file and memory clients take the kernel's high-volume file and memory syscalls.
 ///
-/// An event the table doesn't list (one a newer SDK adds, such as macOS 27's `bootstrap_check_in`) is
-/// ``AppleEventCategory/uncategorized``, so it goes to the process client, as Apple's newer security events do.
+/// An event the table doesn't list (one a newer SDK adds) is ``AppleEventCategory/uncategorized``, so it goes to the
+/// process client, as Apple's newer security events do. macOS 27's bootstrap events are listed by name, so the table
+/// builds with an older SDK.
 public enum EventClassTable {
     /// Apple's documentation categories, in Apple's order. Each NOTIFY event in `allESEvents` is listed once.
     static let categories: [(category: AppleEventCategory, events: [es_event_type_t])] = [
@@ -80,7 +81,9 @@ public enum EventClassTable {
             ES_EVENT_TYPE_NOTIFY_PROFILE_REMOVE, ES_EVENT_TYPE_NOTIFY_SCREENSHARING_ATTACH,
             ES_EVENT_TYPE_NOTIFY_SCREENSHARING_DETACH, ES_EVENT_TYPE_NOTIFY_SU, ES_EVENT_TYPE_NOTIFY_SUDO,
             ES_EVENT_TYPE_NOTIFY_TCC_MODIFY, ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED,
-            ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED, ES_EVENT_TYPE_NOTIFY_XPC_CONNECT
+            ES_EVENT_TYPE_NOTIFY_XP_MALWARE_REMEDIATED, ES_EVENT_TYPE_NOTIFY_XPC_CONNECT,
+            eventStringToType(from: "ES_EVENT_TYPE_NOTIFY_BOOTSTRAP_CHECK_IN"),
+            eventStringToType(from: "ES_EVENT_TYPE_NOTIFY_BOOTSTRAP_LOOK_UP")
         ])
     ]
     
