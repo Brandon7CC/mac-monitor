@@ -42,7 +42,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             defer { escape.map(NSEvent.removeMonitor) }
             return alert.runModal() == .alertSecondButtonReturn ? .terminateNow : .terminateCancel
         }
-        if UserDefaults.standard.bool(forKey: "lifecycleWarnBeforeQuit") && !UserDefaults.standard.bool(forKey: "lifecycleQuitInternal") {
+        /// macOS logging out, restarting or shutting down never waits on the warning: it would hold the logout until
+        /// someone answered, such as an update restarting the Mac overnight (#86). A save still asks first, above.
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: "lifecycleWarnBeforeQuit"), !defaults.bool(forKey: "lifecycleQuitInternal"),
+           QuitReason.current == .user {
             let alert = NSAlert()
             alert.messageText = "Quit Mac Monitor?"
             alert.informativeText = "Please save your work. Quitting will clear any system trace."
