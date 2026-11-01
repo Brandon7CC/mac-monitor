@@ -82,8 +82,6 @@ public struct MuteReply: XPCReply, Equatable, Sendable {
         case ok
         /// The caller may only read the saved set: another Mac Monitor owns the event stream.
         case refused
-        /// The caller may only read the saved set: the user running Mac Monitor isn't an administrator.
-        case notAdministrator
         /// A mute in the request can't be used.
         case invalid
         /// The saved set was written by a newer Mac Monitor: it can only be reset.

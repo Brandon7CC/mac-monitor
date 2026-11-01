@@ -45,7 +45,7 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 
 
 ## Path mutes
-(`3.0.0+`) Mac Monitor keeps one **saved mute set**. It survives restarts, applies right away, and is shared with `sudo macmonitor`. Only an administrator can change it.
+(`3.0.0+`) Mac Monitor keeps one **saved mute set**. It survives restarts, applies right away, and is shared with `sudo macmonitor`. Anyone using Mac Monitor can change it, administrator or not.
 
 - **Settings ▸ Path Muting** shows it. Right click an event to add a mute.
 - **Import, export or reset** it there too. Import reads 2.1 exports, so export your mutes from 2.1 before updating.

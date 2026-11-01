@@ -27,9 +27,12 @@ import SutroESFramework
 /// leaves no owner. When the owner goes away we post `SensorXPC.sensorReleasedNotification` so a refused Mac Monitor
 /// can claim the stream; `StreamService` posts it too when a stream frees its clients.
 ///
-/// **Saved mute set:** only an administrator's Mac Monitor may change it (`AdministratorCheck`, asked on every
-/// request), and only while it owns the event stream or nobody does. A standard user's Mac Monitor still lists it,
-/// exports it, and records with it.
+/// **Saved mute set:** any user's Mac Monitor may change it, administrator or not, while it owns the event stream or
+/// nobody does. `macmonitor` changes it only as root.
+///
+/// **Updates:** any user's Mac Monitor may install one, administrator or not, while it owns the event stream or nobody
+/// does. The Security Extension downloads the latest release itself and installs it only once Gatekeeper accepts it
+/// and it's signed by Swiftly Detecting's team, so the most a caller can do is bring Mac Monitor up to date.
 ///
 /// **Threading:** every piece of state below, and every call into the `CaptureSession`, happens on `queue`. The
 /// Endpoint Security handlers only serialize events (while recording) and hop onto `queue` to buffer them, so each
@@ -67,15 +70,10 @@ final class SensorService: NSObject {
     /// each change is saved, then applied.
     private let savedMutes: SavedMuteSet
     private var muteSubscription: AnyCancellable?
-    /// Decides whose Mac Monitor may change the saved mute set: an administrator's.
-    private let administrators: AdministratorCheck
     
-    /// - Parameters:
-    ///   - savedMutes: The saved mute set, loaded before the listener starts.
-    ///   - administrators: Decides whose Mac Monitor may change it.
-    init(savedMutes: SavedMuteSet, administrators: AdministratorCheck = .openDirectory) {
+    /// - Parameter savedMutes: The saved mute set, loaded before the listener starts.
+    init(savedMutes: SavedMuteSet) {
         self.savedMutes = savedMutes
-        self.administrators = administrators
     }
     
     /// Configure and activate a Mac Monitor connection the router pinned to `SensorXPC.agentRequirement`.
@@ -195,16 +193,13 @@ extension SensorService: SensorProtocol {
     }
     
     func mutes(_ request: Data, reply: @escaping (Data) -> Void) {
-        /// Must be read on the thread delivering the message, before hopping queues. Open Directory answers here, on
-        /// the connection's own queue, so a slow lookup never holds up `queue`, which buffers events. No connection
-        /// means no user to vouch for, so nothing may change.
+        /// Must be read on the thread delivering the message, before hopping queues. No connection means nothing may
+        /// change.
         let caller = NSXPCConnection.current()
-        let isAdministrator = administrators.isAdministrator(caller)
         queue.async { [self] in
-            /// Only an administrator's Mac Monitor may change the saved set. Like `installUpdate`, it may while nobody
-            /// owns the event stream, and while someone does, only they may. Every Mac Monitor may list it.
-            let access = MuteAccess.app(isAdministrator: isAdministrator,
-                                        controlsStream: MuteAccess.controlsStream(caller, owner: sink?.connection))
+            /// Any user's Mac Monitor may change the saved set. Like `installUpdate`, it may while nobody owns the
+            /// event stream, and while someone does, only they may. Every Mac Monitor may list it.
+            let access = MuteAccess.app(caller, owner: sink?.connection)
             savedMutes.handle(request, access: access, caller: "Mac Monitor (pid \(caller?.processIdentifier ?? 0))",
                               reply: reply)
         }
@@ -240,12 +235,10 @@ extension SensorService: SensorProtocol {
     func installUpdate(reply: @escaping (String?) -> Void) {
         /// Read on the thread delivering the message, as `mutes(_:reply:)` does.
         let caller = NSXPCConnection.current()
-        let isAdministrator = administrators.isAdministrator(caller)
         queue.async { [self] in
-            /// Only an administrator's Mac Monitor may install, since the installer runs as root. It may while nobody
+            /// Any user's Mac Monitor may install, since only a verified release is installed. It may while nobody
             /// owns the stream (e.g. one launched with `--deactivate-security-extension`). While someone does, only
             /// they may.
-            guard isAdministrator else { return reply(UpdateFailure.notAdministrator.rawValue) }
             guard sink == nil || owns(caller) else { return reply(UpdateFailure.streamOwned.rawValue) }
             /// Progress goes to the Mac Monitor that asked, in order, ahead of the reply.
             let agent = caller?.remoteObjectProxy as? AppAgentProtocol

@@ -129,13 +129,10 @@ struct PathMutingSettingsView: View {
 
     // MARK: Pieces
 
-    /// What the Security Extension said about the saved set, and why a standard user's controls are off.
+    /// What the Security Extension said about the saved set.
     @ViewBuilder private var notices: some View {
         if let notice = systemExtensionManager.muteNotice {
             Label(notice, systemImage: "exclamationmark.triangle.fill").symbolRenderingMode(.multicolor)
-        }
-        if systemExtensionManager.savedMutesNeedAdministrator, let reason = MuteAccess.standardUser.refusal?.problem {
-            Label(reason, systemImage: "lock.fill").foregroundStyle(.secondary)
         }
     }
 

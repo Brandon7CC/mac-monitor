@@ -108,8 +108,6 @@ public enum UpdateProgress: Codable, Equatable {
 // MARK: - Install failure
 /// Why an update wasn't installed. The Security Extension replies with its raw value.
 public enum UpdateFailure: String, Codable, Error, CaseIterable {
-    /// The user running Mac Monitor isn't an administrator.
-    case notAdministrator
     /// Another Mac Monitor owns the event stream.
     case streamOwned
     /// An install is already running.
@@ -130,8 +128,6 @@ public enum UpdateFailure: String, Codable, Error, CaseIterable {
     /// What Mac Monitor tells the user, without the release's version.
     public var message: String {
         switch self {
-        case .notAdministrator:
-            return "The installer runs as root, so only an administrator's Mac Monitor can install updates."
         case .streamOwned:
             return "Another Mac Monitor is recording. Install the update from the Mac Monitor that's recording."
         case .alreadyInstalling:

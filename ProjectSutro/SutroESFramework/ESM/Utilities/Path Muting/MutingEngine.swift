@@ -35,15 +35,11 @@ public enum MuteRequestOrigin: Sendable {
 extension EndpointSecurityManager {
     // MARK: - Agent Context
     
-    /// Can this Mac Monitor change the saved mute set? Not while another one owns the event stream
-    /// (`.streamOwned`), and never once the Security Extension has said its user isn't an administrator
-    /// (``savedMutesNeedAdministrator``): it may still list it. Endpoint Security refusing clients (`.tooManyClients`)
-    /// leaves no owner, so the change is allowed. The Security Extension decides each change either way.
-    public var canChangeSavedMutes: Bool { connectionResult != .streamOwned && !savedMutesNeedAdministrator }
-    
-    /// Did the Security Extension say only an administrator may change the saved mute set, and this Mac Monitor's
-    /// user isn't one?
-    public var savedMutesNeedAdministrator: Bool { savedMutesAccess == .standardUser }
+    /// Can this Mac Monitor change the saved mute set? Not while another one owns the event stream (`.streamOwned`):
+    /// it may still list it. Its user needn't be an administrator. Endpoint Security refusing clients
+    /// (`.tooManyClients`) leaves no owner, so the change is allowed. The Security Extension decides each change
+    /// either way.
+    public var canChangeSavedMutes: Bool { connectionResult != .streamOwned }
     
     public func requestAppleMuteSet(_ completion: ((Set<String>) -> Void)? = nil) {
         sensor.call { $0.appleMuteSet(reply: $1) } completion: { response in
@@ -70,7 +66,6 @@ extension EndpointSecurityManager {
             }
             self.savedMutes = reply.mutes.map(ESMutedPath.init)
             self.muteNotice = reply.notice
-            if let access = reply.access { self.savedMutesAccess = access }
             /// Refusals and what was left out, shown where the request was made. Each change replaces what the last
             /// one left, so a refusal never shows up later, out of context. A list only adds to it.
             let problems = reply.status == .ok || !reply.problems.isEmpty

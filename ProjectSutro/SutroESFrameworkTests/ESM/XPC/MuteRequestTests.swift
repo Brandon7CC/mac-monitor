@@ -21,8 +21,6 @@ final class MuteRequestTests: XCTestCase {
         let reply = MuteReply(status: .refused, changed: false, mutes: request.mutes, problems: ["No."],
                               notice: "Read-only.", access: .read)
         XCTAssertEqual(MuteReply.decode(reply.encoded()), reply)
-        let standardUser = MuteReply(status: .notAdministrator, mutes: [], access: .standardUser)
-        XCTAssertEqual(MuteReply.decode(standardUser.encoded()), standardUser)
     }
     
     /// A reply missing everything but its version and status still reads, an unknown status reads as unsupported,

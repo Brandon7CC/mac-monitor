@@ -7,6 +7,7 @@
 
 import Foundation
 import Security
+import Darwin.membership
 
 
 // MARK: - Refusals

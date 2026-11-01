@@ -109,31 +109,11 @@ final class SavedMuteSetTests: XCTestCase {
                         MuteRequest(.replace), MuteRequest(.reset)] {
             let reply = saved.send(request, access: .read)
             XCTAssertEqual(reply.status, .refused, request.operation.rawValue)
+            XCTAssertEqual(reply.access, .read)
             XCTAssertEqual(reply.mutes, MuteFile(.testDefault).mutes)
         }
         XCTAssertEqual(savedFile(in: store), before)
         XCTAssertEqual(followed, [])
-    }
-    
-    /// A standard user's Mac Monitor gets the set, and every change is refused with its own status and sentence,
-    /// without touching the file or followers. Every reply says what the caller may do.
-    func testStandardUsersCanOnlyList() {
-        follow()
-        let before = savedFile(in: store)
-        let list = saved.send(MuteRequest(.list), access: .standardUser)
-        XCTAssertEqual(list.status, .ok)
-        XCTAssertEqual(list.access, .standardUser)
-        for request in [MuteRequest(.add, [entry("/x")]), MuteRequest(.remove, [entry("/usr/libexec/logd")]),
-                        MuteRequest(.replace), MuteRequest(.reset)] {
-            let reply = saved.send(request, access: .standardUser)
-            XCTAssertEqual(reply.status, .notAdministrator, request.operation.rawValue)
-            XCTAssertEqual(reply.problems, [MuteAccess.standardUser.refusal?.problem], request.operation.rawValue)
-            XCTAssertEqual(reply.access, .standardUser)
-            XCTAssertEqual(reply.mutes, MuteFile(.testDefault).mutes)
-        }
-        XCTAssertEqual(savedFile(in: store), before)
-        XCTAssertEqual(followed, [])
-        XCTAssertEqual(saved.send(MuteRequest(.list), access: .read).access, .read)
         XCTAssertEqual(saved.send(MuteRequest(.add, [entry("/x")])).access, .write)
     }
     

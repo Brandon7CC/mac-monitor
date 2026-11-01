@@ -193,9 +193,8 @@ public enum SensorXPC {
     /// Read or change the saved mute set: the one set of path mutes the Security Extension keeps on disk and applies
     /// to Mac Monitor's capture and to every `macmonitor stream` without `--no-mutes`.
     ///
-    /// Any Mac Monitor can list it. Only an administrator's can change it (others get `.notAdministrator`), and only
-    /// while it owns the event stream or nobody does (others get `.refused`). Every reply says which
-    /// (``MuteReply/access``).
+    /// Any Mac Monitor can list it, and change it while it owns the event stream or nobody does, whether its user is
+    /// an administrator or not (others get `.refused`). Every reply says which (``MuteReply/access``).
     ///
     /// - Parameters:
     ///   - request: A JSON encoded ``MuteRequest`` (at most ``MuteLimits/maxFileBytes``).
@@ -218,8 +217,10 @@ public enum SensorXPC {
     ///
     /// The Security Extension resolves the package itself. Nothing about the package comes from the caller.
     ///
-    /// - Parameter reply: `nil` if the update was installed, else an ``UpdateFailure`` raw value: the caller isn't an
-    ///   administrator, another connection owns the event stream, or a step failed.
+    /// Any user's Mac Monitor may ask, administrator or not, while it owns the event stream or nobody does.
+    ///
+    /// - Parameter reply: `nil` if the update was installed, else an ``UpdateFailure`` raw value: another connection
+    ///   owns the event stream, or a step failed.
     func installUpdate(reply: @escaping (String?) -> Void)
 
     // MARK: Command line tool

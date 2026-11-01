@@ -39,7 +39,7 @@ final class CommandLineExitTests: XCTestCase {
     /// are kept, and a reply without any still says what happened.
     func testEveryMuteReplyStatus() {
         let expected: [(MuteReply.Status, CommandLineExit?)] = [
-            (.ok, nil), (.refused, .noPermission), (.notAdministrator, .noPermission), (.invalid, .dataError),
+            (.ok, nil), (.refused, .noPermission), (.invalid, .dataError),
             (.storageFailed, .ioError), (.readOnly, .unavailable), (.unsupported, .unavailable)
         ]
         for (status, exit) in expected {

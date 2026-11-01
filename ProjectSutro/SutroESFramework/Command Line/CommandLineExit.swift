@@ -145,7 +145,6 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
         switch reply.status {
         case .ok: return nil
         case .refused: return failure(.noPermission, "The Security Extension refused the change.")
-        case .notAdministrator: return failure(.noPermission, "Only an administrator can change the saved mute set.")
         case .invalid: return failure(.dataError, "The Security Extension refused the mutes: they can't be used.")
         case .storageFailed: return failure(.ioError, "The saved mute set couldn't be written, so nothing changed.")
         case .readOnly:

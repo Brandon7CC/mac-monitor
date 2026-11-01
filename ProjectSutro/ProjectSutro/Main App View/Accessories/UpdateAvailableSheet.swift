@@ -36,9 +36,7 @@ struct UpdateAvailableSheet: View {
         .padding(24)
         .frame(width: 560)
         .interactiveDismissDisabled(systemExtensionManager.installProgress != nil)
-        .alert(failure == .notAdministrator ? "An administrator has to install updates"
-                                            : "The update couldn't be installed",
-               isPresented: Binding { failure != nil } set: { if !$0 { failure = nil } }, presenting: failure) { _ in
+        .alert("The update couldn't be installed", isPresented: Binding { failure != nil } set: { if !$0 { failure = nil } }, presenting: failure) { _ in
             Button("Open Releases Page") { NSWorkspace.shared.open(releasePage) }
             Button("OK", role: .cancel) {}
         } message: { failure in
@@ -161,9 +159,8 @@ struct UpdateAvailableSheet: View {
     }
 
     // MARK: - Actions
-    /// Install the update, once an administrator is running Mac Monitor. The Security Extension checks again.
+    /// Install the update, whoever is running Mac Monitor. The Security Extension installs only a verified release.
     private func install() {
-        guard AdministratorCheck.openDirectory.isAdministrator(getuid()) else { return failure = .notAdministrator }
         systemExtensionManager.installUpdate { failure in
             guard let failure else { return reopen() }
             self.failure = failure

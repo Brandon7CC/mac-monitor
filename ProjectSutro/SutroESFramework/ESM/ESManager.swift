@@ -76,8 +76,6 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     @Published public var savedMutes: [ESMutedPath] = []
     /// Something to tell the user about the saved mute set: it was recovered, or can't be changed.
     @Published public var muteNotice: String?
-    /// What the Security Extension last said this Mac Monitor may do with the saved mute set, or `nil` until it says.
-    @Published public var savedMutesAccess: MuteAccess?
     /// What the Security Extension refused or left out of the last change asked for in Settings, which shows it.
     @Published public var muteProblems: [String] = []
     /// What the Security Extension refused or left out of the last mute asked for from an event's menu, which the
