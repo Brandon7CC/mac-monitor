@@ -15,7 +15,7 @@ import EndpointSecurity
 /// `schema_version`, an import ignores it, and the Security Extension's wire format, which isn't telemetry, doesn't
 /// carry it.
 final class TelemetryVersionTests: XCTestCase {
-    /// The synthetic eslogger exit event, read as File > Open Trace… reads it.
+    /// The synthetic eslogger exit event, read as File > Open Trace... reads it.
     ///
     /// - Returns: The event.
     /// - Throws: The error reading the fixture.

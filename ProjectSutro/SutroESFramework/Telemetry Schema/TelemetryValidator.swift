@@ -12,7 +12,7 @@ import Foundation
 /// Checks records against Mac Monitor's telemetry schema (or another schema in the same subset of JSON Schema): one
 /// record at a time, or a whole trace, streamed.
 ///
-/// Shared by the app (Help > Telemetry Schema…), the `macmonitor` command line tool, and the tests that keep the
+/// Shared by the app (Help > Telemetry Schema...), the `macmonitor` command line tool, and the tests that keep the
 /// exports and the schema in step. Immutable once made, so one validator can check records on any number of threads.
 public struct TelemetryValidator: @unchecked Sendable {
     /// Which of a record's keys are checked.

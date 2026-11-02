@@ -26,7 +26,7 @@ final class LaunchedByParentImportTests: XCTestCase {
         let label: String?
     }
     
-    /// The fixture's records read as File > Open Trace… reads them.
+    /// The fixture's records read as File > Open Trace... reads them.
     ///
     /// - Returns: The events, in file order.
     /// - Throws: The error reading the fixture.

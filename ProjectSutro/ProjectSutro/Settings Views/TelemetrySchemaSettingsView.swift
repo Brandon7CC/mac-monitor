@@ -11,7 +11,7 @@ import SutroESFramework
 
 // MARK: - Settings ▸ Telemetry Schema
 /// Settings ▸ Telemetry Schema: which schema Mac Monitor's records follow, the schema to read, copy or save, and a
-/// trace to check against it. Help ▸ Telemetry Schema… opens the same window Show… does.
+/// trace to check against it. Help ▸ Telemetry Schema... opens the same window Show... does.
 struct TelemetrySchemaSettingsView: View {
     @Environment(\.openWindow) private var openWindow
     @StateObject private var model = TelemetrySchemaModel()

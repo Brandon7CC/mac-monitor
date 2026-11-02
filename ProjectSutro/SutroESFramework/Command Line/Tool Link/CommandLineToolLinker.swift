@@ -81,7 +81,7 @@ public struct CommandLineToolLinker {
         return symlinkat(plan.tool, directory, name) == 0 ? .done : .fileSystemError
     }
 
-    /// Is this a regular, executable `….app/Contents/MacOS/macmonitor` that passes ``trusts``?
+    /// Is this a regular, executable `<name>.app/Contents/MacOS/macmonitor` that passes ``trusts``?
     ///
     /// - Parameter tool: The tool's path.
     /// - Returns: `true` if we can link it.

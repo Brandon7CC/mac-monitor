@@ -26,16 +26,16 @@ struct ProjectSutroApp: App {
     
     /// The main window's identifier, to open one for a trace when none is open.
     private static let mainWindow = "main"
-    /// The Telemetry Schema window's identifier: Help > Telemetry Schema….
+    /// The Telemetry Schema window's identifier: Help > Telemetry Schema...
     static let schemaWindow = "telemetry-schema"
-    /// The Settings window's identifier: Mac Monitor ▸ Settings… (⌘,).
+    /// The Settings window's identifier: Mac Monitor ▸ Settings... (⌘,).
     static let settingsWindow = "settings"
     /// The predicate editor's own window, when it's popped out of the main window.
     static let predicateEditorWindow = "predicate-editor"
     
     /// Track everything going on with System Events and the Security Extension
     @StateObject var systemExtensionManager: EndpointSecurityManager = EndpointSecurityManager()
-    /// What the windows show: a live recording, or a trace opened with File > Open Trace… (#38).
+    /// What the windows show: a live recording, or a trace opened with File > Open Trace... (#38).
     @StateObject private var traceSession = TraceSession()
     /// The main window's predicate search, shared with the predicate editor's own window.
     @StateObject private var predicateSearch = EventSearchController()
@@ -277,7 +277,7 @@ struct ProjectSutroApp: App {
         }
         
         /// Settings, as a window rather than a `Settings` scene, which has no toolbar for the sidebar to run under or
-        /// for the pane's name and Back and Forward. ⌘, opens it (the app menu's Settings… below).
+        /// for the pane's name and Back and Forward. ⌘, opens it (the app menu's Settings... below).
         Window("Settings", id: Self.settingsWindow) {
             AgentSettingsView(allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled)
                 .environmentObject(systemExtensionManager)
@@ -313,7 +313,7 @@ struct ProjectSutroApp: App {
         .defaultSize(width: 520, height: 760)
         .handlesExternalEvents(matching: [])
         
-        /// Help > Telemetry Schema…: the schema of Mac Monitor's exports, and traces checked against it. One window.
+        /// Help > Telemetry Schema...: the schema of Mac Monitor's exports, and traces checked against it. One window.
         Window("Telemetry Schema", id: Self.schemaWindow) {
             TelemetrySchemaView()
         }

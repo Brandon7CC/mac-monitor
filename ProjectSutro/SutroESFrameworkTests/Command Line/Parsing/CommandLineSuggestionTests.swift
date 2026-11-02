@@ -10,7 +10,7 @@ import XCTest
 
 
 // MARK: - Suggestions
-/// Pins "Did you mean …?": a typo of a command, option, event or shell gets the name meant, anything further off gets
+/// Pins "Did you mean ...?": a typo of a command, option, event or shell gets the name meant, anything further off gets
 /// none, and every option a suggestion or completion offers is one the parser takes.
 final class CommandLineSuggestionTests: XCTestCase {
     /// The usage error a command line gets.

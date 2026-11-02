@@ -12,7 +12,7 @@ import SutroESFramework
 
 
 // MARK: - Toolbar
-/// The toolbar's trace status: what a trace held that isn't showing, or "Clearing previous events…" while a Clear
+/// The toolbar's trace status: what a trace held that isn't showing, or "Clearing previous events..." while a Clear
 /// that takes a while (many events) is deleting. Reading a trace and saving one show in a window's sheet
 /// (``TraceOpenSheet``, ``TraceSaveSheet``).
 struct TraceStatusView: View {
@@ -33,7 +33,7 @@ struct TraceStatusView: View {
         }
     }
     
-    /// A spinner and "Clearing previous events…".
+    /// A spinner and "Clearing previous events...".
     private var clearing: some View {
         HStack(spacing: 6) {
             ProgressView()

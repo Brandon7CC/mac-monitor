@@ -10,9 +10,9 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 
 
 ## Requirements
-- Processor: We recommend an `Apple Silicon` machine, but `Intel` works too!
-- System memory: `4GB+` is recommended
-- macOS version: `13.1+` (Ventura)
+- **Processor**: We recommend an `Apple Silicon` machine, but `Intel` works too!
+- **System memory**: `4GB+` is recommended
+- **macOS version**: `13.1+` (Ventura)
 
 
 ## How can I install this thing?
@@ -33,10 +33,10 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 ![Install process](./Resources/v3.0.0/install-graphic-v3.0.png)
 
 ### Install footprint
-- App: `/Applications/Mac Monitor.app` (`com.swiftlydetecting.agent`)
-- Security Extension: `com.swiftlydetecting.agent.securityextension`
-- (`3.0.0+`) Command line tool: inside the app, linked to `/usr/local/bin/macmonitor` if you install it from Settings
-- (`3.0.0+`) Saved mute set: `/Library/Application Support/com.swiftlydetecting.agent.securityextension/mutes.json`
+- **App**: `/Applications/Mac Monitor.app` (`com.swiftlydetecting.agent`)
+- **Security Extension**: `com.swiftlydetecting.agent.securityextension`
+- (`3.0.0+`) **Command line tool**: inside the app, linked to `/usr/local/bin/macmonitor` if you install it from Settings
+- (`3.0.0+`) **Saved mute set**: `/Library/Application Support/com.swiftlydetecting.agent.securityextension/mutes.json`
 
 
 ## Uninstall
@@ -45,11 +45,11 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 
 
 ## Path mutes
-(`3.0.0+`) Mac Monitor keeps one **saved mute set**. It survives restarts, applies right away, and is shared with `sudo macmonitor`. Anyone using Mac Monitor can change it, administrator or not.
+(`3.0.0+`) Mac Monitor keeps one **saved mute set**. It survives restarts, applies right away, and is shared with `sudo macmonitor`.
 
 - **Settings ▸ Path Muting** shows it. Right click an event to add a mute.
 - **Import, export or reset** it there too. Import reads 2.1 exports, so export your mutes from 2.1 before updating.
-- Endpoint Security matches resolved paths: use `/private/tmp/…`, not `/tmp/…`.
+- Endpoint Security matches resolved paths: use `/private/tmp/...`, not `/tmp/...`.
 
 
 ## Command line
@@ -97,7 +97,7 @@ macmonitor validate trace.jsonl            # check an export against the schema
 
 ![Filtering and the predicate editor](./Resources/v3.0.0/filtering-v3.0.png)
 
-- **Export and open traces**: export JSON or JSONL, and (`3.0.0+`) open Mac Monitor or `eslogger` traces with File ▸ Open Trace….
+- **Export and open traces**: export JSON or JSONL, and (`3.0.0+`) open Mac Monitor or `eslogger` traces (File ▸ Open Trace...).
 - **Event distribution chart**: spot noisy events at a glance. Show or hide it with the chart button in the toolbar.
 
 ![Event distribution chart](./Resources/v1.9.0/DistributionChart-v1.9.png)
@@ -113,6 +113,6 @@ macmonitor validate trace.jsonl            # check an export against the schema
 (`3.0.0+`) Every record Mac Monitor exports, and `macmonitor` writes, follows a [JSON Schema](https://json-schema.org/draft/2020-12): `eslogger`'s JSON plus Mac Monitor's enrichments, each key marked `x-mac-monitor-origin`.
 
 - Each release attaches it as [`Mac-Monitor.telemetry.schema.json`](https://github.com/Brandon7CC/mac-monitor/releases/latest/download/Mac-Monitor.telemetry.schema.json). The repository keeps it in [`Schema/`](./Schema).
-- Check a trace with Help ▸ Telemetry Schema… or `macmonitor validate <trace>`.
+- Check a trace with Help ▸ Telemetry Schema... or `macmonitor validate <trace>`.
 
 ![The telemetry schema](./Resources/v3.0.0/telemetry-schema-v3.0.png)

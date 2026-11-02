@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - Issues
 /// One way a record differs from Mac Monitor's telemetry schema, worded the same in the app and on the command line:
-/// `line 812: event.exec.target.cdhash: "0df5…" doesn't match ^[0-9A-F]{40}$`.
+/// `line 812: event.exec.target.cdhash: "0df5..." doesn't match ^[0-9A-F]{40}$`.
 public struct TelemetryIssue: Error, Hashable, Sendable, CustomStringConvertible {
     /// What's wrong.
     public enum Problem: Hashable, Sendable {
@@ -79,7 +79,7 @@ public struct TelemetryIssue: Error, Hashable, Sendable, CustomStringConvertible
     /// - Parameters:
     ///   - problem: The problem.
     ///   - value: The value to show, or `nil` for none, as a ``Kind`` shows it.
-    /// - Returns: The problem: `"0df5…" doesn't match ^[0-9A-F]{40}$`.
+    /// - Returns: The problem: `"0df5..." doesn't match ^[0-9A-F]{40}$`.
     private static func text(of problem: Problem, value: String?) -> String {
         let shown = value.map { "\($0) " } ?? ""
         switch problem {

@@ -11,7 +11,7 @@ import EndpointSecurity
 
 
 // MARK: - Apple's mute sets in the repository
-/// Pins the Apple mute sets committed in `Mute sets/`, as Export Apple Mute Set… writes them: one `ESMutedPath` per
+/// Pins the Apple mute sets committed in `Mute sets/`, as Export Apple Mute Set... writes them: one `ESMutedPath` per
 /// line, each event named as `ESTypes.h` names it. An export from a Mac Monitor that didn't know an event type would
 /// say `ES_EVENT_TYPE_LAST` and fails here.
 final class AppleMuteSetFileTests: XCTestCase {

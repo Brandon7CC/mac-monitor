@@ -175,7 +175,7 @@ public struct CommandLineToolLink {
 
 // MARK: - Inspection
 extension CommandLineToolLink {
-    /// What Settings shows, and what Install…, Update… and Remove… may do.
+    /// What Settings shows, and what Install..., Update... and Remove... may do.
     public struct Inspection: Equatable {
         /// What's at the link's path.
         public let link: LinkState
@@ -231,8 +231,8 @@ extension CommandLineToolLink {
             }
         }
         
-        /// What Settings can do about it, in a sentence: what Install…, Update… or Repair… would do, or how to run
-        /// the tool without the link.
+        /// What Settings can do about it, in a sentence: what Install..., Update... or Repair... would do, or how to
+        /// run the tool without the link.
         public var hint: String? {
             switch link {
             case .absent where plan(.install) != nil:

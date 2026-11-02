@@ -11,7 +11,7 @@ import EndpointSecurity
 
 
 // MARK: - Opened and exported again
-/// Pins the values a trace opened with File > Open Trace… exports as `null` where its record has none, and that the
+/// Pins the values a trace opened with File > Open Trace... exports as `null` where its record has none, and that the
 /// schema allows them, so a trace opened and exported again to check it follows the schema: a process's `signing_id`
 /// and an IOKit open's `parent_path` and `parent_registry_id`. Mac Monitor before 3.0.0 left them out when they were
 /// empty (the registry ID with an empty path), and eslogger writes `null` for a NULL token. A value the record didn't

@@ -69,7 +69,7 @@ public struct CommandLineOption: Equatable {
 
 
 // MARK: - Suggestions
-/// "Did you mean …?" for a mistyped command, option or event.
+/// "Did you mean ...?" for a mistyped command, option or event.
 public enum CommandLineSuggestion {
     /// A sentence suggesting the name meant, to follow a usage error's first sentence.
     ///

@@ -134,7 +134,7 @@ final class EventSearchController: ObservableObject {
     /// The finding filter's name while it filters the tables, or `nil` when it's off or dropped.
     var filteringFinding: String? { findingPredicate == nil ? nil : findingName }
 
-    /// What the tables are filtered by, such as "showing only Any indicator, filtering by …". It's `nil` when neither
+    /// What the tables are filtered by, such as "showing only Any indicator, filtering by ...". It's `nil` when neither
     /// is on.
     var summary: String? {
         let parts = [filteringFinding.map { "showing only \($0)" },
@@ -235,7 +235,7 @@ final class EventSearchController: ObservableObject {
 
 
 // MARK: - Search field
-/// Edit ▸ Find… (⌘F): text with a find bar, such as Event Facts' JSON tab, shows it when it has the focus or when
+/// Edit ▸ Find... (⌘F): text with a find bar, such as Event Facts' JSON tab, shows it when it has the focus or when
 /// its window has no event search field, and otherwise the main window's search field takes the focus.
 @MainActor
 enum FindCommand {

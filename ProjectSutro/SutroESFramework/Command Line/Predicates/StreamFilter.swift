@@ -95,7 +95,7 @@ public struct StreamFilter: Equatable {
             }
             let parsed: NSPredicate
             do {
-                /// A boolean key path alone, as in `is_adhoc_signed AND …`, compared so `NSPredicate` can read it.
+                /// A boolean key path alone, as in `is_adhoc_signed AND ...`, compared so `NSPredicate` can read it.
                 parsed = try PredicateBridge.predicate(withFormat: PredicateText.comparingBooleans(source))
             } catch {
                 /// `NSPredicate` ends some reasons with a period and not others.

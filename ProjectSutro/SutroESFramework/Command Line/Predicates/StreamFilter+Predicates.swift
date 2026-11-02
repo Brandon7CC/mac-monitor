@@ -113,7 +113,7 @@ enum PredicateGuard {
                 throw refusal(expression.description, for: audience)
             }
         case .function where expression.function == "valueForKeyPath:":
-            /// `$e.path`, a related event's key path, or `SUBQUERY(…).@count`.
+            /// `$e.path`, a related event's key path, or `SUBQUERY(...).@count`.
             guard let path = expression.arguments?.first, expression.arguments?.count == 1 else {
                 throw refusal(expression.description, for: audience)
             }
@@ -141,7 +141,7 @@ enum PredicateGuard {
         }
     }
 
-    /// Refuse a `SUBQUERY` but one of related events, `SUBQUERY(process_group, $e, …)`, whose variable is only read
+    /// Refuse a `SUBQUERY` but one of related events, `SUBQUERY(process_group, $e, ...)`, whose variable is only read
     /// for key paths, outside another.
     ///
     /// - Parameters:

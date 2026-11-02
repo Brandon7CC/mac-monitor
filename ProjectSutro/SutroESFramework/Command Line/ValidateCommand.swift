@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - Validate command
 /// `macmonitor validate [--eslogger] TRACE` (command line context): check a trace against the telemetry schema the
-/// framework bundles, with the ``TelemetryValidator`` and the report Help > Telemetry Schema… uses, and write the
+/// framework bundles, with the ``TelemetryValidator`` and the report Help > Telemetry Schema... uses, and write the
 /// report to standard output. Needs neither root nor the Security Extension.
 ///
 /// The trace must be a regular file: the validator measures it and reads it a chunk at a time, and a pipe or a device

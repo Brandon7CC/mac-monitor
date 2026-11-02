@@ -96,9 +96,10 @@ public struct Finding: Codable, Identifiable, Hashable {
 /// The findings as user defaults keep them: only what someone changed, on top of the ``Finding/defaults`` this
 /// build ships. An update can then change, add or drop a shipped finding for everyone who didn't edit it.
 ///
-/// It's a JSON object. `entries` lists the findings in order. A shipped finding nobody edited is saved by identity with
-/// its switches (`{"default": id, "isEnabled": …}`) and takes its rule from this build. An edited shipped finding, and
-/// one someone added, is saved in full. `deleted` lists the shipped findings someone deleted, so they don't come back.
+/// It's a JSON object. `entries` lists the findings in order. A shipped finding nobody edited is saved by identity
+/// with its switches (`{"default": id, "isEnabled": ...}`) and takes its rule from this build. An edited shipped
+/// finding, and one someone added, is saved in full. `deleted` lists the shipped findings someone deleted, so they
+/// don't come back.
 ///
 /// Each entry is decoded on its own, so one that doesn't decode loses only itself. It might have a color or rendering
 /// a newer build added. It's kept as it was saved and written back after the rest.

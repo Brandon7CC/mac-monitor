@@ -16,7 +16,7 @@ import Foundation
 /// A full variant fills every optional and gives every array one element. An empty one leaves every optional `nil`
 /// (but those Endpoint Security never leaves out: ``SyntheticValues/neverNil``) and every array empty. Values come from
 /// ``SyntheticValues`` by type and key, and each value that's ``ESEnrichable`` derives Mac Monitor's fields from its
-/// Endpoint Security ones as it's decoded, as File > Open Trace… derives them.
+/// Endpoint Security ones as it's decoded, as File > Open Trace... derives them.
 ///
 /// An enum with associated values decodes as the case the variant names for it (``SyntheticVariant/arms``): one that
 /// isn't named fails, and the failure says which.

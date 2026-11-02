@@ -13,7 +13,7 @@ import SutroESFramework
 
 
 // MARK: - Telemetry schema window
-/// What Help > Telemetry Schema… shows and does: the telemetry schema the framework bundles, to copy or save, and
+/// What Help > Telemetry Schema... shows and does: the telemetry schema the framework bundles, to copy or save, and
 /// traces checked against it in the background.
 ///
 /// One trace is checked at a time: checking another, Cancel, Done, or closing the window stops the one that's running,
@@ -73,7 +73,7 @@ final class TelemetrySchemaModel: ObservableObject {
         Self.copy(schemaText)
     }
     
-    /// Save Schema…: write the schema, byte for byte, where the user chooses.
+    /// Save Schema...: write the schema, byte for byte, where the user chooses.
     func saveSchema() {
         guard case .success(let data) = schema else { return }
         Self.save(data, title: "Save Telemetry Schema", name: TelemetrySchema.fileName, type: .json)
@@ -81,7 +81,7 @@ final class TelemetrySchemaModel: ObservableObject {
     
     // MARK: Checking traces
     
-    /// Validate Trace…: choose a trace and check it.
+    /// Validate Trace...: choose a trace and check it.
     func chooseTrace() {
         let panel = NSOpenPanel()
         panel.title = "Validate Trace"
@@ -167,7 +167,7 @@ final class TelemetrySchemaModel: ObservableObject {
         Self.copy(reportText)
     }
     
-    /// Save Report…: write the report's text where the user chooses, named after the trace.
+    /// Save Report...: write the report's text where the user chooses, named after the trace.
     func saveReport() {
         guard let reportText, let url = check?.url else { return }
         let name = url.deletingPathExtension().lastPathComponent + " validation.txt"

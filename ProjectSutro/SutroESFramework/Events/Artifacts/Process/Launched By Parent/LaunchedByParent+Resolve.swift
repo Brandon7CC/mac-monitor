@@ -161,7 +161,7 @@ extension LaunchedByParent {
     }
     
     /// Should Mac Monitor ask LaunchServices who launched the app? For an answer that isn't the Unix parent and names
-    /// an app instance's job (`application.…`): LaunchServices' launcher comes before the responsible process.
+    /// an app instance's job (an `application.` label): LaunchServices' launcher comes before the responsible process.
     public var needsLaunchServices: Bool {
         source != .unixParent && launchd_job?.label.hasPrefix("application.") == true
     }

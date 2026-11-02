@@ -46,7 +46,7 @@ Look here before writing a helper of your own, and move one here once a second t
 
 | File | What it builds |
 |---|---|
-| `RawMessageFixture.swift` | An `es_message_t` in memory, freed when the test ends: `rawMessage(version:type:)`, then `file(_:)`, `process(…)`, `token(_:)` |
+| `RawMessageFixture.swift` | An `es_message_t` in memory, freed when the test ends: `rawMessage(version:type:)`, then `file(_:)`, `process(...)`, `token(_:)` |
 | `RawMessageFixture+ESLogger.swift` | The same from an eslogger record, so capture tests run on real shapes: `capture(eslogger:fill:)` |
 | `RawMessageFixture+Lineage.swift` | Execs and forks with parents, responsible processes and launchd jobs (`esloggerExec`, `esloggerExecEvent`), the launched-by parents tests expect (`LaunchedByParent.appJob`, `.shell`), and a `path` that fails the test if it's read (`noPaths`) |
 | `RawMessageFixture+RemoteThreadCreate.swift` | `remote_thread_create` with a thread state |

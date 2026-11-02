@@ -53,7 +53,8 @@ public struct LaunchedByParent: Codable, Hashable {
     /// The launchd job that started the process, named by `XPC_SERVICE_NAME` in its exec environment. Only set for a
     /// direct launchd child that launchd's `xpcproxy` exec'd: any other process inherited the variable, or chose it.
     public struct LaunchdJob: Codable, Hashable {
-        /// The job's label: `com.example.agent`, or `application.<bundle ID>.…` for an app LaunchServices launched.
+        /// The job's label: `com.example.agent`, or `application.<bundle ID>...` for an app LaunchServices
+        /// launched.
         public var label: String
     }
     

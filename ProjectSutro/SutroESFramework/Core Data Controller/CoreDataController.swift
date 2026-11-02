@@ -159,7 +159,7 @@ public class CoreDataController {
     public enum EventSource: Equatable {
         /// Recorded by the Security Extension.
         case live
-        /// Read from a trace file (File > Open Trace…).
+        /// Read from a trace file (File > Open Trace...).
         case trace(URL)
     }
     

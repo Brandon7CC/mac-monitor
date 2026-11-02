@@ -127,7 +127,7 @@ enum StoreNarrowing {
     }
 
     /// - Parameter expression: A comparison's right side.
-    /// - Returns: Its constant, or for `IN {…}` its constants, or `nil` for anything read from the record.
+    /// - Returns: Its constant, or for `IN {...}` its constants, or `nil` for anything read from the record.
     private static func constant(of expression: NSExpression) -> Any? {
         switch expression.expressionType {
         case .constantValue:

@@ -103,7 +103,7 @@ extension XCTestCase {
         return record
     }
     
-    /// A record read as File > Open Trace… reads it.
+    /// A record read as File > Open Trace... reads it.
     ///
     /// - Parameter record: The record, as JSON text.
     /// - Returns: The event.
@@ -112,7 +112,7 @@ extension XCTestCase {
         try TraceImporter.message(from: Data(record.utf8))
     }
     
-    /// A record read as File > Open Trace… reads it.
+    /// A record read as File > Open Trace... reads it.
     ///
     /// - Parameter record: The record's object.
     /// - Returns: The event.

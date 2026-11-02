@@ -31,7 +31,7 @@ final class StreamingJSONEncoderMessageTests: XCTestCase {
                        try JSONCanonicalForm.canonical(try JSONEncoder().encode(message)), label)
     }
     
-    /// Every event of the eslogger and Mac Monitor 2.1 fixtures, read as File > Open Trace… reads them: exit, open,
+    /// Every event of the eslogger and Mac Monitor 2.1 fixtures, read as File > Open Trace... reads them: exit, open,
     /// the Open Directory events, and remote_thread_create.
     func testImportedEventsMatchJSONEncoder() throws {
         var count = 0

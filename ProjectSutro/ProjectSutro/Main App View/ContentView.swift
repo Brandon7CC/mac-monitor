@@ -25,7 +25,7 @@ struct EventView: View {
     /// Load user preferences from ``UserDefaults``
     @EnvironmentObject var userPrefs: UserPrefs
     
-    /// A live recording, or an opened trace (File > Open Trace…).
+    /// A live recording, or an opened trace (File > Open Trace...).
     @EnvironmentObject var traceSession: TraceSession
     @Environment(\.openWindow) private var openWindow
 
@@ -125,7 +125,7 @@ struct EventView: View {
         if wasRecording { systemExtensionManager.startRecordingEvents() }
     }
     
-    /// Open a trace (File > Open Trace…), replacing the events on screen.
+    /// Open a trace (File > Open Trace...), replacing the events on screen.
     ///
     /// - Parameter url: The trace, from Finder's Open With, `open -a`, or a drop on the window.
     private func openTrace(_ url: URL) {

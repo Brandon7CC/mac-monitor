@@ -12,7 +12,7 @@ import Foundation
 /// A search predicate's `SUBQUERY`s of related events, and the events each collected.
 ///
 /// Evaluating a `SUBQUERY` on every event, through every other, would take each event's record once per event. So
-/// each `SUBQUERY` is split. Its conditions on the related event alone (`$e.es_event_type == …`), joined by `AND`,
+/// each `SUBQUERY` is split. Its conditions on the related event alone (`$e.es_event_type == ...`), joined by `AND`,
 /// pick the events it keeps, once each, as ``collect(_:)`` is given every event before any is searched. Its conditions
 /// on both events join them, for each searched event, on the events kept in its group, looked up by an equality
 /// (`$e.path == path`) when there is one. Not thread-safe: each ``StreamFilter/Predicate`` has its own.
@@ -45,7 +45,7 @@ final class RelatedEvents {
     }
 
     /// Replace each `SUBQUERY` in a predicate with its related events, and evaluate the rest first: `NSPredicate`
-    /// evaluates `AND` and `OR` in order and stops once it knows, so `SUBQUERY(…) AND es_event_type == …` only
+    /// evaluates `AND` and `OR` in order and stops once it knows, so `SUBQUERY(...) AND es_event_type == ...` only
     /// goes through related events for the events of that type.
     ///
     /// - Parameters:

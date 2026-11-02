@@ -197,7 +197,7 @@ extension XCTestCase {
         return process
     }
     
-    /// An exec read as File > Open Trace… reads it: one process image execs the next.
+    /// An exec read as File > Open Trace... reads it: one process image execs the next.
     ///
     /// - Parameters:
     ///   - process: The exec'ing image (``esloggerProcess(pid:pidversion:path:parent:originalPPID:responsible:)``).
@@ -211,7 +211,7 @@ extension XCTestCase {
         return try importRecord(record)
     }
     
-    /// A fork read as File > Open Trace… reads it.
+    /// A fork read as File > Open Trace... reads it.
     ///
     /// - Parameters:
     ///   - process: The forking process.
@@ -224,7 +224,7 @@ extension XCTestCase {
         return try importRecord(record)
     }
     
-    /// An exit read as File > Open Trace… reads it: an event that creates no process.
+    /// An exit read as File > Open Trace... reads it: an event that creates no process.
     ///
     /// - Parameter process: The exiting process.
     /// - Returns: The event.

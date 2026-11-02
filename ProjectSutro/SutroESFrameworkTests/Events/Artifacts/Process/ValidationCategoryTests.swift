@@ -26,7 +26,7 @@ final class ValidationCategoryTests: XCTestCase {
         return try XCTUnwrap(try export(Message(from: fixture.raw))["process"] as? [String: Any])
     }
     
-    /// The exported process of a record read as File > Open Trace… reads it.
+    /// The exported process of a record read as File > Open Trace... reads it.
     ///
     /// - Parameter record: The record.
     /// - Returns: The exported process.

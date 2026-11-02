@@ -12,16 +12,16 @@ import EndpointSecurity
 
 // MARK: - Reading remote_thread_create events
 /// Pins that every form of a `remote_thread_create` event's `thread_state` is read, by the app from the Security
-/// Extension (`JSONDecoder`) and by File > Open Trace… (``TraceDecoder``): eslogger's object or `null`, a 3.0.0 export,
-/// and the flavor's name (or nothing) that Mac Monitor wrote before 3.0.0.
+/// Extension (`JSONDecoder`) and by File > Open Trace... (``TraceDecoder``): eslogger's object or `null`, a 3.0.0
+/// export, and the flavor's name (or nothing) that Mac Monitor wrote before 3.0.0.
 final class RemoteThreadCreateDecodingTests: XCTestCase {
     /// How an event is read.
     private enum Reader: String, CaseIterable {
         /// The app, reading the Security Extension's messages.
         case wire
-        /// File > Open Trace…, reading a Mac Monitor export.
+        /// File > Open Trace..., reading a Mac Monitor export.
         case export
-        /// File > Open Trace…, reading eslogger's JSON: Mac Monitor's fields are derived.
+        /// File > Open Trace..., reading eslogger's JSON: Mac Monitor's fields are derived.
         case eslogger
     }
     

@@ -35,14 +35,14 @@ integer) is untouched. The telemetry version is independent of the app's and fol
 Telemetry 1.0.0 is the version Mac Monitor 3.0.0 ships. `released-versions.txt` lists each released version with the
 SHA-256 of the file released with it, and a test fails if a released version's file changes. To validate an older
 trace, use the schema attached to the release that wrote it. A trace exported before Mac Monitor 3.0.0 names no
-telemetry version, and no schema describes it: open it with File > Open Trace… and export it again to check it.
+telemetry version, and no schema describes it: open it with File > Open Trace... and export it again to check it.
 
 ## Checking a trace
 
-In Mac Monitor, **Help ▸ Telemetry Schema…** shows the schema it ships with (⌘F searches it), copies or saves it,
-and checks a trace with **Validate Trace…**. The report gives the number of valid, invalid and malformed records, how
+In Mac Monitor, **Help ▸ Telemetry Schema...** shows the schema it ships with (⌘F searches it), copies or saves it,
+and checks a trace with **Validate Trace...**. The report gives the number of valid, invalid and malformed records, how
 many issues of each kind there are, and the first 100 issues with the line their record starts on and the path of the
-value: `line 812: event.exec.target.cdhash: "0df5…" doesn't match ^[0-9A-F]{40}$`. For eslogger's own JSON, **Check
+value: `line 812: event.exec.target.cdhash: "0df5..." doesn't match ^[0-9A-F]{40}$`. For eslogger's own JSON, **Check
 eslogger's Fields** checks only the keys eslogger writes. The `macmonitor` command line tool does the same with
 `macmonitor schema` and `macmonitor validate [--eslogger] <trace>`, which prints the same report and exits 0 when
 every record is valid, 65 when one isn't or the trace has no records, and 66 when the trace can't be read.
@@ -72,7 +72,7 @@ and rejects a schema that uses anything else, naming the keyword and where it is
 ignored.
 
 The schema is strict on purpose. eslogger's required keys follow eslogger's own contract, so a re-export of a partial
-or hand-edited trace opened with File > Open Trace… (one whose processes have no `executable`, say) is reported
+or hand-edited trace opened with File > Open Trace... (one whose processes have no `executable`, say) is reported
 invalid.
 
 ## Other validators

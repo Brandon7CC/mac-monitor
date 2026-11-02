@@ -17,7 +17,7 @@ import SutroESFramework
 struct PathMutingSettingsView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @StateObject private var files = MuteFileActions()
-    /// The Add sheet's path: "Mute Another Way…" starts it with the mute's.
+    /// The Add sheet's path: "Mute Another Way..." starts it with the mute's.
     @State private var pathToMute = ""
 
     @State private var searchScope: SearchScope = .path

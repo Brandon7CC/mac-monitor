@@ -10,7 +10,7 @@ import SutroESFramework
 
 
 // MARK: - Telemetry schema window
-/// Help > Telemetry Schema…: Mac Monitor's telemetry schema to read, search, copy and save, and Validate Trace… to
+/// Help > Telemetry Schema...: Mac Monitor's telemetry schema to read, search, copy and save, and Validate Trace... to
 /// check an export against it.
 struct TelemetrySchemaView: View {
     /// The schema, and the trace being checked.
@@ -71,7 +71,7 @@ struct TelemetrySchemaView: View {
         .padding()
     }
     
-    /// Copy, Save Schema…, and Validate Trace…: off when there's no schema.
+    /// Copy, Save Schema..., and Validate Trace...: off when there's no schema.
     private var actions: some View {
         HStack {
             Button { model.copySchema() } label: { Label("Copy", systemImage: "doc.on.doc") }

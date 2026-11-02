@@ -39,7 +39,7 @@ extension StreamingJSONEncoder {
         return true
     }
     
-    /// - Parameter file: A file, as `{"id":…,"path":…,"path_truncated":…,"stat":{…}}`.
+    /// - Parameter file: A file, as `{"id":...,"path":...,"path_truncated":...,"stat":{...}}`.
     func write(file: File) {
         let frame = open(isObject: true)
         if member("id", in: frame) { write(uuid: file.id) }

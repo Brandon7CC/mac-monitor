@@ -16,7 +16,7 @@ public enum SIPStatus: String, Equatable, Sendable {
     case enabled
     /// Every protection `csrutil disable` turns off is off.
     case disabled
-    /// Some protections are off, as `csrutil enable --without …` leaves them.
+    /// Some protections are off, as `csrutil enable --without ...` leaves them.
     case custom
 
     /// What `csrutil disable` allows: untrusted kexts, the file system, `task_for_pid`, the kernel debugger, DTrace and

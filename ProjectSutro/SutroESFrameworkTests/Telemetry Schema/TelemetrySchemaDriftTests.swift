@@ -77,7 +77,7 @@ final class TelemetrySchemaDriftTests: XCTestCase {
         XCTAssertEqual(unobserved.map { "\($0.object): \($0.key)" }, [], "Optional keys never left out")
     }
     
-    /// eslogger's records and Mac Monitor 2.1's exports, opened as File > Open Trace… opens them (launched-by parents
+    /// eslogger's records and Mac Monitor 2.1's exports, opened as File > Open Trace... opens them (launched-by parents
     /// named) and exported, follow the schema.
     func testImportedFixturesMatchSchema() throws {
         let exports = try fixtureExports()

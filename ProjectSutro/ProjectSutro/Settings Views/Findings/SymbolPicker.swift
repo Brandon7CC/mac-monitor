@@ -12,12 +12,12 @@ import SutroESFramework
 
 // MARK: - Symbol picker
 /// A finding's symbol, as a button that opens a grid of SF Symbols to choose from. Its search field filters them by
-/// name. Other… takes any symbol's name.
+/// name. Other... takes any symbol's name.
 struct SymbolPicker: View {
     @Binding var finding: Finding
     @State private var isShowing = false
     @State private var query = ""
-    /// The name typed under Other….
+    /// The name typed under Other...
     @State private var other = ""
 
     var body: some View {
@@ -82,7 +82,7 @@ struct SymbolPicker: View {
 
     /// The symbols the grid offers: every SF Symbol on this Mac, in the SF Symbols app's order. There's no public way
     /// to list them, so this reads the list macOS keeps in CoreGlyphs. If it can't be read, the grid is empty and
-    /// Other… still takes any name.
+    /// Other... still takes any name.
     static let names: [String] = {
         guard let url = Bundle(path: "/System/Library/CoreServices/CoreGlyphs.bundle")?
                 .url(forResource: "symbol_order", withExtension: "plist"),

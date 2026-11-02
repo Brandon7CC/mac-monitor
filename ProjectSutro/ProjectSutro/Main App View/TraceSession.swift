@@ -12,7 +12,7 @@ import SutroESFramework
 
 
 // MARK: - Trace session
-/// What Mac Monitor's windows show: a live recording, or a trace file opened with File > Open Trace… (#38).
+/// What Mac Monitor's windows show: a live recording, or a trace file opened with File > Open Trace... (#38).
 ///
 /// One trace at a time, like Process Monitor: every main window is a view of the same event store, so opening a trace
 /// replaces the events in all of them. Clear and Start close the trace and return to recording: any Clear returns the
@@ -90,7 +90,7 @@ final class TraceSession: ObservableObject {
     /// The window title: the trace's name, or the app's.
     var title: String { url?.lastPathComponent ?? "Mac Monitor" }
     
-    /// The window subtitle: what the trace holds, or "Opening…" while it's read. Empty while live.
+    /// The window subtitle: what the trace holds, or "Opening..." while it's read. Empty while live.
     var subtitle: String {
         if isOpening { return "Opening…" }
         guard let summary else { return "" }
@@ -103,7 +103,7 @@ final class TraceSession: ObservableObject {
     }
     
     // MARK: Opening
-    /// File > Open Trace…: choose a file and open it.
+    /// File > Open Trace...: choose a file and open it.
     ///
     /// Any file can be chosen: a trace is recognized by its content, and eslogger writes to whatever file its output is
     /// redirected to.
@@ -219,7 +219,7 @@ final class TraceSession: ObservableObject {
     }
     
     /// A Clear started, which drops a file still being checked. One that returns the store to live (the toolbar's
-    /// Clear, Start) closes the trace. A Clear still deleting after half a second shows "Clearing previous events…"
+    /// Clear, Start) closes the trace. A Clear still deleting after half a second shows "Clearing previous events..."
     /// (most finish well before).
     private func storeWillClear() {
         opens += 1
@@ -286,7 +286,7 @@ final class TraceSession: ObservableObject {
 
 // MARK: - Event store
 extension CoreDataController {
-    /// Are the events showing read from a trace (File > Open Trace…) rather than recorded on this Mac?
+    /// Are the events showing read from a trace (File > Open Trace...) rather than recorded on this Mac?
     ///
     /// Muting, unsubscribing, and dropping platform binaries change what the Security Extension records, so they don't
     /// apply to a trace, whose file paths may also name files on another Mac. Main thread only.

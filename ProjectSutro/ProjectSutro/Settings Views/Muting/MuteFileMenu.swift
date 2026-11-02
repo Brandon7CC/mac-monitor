@@ -12,11 +12,11 @@ import OSLog
 
 /// Import and Export for the saved mute set, as Path Muting's action menu offers them.
 ///
-/// - **Import…** reads a mute file (version 1, or the list Mac Monitor exported before 3.0), shows what it holds and
+/// - **Import...** reads a mute file (version 1, or the list Mac Monitor exported before 3.0), shows what it holds and
 ///   what was left out, then replaces the saved set or adds to it.
-/// - **Export Saved Mute Set…** writes the saved set as a version 1 mute file, exactly as the Security Extension
+/// - **Export Saved Mute Set...** writes the saved set as a version 1 mute file, exactly as the Security Extension
 ///   keeps it.
-/// - **Export Apple Mute Set…** writes Endpoint Security's own default mutes as before, one `ESMutedPath` per line.
+/// - **Export Apple Mute Set...** writes Endpoint Security's own default mutes as before, one `ESMutedPath` per line.
 @MainActor
 final class MuteFileActions: ObservableObject {
     /// A file read and waiting for the user to choose Replace or Add.

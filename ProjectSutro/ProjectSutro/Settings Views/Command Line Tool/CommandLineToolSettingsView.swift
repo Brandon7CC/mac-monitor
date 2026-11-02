@@ -73,9 +73,9 @@ struct CommandLineToolSettingsView: View {
                message: { Text(installer.failure ?? "") })
     }
 
-    /// The buttons for what may be done now: look again, Remove…, and Install…, Update… or Repair….
+    /// The buttons for what may be done now: look again, Remove..., and Install..., Update... or Repair...
     ///
-    /// Install… stays visible, disabled, when this copy's tool can't be linked, so it's clear what's missing.
+    /// Install... stays visible, disabled, when this copy's tool can't be linked, so it's clear what's missing.
     ///
     /// - Parameter inspection: What's there.
     /// - Returns: The buttons, disabled while a change waits on the password prompt.
@@ -106,7 +106,7 @@ struct CommandLineToolSettingsView: View {
     /// What Install is called for what's there.
     ///
     /// - Parameter link: What's at the link's path.
-    /// - Returns: Install…, Update… or Repair….
+    /// - Returns: Install..., Update... or Repair...
     private func installTitle(for link: CommandLineToolLink.LinkState) -> String {
         switch link {
         case .elsewhere: return "Update…"

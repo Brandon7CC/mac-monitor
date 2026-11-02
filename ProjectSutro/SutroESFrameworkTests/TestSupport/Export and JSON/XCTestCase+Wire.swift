@@ -15,7 +15,7 @@ extension XCTestCase {
     static let eventFixtures = ["eslogger-exit.jsonl", "eslogger-open.jsonl", "eslogger-od.jsonl",
                                 "eslogger-remote-thread-create.jsonl", "macmonitor-2.1-exit.jsonl"]
     
-    /// Every record in a JSONL fixture, read as File > Open Trace… reads it.
+    /// Every record in a JSONL fixture, read as File > Open Trace... reads it.
     ///
     /// - Parameter name: The fixture's file name.
     /// - Returns: The events, in file order.

@@ -20,7 +20,7 @@ extension Result {
 /// The error a call throws, for comparing with the one expected: `nil` when it returns, or throws another type.
 ///
 /// - Parameters:
-///   - type: The error's type, when nothing else says it, as in `thrown(CocoaError.self) { … }?.code`.
+///   - type: The error's type, when nothing else says it, as in `thrown(CocoaError.self) { ... }?.code`.
 ///   - body: The call.
 /// - Returns: The error, if it's an `E`.
 func thrown<E: Error, T>(_ type: E.Type = E.self, by body: () throws -> T) -> E? {

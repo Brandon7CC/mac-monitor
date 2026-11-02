@@ -11,7 +11,7 @@ import os
 
 
 // MARK: - Trace importer
-/// Reads a trace file into the event store for File > Open Trace… (#38), like opening a saved Process Monitor log.
+/// Reads a trace file into the event store for File > Open Trace... (#38), like opening a saved Process Monitor log.
 ///
 /// Takes what `/usr/bin/eslogger` writes and what Mac Monitor writes or receives from its Security Extension, told
 /// apart by their content rather than the file's extension:

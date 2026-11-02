@@ -16,7 +16,7 @@ import Foundation
 /// ``EventClassTable``, from the category Apple's documentation files the event under.
 public enum EventClass: String, CaseIterable, Codable, Sendable {
     /// Everything that isn't a file or memory event: process, interprocess, task port, IDs, code signing, sockets,
-    /// kernel, pseudoterminal, and Apple's security events (XPC, login, BTM, TCC, XProtect, Open Directory, …).
+    /// kernel, pseudoterminal, and Apple's security events (XPC, login, BTM, TCC, XProtect, Open Directory, ...).
     case process
     /// File-system activity: most of the volume.
     case file

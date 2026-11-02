@@ -53,14 +53,14 @@ indirect enum SchemaValue {
 
 /// When a key is left out of a record.
 struct Absence {
-    /// Why: completes "Absent when …".
+    /// Why: completes "Absent when ...".
     let reason: String
     /// Can the tests' synthetic records leave the key out? `false` for absences a macOS 27 test machine can't produce,
     /// such as a key an older macOS's exporter omits.
     var observable = true
     
     /// - Parameters:
-    ///   - reason: Why the key is left out: completes "Absent when …".
+    ///   - reason: Why the key is left out: completes "Absent when ...".
     ///   - observable: Can the tests' synthetic records leave the key out?
     init(_ reason: String, observable: Bool = true) {
         self.reason = reason

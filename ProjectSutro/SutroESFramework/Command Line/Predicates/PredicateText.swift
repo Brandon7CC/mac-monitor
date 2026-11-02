@@ -70,7 +70,7 @@ public enum PredicateText {
 
     // MARK: Booleans alone
     /// The predicate with each boolean key path that stands alone compared to `YES`:
-    /// `event.exec.target.is_adhoc_signed AND …` reads `event.exec.target.is_adhoc_signed == YES AND …`, which
+    /// `event.exec.target.is_adhoc_signed AND ...` reads `event.exec.target.is_adhoc_signed == YES AND ...`, which
     /// `NSPredicate` can parse. One stands alone between the start, `(`, `,`, `AND`, `OR` or `NOT` and the end, `)`,
     /// `,`, `AND` or `OR`.
     ///

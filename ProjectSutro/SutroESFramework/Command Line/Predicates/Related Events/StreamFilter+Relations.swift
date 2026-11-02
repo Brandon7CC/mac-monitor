@@ -39,7 +39,7 @@ public enum PredicateRelation: String, CaseIterable {
         }
     }
 
-    /// Every relation's name, for errors: "events, process_group, …".
+    /// Every relation's name, for errors: "events, process_group, ...".
     static var names: String { allCases.map(\.rawValue).joined(separator: ", ") }
 
     /// Which events a related event is among, by its own process.

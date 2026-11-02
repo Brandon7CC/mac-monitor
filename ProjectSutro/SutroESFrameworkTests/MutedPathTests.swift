@@ -12,7 +12,7 @@ import EndpointSecurity
 
 // MARK: - Muted paths Endpoint Security reports
 /// Pins how a mute Endpoint Security reports, such as one of Apple's default mutes, is named for Export Apple Mute
-/// Set…: every event type the SDK defines by its `ESTypes.h` name, never `ES_EVENT_TYPE_LAST`.
+/// Set...: every event type the SDK defines by its `ESTypes.h` name, never `ES_EVENT_TYPE_LAST`.
 final class MutedPathTests: XCTestCase {
     /// A reported mute with every event type the SDK defines names each one, in order.
     func testEveryEventOfAReportedMuteIsNamed() {

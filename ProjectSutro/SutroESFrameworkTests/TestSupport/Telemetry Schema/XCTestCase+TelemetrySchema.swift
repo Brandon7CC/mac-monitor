@@ -75,9 +75,9 @@ extension XCTestCase {
         try SyntheticCorpus.records().map { ($0.label, exportText($0.message)) }
     }
     
-    /// Every record of eslogger's fixtures and Mac Monitor 2.1's, opened as File > Open Trace… opens them (launched-by
-    /// parents named) and exported without a store, as the command line encodes them. Event types Mac Monitor doesn't
-    /// record are left out, as Open Trace leaves them out.
+    /// Every record of eslogger's fixtures and Mac Monitor 2.1's, opened as File > Open Trace... opens them
+    /// (launched-by parents named) and exported without a store, as the command line encodes them. Event types Mac
+    /// Monitor doesn't record are left out, as Open Trace leaves them out.
     ///
     /// - Returns: Each record's label (`eslogger-od.jsonl[3]`) and export, in the fixtures' order.
     /// - Throws: The error reading a fixture or a record.

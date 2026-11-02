@@ -231,7 +231,7 @@ extension CommandLineCompletion {
     /// bash's command that offers the words that start with what's typed.
     ///
     /// - Parameter words: The words, separated by spaces. `$events` expands to the events.
-    /// - Returns: `COMPREPLY=($(compgen -W "word…" -- "$cur"))`.
+    /// - Returns: `COMPREPLY=($(compgen -W "word..." -- "$cur"))`.
     private static func reply(_ words: String) -> String {
         "COMPREPLY=($(compgen -W \"\(words)\" -- \"$cur\"))"
     }

@@ -11,7 +11,7 @@ import Foundation
 // MARK: - Walking expressions
 extension NSExpression {
     /// The expressions it reads to get its value: a function's operand and arguments, an aggregate's members, a set
-    /// operation's sides. `$e.path`'s and `SUBQUERY(…).@count`'s key path is a name, read from nothing, and a
+    /// operation's sides. `$e.path`'s and `SUBQUERY(...).@count`'s key path is a name, read from nothing, and a
     /// `SUBQUERY`'s conditions read its own variable, so neither is one.
     var subexpressions: [NSExpression] {
         switch expressionType {
