@@ -12,6 +12,8 @@ import OSLog
 
 // MARK: Process execution event context menu
 // @discussion: This context menu is *only* safe to use on `ES_EVENT_TYPE_NOTIFY_EXEC`
+/// The right-click menu of an `EXEC` event in the SwiftUI tables. "Advanced" (mute and unsubscribe) changes what the
+/// Security Extension records, so it's left out while a trace is open.
 struct TableExecEventContextMenu: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @Environment(\.openWindow) private var openEventJSON
@@ -25,7 +27,15 @@ struct TableExecEventContextMenu: View {
         message.event.exec!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.exec != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         // MARK: Event metadata
         Group {
             Button(action: {
@@ -37,7 +47,7 @@ struct TableExecEventContextMenu: View {
         
         // MARK: Filter target_path
         if userPrefs.contextExecTargetPathFilter {
-            if let exe = message.event.exec!.target.executable,
+            if let exe = message.event.exec?.target.executable,
                let procPath = exe.path {
                 // MARK: Secodary click "Filter target process globally"
                 Button(action: {
@@ -52,10 +62,10 @@ struct TableExecEventContextMenu: View {
         
         // MARK: Filter ES event
         Button(action: {
-            allFilters.events.append(message.es_event_type!)
+            allFilters.events.append(contentsOf: [message.es_event_type].compactMap { $0 })
         }) {
             HStack {
-                Text("Filter event: \"`\(message.es_event_type!)`\"")
+                Text("Filter event: \"`\(message.es_event_type ?? "")`\"")
             }
         }
         
@@ -121,12 +131,14 @@ struct TableExecEventContextMenu: View {
         }
         
         
-        Divider()
-        
-        // MARK: Advanced context menu
-        Text("**Advanced**")
-        AdvancedExecEventContextMenu(allFilters: $allFilters, message: message)
-            .environmentObject(userPrefs)
+        if !systemExtensionManager.coreDataContainer.isShowingTrace {
+            Divider()
+            
+            // MARK: Advanced context menu
+            Text("**Advanced**")
+            AdvancedExecEventContextMenu(allFilters: $allFilters, message: message)
+                .environmentObject(userPrefs)
+        }
     }
 }
 
@@ -144,15 +156,19 @@ struct AdvancedExecEventContextMenu: View {
         message.event.exec!
     }
     
-    private var procPath: URL? {
-        URL(string: exec.target.executable?.path ?? "")
-    }
-    
     private var procName: String {
-        return procPath?.lastPathComponent ?? ""
+        (exec.target.executable?.path ?? "").lastPathComponent
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.exec != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         // MARK: Initiating path filter
         
         
@@ -166,9 +182,9 @@ action: {
         .puntPathToMute(
             pathToMute: exec.target.executable?.path ?? "",
             muteCase:  ES_MUTE_PATH_TYPE_TARGET_LITERAL,
-            pathEvents: []
+            pathEvents: [],
+            from: .eventMenu
         )
-                systemExtensionManager.requestMutedPaths()
             }) {
                 HStack {
                     Text("Mute target path: \"`\(procName)`\"")
@@ -188,9 +204,9 @@ action: {
         .puntPathToMute(
             pathToMute: message.process.executable?.path ?? "",
             muteCase:  ES_MUTE_PATH_TYPE_LITERAL,
-            pathEvents: []
+            pathEvents: [],
+            from: .eventMenu
         )
-                systemExtensionManager.requestMutedPaths()
             }) {
                 HStack {
                     Text(
@@ -203,12 +219,12 @@ action: {
         // MARK: Unsubscribe from event
         if userPrefs.contextExecEventUnsubscribe {
             Button(action: {
-                os_log("Requesting ES unsubscribe from: \(message.es_event_type!)")
+                os_log("Requesting ES unsubscribe from: \(message.es_event_type ?? "")")
                 // Mute the binaries initiating process path globally (for all events)
-                systemExtensionManager.puntEventToUnsubscribe(eventString: message.es_event_type!)
+                systemExtensionManager.setSubscription(message.es_event_type ?? "", enabled: false)
             }) {
                 HStack {
-                    Text("Unsubscribe: \"`\(message.es_event_type!)`\"")
+                    Text("Unsubscribe: \"`\(message.es_event_type ?? "")`\"")
                 }
             }
         }

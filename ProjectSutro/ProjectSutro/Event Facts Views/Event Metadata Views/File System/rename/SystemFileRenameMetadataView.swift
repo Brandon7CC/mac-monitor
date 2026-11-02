@@ -9,7 +9,6 @@ import SwiftUI
 import SutroESFramework
 
 struct SystemFileRenameMetadataView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     var esSystemEvent: ESMessage
     @State private var showAuditTokens: Bool = false
     
@@ -17,10 +16,18 @@ struct SystemFileRenameMetadataView: View {
         esSystemEvent.event.rename!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.rename != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            FileRenameEventLabelView(message: esSystemEvent)
+            SystemEventTypeLabel(message: esSystemEvent)
                 .font(.title2)
             
             GroupBox {
@@ -56,7 +63,7 @@ struct SystemFileRenameMetadataView: View {
                         HStack {
                             Text("\u{2022} Destination type:")
                                 .bold()
-                            Text("\(event.destination_type_string.replacingOccurrences(of: "ES_DESTINATION_TYPE_", with: ""))")
+                            Text(event.destination_type_string.droppingPrefix("ES_DESTINATION_TYPE_"))
                                 .monospaced()
                         }
                     }
@@ -75,40 +82,24 @@ struct SystemFileRenameMetadataView: View {
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     
                     HStack {
-                        if FileManager.default
-                            .fileExists(atPath: event.destination_path) {
-                            Label("**Destination Path:**", systemImage: "checkmark.circle")
-                                .labelStyle(.titleAndIcon)
-                                .help("This file exists.")
-                        } else {
-                            Label("**Destination Path:**", systemImage: "xmark.circle")
-                                .labelStyle(.titleAndIcon)
-                                .help("This file no longer exists.")
-                        }
+                        FileExistsLabel(title: "**Destination Path:**", path: event.destination_path)
                         GroupBox {
                             Text(event.destination_path)
                                 .monospaced()
                                 .lineLimit(10)
                         }
+                        ShowInFinderButton(path: event.destination_path)
                     }
                     
                     if let sourcePath = event.source.path {
                         HStack {
-                            if FileManager.default
-                                .fileExists(atPath: sourcePath) {
-                                Label("**Source path:**", systemImage: "checkmark.circle")
-                                    .labelStyle(.titleAndIcon)
-                                    .help("This file exists.")
-                            } else {
-                                Label("**Source path:**", systemImage: "xmark.circle")
-                                    .labelStyle(.titleAndIcon)
-                                    .help("This file no longer exists.")
-                            }
+                            FileExistsLabel(title: "**Source path:**", path: sourcePath)
                             GroupBox {
                                 Text(sourcePath)
                                     .monospaced()
                                     .lineLimit(10)
                             }
+                            ShowInFinderButton(path: sourcePath)
                         }
                     }
                     

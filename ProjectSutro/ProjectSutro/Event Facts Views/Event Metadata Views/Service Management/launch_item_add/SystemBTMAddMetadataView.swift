@@ -16,11 +16,19 @@ struct SystemBTMAddMetadataView: View {
         esSystemEvent.event.btm_launch_item_add!
     }
 
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.btm_launch_item_add != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         ScrollView {
             VStack(alignment: .leading) {
                 // MARK: Event label
-                BTMLaunchItemAddEventLabelView(message: esSystemEvent)
+                SystemEventTypeLabel(message: esSystemEvent)
                     .font(.title2)
 
                 GroupBox {
@@ -33,11 +41,13 @@ struct SystemBTMAddMetadataView: View {
                             }
                         }
                         
-                        HStack {
-                            Text("\u{2022} **Executable path:**")
-                            GroupBox {
-                                Text(event.executable_path)
-                                    .monospaced()
+                        if let executablePath = event.executable_path {
+                            HStack {
+                                Text("\u{2022} **Executable path:**")
+                                GroupBox {
+                                    Text(executablePath)
+                                        .monospaced()
+                                }
                             }
                         }
 
@@ -88,7 +98,7 @@ struct SystemBTMAddMetadataView: View {
                                 }
                             }
 
-                            if let app = event.app, let teamId = app.team_id {
+                            if let app = event.app, let teamId = app.team_id.nonEmpty {
                                 HStack {
                                     Text("\u{2022} **App Team ID:**")
                                     GroupBox {
@@ -99,7 +109,7 @@ struct SystemBTMAddMetadataView: View {
                                 }
                             }
 
-                            if let app = event.app, let signingId = app.signing_id {
+                            if let app = event.app, let signingId = app.signing_id.nonEmpty {
                                 HStack {
                                     Text("\u{2022} **App Signing ID:**")
                                     GroupBox {
@@ -130,7 +140,7 @@ struct SystemBTMAddMetadataView: View {
                                 }
                             }
 
-                            if let teamId = instigator.team_id {
+                            if let teamId = instigator.team_id.nonEmpty {
                                 HStack {
                                     Text("\u{2022} **Instigator Team ID:**")
                                     GroupBox {
@@ -141,7 +151,7 @@ struct SystemBTMAddMetadataView: View {
                                 }
                             }
 
-                            if let signingId = instigator.signing_id {
+                            if let signingId = instigator.signing_id.nonEmpty {
                                 HStack {
                                     Text("\u{2022} **Instigator Signing ID:**")
                                     GroupBox {

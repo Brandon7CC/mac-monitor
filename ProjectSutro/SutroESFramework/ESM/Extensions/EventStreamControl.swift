@@ -6,8 +6,7 @@
 //
 
 import Foundation
-import OSLog
-import AppKit
+import EndpointSecurity
 
 
 // @discussion notes are from Endpoint Security documentation
@@ -26,76 +25,46 @@ import AppKit
     case invalidArgument
     case waiting
     case success
+    /// Mac Monitor's own refusal, not Endpoint Security's: another Mac Monitor owns the event stream. Last, so the
+    /// cases above keep their raw values over XPC.
+    case streamOwned
 }
 
 
-// MARK: - ES client operations
-func validateClient(result: es_new_client_result_t) -> NewClientResult {
-    var tempConnResult: NewClientResult = .waiting
-    switch result {
-    case ES_NEW_CLIENT_RESULT_ERR_TOO_MANY_CLIENTS:
-        os_log(OSLogType.error, "There are too many Endpoint Security clients!")
-        tempConnResult = .tooManyClients
-        return tempConnResult
-    case ES_NEW_CLIENT_RESULT_ERR_NOT_ENTITLED:
-        os_log(OSLogType.error, "Failed to create new Endpoint Security client! The endpoint security entitlement is required.")
-        tempConnResult = .notEntitled
-        return tempConnResult
-    case ES_NEW_CLIENT_RESULT_ERR_NOT_PERMITTED:
-        os_log(OSLogType.error, "Lacking TCC permissions!")
-        tempConnResult = .notPermitted
-        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
-        return tempConnResult
-    case ES_NEW_CLIENT_RESULT_ERR_NOT_PRIVILEGED:
-        os_log(OSLogType.error, "Caller is not running as root!")
-        print("Caller is not running as root!")
-        tempConnResult = .notPrivileged
-        return tempConnResult
-    case ES_NEW_CLIENT_RESULT_ERR_INTERNAL:
-        os_log(OSLogType.error, "Error communicating with Endpoint Security!")
-        tempConnResult = .internalSubsystem
-        return tempConnResult
-    case ES_NEW_CLIENT_RESULT_ERR_INVALID_ARGUMENT:
-        os_log(OSLogType.error, "Incorrect arguments creating a new Endpoint Security client!")
-        print("Incorrect arguments creating a new ES client!")
-        tempConnResult = .invalidArgument
-        return tempConnResult
-    case ES_NEW_CLIENT_RESULT_SUCCESS:
-        os_log(OSLogType.error, "We successfully created a new Endpoint Security client!")
-        tempConnResult = .success
-        return tempConnResult
-    default:
-        os_log(OSLogType.error, "An unknown error occured while creating the Endpoint Security client!")
-        return tempConnResult
+extension NewClientResult {
+    /// Mac Monitor's name for what `es_new_client` returned.
+    ///
+    /// - Parameter result: The result of `es_new_client`.
+    public init(_ result: es_new_client_result_t) {
+        switch result {
+        case ES_NEW_CLIENT_RESULT_SUCCESS:
+            self = .success
+        case ES_NEW_CLIENT_RESULT_ERR_TOO_MANY_CLIENTS:
+            self = .tooManyClients
+        case ES_NEW_CLIENT_RESULT_ERR_NOT_ENTITLED:
+            self = .notEntitled
+        case ES_NEW_CLIENT_RESULT_ERR_NOT_PERMITTED:
+            self = .notPermitted
+        case ES_NEW_CLIENT_RESULT_ERR_NOT_PRIVILEGED:
+            self = .notPrivileged
+        case ES_NEW_CLIENT_RESULT_ERR_INVALID_ARGUMENT:
+            self = .invalidArgument
+        default:
+            self = .internalSubsystem
+        }
     }
 }
 
 
-extension EndpointSecurityManager {
-    // @discussion this function is used when "dropping" platform binaries.
-    public func isEventCritical(message: Message) -> Bool {
-        switch message.event {
-        case .exec,
-             .fork,
-             .exit,
-             .mmap,
-             .create,
-             .open,
-             .close,
-             .write,
-             .unlink,
-             .rename,
-             .proc_suspend_resume,
-             .get_task,
-             .iokit_open,
-             .dup,
-             .deleteextattr,
-             .setextattr,
-             .signal,
-             .xpc_connect:
-            return false
-        default:
-            return true
+extension EventType {
+    /// Is the event kept from a platform binary while platform binaries are dropped
+    /// (``EndpointSecurityManager/togglePlatformBinaries()``)? The high-volume process, file and XPC events aren't.
+    public var isCritical: Bool {
+        switch self {
+        case .exec, .fork, .exit, .mmap, .create, .open, .close, .write, .unlink, .rename, .proc_suspend_resume,
+             .get_task, .iokit_open, .dup, .deleteextattr, .setextattr, .signal, .xpc_connect:
+            false
+        default: true
         }
     }
 }

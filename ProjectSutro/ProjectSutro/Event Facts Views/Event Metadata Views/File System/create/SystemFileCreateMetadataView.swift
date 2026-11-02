@@ -38,7 +38,6 @@ struct FileQuarantineStatusLabelView: View {
 }
 
 struct SystemFileCreateMetadataView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     var esSystemEvent: ESMessage
     @State private var showAuditTokens: Bool = false
     
@@ -66,34 +65,23 @@ struct SystemFileCreateMetadataView: View {
         Int(create?.is_quarantined ?? 0)
     }
     
-    var fileIsNotArtifact: Bool {
-        let artifacts = [
-            ".part",
-            ".download"
-        ]
-        
-        for artifact in artifacts {
-            if !createdFileName.hasSuffix(artifact) {
-                return true
-            }
-        }
-        
-        return false
-    }
-    
-    var acl: String? {
-        create?.acl
-    }
-    
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if create != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            FileCreateEventLabelView(message: esSystemEvent)
+            SystemEventTypeLabel(message: esSystemEvent)
                 .font(.title2)
             
             GroupBox {
                 VStack(alignment: .leading) {
-                    if fileQuarantineEnabled && fileQuarantineType == 0 && fileIsNotArtifact {
+                    if fileQuarantineEnabled && fileQuarantineType == 0 {
                         GroupBox {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
@@ -121,23 +109,15 @@ struct SystemFileCreateMetadataView: View {
                     }
                     
                     HStack {
-                        if FileManager.default
-                            .fileExists(atPath: destinationPath) {
-                            Label("**File path:**", systemImage: "checkmark.circle")
-                                .labelStyle(.titleAndIcon)
-                                .help("This file exists.")
-                        } else {
-                            Label("**File path:**", systemImage: "xmark.circle")
-                                .labelStyle(.titleAndIcon)
-                                .help("This file no longer exists.")
-                        }
+                        FileExistsLabel(title: "**File path:**", path: destinationPath)
                         GroupBox {
                             Text("`\(destinationPath)`")
                                 .lineLimit(10)
                         }
+                        ShowInFinderButton(path: destinationPath)
                     }
                     
-                    if let acl = acl {
+                    if let acl = create?.acl {
                         HStack {
                             Text("\u{2022} **ACL:**")
                             GroupBox {
@@ -146,11 +126,11 @@ struct SystemFileCreateMetadataView: View {
                         }
                     }
                     
-                    if let newPath = create?.destination.new_path {
+                    if let mode = create?.destination.new_path?.mode {
                         HStack {
                             Text("\u{2022} **Mode:**")
                             GroupBox {
-                                Text("`\(newPath.mode)`")
+                                Text("`\(mode.int32Value)`")
                             }
                         }
                     }

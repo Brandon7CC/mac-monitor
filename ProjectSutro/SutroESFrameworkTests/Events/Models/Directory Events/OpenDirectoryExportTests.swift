@@ -1,0 +1,153 @@
+//
+//  OpenDirectoryExportTests.swift
+//  SutroESFrameworkTests
+//
+//  Created by Brandon Dalton on 10/4/26.
+//
+
+import XCTest
+import EndpointSecurity
+@testable import SutroESFramework
+
+
+// MARK: - Open Directory events in eslogger's format
+/// Pins that exports of Open Directory events have every key eslogger writes, with eslogger's value: the instigator's
+/// process (or `null`), `instigator_token`, the member object, numeric record and account types, and `db_path` as
+/// `null` when there's none. Mac Monitor's own fields are added beside them, and events exported before 3.0.0 are read
+/// back with what they kept.
+///
+/// The golden records (`eslogger-od.jsonl`) are eslogger's output on macOS 27 (message version 10), scrubbed, plus
+/// three synthetic ones: an `od_modify_password`, an `od_attribute_value_add` on a group, and an `od_group_remove` on
+/// a directory node without a database.
+final class OpenDirectoryExportTests: XCTestCase {
+    /// eslogger's records.
+    private static let esloggerFixture = "eslogger-od.jsonl"
+    /// Mac Monitor's own fields of every Open Directory event.
+    private static let commonEnrichments = ["error_code_human", "instigator_process_name", "instigator_process_path",
+                                          "instigator_process_signing_id", "instigator_process_audit_token"]
+    /// Mac Monitor's own fields of each event, besides ``commonEnrichments``.
+    private static let enrichments = ["od_group_add": "member_string", "od_group_remove": "member_string",
+                                    "od_attribute_value_add": "record_type_string",
+                                    "od_modify_password": "account_type_string"]
+    
+    /// The only event of a record or export, and its name.
+    ///
+    /// - Parameter record: The record.
+    /// - Returns: The event's key and object.
+    /// - Throws: An `XCTest` failure if the record doesn't hold one event.
+    private func onlyEvent(_ record: [String: Any]) throws -> (name: String, object: [String: Any]) {
+        let events = try XCTUnwrap(record["event"] as? [String: Any])
+        XCTAssertEqual(events.count, 1)
+        let (name, object) = try XCTUnwrap(events.first)
+        return (name, try XCTUnwrap(object as? [String: Any]))
+    }
+    
+    /// A record captured as the Security Extension captures it (see ``XCTestCase/capture(eslogger:version:fill:)``).
+    ///
+    /// - Parameters:
+    ///   - record: eslogger's record.
+    ///   - version: The message's version, if not the record's.
+    /// - Returns: The event.
+    private func capture(_ record: [String: Any], version: UInt32? = nil) -> Message {
+        capture(eslogger: record, version: version) { $0.fillODEvent(eslogger: record) }
+    }
+    
+    // MARK: eslogger parity
+    
+    /// Each eslogger record, opened and exported, or captured from Endpoint Security's structs and exported, has every
+    /// value eslogger wrote, at eslogger's key path.
+    func testRecordsMatchESLogger() throws {
+        let records = try fixtureRecords(Self.esloggerFixture)
+        XCTAssertEqual(records.count, 11)
+        for record in records {
+            let name = try onlyEvent(record).name
+            for (read, message) in [("opened", try importRecord(record)), ("captured", capture(record))] {
+                assertContains(record, try export(message), ignoring: Self.esloggerSequenceNumbers, "\(name), \(read)")
+            }
+        }
+    }
+    
+    /// Mac Monitor's own fields are exported beside eslogger's: the instigator's name, path and signing ID are `null`
+    /// only when Endpoint Security left the instigator out.
+    func testEnrichments() throws {
+        for record in try fixtureRecords(Self.esloggerFixture) {
+            let (name, object) = try onlyEvent(try export(try importRecord(record)))
+            let hasInstigator = !(try onlyEvent(record).object["instigator"] is NSNull)
+            for key in Self.commonEnrichments + [Self.enrichments[name]].compactMap({ $0 }) {
+                let nullable = !hasInstigator && key != "error_code_human" && key != "instigator_process_audit_token"
+                    && Self.commonEnrichments.contains(key)
+                XCTAssertNotNil(object[key], "\(name).\(key)")
+                XCTAssertEqual(object[key] is NSNull, nullable, "\(name).\(key)")
+            }
+        }
+    }
+    
+    /// An instigator Endpoint Security left out is exported as `null`, as eslogger writes it, with its token.
+    func testInstigatorLeftOut() throws {
+        let record = try XCTUnwrap(try fixtureRecords(Self.esloggerFixture).first)
+        for message in [try importRecord(record), capture(record)] {
+            let event = try self.event("od_create_user", in: try export(message))
+            XCTAssertTrue(event["instigator"] is NSNull)
+            XCTAssertEqual((event["instigator_token"] as? [String: Any])?["pid"] as? Int, 4100)
+            XCTAssertEqual(event["instigator_process_audit_token"] as? String,
+                           "pid:4100, euid:0, ruid:0, rgid:0, egid:0, asid:100100, auid:501, pidversion:9100")
+            XCTAssertTrue(event["instigator_process_name"] is NSNull)
+        }
+    }
+    
+    /// Before message version 8 Endpoint Security has no `instigator_token`: it's exported as `null`.
+    func testVersion7HasNoInstigatorToken() throws {
+        for record in try fixtureRecords(Self.esloggerFixture) {
+            let (name, object) = try onlyEvent(try export(capture(record, version: 7)))
+            XCTAssertTrue(object["instigator_token"] is NSNull, name)
+        }
+    }
+    
+    // MARK: Exports before 3.0.0
+    
+    /// The export of an Open Directory event from a Mac Monitor 2.1 export, which holds the legacy fixture's event.
+    ///
+    /// - Parameter type: The event's type.
+    /// - Returns: The event's object.
+    /// - Throws: The error reading a fixture or the record, or an `XCTest` failure if a fixture or the export has no
+    ///   such event.
+    private func reexportLegacy(_ type: es_event_type_t) throws -> [String: Any] {
+        let events = try XCTUnwrap(try fixtureObject("macmonitor-2.1-od.json")["events"] as? [String: Any])
+        let name = esloggerKey(type)
+        let record = try legacyRecord(type, try XCTUnwrap(events[name]))
+        return try event(name, in: try export(try importRecord(record)))
+    }
+    
+    /// An Open Directory event exported before 3.0.0 is exported again with the numbers its names stand for, the names
+    /// kept in the `*_string` fields, and `null` for what it didn't keep.
+    func testLegacyExportsAreReadBack() throws {
+        let attribute = try reexportLegacy(ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_VALUE_ADD)
+        assertContains(["record_type": 1, "record_type_string": "GROUP", "instigator": NSNull(),
+                        "instigator_token": NSNull(), "instigator_process_name": "dscl"], attribute, "attribute")
+        
+        let added = try reexportLegacy(ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD)
+        assertContains(["member": ["member_type": 1, "member_value": NSNull()],
+                        "member_string": "ES_OD_MEMBER_TYPE_USER_UUID"], added, "group add")
+        
+        let removed = try reexportLegacy(ES_EVENT_TYPE_NOTIFY_OD_GROUP_REMOVE)
+        assertContains(["member": NSNull(), "member_string": "UNKNOWN", "db_path": ""], removed, "group remove")
+        
+        let password = try reexportLegacy(ES_EVENT_TYPE_NOTIFY_OD_MODIFY_PASSWORD)
+        assertContains(["account_type": 1, "account_type_string": "ES_OD_ACCOUNT_TYPE_COMPUTER"], password, "password")
+        
+        let user = try reexportLegacy(ES_EVENT_TYPE_NOTIFY_OD_CREATE_USER)
+        assertContains(["error_code": 4102, "user_name": "testuser", "instigator_process_signing_id": "com.apple.dscl"],
+                       user, "create user")
+    }
+    
+    /// A 3.0.0 export reads back as it was exported.
+    func testExportsRoundTrip() throws {
+        for record in try fixtureRecords(Self.esloggerFixture) {
+            let exported = try export(try importRecord(record))
+            let again = try export(try importRecord(exported))
+            let (name, object) = try onlyEvent(exported)
+            let reexported = try onlyEvent(again).object
+            XCTAssertEqual(NSDictionary(dictionary: object), NSDictionary(dictionary: reexported), name)
+        }
+    }
+}

@@ -10,9 +10,13 @@ import Foundation
 import CoreData
 
 @objc(ESProcessSignalEvent)
-public class ESProcessSignalEvent: NSManagedObject {
+public class ESProcessSignalEvent: NSManagedObject, Identifiable {
+    @NSManaged public var sig: Int32
+    @NSManaged public var signal_name: String
+    @NSManaged public var target: ESProcess
+    @NSManaged public var instigator: ESProcess?
+
     enum CodingKeys: CodingKey {
-        case id
         case sig
         case signal_name
         case target
@@ -20,19 +24,14 @@ public class ESProcessSignalEvent: NSManagedObject {
     }
     
     // MARK: - Custom Core Data initilizer for ESProcessSignalEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let signalEvent: ProcessSignalEvent = message.event.signal!
-        let description = NSEntityDescription.entity(forEntityName: "ESProcessSignalEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = signalEvent.id
-        self.sig = Int32(signalEvent.sig)
-        self.signal_name = signalEvent.signal_name
+    convenience init(from event: ProcessSignalEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
+        self.sig = Int32(truncatingIfNeeded: event.sig)
+        self.signal_name = event.signal_name
         
         /// Process structures
-        self.target = ESProcess(from: signalEvent.target, version: message.version, insertIntoManagedObjectContext: context)
-        if let instigator = signalEvent.instigator {
-            self.instigator = ESProcess(from: instigator, version: message.version, insertIntoManagedObjectContext: context)
-        }
+        self.target = ESProcess(from: event.target, version: message.version, insertIntoManagedObjectContext: context)
+        self.instigator = ESProcess.insert(event.instigator, version: message.version, in: context)
     }
 }
 

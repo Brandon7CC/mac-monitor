@@ -10,9 +10,21 @@ import Foundation
 import CoreData
 
 @objc(ESOpenSSHLoginEvent)
-public class ESOpenSSHLoginEvent: NSManagedObject {
+public class ESOpenSSHLoginEvent: NSManagedObject, Identifiable {
+    @NSManaged public var success: Bool
+    @NSManaged public var result_type: Int32
+    @NSManaged public var result_type_string: String
+    
+    @NSManaged public var source_address_type: Int32
+    @NSManaged public var source_address_type_string: String
+    
+    @NSManaged public var source_address: String
+    @NSManaged public var username: String
+    
+    @NSManaged public var has_uid: Bool
+    @NSManaged public var uid: Int32
+
     enum CodingKeys: CodingKey {
-        case id
         case success
         case result_type
         case result_type_string
@@ -25,11 +37,8 @@ public class ESOpenSSHLoginEvent: NSManagedObject {
     }
 
     // MARK: - Custom Core Data initilizer for ESOpenSSHLoginEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: SSHLoginEvent = message.event.openssh_login!
-        let description = NSEntityDescription.entity(forEntityName: "ESOpenSSHLoginEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = event.id
+    convenience init(from event: SSHLoginEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         self.success = event.success
         self.result_type = event.result_type
@@ -50,8 +59,6 @@ public class ESOpenSSHLoginEvent: NSManagedObject {
 extension ESOpenSSHLoginEvent: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-//        try container.encode(id, forKey: .id)
-        
         try container.encode(success, forKey: .success)
         try container.encode(result_type, forKey: .result_type)
         try container.encode(result_type_string, forKey: .result_type_string)
@@ -63,6 +70,8 @@ extension ESOpenSSHLoginEvent: Encodable {
         try container.encode(username, forKey: .username)
         
         try container.encode(has_uid, forKey: .has_uid)
-        try container.encodeIfPresent(uid, forKey: .uid)
+        /// eslogger writes `null` without a uid. The stored -1 only marks its absence. A `uid_t`, kept by bit pattern:
+        /// written unsigned, as eslogger writes it.
+        try container.encode(has_uid ? UInt32(bitPattern: uid) : nil, forKey: .uid)
     }
 }

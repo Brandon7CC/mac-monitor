@@ -12,23 +12,20 @@ import SutroESFramework
 struct SystemGatekeeperUserOverrideMetadataView: View {
     var message: ESMessage
     @State private var showAuditTokens: Bool = false
-    @State private var showInstigator: Bool = false
     
     private var event: ESGatekeeperUserOverrideEvent {
         message.event.gatekeeper_user_override!
     }
     
-    private var overridePath: String {
-        if let path = event.file?.path {
-            return path
-        } else if let filePath = event.file_path {
-            return filePath
-        }
-        
-        return ""
-    }
-    
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.gatekeeper_user_override != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             SystemEventTypeLabel(message: message)
@@ -40,7 +37,7 @@ struct SystemGatekeeperUserOverrideMetadataView: View {
                     HStack {
                         Text("\u{2022} **Override path:**")
                         GroupBox {
-                            Text(overridePath)
+                            Text(message.target_path ?? "")
                                 .monospaced()
                         }
                     }
@@ -70,21 +67,21 @@ struct SystemGatekeeperUserOverrideMetadataView: View {
                                     .bold()
                                     .font(.title3)
                                 
-                                if !codeSigning.signing_id.isEmpty {
+                                if let signingID = codeSigning.signing_id.nonEmpty {
                                     HStack {
                                         Text("\u{2022} **Signing ID**")
                                         GroupBox {
-                                            Text(codeSigning.signing_id)
+                                            Text(signingID)
                                                 .monospaced()
                                         }
                                     }
                                 }
                                 
-                                if !codeSigning.team_id.isEmpty {
+                                if let teamID = codeSigning.team_id.nonEmpty {
                                     HStack {
                                         Text("\u{2022} **Team ID**")
                                         GroupBox {
-                                            Text(codeSigning.team_id)
+                                            Text(teamID)
                                                 .monospaced()
                                         }
                                     }

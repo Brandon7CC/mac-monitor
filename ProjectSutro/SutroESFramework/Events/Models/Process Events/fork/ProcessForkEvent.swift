@@ -9,18 +9,14 @@ import Foundation
 
 
 // MARK: - Process Fork Event https://developer.apple.com/documentation/endpointsecurity/es_event_fork_t
-public struct ProcessForkEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+public struct ProcessForkEvent: Codable, IdentityHashable {
+    public var id: UUID = UUID.buffered()
     
     public var child: Process
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: ProcessForkEvent, rhs: ProcessForkEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
+    /// Mac Monitor's launched-by parent of ``child`` (``LaunchedByParent``): stamped by the Security Extension's
+    /// serializer from the message's own fields. `nil` until it's resolved.
+    public var launched_by_parent: LaunchedByParent?
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let forkEvent: es_event_fork_t = rawMessage.pointee.event.fork

@@ -10,27 +10,25 @@ import Foundation
 import CoreData
 
 @objc(ESProcessSocketEvent)
-public class ESProcessSocketEvent: NSManagedObject {
+public class ESProcessSocketEvent: NSManagedObject, Identifiable {
+    @NSManaged public var type: Int32
+    @NSManaged public var type_string: String
+    @NSManaged public var target: ESProcess?
+
     enum CodingKeys: CodingKey {
-        case id
         case type
         case type_string
         case target
     }
     
     // MARK: - Custom Core Data initilizer for ESProcessSocketEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let processSocketEvent: ProcessSocketEvent = message.event.proc_suspend_resume!
-        let description = NSEntityDescription.entity(forEntityName: "ESProcessSocketEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: ProcessSocketEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.id = processSocketEvent.id
-        self.type_string = processSocketEvent.type_string
-        self.type = processSocketEvent.type
+        self.type_string = event.type_string
+        self.type = event.type
         
-        if let target = processSocketEvent.target {
-            self.target = ESProcess(from: target, version: message.version, insertIntoManagedObjectContext: context)
-        }
+        self.target = ESProcess.insert(event.target, version: message.version, in: context)
     }
 }
 
@@ -40,6 +38,6 @@ extension ESProcessSocketEvent: Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(type, forKey: .type)
         try container.encode(type_string, forKey: .type_string)
-        try container.encodeIfPresent(target, forKey: .target)
+        try container.encode(target, forKey: .target)
     }
 }

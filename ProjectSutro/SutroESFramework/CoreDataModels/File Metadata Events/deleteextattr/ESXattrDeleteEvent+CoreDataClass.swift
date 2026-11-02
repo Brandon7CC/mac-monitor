@@ -10,19 +10,19 @@ import Foundation
 import CoreData
 
 @objc(ESXattrDeleteEvent)
-public class ESXattrDeleteEvent: NSManagedObject {
+public class ESXattrDeleteEvent: NSManagedObject, Identifiable {
+    @NSManaged public var target: ESFile
+    @NSManaged public var extattr: String
+
     enum CodingKeys: CodingKey {
-        case id, target, extattr
+        case target, extattr
     }
     
     // MARK: - Custom Core Data initilizer for ESXattrDeleteEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: XattrDeleteEvent = message.event.deleteextattr!
-        let description = NSEntityDescription.entity(forEntityName: "ESXattrDeleteEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = event.id
+    convenience init(from event: XattrEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        target = ESFile(from: event.target, insertIntoManagedObjectContext: context)
+        attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESXattrDeleteEvent.target))
         extattr = event.extattr
     }
 }

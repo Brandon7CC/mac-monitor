@@ -1,0 +1,434 @@
+{
+ "_comment": "eslogger's JSON keys on macOS 27.0 (26A5353q), recovered from the eslogger binary's Codable models, for the 51 event types Mac Monitor records. Paths are relative to their object; [] is an array's elements. Types: int, bool, string, string(time), string(hex), null, object, array, array[int], array[string], and the definitions below. |null: eslogger writes null. A ? after a key: eslogger leaves the key out, by message version or as a union's other arm.",
+ "definitions": {
+  "audit_token": {
+   "asid": "int",
+   "auid": "int",
+   "egid": "int",
+   "euid": "int",
+   "pid": "int",
+   "pidversion": "int",
+   "rgid": "int",
+   "ruid": "int"
+  },
+  "file": {
+   "path": "string",
+   "path_truncated": "bool",
+   "stat": "stat"
+  },
+  "process": {
+   "audit_token": "audit_token",
+   "cdhash": "string(hex)",
+   "codesigning_flags": "int",
+   "cs_validation_category?": "int",
+   "executable": "file",
+   "group_id": "int",
+   "is_es_client": "bool",
+   "is_platform_binary": "bool",
+   "original_ppid": "int",
+   "parent_audit_token": "audit_token",
+   "ppid": "int",
+   "responsible_audit_token": "audit_token",
+   "session_id": "int",
+   "signing_id": "string",
+   "start_time": "string(time)",
+   "team_id": "string|null",
+   "tty": "file|null"
+  },
+  "stat": {
+   "st_atimespec": "string(time)",
+   "st_birthtimespec": "string(time)",
+   "st_blksize": "int",
+   "st_blocks": "int",
+   "st_ctimespec": "string(time)",
+   "st_dev": "int",
+   "st_flags": "int",
+   "st_gen": "int",
+   "st_gid": "int",
+   "st_ino": "int",
+   "st_mode": "int",
+   "st_mtimespec": "string(time)",
+   "st_nlink": "int",
+   "st_rdev": "int",
+   "st_size": "int",
+   "st_uid": "int"
+  }
+ },
+ "envelope": {
+  "action": "object",
+  "action.result": "object",
+  "action.result.result": "object",
+  "action.result.result.auth?": "int",
+  "action.result.result.flags?": "int",
+  "action.result.result_type": "int",
+  "action_type": "int",
+  "event": "object",
+  "event_type": "int",
+  "global_seq_num": "int",
+  "mach_time": "int",
+  "process": "process",
+  "schema_version": "int",
+  "seq_num": "int",
+  "thread": "object|null",
+  "thread.thread_id": "int",
+  "time": "string(time)",
+  "version": "int"
+ },
+ "events": {
+  "authorization_judgement": {
+   "instigator": "process|null",
+   "instigator_token?": "audit_token",
+   "petitioner": "process|null",
+   "petitioner_token?": "audit_token",
+   "result_count": "int",
+   "results": "array",
+   "results[]": "object",
+   "results[].granted": "bool",
+   "results[].right_name": "string",
+   "results[].rule_class": "int",
+   "return_code": "int"
+  },
+  "authorization_petition": {
+   "flags": "int",
+   "instigator": "process|null",
+   "instigator_token?": "audit_token",
+   "petitioner": "process|null",
+   "petitioner_token?": "audit_token",
+   "right_count": "int",
+   "rights": "array[string]"
+  },
+  "btm_launch_item_add": {
+   "app": "process|null",
+   "app_token?": "audit_token|null",
+   "executable_path": "string|null",
+   "instigator": "process|null",
+   "instigator_token?": "audit_token|null",
+   "item": "object",
+   "item.app_url": "string|null",
+   "item.item_type": "int",
+   "item.item_url": "string",
+   "item.legacy": "bool",
+   "item.managed": "bool",
+   "item.uid": "int"
+  },
+  "btm_launch_item_remove": {
+   "app": "process|null",
+   "app_token?": "audit_token|null",
+   "instigator": "process|null",
+   "instigator_token?": "audit_token|null",
+   "item": "object",
+   "item.app_url": "string|null",
+   "item.item_type": "int",
+   "item.item_url": "string",
+   "item.legacy": "bool",
+   "item.managed": "bool",
+   "item.uid": "int"
+  },
+  "close": {
+   "modified": "bool",
+   "target": "file",
+   "was_mapped_writable": "bool"
+  },
+  "create": {
+   "acl": "string|null",
+   "destination": "object",
+   "destination.existing_file?": "file",
+   "destination.new_path.dir": "file",
+   "destination.new_path.filename": "string",
+   "destination.new_path.mode": "int",
+   "destination.new_path?": "object",
+   "destination_type": "int"
+  },
+  "cs_invalidated": {},
+  "deleteextattr": {
+   "extattr": "string",
+   "target": "file"
+  },
+  "dup": {
+   "target": "file"
+  },
+  "exec": {
+   "args": "array[string]",
+   "cwd": "file",
+   "dyld_exec_path?": "string",
+   "entitlements?": "object",
+   "env": "array[string]",
+   "fds": "array",
+   "fds[]": "object",
+   "fds[].fd": "int",
+   "fds[].fdtype": "int",
+   "fds[].pipe.pipe_id": "int",
+   "fds[].pipe?": "object",
+   "image_cpusubtype": "int",
+   "image_cputype": "int",
+   "last_fd": "int",
+   "script": "file|null",
+   "target": "process"
+  },
+  "exit": {
+   "stat": "int"
+  },
+  "fork": {
+   "child": "process"
+  },
+  "gatekeeper_user_override": {
+   "file": "string|file|null",
+   "file_type": "int",
+   "sha256": "string(hex)|null",
+   "signing_info": "object|null",
+   "signing_info.cdhash": "string(hex)",
+   "signing_info.signing_id": "string|null",
+   "signing_info.team_id": "string|null"
+  },
+  "get_task": {
+   "target": "process",
+   "type": "int"
+  },
+  "getextattr": {
+   "extattr": "string",
+   "target": "file"
+  },
+  "iokit_open": {
+   "parent_path?": "string",
+   "parent_registry_id?": "int",
+   "user_client_class": "string",
+   "user_client_type": "int"
+  },
+  "link": {
+   "source": "file",
+   "target_dir": "file",
+   "target_filename": "string"
+  },
+  "listextattr": {
+   "target": "file"
+  },
+  "login_login": {
+   "failure_message": "string|null",
+   "success": "bool",
+   "uid": "int|null",
+   "username": "string"
+  },
+  "lw_session_login": {
+   "graphical_session_id": "int",
+   "username": "string"
+  },
+  "lw_session_unlock": {
+   "graphical_session_id": "int",
+   "username": "string"
+  },
+  "mmap": {
+   "file_pos": "int",
+   "flags": "int",
+   "max_protection": "int",
+   "protection": "int",
+   "source": "file"
+  },
+  "mount": {
+   "disposition?": "int",
+   "statfs": "object",
+   "statfs.f_bavail": "int",
+   "statfs.f_bfree": "int",
+   "statfs.f_blocks": "int",
+   "statfs.f_bsize": "int",
+   "statfs.f_ffree": "int",
+   "statfs.f_files": "int",
+   "statfs.f_flags": "int",
+   "statfs.f_flags_ext": "int",
+   "statfs.f_fsid": "array[int]",
+   "statfs.f_fssubtype": "int",
+   "statfs.f_fstypename": "string",
+   "statfs.f_iosize": "int",
+   "statfs.f_mntfromname": "string",
+   "statfs.f_mntonname": "string",
+   "statfs.f_owner": "int",
+   "statfs.f_type": "int"
+  },
+  "mprotect": {
+   "address": "int",
+   "protection": "int",
+   "size": "int"
+  },
+  "od_attribute_value_add": {
+   "attribute_name": "string",
+   "attribute_value": "string",
+   "db_path": "string|null",
+   "error_code": "int",
+   "instigator": "process|null",
+   "instigator_token?": "audit_token",
+   "node_name": "string",
+   "record_name": "string",
+   "record_type": "int"
+  },
+  "od_create_group": {
+   "db_path": "string|null",
+   "error_code": "int",
+   "group_name": "string",
+   "instigator": "process|null",
+   "instigator_token?": "audit_token",
+   "node_name": "string"
+  },
+  "od_create_user": {
+   "db_path": "string|null",
+   "error_code": "int",
+   "instigator": "process|null",
+   "instigator_token?": "audit_token",
+   "node_name": "string",
+   "user_name": "string"
+  },
+  "od_group_add": {
+   "db_path": "string|null",
+   "error_code": "int",
+   "group_name": "string",
+   "instigator": "process|null",
+   "instigator_token?": "audit_token",
+   "member": "object",
+   "member.member_type": "int",
+   "member.member_value": "string",
+   "node_name": "string"
+  },
+  "od_group_remove": {
+   "db_path": "string|null",
+   "error_code": "int",
+   "group_name": "string",
+   "instigator": "process|null",
+   "instigator_token?": "audit_token",
+   "member": "object",
+   "member.member_type": "int",
+   "member.member_value": "string",
+   "node_name": "string"
+  },
+  "od_modify_password": {
+   "account_name": "string",
+   "account_type": "int",
+   "db_path": "string|null",
+   "error_code": "int",
+   "instigator": "process|null",
+   "instigator_token?": "audit_token",
+   "node_name": "string"
+  },
+  "open": {
+   "fflag": "int",
+   "file": "file"
+  },
+  "openssh_login": {
+   "result_type": "int",
+   "source_address": "string",
+   "source_address_type": "int",
+   "success": "bool",
+   "uid": "int|null",
+   "username": "string"
+  },
+  "openssh_logout": {
+   "source_address": "string",
+   "source_address_type": "int",
+   "uid": "int",
+   "username": "string"
+  },
+  "proc_check": {
+   "flavor": "int",
+   "target": "process|null",
+   "type": "int"
+  },
+  "proc_suspend_resume": {
+   "target": "process|null",
+   "type": "int"
+  },
+  "profile_add": {
+   "instigator": "process|null",
+   "instigator_token?": "audit_token",
+   "is_update": "bool",
+   "profile": "object",
+   "profile.display_name": "string",
+   "profile.identifier": "string",
+   "profile.install_source": "int",
+   "profile.organization": "string",
+   "profile.scope": "string",
+   "profile.uuid": "string"
+  },
+  "pty_grant": {
+   "dev": "int"
+  },
+  "remote_thread_create": {
+   "target": "process",
+   "thread_state": "object|null",
+   "thread_state.flavor": "int",
+   "thread_state.state": "null"
+  },
+  "rename": {
+   "destination": "object",
+   "destination.existing_file?": "file",
+   "destination.new_path.dir": "file",
+   "destination.new_path.filename": "string",
+   "destination.new_path?": "object",
+   "destination_type": "int",
+   "source": "file"
+  },
+  "setextattr": {
+   "extattr": "string",
+   "target": "file"
+  },
+  "setmode": {
+   "mode": "int",
+   "target": "file"
+  },
+  "signal": {
+   "instigator?": "process|null",
+   "sig": "int",
+   "target": "process"
+  },
+  "tcc_modify": {
+   "identity": "string",
+   "identity_type": "int",
+   "instigator": "process|null",
+   "instigator_token": "audit_token",
+   "reason": "int",
+   "responsible": "process|null",
+   "responsible_token": "audit_token|null",
+   "right": "int",
+   "service": "string",
+   "update_type": "int"
+  },
+  "trace": {
+   "target": "process"
+  },
+  "uipc_bind": {
+   "dir": "file",
+   "filename": "string",
+   "mode": "int"
+  },
+  "uipc_connect": {
+   "domain": "int",
+   "file": "file",
+   "protocol": "int",
+   "type": "int"
+  },
+  "unlink": {
+   "parent_dir": "file",
+   "target": "file"
+  },
+  "write": {
+   "target": "file"
+  },
+  "xp_malware_detected": {
+   "detected_executable?": "string",
+   "detected_path": "string",
+   "incident_identifier": "string",
+   "malware_identifier": "string",
+   "signature_version": "string"
+  },
+  "xp_malware_remediated": {
+   "action_type": "string",
+   "incident_identifier": "string",
+   "malware_identifier": "string",
+   "remediated_path": "string|null",
+   "remediated_process_audit_token": "audit_token|null",
+   "result_description": "string",
+   "signature_version": "string",
+   "success": "bool"
+  },
+  "xpc_connect": {
+   "service_domain_type": "int",
+   "service_name": "string"
+  }
+ }
+}

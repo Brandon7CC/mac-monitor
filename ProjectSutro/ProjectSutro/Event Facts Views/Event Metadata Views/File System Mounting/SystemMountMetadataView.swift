@@ -16,10 +16,18 @@ struct SystemMountMetadataView: View {
         esSystemEvent.event.mount!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.mount != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            MountEventLabelView(message: esSystemEvent)
+            SystemEventTypeLabel(message: esSystemEvent)
                 .font(.title2)
             
             
@@ -44,7 +52,7 @@ struct SystemMountMetadataView: View {
                     HStack {
                         Text("\u{2022} **Type:**")
                         GroupBox {
-                            Text(event.disposition_string.replacingOccurrences(of: "ES_MOUNT_DISPOSITION_", with: ""))
+                            Text(event.disposition_string.droppingPrefix("ES_MOUNT_DISPOSITION_"))
                                 .monospaced()
                         }
                         Text("\u{2022} **Total files:**")

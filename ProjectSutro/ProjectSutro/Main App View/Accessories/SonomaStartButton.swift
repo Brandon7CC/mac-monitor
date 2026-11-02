@@ -12,37 +12,26 @@ import SutroESFramework
 @available(macOS, introduced: 14)
 struct SonomaStartButton: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @EnvironmentObject var agentTerminate: AgentCloseController
     @EnvironmentObject var userPrefs: UserPrefs
+    /// Start closes an open trace.
+    @EnvironmentObject var traceSession: TraceSession
     
     @Binding var recordingEvents: Bool
     @Binding var confirmClear: Bool
     
-    /// Clear SystemEvents from the Core Data PSC and reset the UI
-    ///
-    /// The function will first stop a system trace (if one is occuring) we'll next clear the PSC using `clearSystemEvents()`
+    /// Clear the events, recording again afterwards if Mac Monitor was recording.
     public func clearSystemEventsUI() {
-        var sentinel: Bool = false
-        if recordingEvents {
-            recordingEvents = false
-            
-            sentinel = true
-        }
-        
-        systemExtensionManager.cleanup()
+        let wasRecording = recordingEvents
         systemExtensionManager.stopRecordingEvents()
         systemExtensionManager.coreDataContainer.clearSystemEvents()
-        
-        if sentinel {
-            recordingEvents = true
-            systemExtensionManager.startRecordingEvents()
-            sentinel = false
-        }
+        if wasRecording { systemExtensionManager.startRecordingEvents() }
     }
     
     
     var body: some View {
         Button(action: {
+            /// Recording replaces an open trace (its file is still on disk).
+            if !traceSession.isLive { systemExtensionManager.coreDataContainer.clearSystemEvents() }
             recordingEvents = true
             systemExtensionManager.startRecordingEvents()
         }) {
@@ -52,25 +41,8 @@ struct SonomaStartButton: View {
                 .padding([.leading, .trailing], 5)
         }
         .disabled(recordingEvents || systemExtensionManager.connectionResult != .success)
-        .onTapGesture {
-            if !recordingEvents && systemExtensionManager.connectionResult != .success {
-                agentTerminate.toggleQuitAlert()
-            }
-        }
-        .alert(isPresented: $agentTerminate.showAlert) {
-            Alert(
-                title: Text("Quit and re-open!"),
-                message: Text("You need to quit and re-open the app after completing **both** of these: Allow the System Extension and enable Full Disk Access."),
-                primaryButton: .default(Text("Let's do it!")) {
-                    let userDefaults = UserDefaults.standard
-                    let defaultValues = ["lifecycleQuitInternal" : true]
-                    userDefaults.register(defaults: defaultValues)
-                    UserDefaults.standard.set(true, forKey: "lifecycleQuitInternal")
-                    agentTerminate.quitAgent(esm: systemExtensionManager)
-                },
-                secondaryButton: .cancel()
-            )
-        }
+        .help(systemExtensionManager.connectionResult == .success || recordingEvents ? ""
+              : "Mac Monitor can't record yet. Settings ▸ Security Extension says what's missing.")
         .confirmationDialog(
             "Are you sure you want to clear all events?",
             isPresented: $confirmClear

@@ -16,14 +16,18 @@ struct SystemUnlinkEventMetadataView: View {
         esSystemEvent.event.unlink!
     }
     
-    private var eventType: String {
-        esSystemEvent.es_event_type!
-    }
-    
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.unlink != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            FileDeleteEventLabelView(message: esSystemEvent)
+            SystemEventTypeLabel(message: esSystemEvent)
                 .font(.title2)
             
             GroupBox {

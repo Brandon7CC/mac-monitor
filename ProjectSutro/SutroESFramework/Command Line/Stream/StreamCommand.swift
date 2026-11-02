@@ -1,0 +1,333 @@
+//
+//  StreamCommand.swift
+//  SutroESFramework
+//
+//  Created by Brandon Dalton on 10/5/26.
+//
+
+import Foundation
+
+
+// MARK: - Output
+/// Where `macmonitor` writes events: standard output in the tool, a buffer in the tests.
+public protocol StreamOutput: AnyObject {
+    /// Write all of `data`, however long that takes.
+    ///
+    /// - Parameter data: The bytes.
+    /// - Throws: ``StreamOutputError``.
+    func write(_ data: Data) throws
+}
+
+
+extension StreamOutput {
+    /// Write all of `data` for a command that writes its answer and exits: a closed pipe (`| head`) is a success.
+    ///
+    /// - Parameter data: The bytes.
+    /// - Returns: Success, or ``CommandLineFailure/output(_:)`` for any other write error: exit 74.
+    public func writeResult(_ data: Data) -> Result<Void, CommandLineFailure> {
+        do {
+            try write(data)
+        } catch StreamOutputError.closed {
+            /// The reader has what it wanted.
+        } catch StreamOutputError.failed(let code) {
+            return .failure(.output(code))
+        } catch {
+            return .failure(.output(EIO))
+        }
+        return .success(())
+    }
+}
+
+
+/// Why output couldn't be written.
+public enum StreamOutputError: Error, Equatable {
+    /// The reader went away (`EPIPE`), as `| head` does once it has its lines: not a failure.
+    case closed
+    /// Another write error, by `errno`.
+    case failed(Int32)
+}
+
+
+// MARK: - Stream command
+/// `macmonitor stream` (command line context): start the stream, write each batch, report drops, stop.
+///
+/// Each batch is written on one serial queue, then replied to: the reply is the stream's back-pressure, so a slow
+/// reader slows the Security Extension's batches for this stream only, and past its buffer the stream pauses. A stop
+/// is answered only once every batch before it has been replied to, so by the time the answer is handled here every
+/// event captured before the stop has been written. A stream stops itself the same way once it has written its
+/// `--count` of events or run for its `--for` time.
+///
+/// Diagnostics go to standard error: a drop notice at most once a second, a version mismatch, each change to the
+/// saved mute set the stream follows, and (when standard error is a terminal) a banner and a summary.
+public final class StreamCommand: NSObject {
+    /// How a stream ended.
+    public enum Outcome: Equatable {
+        /// A stop was answered, with what the stream delivered and lost (`nil` if the answer had none).
+        case stopped(StreamSummary?)
+        /// The reader closed standard output (`| head`): a success.
+        case outputClosed
+        /// The stream couldn't start or went away.
+        case failed(CommandLineFailure)
+    }
+    
+    /// The shortest time between two drop notices, in nanoseconds.
+    static let noticeInterval: UInt64 = 1_000_000_000
+    private let client: StreamClient
+    private let pipeline: StreamPipeline
+    private let output: StreamOutput
+    /// Writes one line to standard error.
+    private let diagnose: (String) -> Void
+    /// Banner and summary: only when standard error is a terminal.
+    private let isChatty: Bool
+    /// `macmonitor`'s own version, such as "3.0.0 (1)".
+    private let toolVersion: String
+    /// Writes batches and handles answers, in order.
+    private let queue = DispatchQueue(label: "com.swiftlydetecting.agent.cli.stream")
+    /// Called once, on ``queue``, with how the stream ended.
+    private var completion: ((Outcome) -> Void)?
+    /// When the last drop notice was written (uptime nanoseconds).
+    private var lastNotice: UInt64 = 0
+    /// How long the stream runs before it stops itself, if it does.
+    private var duration: TimeInterval?
+    /// Has a stop been asked for? Only the first is sent.
+    private var isStopping = false
+    /// Has the first `--predicate` that couldn't be evaluated been reported?
+    private var saidUnchecked = false
+    
+    /// - Parameters:
+    ///   - client: The connection to the Security Extension, not yet activated.
+    ///   - pipeline: Turns batches into output.
+    ///   - output: Where events are written.
+    ///   - toolVersion: `macmonitor`'s own version.
+    ///   - isChatty: Write the banner and the summary (standard error is a terminal).
+    ///   - diagnose: Writes one line to standard error.
+    public init(client: StreamClient, pipeline: StreamPipeline, output: StreamOutput, toolVersion: String,
+                isChatty: Bool, diagnose: @escaping (String) -> Void) {
+        self.client = client
+        self.pipeline = pipeline
+        self.output = output
+        self.toolVersion = toolVersion
+        self.isChatty = isChatty
+        self.diagnose = diagnose
+    }
+    
+    /// Start streaming.
+    ///
+    /// - Parameters:
+    ///   - invocation: The stream asked for.
+    ///   - completion: Called once, on the command's queue, with how the stream ended.
+    public func run(_ invocation: StreamInvocation, completion: @escaping (Outcome) -> Void) {
+        queue.sync {
+            self.completion = completion
+            duration = invocation.duration
+        }
+        client.activate(receiving: self) { [weak self] failure in
+            self?.queue.async { self?.end(.failed(failure)) }
+        }
+        client.send(StreamRequest(.stream, options: invocation.options), timeout: .seconds(10)) { [self] result in
+            queue.async { [self] in
+                switch result {
+                case .failure(let failure):
+                    end(.failed(failure))
+                case .success(let reply):
+                    if let failure = CommandLineFailure.reply(reply) { return end(.failed(failure)) }
+                    started(reply)
+                }
+            }
+        }
+    }
+    
+    /// Stop: no new events, write every event already captured, then end with the summary. Once a stop has been asked
+    /// for, or the stream has ended, this does nothing.
+    ///
+    /// A signal's stop keeps the 2 second limit, and the tool's watchdog backs it up. The stream's own stops at its
+    /// `--count` or `--for` wait as long as it takes. The answer comes only after every queued batch is written, which
+    /// takes a while under a slow reader.
+    ///
+    /// - Parameter timeout: How long to wait for the Security Extension's answer, or `nil` to wait as long as it takes.
+    public func stop(timeout: DispatchTimeInterval? = .seconds(2)) {
+        queue.async { [self] in
+            guard completion != nil, !isStopping else { return }
+            isStopping = true
+            client.send(StreamRequest(.stop), timeout: timeout) { [self] result in
+                queue.async { [self] in
+                    switch result {
+                    case .success(let reply): end(.stopped(reply.summary))
+                    case .failure(let failure): end(.failed(failure))
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+// MARK: - Receiving
+extension StreamCommand: StreamReaderProtocol {
+    /// Write a batch, then reply. Once the stream has ended, reply right away and write nothing.
+    ///
+    /// - Parameters:
+    ///   - events: Wire events, oldest first.
+    ///   - reply: Lets the Security Extension send the next batch.
+    public func receive(events: [Data], reply: @escaping () -> Void) {
+        queue.async { [self] in
+            defer { reply() }
+            guard completion != nil else { return }
+            do {
+                try output.write(pipeline.process(events))
+            } catch StreamOutputError.closed {
+                return end(.outputClosed)
+            } catch StreamOutputError.failed(let code) {
+                return end(.failed(.output(code)))
+            } catch {
+                return end(.failed(.output(EIO)))
+            }
+            noticeDrops()
+            if let reason = pipeline.uncheckedReason, !saidUnchecked {
+                saidUnchecked = true
+                diagnose("macmonitor: \(reason)")
+            }
+            if pipeline.isFull { stop(timeout: nil) }
+        }
+    }
+    
+    /// Say that the saved mute set changed, terminal or not: the stream stops showing what it now mutes, and muted
+    /// events never show as lost.
+    ///
+    /// - Parameter change: A JSON encoded ``MuteSetChange``.
+    public func savedMutesChanged(_ change: Data) {
+        queue.async { [self] in
+            guard completion != nil else { return }
+            diagnose("macmonitor: \(Self.describe(MuteSetChange.decode(change)))")
+        }
+    }
+}
+
+
+// MARK: - Diagnostics
+extension StreamCommand {
+    /// The stream started: say so, and warn if the Security Extension is another version. Call on ``queue``.
+    ///
+    /// - Parameter reply: The stream request's answer.
+    private func started(_ reply: StreamReply) {
+        if let duration {
+            queue.asyncAfter(deadline: .now() + duration) { [weak self] in self?.stop(timeout: nil) }
+        }
+        if reply.sensorVersion != toolVersion {
+            diagnose("""
+                macmonitor: macmonitor is \(toolVersion) but the Security Extension is \(reply.sensorVersion). Open \
+                Mac Monitor to finish updating.
+                """)
+        }
+        guard isChatty, let stream = reply.stream else { return }
+        /// Say how to see what the saved set hides: a stream applies it unless asked not to.
+        let mutes = stream.savedMutes.map { "with \($0) saved mutes (--no-mutes shows everything)" }
+            ?? "without the saved mutes"
+        let events = String.counted(stream.events.count, "event")
+        diagnose("macmonitor: streaming \(events) \(mutes). \(ending)")
+    }
+    
+    /// How the stream ends, for the banner.
+    ///
+    /// - Returns: "Press Ctrl-C to stop.", or such as "Stops after 100 events or 5 minutes, or press Ctrl-C."
+    private var ending: String {
+        let limits = [pipeline.limit.map { String.counted($0, "event") }, duration.map(Self.describe)].compactMap { $0 }
+        guard !limits.isEmpty else { return "Press Ctrl-C to stop." }
+        return "Stops after \(limits.joined(separator: " or ")), or press Ctrl-C."
+    }
+    
+    /// A time in words.
+    ///
+    /// - Parameter seconds: The time. It's held between 0 and a year, so any value converts.
+    /// - Returns: Such as "30 seconds", "5 minutes" or "1 hour, 30 minutes".
+    static func describe(_ seconds: TimeInterval) -> String {
+        let held = seconds.isNaN ? 0 : min(max(seconds, 0), CommandLineParser.longestDuration)
+        return Duration.milliseconds(Int64((held * 1_000).rounded()))
+            .formatted(.units(allowed: [.hours, .minutes, .seconds, .milliseconds], width: .wide)
+                .locale(Locale(identifier: "en_US")))
+    }
+    
+    /// Write a notice for events lost since the last one, at most once every ``noticeInterval``. Call on ``queue``.
+    ///
+    /// - Parameter now: The uptime in nanoseconds.
+    private func noticeDrops(now: UInt64 = DispatchTime.now().uptimeNanoseconds) {
+        guard now &- lastNotice >= Self.noticeInterval else { return }
+        let reports = pipeline.meter.takeReport()
+        guard !reports.isEmpty else { return }
+        lastNotice = now
+        diagnose("macmonitor: \(Self.lost(reports))")
+    }
+    
+    /// Events lost, in a few words: "lost 120 events (open 100, close 20)".
+    ///
+    /// - Parameter reports: Drops by client.
+    /// - Returns: The words.
+    static func lost(_ reports: [CaptureDropReport]) -> String {
+        let total = reports.reduce(0) { $0 + $1.dropped }
+        let byType = reports.flatMap(\.droppedByType).reduce(into: [String: UInt64]()) { counts, entry in
+            counts[entry.key, default: 0] += entry.value
+        }
+        let types = byType.sorted { ($1.value, $0.key) < ($0.value, $1.key) }
+            .map { "\(CommandLineEvents.shortName($0.key)) \($0.value)" }
+        let detail = types.isEmpty ? "" : " (\(types.joined(separator: ", ")))"
+        return "lost \(String.counted(total, "event"))\(detail)"
+    }
+    
+    /// A change to the saved mute set, in a sentence.
+    ///
+    /// - Parameter change: The change, or `nil` if it didn't read.
+    /// - Returns: Such as "Mac Monitor (pid 501) changed the saved mute set: 1 added, 0 removed, 0 changed, 79 mutes
+    ///   now. This stream applies it; --no-mutes shows everything."
+    static func describe(_ change: MuteSetChange?) -> String {
+        let consequence = "This stream applies it; --no-mutes shows everything."
+        guard let change else { return "The saved mute set changed. \(consequence)" }
+        return """
+            \(TerminalSafeText.text(change.caller)) changed the saved mute set: \(change.added) added, \
+            \(change.removed) removed, \(change.changed) changed, \(String.counted(change.mutes, "mute")) now. \
+            \(consequence)
+            """
+    }
+    
+    /// What a stream lost, for its closing line.
+    ///
+    /// `macmonitor` sees most losses as gaps in `global_seq_num`. A loss at the very end of a stream leaves no gap,
+    /// since no later event follows it, so the Security Extension's own count is used when it's larger.
+    ///
+    /// - Parameters:
+    ///   - seen: The losses `macmonitor` saw as gaps.
+    ///   - summary: The Security Extension's summary.
+    /// - Returns: Every loss, and how many of them Endpoint Security dropped.
+    static func losses(seen: UInt64, summary: StreamSummary) -> (total: UInt64, byEndpointSecurity: UInt64) {
+        let byEndpointSecurity = UInt64(summary.droppedByEndpointSecurity)
+        let counted = byEndpointSecurity + UInt64(summary.droppedWhileBehind + summary.skippedWhilePaused)
+        let total = max(seen, counted)
+        return (total, min(total, byEndpointSecurity))
+    }
+    
+    /// End the stream once: write the summary when there is one and it's wanted, complete, and close the connection.
+    /// Call on ``queue``.
+    ///
+    /// - Parameter outcome: How the stream ended.
+    private func end(_ outcome: Outcome) {
+        guard let completion else { return }
+        self.completion = nil
+        if case .stopped(let summary?) = outcome, isChatty {
+            let lost = Self.losses(seen: pipeline.meter.dropped, summary: summary)
+            let filtered = pipeline.filtered > 0 ? " (\(pipeline.filtered) filtered out)" : ""
+            diagnose("""
+                macmonitor: wrote \(pipeline.written) events\(filtered), lost \(lost.total) \
+                (\(lost.byEndpointSecurity) by Endpoint Security, \(lost.total - lost.byEndpointSecurity) while \
+                macmonitor was behind).
+                """)
+        }
+        if pipeline.unchecked > 0 {
+            diagnose("macmonitor: --predicate couldn't be checked on \(String.counted(pipeline.unchecked, "event")).")
+        }
+        if pipeline.unreadable > 0 {
+            diagnose("macmonitor: \(pipeline.unreadable) events couldn't be read.")
+        }
+        completion(outcome)
+        /// The Security Extension closes the stream, if it hasn't already.
+        client.invalidate()
+    }
+}

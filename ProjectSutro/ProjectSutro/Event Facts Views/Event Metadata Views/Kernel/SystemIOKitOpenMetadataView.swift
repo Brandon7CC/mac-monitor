@@ -11,20 +11,23 @@ import SutroESFramework
 struct SystemIOKitOpenMetadataView: View {
     var esSystemEvent: ESMessage
     @State private var showAuditTokens: Bool = false
-    @State private var showTargetAuditTokens: Bool = false
     
     private var event: ESIOKitOpenEvent {
         esSystemEvent.event.iokit_open!
     }
     
-    private var eventType: String {
-        esSystemEvent.es_event_type!
-    }
-    
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.iokit_open != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            IOKitOpenEventLabelView(message: esSystemEvent)
+            SystemEventTypeLabel(message: esSystemEvent)
                 .font(.title2)
             
             GroupBox {
@@ -57,12 +60,15 @@ struct SystemIOKitOpenMetadataView: View {
                                     .frame(alignment: .leading)
                             }
                         }.frame(maxWidth: .infinity, alignment: .leading)
-                        
+                    }
+                    
+                    /// Whenever the record has one, also beside a NULL parent path.
+                    if let parentRegistryID = event.parentRegistryID {
                         HStack{
                             Text("\u{2022} **Parent registry ID:**")
                                 .padding([.leading], 5.0)
                             GroupBox {
-                                Text("\(String(event.parent_registry_id))")
+                                Text(String(parentRegistryID))
                                     .monospaced()
                                     .frame(alignment: .leading)
                             }

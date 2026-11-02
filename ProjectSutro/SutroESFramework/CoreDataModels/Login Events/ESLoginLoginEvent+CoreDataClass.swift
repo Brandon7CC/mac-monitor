@@ -10,9 +10,15 @@ import Foundation
 import CoreData
 
 @objc(ESLoginLoginEvent)
-public class ESLoginLoginEvent: NSManagedObject {
+public class ESLoginLoginEvent: NSManagedObject, Identifiable {
+    @NSManaged public var success: Bool
+    @NSManaged public var failure_message: String?
+    @NSManaged public var username: String?
+    @NSManaged public var uid: NSNumber?
+    @NSManaged public var uid_human: String?
+    @NSManaged public var has_uid: Bool
+
     enum CodingKeys: CodingKey {
-        case id
         case success
         case failure_message
         case username
@@ -22,18 +28,16 @@ public class ESLoginLoginEvent: NSManagedObject {
     }
     
     // MARK: - Custom Core Data initilizer for ESLoginLoginEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: LoginLoginEvent = message.event.login_login!
-        let description = NSEntityDescription.entity(forEntityName: "ESLoginLoginEvent", in: context)!
-        self.init(entity: description, insertInto: context)
+    convenience init(from event: LoginLoginEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.id = event.id
         self.success = event.succcess
         self.failure_message = event.failure_message
         self.username = event.username
         self.has_uid = event.has_uid
-        if event.has_uid {
-            self.uid = event.uid as NSNumber
+        /// Unset without a uid: an older Security Extension sends -1 in its place.
+        if event.has_uid, let uid = event.uid {
+            self.uid = NSNumber(value: uid)
         }
         self.uid_human = event.uid_human
     }
@@ -48,7 +52,8 @@ extension ESLoginLoginEvent: Encodable {
         try container.encode(failure_message, forKey: .failure_message)
         try container.encode(username, forKey: .username)
         try container.encode(has_uid, forKey: .has_uid)
-        try container.encodeIfPresent(uid?.int64Value, forKey: .uid)
+        /// eslogger writes `null` without a uid.
+        try container.encode(uid?.int64Value, forKey: .uid)
         try container.encodeIfPresent(uid_human, forKey: .uid_human)
     }
 }

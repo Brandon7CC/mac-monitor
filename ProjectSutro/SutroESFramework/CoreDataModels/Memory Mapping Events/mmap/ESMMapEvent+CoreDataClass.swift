@@ -10,9 +10,14 @@ import Foundation
 import CoreData
 
 @objc(ESMMapEvent)
-public class ESMMapEvent: NSManagedObject {
+public class ESMMapEvent: NSManagedObject, Identifiable {
+    @NSManaged public var protection: Int32
+    @NSManaged public var max_protection: Int32
+    @NSManaged public var flags: Int32
+    @NSManaged public var file_pos: Int64
+    @NSManaged public var source: ESFile
+
     enum CodingKeys: CodingKey {
-        case id
         case protection
         case max_protection
         case flags
@@ -21,20 +26,14 @@ public class ESMMapEvent: NSManagedObject {
     }
     
     // MARK: - Custom Core Data initilizer for ESMMapEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let mmapEvent: MMapEvent = message.event.mmap!
-        let description = NSEntityDescription.entity(forEntityName: "ESMMapEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = mmapEvent.id
+    convenience init(from event: MMapEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.protection = mmapEvent.protection
-        self.max_protection = mmapEvent.max_protection
-        self.flags = mmapEvent.flags
-        self.file_pos = Int64(mmapEvent.file_pos)
-        self.source = ESFile(
-            from: mmapEvent.source,
-            insertIntoManagedObjectContext: context
-        )
+        self.protection = event.protection
+        self.max_protection = event.max_protection
+        self.flags = event.flags
+        self.file_pos = event.file_pos
+        attach(ESFile.row(for: event.source, in: context), to: #keyPath(ESMMapEvent.source))
     }
 }
 
@@ -46,7 +45,7 @@ extension ESMMapEvent: Encodable {
         try container.encode(protection, forKey: .protection)
         try container.encode(max_protection, forKey: .max_protection)
         try container.encode(flags, forKey: .flags)
-        try container.encode(file_pos, forKey: .file_pos)
+        try container.encode(UInt64(bitPattern: file_pos), forKey: .file_pos)
         try container.encode(source, forKey: .source)
     }
 }

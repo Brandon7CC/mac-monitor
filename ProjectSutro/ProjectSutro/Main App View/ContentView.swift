@@ -11,34 +11,7 @@ import SystemExtensions
 import SutroESFramework
 import OSLog
 import AppKit
-
-
-/// Handles requesting app reboots and showing a TCC access alert.
-class AgentCloseController: ObservableObject {
-    @Published var showAlert = false
-    
-    /// Should the TCC alert be shown?
-    func toggleQuitAlert() {
-        showAlert.toggle()
-    }
-    
-    /// Request that the app be re-launched over XPC by the persistent Security Extension
-    func quitAgent(esm: EndpointSecurityManager) {
-        esm.tccRequestAppReboot()
-        NSApp.terminate(nil)
-    }
-}
-
-// Custom button style for alert
-struct AlertButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding()
-            .background(configuration.isPressed ? Color.red.opacity(0.8) : Color.red)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-    }
-}
+import UniformTypeIdentifiers
 
 
 // MARK: Primary App View
@@ -46,34 +19,23 @@ struct AlertButtonStyle: ButtonStyle {
 ///
 /// In this view  the user can interact with Mac Monitor's primary functionality,
 struct EventView: View {
-    /// Get the system apperance
-    @Environment(\.colorScheme) var colorMode
-    
-    /// Open a new "Event metadata" window
-    @Environment(\.openWindow) private var eventFactsWindow
-    
     /// Track everything going on with System Events and the Security Extension
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     
     /// Load user preferences from ``UserDefaults``
     @EnvironmentObject var userPrefs: UserPrefs
     
-    
-    
-    /// Query Core Data for our System Events
-    ///
-    /// Events  (``ESMessage``) are inserted one-by-one in the order dispatched by Endpoint Security.
-    /// Our fetch request gets events in decending order by the ``mach_time`` entity key
-    @Environment(\.managedObjectContext) var moc
-    @FetchRequest(sortDescriptors: [
-        NSSortDescriptor(key: "mach_time", ascending: false)
-    ]) var coreDataEvents: FetchedResults<ESMessage>
-    
-    
-    
+    /// A live recording, or an opened trace (File > Open Trace...).
+    @EnvironmentObject var traceSession: TraceSession
+    @Environment(\.openWindow) private var openWindow
+
+
+    /// Fetches, filters, and counts the System Events for the event tables, the mini-chart, and the toolbar.
+    @StateObject private var eventQueries = EventQueryModel()
+
+
     /// Is a system trace occuring?
     @Binding var recordingEvents: Bool
-    @State private var isBlinking: Bool = false
     
     /// Should the "System Security Unified" table be shown?
     @Binding var unifiedViewSelected: Bool
@@ -82,31 +44,24 @@ struct EventView: View {
     /// Should the SwiftUI mini-chart be shown
     @Binding var viewMiniChart: Bool
     
-    /// Are we filtering long processes which executed before Mac Monitor was started?
-    ///
-    // TODO: Implement long running process filtering
-    @Binding var filteringLongRunningProcs: Bool
-    
-    
-    
     /// The currently selected System Event (i.e. table row)
     @Binding var eventSelection: Set<ESMessage.ID>
     
-    /// The text to filter by in the context search field
+    /// The search field's text: a context to find.
     @Binding var filterText: String
+    /// The finding filter and the user's predicate the tables are filtered by, and the predicate editor's, shared with
+    /// the editor's own window.
+    @ObservedObject var search: EventSearchController
+
+
+    /// Did opening the predicate editor beside the tables hide the mini chart, to show it again once it's gone?
+    @State private var chartHiddenForEditor = false
+
+    /// Is the requirements checklist showing?
+    @State private var showsRequirements = false
+    /// Has the checklist shown on its own? Only once a launch: after that, the toolbar says what's missing.
+    @State private var requirementsShownOnce = false
     
-    /// The query the user wants to filter the ``context`` field by.
-    @State var submitedQuery: String = ""
-    
-    
-    
-    /// Implements our ability to request app re-launches over XPC by the Security Extension.
-    ///
-    /// This is done by ``AgentCloseController``.
-    @StateObject private var agentTerminate = AgentCloseController()
-    
-    
-    @State private var filterSelection = Set<String>()
     @State private var filteredTelemetryShown: Bool = false
     
     
@@ -120,142 +75,132 @@ struct EventView: View {
     
     /// Should we filter out *most* events initiated by a platform binary?
     @State private var filterPlatform: Bool = false
+
     
-    /// Should events be displayed in ascending order?
-    @State private var ascending: Bool = false
-    
-    /// This more *rare* alert will be displayed when the the user launches the app.
-    ///
-    /// Usually what we'll do is check on app-launch and disable the start button.
-    @State private var tccAlert: Bool = false
-    
-    
-    /// Returns the filtered collection of Endpoint Security events for display in the application UI.
-    ///
-    /// This computed property performs a multi-stage filtering operation on Core Data events,
-    /// applying both inclusion filters (process tree selection) and exclusion filters (event types,
-    /// user IDs, paths, etc.). The filtering is optimized for performance through pre-computation
-    /// of process lineage sets and lazy evaluation.
-    ///
-    /// 1. **Lineage Pre-computation**: If subtree filtering is enabled, computes the complete set
-    ///    of audit tokens in the selected process trees (O(m) where m is tree size)
-    /// 2. **Inclusion Filtering**: Events must match the selected process trees if specified
-    /// 3. **Exclusion Filtering**: Events matching blocked event types, paths, or users are removed
-    /// 4. **Text Filtering**: Events must contain the filter text in their context
-    ///
-    /// ## Performance
-    /// - Pre-computation: O(n + m) where n is total events, m is tree size
-    /// - Per-event filtering: O(1) for lineage checks (set lookup), O(k) for other filters
-    /// - Lazy evaluation: Only materializes filtered results when accessed
-    ///
-    /// ## Triggers
-    /// This property recomputes whenever any of its dependencies change:
-    /// - `coreDataEvents` (new events arrive)
-    /// - `allFilters` (user changes filter settings)
-    /// - `filterText` (user types in search)
-    /// - `filteringLongRunningProcs` (toggle changes)
-    ///
-    private var filteredCoreDataEvents: [ESMessage] {
-        let lineageResolver = ProcessLineageResolver(events: Array(coreDataEvents))
-        let lineageSubTreesIncludeAnsestors: Bool = true
-        
-        // Pre-compute lineage sets once
-        let initiatingLineageSet = allFilters.rootIncludedInitiatingProcessPath.flatMap { path in
-            allFilters.shouldIncludeProcessSubTrees ?
-                lineageResolver.computeLineageSet(includedPath: path, includeAncestors: lineageSubTreesIncludeAnsestors) : nil
-        }
-        
-        let targetLineageSet = allFilters.rootIncludedTargetProcessPath.flatMap { path in
-            allFilters.shouldIncludeProcessSubTrees ?
-                lineageResolver.computeLineageSet(includedPath: path, includeAncestors: lineageSubTreesIncludeAnsestors) : nil
-        }
-        
-        return coreDataEvents.lazy.filter { event in
-            return isEventFiltered(
-                event: event,
-                filteringLongRunningProcs: filteringLongRunningProcs,
-                filterText: filterText.lowercased(),
-                allFilters: allFilters,
-                systemExtensionManager: systemExtensionManager,
-                initiatingLineageSet: initiatingLineageSet,
-                targetLineageSet: targetLineageSet
-            )
-        }
+    /// Shows, right away, what the Security Extension refused or left out of a mute asked for from an event's menu.
+    private var showsEventMuteProblems: Binding<Bool> {
+        Binding(get: { !systemExtensionManager.eventMuteProblems.isEmpty },
+                set: { if !$0 { systemExtensionManager.eventMuteProblems = [] } })
     }
     
-    /// The string displaying the number of System Events collected over the course of the trace
+    
+    /// Everything that decides which events the event tables show.
+    private var filterSpec: EventFilterSpec {
+        EventFilterSpec(filters: allFilters, searchText: filterText, recordPredicate: search.recordPredicate)
+    }
+    
+    /// The number of System Events in the store.
+    private var totalEventCount: Int { eventQueries.totalCount }
+
+    /// The filters on, as the Filters button counts them. A finding filter counts once, Any indicator too. One that's
+    /// dropped doesn't count.
+    private var filterCount: Int {
+        allFilters.totalFilters + (filterPlatform ? 1 : 0) + (search.filteringFinding == nil ? 0 : 1)
+    }
+    
+    /// The string displaying the number of System Events collected over the course of the trace, grouped the way the
+    /// Mac's locale groups digits (6,373 in the US)
     private var eventCountString: AttributedString {
-        let hasActiveFilters = allFilters.totalFilters() + (filteringLongRunningProcs ? 1 : 0) > 0
-        
+        let searching = !filterSpec.searchText.isEmpty || filterSpec.recordPredicate != nil
+        let hasActiveFilters = allFilters.totalFilters > 0 || searching
+
         if !hasActiveFilters {
-            return try! AttributedString(markdown: "**Events** `\(coreDataEvents.count)`")
+            return try! AttributedString(markdown: "**Events** `\(totalEventCount.formatted())`")
         }
         
-        let totalCount = coreDataEvents.count
-        let filteredCount = filteredCoreDataEvents.count
+        let totalCount = totalEventCount
+        let filteredCount = eventQueries.filteredCount
         let percentage = totalCount > 0 ? Double(filteredCount) / Double(totalCount) * 100.0 : 0.0
         
         return try! AttributedString(
-            markdown: "**Events** `\(filteredCount)` (`\(String(format: "%.2f", percentage))%`)"
+            markdown: "**Events** `\(filteredCount.formatted())` (`\(String(format: "%.2f", percentage))%`)"
         )
     }
     
-    /// Request that events be cleared from the PSC and reset the UI
+    /// Clear the events, recording again afterwards if Mac Monitor was recording.
     public func clearSystemEventsUI() {
-        var sentinel: Bool = false
-        if recordingEvents {
-            recordingEvents = false
-            
-            sentinel = true
-        }
-        
-        systemExtensionManager.cleanup()
+        let wasRecording = recordingEvents
         systemExtensionManager.stopRecordingEvents()
         systemExtensionManager.coreDataContainer.clearSystemEvents()
-        
-        if sentinel {
-            recordingEvents = true
-            systemExtensionManager.startRecordingEvents()
-            sentinel = false
-        }
+        if wasRecording { systemExtensionManager.startRecordingEvents() }
+    }
+    
+    /// Open a trace (File > Open Trace...), replacing the events on screen.
+    ///
+    /// - Parameter url: The trace, from Finder's Open With, `open -a`, or a drop on the window.
+    private func openTrace(_ url: URL) {
+        traceSession.open(url, recording: $recordingEvents, esm: systemExtensionManager)
+    }
+    
+    /// The predicate editor, beside the tables while it's showing.
+    private var predicateEditor: some View {
+        PredicateEditorPane(search: search, model: eventQueries) { openWindow(id: ProjectSutroApp.schemaWindow) }
     }
     
     var body: some View {
-        VStack(alignment: .leading) {
-            // MARK: Core Data System Events (replaces legacy Swift Array of events)
-            SystemEventsTableView(
-                messagesInScope: filteredCoreDataEvents,
+        /// A pane beside the tables, not an inspector: on macOS 26 an inspector puts the toolbar's blurred edge over
+        /// the top of the window's content, the Unified table's title and headers.
+        HStack(spacing: 0) {
+            tables
+            if search.showsEditor && !search.isPoppedOut {
+                Divider()
+                predicateEditor.frame(width: 440)
+            }
+        }
+        .onAppear { search.attach(eventQueries) }
+        .onDisappear { search.detach(eventQueries) }
+        /// The editor beside the tables takes the mini chart's room, which comes back when the editor goes, unless
+        /// it was shown again meanwhile.
+        .onChange(of: search.showsEditor && !search.isPoppedOut) { beside in
+            if beside, viewMiniChart {
+                viewMiniChart = false
+                chartHiddenForEditor = true
+            } else if !beside, chartHiddenForEditor {
+                viewMiniChart = true
+                chartHiddenForEditor = false
+            }
+        }
+        .onChange(of: viewMiniChart) { shown in
+            if shown { chartHiddenForEditor = false }
+        }
+    }
+    
+    /// The event tables.
+    private var tables: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AppKitEventTablesView(
+                model: eventQueries,
+                allFilters: $allFilters,
+                messageSelections: $eventSelection,
                 unifiedViewSelected: $unifiedViewSelected,
                 viewExec: $processExecSelected,
                 viewMiniChart: $viewMiniChart,
-                ascending: $ascending,
-                allFilters: $allFilters,
-                messageSelections: $eventSelection
+                openFile: openTrace
             )
-            .environmentObject(systemExtensionManager)
-            .environmentObject(userPrefs)
+        }
+        .task(id: filterSpec) { eventQueries.activate(spec: filterSpec) }
+        /// The selected events are about to be deleted, so "Export telemetry" > "Selected events" mustn't offer them.
+        .onReceive(NotificationCenter.default.publisher(for: CoreDataController.eventsWillClear)) { _ in
+            eventSelection = []
         }
         .toolbar {
             ToolbarItemGroup(placement: .principal) {
                 if #unavailable(macOS 14) {
                     VenturaStartButton(recordingEvents: $recordingEvents, confirmClear: $confirmClear)
                         .environmentObject(systemExtensionManager)
-                        .environmentObject(agentTerminate)
                         .environmentObject(userPrefs)
+                        .environmentObject(traceSession)
                 } else {
                     SonomaStartButton(recordingEvents: $recordingEvents, confirmClear: $confirmClear)
                         .environmentObject(systemExtensionManager)
-                        .environmentObject(agentTerminate)
                         .environmentObject(userPrefs)
+                        .environmentObject(traceSession)
                 }
                 
                 // MARK: - Stop recording events
                 Button(action: {
                     recordingEvents = false
-                    Task {
-                        systemExtensionManager.cleanup()
-                        systemExtensionManager.stopRecordingEvents()
-                    }
+                    systemExtensionManager.stopRecordingEvents()
                 }) {
                     Text("Stop")
                         .bold()
@@ -267,7 +212,8 @@ struct EventView: View {
             // MARK: - Clear System Events
             ToolbarItem(placement: .principal) {
                 Button(action: {
-                    if userPrefs.lifecycleWarnBeforeClear {
+                    /// Closing a trace loses nothing: the file is still on disk.
+                    if userPrefs.lifecycleWarnBeforeClear && traceSession.isLive {
                         confirmClear.toggle()
                     } else {
                         clearSystemEventsUI()
@@ -277,7 +223,8 @@ struct EventView: View {
                         .labelStyle(.titleAndIcon)
                         .padding([.leading, .trailing], 5)
                 }
-                .disabled(coreDataEvents.isEmpty)
+                .disabled(totalEventCount == 0 && traceSession.isLive)
+                .help(traceSession.isLive ? "" : "Close the trace")
                 
                 
             }
@@ -286,18 +233,22 @@ struct EventView: View {
                 Button {
                     filteredTelemetryShown.toggle()
                 } label: {
-                    Text("Filters `\(allFilters.totalFilters() + (filteringLongRunningProcs ? 1 : 0) + (filterPlatform ? 1 : 0))`")
+                    Text("Filters `\(filterCount)`")
                         .padding([.leading, .trailing], 5)
                 }.sheet(isPresented: $filteredTelemetryShown, content: {
+                    /// Opening the predicate editor puts the sheet away.
                     FilterView(
                         allFilters: $allFilters,
                         filteredTelemetryShown: $filteredTelemetryShown,
-                        filterSelection: $filterSelection,
-                        filteringLongRunningProcs: $filteringLongRunningProcs,
                         eventMaskEnabled: $eventMaskEnabled,
-                        filterPlatform: $filterPlatform
-                    )
+                        filterPlatform: $filterPlatform,
+                        search: search
+                    ) {
+                        filteredTelemetryShown = false
+                        if search.isPoppedOut || !search.showsEditor { search.toggleEditor(openWindow) }
+                    }
                     .environmentObject(systemExtensionManager)
+                    .environmentObject(traceSession)
                 })
             }
             
@@ -314,67 +265,96 @@ struct EventView: View {
                 Text(eventCountString)
                     .padding([.trailing])
                 
-                Circle()
-                    .fill(recordingEvents ? Color.green : Color.red)
-                    .shadow(color: Color.green, radius: 0.5)
-                    .opacity(recordingEvents ? 0.85 : 0)
-                    .scaleEffect(recordingEvents ? 1.25 : 1)
-                    .animation(.linear(duration: 0.3), value: recordingEvents)
-                    .help(recordingEvents ? "Recording system events" : "Not recording system events")
-                    .padding(.trailing)
+                TraceStatusView(session: traceSession)
                 
-                Spacer()
-            }
-        }
-        .searchable(text: $filterText, prompt: "Filter by context")
-//        .onSubmit(of: .search) {
-//            submitedQuery = filterText
-//        }
-        .onAppear {
-            if !CommandLine.arguments.contains("--deactive-security-extension") {
-                systemExtensionManager.activateSystemExtension()
-                
-                switch(systemExtensionManager.connectionResult) {
-                case .notPermitted:
-                    os_log("💾 [ES new client result] TCC FDA required!")
-                    tccAlert = true
-                    break
-                case .internalSubsystem:
-                    os_log("😥 [ES new client result] internalSubsystem error!")
-                    break
-                case .invalidArgument:
-                    os_log("🤔 [ES new client result] invalidArgument error!")
-                    break
-                case .notEntitled:
-                    os_log("🔒 [ES new client result] ES entitlement not found!")
-                    break
-                case .tooManyClients:
-                    os_log("🍬 [ES new client result] tooManyClients error!")
-                    break
-                case .success:
-                    os_log("⚡️ [ES new client result] Success!")
-                    break
-                case .notPrivileged:
-                    os_log("😬 [ES new client result] notPrivileged!")
-                    break
-                case .waiting:
-                    os_log("🥱 [ES new client result] waiting...")
-                    break
-                default:
-                    os_log("🤔 [ES new client result] Unknown error!")
-                    break
+                if #available(macOS 26.0, *) {
+                    /// Only while recording: hidden, it's still a toolbar item, which macOS 26 and later give a glass
+                    /// capsule of its own (an empty one, beside a trace or Clear status).
+                    if recordingEvents {
+                        Circle()
+                            .fill(Color.green)
+                            .shadow(color: Color.green, radius: 0.5)
+                            .opacity(0.85)
+                            .scaleEffect(1.25)
+                            .help("Recording system events")
+                            .padding(.trailing)
+                    }
+                } else {
+                    /// Always there, so the centered principal and status items don't move when recording starts or
+                    /// stops.
+                    Circle()
+                        .fill(recordingEvents ? Color.green : Color.red)
+                        .shadow(color: Color.green, radius: 0.5)
+                        .opacity(recordingEvents ? 0.85 : 0)
+                        .scaleEffect(recordingEvents ? 1.25 : 1)
+                        .animation(.linear(duration: 0.3), value: recordingEvents)
+                        .help(recordingEvents ? "Recording system events" : "Not recording system events")
+                        .padding(.trailing)
                 }
             }
-            
-            // We're not recording events at app launch
-            recordingEvents = false
         }
-        .alert("The Security Extension does not have full disk access!", isPresented: $tccAlert) {
-            Button("Open System Settings") {
-                tccAlert = false
-                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
+        .toolbar {
+            /// Puts the search field and the predicate editor's button at the trailing edge. macOS 13 centers the
+            /// principal and status items together, a status group's own spacer with them, and lays what follows
+            /// right after them.
+            ToolbarItemGroup(placement: .primaryAction) { Spacer() }
+            /// The context search field, which narrows a finding filter's or predicate's matches.
+            ToolbarItem(placement: .primaryAction) {
+                EventSearchField(text: $filterText, narrowsPredicate: search.recordPredicate != nil)
+                    .frame(width: 300)
+            }
+            /// Its own glass, apart from the search field's.
+            if #available(macOS 26.0, *) {
+                ToolbarSpacer(.fixed, placement: .primaryAction)
+            }
+            /// The predicate editor's button, right of the search field.
+            ToolbarItem(placement: .primaryAction) {
+                Button { search.toggleEditor(openWindow) } label: {
+                    Label("Predicate Editor", systemImage: "sidebar.right")
+                }
+                .help(search.summary.map { "Predicate Editor (⌥⌘F): \($0)" } ?? "Predicate Editor (⌥⌘F)")
             }
         }
+        .navigationTitle(traceSession.title)
+        .navigationSubtitle(traceSession.subtitle)
+        .background { TraceDocument(url: traceSession.url) }
+        /// Finder's Open With and `open -a`: SwiftUI hands the first file to this window (see `AppDelegate` for the
+        /// rest).
+        .onOpenURL { url in
+            guard url.isFileURL else { return }
+            openTrace(url)
+        }
+        /// Drops outside the event tables (which take file drops themselves, see ``AppKitEventTable``).
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            traceSession.open(dropped: providers, recording: $recordingEvents, esm: systemExtensionManager)
+        }
+        /// Counted so a trace opened from the File menu with no main window open gets one. A save shows its sheet
+        /// here when it started in this window.
+        .traceSheets(traceSession)
+        /// Activates the Security Extension only if it's running: otherwise the checklist's Install button does, when
+        /// macOS's prompt to open System Settings follows from it.
+        .onAppear {
+            guard !ProjectSutroApp.deactivating else { return }
+            systemExtensionManager.checkExtensionAtLaunch()
+        }
+        /// Look again whenever Mac Monitor comes to the front, such as back from System Settings.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            guard !ProjectSutroApp.deactivating else { return }
+            systemExtensionManager.refreshRequirements()
+        }
+        /// Show the checklist on its own once, as soon as it's known that something is missing.
+        .onChange(of: systemExtensionManager.requirements) { requirements in
+            guard !ProjectSutroApp.deactivating, !requirementsShownOnce, requirements.isSettled,
+                  !requirements.isReady else { return }
+            requirementsShownOnce = true
+            showsRequirements = true
+        }
+        .sheet(isPresented: $showsRequirements) {
+            RequirementsView()
+        }
+        .alert("Saved mute set", isPresented: showsEventMuteProblems,
+               actions: { Button("OK", role: .cancel, action: {}) },
+               message: { Text(systemExtensionManager.eventMuteProblems.joined(separator: "\n\n")) })
     }
 }
 

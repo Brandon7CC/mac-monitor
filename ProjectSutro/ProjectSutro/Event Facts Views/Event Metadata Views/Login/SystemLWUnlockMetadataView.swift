@@ -16,10 +16,18 @@ struct SystemLWUnlockMetadataView: View {
         esSystemEvent.event.lw_session_unlock!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.lw_session_unlock != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            LoginWindowUnlockEventLabelView(message: esSystemEvent)
+            SystemEventTypeLabel(message: esSystemEvent)
                 .font(.title2)
             
             GroupBox {
@@ -35,7 +43,7 @@ struct SystemLWUnlockMetadataView: View {
                     HStack {
                         Text("\u{2022} **Graphical session ID:**")
                         GroupBox {
-                            Text("`\(event.graphical_session_id)`")
+                            Text("`\(UInt32(bitPattern: event.graphical_session_id))`")
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     

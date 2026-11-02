@@ -10,17 +10,16 @@ import Foundation
 import CoreData
 
 @objc(ESThread)
-public class ESThread: NSManagedObject {
+public class ESThread: NSManagedObject, Identifiable {
+    @NSManaged public var thread_id: Int64
+
     enum CodingKeys: String, CodingKey {
-        case id
         case thread_id
     }
 
     convenience init(from thread: SutroESFramework.Thread, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let description = NSEntityDescription.entity(forEntityName: "ESThread", in: context)!
-        self.init(entity: description, insertInto: context)
+        self.init(insertingInto: context)
         
-        self.id = thread.id
         self.thread_id = Int64(thread.thread_id)
     }
 }

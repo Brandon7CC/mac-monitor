@@ -18,7 +18,7 @@ import Foundation
  * @field granted               Indicates if the right was granted or not
  */
 public struct ESAuthorizationResult: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+    public var id: UUID = UUID.buffered()
     
     /*
      * The class of rules used to evaluate the petition for a specific authorization right
@@ -28,51 +28,37 @@ public struct ESAuthorizationResult: Identifiable, Codable, Hashable {
     public var right_name: String
     public var granted: Bool
     
-    public var ruleClassShortName: String {
-        return rule_class_string.replacingOccurrences(of: "ES_AUTHORIZATION_RULE_CLASS_", with: "")
-    }
+    public var ruleClassShortName: String { rule_class_string.droppingPrefix("ES_AUTHORIZATION_RULE_CLASS_") }
     
     public var description: String {
         return "Right name: \(self.ruleClassShortName), Rule class: \(rule_class), Granted: \(granted)"
     }
 
+    /// `es_authorization_rule_class_t`: how the right is judged (on user properties, by a tree of sub-rules or by
+    /// one or more plugins), or whether it's always granted or denied.
+    private static let ruleClassNames = ConstantNames([
+        ES_AUTHORIZATION_RULE_CLASS_USER.rawValue: "ES_AUTHORIZATION_RULE_CLASS_USER",
+        ES_AUTHORIZATION_RULE_CLASS_RULE.rawValue: "ES_AUTHORIZATION_RULE_CLASS_RULE",
+        ES_AUTHORIZATION_RULE_CLASS_MECHANISM.rawValue: "ES_AUTHORIZATION_RULE_CLASS_MECHANISM",
+        ES_AUTHORIZATION_RULE_CLASS_ALLOW.rawValue: "ES_AUTHORIZATION_RULE_CLASS_ALLOW",
+        ES_AUTHORIZATION_RULE_CLASS_DENY.rawValue: "ES_AUTHORIZATION_RULE_CLASS_DENY",
+        ES_AUTHORIZATION_RULE_CLASS_UNKNOWN.rawValue: "ES_AUTHORIZATION_RULE_CLASS_UNKNOWN",
+        ES_AUTHORIZATION_RULE_CLASS_INVALID.rawValue: "ES_AUTHORIZATION_RULE_CLASS_INVALID",
+    ])
+    
     init(from esResult: es_authorization_result_t) {
-        right_name = String(cString: esResult.right_name.data)
+        right_name = esResult.right_name.string ?? ""
         granted = esResult.granted
         rule_class = Int32(esResult.rule_class.rawValue)
         
-        switch esResult.rule_class {
-        case ES_AUTHORIZATION_RULE_CLASS_USER:
-            /// Right is judged on user properties
-            rule_class_string = "ES_AUTHORIZATION_RULE_CLASS_USER"
-        case ES_AUTHORIZATION_RULE_CLASS_RULE:
-            /// Right is judged by a tree of sub-rules
-            rule_class_string = "ES_AUTHORIZATION_RULE_CLASS_RULE"
-        case ES_AUTHORIZATION_RULE_CLASS_MECHANISM:
-            /// Right is judged by one or more plugins
-            rule_class_string = "ES_AUTHORIZATION_RULE_CLASS_MECHANISM"
-        case ES_AUTHORIZATION_RULE_CLASS_ALLOW:
-            /// Right is always granted
-            rule_class_string = "ES_AUTHORIZATION_RULE_CLASS_ALLOW"
-        case ES_AUTHORIZATION_RULE_CLASS_DENY:
-            /// Right is always denied
-            rule_class_string = "ES_AUTHORIZATION_RULE_CLASS_DENY"
-        case ES_AUTHORIZATION_RULE_CLASS_UNKNOWN:
-            /// Right is unknown
-            rule_class_string = "ES_AUTHORIZATION_RULE_CLASS_UNKNOWN"
-        case ES_AUTHORIZATION_RULE_CLASS_INVALID:
-            /// Right is invalid
-            rule_class_string = "ES_AUTHORIZATION_RULE_CLASS_INVALID"
-        default:
-            rule_class_string = "UNKNOWN"
-        }
+        rule_class_string = Self.ruleClassNames.name(of: Int(rule_class))
     }
 }
 
 
 
-public struct AuthorizationJudgementEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+public struct AuthorizationJudgementEvent: Codable, IdentityHashable {
+    public var id: UUID = UUID.buffered()
     
     public var instigator, petitioner: Process?
     
@@ -84,14 +70,6 @@ public struct AuthorizationJudgementEvent: Identifiable, Codable, Hashable {
     // Available in msg versions >= 8.
     public var instigator_token, petitioner_token: AuditToken?
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: AuthorizationJudgementEvent, rhs: AuthorizationJudgementEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let event: es_event_authorization_judgement_t = rawMessage.pointee.event.authorization_judgement.pointee
         let version: Int = Int(rawMessage.pointee.version)
@@ -99,21 +77,12 @@ public struct AuthorizationJudgementEvent: Identifiable, Codable, Hashable {
         return_code = Int32(event.return_code)
         result_count = Int32(event.result_count)
         
-        if let instigator = event.instigator {
-            self.instigator = Process(from: instigator.pointee, version: version)
-            
-            if version >= 8 {
-                self.instigator_token = AuditToken(from: event.instigator_token)
-            }
-        }
+        self.instigator = event.instigator.map { Process(from: $0.pointee, version: version) }
+        self.petitioner = event.petitioner.map { Process(from: $0.pointee, version: version) }
         
-        if let petitioner = event.petitioner {
-            self.petitioner = Process(from: petitioner.pointee, version: version)
-            
-            if version >= 8 {
-                self.petitioner_token = AuditToken(from: event.petitioner_token)
-            }
-        }
+        /// Read whether or not Endpoint Security gave the processes, which are `_Nullable`.
+        instigator_token = version >= 8 ? AuditToken(from: event.instigator_token) : nil
+        petitioner_token = version >= 8 ? AuditToken(from: event.petitioner_token) : nil
         
         if let rawResults = event.results {
             let esResults = (0..<event.result_count).map { index in

@@ -26,80 +26,49 @@
 import Foundation
 
 
-public struct OpenDirectoryGroupRemoveEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
-    public var instigator_process_name, instigator_process_path, instigator_process_audit_token, instigator_process_signing_id: String?
+/// Models an `ES_EVENT_TYPE_NOTIFY_OD_GROUP_REMOVE`: a member was removed from an Open Directory group.
+public struct OpenDirectoryGroupRemoveEvent: Codable, IdentityHashable, OpenDirectoryGroupMemberEvent {
+    public var id: UUID = UUID.buffered()
+    /// The process that instigated the operation (the XPC caller), or `nil` when Endpoint Security leaves it out.
+    public var instigator: Process?
+    /// The instigator's audit token: message version 8 and later.
+    public var instigator_token: AuditToken?
+    /// Error codes defined in: `odconstants.h`. An error code of 0 indicates success.
+    public var error_code: Int = 0
     public var group_name: String?
-    public var member: String?
+    /// The member removed, as eslogger writes it.
+    public var member: OpenDirectoryMember?
     public var node_name: String?
     public var db_path: String?
-    /// Error codes defined in: `odconstants.h`. An error code of 0 indicates success.
-    public var error_code: Int
-    /// Decoded OD error code from `odconstants.h`.
-    public var error_code_human: String?
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
+    /// Mac Monitor enrichment: the error's description, the name of the member's type (written in place of `member`
+    /// before 3.0.0), and the instigator's name, path, audit token and signing ID.
+    public var error_code_human, member_string: String?
+    public var instigator_process_name, instigator_process_path: String?
+    public var instigator_process_audit_token, instigator_process_signing_id: String?
     
-    public static func == (lhs: OpenDirectoryGroupRemoveEvent, rhs: OpenDirectoryGroupRemoveEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
+    /// Record the event of a message from Endpoint Security.
+    ///
+    /// - Parameter rawMessage: The message.
     init(from rawMessage: UnsafePointer<es_message_t>) {
-        let odGroupRemoveEvent: es_event_od_group_remove_t = rawMessage.pointee.event.od_group_remove.pointee
-        let instigatorProcess: es_process_t = odGroupRemoveEvent.instigator!.pointee
-        
-        self.instigator_process_name = ""
-        if instigatorProcess.executable.pointee.path.length > 0 {
-            self.instigator_process_name = URL(filePath: String(cString: instigatorProcess.executable.pointee.path.data)).lastPathComponent
-        }
-        
-        self.instigator_process_path = ""
-        if instigatorProcess.executable.pointee.path.length > 0 {
-            self.instigator_process_path = String(cString: instigatorProcess.executable.pointee.path.data)
-        }
-        
-        self.instigator_process_signing_id = ""
-        if instigatorProcess.signing_id.length > 0 {
-            self.instigator_process_signing_id = String(cString: instigatorProcess.signing_id.data)
-        }
-        
-        self.instigator_process_audit_token = ""
-        self.instigator_process_audit_token = instigatorProcess.audit_token
-            .toString()
-        
-        self.error_code = Int(odGroupRemoveEvent.error_code)
-        self.error_code_human = decodeODErrorCode(self.error_code)
+        read(from: rawMessage.pointee.event.od_group_remove, version: Int(rawMessage.pointee.version))
+    }
     
-        self.group_name = ""
-        if odGroupRemoveEvent.group_name.length > 0 {
-            self.group_name = String(cString: odGroupRemoveEvent.group_name.data)
-        }
-        
-        self.member = ""
-        switch odGroupRemoveEvent.member.pointee.member_type {
-        case ES_OD_MEMBER_TYPE_USER_NAME:
-            self.member = "ES_OD_MEMBER_TYPE_USER_NAME"
-            break
-        case ES_OD_MEMBER_TYPE_USER_UUID:
-            self.member = "ES_OD_MEMBER_TYPE_USER_UUID"
-            break
-        case ES_OD_MEMBER_TYPE_GROUP_UUID:
-            self.member = "ES_OD_MEMBER_TYPE_GROUP_UUID"
-            break
-        default:
-            self.member = "UNKNOWN"
-        }
-        
-        self.node_name = ""
-        if odGroupRemoveEvent.node_name.length > 0 {
-            self.node_name = String(cString: odGroupRemoveEvent.node_name.data)
-        }
-        
-        self.db_path = ""
-        if odGroupRemoveEvent.db_path.length > 0 {
-            self.db_path = String(cString: odGroupRemoveEvent.db_path.data)
-        }
+    /// Read the event from eslogger's JSON, an export, or the Security Extension, including those before
+    /// 3.0.0, which wrote the name of the member's type as `member`.
+    ///
+    /// - Parameter decoder: The event's decoder.
+    /// - Throws: The error decoding a field.
+    public init(from decoder: Decoder) throws {
+        try decodeGroupMember(from: decoder)
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension OpenDirectoryGroupRemoveEvent: ESEnrichable {
+    /// Derive the error code's description, the name of the member's type, and the instigator's fields.
+    public mutating func enrich() {
+        enrichGroupMember()
     }
 }

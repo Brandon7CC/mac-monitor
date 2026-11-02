@@ -9,22 +9,6 @@ import SwiftUI
 import SutroESFramework
 
 
-struct EntitlementLabelView: View {
-    var keyString: String
-    
-    var body: some View {
-        Group {
-            HStack {
-                Text("**`\(keyString)`**")
-            }.padding(5.0)
-        }.background(
-            RoundedRectangle(cornerSize: .init(width: 5.0, height: 5.0)).fill(.red).opacity(0.4)
-        )
-    }
-}
-
-
-
 // MARK: - Exec event metadata
 struct SystemTargetExecProcMetadataView: View {
     var selectedMessage: ESMessage
@@ -33,17 +17,10 @@ struct SystemTargetExecProcMetadataView: View {
     @State private var showEnvVars: Bool = false
     @State private var showXPCServiceName: Bool = false
     @State private var showFDs: Bool = false
+    @State private var showCodeSigningFlags: Bool = false
     
     private var event: ESProcessExecEvent {
         selectedMessage.event.exec!
-    }
-    
-    private var initiatingProc: ESProcess {
-        selectedMessage.process
-    }
-    
-    private var targetProcess: ESProcess {
-        event.target
     }
     
     private var procPath: String {
@@ -51,9 +28,7 @@ struct SystemTargetExecProcMetadataView: View {
     }
     
     private var procName: String {
-        return URL(
-            string: event.target.executable?.path ?? ""
-        )?.lastPathComponent ?? ""
+        (event.target.executable?.path ?? "").lastPathComponent
     }
     
     private var start_time: String {
@@ -71,15 +46,30 @@ struct SystemTargetExecProcMetadataView: View {
         return event.target.codesigning_type
     }
     
-    private var hasXPCServiceName: Bool {
-        event.env.contains("XPC_SERVICE_NAME") && !event.env.contains("XPC_SERVICE_NAME=0")
+    /// The flags set in the target's code signing flags, in bit order.
+    private var codeSigningFlags: [CodeSigningFlag] {
+        ProcessHelpers.codeSigningFlags(event.target.codesigning_flags)
+    }
+
+    /// The XPC service the process was started as. Matching whole entries for `XPC_SERVICE_NAME` never found one, so
+    /// the XPC sheet never showed.
+    private var xpcServiceName: String? {
+        event.xpcServiceName
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if selectedMessage.event.exec != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         
         VStack(alignment: .leading) {
             // MARK: Event label
-            ExecEventLabelView(message: selectedMessage)
+            SystemEventTypeLabel(message: selectedMessage)
                 .font(.title2)
             
             GroupBox {
@@ -108,9 +98,8 @@ struct SystemTargetExecProcMetadataView: View {
                                 .padding([.leading], 5.0)
                             TargetUserView(selectedMessage: selectedMessage)
                         }
-                        
-                        
-                        
+
+
                     }
                 }
             }
@@ -168,6 +157,18 @@ struct SystemTargetExecProcMetadataView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     
+                    // MARK: Executable age
+                    if let age = event.executableAgeText {
+                        HStack {
+                            Text("\u{2022} **Executable age:**")
+                            GroupBox {
+                                Label("\(age) old at exec",
+                                      systemImage: event.isNewExecutable ? "clock.badge.exclamationmark" : "clock")
+                                    .foregroundStyle(event.isNewExecutable ? .orange : .primary)
+                            }
+                        }
+                    }
+                    
                     // MARK: Script
                     if let script = event.resolved_script_path {
                         Text("\u{2022} **Script:**")
@@ -197,28 +198,7 @@ struct SystemTargetExecProcMetadataView: View {
                             }
                         }
                     }
-                    
-                    
-                    // MARK: Entitlements
-                    if event.target.allow_jit || event.target.get_task_allow || event.target.rootless {
-                        Divider().padding(.top)
-                        ScrollView(.horizontal) {
-                            HStack {
-                                if event.target.allow_jit {
-                                    EntitlementLabelView(keyString: "com.apple.security.cs.allow-jit")
-                                }
-                                if event.target.get_task_allow {
-                                    EntitlementLabelView(keyString: "com.apple.security.get-task-allow")
-                                }
-                                if event.target.rootless {
-                                    EntitlementLabelView(keyString: "com.apple.rootless.restricted-nvram-variables.heritable")
-                                }
-                            }
-                        }
-                    }
-                    
-                    
-                    
+
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -241,13 +221,25 @@ struct SystemTargetExecProcMetadataView: View {
                             }
                         }
                         
+                        // MARK: Code signing flags
+                        /// The value and how many are set: the Code signing flags section lists them.
+                        HStack {
+                            Text("\u{2022} **Code signing flags:**")
+                            GroupBox {
+                                Text(String(format: "0x%08X",
+                                            UInt32(truncatingIfNeeded: event.target.codesigning_flags)))
+                                    .monospaced()
+                            }
+                            Text("\(codeSigningFlags.count) set").foregroundStyle(.secondary)
+                        }
+                        
                         // MARK: Signing ID
                         HStack {
-                            if event.target.signing_id != nil && event.target.signing_id! != "Unknown" {
+                            if let signingID = event.target.signing_id.nonEmpty, signingID != "Unknown" {
                                 Text("\u{2022} **Process signing ID:**")
                                 GroupBox {
                                     VStack(alignment: .leading) {
-                                        Text("`\(event.target.signing_id!)`")
+                                        Text("`\(signingID)`")
                                     }
                                 }
                             } else {
@@ -260,19 +252,19 @@ struct SystemTargetExecProcMetadataView: View {
                         }
                         
                         // MARK: Team ID
-                        if event.target.team_id != nil {
+                        if let teamID = event.target.team_id.nonEmpty {
                             HStack {
                                 Text("\u{2022} **Team ID:**")
                                 GroupBox {
                                     VStack(alignment: .leading) {
-                                        Text("`\(event.target.team_id!)`")
+                                        Text("`\(teamID)`")
                                     }
                                 }
                             }
                         }
                         
                         // MARK: CD Hash
-                        if event.target.signing_id != nil && !event.target.signing_id!.isEmpty {
+                        if event.target.signing_id.nonEmpty != nil {
                             HStack {
                                 Text("\u{2022} **`SHA256` Code directory hash:**")
                                 GroupBox {
@@ -305,6 +297,39 @@ struct SystemTargetExecProcMetadataView: View {
             }
         }
         
+        // MARK: Code signing flags
+        if !codeSigningFlags.isEmpty {
+            GroupBox {
+                VStack(alignment: .leading) {
+                    HStack {
+                        Label("**Code signing flags**", systemImage: "flag")
+                            .font(.title3)
+                        Button("\(showCodeSigningFlags ? "Hide" : "Show") code signing flags") {
+                            showCodeSigningFlags.toggle()
+                        }
+                    }
+
+                    if showCodeSigningFlags {
+                        GroupBox {
+                            Table(codeSigningFlags) {
+                                TableColumn("Flag") { flag in
+                                    Text(flag.name).monospaced().textSelection(.enabled)
+                                }
+                                .width(min: 180, ideal: 230)
+                                TableColumn("Bit") { flag in
+                                    Text(String(format: "0x%08X", flag.bit)).monospaced()
+                                }
+                                .width(min: 90, ideal: 100, max: 120)
+                                TableColumn("Meaning", value: \.summary)
+                            }
+                            /// Every flag without scrolling: a process has a dozen at most.
+                            .frame(height: CGFloat(codeSigningFlags.count) * 26 + 34)
+                        }
+                    }
+                }.frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+        }
+
         // MARK: File Descriptors
         if !event.fds.isEmpty {
             GroupBox {
@@ -355,7 +380,7 @@ struct SystemTargetExecProcMetadataView: View {
                         showAuditTokens.toggle()
                     }
                     
-                    if hasXPCServiceName {
+                    if xpcServiceName != nil {
                         Button("**XPC**") {
                             showXPCServiceName.toggle()
                         }
@@ -397,7 +422,7 @@ struct SystemTargetExecProcMetadataView: View {
             }.padding(.bottom)
         }.sheet(isPresented: $showXPCServiceName) {
             VStack(alignment: .leading) {
-                XPCMetadataView(execEvent: event, envVars: event.env)
+                XPCMetadataView(serviceName: xpcServiceName ?? "")
                 
             }.frame(maxWidth: 1000.0, maxHeight: .infinity).padding(.all)
             

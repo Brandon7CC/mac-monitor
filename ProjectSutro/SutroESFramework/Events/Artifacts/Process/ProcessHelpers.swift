@@ -7,8 +7,6 @@
 
 import Foundation
 import OSLog
-import Compression
-import CryptoKit
 
 
 public class ProcessHelpers {
@@ -20,28 +18,31 @@ public class ProcessHelpers {
         "perl",
         "python",
         "node",
+        "bun",
         "swift"
     ]
     
-    
-    // MARK: - Parsing the command line of exec events
-    static func parseCommandLine(execEvent: inout es_event_exec_t) -> String {
-        var command_line_builder: String = ""
-        for i in 0 ..< Int(es_exec_arg_count(&execEvent)) {
-            command_line_builder = "\(command_line_builder) \(String(cString: es_exec_arg(&execEvent, UInt32(i)).data))"
+    /// Is `executableName` a supported scripting interpreter: one of ``supportedInterpreters``, alone or followed by a
+    /// version (`python3`, `python3.12`, `ruby3.3`)? Names that only start with one (`bundle`, `bunzip2`,
+    /// `swift-frontend`) aren't.
+    ///
+    /// - Parameter executableName: The executable's file name.
+    /// - Returns: Whether to look for the script among the exec's arguments.
+    static func isScriptingInterpreter(_ executableName: String) -> Bool {
+        supportedInterpreters.contains { interpreter in
+            guard executableName.hasPrefix(interpreter) else { return false }
+            return executableName.dropFirst(interpreter.count).allSatisfy { $0.isNumber || $0 == "." }
         }
-        return command_line_builder.trimmingCharacters(in: .whitespaces)
     }
     
+    
+    // MARK: - Parsing the arguments of exec events
+    /// An exec's arguments, in order.
+    ///
+    /// - Parameter execEvent: The exec event.
+    /// - Returns: Each argument, or "" for one that isn't UTF-8.
     static func parseExecArgs(execEvent: inout es_event_exec_t) -> [String] {
-        var args: [String] = []
-        for i in 0 ..< Int(es_exec_arg_count(&execEvent)) {
-            let arg: String = String(cString: es_exec_arg(&execEvent, UInt32(i)).data).trimmingCharacters(
-                in: .whitespaces
-            )
-            args.append(arg)
-        }
-        return args
+        (0..<es_exec_arg_count(&execEvent)).map { es_exec_arg(&execEvent, $0).string ?? "" }
     }
     
     static func parseScriptFromArgs(args: [String], workingDirectory: String) -> String? {
@@ -49,13 +50,7 @@ public class ProcessHelpers {
         
         for arg in args.dropFirst() {
             guard !arg.hasPrefix("-") else { continue }
-            let pathToCheck: String
-            if arg.hasPrefix("/") {
-                pathToCheck = arg
-            } else {
-                pathToCheck = (workingDirectory as NSString).appendingPathComponent(arg)
-            }
-            
+            let pathToCheck = arg.hasPrefix("/") ? arg : workingDirectory.appendingPathComponent(arg)
             if fileIsNonBinary(at: pathToCheck) {
                 return pathToCheck
             }
@@ -64,45 +59,34 @@ public class ProcessHelpers {
         return nil
     }
     
-    // MARK: - Parsing the evnvironment variables of exec events
-    public static func parseExecEnvVars(event: inout es_event_exec_t) -> String {
-        let numberOfVars: Int = Int(es_exec_env_count(&event))
-        var envVars: [String] = []
-        
-        for index in 0..<numberOfVars {
-            let envVarVar: String = String(cString: es_exec_env(&event, UInt32(index)).data)
-            envVars.append(envVarVar)
-        }
-        return envVars.joined(separator: "[::]")
-    }
-    
+    // MARK: - Parsing the environment variables of exec events
+    /// An exec's environment variables, in order.
+    ///
+    /// - Parameter event: The exec event.
+    /// - Returns: Each `NAME=value`, or "" for one that isn't UTF-8.
     public static func parseExecEnv(event: inout es_event_exec_t) -> [String] {
-        let count: Int = Int(es_exec_env_count(&event))
-        var env: [String] = []
-        
-        for index in 0..<count {
-            let envVarVar: String = String(cString: es_exec_env(&event, UInt32(index)).data)
-            env.append(envVarVar)
-        }
-        return env
+        (0..<es_exec_env_count(&event)).map { es_exec_env(&event, $0).string ?? "" }
     }
     
     // MARK: - Parsing the open file descriptors of exec events
+    /// The file descriptors an exec's image starts with, in order.
+    ///
+    /// - Parameter event: The exec event.
+    /// - Returns: Each file descriptor.
     public static func getFds(event: inout es_event_exec_t) -> [FileDescriptor] {
-        let count = Int(es_exec_fd_count(&event))
-        var fds: [FileDescriptor] = []
-        
-        for index in 0..<count {
-            let fd: es_fd_t = es_exec_fd(&event, UInt32(index)).pointee
-            fds.append(FileDescriptor(from: fd))
-        }
-        
-        return fds
+        (0..<es_exec_fd_count(&event)).map { FileDescriptor(from: es_exec_fd(&event, $0).pointee) }
     }
     
     // MARK: - Address to hex
-    public static func toHex(target: String) -> String {
-        return String(format: "0x%llx", target)
+    /// An address in lowercase hex, for example `0x104b9c000`.
+    ///
+    /// It used to take the address's decimal digits as a `String`, which `%llx` can't format: it printed the string's
+    /// pointer instead, a different wrong value on every run.
+    ///
+    /// - Parameter address: The address.
+    /// - Returns: `0x` and the address's hex digits.
+    public static func toHex(_ address: UInt64) -> String {
+        return String(format: "0x%llx", address)
     }
     
     // MARK: - Normalized size
@@ -112,332 +96,110 @@ public class ProcessHelpers {
     }
     
     // MARK: - Event to JSON
-    public static func eventToJSON(value: Encodable) -> String {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.withoutEscapingSlashes, .sortedKeys]
-        
-        do {
-            let encodedData = try encoder.encode(value)
-            return String(data: encodedData, encoding: .utf8) ?? ""
-        } catch {
-            return "{}"
-        }
+    /// A value as JSON with sorted keys and unescaped slashes, as exports, the JSON tab and Copy JSON write events.
+    ///
+    /// - Parameters:
+    ///   - value: The value, such as an `ESMessage`.
+    ///   - pretty: Pretty-print it, rather than write it on one line.
+    /// - Returns: The JSON, or `{}` if the value can't be encoded.
+    public static func eventToJSON(value: Encodable, pretty: Bool = false) -> String {
+        guard let encodedData = try? eventJSON(value, pretty: pretty) else { return "{}" }
+        return String(data: encodedData, encoding: .utf8) ?? ""
     }
     
-    public static func eventToPrettyJSON(value: Encodable) -> String {
+    /// The same JSON as ``eventToJSON(value:pretty:)``, as bytes, or the encoder's error.
+    ///
+    /// - Parameters:
+    ///   - value: The value, such as an `ESMessage`.
+    ///   - pretty: Pretty-print it, rather than write it on one line.
+    /// - Returns: The JSON.
+    /// - Throws: Why the value can't be encoded.
+    static func eventJSON(_ value: Encodable, pretty: Bool) throws -> Data {
         let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        
-        do {
-            let encodedData = try encoder.encode(value)
-            return String(data: encodedData, encoding: .utf8) ?? ""
-        } catch {
-            return "{}"
-        }
+        encoder.outputFormatting = pretty ? [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+            : [.withoutEscapingSlashes, .sortedKeys]
+        return try encoder.encode(value)
     }
     
     // MARK: - Add to when supporting new ES events (if it has a process struct)
+    /// The name of the process an event is about: a fork's child, an exec's target, or else the event's process.
+    ///
+    /// - Parameter message: The event.
+    /// - Returns: The executable's name, "" for a fork child without one, or `EVENTS_CLEARED` when the event's process
+    ///   has none either.
     public static func getTargetProcessName(message: ESMessage) -> String {
-        let event = message.event
-        if let exec = event.exec,
-           let exe = exec.target.executable {
-            return exe.name
-        } else if let fork = event.fork {
-            return fork.child.executable?.name ?? ""
-        } else if let _ = event.exit,
-                  let exe = message.process.executable {
-            return exe.name
-        }
-        
-        if let exe = message.process.executable {
-            return exe.name
-        }
-        
-        return "EVENTS_CLEARED"
+        if let fork = message.event.fork { return fork.child.executable?.name ?? "" }
+        return message.event.exec?.target.executable?.name ?? message.process.executable?.name ?? "EVENTS_CLEARED"
     }
-    
-    // Compress JSON representation with the Apple recommended compression algo LZFSE
-    // https://developer.apple.com/documentation/compression/algorithm/lzfse
-    public static func getCompressedJSON(from rcEvent: Message) -> Data {
-        let json_representation: String = ProcessHelpers.eventToJSON(value: rcEvent)
-        var sourceBuffer = Array(json_representation.utf8)
-        let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: json_representation.count)
-        let algorithm = COMPRESSION_LZFSE
-        let compressedSize = compression_encode_buffer(destinationBuffer, json_representation.count,
-                                                       &sourceBuffer, json_representation.count,
-                                                       nil,
-                                                       algorithm)
-        if compressedSize == 0 {
-            os_log("Encoding failed.")
-        }
-        
-        return NSData(bytesNoCopy: destinationBuffer, length: compressedSize) as Data
-    }
-    
-    //    public static func decompressJSON(from rcEvent: RCEvent) -> String {
-    //        let json_representation: String = RCProcessHelpers.eventToJSON(value: rcEvent)
-    //        var sourceBuffer = Array(json_representation.utf8)
-    //        let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: json_representation.count)
-    //        let algorithm = COMPRESSION_LZFSE
-    //        let decodedSize = compression_decode_buffer(destinationBuffer,
-    //                                                    inputDataSize,
-    //                                                    &sourceBuffer,
-    //                                                    compressedSize,
-    //                                                    nil,
-    //                                                    algorithm)
-    //        if compressedSize == 0 {
-    //            os_log("Encoding failed.")
-    //        }
-    //    }
     
     // MARK: - Process event helper functions
+    /// A `timespec` as a date.
+    ///
+    /// - Parameter timespec: Seconds and nanoseconds since 1970.
+    /// - Returns: The date.
     public static func timespecToTimestamp(timespec: timespec) -> Date {
-        let unixTimestamp = Double(timespec.tv_sec) + (Double(timespec.tv_nsec) / 1e9)
-        let date = Date(timeIntervalSince1970: unixTimestamp)
-        
-        return date
+        Date(timeIntervalSince1970: Double(timespec.tv_sec) + Double(timespec.tv_nsec) / 1e9)
     }
     
-    public static func timevalToTimestamp(timeval: timeval) -> String {
-        let unixTimestamp = Double(timeval.tv_sec) + (Double(timeval.tv_usec) / 1000000)
-        let date = Date(timeIntervalSince1970: unixTimestamp)
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-        return dateFormatter.string(from: date)
-    }
+    /// Formats event timestamps as `yyyy-MM-dd'T'HH:mm:ss.SSS'Z'`.
+    ///
+    /// Shared rather than created per call: `Message.init` runs for every event in the Security Extension.
+    /// `DateFormatter` is thread safe on macOS 10.9+ (see `NSDateFormatter.h`).
+    static let timestampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+        return formatter
+    }()
     
-    public static func procInfoToString(procInfo: proc_uniqidentifierinfo) -> String {
-        // @discussion: Matching Jamf Protect: We're only using UUID from `PROC_PIDUNIQIDENTIFIERINFO`
-        // @note old string: `%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x-%llu-%llu-%d`
-        // This is not the same UUID as the one pulled from `PROC_PIDUNIQIDENTIFIERINFO`
-        return String(format: "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-                      procInfo.p_uuid.0, procInfo.p_uuid.1, procInfo.p_uuid.2, procInfo.p_uuid.3,
-                      procInfo.p_uuid.4, procInfo.p_uuid.5, procInfo.p_uuid.6, procInfo.p_uuid.7,
-                      procInfo.p_uuid.8, procInfo.p_uuid.9, procInfo.p_uuid.10, procInfo.p_uuid.11,
-                      procInfo.p_uuid.12, procInfo.p_uuid.13, procInfo.p_uuid.14, procInfo.p_uuid.15)
-    }
+    // MARK: - Reading scripts and plists
+    /// The most bytes ``getFileContents(at:)`` reads: a longer script or plist is cut there.
+    static let fileContentsLimit = 1 << 20
     
-    
-    public static func getCodeSigningCerts(forBinaryAt path: String) -> [X509Cert] {
-        var staticCode: SecStaticCode?
-        guard let url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, path as CFString, .cfurlposixPathStyle, false) else {
-            return []
-        }
-        
-        let createFlags: SecCSFlags = []
-        var status = SecStaticCodeCreateWithPath(url, createFlags, &staticCode)
-        
-        guard status == errSecSuccess, let staticCode = staticCode else {
-            return []
-        }
-        
-        var dict: CFDictionary?
-        let infoFlags: SecCSFlags = SecCSFlags(rawValue: kSecCSSigningInformation)
-        status = SecCodeCopySigningInformation(staticCode, infoFlags, &dict)
-        guard status == errSecSuccess, let infoDict = dict as? [String: Any] else {
-            return []
-        }
-        
-        let certificateChainKey = kSecCodeInfoCertificates as String
-        guard let certificateChain = infoDict[certificateChainKey] as? [SecCertificate] else {
-            return []
-        }
-        
-        var chain: [X509Cert] = []
-        for (index, certificate) in certificateChain.enumerated() {
-            if let summary = SecCertificateCopySubjectSummary(certificate) as String? {
-                let certificateData = SecCertificateCopyData(certificate) as Data
-                let thumbprint: String = Insecure.SHA1.hash(data: certificateData).map { String(format: "%02hhx", $0) }.joined()
-                chain.append(X509Cert(summary: summary, thumbprint: thumbprint))
-            }
-        }
-        
-        return chain
-    }
-    
-    static func fileExists(at path: String) -> Bool {
-        FileManager.default.fileExists(atPath: path)
-    }
-    
+    /// Does a path name a regular file whose first 512 bytes are UTF-8 text, such as a script?
+    ///
+    /// - Parameter path: The file's path, or a `file://` URL's.
+    /// - Returns: `false` for a binary, or anything that isn't a regular file (``openRegularFile(at:)``).
     static func fileIsNonBinary(at path: String) -> Bool {
-        let modPath = String(path.trimmingPrefix("file://"))
-        let fileURL = URL(fileURLWithPath: modPath)
-        
-        guard fileExists(at: fileURL.path) else {
+        guard let file = openRegularFile(at: path), let data = try? file.read(upToCount: 512) else {
             return false
         }
-        
-        guard let fileHandle = try? FileHandle(forReadingFrom: fileURL),
-              let data = try? fileHandle.read(upToCount: 512) else {
-            return false
-        }
-        
-        try? fileHandle.close()
-        
         return String(data: data, encoding: .utf8) != nil
     }
     
+    /// The UTF-8 text of a regular file, such as a script or a launch item's plist, up to ``fileContentsLimit``.
+    ///
+    /// - Parameter path: The file's path, or a `file://` URL's.
+    /// - Returns: The text, cut at the limit back to the end of a whole character, or `nil` if the file isn't UTF-8
+    ///   text or isn't a regular file (``openRegularFile(at:)``).
     public static func getFileContents(at path: String) -> String? {
-        let modPath = String(path.trimmingPrefix("file://"))
-        let fileURL = URL(fileURLWithPath: modPath)
-        
-        // Check if the file exists
-        guard fileExists(at: fileURL.path) else {
-            return nil
+        guard let file = openRegularFile(at: path),
+              let data = try? file.read(upToCount: fileContentsLimit + 1) ?? Data() else { return nil }
+        guard data.count > fileContentsLimit else { return String(data: data, encoding: .utf8) }
+        /// A UTF-8 character is at most 4 bytes, so one of the last 4 cuts ends on a whole one.
+        for end in stride(from: fileContentsLimit, to: fileContentsLimit - 4, by: -1) {
+            if let text = String(data: data.prefix(end), encoding: .utf8) { return text }
         }
-        
-        do {
-            let fileContents = try String(contentsOf: fileURL, encoding: .utf8)
-            return fileContents
-        } catch {
-            return nil
-        }
+        return nil
     }
     
-    /// Returns 1 if the file is quarantined, 0 if not, and 2 if the file is not found
-    public static func isFileQuarantined(filePath: String) -> Int {
-        let fileManager = FileManager.default
-        if fileManager.fileExists(atPath: filePath) {
-            return getxattr(filePath, "com.apple.quarantine", nil, 0, 0, 0) > 0 ? 1 : 0
-        } else {
-            return 2
-        }
-    }
-    
-    
-    public static func newIsFileQuarantined(filePath: String) -> Bool {
-        let url = URL(fileURLWithPath: filePath)
-        let resourceValues = try? url.resourceValues(forKeys:[.quarantinePropertiesKey])
-        let quarantineProperties = resourceValues?.quarantineProperties
-        return quarantineProperties != nil
-    }
-    
-    // MARK: - Code Signing Type
-    public static func codeSigningType(for process: es_process_t) -> CodeSigningType {
-        // Helper function to determine type from certificates
-        func certType(forPath path: String) -> CodeSigningType? {
-            let certificates = ProcessHelpers.getCodeSigningCerts(forBinaryAt: path)
-            
-            for cert in certificates {
-                let summary = cert.summary
-                if summary.hasPrefix("Apple Mac OS") {
-                    return .appStore
-                } else if summary.hasPrefix("Developer ID Application") {
-                    return .developerId
-                }
-            }
-            return nil
-        }
-        
-        // Platform binary
-        if process.is_platform_binary {
-            return .platform
-        }
-        
-        // Adhoc binary
-        if (Int(process.codesigning_flags) & Int(CS_ADHOC)) == Int(CS_ADHOC) {
-            return .adhoc
-        }
-        
-        // Is validly signed
-        let csValid = (Int32(process.codesigning_flags) & CS_VALID) == CS_VALID
-        if csValid && process.executable.pointee.path.length > 0 {
-            let executablePath = String(
-                cString: process.executable.pointee.path.data
-            )
-            
-            // Check the codesinging certificates
-            if let type = certType(forPath: executablePath) {
-                return type
-            }
-            
-            return .unknown
-        }
-        
-        // Not validly signed
-        return .unsigned
-    }
-    
-    
-    // MARK: - LSFileQuarantineEnabled check
-    
-    /// Which bundle identifiers are forced into File Quarantine?
+    /// Open a file for reading, only if it's a regular file, without waiting.
     ///
-    /// Bundle identifiers forced into File Quarantine by Apple are located in a property list file by the name of `Exceptions.plist`.
-    /// We read from that property list and pull out all identiifers with a `LSFileQuarantineEnabled` key value set to `true`.
+    /// An exec's arguments can name anything. Opening a FIFO that has no writer waits until something opens it for
+    /// writing, and the capture lane building the event waited with it. Opening a device can have side effects. So the
+    /// path is `stat`ed first, opened with `O_NONBLOCK`, and checked again with `fstat` in case it was replaced in
+    /// between.
     ///
-    public static let forcedQuarantineSigningIDs: [String] = {
-        var signingIDs: [String] = []
-        let filePath = "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/Exceptions.plist"
-        
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: filePath)),
-              let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
-              let dict = plist as? [String: Any],
-              let entries = dict["Additions"] as? [String: Any] else {
-            return signingIDs
-        }
-        
-        for (key, value) in entries {
-            if let data = value as? [String: Any], data["LSFileQuarantineEnabled"] != nil {
-                signingIDs.append(key)
-            }
-        }
-        
-        return signingIDs
-    }()
-    
-    /// The cache we use for paths we've already checked
-    private static let quarantineCheckCache: NSCache<NSString, NSNumber> = {
-        let cache = NSCache<NSString, NSNumber>()
-        cache.countLimit = 1000
-        return cache
-    }()
-    
-    /// Given the path to an executable on-disk return if it's "File Quarantine-aware".
-    ///
-    /// This method checks if an executable application has the `LSFileQuarantineEnabled` key
-    /// set to `true` in its Info.plist file. Applications with this flag enabled respect in file quarantine.
-    ///
-    /// - Parameter path: The file path to the executable to check
-    /// - Returns: `true` if the executable has quarantine enabled, `false` otherwise
-    ///
-    /// The method uses an internal cache to avoid repeated disk access and plist parsing
-    /// for paths that have already been checked. The cache has a limit of 1000 entries.
-    public static func isQuarantineEnabled(forExecutableAt path: String, signingId: String?) -> FileQuarantineType {
-        /// We're only going to check for File Quarantine with app bundles.
-        if !path.contains(".app") {
-            return .disabled
-        }
-        
-        /// First, check if Apple has forced the executable into being File Quarantine-aware
-        if let signingId = signingId,
-           forcedQuarantineSigningIDs.contains(signingId) {
-            return .forced
-        }
-        
-        /// Second, check if the path is in the cache
-        let nsPath = path as NSString
-        if let cached = quarantineCheckCache.object(forKey: nsPath) {
-            return cached.boolValue ? .optIn : .disabled
-        }
-        
-        let components = URL(fileURLWithPath: path).pathComponents
-        guard let contentsIndex = components.firstIndex(of: "Contents") else {
-            quarantineCheckCache.setObject(NSNumber(value: false), forKey: nsPath)
-            return .disabled
-        }
-        
-        /// Third, check if `LSFileQuarantineEnabled` is in the plist
-        let plistPath = NSString.path(withComponents: Array(components.prefix(through: contentsIndex)) + ["Info.plist"])
-        guard FileManager.default.fileExists(atPath: plistPath),
-              let dict = NSDictionary(contentsOfFile: plistPath),
-              let quarantineEnabled = dict["LSFileQuarantineEnabled"] as? Bool else {
-            quarantineCheckCache.setObject(NSNumber(value: false), forKey: nsPath)
-            return .disabled
-        }
-        
-        // Cache the result we found in the plist
-        quarantineCheckCache.setObject(NSNumber(value: quarantineEnabled), forKey: nsPath)
-        return quarantineEnabled ? .optIn : .disabled
+    /// - Parameter path: The file's path, or a `file://` URL's. A symbolic link is followed.
+    /// - Returns: The open file, closed when it's released, or `nil` if the path doesn't name a regular file or it
+    ///   can't be opened.
+    static func openRegularFile(at path: String) -> FileHandle? {
+        let path = path.droppingPrefix("file://")
+        var info = stat()
+        guard stat(path, &info) == 0, info.st_mode & S_IFMT == S_IFREG else { return nil }
+        let descriptor = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC)
+        guard descriptor >= 0 else { return nil }
+        let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        guard fstat(descriptor, &info) == 0, info.st_mode & S_IFMT == S_IFREG else { return nil }
+        return file
     }
 }

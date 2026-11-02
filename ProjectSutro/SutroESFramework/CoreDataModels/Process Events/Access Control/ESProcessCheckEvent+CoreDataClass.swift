@@ -10,10 +10,13 @@ import Foundation
 import CoreData
 
 @objc(ESProcessCheckEvent)
-public class ESProcessCheckEvent: NSManagedObject {
-    
+public class ESProcessCheckEvent: NSManagedObject, Identifiable {
+    @NSManaged public var flavor: Int32
+    @NSManaged public var type: Int32
+    @NSManaged public var type_string: String
+    @NSManaged public var target: ESProcess?
+
     enum CodingKeys: CodingKey {
-        case id
         case type
         case type_string
         case flavor
@@ -21,19 +24,14 @@ public class ESProcessCheckEvent: NSManagedObject {
     }
     
     // MARK: - Custom Core Data initilizer for ESProcessCheckEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let procCheckEvent: ProcessCheckEvent = message.event.proc_check!
-        let description = NSEntityDescription.entity(forEntityName: "ESProcessCheckEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = procCheckEvent.id
+    convenience init(from event: ProcessCheckEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.type = procCheckEvent.type
-        self.type_string = procCheckEvent.type_string
-        self.flavor = Int32(procCheckEvent.flavor)
+        self.type = event.type
+        self.type_string = event.type_string
+        self.flavor = Int32(truncatingIfNeeded: event.flavor)
         
-        if let target = procCheckEvent.target {
-            self.target = ESProcess(from: target, version: message.version, insertIntoManagedObjectContext: context)
-        }
+        self.target = ESProcess.insert(event.target, version: message.version, in: context)
     }
 }
 
@@ -46,6 +44,6 @@ extension ESProcessCheckEvent: Encodable {
         try container.encode(type_string, forKey: .type_string)
         try container.encode(flavor, forKey: .flavor)
         
-        try container.encodeIfPresent(target, forKey: .target)
+        try container.encode(target, forKey: .target)
     }
 }

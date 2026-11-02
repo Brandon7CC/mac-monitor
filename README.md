@@ -1,7 +1,7 @@
-## 🎉 Welcome to "Mac Monitor's" official new home!
-![Feature overview](./Resources/v1.9.0/overview-graphic-v1.9.png)
+## Welcome to Mac Monitor
+![Feature overview](./Resources/v3.0.0/overview-graphic-v3.0.png)
 
-Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for macOS security research, malware triage, and system troubleshooting**. Leveraging Apple's Endpoint Security (ES) and System Extension APIs, it collects and enriches system events, displaying them graphically, with an expansive feature set designed to surface only the events that are relevant to you. The telemetry collected includes process, interprocess, memory, XPC, file events, and more in addition to rich metadata, allowing users to contextualize events and tell a story with ease. With an intuitive interface and a rich set of analysis features, Mac Monitor was designed for a wide range of skill levels and backgrounds to detect macOS threats that would otherwise go unnoticed. 
+Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for macOS security research, malware triage, and system troubleshooting**. Built on Apple's Endpoint Security (ES) and System Extension APIs, it collects and enriches process, interprocess, memory, XPC and file events, and helps you surface only the ones relevant to you.
 
 ### OBTS v8.0 Presentation
 **Introducing the Next Generation of Mac Monitor**:
@@ -10,9 +10,9 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 
 
 ## Requirements
-- Processor: We recommend an `Apple Silicon` machine, but `Intel` works too!
-- System memory: `4GB+` is recommended
-- macOS version: `13.1+` (Ventura)
+- **Processor**: We recommend an `Apple Silicon` machine, but `Intel` works too!
+- **System memory**: `4GB+` is recommended
+- **macOS version**: `13.1+` (Ventura)
 
 
 ## How can I install this thing?
@@ -21,51 +21,98 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 * `brew install --cask mac-monitor`
 
 **📦 Installer package**
-* Go to the releases section and download the latest installer: https://github.com/Brandon7CC/mac-monitor/releases
+* Download the latest installer from [releases](https://github.com/Brandon7CC/mac-monitor/releases).
 
 **Install**
-* Open the app: `Mac Monitor.app`
-* You'll be prompted to "Open System Settings" to "Allow" the System Extension.
-* Next, System Settings will automatically open to `Full Disk Access` -- you'll need to flip the switch to enable this for the `Mac Monitor Security Extension`. Full Disk Access is a [*requirement* of Endpoint Security](https://developer.apple.com/documentation/endpointsecurity/3259700-es_new_client#:~:text=The%20user%20does%20this%20in%20the%20Security%20and%20Privacy%20pane%20of%20System%20Preferences%2C%20by%20adding%20the%20app%20to%20Full%20Disk%20Access.).
-* 🏎️ Click the "Start" button in the app and you'll be prompted to reopen the app. Done!
+* Open `Mac Monitor.app` and "Allow" the System Extension when prompted.
+* Turn on [Full Disk Access](https://developer.apple.com/documentation/endpointsecurity/3259700-es_new_client) for `Mac Monitor Security Extension` in System Settings.
+* 🏎️ Click "Start". Done!
 
-![Install process](./Resources/v1.9.0/Install+Graphic.png)
+(`3.0.0+`) Settings ▸ General ▸ **Check Now** looks for updates.
+
+![Install process](./Resources/v3.0.0/install-graphic-v3.0.png)
 
 ### Install footprint
-- Event monitor app which establishes an XPC connection to the Security Extension: `/Applications/Mac Monitor.app` w/signing identifier of `com.swiftlydetecting.agent`.
-- Security Extension: `/Library/SystemExtensions/../com.swiftlydetecting.agent.securityextension.systemextension` w/signing identifier of `com.swiftlydetecting.agent.securityextension.systemextension`.
+- **App**: `/Applications/Mac Monitor.app` (`com.swiftlydetecting.agent`)
+- **Security Extension**: `com.swiftlydetecting.agent.securityextension`
+- (`3.0.0+`) **Command line tool**: inside the app, linked to `/usr/local/bin/macmonitor` if you install it from Settings
+- (`3.0.0+`) **Saved mute set**: `/Library/Application Support/com.swiftlydetecting.agent.securityextension/mutes.json`
 
 
 ## Uninstall
-* **From the Finder** delete the app and authenticate to remove the System Extension. You can't do this from the Dock. It's that easy!
-* You can also *just* remove the Security Extension if you want in the app's menu bar or by going into the app settings.
-* (`1.0.3+`) Supports removal using the `../Contents/SharedSupport/uninstall.sh` script.
+* **From the Finder** delete the app and authenticate to remove the System Extension. It's that easy!
+* Or run `Mac Monitor.app/Contents/SharedSupport/uninstall.sh`, which also removes the saved mute set and the `macmonitor` link.
+
+
+## Path mutes
+(`3.0.0+`) Mac Monitor keeps one **saved mute set**. It survives restarts, applies right away, and is shared with `sudo macmonitor`.
+
+- **Settings ▸ Path Muting** shows it. Right click an event to add a mute.
+- **Import, export or reset** it there too. Import reads 2.1 exports, so export your mutes from 2.1 before updating.
+- Endpoint Security matches resolved paths: use `/private/tmp/...`, not `/tmp/...`.
+
+
+## Command line
+(`3.0.0+`) `macmonitor` streams events to a terminal or a pipe while Mac Monitor keeps recording. Install it from Settings ▸ Command Line.
+
+```
+sudo macmonitor stream                     # Mac Monitor's default events
+sudo macmonitor stream exec fork exit      # only these events
+sudo macmonitor stream all | jq -c .       # every event, as JSONL
+sudo macmonitor stream exec --for 30s      # 30 seconds of execs
+
+# an osascript script asking for a password, as macOS stealers do
+sudo macmonitor stream exec --target '/osascript$' \
+    --predicate 'event.exec.script_content CONTAINS[c] "display dialog" AND event.exec.script_content CONTAINS[c] "password"'
+
+sudo macmonitor mute list                  # the saved mute set
+macmonitor validate trace.jsonl            # check an export against the schema
+```
+
+- Text on a terminal, JSONL when piped: the same records as Export telemetry, an `eslogger` superset.
+- `macmonitor help <command>` covers every option.
+
+![The command line tool](./Resources/v3.0.0/cli-v3.0.png)
 
 
 ## What are some standout features?
-- **High fidelity ES events modeled and enriched** with some events containing further enrichment. For example, a process being File Quarantine-aware, a file being quarantined, code signing certificates, etc.
-- **Dynamic runtime ES event subscriptions**. You have the ability to on-the-fly modify your event subscriptions -- enabling you to cut down on noise while you're working through traces.
-- **Path muting at the API level** -- Apple's Endpoint Security team has put a lot of work recently into enabling advanced path muting / inversion capabilities. Here, we cover the majority of the API features: `es_mute_path` and `es_mute_path_events` along with the types of `ES_MUTE_PATH_TYPE_PREFIX`, `ES_MUTE_PATH_TYPE_LITERAL`, `ES_MUTE_PATH_TYPE_TARGET_PREFIX`, and `ES_MUTE_PATH_TYPE_TARGET_LITERAL`. Right now we do not support inversion. **I'd love it if the ES team added inversion on a per-event basis instead of per-client**.
-![Path muting and event subscriptions](./Resources/v1.9.0/muting-and-subscriptions-v1.9.png)
+- **High fidelity ES events, enriched**: code signing, quarantine, script content, and the process that really launched each one.
+- **Dynamic event subscriptions**: change what you subscribe to on the fly to cut down on noise.
+- **Path muting at the API level**: `es_mute_path` and `es_mute_path_events`, with every `ES_MUTE_PATH_TYPE_*`. **I'd love it if the ES team added inversion on a per-event basis instead of per-client**.
 
-- **Detailed event facts**. **Right click on any event** in a table row to access event metadata, filtering, muting, and unsubscribe options. Core to the user experience is the ability to drill down into any given event or set of events. To enable this functionality we’ve developed “Event facts” windows which contain metadata / additional enrichment about any given event. Each event has a curated set metadata that is displayed. For example, process execution events will generally contain code signing information, environment variables, correlated events, etc. Below you see examples of file creation and BTM launch item added event facts.
-![Event facts overview](./Resources/v1.9.0/event-metadata-overview-v1.9.png)
+![Path muting and event subscriptions](./Resources/v3.0.0/muting-and-subscriptions-v3.0.png)
 
-- **Event correlation** is an *exceptionally* important component in any analyst's tool belt. The ability to see which events are "related" to one-another enables you to manipulate the telemetry in a way that makes sense (other than simply dumping to JSON or representing an individual event). We perform event correlation at the process level -- this means that for any given event (which have an initiating and/or target process) we can deeply link events that any given process instigated. 
-- **Process grouping** is another helpful way to represent process telemetry around a given `ES_EVENT_TYPE_NOTIFY_EXEC` or `ES_EVENT_TYPE_NOTIFY_FORK` event. By grouping processes in this way you can easily identify the chain of activity.
-- **Artifact filtering** enabled users to remove (but not destroy) events from view based on: event type, initiating process path, or target process path. This standout feature enables analysts to cut through the noise quickly while still retaining all data.
-  - Lossy filtering (i.e. events that are dropped from the trace) is also available in the form of "dropping platform binaries" -- another useful technique to cut through the noise.
+- **Event facts**: double click any event for its metadata, script, correlated events, process group and JSON. Right click for filtering, muting and unsubscribing.
+- **Event correlation**: every event a process caused, linked to it, with a summary and indicator cards.
+- **Process subtree**: Event Facts' sidebar shows the process's lineage. Click any process to open its facts.
 
-![Artifact filtering overview](./Resources/v1.9.0/lossless-filtering-v1.9.png)
+![Event facts overview](./Resources/v3.0.0/event-metadata-overview-v3.0.png)
 
-- **Telemetry export**. Right now we support pretty JSON and JSONL (one JSON object per-line) for the full or partial system trace (keyboard shortcuts too). You can access these options in the menu bar under "Export Telemetry".
-- **Process subtree generation**. When viewing the event facts window for any given event we’ll attempt to generate a process lineage subtree in the left hand sidebar. This tree is intractable – click on any process and you’ll be taken to its event facts. **Similarly, you can right click on any process in the tree to pop out the facts for that event**.
-- **Dynamic event distribution chart**. This is a fun one enabled by the SwiftUI team. The graph shows the distribution of events you're subscribed to, currently in-scope (i.e. not filtered), and have a count of more than nothing. This enables you to *very* quickly identify noisy events. The chart auto-shows/hides itself, but you can bring it back with the: "Mini-chart" button in the toolbar.
+- (`3.0.0+`) **Indicators**: predicates that point out events worth a look. Change Mac Monitor's own or write your own in Settings ▸ Indicators.
+
+![Custom indicators](./Resources/v3.0.0/indicators-v3.0.png)
+
+- **Filtering**: hide events by type, process or path without losing them, or drop events while recording.
+  - (`3.0.0+`) Or filter with a predicate in the predicate editor (View ▸ Predicate Editor, ⌥⌘F).
+
+![Filtering and the predicate editor](./Resources/v3.0.0/filtering-v3.0.png)
+
+- **Export and open traces**: export JSON or JSONL, and (`3.0.0+`) open Mac Monitor or `eslogger` traces (File ▸ Open Trace...).
+- **Event distribution chart**: spot noisy events at a glance. Show or hide it with the chart button in the toolbar.
 
 ![Event distribution chart](./Resources/v1.9.0/DistributionChart-v1.9.png)
 
 
 ## Some other features
-- Another very important feature of any dynamic analysis tool is to not let an event limiter or memory inefficient implementation get in the way of the user experience. To address this (the best we currently can) we’ve implemented an asynchronous parent / child-like **Core Data stack** which stores our events as “entities” in-memory. This enables us to store virtually unlimited events with Mac Monitor. Although, the time of insertions does become more taxing as the event limit gets very large.  
-- Since Mac Monitor is based on a Security Extension which is always running in the background (like an EDR sensor) we baked in functionality such that it **does not process events when a system trace is not occurring**. This means that the Security Extension (`com.swiftlydetecting.agent.securityextension`) will not needlessly utilize resources / battery power when a trace is not occurring. 
-- Distribution package: **The install process is often overlooked**. However, if users do not have a good understanding of what’s being installed or if it’s too complex to install the barrier to entry might be just high enough to dissuade people from using it. This is why we ship Mac Monitor as a notarized distribution package.
+- (`3.0.0+`) **Built for long traces**: events go to an on-disk store, and the event tables fetch off the main thread.
+- The Security Extension **does not process events when a trace isn't running**, so it doesn't use resources or battery in the background.
+- Mac Monitor ships as a **notarized distribution package**, so you know what's being installed.
+
+
+## Telemetry schema
+(`3.0.0+`) Every record Mac Monitor exports, and `macmonitor` writes, follows a [JSON Schema](https://json-schema.org/draft/2020-12): `eslogger`'s JSON plus Mac Monitor's enrichments, each key marked `x-mac-monitor-origin`.
+
+- Each release attaches it as [`Mac-Monitor.telemetry.schema.json`](https://github.com/Brandon7CC/mac-monitor/releases/latest/download/Mac-Monitor.telemetry.schema.json). The repository keeps it in [`Schema/`](./Schema).
+- Check a trace with Help ▸ Telemetry Schema... or `macmonitor validate <trace>`.
+
+![The telemetry schema](./Resources/v3.0.0/telemetry-schema-v3.0.png)

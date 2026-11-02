@@ -25,7 +25,7 @@ struct ProcessView: View {
     }
     
     var signingId: String {
-        process.signing_id ?? "Unknown"
+        process.signing_id.nonEmpty ?? "Unknown"
     }
     
     var cdHash: String {

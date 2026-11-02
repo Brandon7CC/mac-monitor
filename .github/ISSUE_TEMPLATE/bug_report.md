@@ -24,8 +24,8 @@ Steps to reproduce the behavior:
 * Go to `Console.app`
 * Click on `Crash Reports` in the left side bar
 * Find the relevant crash report. For us, these will correspond to:
-  * `com.redcanary.agent.securityextension` for the Security Extension process
-  * and `Red Canary Mac Monitor" largely for the SwiftUI front-end
+  * `com.swiftlydetecting.agent.securityextension` for the Security Extension process
+  * and `Mac Monitor` largely for the SwiftUI front-end
 * PLEASE attach the crash report to this bug report if applicable.
 
 **Screenshots**

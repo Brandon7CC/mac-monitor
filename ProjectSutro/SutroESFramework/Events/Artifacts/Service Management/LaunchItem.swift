@@ -8,15 +8,15 @@
 
 /// Models a `es_btm_launch_item_t`:
 /// https://developer.apple.com/documentation/endpointsecurity/es_btm_launch_item_t
-public struct LaunchItem: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+public struct LaunchItem: Codable, IdentityHashable {
+    public var id: UUID = UUID.buffered()
 
     // Type of launch item.
     public var item_type: Int16
     
-    public var item_type_string: String
+    public var item_type_string = ""
     public var item_url: String
-    public var item_path: String // enrichment
+    public var item_path = "" // enrichment
     
     // Optional.  URL for app the item is attributed to.
     public var app_url: String?
@@ -33,72 +33,53 @@ public struct LaunchItem: Identifiable, Codable, Hashable {
     // @note Mac Monitor enrichment
     public var plist_contents: String?
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
     init(from launchItem: es_btm_launch_item_t) {
         // MARK: - Legacy / Managed
         legacy = launchItem.legacy
         managed = launchItem.managed
         
         // MARK: - App
-        if let appURLString = launchItem.app_url.toString(),
-        let appURL = URL(string: appURLString) {
-            app_url = appURLString
-            app_path = appURL.path
-        }
+        /// Optional: `nil` (eslogger's `null`) when the item has no app. Kept as written, even when it isn't a URL.
+        app_url = launchItem.app_url.string
         
         // MARK: - Item
-        item_url = launchItem.item_url.toString() ?? ""
-        var itemPath: String
-        if let itemURL = URL(string: item_url) {
-            item_path = itemURL.path
-            itemPath = itemURL.path
-        } else {
-            item_path = ""
-            itemPath = ""
-        }
-        
-        // MARK: Plist
-        var plistPath: String?
-        if legacy {
-            plistPath = itemPath
-        } else if let app_path = app_path {
-            /// We need to resolve the relative plist path
-            plistPath = URL(fileURLWithPath: app_path).appendingPathComponent(itemPath).path
-        }
-        
+        item_url = launchItem.item_url.string ?? ""
         item_type = Int16(launchItem.item_type.rawValue)
-        switch launchItem.item_type {
-        case ES_BTM_ITEM_TYPE_USER_ITEM:
-            item_type_string = "ES_BTM_ITEM_TYPE_USER_ITEM"
-        case ES_BTM_ITEM_TYPE_APP:
-            item_type_string = "ES_BTM_ITEM_TYPE_APP"
-        case ES_BTM_ITEM_TYPE_AGENT:
-            item_type_string = "ES_BTM_ITEM_TYPE_AGENT"
-            
-            if let plistPath = plistPath {
-                plist_contents = ProcessHelpers.getFileContents(at: plistPath)
-            }
-        case ES_BTM_ITEM_TYPE_DAEMON:
-            item_type_string = "ES_BTM_ITEM_TYPE_DAEMON"
-            
-            if let plistPath = plistPath {
-                plist_contents = ProcessHelpers.getFileContents(at: plistPath)
-            }
-        case ES_BTM_ITEM_TYPE_USER_ITEM:
-            item_type_string = "ES_BTM_ITEM_TYPE_USER_ITEM"
-        case ES_BTM_ITEM_TYPE_LOGIN_ITEM:
-            item_type_string = "ES_BTM_ITEM_TYPE_LOGIN_ITEM"
-        default:
-            item_type_string = "UNKNOWN"
-        }
-    
+        
         // MARK: - UID
         uid = Int64(launchItem.uid)
-        if let rpw = getpwuid(launchItem.uid) {
-            self.uid_human = String(cString: rpw.pointee.pw_name)
-        }
+        
+        enrich()
+        uid_human = Process.userName(Int(launchItem.uid), systemAccountsOnly: false) ?? uid_human
+        
+        // MARK: Plist
+        guard [ES_BTM_ITEM_TYPE_AGENT, ES_BTM_ITEM_TYPE_DAEMON].contains(launchItem.item_type) else { return }
+        /// A legacy item's path is its plist's. Another's is relative to its app.
+        let plistPath = legacy ? item_path : app_path?.appendingPathComponent(item_path)
+        plist_contents = plistPath.flatMap(ProcessHelpers.getFileContents(at:))
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension LaunchItem: ESEnrichable {
+    /// `es_btm_item_type_t`: what kind of launch item it is.
+    private static let itemTypeNames = ConstantNames([
+        ES_BTM_ITEM_TYPE_USER_ITEM.rawValue: "ES_BTM_ITEM_TYPE_USER_ITEM",
+        ES_BTM_ITEM_TYPE_APP.rawValue: "ES_BTM_ITEM_TYPE_APP",
+        ES_BTM_ITEM_TYPE_AGENT.rawValue: "ES_BTM_ITEM_TYPE_AGENT",
+        ES_BTM_ITEM_TYPE_DAEMON.rawValue: "ES_BTM_ITEM_TYPE_DAEMON",
+        ES_BTM_ITEM_TYPE_LOGIN_ITEM.rawValue: "ES_BTM_ITEM_TYPE_LOGIN_ITEM",
+    ])
+    
+    /// Derive the item type's name, the item's and the app's paths from their URLs, and the user's name if it's a
+    /// system account.
+    ///
+    /// Not derived: the names of other users, and the plist's contents (read from this Mac).
+    public mutating func enrich() {
+        app_path = app_url.flatMap(URL.init(string:))?.path
+        item_path = URL(string: item_url)?.path ?? ""
+        uid_human = Process.userName(Int(uid), systemAccountsOnly: true) ?? uid_human
+        item_type_string = Self.itemTypeNames.name(of: Int(item_type))
     }
 }

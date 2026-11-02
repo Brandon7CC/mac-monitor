@@ -9,17 +9,10 @@ import Foundation
 
 
 /// Models an `action_type` union from an `es_message_t`
-public struct ActionResult: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
-    
+public struct ActionResult: Codable, Hashable {
     public var result_type: Int?
     public var result_type_human: String?
     public var result: AuthResult?
-    
-    // Ignore id from being decoded
-    enum CodingKeys: String, CodingKey {
-        case result_type, result_type_human, result
-    }
     
     init(from message: es_message_t) {
         
@@ -37,14 +30,13 @@ public struct ActionResult: Identifiable, Codable, Equatable, Hashable {
             /// Switch on the result type: `es_result_type_t`
             switch message.action.notify.result_type {
             case ES_RESULT_TYPE_AUTH:
-                self.result_type_human = "ES_RESULT_TYPE_AUTH"
                 self.result = AuthResult(from: message.action.notify.result.auth)
             case ES_RESULT_TYPE_FLAGS:
-                self.result_type_human = "ES_RESULT_TYPE_FLAGS"
                 self.result = AuthResult(from: message.action.notify.result.flags)
             default:
                 break
             }
+            enrich()
         default:
             break
         }
@@ -52,15 +44,21 @@ public struct ActionResult: Identifiable, Codable, Equatable, Hashable {
 }
 
 
-public struct ActionResultWrapper: Identifiable, Codable, Equatable, Hashable {
-    public var id = UUID()
-    
-    public var result: ActionResult?
-    
-    // Ignore id from being decoded
-    enum CodingKeys: String, CodingKey {
-        case result
+// MARK: - Mac Monitor enrichment
+extension ActionResult: ESEnrichable {
+    /// Derive the result type's name.
+    public mutating func enrich() {
+        switch result_type.map({ es_result_type_t(rawValue: UInt32(truncatingIfNeeded: $0)) }) {
+        case ES_RESULT_TYPE_AUTH: result_type_human = "ES_RESULT_TYPE_AUTH"
+        case ES_RESULT_TYPE_FLAGS: result_type_human = "ES_RESULT_TYPE_FLAGS"
+        default: break
+        }
     }
+}
+
+
+public struct ActionResultWrapper: Codable, Hashable {
+    public var result: ActionResult?
     
     init(from message: es_message_t) {
         self.result = ActionResult(from: message)

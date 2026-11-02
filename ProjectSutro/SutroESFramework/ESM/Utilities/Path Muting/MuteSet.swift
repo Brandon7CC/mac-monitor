@@ -7,8 +7,8 @@
 
 import Foundation
 
-/// The default Mac Monitor mute set.
-///
+/// The default Mac Monitor mute set, as rules. ``MuteList/shippedDefault(for:)`` merges it by path and type: what a
+/// new saved mute set starts from and what Reset restores.
 public struct MuteSet {
     /// Rules that mute specific event types for a given path.
     let eventSpecificRules: [(eventType: es_event_type_t, muteType: es_mute_path_type_t, paths: [String])]
@@ -16,17 +16,40 @@ public struct MuteSet {
     /// Rules that mute all event types for a given path.
     let globalRules: [(pathType: es_mute_path_type_t, paths: [String])]
     
-    /// Mac Monitor's default mute set
-    public static var `default`: MuteSet {
-        // The paths for these directories is calculated at runtime
-        let caches_dir = String(
-            URL(fileURLWithPath: NSHomeDirectory())
-                .appendingPathComponent("Library/Caches").path
-        )
-        let homeLibraryBiomeSteams = String(
-            URL(fileURLWithPath: NSHomeDirectory())
-                .appendingPathComponent("Library/Biome/streams").path
-        )
+    /// Mac Monitor's default mute set, for one home folder.
+    ///
+    /// Two rules are per user: files created and renamed in `~/Library/Caches/`, and extended attributes read from
+    /// files in `~/Library/Biome/streams/`. The Security Extension runs as root, so it passes the console user's home
+    /// (``ConsoleUser``), never its own.
+    ///
+    /// Xcode's tools are muted only when root owns Xcode (``ownsXcode(_:at:)``). An Xcode expanded from a `.xip`
+    /// belongs to whoever expanded it, so a program they put inside would run unseen.
+    ///
+    /// - Parameters:
+    ///   - home: The home folder those two rules mute, or `nil` to leave them out (no one is logged in).
+    ///   - mutesXcode: Mute Xcode's tools. By default, if root owns Xcode.
+    /// - Returns: The rules.
+    public static func `default`(home: String?, mutesXcode: Bool? = nil) -> MuteSet {
+        let mutesXcode = mutesXcode ?? ownsXcode()
+        let caches = homePaths("Library/Caches", in: home)
+        let biomeStreams = homePaths("Library/Biome/streams", in: home)
+        /// Processes muted for both mmap and mprotect.
+        let mappers: [String] = [
+            "/usr/bin/tailspin",
+            "/usr/libexec/spindump",
+            "/private/var/db/KernelExtensionManagement/KernelCollections/BootKernelCollection.kc",
+            "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/"
+                + "Support/mdworker_shared",
+            "/System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/"
+                + "MTLCompilerService",
+            "/usr/libexec/knowledge-agent",
+            "/usr/libexec/locationd",
+            "/System/Library/PrivateFrameworks/BiomeStreams.framework/Support/BiomeAgent",
+            "/usr/libexec/xpcproxy",
+            "/usr/libexec/opendirectoryd",
+            "/System/Library/Frameworks/CoreSpotlight.framework/spotlightknowledged",
+            "/usr/libexec/mobileassetd"
+        ]
         
         // MARK: - Event-Specific Mute Rules
         var eventRules = [
@@ -45,8 +68,7 @@ public struct MuteSet {
                 "/usr/libexec/containermanagerd"
             ]),
             
-            (eventType: ES_EVENT_TYPE_NOTIFY_CREATE, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: [
-                caches_dir,
+            (eventType: ES_EVENT_TYPE_NOTIFY_CREATE, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: caches + [
                 "/System/Library/PrivateFrameworks/BiomeStreams.framework"
             ]),
             (eventType: ES_EVENT_TYPE_NOTIFY_RENAME, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: [
@@ -54,13 +76,12 @@ public struct MuteSet {
                 "/usr/libexec/logd",
                 "/usr/libexec/mobileassetd"
             ]),
-            (eventType: ES_EVENT_TYPE_NOTIFY_RENAME, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: [caches_dir]),
+            (eventType: ES_EVENT_TYPE_NOTIFY_RENAME, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: caches),
             (eventType: ES_EVENT_TYPE_NOTIFY_OPEN, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
                 "/usr/libexec/xpcproxy",
                 "/usr/sbin/cfprefsd",
                 "/Library/SystemExtensions/",
                 "/System/Library/CoreServices/Spotlight.app",
-                "/Library/SystemExtensions/",
                 "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework",
                 "/System/Library/PrivateFrameworks/SkyLight.framework",
                 "/System/Library/PrivateFrameworks/AXAssetLoader.framework",
@@ -98,34 +119,8 @@ public struct MuteSet {
                 "/System/Library/PrivateFrameworks/CoreDuetContext.framework",
                 "/System/Library/CoreServices/diagnostics_agent"
             ]),
-            (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: [
-                "/usr/bin/tailspin",
-                "/usr/libexec/spindump",
-                "/private/var/db/KernelExtensionManagement/KernelCollections/BootKernelCollection.kc",
-                "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared",
-                "/System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService",
-                "/usr/libexec/knowledge-agent",
-                "/usr/libexec/locationd",
-                "/System/Library/PrivateFrameworks/BiomeStreams.framework/Support/BiomeAgent",
-                "/usr/libexec/xpcproxy",
-                "/usr/libexec/opendirectoryd",
-                "/System/Library/Frameworks/CoreSpotlight.framework/spotlightknowledged",
-                "/usr/libexec/mobileassetd"
-            ]),
-            (eventType: ES_EVENT_TYPE_NOTIFY_MPROTECT, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: [
-                "/usr/bin/tailspin",
-                "/usr/libexec/spindump",
-                "/private/var/db/KernelExtensionManagement/KernelCollections/BootKernelCollection.kc",
-                "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared",
-                "/System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService",
-                "/usr/libexec/knowledge-agent",
-                "/usr/libexec/locationd",
-                "/System/Library/PrivateFrameworks/BiomeStreams.framework/Support/BiomeAgent",
-                "/usr/libexec/xpcproxy",
-                "/usr/libexec/opendirectoryd",
-                "/System/Library/Frameworks/CoreSpotlight.framework/spotlightknowledged",
-                "/usr/libexec/mobileassetd"
-            ]),
+            (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: mappers),
+            (eventType: ES_EVENT_TYPE_NOTIFY_MPROTECT, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: mappers),
             (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: [
                 "/Library/Caches/",
                 "/private/var/db/",
@@ -146,7 +141,6 @@ public struct MuteSet {
             ]),
             (eventType: ES_EVENT_TYPE_NOTIFY_PROC_CHECK, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
                 "/usr/libexec/sysmond",
-                "/Applications/Xcode.app",
                 "/usr/sbin/systemstats",
                 "/System/Library/PrivateFrameworks/CoreDuetContext.framework",
                 "/System/Library/PrivateFrameworks/CoreAnalytics.framework",
@@ -174,14 +168,12 @@ public struct MuteSet {
             ]),
             (eventType: ES_EVENT_TYPE_NOTIFY_GETEXTATTR, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
                 "/Library/SystemExtensions/",
-                "/System/Library/PrivateFrameworks/",
-                homeLibraryBiomeSteams
+                "/System/Library/PrivateFrameworks/"
             ]),
+            (eventType: ES_EVENT_TYPE_NOTIFY_GETEXTATTR, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX,
+             paths: biomeStreams),
             (eventType: ES_EVENT_TYPE_NOTIFY_SETMODE, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
                 "/System/Library/PrivateFrameworks/StreamingExtractor.framework"
-            ]),
-            (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
-                "/Applications/Xcode.app/Contents/SharedFrameworks"
             ]),
             (eventType: ES_EVENT_TYPE_NOTIFY_EXIT, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
                 "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework"
@@ -202,7 +194,15 @@ public struct MuteSet {
                 "/usr/libexec/mobileassetd"
             ])
         ]
-
+        
+        if mutesXcode {
+            eventRules += [
+                (eventType: ES_EVENT_TYPE_NOTIFY_PROC_CHECK, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [xcode + "/"]),
+                (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_PREFIX,
+                 paths: [xcode + "/Contents/SharedFrameworks/"])
+            ]
+        }
+        
         if #available(macOS 14, *) {
             let sonomaRules = [
                 (ES_EVENT_TYPE_NOTIFY_XPC_CONNECT, ES_MUTE_PATH_TYPE_LITERAL, [
@@ -214,7 +214,7 @@ public struct MuteSet {
         }
         
         // MARK: - Global Mute Rules
-        let globalRules = [
+        var globalRules = [
             (pathType: ES_MUTE_PATH_TYPE_LITERAL, paths: [
                 "/usr/libexec/logd",
                 "/System/Library/CoreServices/Diagnostics Reporter.app/Contents/MacOS/Diagnostics Reporter",
@@ -226,7 +226,6 @@ public struct MuteSet {
                 "/System/Library/PrivateFrameworks/HelpData.framework/Versions/A/Resources/helpd"
             ]),
             (pathType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
-                "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain",
                 "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework"
             ]),
             (pathType: ES_MUTE_PATH_TYPE_TARGET_LITERAL, paths: [
@@ -237,55 +236,54 @@ public struct MuteSet {
             ])
         ]
         
-        return MuteSet(eventSpecificRules: eventRules, globalRules: globalRules)
-    }
-}
-
-extension MuteSet {
-    private struct EventRuleKey: Hashable {
-        let eventType: es_event_type_t
-        let muteType: es_mute_path_type_t
-    }
-    
-    private struct GlobalRule: Hashable {
-        let pathType: es_mute_path_type_t
-        let path: String
-    }
-    
-    private struct EventRule: Hashable {
-        let eventType: es_event_type_t
-        let muteType: es_mute_path_type_t
-        let path: String
-    }
-    
-    // Creates a MuteSet by grouping an array of ESMutedPath JSON strings.
-    public init(from mutedPathJSONs: [String]) {
-        let parsedPaths = mutedPathJSONs.compactMap { jsonString in
-            decodePathJSON(pathJSON: jsonString)
+        if mutesXcode {
+            globalRules.append((pathType: ES_MUTE_PATH_TYPE_PREFIX, paths: [xcodeToolchain(xcode) + "/"]))
         }
         
-        var eventSpecificBuilder = [EventRuleKey: Set<String>]()
-        var globalBuilder = [es_mute_path_type_t: Set<String>]()
-
-        for mutedPath in parsedPaths {
-            let muteType = getMuteCaseFromString(muteString: mutedPath.type)
-            if mutedPath.events.isEmpty {
-                globalBuilder[muteType, default: []].insert(mutedPath.path)
-            } else {
-                for eventString in mutedPath.events {
-                    let eventType = eventStringToType(from: eventString)
-                    let key = EventRuleKey(eventType: eventType, muteType: muteType)
-                    eventSpecificBuilder[key, default: []].insert(mutedPath.path)
-                }
-            }
+        return MuteSet(eventSpecificRules: eventRules, globalRules: globalRules)
+    }
+    
+    /// Where Xcode is installed.
+    static let xcode = "/Applications/Xcode.app"
+    
+    /// Xcode's default toolchain, whose compilers and linkers a build runs thousands of times.
+    ///
+    /// - Parameter xcode: Xcode's bundle.
+    /// - Returns: The toolchain's path.
+    static func xcodeToolchain(_ xcode: String) -> String {
+        xcode + "/Contents/Developer/Toolchains/XcodeDefault.xctoolchain"
+    }
+    
+    /// Can only `owner` change the folders Xcode's mutes cover, and the folders above them in the bundle?
+    ///
+    /// - Parameters:
+    ///   - owner: Who must own them. Root, except in tests.
+    ///   - xcode: Xcode's bundle.
+    /// - Returns: `true` if each is a directory `owner` owns, that neither its group, others, nor an access control
+    ///   entry lets anyone else change.
+    static func ownsXcode(_ owner: uid_t = 0, at xcode: String = xcode) -> Bool {
+        let folders = [xcode, xcode + "/Contents", xcode + "/Contents/SharedFrameworks", xcode + "/Contents/Developer",
+                       xcode + "/Contents/Developer/Toolchains", xcodeToolchain(xcode)]
+        return folders.allSatisfy { folder in
+            var info = stat()
+            guard lstat(folder, &info) == 0, info.st_mode & S_IFMT == S_IFDIR, info.st_uid == owner,
+                  info.st_mode & (S_IWGRP | S_IWOTH) == 0 else { return false }
+            return CommandLineToolLink.entryWriter(of: folder) == nil
         }
-
-        self.eventSpecificRules = eventSpecificBuilder.map { (key, paths) in
-            (eventType: key.eventType, muteType: key.muteType, paths: Array(paths))
-        }
-
-        self.globalRules = globalBuilder.map { (pathType, paths) in
-            (pathType: pathType, paths: Array(paths))
-        }
+    }
+    
+    /// A folder in a home folder, as a prefix rule's paths.
+    ///
+    /// The path ends in `/`: Endpoint Security matches a prefix as a string, so without it `~/Library/Caches` would
+    /// also mute `~/Library/CachesX`, a sibling the user can create.
+    ///
+    /// - Parameters:
+    ///   - relative: The folder, relative to the home folder.
+    ///   - home: The home folder, if any.
+    /// - Returns: The folder's path, ending in `/`, or nothing without a home folder or when it's too long to mute.
+    static func homePaths(_ relative: String, in home: String?) -> [String] {
+        guard let home else { return [] }
+        let path = home.appendingPathComponent(relative) + "/"
+        return path.utf8.count <= MuteLimits.maxPathBytes ? [path] : []
     }
 }

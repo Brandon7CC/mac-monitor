@@ -9,251 +9,277 @@ import SwiftUI
 import SutroESFramework
 
 
-
-struct CodeSigningDetailsView: View {
+struct SystemEventDetailsView: View {
     var selectedMessage: ESMessage
     
     var body: some View {
-        // Exec event code signing information
-        if let exec = selectedMessage.event.exec {
-            Section("**Target process signing status**") {
-                if exec.target.is_adhoc_signed {
-                    Text("  Adhoc Signed  ").background(Capsule().fill(.red).opacity(0.3)).padding(1)
-                } else if exec.target.signing_id != nil {
-                    Text("  \(exec.target.signing_id!)  ").background(Capsule().fill(.blue).opacity(0.3)).padding(1)
-                } else {
-                    Text("  Validly signed  ").background(Capsule().fill(.blue).opacity(0.3)).padding(1)
-                }
-            }.textSelection(.enabled)
+        List {
+            SystemTargetProcessView(selectedMessage: selectedMessage)
         }
     }
 }
 
 
-struct SystemEventDetailsView: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @Environment(\.openWindow) private var openEventJSON
-    
-    var selectedMessage: ESMessage
-    @State private var targetMetadataExpanded: Bool = true
-    
-    var potentialParent: ESMessage? { systemExtensionManager.coreDataContainer.findParentProc(message: selectedMessage) }
-    var procTree: [ESMessage] { systemExtensionManager.coreDataContainer.getProcTree(targetEvent: selectedMessage) }
-    
-    var body: some View {
-        List {
-            SystemTargetProcessView(selectedMessage: selectedMessage).environmentObject(systemExtensionManager)
-        }.textSelection(.enabled)
-    }
-}
-
-
 // MARK: - Event Facts tab view
+/// An event's facts, a tab at a time. The tabs sit centered in the window's title bar, leaving the window's height to
+/// the facts, whenever they fit there. When the window is too narrow, they move to the top of the facts instead: macOS
+/// would otherwise hide them in the toolbar's overflow menu.
 struct SystemEventFactsView : View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    
-    @EnvironmentObject var userPrefs: UserPrefs
-    
-    
     @Binding var allFilters: Filters
-    @State private var viewEnriched: Bool = false
     var selectedMessage: ESMessage
+    /// Is the Correlation tab showing? Then ⌘C copies the event's correlated events too.
+    @Binding var showsCorrelation: Bool
     
-    private enum EventTabs: Hashable {
-        case metadata, telemetry, enrichment, initiating, plist, script
+    /// The facts' tabs, in order. Only Metadata, Parent, and JSON are always there.
+    private enum FactsTab: String, CaseIterable, Identifiable {
+        case metadata = "Metadata", script = "Script", plist = "PLIST", correlation = "Correlation", groups = "Groups"
+        case parent = "Parent", json = "JSON"
+        
+        var id: String { rawValue }
     }
+    
+    /// The tab showing. One the event doesn't have shows Metadata instead.
+    @State private var tab: FactsTab = .metadata
+    /// The facts' width, which decides where the tabs fit.
+    @State private var width: CGFloat = 0
     
     /// Process groups:
     /// - `gid`
     /// - `session_id`
     private var procGroup: [ESMessage] {
-        systemExtensionManager.coreDataContainer.getProcGroup(message: selectedMessage)
+        CoreDataController.shared.getProcGroup(message: selectedMessage)
     }
     private var procSessionGroup: [ESMessage] {
-        systemExtensionManager.coreDataContainer
-            .getProcSessionGroup(message: selectedMessage)
+        CoreDataController.shared.getProcSessionGroup(message: selectedMessage)
     }
     
-    private var groupsEventCount: Int {
-        procGroup.count + procSessionGroup.count
+    /// The script an interpreter ran, if Mac Monitor read it.
+    private var script: (path: String, content: String)? {
+        guard let exec = selectedMessage.event.exec, let content = exec.script_content,
+              let path = exec.resolved_script_path, !content.isEmpty else { return nil }
+        return (path, content)
     }
     
-    private var groupToShow: Groups {
-        !procGroup.isEmpty ? Groups.process : Groups.session
+    /// A launch item's property list, if Mac Monitor read it.
+    private var plist: (path: String, content: String)? {
+        guard let event = selectedMessage.event.btm_launch_item_add, let plist = event.item.plist_contents,
+              !plist.isEmpty else { return nil }
+        return (event.item.item_path, plist)
     }
     
     var body: some View {
-        TabView {
-            // MARK: Event Facts tab view metadata view
-            VStack(alignment: .leading) {
-                SystemEventDetailsView(selectedMessage: selectedMessage)
+        /// One lookup each per update (they query the store each time they're read).
+        let procGroup = self.procGroup, procSessionGroup = self.procSessionGroup
+        let tabs = FactsTab.allCases.filter { tab in
+            switch tab {
+            case .script: return script != nil
+            case .plist: return plist != nil
+            /// EXEC only. The enrichment view describes the exec target,
+            /// and FORK events can have correlated events too.
+            case .correlation: return selectedMessage.event.exec != nil && selectedMessage.correlatedCount() > 1
+            case .groups: return !procSessionGroup.isEmpty || !procGroup.isEmpty
+            case .metadata, .parent, .json: return true
             }
-            .padding(.bottom)
-            .tabItem{ Text("Metadata") }
-            .tag(EventTabs.metadata)
-            
-            // MARK: Script Tab
-            if let exec = selectedMessage.event.exec,
-               let content = exec.script_content,
-               let path = exec.resolved_script_path,
-               !content.isEmpty {
-                VStack(alignment: .leading) {
-                    FileContentView(path: path, content: content)
-                }
-                .tabItem{ Text("Script") }
-                .tag(EventTabs.script)
+        }
+        let shown = tabs.contains(tab) ? tab : .metadata
+        let inTitleBar = width >= Self.titleBarWidth(tabs: tabs.count)
+        VStack(alignment: .leading, spacing: 12) {
+            if !inTitleBar {
+                picker(tabs, shown).frame(maxWidth: .infinity)
             }
-            
-            // MARK: PLIST Tab
-            if let event = selectedMessage.event.btm_launch_item_add,
-               let plist = event.item.plist_contents {
-                if !plist.isEmpty {
-                    VStack(alignment: .leading) {
-                        FileContentView(
-                            path: event.item.item_path,
-                            content: plist
-                        )
-                    }
-                    .tabItem{ Text("PLIST") }
-                    .tag(EventTabs.plist)
-                }
+            facts(shown, procGroup: procGroup, procSessionGroup: procSessionGroup)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .padding(.all)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        /// Only the newest: below macOS 26.4 a task hops to the main actor, so an older one can arrive after it.
+        .task(id: shown == .correlation) { if !Task.isCancelled { showsCorrelation = shown == .correlation } }
+        .toolbar {
+            if inTitleBar {
+                ToolbarItem(placement: .principal) { picker(tabs, shown) }
             }
-            
-            // MARK: Enrichment view
-            if selectedMessage.correlated_array.count > 1 {
-                VStack(alignment: .leading) {
-                    SystemEnrichedEventView(allFilters: $allFilters, selectedMessage: selectedMessage)
-                        .environmentObject(systemExtensionManager)
-                        .environmentObject(userPrefs)
-                }
-                .tabItem{ Text("Correlation") }
-                .tag(EventTabs.enrichment)
+        }
+    }
+    
+    /// The tabs, as a segmented control at its full width.
+    ///
+    /// - Parameters:
+    ///   - tabs: The event's tabs.
+    ///   - shown: The tab showing.
+    /// - Returns: The control.
+    private func picker(_ tabs: [FactsTab], _ shown: FactsTab) -> some View {
+        Picker("Facts", selection: Binding { shown } set: { tab = $0 }) {
+            ForEach(tabs) { Text($0.rawValue).tag($0) }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+    }
+    
+    /// The narrowest facts the title bar holds the tabs centered over. macOS 26 gives each tab about 90 points there,
+    /// and centered, they need the process button's width (up to 14 characters) clear on both sides.
+    ///
+    /// - Parameter tabs: How many tabs.
+    /// - Returns: The width, in points.
+    private static func titleBarWidth(tabs: Int) -> CGFloat {
+        310 + 90 * CGFloat(tabs)
+    }
+    
+    /// A tab's facts.
+    ///
+    /// - Parameters:
+    ///   - tab: The tab.
+    ///   - procGroup: The event's process group.
+    ///   - procSessionGroup: The event's session.
+    /// - Returns: Its view.
+    @ViewBuilder
+    private func facts(_ tab: FactsTab, procGroup: [ESMessage], procSessionGroup: [ESMessage]) -> some View {
+        switch tab {
+        case .metadata:
+            SystemEventDetailsView(selectedMessage: selectedMessage).padding(.bottom)
+        case .script:
+            if let script {
+                FileContentView(path: script.path, content: script.content,
+                                language: .of(path: script.path, content: script.content,
+                                              interpreter: selectedMessage.event.exec?.target.executable?.path))
             }
-            
-            // MARK: Process Groups
-            if !procSessionGroup.isEmpty || !procGroup.isEmpty {
-                VStack(alignment: .leading) {
-                    SystemEventGroupTableViews(
-                        allFilters: $allFilters,
-                        selectedMessage: selectedMessage,
-                        processGroup: procGroup,
-                        sessionGroup: procSessionGroup
-                    )
-                }
-                .tabItem{ Text("Groups") }
-                .tag(EventTabs.enrichment)
+        case .plist:
+            if let plist {
+                FileContentView(path: plist.path, content: plist.content,
+                                language: .of(path: plist.path, content: plist.content))
             }
-            
-            // MARK: Initating process view
-            VStack(alignment: .leading) {
-                SystemInitiatingProcessView(selectedMessage: selectedMessage)
-                    .textSelection(.enabled)
-            }
-            .tabItem{ Text("Parent") }
-            .tag(EventTabs.initiating)
-            
-            // MARK: JSON view
-            VStack(alignment: .leading) {
-                SystemEventJSONView(selectedMessage: selectedMessage)
-            }
-            .tabItem{ Text("JSON") }
-            .tag(EventTabs.telemetry)
-        }.padding(.all)
+        case .correlation:
+            SystemEnrichedEventView(allFilters: $allFilters, selectedMessage: selectedMessage)
+        case .groups:
+            SystemEventGroupTableViews(allFilters: $allFilters, selectedMessage: selectedMessage,
+                                       processGroup: procGroup, sessionGroup: procSessionGroup)
+        case .parent:
+            SystemInitiatingProcessView(selectedMessage: selectedMessage)
+                .textSelection(.enabled)
+        case .json:
+            SystemEventJSONView(selectedMessage: selectedMessage)
+        }
     }
 }
 
 
 struct AppWrapperForFacts: View {
-    @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
-    @EnvironmentObject var userPrefs: UserPrefs
-    @Environment(\.openWindow) private var openEventFacts
-    @Environment(\.managedObjectContext) var moc
     @FetchRequest var coreDataEvents: FetchedResults<ESMessage>
     
     
     @Binding var allFilters: Filters
     
     @State private var selectedEventTree: ESMessage?
+    /// Is the Correlation tab showing?
+    @State private var showsCorrelation = false
     @State private var visibility: NavigationSplitViewVisibility = .all
-    
-    var procTree: [ESMessage] {
-        if selectedEventTree != nil {
-            return systemExtensionManager.coreDataContainer.getProcTree(targetEvent: selectedEventTree!).filter({
-                /// Forks as parent
-                if userPrefs.forksAsParent {
-                    true
-                } else {
-                    $0.es_event_type != "ES_EVENT_TYPE_NOTIFY_FORK"
-                }
-            })
-        }
-        return []
-    }
+    /// Is the event gone, so the window should close?
+    @State private var isGone = false
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationSplitView(columnVisibility: $visibility) {
-            if selectedEventTree != nil {
-                // MARK: Process tree
-                List(selection: $selectedEventTree) {
-                    Text("Subtree: `\(procTree.count + 1)`")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                    Divider()
-                    ForEach(
-                        procTree.reversed(),
-                        id: \.self
-                    ) { message in
-                        if message.id != procTree.last!.id {
-                            Label("**`\(ProcessHelpers.getTargetProcessName(message: message))`**", systemImage: "arrow.turn.down.right").contextMenu {
-                                Button("Open in new window") {
-                                    openEventFacts(value: message.id)
-                                }
-                            }
-                            .foregroundStyle(.secondary)
-                        } else {
-                            Text("**`\(ProcessHelpers.getTargetProcessName(message: message))`**").contextMenu {
-                                Button("Open in new window") {
-                                    openEventFacts(value: message.id)
-                                }
-                            }
-                            .foregroundStyle(.secondary)
-                        }
-                    }
-                    Label("**`\(ProcessHelpers.getTargetProcessName(message: selectedEventTree!))`**", systemImage: "scope").disabled(true)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            // MARK: Process tree
+            ProcessLineageSidebar(selection: $selectedEventTree)
         } detail: {
             if let tree = selectedEventTree {
-                SystemEventFactsView(allFilters: $allFilters, selectedMessage: tree)
-                    .environmentObject(systemExtensionManager)
-                    .environmentObject(userPrefs)
+                SystemEventFactsView(allFilters: $allFilters, selectedMessage: tree,
+                                     showsCorrelation: $showsCorrelation)
             } else {
                 Text("No event selected")
             }
         }
+        /// An event that's gone closes its window. On macOS 13 `dismiss()` may not close a WindowGroup's window, so
+        /// ``WindowCloser`` closes it too.
         .onAppear {
-            self.selectedEventTree = coreDataEvents.first
-            if selectedEventTree == nil {
-                _ = NSApplication.shared.windows.filter({ $0.title.contains("Event Facts")}).map({ $0.close() })
-            }
-        }.toolbar {
-            if let firstMessage = coreDataEvents.first,
-               let tree = selectedEventTree {
-                Button(action: {
-                    self.selectedEventTree = firstMessage
-                }, label: {
-                    Label("`\(ProcessHelpers.getTargetProcessName(message: firstMessage).prefix(14))`", systemImage: "scope")
-                        .labelStyle(.titleAndIcon)
-                }).disabled(selectedEventTree != nil && firstMessage.id != tree.id ? false : true)
+            selectedEventTree = coreDataEvents.first
+            guard selectedEventTree == nil else { return }
+            isGone = true
+            dismiss()
+        }
+        .background(WindowCloser(isClosing: isGone))
+        /// Clear deletes the events (and processes) this window shows, or takes their store away: let go of them first,
+        /// the fetch too, which would otherwise keep an event whose store is gone and raise when it's next read.
+        .onReceive(NotificationCenter.default.publisher(for: CoreDataController.eventsWillClear)) { _ in
+            selectedEventTree = nil
+            coreDataEvents.nsPredicate = NSPredicate(value: false)
+        }
+        .toolbar {
+            /// The selection first: after a Clear there's none, and the fetch isn't read.
+            if let tree = selectedEventTree,
+               let firstMessage = coreDataEvents.first {
+                ToolbarItem(placement: .navigation) {
+                    Button { selectedEventTree = firstMessage } label: {
+                        Label("`\(ProcessHelpers.getTargetProcessName(message: firstMessage).prefix(14))`",
+                              systemImage: "scope")
+                            .labelStyle(.titleAndIcon)
+                    }.disabled(firstMessage.id == tree.id)
+                }
             }
         }
-        .preferredColorScheme(userPrefs.forcedDarkMode ? .dark : nil)
+        .modifier(NoWindowTitle())
+        /// ⌘C copies the event's JSON, unless text is selected, which the text copies first. On the Correlation tab
+        /// it copies the event's correlated events after it, oldest first, as Export telemetry writes them.
+        .onCopyCommand {
+            guard let tree = selectedEventTree else { return [] }
+            let events = showsCorrelation ? [tree] + tree.correlated_array.reversed() : [tree]
+            guard events.count <= EventTableView.copyLimit else {
+                let alert = NSAlert()
+                alert.messageText = "Too many events to copy"
+                alert.informativeText = "⌘C copies up to \(EventTableView.copyLimit.formatted()) events, and this "
+                    + "event and its correlated events are \(events.count.formatted())."
+                alert.runModal()
+                return []
+            }
+            let json = events.map { ProcessHelpers.eventToJSON(value: $0, pretty: true) }.joined(separator: "\n")
+            return [NSItemProvider(object: json as NSString)]
+        }
     }
     
     
     init(id: UUID, allFilters: Binding<Filters>) {
         _coreDataEvents = FetchRequest<ESMessage>(sortDescriptors: [], predicate: NSPredicate(format: "id == %@", id as CVarArg))
         _allFilters = allFilters
+    }
+}
+
+
+/// Closes the window it's in once ``isClosing`` is true, as soon as it's in one.
+private struct WindowCloser: NSViewRepresentable {
+    let isClosing: Bool
+
+    func makeNSView(context: Context) -> CloserView { CloserView() }
+
+    func updateNSView(_ view: CloserView, context: Context) {
+        view.isClosing = isClosing
+        view.closeIfAsked()
+    }
+
+    final class CloserView: NSView {
+        var isClosing = false
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            closeIfAsked()
+        }
+
+        /// Close the window after this update. Closing one `dismiss()` already closed does nothing.
+        func closeIfAsked() {
+            guard isClosing, let window else { return }
+            DispatchQueue.main.async { [weak window] in window?.close() }
+        }
+    }
+}
+
+
+/// Leaves the window's title out of its toolbar, giving the facts' tabs its room (macOS 15+). The process button
+/// names the process, and the Window menu still lists the window as Event Facts.
+private struct NoWindowTitle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 15, *) {
+            content.toolbar(removing: .title)
+        } else {
+            content
+        }
     }
 }

@@ -11,6 +11,8 @@ import OSLog
 
 
 // MARK: Non-exec Context menu
+/// The right-click menu of a non-exec event in the SwiftUI tables. While a trace is open, mute and unsubscribe are left
+/// out (``AdvancedNonExecContextMenu``), and so is "Advanced" if that leaves it empty.
 struct TableNonExecContextMenus: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @Environment(\.openWindow) private var openEventJSON
@@ -19,6 +21,12 @@ struct TableNonExecContextMenus: View {
     @Binding var allFilters: Filters
     
     var message: ESMessage
+    
+    /// Does "Advanced" have items: always while recording, and for a trace only "Filter target path".
+    private var showsAdvanced: Bool {
+        !systemExtensionManager.coreDataContainer.isShowingTrace
+            || (userPrefs.contextTargetPathFilter && !(message.target_path ?? "").isEmpty)
+    }
     
     var body: some View {
         Group {
@@ -48,10 +56,10 @@ struct TableNonExecContextMenus: View {
         // MARK: - Filter ES event
         // @note non-optional
         Button(action: {
-            allFilters.events.append(message.es_event_type!)
+            allFilters.events.append(contentsOf: [message.es_event_type].compactMap { $0 })
         }) {
             HStack {
-                Text("Filter event: \"`\(message.es_event_type!)`\"")
+                Text("Filter event: \"`\(message.es_event_type ?? "")`\"")
             }
         }
         
@@ -100,17 +108,21 @@ struct TableNonExecContextMenus: View {
         
         
         
-        Divider()
-        // MARK: - Advanced
-        
-        Text("**Advanced**")
-        AdvancedNonExecContextMenu(allFilters: $allFilters, event: message)
-            .environmentObject(userPrefs)
+        if showsAdvanced {
+            Divider()
+            // MARK: - Advanced
+            
+            Text("**Advanced**")
+            AdvancedNonExecContextMenu(allFilters: $allFilters, event: message)
+                .environmentObject(userPrefs)
+        }
     }
 }
 
 
 
+/// The "Advanced" items of ``TableNonExecContextMenus``. Muting and unsubscribing change what the Security Extension
+/// records, so they're left out while a trace is open.
 struct AdvancedNonExecContextMenu: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @EnvironmentObject var userPrefs: UserPrefs
@@ -120,12 +132,15 @@ struct AdvancedNonExecContextMenu: View {
     
     var event: ESMessage
     
+    /// Was the event recorded on this Mac (rather than read from a trace)?
+    private var isRecorded: Bool { !systemExtensionManager.coreDataContainer.isShowingTrace }
+    
     var body: some View {
         // MARK: Filter target path
         if userPrefs.contextTargetPathFilter && event.target_path != nil && !event.target_path!.isEmpty {
-            if IntelligentEventTargeting.targetShouldBeParentDir(esEventType: event.es_event_type!) {
+            if IntelligentEventTargeting.targetShouldBeParentDir(esEventType: event.es_event_type ?? "") {
                 let targetPath: String = event.target_path ?? ""
-                let parentDir = URL(fileURLWithPath: targetPath).deletingLastPathComponent().path
+                let parentDir = targetPath.deletingLastPathComponent
                 Button(action: {
                     allFilters.targetPaths.append(parentDir)
                 }) {
@@ -141,7 +156,7 @@ struct AdvancedNonExecContextMenu: View {
             
         }
         
-        if userPrefs.contextInitiatingPathMute {
+        if isRecorded && userPrefs.contextInitiatingPathMute {
             Button(
 action: {
                 // Mute the binaries initiating process path globally (for all events)
@@ -149,9 +164,9 @@ action: {
         .puntPathToMute(
             pathToMute: event.process.executable?.path ?? "",
             muteCase:  ES_MUTE_PATH_TYPE_LITERAL,
-            pathEvents: []
+            pathEvents: [],
+            from: .eventMenu
         )
-                systemExtensionManager.requestMutedPaths()
             }) {
                 HStack {
                     Text(
@@ -162,23 +177,26 @@ action: {
         }
         
         Group {
-            if userPrefs.contextTargetPathMute && event.target_path != nil && !event.target_path!.isEmpty {
+            if isRecorded && userPrefs.contextTargetPathMute
+                && event.target_path != nil && !event.target_path!.isEmpty {
                 // MARK: Target path parent dir
-                if IntelligentEventTargeting.targetShouldBeParentDir(esEventType: event.es_event_type!) {
+                if IntelligentEventTargeting.targetShouldBeParentDir(esEventType: event.es_event_type ?? "") {
                     let targetPath: String = event.target_path ?? ""
-                    let parentDir = URL(fileURLWithPath: targetPath).deletingLastPathComponent().path
+                    let parentDir = targetPath.deletingLastPathComponent
                     Button(action: {
                         // Mute the target path's parent directory for the specified event
-                        systemExtensionManager.puntPathToMute(pathToMute: parentDir, muteCase:  ES_MUTE_PATH_TYPE_TARGET_PREFIX, pathEvents: [event.es_event_type!])
-                        systemExtensionManager.requestMutedPaths()
+                        systemExtensionManager.puntPathToMute(pathToMute: parentDir,
+                                                              muteCase: ES_MUTE_PATH_TYPE_TARGET_PREFIX,
+                                                              pathEvents: [event.es_event_type ?? ""], from: .eventMenu)
                     }) {
                         Text("Mute target path event: \"\(parentDir)/\"")
                     }
                 } else {
                     Button(action: {
                         // Mute the target path's parent directory for the specified event
-                        systemExtensionManager.puntPathToMute(pathToMute: event.target_path!, muteCase:  ES_MUTE_PATH_TYPE_TARGET_LITERAL, pathEvents: [event.es_event_type!])
-                        systemExtensionManager.requestMutedPaths()
+                        systemExtensionManager.puntPathToMute(pathToMute: event.target_path!,
+                                                              muteCase: ES_MUTE_PATH_TYPE_TARGET_LITERAL,
+                                                              pathEvents: [event.es_event_type ?? ""], from: .eventMenu)
                     }) {
                         HStack {
                             Text("Mute target path event: \"`\(event.target_path!)`/\"")
@@ -188,14 +206,14 @@ action: {
             }
         }
         
-        if userPrefs.contextEventUnsubscribe {
+        if isRecorded && userPrefs.contextEventUnsubscribe {
             Button(action: {
-                os_log("Requesting ES unsubscribe from: \(event.es_event_type!)")
+                os_log("Requesting ES unsubscribe from: \(event.es_event_type ?? "")")
                 // Mute the binaries initiating process path globally (for all events)
-                systemExtensionManager.puntEventToUnsubscribe(eventString: event.es_event_type!)
+                systemExtensionManager.setSubscription(event.es_event_type ?? "", enabled: false)
             }) {
                 HStack {
-                    Text("Unsubscribe: \"`\(event.es_event_type!)`\"")
+                    Text("Unsubscribe: \"`\(event.es_event_type ?? "")`\"")
                 }
             }
         }

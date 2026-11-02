@@ -10,9 +10,17 @@ import Foundation
 import CoreData
 
 @objc(ESAuthorizationPetitionEvent)
-public class ESAuthorizationPetitionEvent: NSManagedObject {
+public class ESAuthorizationPetitionEvent: NSManagedObject, Identifiable {
+    @NSManaged public var instigator: ESProcess?
+    @NSManaged public var petitioner: ESProcess?
+    @NSManaged public var flags: Int64
+    @NSManaged public var flagsData: Data?
+    @NSManaged public var right_count: Int32
+    @NSManaged public var rightsData: Data?
+    @NSManaged public var instigator_token: ESAuditToken?
+    @NSManaged public var petitioner_token: ESAuditToken?
+
     enum CodingKeys: CodingKey {
-        case id
         case instigator
         case petitioner
         case flags
@@ -44,42 +52,19 @@ public class ESAuthorizationPetitionEvent: NSManagedObject {
         }
     }
     
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: AuthorizationPetitionEvent = message.event.authorization_petition!
-        let description = NSEntityDescription.entity(forEntityName: "ESAuthorizationPetitionEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = event.id
+    convenience init(from event: AuthorizationPetitionEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        if let instigator = event.instigator,
-           let instigator_token = event.instigator_token {
-            self.instigator = ESProcess(
-                from: instigator,
-                version: message.version,
-                insertIntoManagedObjectContext: context
-            )
-            
-            self.instigator_token = ESAuditToken(
-                from: instigator_token,
-                insertIntoManagedObjectContext: context
-            )
-        }
-        
-        if let petitioner = event.petitioner,
-           let petitioner_token = event.petitioner_token {
-            self.petitioner = ESProcess(
-                from: petitioner,
-                version: message.version,
-                insertIntoManagedObjectContext: context
-            )
-            
-            self.petitioner_token = ESAuditToken(
-                from: petitioner_token,
-                insertIntoManagedObjectContext: context
-            )
-        }
+        /// Each process and token on its own: Endpoint Security can leave out a process (`NULL`) and still give its
+        /// token, and before message version 8 gives the processes without tokens.
+        self.instigator = ESProcess.insert(event.instigator, version: message.version, in: context)
+        self.instigator_token = ESAuditToken.insert(event.instigator_token, in: context)
+        self.petitioner = ESProcess.insert(event.petitioner, version: message.version, in: context)
+        self.petitioner_token = ESAuditToken.insert(event.petitioner_token, in: context)
         
         self.flags = event.flags
         self.flags_array = event.flags_array
+        self.right_count = event.right_count
         self.rights = event.rights
     }
 }

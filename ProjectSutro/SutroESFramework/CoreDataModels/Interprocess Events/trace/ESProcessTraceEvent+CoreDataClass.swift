@@ -10,21 +10,18 @@ import Foundation
 import CoreData
 
 @objc(ESProcessTraceEvent)
-public class ESProcessTraceEvent: NSManagedObject {
-    
+public class ESProcessTraceEvent: NSManagedObject, Identifiable {
+    @NSManaged public var target: ESProcess
+
     enum CodingKeys: CodingKey {
-        case id
         case target
     }
     
     // MARK: - Custom Core Data initilizer for ESProcessTraceEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let traceEvent: ProcessTraceEvent = message.event.trace!
-        let description = NSEntityDescription.entity(forEntityName: "ESProcessTraceEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = traceEvent.id
+    convenience init(from event: ProcessTraceEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
 
-        self.target = ESProcess(from: traceEvent.target, version: message.version, insertIntoManagedObjectContext: context)
+        self.target = ESProcess(from: event.target, version: message.version, insertIntoManagedObjectContext: context)
     }
 }
 

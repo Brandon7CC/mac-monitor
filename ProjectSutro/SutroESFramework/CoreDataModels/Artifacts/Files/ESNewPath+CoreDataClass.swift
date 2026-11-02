@@ -10,9 +10,13 @@ import CoreData
 
 
 @objc(ESNewPath)
-public class ESNewPath: NSManagedObject {
+public class ESNewPath: NSManagedObject, Identifiable {
+    @NSManaged public var filename: String?
+    /// A create event's `mode_t`. A rename's new path has none (`nil`), and eslogger writes no `mode` for it.
+    @NSManaged public var mode: NSNumber?
+    @NSManaged public var dir: ESFile?
+
     enum CodingKeys: CodingKey {
-        case id
         case dir
         case filename
         case mode
@@ -23,33 +27,27 @@ public class ESNewPath: NSManagedObject {
         from newPath: NewPath,
         insertIntoManagedObjectContext context: NSManagedObjectContext!
     ) {
-        let description = NSEntityDescription.entity(forEntityName: "ESNewPath", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = newPath.id
+        self.init(insertingInto: context)
         
-        self.dir = ESFile(from: newPath.dir, insertIntoManagedObjectContext: context)
+        attach(ESFile.row(for: newPath.dir, in: context), to: #keyPath(ESNewPath.dir))
         self.filename = newPath.filename
-        if let mode = newPath.mode {
-            self.mode = Int32(mode)
-        }
+        self.mode = newPath.mode.map { NSNumber(value: Int32(truncatingIfNeeded: $0)) }
     }
 }
 
 // MARK: - Encodable conformance and helper
 extension ESNewPath: Encodable {
+    /// Encode the new path with its directory, loading the directory if it isn't loaded yet.
+    ///
+    /// v2.0.0 through v2.1.0 wrote `dir` only when it was already loaded, which in an export it rarely was. `mode` is
+    /// written only for a create event's new path: a rename's has none, and v2.0.0 through v2.1.0 wrote 0 for it.
+    ///
+    /// - Parameter encoder: The encoder.
+    /// - Throws: The encoder's error.
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        
-        willAccessValue(forKey: "dir")
-        defer { didAccessValue(forKey: "dir") }
-        
-        if let dirValue = primitiveValue(forKey: "dir"),
-           let dirFile = dirValue as? ESFile,
-           !dirFile.isFault {
-            try container.encode(dirFile, forKey: .dir)
-        }
-        
+        try container.encode(dir, forKey: .dir)
         try container.encode(filename, forKey: .filename)
-        try container.encodeIfPresent(mode, forKey: .mode)
+        try container.encodeIfPresent(mode?.int32Value, forKey: .mode)
     }
 }

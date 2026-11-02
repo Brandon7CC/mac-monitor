@@ -11,38 +11,44 @@ import OSLog
 
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_login_login_t
-public struct LoginLoginEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+public struct LoginLoginEvent: Codable, IdentityHashable {
+    public var id: UUID = UUID.buffered()
     
     public var succcess, has_uid: Bool
-    public var username, uid_human: String
+    public var username: String
+    public var uid_human = ""
     public var failure_message: String?
-    public var uid: Int64
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: LoginLoginEvent, rhs: LoginLoginEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
+    /// The user's ID: `nil` (eslogger's `null`) without one.
+    public var uid: Int64?
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let loginLoginEvent: es_event_login_login_t = rawMessage.pointee.event.login_login.pointee
     
         self.succcess = loginLoginEvent.success
-        if !loginLoginEvent.success &&  loginLoginEvent.failure_message.length > 0 {
-            self.failure_message = String(cString: loginLoginEvent.failure_message.data)
-        }
+        /// Optional: `nil` (eslogger's `null`) without one. Read whatever `success` says, as eslogger reads it.
+        self.failure_message = loginLoginEvent.failure_message.string
         
-        self.username = String(cString: loginLoginEvent.username.data)
+        self.username = loginLoginEvent.username.string ?? ""
         self.has_uid = loginLoginEvent.has_uid
-        if loginLoginEvent.has_uid {
-            self.uid = Int64(loginLoginEvent.uid.uid)
-            self.uid_human = String(cString: getpwuid(uid_t(loginLoginEvent.uid.uid))!.pointee.pw_name)
-        } else {
-            self.uid = -1
-            self.uid_human = "Unknown"
+        self.uid = loginLoginEvent.has_uid ? Int64(loginLoginEvent.uid.uid) : nil
+        enrich()
+        /// Any user this Mac knows, read afresh: a login can be a new user's first. A uid it doesn't (a directory user
+        /// while the directory is offline, a deleted account) keeps the name ``enrich()`` gave it.
+        if let uid, let name = Process.userName(Int(uid), systemAccountsOnly: false, remembered: false) {
+            self.uid_human = name
         }
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension LoginLoginEvent: ESEnrichable {
+    /// Derive `has_uid`, which eslogger doesn't write (there's a uid exactly when it's set), and the user's name if
+    /// it's a system account, or "Unknown" without a user ID.
+    ///
+    /// Not derived: the names of other users (read from this Mac).
+    public mutating func enrich() {
+        has_uid = uid != nil
+        uid_human = uid.map { Process.userName(Int($0), systemAccountsOnly: true) ?? uid_human } ?? "Unknown"
     }
 }

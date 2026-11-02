@@ -8,6 +8,7 @@
 import Foundation
 import CoreData
 import OSLog
+import os
 import AppKit
 import UniformTypeIdentifiers
 
@@ -17,7 +18,7 @@ import UniformTypeIdentifiers
 ///
 public class CoreDataController {
     public static let shared = CoreDataController()
-    private static let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "CoreDataController")
+    static let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "CoreDataController")
     
     /// Main context
     ///
@@ -28,407 +29,368 @@ public class CoreDataController {
     /// Background context
     ///
     /// Designed for asyncronous operations like batch inserting.
-    private let privateMOC: NSManagedObjectContext
+    let privateMOC: NSManagedObjectContext
     
-
-
-    /// Set up the in-memory Core Data PSC named: `SystemEvents`
-    init() {
-        container = NSPersistentContainer(name: "SystemEvents")
-        container.persistentStoreDescriptions[0].url = URL(fileURLWithPath: "/dev/null")
-        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
-            if let error = error as NSError? {
-                CoreDataController.logger.error("Unable to create the Core Data PSC \(error)!")
-            }
-        })
+    /// The rows `privateMOC`'s events share: one `ESProcess` (with its tokens and files) per process rather than one
+    /// per event, and one `ESFile` per file and stat (#84). Kept in `privateMOC.userInfo`. Only touched on its queue.
+    private let rowCaches = EventRowCaches()
+    
+    /// Where the event store lives: a SQLite file in Mac Monitor's caches folder, or `nil` if it couldn't be set up
+    /// there and events are kept in memory instead.
+    ///
+    /// Events used to live in an in-memory store (`/dev/null`), so a long trace could exhaust memory (#84). On disk,
+    /// only SQLite's page cache and the objects being shown stay in memory, and the trace is bounded by disk space,
+    /// like Process Monitor's backing file. It's still one trace per launch, and each running copy of Mac Monitor has
+    /// its own: the file is deleted at quit (or, after a crash, at the next launch).
+    public var storeURL: URL? { storeFile?.url }
+    private let storeFile: EventStoreFile?
+    
+    /// Can events be saved? Not without a store (a save or batch delete would raise an exception Swift can't catch),
+    /// and not once Mac Monitor is quitting and the store's files are gone (Core Data would make a new, empty store).
+    let canSave: OSAllocatedUnfairLock<Bool>
+    
+    /// Set up the on-disk Core Data PSC named: `SystemEvents`, starting from an empty store.
+    ///
+    /// - Parameter model: The events' model: the framework's (``ExportEncoder/model``) unless given. Mac Monitor stops
+    ///   at launch without it.
+    init(model: NSManagedObjectModel = ExportEncoder.model!) {
+        container = NSPersistentContainer(name: "SystemEvents", managedObjectModel: model)
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.swiftlydetecting.SutroESFramework",
+                                    isDirectory: true)
+        storeFile = EventStoreFile(in: caches)
+        
+        let description = container.persistentStoreDescriptions[0]
+        /// The store is thrown away at every launch, so fsync-level durability buys nothing and would slow every
+        /// insert.
+        description.setOption(["synchronous": "OFF"] as NSDictionary, forKey: NSSQLitePragmasOption)
+        if let storeURL = storeFile?.url {
+            description.url = storeURL
+            Self.loadStores(of: container)
+            Self.dropUnusedIndexes(at: storeURL, in: container.persistentStoreCoordinator)
+        }
+        /// A store in memory, as before #84, beats no store at all.
+        if container.persistentStoreCoordinator.persistentStores.isEmpty {
+            CoreDataController.logger.fault("Unable to keep events on disk; keeping them in memory instead")
+            description.url = URL(fileURLWithPath: "/dev/null")
+            Self.loadStores(of: container)
+        }
+        canSave = OSAllocatedUnfairLock(initialState: !container.persistentStoreCoordinator.persistentStores.isEmpty)
         
         container.viewContext.automaticallyMergesChangesFromParent = true
         
         // New background context to handle off-main thread tasks
         privateMOC = container.newBackgroundContext()
         privateMOC.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-        privateMOC.retainsRegisteredObjects = true
+        /// Don't keep every inserted object alive: `insertSystemEvents` resets the context after each save.
+        privateMOC.retainsRegisteredObjects = false
+        privateMOC.performAndWait { privateMOC.userInfo[EventRowCaches.userInfoKey] = rowCaches }
         
+        /// Give the disk space back when Mac Monitor quits, after stopping any export still reading the store. (A crash
+        /// leaves the files for the next launch to delete.)
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil,
+                                               queue: nil) { [storeFile, exports, canSave] _ in
+            let running = exports.withLock { $0.values.map(\.exporter) }
+            running.forEach { $0.cancel() }
+            running.forEach { $0.waitUntilIdle() }
+            canSave.withLock { $0 = false }
+            storeFile?.delete()
+        }
+    }
+    
+    /// Load `container`'s store, logging a failure.
+    ///
+    /// - Parameter container: The container to load.
+    private static func loadStores(of container: NSPersistentContainer) {
+        container.loadPersistentStores { _, error in
+            if let error = error as NSError? {
+                CoreDataController.logger.error("Unable to create the Core Data PSC \(error)!")
+            }
+        }
     }
     
     // MARK: - Mutators
     
-    /// Inserts a batch of system events into the private context efficiently with optimized, two-pass correlation.
+    /// Posted (on the private context's queue) after each batch of events is saved. `userInfo[insertedObjectIDsKey]`
+    /// holds the permanent `NSManagedObjectID`s of the new `ESMessage`s, in insert order, and
+    /// `userInfo[insertBatchKey]` the `Int64` stamped on them as ``ESMessage/insert_batch``. Batches count up from 1
+    /// and are posted in order.
+    public static let eventsInserted = Notification.Name("com.swiftlydetecting.agent.eventsInserted")
+    public static let insertedObjectIDsKey = "insertedObjectIDs"
+    public static let insertBatchKey = "insertBatch"
+    
+    /// Posted on the calling thread (the main thread) by ``clearSystemEvents(source:)`` before anything is deleted.
+    /// Views must let go of every event (and anything reached through one) right away: the delete starts on the next
+    /// turn of the run loop.
+    public static let eventsWillClear = Notification.Name("com.swiftlydetecting.agent.eventsWillClear")
+    
+    /// Posted on the main thread once ``clearSystemEvents(source:)`` has deleted everything, so views can load events
+    /// again.
+    public static let eventsDidClear = Notification.Name("com.swiftlydetecting.agent.eventsDidClear")
+    
+    /// Is a Clear deleting events right now (between ``eventsWillClear`` and ``eventsDidClear``)? Main thread only.
+    public var isClearing: Bool { clearsInProgress > 0 }
+    private var clearsInProgress = 0
+    
+    /// The last ``ESMessage/insert_batch`` saved (0 before the first save). Readable from any thread, so a reader that
+    /// starts following ``eventsInserted`` mid-trace knows which batches it missed.
+    public var lastInsertBatch: Int64 { savedBatch.withLock { $0 } }
+    /// Internal so a trace's pipelined save (``saveTraceEvents(_:clear:completion:)``) can set it.
+    let savedBatch = OSAllocatedUnfairLock(initialState: Int64(0))
+    
+    /// Events inserted but not yet saved. Normally just the current batch. After a failed save the earlier events stay
+    /// here and are saved (and announced) with the next batch. Only touched on `privateMOC`'s queue.
+    private var unsavedEvents: [ESMessage] = []
+    
+    /// The most events kept for another try after failed saves. Past this, saves are failing for good (the disk is
+    /// full) and the events are dropped, rather than kept in memory until Mac Monitor runs out of it (#84).
+    private static let maxUnsavedEvents = 20_000
+    
+    /// Recorded events that happened before this are discarded on insert. Set by ``clearSystemEvents(source:)`` so
+    /// events recorded before a Clear, but still on their way from the Security Extension, can't refill the table.
+    /// While a trace is open it's `.distantFuture`, so no recorded event mixes into the trace. Only touched on
+    /// `privateMOC`'s queue.
     ///
-    /// 1.  **Pre-fetch & First Pass (Create):** It collects all parent audit tokens from the incoming batch and
-    ///     performs a single fetch to get known parent processes (`EXEC` or `FORK` events) from the database.
-    ///     It then creates all `ESMessage` objects for the current batch, adding new parent-candidate events
-    ///     to a temporary lookup dictionary. This handles cases where a parent and child are in the same batch.
-    /// 2.  **Second Pass (Correlate):** It iterates through the newly created events and finds the parent for each
-    ///     by checking the temporary dictionary first, then the pre-fetched dictionary. This establishes the relationship.
+    /// Wall-clock time, not `mach_time`: under Rosetta this process's `mach_absolute_time()` uses a different timebase
+    /// than the (native) Security Extension's, so the two can't be compared.
+    private var discardBefore: Date = .distantPast
+    
+    /// Where the events in the store come from.
+    public enum EventSource: Equatable {
+        /// Recorded by the Security Extension.
+        case live
+        /// Read from a trace file (File > Open Trace...).
+        case trace(URL)
+    }
+    
+    /// Where the events in the store come from. Set by ``clearSystemEvents(source:)``. Main thread only.
+    public private(set) var source: EventSource = .live
+    
+    /// Clears requested so far. Main thread only.
+    private var clearsRequested = 0
+    /// The last Clear to reach `privateMOC`. A trace's inserts carry the Clear that opened it, so a trace that has
+    /// since been closed or replaced can't add to the store. Only touched on `privateMOC`'s queue. Internal so
+    /// ``saveTraceEvents(_:clear:completion:)`` can check it.
+    var currentClear = 0
+    
+    /// The ``ESMessage/insert_order`` of the next event inserted. Only touched on `privateMOC`'s queue. Internal so
+    /// ``saveTraceEvents(_:clear:completion:)`` can advance it.
+    var nextInsertOrder: Int64 = 0
+    
+    /// The trace being read, stopped by the next Clear. Main thread only.
+    weak var currentImport: TraceImporter?
+    
+    /// Keeps a trace's batch builds (``TraceInsertPipeline``) out while a Clear takes the store away.
+    let traceBuildGate = TraceBuildGate()
+    
+    /// Inserts a batch of system events into the private context in a single background transaction.
     ///
-    /// The entire operation, including one final save, is performed in a single background transaction.
+    /// Each event records the audit token of the process that instigated it and, for `EXEC` and `FORK`, the token of
+    /// the process it created. ``ESMessage/correlated_array`` uses those (indexed) to find a process's events when
+    /// they're viewed, so inserting never has to look up or modify a parent (#84).
+    ///
+    /// Events of the same process share one `ESProcess` row (with its audit tokens, executable, tty, and stats), and
+    /// equal files share one `ESFile` (see ``EventRowCaches``): about 3 events per process, each of which used to store
+    /// its own copy. Each event keeps the process `id` it exports.
+    ///
+    /// After a successful save the context is reset so it doesn't accumulate every event ever inserted. On failure the
+    /// objects are kept and retried with the next batch's save rather than lost (up to 20,000 events).
+    ///
+    /// Recorded events that happened before the last Clear are discarded, and while a trace is open every recorded
+    /// event is (see ``clearSystemEvents(source:)``).
     ///
     ///  - Parameters:
     ///    - messages: An array of system events (`Message`) to insert.
+    ///    - completion: Called on the private context's queue once the batch has been saved (or failed to save).
+    ///      ``EndpointSecurityManager`` uses it to acknowledge XPC batches, which is what gives the Security Extension
+    ///      back-pressure when inserts fall behind.
     ///
-    public func insertSystemEvents(messages: [Message]) {
-        guard !messages.isEmpty else { return }
+    public func insertSystemEvents(messages: [Message], completion: @escaping () -> Void = {}) {
+        insert(messages, keeping: { $0.message_darwin_time >= self.discardBefore }) { _ in completion() }
+    }
+    
+    /// Inserts a batch of events read from a trace file (see ``TraceImporter``), however long ago they happened.
+    ///
+    /// A batch that fails to save is dropped rather than retried with the next save: the trace can be read again, and
+    /// the store then holds exactly the events reported saved.
+    ///
+    /// - Parameters:
+    ///   - messages: The events, in file order.
+    ///   - clear: The Clear that opened the trace (``clearSystemEvents(source:)``). Once another Clear has run the
+    ///     trace is gone, and the batch is dropped.
+    ///   - completion: Called on the private context's queue with whether the batch was saved.
+    func insertTraceEvents(_ messages: [Message], clear: Int, completion: @escaping (Bool) -> Void) {
+        insert(messages, keeping: { _ in clear == self.currentClear }) { saved in
+            if !saved { self.discardUnsavedEvents() }
+            completion(saved)
+        }
+    }
+    
+    /// Insert the events `keep` accepts in a single background transaction, save, and announce them
+    /// (``eventsInserted``).
+    ///
+    /// - Parameters:
+    ///   - messages: The events.
+    ///   - keep: Decides, on the private context's queue, which events to store.
+    ///   - completion: Called on the private context's queue with whether the batch was saved (`true` when nothing
+    ///     needed saving).
+    private func insert(_ messages: [Message], keeping keep: @escaping (Message) -> Bool,
+                        completion: @escaping (Bool) -> Void) {
+        guard !messages.isEmpty else { return completion(true) }
         
         privateMOC.perform {
             let context = self.privateMOC
+            var saved = false
+            defer { completion(saved) }
             
-            // 1. Collect all parent audit tokens from the incoming batch.
-            // The parent of an event is the process that instigated it.
-            let parentAuditTokens = Set(messages.map { $0.process.audit_token_string })
+            guard self.canSave.withLock({ $0 }) else { return }
+            let batch = self.lastInsertBatch + 1
+            for message in messages where keep(message) {
+                self.unsavedEvents.append(ESMessage(storing: message, order: self.nextInsertOrder, in: context))
+                self.nextInsertOrder += 1
+            }
             
-            // 2. Pre-fetch all potential parents (EXEC and FORK events) from the persistent store.
-            let request = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-            request.predicate = NSPredicate(
-                format: "(event.exec != NULL AND event.exec.target.audit_token_string IN %@) OR (event.fork != NULL AND event.fork.child.audit_token_string IN %@)",
-                parentAuditTokens, parentAuditTokens
-            )
-            request.returnsObjectsAsFaults = false
-            
-            var persistentParentLookup: [String: ESMessage] = [:]
+            guard context.hasChanges else { saved = true; return }
+            self.unsavedEvents.forEach { $0.insert_batch = batch }
             do {
-                let potentialParents = try context.fetch(request)
-                for parent in potentialParents {
-                    if let token = parent.event.exec?.target.audit_token_string {
-                        persistentParentLookup[token] = parent
-                    } else if let token = parent.event.fork?.child.audit_token_string {
-                        persistentParentLookup[token] = parent
-                    }
-                }
+                try context.save()
+                saved = true
+                let insertedIDs = self.unsavedEvents.map(\.objectID)
+                self.savedBatch.withLock { $0 = batch }
+                self.unsavedEvents = []
+                /// Before the reset: the shared rows are kept by their (now permanent) IDs.
+                self.rowCaches.didSave()
+                context.reset()
+                NotificationCenter.default.post(name: Self.eventsInserted, object: self, userInfo: [
+                    Self.insertedObjectIDsKey: insertedIDs, Self.insertBatchKey: batch
+                ])
             } catch {
-                CoreDataController.logger.error("Failed to pre-fetch parent processes for correlation: \(error)")
-            }
-            
-            // 3. First Pass: Create all new objects and populate a temporary lookup for intra-batch correlation.
-            var newMessages: [ESMessage] = []
-            var newParentLookup: [String: ESMessage] = [:]
-            
-            for message in messages {
-                let systemESMessage = ESMessage(from: message, insertIntoManagedObjectContext: context)
-                newMessages.append(systemESMessage)
-                
-                // If the new event is itself a process-creating event, add it to our temporary lookup.
-                if let token = systemESMessage.event.exec?.target.audit_token_string {
-                    newParentLookup[token] = systemESMessage
-                } else if let token = systemESMessage.event.fork?.child.audit_token_string {
-                    newParentLookup[token] = systemESMessage
-                }
-            }
-            
-            // 4. Second Pass: Correlate using the combined lookups.
-            for esMessage in newMessages {
-                let parentToken = esMessage.process.audit_token_string
-                
-                // Find parent in the current batch first, then fall back to the persistent store.
-                if let parent = newParentLookup[parentToken] ?? persistentParentLookup[parentToken] {
-                    // Avoid self-correlation
-                    if parent.objectID != esMessage.objectID {
-                        parent.addToCorrelated_events(esMessage)
-                    }
-                }
-            }
-            
-            // 5. Save the context once after all modifications are complete.
-            if context.hasChanges {
-                do {
-                    try context.save()
-                } catch {
-                    CoreDataController.logger.error("Error saving context after batch insert: \(error.localizedDescription)")
-                }
+                /// The unsaved rows are still retried with the next save (or dropped with their events below), but
+                /// they're no longer handed out: a failed save may leave them with IDs that aren't stored.
+                self.rowCaches.forget()
+                CoreDataController.logger.error(
+                    "Error saving context after batch insert: \(error.localizedDescription)")
+                guard self.unsavedEvents.count > Self.maxUnsavedEvents else { return }
+                CoreDataController.logger.fault("Dropped \(self.unsavedEvents.count) events that could not be saved")
+                self.discardUnsavedEvents()
             }
         }
     }
     
-    ///  Remove all events from the in-memory store
-    ///
-    ///  Removes all `ESMessage` entities in the `SystemEvents` store. To do this we:
-    ///  1) Create a batch delete request and execute
-    ///  2) Asyncronously merge those chnages into the `container.viewContext` connected to the UI.
-    ///
-    public func clearSystemEvents() {
-        privateMOC.performAndWait {
-            do {
-                let request = NSFetchRequest<NSFetchRequestResult>(entityName: "ESMessage")
-                let deleteRequest = NSBatchDeleteRequest(fetchRequest: request)
-                deleteRequest.resultType = .resultTypeObjectIDs
-                
-                // Now we're safely on privateMOC's queue
-                let result = try self.privateMOC.execute(deleteRequest)
-                
-                guard let deleteResult = result as? NSBatchDeleteResult,
-                      let ids = deleteResult.result as? [NSManagedObjectID] else {
-                    return
-                }
-                
-                // The context is not aware of the changes yet, so we merge them.
-                let changes = [NSDeletedObjectsKey: ids]
-                NSManagedObjectContext.mergeChanges(fromRemoteContextSave: changes, into: [self.container.viewContext, self.privateMOC])
-                
-            } catch {
-                CoreDataController.logger.error("Error clearing system events: \(error.localizedDescription)")
-            }
-        }
+    /// Drop every event inserted but not saved, and the shared rows made for them. On `privateMOC`'s queue only.
+    private func discardUnsavedEvents() {
+        privateMOC.rollback()
+        unsavedEvents = []
+        rowCaches.forget()
     }
     
-    // MARK: - Accessors
-    
-    ///  Given an entitiy `id` attempt to return its `ESMessage` representation from the store.
+    ///  Remove all events from the event store
     ///
+    ///  Removes every entity in the `SystemEvents` store: the `ESMessage`s and the process, file, and event records
+    ///  they point to (deleting only the `ESMessage`s left about three quarters of the store behind until quit). To do
+    ///  this we:
+    ///  1) Post ``eventsWillClear`` so the event tables (and Event Facts windows) let go of their events
+    ///  2) On the next turn of the run loop, replace the store with an empty one on the private context
+    ///  3) Have the `container.viewContext` connected to the UI forget what it loaded, and post ``eventsDidClear``
     ///
-    ///  **Primary usecase:** Exporting telemetry.
+    ///  The store is thrown away at quit, so replacing it loses nothing, and takes a fraction of a second at any size,
+    ///  behind inserts already queued: a recording or a trace that starts right after carries on at once. While an
+    ///  export reads the store (which a replace would take from under it), or if the replace fails, each entity is
+    ///  batch deleted instead, as every Clear did before: 32 s at 300,000 events, which inserts that come after wait
+    ///  for. Events that happened before this call are discarded even if they arrive later.
     ///
-    ///  - Parameters:
-    ///     - id: The `UUID` of the entity to fetch from the in-memory Core Data store.
-    /// - Returns: The object representation of the entity: `ESMessage?`
+    ///  A Clear also closes any trace: a trace still being read stops, and its batches still on their way are dropped.
     ///
-    public func getEntityByID(id: UUID) -> ESMessage? {
-        let request = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
-        request.returnsObjectsAsFaults = false
-        request.fetchLimit = 1
+    ///  Call on the main thread.
+    ///
+    /// - Parameter source: What the store holds after the Clear: ``EventSource/live`` (the toolbar's Clear and Start),
+    ///   or a trace about to be read (``openTrace(at:progress:completion:)``), which keeps out every recorded event
+    ///   until the next Clear.
+    /// - Returns: The Clear's number, which a trace's inserts carry.
+    @discardableResult
+    public func clearSystemEvents(source: EventSource = .live) -> Int {
+        let clearedAt = Date()
+        clearsInProgress += 1
+        clearsRequested += 1
+        let clear = clearsRequested
+        self.source = source
+        currentImport?.stop()
+        NotificationCenter.default.post(name: Self.eventsWillClear, object: self)
         
-        do {
-            // This fetch is for user-facing actions (like export), so fetching
-            // from the viewContext is acceptable here. This must be called from the main thread.
-            let result = try self.container.viewContext.fetch(request)
-            return result.first
-        } catch {
-            CoreDataController.logger.error("Could not find the Core Data record by UUID of: \(id)")
+        /// Everything is deleted, but only what the view context has loaded needs to hear about it. Asking the deletes
+        /// for every deleted ID would build (and merge) one per row.
+        let viewContext = container.viewContext
+        let loaded = viewContext.registeredObjects.map(\.objectID)
+        
+        /// Queued now, so inserts that come after the Clear also come after the delete.
+        let turn = DispatchSemaphore(value: 0)
+        RunLoop.main.perform {
+            /// Once views have let go: the view context deletes what it holds while the store still has it, as a delete
+            /// would, so fetches showing those events (an Event Facts window's) drop them rather than keep an event
+            /// whose store is about to be replaced, which raises when it's read.
+            let held = viewContext.registeredObjects.map(\.objectID)
+            NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: held], into: [viewContext])
+            turn.signal()
         }
-        
-        return nil
-    }
-    
-    /// Get all `EXEC` events in a given process group.
-    ///
-    /// - Parameters:
-    ///   - targetEvent: Provide a system event and we'll extract the `group_id` field to find the others in the same process group.
-    /// - Returns: `[ESMessage]` the list of `EXEC` events in the same process group.
-    ///
-    public func getProcGroup(message: ESMessage) -> [ESMessage] {
-        let groupFetchRequest = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-        let event = message.event
-        var gid: Int = Int(message.process.group_id)
-        if let exec = event.exec {
-            gid = Int(exec.target.group_id)
-        }
-        
-        groupFetchRequest.predicate = NSPredicate(format: "event.exec != NULL AND event.exec.target.group_id == %d", gid)
-        groupFetchRequest.returnsObjectsAsFaults = false
-        
-        do {
-            let result = try self.container.viewContext.fetch(groupFetchRequest)
-            return result.sorted(by: {$0.mach_time > $1.mach_time})
-        } catch {
-            CoreDataController.logger
-                .error(
-                    "Error obtaining process group for \(message.process.executable?.name ?? "") ==> \(message.es_event_type!)"
-                )
-        }
-        
-        return []
-    }
-    
-    /// Get all `EXEC` events in a given process session.
-    ///
-    /// - Parameters:
-    ///   - targetEvent: Provide a system event and we'll extract the `session_id` field to find the others in the same session.
-    /// - Returns: `[ESMessage]` the list of `EXEC` events in the same process session.
-    ///
-    public func getProcSessionGroup(message: ESMessage) -> [ESMessage] {
-        let groupFetchRequest = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-        let event = message.event
-        var session_id: Int = Int(message.process.session_id)
-        if let exec = event.exec {
-            session_id = Int(exec.target.group_id)
-        }
-        
-        groupFetchRequest.predicate = NSPredicate(format: "event.exec != NULL AND event.exec.target.session_id == %d", session_id)
-        groupFetchRequest.returnsObjectsAsFaults = false
-        
-        do {
-            let result = try self.container.viewContext.fetch(groupFetchRequest)
-            return result.sorted(by: {$0.mach_time > $1.mach_time})
-        } catch {
-            CoreDataController.logger
-                .error(
-                    "Error obtaining session group for \(message.process.executable?.name ?? "") ==> \(message.es_event_type!)"
-                )
-        }
-        
-        return []
-    }
-    
-    /// Construct a basic process tree given a target system event.
-    ///
-    /// We're calling `findParentProc`, appending the parent (if found) and then recursively calling ourselves: ``getProcTree(targetEvent:tree:)``
-    ///
-    ///  - Parameters:
-    ///    - targetEvent: The event (`ESMessage`) to find the parent process for
-    ///    - tree: The process tree generated recursively (`[ESMessage]`)
-    ///  - Returns: A list of system events: `[ESMessage]` the flat representation of the process tree.
-    ///
-    public func getProcTree(targetEvent: ESMessage, tree: [ESMessage] = []) -> [ESMessage] {
-        var procTree: [ESMessage] = tree
-        
-        let parent = findParentProc(message: targetEvent)
-        if let parent = parent {
-            procTree.append(parent)
-            return getProcTree(targetEvent: parent, tree: procTree)
-        } else {
-            return procTree
-        }
-    }
-    
-    /// Find the parent process of a given system event
-    ///
-    /// Each `ESMessage` has an `initiating_process` we can attempt to find the corresponding `EXEC` and/or
-    /// `FORK` event. What we're essentially doing here is looking for the matching exec event for the event's message's audit token
-    /// ( the parent audit token).
-    ///
-    /// - Parameters:
-    ///   - message: The system event to try and find the parent process for
-    /// - Returns: `ESMessage?`: The system event, if we can find it
-    ///
-    public func findParentProc(message: ESMessage) -> ESMessage? {
-        if message.process.audit_token == nil {
-            return nil
-        }
-        
-        // First try looking through the exec events
-        let audit_token: String = message.process.audit_token_string
-        let execFetchRequest = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-        execFetchRequest.predicate = NSPredicate(format: "event.exec != NULL AND event.exec.target.audit_token_string == %@", audit_token)
-        execFetchRequest.returnsObjectsAsFaults = false
-        do {
-            let results = try self.container.viewContext.fetch(execFetchRequest)
-            if !results.isEmpty {
-                return results.first
-            }
-        } catch {
-            CoreDataController.logger
-                .error(
-                    "We could not find the parent proc for: \(message.process.executable?.name ?? "")"
-                )
-        }
-        
-        // Next try looking through the fork events
-        // @note similar for fork events
-        let forkFetchRequest = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-        forkFetchRequest.predicate = NSPredicate(format: "event.fork != NULL AND event.fork.child.audit_token_string == %@", audit_token)
-        forkFetchRequest.returnsObjectsAsFaults = false
-        do {
-            let result = try self.container.viewContext.fetch(forkFetchRequest)
-            if !result.isEmpty {
-                return result.first
-            }
-        } catch {
-            CoreDataController.logger.error("We could not find the parent proc for: \(message.process.executable?.name ?? "")")
-        }
-        
-        return nil
-    }
-    
-    
-    // MARK: - Telemetry export
-    
-    /// Export all system events to a file
-    ///
-    /// We can export all system events from the in-memory store to either JSON or JSONL format.
-    /// This operation is performed safely on the background context.
-    ///
-    /// - Parameters:
-    ///   - jsonl: Should we export the events line-by-line (one JSON object per line)?
-    ///
-    public func exportFullTrace(jsonl: Bool = false) {
-        // UI work must be on the main thread.
-        guard let telemetryFile = showSavePanel() else { return }
-        
         privateMOC.perform {
-            let request = NSFetchRequest<ESMessage>(entityName: "ESMessage")
-            request.returnsObjectsAsFaults = false
-            
-            do {
-                // 1. Fetch and process all data within the background context's queue.
-                let messages = try self.privateMOC.fetch(request)
-                let jsonLines = messages.map { message in
-                    jsonl ? ProcessHelpers.eventToJSON(value: message) : ProcessHelpers.eventToPrettyJSON(value: message)
-                }
-                
-                // 2. Pass the prepared data (not managed objects) to the main thread for file writing.
-                DispatchQueue.main.async {
-                    let finalJSON = jsonLines.joined(separator: "\n")
-                    do {
-                        try finalJSON.write(to: telemetryFile, atomically: true, encoding: .utf8)
-                    } catch {
-                        CoreDataController.logger.error("Failed to write exported trace to file: \(error)")
+            /// One turn of the main run loop lets SwiftUI apply what views did on ``eventsWillClear`` before rows start
+            /// disappearing.
+            turn.wait()
+            /// Anything recorded up to the Clear goes, including events still on their way from the Security Extension
+            /// and any left unsaved by a failed save. A trace keeps out every recorded event until it's closed.
+            self.discardBefore = source == .live ? clearedAt : .distantFuture
+            /// A trace's batch being built finishes first. None starts until the store is replaced.
+            self.traceBuildGate.close(for: clear)
+            self.currentClear = clear
+            /// The shared rows are deleted (or, unsaved, rolled back) with everything else.
+            self.discardUnsavedEvents()
+            var replaced = self.replaceStore()
+            if !replaced {
+                do {
+                    for entity in self.container.managedObjectModel.entities where entity.superentity == nil {
+                        guard self.canSave.withLock({ $0 }) else { break }
+                        guard let name = entity.name else { continue }
+                        let deleteRequest = NSBatchDeleteRequest(fetchRequest: NSFetchRequest(entityName: name))
+                        deleteRequest.resultType = .resultTypeStatusOnly
+                        try self.privateMOC.execute(deleteRequest)
+                        /// A delete the disk has no room for reports success: count what's left.
+                        guard try self.privateMOC.count(for: NSFetchRequest(entityName: name)) == 0 else {
+                            throw CocoaError(.fileWriteOutOfSpace)
+                        }
                     }
-                }
-            } catch {
-                CoreDataController.logger.error("Failed to fetch events for export: \(error)")
-            }
-        }
-    }
-    
-    /// Export specified system events to a file, sorted by `mach_time`.
-    ///
-    /// This operation is performed safely on the main thread, as it reads from the viewContext.
-    ///
-    /// - Parameters:
-    ///   - eventIDs: A listing of the event `UUID`s we want to export.
-    ///   - jsonl: Should we export the events line-by-line (one JSON object per line)?
-    ///
-    public func exportSelectedEvents(eventIDs: [UUID], jsonl: Bool = false) {
-        // UI work must be on the main thread.
-        guard let telemetryFile = showSavePanel(numberOfEvents: eventIDs.count) else { return }
-        
-        // All viewContext access and file writing will be on the main thread.
-        DispatchQueue.main.async {
-            var events: [ESMessage] = []
-            events.reserveCapacity(eventIDs.count)
-            
-            for id in eventIDs {
-                // self.getEntityByID safely uses the main `viewContext`
-                if let event = self.getEntityByID(id: id) {
-                    events.append(event)
+                    /// Nothing is registered here after the rollback, so there are no deletions to merge.
+                    self.privateMOC.reset()
+                } catch {
+                    CoreDataController.logger.error("Error clearing system events: \(error.localizedDescription)")
+                    replaced = self.replaceStore()
                 }
             }
+            self.traceBuildGate.open()
             
-            let sortedEvents = events.sorted { $0.mach_time < $1.mach_time }
-            let jsonStrings = sortedEvents.map { event in
-                jsonl ? ProcessHelpers.eventToJSON(value: event) : ProcessHelpers.eventToPrettyJSON(value: event)
-            }
-            let finalJSON = jsonStrings.joined(separator: "\n")
-            
-            guard !finalJSON.isEmpty else { return }
-            do {
-                try finalJSON.write(to: telemetryFile, atomically: true, encoding: .utf8)
-            } catch {
-                CoreDataController.logger.error("Failed to write selected events to file: \(error)")
+            DispatchQueue.main.async {
+                /// The view context is not aware of the changes yet, so we merge them, or, if the store was taken away,
+                /// forget everything it loaded from it.
+                /// What it loaded since the Clear began too: a table can load a row in the run loop turn before it lets
+                /// go, and an object left out stays alive with its rows gone, its relationships nil. Nothing saved
+                /// after the Clear has reached it yet: those saves come after the delete, and their notices after this.
+                let gone = Set(loaded).union(viewContext.registeredObjects.map(\.objectID))
+                if replaced { viewContext.reset() }
+                else {
+                    NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: Array(gone)],
+                                                        into: [viewContext])
+                }
+                self.clearsInProgress -= 1
+                NotificationCenter.default.post(name: Self.eventsDidClear, object: self)
             }
         }
+        return clear
     }
     
-    /// AppKit UI to save system traces.
-    ///
-    /// Show the `NSSavePanel`
-    ///
-    /// - Parameters:
-    ///   - numberOfEvents: The number of events to save (to be displayed in the UI)
-    ///
-    ///  - Returns: `URL?`:  The optional URL to save the telemetry to
-    ///
-    public func showSavePanel(numberOfEvents: Int = 0) -> URL? {
-        let savePanel = NSSavePanel()
-        savePanel.allowedContentTypes = [UTType.json]
-        savePanel.canCreateDirectories = true
-        savePanel.isExtensionHidden = false
-        savePanel.allowsOtherFileTypes = false
-        savePanel.title = numberOfEvents == 0 ? "Save full system trace" : "Save \(numberOfEvents) events"
-        savePanel.message = "Choose a directory to export the trace to"
-        savePanel.nameFieldLabel = "Telemetry file name:"
-        let response = savePanel.runModal()
-        return response == .OK ? savePanel.url : nil
+    /// The number of events in the store, counted by SQLite. Main thread only.
+    public var eventCount: Int {
+        (try? container.viewContext.count(for: ESMessage.request())) ?? 0
     }
+    
+    /// Exports in progress and the files they write, so quitting can stop them before the store is deleted.
+    let exports = OSAllocatedUnfairLock(initialState: [ObjectIdentifier: (exporter: TelemetryExporter, url: URL)]())
 }
-

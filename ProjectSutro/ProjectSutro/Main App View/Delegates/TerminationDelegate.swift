@@ -7,6 +7,7 @@
 
 
 import Cocoa
+import SutroESFramework
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     override init() {
@@ -14,13 +15,38 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let userDefaults = UserDefaults.standard
         let defaultValues = [
             "lifecycleWarnBeforeQuit" : true,
-            "lifecycleWarnBeforeClear" : true
+            "lifecycleWarnBeforeClear" : true,
+            /// Open a new main window at launch rather than restoring the last session's windows: their events were
+            /// cleared at quit, and a main window saved by an older version restores to no window at all.
+            "ApplePersistenceIgnoreState" : true
         ]
         userDefaults.register(defaults: defaultValues)
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        if UserDefaults.standard.bool(forKey: "lifecycleWarnBeforeQuit") && !UserDefaults.standard.bool(forKey: "lifecycleQuitInternal") {
+        /// Quitting stops a save, which the warning before quitting can't be turned off for.
+        if let saving = CoreDataController.shared.exportDestinations.first,
+           !UserDefaults.standard.bool(forKey: "lifecycleQuitInternal") {
+            let alert = NSAlert()
+            alert.messageText = "Quit Mac Monitor while saving “\(saving.lastPathComponent)”?"
+            alert.informativeText = "Quitting stops the save before it finishes and clears any system trace."
+            alert.addButton(withTitle: "Keep Saving")
+            alert.addButton(withTitle: "Quit")
+            /// Esc keeps saving, as it cancels the usual quit warning.
+            /// NSAlert gives Esc only to a button titled Cancel.
+            let escape = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                guard event.keyCode == 53, event.window === alert.window else { return event }
+                alert.buttons[0].performClick(nil)
+                return nil
+            }
+            defer { escape.map(NSEvent.removeMonitor) }
+            return alert.runModal() == .alertSecondButtonReturn ? .terminateNow : .terminateCancel
+        }
+        /// macOS logging out, restarting or shutting down never waits on the warning: it would hold the logout until
+        /// someone answered, such as an update restarting the Mac overnight (#86). A save still asks first, above.
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: "lifecycleWarnBeforeQuit"), !defaults.bool(forKey: "lifecycleQuitInternal"),
+           QuitReason.current == .user {
             let alert = NSAlert()
             alert.messageText = "Quit Mac Monitor?"
             alert.informativeText = "Please save your work. Quitting will clear any system trace."
@@ -39,4 +65,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return .terminateNow
         }
     }
+    
+    /// Files opened from Finder's Open With or `open -a` after the first, which SwiftUI hands to a main window's
+    /// `onOpenURL` (see `EventView`). Mac Monitor shows one trace at a time, so the rest are ignored.
+    ///
+    /// - Parameters:
+    ///   - application: Mac Monitor.
+    ///   - urls: The files no window took.
+    func application(_ application: NSApplication, open urls: [URL]) {}
 }

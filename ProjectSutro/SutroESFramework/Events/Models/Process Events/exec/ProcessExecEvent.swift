@@ -9,8 +9,8 @@ import Foundation
 import OSLog
 
 // MARK: - Process Execution event https://developer.apple.com/documentation/endpointsecurity/es_event_exec_t
-public struct ProcessExecEvent: Identifiable, Codable, Hashable {
-    public var id: UUID = UUID()
+public struct ProcessExecEvent: Codable, IdentityHashable {
+    public var id: UUID = UUID.buffered()
     
     /// Base properties `es_event_exec_t`
     public var argc: Int
@@ -28,18 +28,17 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
     public var command_line: String?
     public var script_content: String?
     public var resolved_script_path: String?
-    
-    // MARK: - Protocol conformance
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    public static func == (lhs: ProcessExecEvent, rhs: ProcessExecEvent) -> Bool {
-        return lhs.id == rhs.id
-    }
+    /// Milliseconds from the target executable's birth (its `stat`'s `st_birthtimespec`) to the exec: a binary that
+    /// runs seconds after it was written is new, as a dropper's payload is. `nil` when the birth time is unknown. Set
+    /// with the message's time (``Message/deriveExecutableAge()``).
+    public var executable_age_ms: Int?
+    /// Mac Monitor's launched-by parent of ``target`` (``LaunchedByParent``): stamped by the Security Extension's
+    /// serializer from the message's own fields, not by ``enrich()``, which also runs on traces recorded on other Macs,
+    /// where no process's path may be read. `nil` until it's resolved.
+    public var launched_by_parent: LaunchedByParent?
     
     // @note construct a new process_exec
-    init(from rawMessage: UnsafePointer<es_message_t>, forcedQuarantineSigningIDs: [String] = []) {
+    init(from rawMessage: UnsafePointer<es_message_t>) {
         es_retain_message(rawMessage)
         var execEvent: es_event_exec_t = rawMessage.pointee.event.exec
         
@@ -48,18 +47,11 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
         let version = rawMessage.pointee.version
         
         // The new process that is being executed
-        self.target = Process(
-            from: execEvent.target.pointee,
-            version: Int(version),
-            isExecMessage: true
-        )
+        self.target = Process(from: execEvent.target.pointee, version: Int(version))
         
-        // Arguments and command line
+        // Arguments (the command line is joined from them by `enrich()`)
         self.argc = Int(es_exec_arg_count(&execEvent))
         self.args = ProcessHelpers.parseExecArgs(execEvent: &execEvent)
-        
-        /// @note Mac Monitor enrichment
-        self.command_line = ProcessHelpers.parseCommandLine(execEvent: &execEvent)
         
         // Environment variables
         self.env = ProcessHelpers.parseExecEnv(event: &execEvent)
@@ -67,75 +59,71 @@ public struct ProcessExecEvent: Identifiable, Codable, Hashable {
         // Open file descriptors
         self.fds = ProcessHelpers.getFds(event: &execEvent)
         
-        /// Script being executed by interpreter (e.g. `./foo.sh` not `/bin/sh ./foo.sh`).
-        if version >= 2, let script = execEvent.script {
-            self.script = File(from: script.pointee)
-            /// Pull the script content from the file path
-            if let path = self.script?.path {
-                self.script_content = ProcessHelpers
-                    .getFileContents(at: path)
-            }
+        /// Script being executed by interpreter (e.g. `./foo.sh` not `/bin/sh ./foo.sh`), and its content.
+        if version >= 2, let script = execEvent.script.map({ File(from: $0.pointee) }) {
+            self.script = script
+            script_content = ProcessHelpers.getFileContents(at: script.path)
         }
         
         // Current working directory at exec time.
         if version >= 3 {
-            self.cwd = File(from: execEvent.cwd.pointee)
-            
+            let cwd = File(from: execEvent.cwd.pointee)
+            self.cwd = cwd
             /// @note Mac Monitor enrichment -- script content
             /// If the process executed is a supported interpreter -- attempt to pull the script
-            if let exeName: String = self.target.executable?.name {
-                let isScripting: Bool = ProcessHelpers.supportedInterpreters.contains { exeName.hasPrefix($0) }
-                if isScripting {
-                    if self.script_content == nil {
-                        if let cwd = self.cwd,
-                           let resolved_script_path = ProcessHelpers
-                            .parseScriptFromArgs(
-                                args: self.args,
-                                workingDirectory: cwd.path
-                            ){
-                            self.resolved_script_path = resolved_script_path
-                            self.script_content = ProcessHelpers
-                                .getFileContents(at: resolved_script_path)
-                        }
-                    }
-                }
+            if script_content == nil, let name = target.executable?.name, ProcessHelpers.isScriptingInterpreter(name),
+               let path = ProcessHelpers.parseScriptFromArgs(args: args, workingDirectory: cwd.path) {
+                resolved_script_path = path
+                script_content = ProcessHelpers.getFileContents(at: path)
             }
         }
         
-        /// Populate `resolved_script_path` if ES recognizes the scripting interpreter
-        if self.resolved_script_path == nil,
-           let script = self.script {
-            self.resolved_script_path = script.path
-        }
-        
-        // Highest open file descriptor after the exec completed
-        if version >= 4 {
-            self.last_fd = Int(execEvent.last_fd)
-        }
-        
-        if version >= 6 {
-            // The CPU type of the executable image which is being executed.
-            self.image_cputype = Int(execEvent.image_cputype)
-            // The CPU subtype of the executable image.
-            self.image_cpusubtype = Int(execEvent.image_cpusubtype)
-        }
-        
-        // Version 7 - macOS 13.3+
-        // The exec path passed up to dyld, before symlink resolution.
-        if version >= 7, execEvent.dyld_exec_path.length > 0 {
-            self.dyld_exec_path = String(cString: execEvent.dyld_exec_path.data)
-        }
+        // Highest open file descriptor after the exec completed (4), the CPU type and subtype of the executable image
+        // (6), and the exec path passed up to dyld, before symlink resolution (7, macOS 13.3+).
+        last_fd = version >= 4 ? Int(execEvent.last_fd) : nil
+        image_cputype = version >= 6 ? Int(execEvent.image_cputype) : nil
+        image_cpusubtype = version >= 6 ? Int(execEvent.image_cpusubtype) : nil
+        dyld_exec_path = version >= 7 ? execEvent.dyld_exec_path.string : nil
         
         // MARK: - Code Signing certificate chain
-        if (UInt32(target.codesigning_flags) & UInt32(CS_VALID)) == UInt32(
-            CS_VALID
-        ) {
-            if let executable = self.target.executable {
-                self.certificate_chain = ProcessHelpers
-                    .getCodeSigningCerts(forBinaryAt: executable.path)
-            }
+        if target.codesigning_flags & Int64(CS_VALID) != 0, let executable = target.executable {
+            certificate_chain = ProcessHelpers.getCodeSigningCerts(forBinaryAt: executable.path)
         }
         
+        enrich()
         es_release_message(rawMessage)
+    }
+}
+
+
+// MARK: - Mac Monitor enrichment
+extension ProcessExecEvent: ESEnrichable {
+    /// Derive `argc`, the command line (the arguments joined by spaces), and `resolved_script_path` when ES recognizes
+    /// the scripting interpreter (`script`).
+    ///
+    /// Not derived: the certificate chain and the script's content, which are read from the executable and the script.
+    public mutating func enrich() {
+        argc = args.count
+        command_line = command_line ?? args.joined(separator: " ").trimmingCharacters(in: .whitespaces)
+        /// Populate `resolved_script_path` if ES recognizes the scripting interpreter
+        resolved_script_path = resolved_script_path ?? script?.path
+    }
+}
+
+
+// MARK: - XPC service name
+extension ProcessExecEvent {
+    /// The XPC service name in a process's environment.
+    ///
+    /// Only an entry named exactly `XPC_SERVICE_NAME` counts. launchd sets it to `0` for a process that isn't an XPC
+    /// service, which counts as none.
+    ///
+    /// - Parameter env: The environment's `KEY=value` entries, in order.
+    /// - Returns: The first `XPC_SERVICE_NAME`'s value, or `nil` without one or when it's empty or `0`.
+    static func xpcServiceName(in env: [String]) -> String? {
+        let prefix = "XPC_SERVICE_NAME="
+        guard let entry = env.first(where: { $0.hasPrefix(prefix) }) else { return nil }
+        let name = String(entry.dropFirst(prefix.count))
+        return name.isEmpty || name == "0" ? nil : name
     }
 }

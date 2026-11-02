@@ -9,24 +9,6 @@ import SwiftUI
 import SutroESFramework
 
 
-struct Result: Identifiable, Hashable {
-    let id = UUID()
-    var rightName: String
-    var ruleClass: String
-    var granted: Bool
-
-    init(from description: String) {
-        let components = description.components(separatedBy: ", ")
-        let rightNameComponent = components.first(where: { $0.contains("Right name") })
-        let ruleClassComponent = components.first(where: { $0.contains("Rule class") })
-        let grantedComponent = components.first(where: { $0.contains("Granted") })
-
-        self.rightName = rightNameComponent?.components(separatedBy: ": ").last ?? ""
-        self.ruleClass = ruleClassComponent?.components(separatedBy: ": ").last ?? ""
-        self.granted = Bool(grantedComponent?.components(separatedBy: ": ").last ?? "") ?? false
-    }
-}
-
 struct AuthJudgeProcsView: View {
     var event: ESAuthorizationJudgementEvent
     
@@ -157,10 +139,18 @@ struct SystemAuthorizationJudgementMetadataView: View {
     }
     
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if esSystemEvent.event.authorization_judgement != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
-            OrangeEventLabelView(message: esSystemEvent)
+            SystemEventTypeLabel(message: esSystemEvent)
                 .font(.title2)
             
             GroupBox {

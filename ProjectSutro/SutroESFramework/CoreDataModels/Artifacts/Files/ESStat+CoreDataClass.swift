@@ -10,14 +10,29 @@ import Foundation
 import CoreData
 
 @objc(ESStat)
-public class ESStat: NSManagedObject {
+public class ESStat: NSManagedObject, Identifiable {
+    @NSManaged public var st_dev: Int64
+    @NSManaged public var st_blksize: Int64
+    @NSManaged public var st_mode: Int64
+    @NSManaged public var st_nlink: Int64
+    @NSManaged public var st_uid: Int64
+    @NSManaged public var st_rdev: Int64
+    @NSManaged public var st_gid: Int64
+    @NSManaged public var st_size: Int64
+    @NSManaged public var st_ino: Int64
+    @NSManaged public var st_flags: Int64
+    @NSManaged public var st_gen: Int64
+    @NSManaged public var st_blocks: Int64
+    @NSManaged public var st_atimespec: String?
+    @NSManaged public var st_birthtimespec: String?
+    @NSManaged public var st_ctimespec: String?
+    @NSManaged public var st_mtimespec: String?
+
     convenience init(
         from stat: Stat,
         insertIntoManagedObjectContext context: NSManagedObjectContext
     ) {
-        let description = NSEntityDescription.entity(forEntityName: "ESStat", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = stat.id
+        self.init(insertingInto: context)
         self.st_dev = stat.st_dev
         self.st_blksize = stat.st_blksize
         self.st_blocks = stat.st_blocks
@@ -40,20 +55,22 @@ public class ESStat: NSManagedObject {
 // MARK: - Encodable conformance
 extension ESStat: Encodable {
     enum CodingKeys: CodingKey {
-        case id, st_dev, st_blksize, st_blocks, st_flags, st_gen, st_gid, st_ino, st_mode, st_nlink, st_rdev, st_size, st_uid, st_atimespec, st_birthtimespec, st_ctimespec, st_mtimespec
+        case st_dev, st_blksize, st_blocks, st_flags, st_gen, st_gid, st_ino, st_mode, st_nlink, st_rdev, st_size
+        case st_uid, st_atimespec, st_birthtimespec, st_ctimespec, st_mtimespec
     }
     
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         
-//        try container.encode(id, forKey: .id)
         try container.encode(st_dev, forKey: .st_dev)
         try container.encode(st_blksize, forKey: .st_blksize)
         try container.encode(st_blocks, forKey: .st_blocks)
         try container.encode(st_flags, forKey: .st_flags)
         try container.encode(st_gen, forKey: .st_gen)
         try container.encode(st_gid, forKey: .st_gid)
-        try container.encode(st_ino, forKey: .st_ino)
+        /// `ino_t` is unsigned, and kept by bit pattern: a file ID on SMB, NFS or FUSE can be 2^63 or more, which
+        /// eslogger writes unsigned.
+        try container.encode(UInt64(bitPattern: st_ino), forKey: .st_ino)
         try container.encode(st_mode, forKey: .st_mode)
         try container.encode(st_nlink, forKey: .st_nlink)
         try container.encode(st_rdev, forKey: .st_rdev)

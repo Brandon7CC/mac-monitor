@@ -13,13 +13,20 @@ import SutroESFramework
 struct SystemUIPCConnectMetadataView: View {
     var message: ESMessage
     @State private var showAuditTokens: Bool = false
-    @State private var showInstigator: Bool = false
     
     private var event: ESUIPCConnectEvent {
         message.event.uipc_connect!
     }
     
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
+        if message.event.uipc_connect != nil {
+            eventContent
+        }
+    }
+
+    @ViewBuilder
+    private var eventContent: some View {
         VStack(alignment: .leading) {
             // MARK: Event label
             SystemEventTypeLabel(message: message)

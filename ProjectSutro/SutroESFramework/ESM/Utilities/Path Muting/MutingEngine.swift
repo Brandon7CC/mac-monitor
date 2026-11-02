@@ -8,232 +8,98 @@
 import Foundation
 import OSLog
 
-/// Defines constants and  functions for working with path muting at the Endpoint Security level
-///
-/// Principle is ``applyDefaultMuteSet(client:)`` which takes an ES client and applies the default
-/// mute set.
-public class MutingEngine {
-    
-    /// Applies the default mute set to an Endpoint Security client.
-    public static func applyDefaultMuteSet(client: OpaquePointer?) {
-        _processMuteSet(
-            MuteSet.default,
-            client: client,
-            eventAction: es_mute_path_events,
-            globalAction: es_mute_path
-        )
-    }
-    
-    /// Unmutes all paths and events defined in the default mute set.
-    public static func unmuteDefaultMuteSet(client: OpaquePointer?) {
-        _processMuteSet(
-            MuteSet.default,
-            client: client,
-            eventAction: es_unmute_path_events,
-            globalAction: es_unmute_path
-        )
-    }
-    
-    private static func _processMuteSet(
-        _ muteSet: MuteSet,
-        client: OpaquePointer?,
-        eventAction: (OpaquePointer, UnsafePointer<CChar>, es_mute_path_type_t, UnsafePointer<es_event_type_t>, Int) -> es_return_t,
-        globalAction: (OpaquePointer, UnsafePointer<CChar>, es_mute_path_type_t) -> es_return_t
-    ) {
-        guard let client else { return }
-        // Event specific
-        for rule in muteSet.eventSpecificRules {
-            for path in rule.paths {
-                _ = eventAction(client, path, rule.muteType, [rule.eventType], 1)
-            }
-        }
-        
-        // Global
-        for rule in muteSet.globalRules {
-            for path in rule.paths {
-                _ = globalAction(client, path, rule.pathType)
-            }
-        }
-    }
-}
 
+// MARK: - Where a request comes from
+/// Where a change to the saved mute set was asked for, which decides where its refusals and warnings show.
+public enum MuteRequestOrigin: Sendable {
+    /// Settings ▸ Path Muting, or the per-event list: shown there (``EndpointSecurityManager/muteProblems``).
+    case settings
+    /// An event's menu in the main window: shown there (``EndpointSecurityManager/eventMuteProblems``).
+    case eventMenu
+}
 
 
 // MARK: - Path muting XPC operations
-/// Extension of the ESM which enables path muting at the ES level.
+/// Extension of the ESM which reads and changes the saved mute set, which the Security Extension keeps and applies
+/// (agent context).
 ///
 /// **Functionality Covers:**
-///   - Getting globally muted paths
+///   - Getting the saved mute set, and Apple's default mutes
 ///   - Muting a path
 ///   - Unmuting a path
-///   - Reset back to the default mute set
+///   - Importing, unmuting everything, and resetting to the default mute set
 ///
+/// Every request publishes the saved set the Security Extension replies with (``savedMutes``), along with its notice
+/// (``muteNotice``). What the Security Extension refused or left out of a change shows where the change was asked for
+/// (``MuteRequestOrigin``).
 extension EndpointSecurityManager {
     // MARK: - Agent Context
     
-    public func simpleGetAppleMuteSet() -> [String] { Array(appleMuteSet) }
-    
-    public func simpleGetMutedPaths() -> [String] {
-        return Array(self.globallyMutedPaths.sorted(by: <))
-    }
+    /// Can this Mac Monitor change the saved mute set? Not while another one owns the event stream (`.streamOwned`):
+    /// it may still list it. Its user needn't be an administrator. Endpoint Security refusing clients
+    /// (`.tooManyClients`) leaves no owner, so the change is allowed. The Security Extension decides each change
+    /// either way.
+    public var canChangeSavedMutes: Bool { connectionResult != .streamOwned }
     
     public func requestAppleMuteSet(_ completion: ((Set<String>) -> Void)? = nil) {
-        RCXPCConnection.rcXPCConnection.getAppleMuteSet(epDelegate: self) { response in
-            DispatchQueue.main.async {
-                self.appleMuteSet = response
-                completion?(response)
-            }
+        sensor.call { $0.appleMuteSet(reply: $1) } completion: { response in
+            guard let response else { return }
+            self.appleMuteSet = Set(response)
+            completion?(self.appleMuteSet)
         }
     }
     
-    // MARK: Step #1 in getting the list of muted paths from Endpoint Security
-    public func requestMutedPaths() {
-        RCXPCConnection.rcXPCConnection.getMutedPaths(epDelegate: self) { response in
-            DispatchQueue.main.async {
-                // Reset
-                self.globallyMutedPaths = Set<String>()
-                
-                // Decode JSON path object
-                for jsonPath in response {
-                    let parsedPath: ESMutedPath? = decodePathJSON(pathJSON: jsonPath)
-                    if let _ = parsedPath {
-                        self.globallyMutedPaths.insert(jsonPath)
-                    } else{
-                        os_log("Error parsing muted path")
-                    }
-                    
+    /// Send a request about the saved mute set and publish the set the Security Extension replies with.
+    ///
+    /// - Parameters:
+    ///   - request: The request.
+    ///   - origin: Where it was asked for, which shows what the Security Extension refused or left out.
+    ///   - completion: Called on the main queue with the reply, or `nil` if the request failed (it's logged).
+    public func requestMutes(_ request: MuteRequest, from origin: MuteRequestOrigin = .settings,
+                             completion: ((MuteReply?) -> Void)? = nil) {
+        let operation = request.operation.rawValue
+        sensor.call { $0.mutes(request.encoded(), reply: $1) } completion: { data in
+            guard let reply = data.flatMap(MuteReply.decode) else {
+                os_log("The saved mute set request (%{public}@) got no reply.", operation)
+                completion?(nil)
+                return
+            }
+            self.savedMutes = reply.mutes.map(ESMutedPath.init)
+            self.muteNotice = reply.notice
+            /// Refusals and what was left out, shown where the request was made. Each change replaces what the last
+            /// one left, so a refusal never shows up later, out of context. A list only adds to it.
+            let problems = reply.status == .ok || !reply.problems.isEmpty
+                ? reply.problems : ["The Security Extension answered “\(reply.status.rawValue)”."]
+            if request.operation != .list || !problems.isEmpty {
+                switch origin {
+                case .settings: self.muteProblems = problems
+                case .eventMenu: self.eventMuteProblems = problems
                 }
             }
+            completion?(reply)
         }
     }
     
-    // MARK: Step #2 in muting paths
-    // @note send across paths that should be muted by the Endpoint Security client
-    public func puntPathToMute(pathToMute: String, muteCase: es_mute_path_type_t, pathEvents: [String]) {
-        //        os_log("Punting muting request over XPC!")
-        RCXPCConnection.rcXPCConnection.mutePath(pathToMute: pathToMute, muteCase: muteCase, pathEvents: pathEvents, epDelegate: self)
+    /// Add a mute to the saved set. The reply publishes the new set, so there's nothing to ask for afterwards.
+    ///
+    /// - Parameters:
+    ///   - pathToMute: The path, or path prefix.
+    ///   - muteCase: How it's matched.
+    ///   - pathEvents: `ES_EVENT_TYPE_*` names. None means every event.
+    ///   - origin: Where it was asked for, which shows what the Security Extension refused.
+    public func puntPathToMute(pathToMute: String, muteCase: es_mute_path_type_t, pathEvents: [String],
+                               from origin: MuteRequestOrigin = .settings) {
+        let entry = MuteFile.Entry(path: pathToMute, type: getMuteCaseString(muteType: muteCase), events: pathEvents)
+        requestMutes(MuteRequest(.add, [entry]), from: origin)
     }
     
-    // MARK: Step #2 in unmuting paths
+    /// Remove a path, or some of its events, from the saved set.
+    ///
+    /// - Parameters:
+    ///   - pathToUnmute: The path, or path prefix.
+    ///   - type: The `ES_MUTE_PATH_TYPE_*` name.
+    ///   - events: `ES_EVENT_TYPE_*` names to unmute. None removes the path.
     public func puntPathToUnmute(pathToUnmute: String, type: String, events: [String]) {
-        //        os_log("Punting unmuting request over XPC!")
-        RCXPCConnection.rcXPCConnection.unmutePaths(pathToUnmute: pathToUnmute, type: type, events: events, epDelegate: self)
-    }
-    
-    // MARK: Step #2 in reseting to the default mute set
-    public func resetMuteSetToDefault() {
-        //        os_log("Punting reset mute request over XPC!")
-        RCXPCConnection.rcXPCConnection.resetMutePaths(epDelegate: self)
-    }
-    
-    
-    
-    // MARK: - Sensor Context
-    
-    public func seGetGlobalMutedPaths() -> Set<String> {
-        if self.esClient != nil {
-            // Submit the fetch request to endpoint security
-            var fetchedPaths: UnsafeMutablePointer<es_muted_paths_t>? = fetch_muted_paths(esClient)
-            
-            if fetchedPaths == nil {
-                os_log("The paths we fetched from ES are nil!")
-            } else {
-                self.globallyMutedPaths = Set<String>()
-                for index in 0..<fetchedPaths!.pointee.count {
-                    let esJSONPath: String = pathToJSON(value: ESMutedPath(fromRawESPath: fetchedPaths!.pointee.paths[index]))
-                    self.globallyMutedPaths.insert(esJSONPath)
-                    
-                }
-                
-                release_es_memory(fetchedPaths)
-                fetchedPaths = nil
-                return self.globallyMutedPaths
-                
-            }
-        } else {
-            os_log("There is no client to fetch the muted paths from !")
-        }
-        
-        return self.globallyMutedPaths
-    }
-    
-    
-    
-    // MARK: Step #4 in muting paths
-    public func mutePath(pathToMute: String, muteCase: es_mute_path_type_t, pathEvents: [String]) {
-        let typeString: String = getMuteCaseString(muteType: muteCase)
-        
-        let mutingRequest: es_return_t
-        if self.esClient != nil {
-            if pathToMute.count > 0 {
-                // Submit the mute request to our endpoint security client
-                // TODO: Implement the mute with path events
-                //                os_log("ENDPOINT SECURITY :: Submitting path muting request \(typeString): `\(pathToMute)` for \(pathEvents.count) events")
-                if pathEvents.isEmpty {
-                    mutingRequest = es_mute_path(self.esClient!, pathToMute, muteCase)
-                } else {
-                    // Convert the listing of Endpoint Security event type strings to es_event_type_t
-                    var esEventTypes: [es_event_type_t] = []
-                    for event in pathEvents {
-                        esEventTypes.append(eventStringToType(from: event))
-                    }
-                    mutingRequest = es_mute_path_events(self.esClient!, pathToMute, muteCase, esEventTypes, esEventTypes.count)
-                }
-                
-                switch (mutingRequest) {
-                case ES_RETURN_SUCCESS:
-                    //                    os_log("Successfully muted: \(pathToMute) for type: \(typeString)")
-                    self.globallyMutedPaths.insert(pathToMute)
-                    break
-                case ES_RETURN_ERROR:
-                    os_log("Error muting path: \(pathToMute) for type: \(typeString)")
-                    break
-                default:
-                    os_log("Unkown error occured while muting path: \(pathToMute)")
-                }
-            }
-        } else {
-            os_log("There is no endpoint security client to submit this muting request to!")
-        }
-    }
-    
-    // MARK: Step #4 in unmuting paths
-    public func unmutePath(pathToUnmute: String, type: String, events: [String]) {
-        if self.esClient != nil {
-            if pathToUnmute.count > 0 {
-                // Submit the unmute request to our endpoint security client
-                // Restores event delivery from a previously-muted path.
-                let muteType: es_mute_path_type_t = getMuteCaseFromString(muteString: type)
-                //                os_log("ENDPOINT SECURITY :: UNMUTING PATH \(type): \(pathToUnmute) for \(events.count) events")
-                
-                let unmutingRequest: es_return_t
-                if events.count > 0 {
-                    // Convert the list of events back to es_event_type_ts
-                    var eventTypeListing: [es_event_type_t] = []
-                    for esEventString in events {
-                        eventTypeListing.append(eventStringToType(from: esEventString))
-                    }
-                    unmutingRequest = es_unmute_path_events(self.esClient!, pathToUnmute, muteType, eventTypeListing, eventTypeListing.count)
-                } else {
-                    unmutingRequest = es_unmute_path(self.esClient!, pathToUnmute, muteType)
-                }
-                
-                switch (unmutingRequest) {
-                case ES_RETURN_SUCCESS:
-                    //                    os_log("Successfully unmuted: \(type): \(pathToUnmute)")
-                    break
-                case ES_RETURN_ERROR:
-                    os_log("Error unmuting path: \(type): \(pathToUnmute)")
-                    break
-                default:
-                    os_log("Unkown error occured while unmuting path: \(type): \(pathToUnmute)")
-                }
-            }
-            
-        } else {
-            os_log("There is no client to submit this unmuting request to!")
-        }
+        requestMutes(MuteRequest(.remove, [MuteFile.Entry(path: pathToUnmute, type: type, events: events)]))
     }
 }
-
-

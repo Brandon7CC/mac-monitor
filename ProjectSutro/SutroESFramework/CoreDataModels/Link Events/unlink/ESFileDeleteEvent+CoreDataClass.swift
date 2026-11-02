@@ -10,22 +10,21 @@ import Foundation
 import CoreData
 
 @objc(ESFileDeleteEvent)
-public class ESFileDeleteEvent: NSManagedObject {
+public class ESFileDeleteEvent: NSManagedObject, Identifiable {
+    @NSManaged public var target: ESFile
+    @NSManaged public var parent_dir: ESFile
+
     enum CodingKeys: CodingKey {
-        case id
         case target
         case parent_dir
     }
     
     // MARK: - Custom Core Data initilizer for ESFileDeleteEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: FileDeleteEvent = message.event.unlink!
-        let description = NSEntityDescription.entity(forEntityName: "ESFileDeleteEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = event.id
+    convenience init(from event: FileDeleteEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
-        self.target = ESFile(from: event.target, insertIntoManagedObjectContext: context)
-        self.parent_dir = ESFile(from: event.parent_dir, insertIntoManagedObjectContext: context)
+        attach(ESFile.row(for: event.target, in: context), to: #keyPath(ESFileDeleteEvent.target))
+        attach(ESFile.row(for: event.parent_dir, in: context), to: #keyPath(ESFileDeleteEvent.parent_dir))
     }
 }
 

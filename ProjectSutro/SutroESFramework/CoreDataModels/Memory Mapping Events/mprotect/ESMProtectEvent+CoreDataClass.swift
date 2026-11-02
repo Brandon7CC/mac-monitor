@@ -10,9 +10,16 @@ import Foundation
 import CoreData
 
 @objc(ESMProtectEvent)
-public class ESMProtectEvent: NSManagedObject {
+public class ESMProtectEvent: NSManagedObject, Identifiable {
+    @NSManaged public var protection: Int32
+    @NSManaged public var address: Int64
+    @NSManaged public var size: Int64
+    
+    @NSManaged public var hex_address: String
+    @NSManaged public var kb_size: Int64
+    @NSManaged public var flagsData: Data
+
     enum CodingKeys: CodingKey {
-        case id
         case protection
         case address
         case size
@@ -31,17 +38,16 @@ public class ESMProtectEvent: NSManagedObject {
     }
     
     // MARK: - Custom Core Data initilizer for ESMProtectEvent
-    convenience init(from message: Message, insertIntoManagedObjectContext context: NSManagedObjectContext!) {
-        let event: MProtectEvent = message.event.mprotect!
-        let description = NSEntityDescription.entity(forEntityName: "ESMProtectEvent", in: context)!
-        self.init(entity: description, insertInto: context)
-        self.id = event.id
+    convenience init(from event: MProtectEvent, message: Message, in context: NSManagedObjectContext!) {
+        self.init(insertingInto: context)
         
         self.protection = event.protection
         self.address = event.address
         self.size = event.size
         
-        self.hex_address = event.hex_address
+        /// Derived again from the address: Mac Monitor up to 2.1.0 wrote a pointer in its place, and its exports and
+        /// an older Security Extension's messages still carry one.
+        self.hex_address = ProcessHelpers.toHex(UInt64(bitPattern: event.address))
         self.kb_size = event.kb_size
         self.flags = event.flags
     }
@@ -53,8 +59,9 @@ extension ESMProtectEvent: Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         
         try container.encode(protection, forKey: .protection)
-        try container.encode(address, forKey: .address)
-        try container.encode(size, forKey: .size)
+        /// `user_addr_t` and `user_size_t`, kept by bit pattern: written unsigned, as eslogger writes them.
+        try container.encode(UInt64(bitPattern: address), forKey: .address)
+        try container.encode(UInt64(bitPattern: size), forKey: .size)
         
         try container.encode(hex_address, forKey: .hex_address)
         try container.encode(kb_size, forKey: .kb_size)

@@ -21,17 +21,30 @@ struct ProjectSutroApp: App {
     /// This way we can give users the option to confirm before quitting
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
-    /// Open a new "Event metadata" window
+    /// Open a new "Event metadata" window, or a main window
     @Environment(\.openWindow) private var openEventJSON
+    
+    /// The main window's identifier, to open one for a trace when none is open.
+    private static let mainWindow = "main"
+    /// The Telemetry Schema window's identifier: Help > Telemetry Schema...
+    static let schemaWindow = "telemetry-schema"
+    /// The Settings window's identifier: Mac Monitor ▸ Settings... (⌘,).
+    static let settingsWindow = "settings"
+    /// The predicate editor's own window, when it's popped out of the main window.
+    static let predicateEditorWindow = "predicate-editor"
     
     /// Track everything going on with System Events and the Security Extension
     @StateObject var systemExtensionManager: EndpointSecurityManager = EndpointSecurityManager()
+    /// What the windows show: a live recording, or a trace opened with File > Open Trace... (#38).
+    @StateObject private var traceSession = TraceSession()
+    /// The main window's predicate search, shared with the predicate editor's own window.
+    @StateObject private var predicateSearch = EventSearchController()
     /// Track all filters offered by Mac Monitor
     @State private var allFilters: Filters = Filters()
     /// Load user preferences from ``UserDefaults``
     @State var userPrefs: UserPrefs = UserPrefs()
     
-    /// Is a system trace occuring?
+    /// Is a system trace occuring? Not at launch; shared by every main window, so a new window doesn't reset it.
     @State private var recordingEvents: Bool = false
     /// Should the "System Security Unified" table be shown?
     @State var unifiedViewSelected: Bool = true
@@ -42,86 +55,104 @@ struct ProjectSutroApp: App {
     
     /// The currently selected System Event (i.e. table row)
     @State private var eventSelection = Set<ESMessage.ID>()
-    /// Enables users to right click and mute path events
-    @State var pathToMute: String = ""
     /// The text to filter by in the context search field
     @State private var filterText: String = ""
     /// Is the event mask enabled?
     @State private var eventMaskEnabled: Bool = false
-    /// Are we filtering long processes which executed before Mac Monitor was started?
-    @State private var filteringLongRunningProcs: Bool = false
     
     @AppStorage("forcedDarkMode") private var forcedDarkMode = false
+    /// Which parents Event Facts' process tree follows: View > Process tree, and Settings > General.
+    @AppStorage(ProcessLineageMode.storageKey) private var processLineageMode = ProcessLineageMode.defaultMode
     
     // MARK: - Update Check State
-    /// Holds the details of an available update. If nil, it means no update is available or the check hasn't run.
-    @State private var updateToShow: UpdateDetails?
-    /// Controls presentation for the "No Update Found" alert.
-    @State private var showNoUpdateAlert: Bool = false
+    /// The check to show (``SwiftUI/View/updateCheckResult(_:)``): the update sheet, or the alert that says there's none.
+    @State private var updateCheck: UpdateCheck?
     /// Used to disable the update button while a check is in progress.
     @State private var isCheckingForUpdate: Bool = false
     
-    /// Dynamically query the Security Extension to get the globally muted paths at the Endpoint Security level
-    var globallyMutedPaths: Set<String> { systemExtensionManager.globallyMutedPaths }
-    
     @AppStorage("lifecycleWarnBeforeQuit") var shouldWarnBeforeAppQuit: Bool = false
+    
+    /// Was Mac Monitor launched only to deactivate the Security Extension? Then it never checks or activates it.
+    static let deactivating = CommandLine.arguments.contains("--deactivate-security-extension")
+    
+    private static let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "ProjectSutroApp")
     
     init() {
         /// Secondary entry-point for handling Security Extension deactivation ``--deactivate-security-extension``
-        if CommandLine.arguments.contains("--deactivate-security-extension") {
-            print("[Mac Monitor]\tSubmitting deactivation request to the system. User interaction IS required.")
+        if Self.deactivating {
+            Self.logger.notice("Submitting deactivation request to the system. User interaction is required.")
             systemExtensionManager.uninstallSystemExtension()
         }
     }
     
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: Self.mainWindow) {
             VStack(alignment: .leading) {
                 EventView(
                     recordingEvents: $recordingEvents,
                     unifiedViewSelected: $unifiedViewSelected,
                     processExecSelected: $processExecSelected,
                     viewMiniChart: $viewMiniChart,
-                    filteringLongRunningProcs: $filteringLongRunningProcs,
                     eventSelection: $eventSelection,
                     filterText: $filterText,
+                    search: predicateSearch,
                     allFilters: $allFilters,
                     eventMaskEnabled: $eventMaskEnabled
                 )
-                .environmentObject(systemExtensionManager)
-                .environmentObject(userPrefs)
-                .environment(\.managedObjectContext, systemExtensionManager.coreDataContainer.container.viewContext)
                 .padding(.bottom)
                 .frame(minWidth: 1200, minHeight: 750)
             }
-            .preferredColorScheme(userPrefs.forcedDarkMode ? .dark : nil)
             .onAppear {
+                ForcedDarkMode.follow()
                 UserDefaults.standard.set(false, forKey: "lifecycleQuitInternal")
-                
                 /// If auto-updates are enabled then check at app launch
-                if userPrefs.autoUpdates {
+                if userPrefs.autoUpdates && EndpointSecurityManager.supportsUpdates {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        systemExtensionManager.checkForUpdates { details in
-                            if let details = details {
-                                updateToShow = details
-                            }
+                        /// Quiet unless there's an update that wasn't skipped. A failed check says nothing.
+                        let skipped = UserDefaults.standard.string(forKey: UpdateAvailableSheet.skippedVersionKey)
+                        systemExtensionManager.checkForUpdates { check in
+                            if case .newer(let details) = check, details.version != skipped { updateCheck = check }
                         }
                     }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding()
-            .sheet(item: $updateToShow) { details in
-                UpdateAvailableSheet(updateDetails: details)
-                    .environmentObject(systemExtensionManager)
-            }
-            .alert("✅ Up-to-date!", isPresented: $showNoUpdateAlert) {
-                Button("Ok") { }
-            } message: {
-                Text("You're on the latest version of Mac Monitor!")
-            }
+            /// A trace opened from Finder's Open With or `open -a` goes to a window that's already open (see
+            /// `EventView`'s `onOpenURL`) rather than a new one. With no window open, SwiftUI opens one for it.
+            .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
+            .updateCheckResult($updateCheck)
+            /// Last, so the window's content and its update sheet both have them.
+            .environmentObject(systemExtensionManager)
+            .environmentObject(userPrefs)
+            .environmentObject(traceSession)
         }
         .commands {
+            CommandGroup(after: .newItem) {
+                Button("Open Trace…") {
+                    traceSession.chooseTrace(recording: $recordingEvents, esm: systemExtensionManager,
+                                             showWindow: showMainWindow)
+                }
+                .keyboardShortcut("o")
+                
+                Menu("Open Recent") {
+                    ForEach(traceSession.recents, id: \.self) { url in
+                        Button(url.lastPathComponent) {
+                            traceSession.open(url, recording: $recordingEvents, esm: systemExtensionManager,
+                                              showWindow: showMainWindow)
+                        }
+                    }
+                    Divider()
+                    Button("Clear Menu") { traceSession.clearRecents() }
+                }
+                .disabled(traceSession.recents.isEmpty)
+            }
+            
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") { openEventJSON(id: Self.settingsWindow) }
+                    .keyboardShortcut(",", modifiers: .command)
+            }
+
             CommandGroup(replacing: .appInfo) {
                 Button("About Mac Monitor") {
                     NSApplication.shared.orderFrontStandardAboutPanel(
@@ -143,19 +174,19 @@ struct ProjectSutroApp: App {
                 
                 Button("Check for Updates") {
                     isCheckingForUpdate = true
-                    systemExtensionManager.checkForUpdates { details in
-                        isCheckingForUpdate = false
-                        if let details = details {
-                            updateToShow = details
-                        } else {
-                            showNoUpdateAlert = true
-                        }
+                    systemExtensionManager.checkForUpdates { check in
+                        (isCheckingForUpdate, updateCheck) = (false, check)
                     }
                 }
-                .disabled(isCheckingForUpdate)
+                .disabled(isCheckingForUpdate || !EndpointSecurityManager.supportsUpdates)
+                .help(EndpointSecurityManager.supportsUpdates ? "" : "Community builds don't update themselves.")
             }
             
             CommandGroup(replacing: .help) {
+                Section("Telemetry") {
+                    Button("Telemetry Schema…") { openEventJSON(id: Self.schemaWindow) }
+                }
+                
                 Section("GitHub") {
                     Button("Bug report form") {
                         NSWorkspace.shared.open(URL(string: "https://github.com/brandon7cc/mac-monitor/issues/new?assignees=Brandon7CC&labels=bug&template=bug_report.md&title=")!)
@@ -188,6 +219,18 @@ struct ProjectSutroApp: App {
                 }.keyboardShortcut("0")
             }
             
+            /// The main window's search field and predicate editor (``EventSearchField``, ``PredicateEditorPane``).
+            CommandGroup(after: .sidebar) {
+                Button("Predicate Editor") { predicateSearch.toggleEditor(openEventJSON) }
+                    .keyboardShortcut("f", modifiers: [.command, .option])
+            }
+            CommandGroup(after: .textEditing) {
+                Button("Find…") { FindCommand.perform() }
+                    .keyboardShortcut("f")
+            }
+            
+            ProcessTreeCommands(mode: $processLineageMode)
+            
             CommandMenu("Security Extension") {
                 Button("System Setting: Full Disk Access") {
                     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
@@ -210,53 +253,45 @@ struct ProjectSutroApp: App {
             
             CommandMenu("Export telemetry") {
                 Section("JSON (pretty)") {
-                    Button("Full system trace") {
-                        recordingEvents = false
-                        systemExtensionManager.stopRecordingEvents()
-                        systemExtensionManager.coreDataContainer.exportFullTrace()
-                    }
-                    
+                    Button("Full system trace") { save(jsonl: false) }
+                        .disabled(traceSession.isOpening || traceSession.isSaving)
                     Button("Selected events \(eventSelection.count > 0 ? ": \(eventSelection.count)" : "")") {
-                        recordingEvents = false
-                        systemExtensionManager.stopRecordingEvents()
-                        
-                        systemExtensionManager.coreDataContainer
-                            .exportSelectedEvents(
-                                eventIDs: Array(eventSelection)
-                            )
-                        
-                        
-                    }.disabled(eventSelection.isEmpty)
+                        save(Array(eventSelection), jsonl: false)
+                    }
+                    .disabled(eventSelection.isEmpty || traceSession.isOpening || traceSession.isSaving)
                 }
                 
                 Divider()
                 
                 Section("JSONL (lines)") {
-                    Button("Full system trace") {
-                        recordingEvents = false
-                        systemExtensionManager.stopRecordingEvents()
-                        systemExtensionManager.coreDataContainer.exportFullTrace(jsonl: true)
-                    }
-                    .keyboardShortcut("s", modifiers: .command)
-                    
+                    Button("Full system trace") { save(jsonl: true) }
+                        .keyboardShortcut("s", modifiers: .command)
+                        .disabled(traceSession.isOpening || traceSession.isSaving)
                     Button("Selected events \(eventSelection.count > 0 ? ": \(eventSelection.count)" : "")") {
-                        recordingEvents = false
-                        systemExtensionManager.stopRecordingEvents()
-                        systemExtensionManager.coreDataContainer.exportSelectedEvents(eventIDs: Array(eventSelection), jsonl: true)
+                        save(Array(eventSelection), jsonl: true)
                     }
                     .keyboardShortcut("s", modifiers: [.command, .shift])
-                    .disabled(eventSelection.isEmpty)
+                    .disabled(eventSelection.isEmpty || traceSession.isOpening || traceSession.isSaving)
                 }
             }
         }
         
-        Settings {
-            AgentSettingsView(pathToMute: $pathToMute, allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled)
+        /// Settings, as a window rather than a `Settings` scene, which has no toolbar for the sidebar to run under or
+        /// for the pane's name and Back and Forward. ⌘, opens it (the app menu's Settings... below).
+        Window("Settings", id: Self.settingsWindow) {
+            AgentSettingsView(allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled)
                 .environmentObject(systemExtensionManager)
+                .environmentObject(predicateSearch)
                 .environmentObject(userPrefs)
-                .preferredColorScheme(userPrefs.forcedDarkMode ? .dark : nil)
+                .onAppear { ForcedDarkMode.follow() }
         }
-        
+        .windowToolbarStyle(.unified)
+        /// Wide enough for Path Muting's search, its grouping, and its inspector beside the table.
+        .defaultSize(width: 1000, height: 720)
+        /// Resizable down to the sidebar layout's smallest size, as System Settings is.
+        .windowResizability(.contentMinSize)
+        .commandsRemoved()
+
         WindowGroup("Event Facts", for: ESMessage.ID.self) { $eventID in
             if let id = eventID {
                 AppWrapperForFacts(id: id, allFilters: $allFilters)
@@ -268,5 +303,39 @@ struct ProjectSutroApp: App {
             }
         }
         .defaultPosition(.topLeading).defaultSize(width: 1000, height: 900)
+        /// Never the window a trace opens in.
+        .handlesExternalEvents(matching: [])
+        
+        /// The predicate editor, popped out of the main window. One window.
+        Window("Predicate Editor", id: Self.predicateEditorWindow) {
+            PredicateEditorWindow(search: predicateSearch)
+        }
+        .defaultSize(width: 520, height: 760)
+        .handlesExternalEvents(matching: [])
+        
+        /// Help > Telemetry Schema...: the schema of Mac Monitor's exports, and traces checked against it. One window.
+        Window("Telemetry Schema", id: Self.schemaWindow) {
+            TelemetrySchemaView()
+        }
+        .defaultSize(width: 820, height: 720)
+        /// Never the window a trace opens in.
+        .handlesExternalEvents(matching: [])
+    }
+    
+    /// Open a main window, for a trace opened from the File menu while none is open (the app stays open without one).
+    private func showMainWindow() {
+        openEventJSON(id: Self.mainWindow)
+    }
+
+    /// Export telemetry: stop recording, then choose a file and save the events to it in the background. The main
+    /// window key last shows the save's sheet, and one opens if none is open.
+    ///
+    /// - Parameters:
+    ///   - eventIDs: The selected events, or `nil` for the full trace.
+    ///   - jsonl: JSON Lines (`true`) or pretty-printed JSON (`false`).
+    private func save(_ eventIDs: [UUID]? = nil, jsonl: Bool) {
+        recordingEvents = false
+        systemExtensionManager.stopRecordingEvents()
+        traceSession.save(eventIDs: eventIDs, jsonl: jsonl, showWindow: showMainWindow)
     }
 }
