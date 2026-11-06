@@ -134,12 +134,6 @@ struct SystemAuthorizationPetitionMetadataView: View {
         esSystemEvent.event.authorization_petition!
     }
     
-    // Helper struct for Table
-    private struct IdentifiableString: Identifiable {
-        let id = UUID()
-        let value: String
-    }
-    
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
         if esSystemEvent.event.authorization_petition != nil {
@@ -165,12 +159,7 @@ struct SystemAuthorizationPetitionMetadataView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     GroupBox {
-                        Table(event.flags_array.map { IdentifiableString(value: $0) }) {
-                            TableColumn("Flag", value: \.value)
-                                .width(min: 200)
-                        }
-                        .monospaced()
-                        .frame(minHeight: 100, maxHeight: 200)
+                        FactsGrid(Array(event.flags_array.enumerated()), id: \.offset, columns: .init("Flag") { $0.element })
                     }
                     
                     Divider()
@@ -183,12 +172,7 @@ struct SystemAuthorizationPetitionMetadataView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     GroupBox {
-                        Table(event.rights.map { IdentifiableString(value: $0) }) {
-                            TableColumn("Right", value: \.value)
-                                .width(min: 200)
-                        }
-                        .monospaced()
-                        .frame(minHeight: 100, maxHeight: 200)
+                        FactsGrid(Array(event.rights.enumerated()), id: \.offset, columns: .init("Right") { $0.element })
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

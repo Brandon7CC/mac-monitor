@@ -158,18 +158,12 @@ struct SystemAuthorizationJudgementMetadataView: View {
                     AuthJudgeProcsView(event: event)
                     
                     Text("**Results from authorization petition:**")
-                    Table(event.results) {
-                        TableColumn("Right name") { result in
-                            Text("`\(result.right_name)`")
-                        }
-                        TableColumn("Rule class") { result in
-                            Text("`\(result.ruleClassShortName)`")
-                        }
-                        TableColumn("Granted") { result in
-                            Text("`\(result.granted ? "Yes" : "No")`")
-                        }
+                    GroupBox {
+                        FactsGrid(event.results, columns:
+                            .init("Right name") { $0.right_name },
+                            .init("Rule class") { $0.ruleClassShortName },
+                            .init("Granted") { $0.granted ? "Yes" : "No" })
                     }
-                    .frame(maxWidth: nil, minHeight: 100.0, maxHeight: nil, alignment: .leading)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding([.leading, .trailing], 10)

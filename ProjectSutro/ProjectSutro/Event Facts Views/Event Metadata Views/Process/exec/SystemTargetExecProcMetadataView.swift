@@ -313,19 +313,10 @@ struct SystemTargetExecProcMetadataView: View {
 
                     if showCodeSigningFlags {
                         GroupBox {
-                            Table(codeSigningFlags) {
-                                TableColumn("Flag") { flag in
-                                    Text(flag.name).monospaced().textSelection(.enabled)
-                                }
-                                .width(min: 180, ideal: 230)
-                                TableColumn("Bit") { flag in
-                                    Text(String(format: "0x%08X", flag.bit)).monospaced()
-                                }
-                                .width(min: 90, ideal: 100, max: 120)
-                                TableColumn("Meaning", value: \.summary)
-                            }
-                            /// Every flag without scrolling: a process has a dozen at most.
-                            .frame(height: CGFloat(codeSigningFlags.count) * 26 + 34)
+                            FactsGrid(codeSigningFlags, columns:
+                                .init("Flag") { $0.name },
+                                .init("Bit") { String(format: "0x%08X", $0.bit) },
+                                .init("Meaning", monospaced: false) { $0.summary })
                         }
                     }
                 }.frame(maxWidth: .infinity, alignment: .topLeading)
@@ -346,14 +337,10 @@ struct SystemTargetExecProcMetadataView: View {
                     
                     if showFDs {
                         GroupBox {
-                            Table(event.fds) {
-                                TableColumn("FD", value: \.fd.description)
-                                TableColumn("Type", value: \.type)
-                                TableColumn("Pipe ID") { fd in
-                                    Text(fd.pipe?.pipe_id.description ?? "")
-                                }
-                            }
-                            .frame(height: CGFloat(150))
+                            FactsGrid(event.fds, columns:
+                                .init("FD") { $0.fd.description },
+                                .init("Type") { $0.type },
+                                .init("Pipe ID") { $0.pipe?.pipe_id.description ?? "" })
                         }
                     }
                 }.frame(maxWidth: .infinity, alignment: .topLeading)
