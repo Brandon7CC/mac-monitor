@@ -68,7 +68,9 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     @Published public var installProgress: UpdateProgress?
     
     // MARK: Event subscriptions
-    /// The Security Extension's event subscriptions, as `ES_EVENT_TYPE_*` names (see ``requestEventSubscriptions()``).
+    /// The Security Extension's event subscriptions, as `ES_EVENT_TYPE_*` names, and the wire names of the field
+    /// filters in effect (``FieldFilter``; see ``requestEventSubscriptions()``). For the events alone, go through
+    /// `supportedEvents` or `EventCatalog`, as the filter and mute sheets do.
     @Published public var monitoredEventStrings: Set<String> = []
     
     // MARK: Muting Enging properties

@@ -233,3 +233,92 @@ final class StreamSessionTests: XCTestCase {
         XCTAssertEqual(summary.captured, summary.delivered + summary.droppedWhileBehind)
     }
 }
+
+
+// MARK: - Field filters
+extension StreamSessionTests {
+    /// A stream request that asks for the close filter.
+    ///
+    /// - Parameter events: `ES_EVENT_TYPE_NOTIFY_*` names.
+    /// - Returns: The request's JSON.
+    private func filteredStream(_ events: [String]) -> Data {
+        StreamRequest(.stream, options: StreamOptions(events: events, appliesSavedMutes: false,
+                                                      fieldFilters: [FieldFilter.modifiedCloses.rawValue])).encoded()
+    }
+    
+    /// Deliver closes to a stream's file client, numbered in order.
+    ///
+    /// - Parameters:
+    ///   - modified: Each close's `modified`.
+    ///   - first: The first close's `seq_num` and `global_seq_num`.
+    ///   - factory: The stream's client factory.
+    private func deliverCloses(_ modified: [Bool], from first: UInt64 = 1,
+                               to factory: FakeEndpointSecurityClientFactory) {
+        for (offset, modified) in modified.enumerated() {
+            let number = first + UInt64(offset)
+            factory.client(.file).deliver(closeMessage(modified: modified, seq: number, global: number))
+        }
+    }
+    
+    /// A stream with the close filter delivers only modified closes, echoes the filter it applied, and counts what it
+    /// left out, never as a drop.
+    func testAFilteredStreamLeavesOutUnmodifiedCloses() throws {
+        let harness = StreamHarness(savedMutes: savedMutes)
+        let reader = TestStreamReader()
+        let connection = harness.connect(reader: reader)
+        defer { connection.invalidate() }
+        let started = try XCTUnwrap(connection.send(filteredStream(["ES_EVENT_TYPE_NOTIFY_CLOSE"])))
+        XCTAssertEqual(started.stream?.fieldFilters, ["ES_EVENT_TYPE_NOTIFY_CLOSE.modified"])
+        deliverCloses([true, false, true], to: try XCTUnwrap(harness.factories.first))
+        XCTAssertTrue(waitUntil { reader.events == ["1", "3"] }, "\(reader.events)")
+        let summary = try XCTUnwrap(connection.send(StreamRequest(.stop).encoded())?.summary)
+        XCTAssertEqual(summary.delivered, 2)
+        XCTAssertEqual(summary.fieldFiltered, ["ES_EVENT_TYPE_NOTIFY_CLOSE": 1])
+        XCTAssertEqual(summary.droppedByEndpointSecurity, 0)
+        XCTAssertEqual(summary.skippedWhilePaused, 0)
+    }
+    
+    /// A request without field filters, as `macmonitor` 3.0.0 sends, gets 3.0.0's stream: no echo, no count, and no
+    /// close among the defaults.
+    func testA300RequestGetsA300Stream() throws {
+        let harness = StreamHarness(savedMutes: savedMutes)
+        let named = harness.connect(reader: TestStreamReader())
+        let defaults = harness.connect(reader: TestStreamReader())
+        defer { [named, defaults].forEach { $0.invalidate() } }
+        XCTAssertNil(try XCTUnwrap(named.send(stream())).stream?.fieldFilters)
+        XCTAssertNil(try XCTUnwrap(named.send(StreamRequest(.stop).encoded())?.summary).fieldFiltered)
+        let all = try XCTUnwrap(defaults.send(StreamRequest(.stream, options: StreamOptions()).encoded())?.stream)
+        XCTAssertFalse(all.events.contains("ES_EVENT_TYPE_NOTIFY_CLOSE"))
+        XCTAssertNil(all.fieldFilters)
+    }
+    
+    /// While capture is paused, an unmodified close is left out rather than skipped, so it's never counted as lost.
+    func testLeftOutClosesWhilePausedAreNotSkipped() throws {
+        let harness = StreamHarness(savedMutes: savedMutes)
+        let reader = TestStreamReader()
+        let connection = harness.connect(reader: reader)
+        defer { connection.invalidate() }
+        reader.holdReplies()
+        XCTAssertEqual(connection.send(filteredStream(["ES_EVENT_TYPE_NOTIFY_EXIT", "ES_EVENT_TYPE_NOTIFY_CLOSE"]))?
+                        .stream?.fieldFilters, ["ES_EVENT_TYPE_NOTIFY_CLOSE.modified"])
+        let factory = try XCTUnwrap(harness.factories.first)
+        let limits = EventBatcher.Limits.commandLine
+        let inFlight = UInt64(limits.maxBatchesInFlight * limits.batchSize)
+        deliverExits(1...inFlight, to: factory)
+        XCTAssertTrue(waitUntil { reader.heldCount == limits.maxBatchesInFlight })
+        /// One more than fits pauses capture.
+        deliverExits((inFlight + 1)...(inFlight + UInt64(limits.memoryLimit) + 1), to: factory)
+        XCTAssertEqual(connection.send(StreamRequest(.hello).encoded())?.status, .ok)
+        deliverCloses(Array(repeating: false, count: 1_000) + Array(repeating: true, count: 5), to: factory)
+        
+        reader.releaseReplies()
+        XCTAssertTrue(waitUntil {
+            reader.releaseReplies()
+            return reader.events.count >= limits.memoryLimit + Int(inFlight)
+        })
+        let summary = try XCTUnwrap(connection.send(StreamRequest(.stop).encoded())?.summary)
+        XCTAssertEqual(summary.pauses, 1)
+        XCTAssertEqual(summary.skippedWhilePaused, 5)
+        XCTAssertEqual(summary.fieldFiltered, ["ES_EVENT_TYPE_NOTIFY_CLOSE": 1_000])
+    }
+}

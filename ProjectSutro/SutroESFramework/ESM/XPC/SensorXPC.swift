@@ -149,7 +149,8 @@ public enum SensorXPC {
 ///
 /// Mute types travel as their `ES_MUTE_PATH_TYPE_*` string names and events travel as their `ES_EVENT_TYPE_*`
 /// string names (see `getMuteCaseString(muteType:)` and `eventTypeToString(from:)`), inside versioned JSON for the
-/// saved mute set (``MuteRequest``, ``MuteReply``).
+/// saved mute set (``MuteRequest``, ``MuteReply``). Field filters travel as ``FieldFilter`` wire names next to event
+/// names.
 @objc public protocol SensorProtocol {
     // MARK: Lifecycle
     /// Claim the event stream for the calling connection and ensure capture is running (one Endpoint Security client
@@ -167,7 +168,8 @@ public enum SensorXPC {
     ///     the system has too many, or `.streamOwned` if another connection owns the event stream.
     func start(recording: Bool, reply: @escaping (NewClientResult) -> Void)
     
-    /// Start or stop serializing events. While stopped the Security Extension does no per-event work.
+    /// Start or stop serializing events. While stopped the Security Extension counts each message and checks its field
+    /// filter, and serializes nothing.
     ///
     /// - Parameters:
     ///   - enabled: `true` to stream events to the agent.
@@ -175,16 +177,17 @@ public enum SensorXPC {
     func setRecording(_ enabled: Bool, reply: @escaping (Bool) -> Void)
     
     // MARK: Event subscriptions
-    /// The event types the Endpoint Security clients are subscribed to.
+    /// The event types the Endpoint Security clients are subscribed to, and the field filters in effect.
     ///
-    /// - Parameter reply: `ES_EVENT_TYPE_*` names.
+    /// - Parameter reply: `ES_EVENT_TYPE_*` names, and the wire names of the field filters in effect.
     func eventSubscriptions(reply: @escaping ([String]) -> Void)
     
-    /// Subscribe to, or unsubscribe from, a single event type.
+    /// Subscribe to, or unsubscribe from, a single event type, or turn a field filter on or off.
     ///
     /// - Parameters:
-    ///   - event: The `ES_EVENT_TYPE_*` name.
-    ///   - enabled: `true` to subscribe, `false` to unsubscribe.
+    ///   - event: The `ES_EVENT_TYPE_*` name, or a ``FieldFilter`` wire name to turn that filter on or off. A
+    ///     Security Extension older than 3.0.1 replies `false` to a filter.
+    ///   - enabled: `true` to subscribe or turn the filter on, `false` to unsubscribe or turn it off.
     ///   - reply: `true` if Endpoint Security accepted the request, or `false` if the caller doesn't own the event
     ///     stream.
     func setSubscription(_ event: String, enabled: Bool, reply: @escaping (Bool) -> Void)

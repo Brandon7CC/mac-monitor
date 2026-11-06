@@ -103,12 +103,15 @@ public struct StreamOptions: Codable, Equatable, Sendable {
     public var events: [String] = []
     /// Apply the saved mute set, and follow its changes? `macmonitor stream --no-mutes` sends `false`.
     public var appliesSavedMutes: Bool = true
+    /// ``FieldFilter`` wire names to apply. Missing means a 3.0.0 request: no field filters, and default events
+    /// without those that are default only with one. `macmonitor` 3.0.1 and later always sends it.
+    public var fieldFilters: [String]? = nil
 }
 
 
 extension StreamOptions {
     /// Missing events mean the defaults, and missing `appliesSavedMutes` means `true`: a stream applies the saved set
-    /// unless it says otherwise.
+    /// unless it says otherwise. Missing `fieldFilters` stays `nil`: a 3.0.0 request.
     ///
     /// - Parameter decoder: The decoder.
     /// - Throws: A `DecodingError` for a field of the wrong type.
@@ -116,6 +119,7 @@ extension StreamOptions {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         events = try container.decodeIfPresent([String].self, forKey: .events) ?? []
         appliesSavedMutes = try container.decodeIfPresent(Bool.self, forKey: .appliesSavedMutes) ?? true
+        fieldFilters = try container.decodeIfPresent([String].self, forKey: .fieldFilters)
     }
 }
 

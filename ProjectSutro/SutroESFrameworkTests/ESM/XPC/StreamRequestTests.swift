@@ -33,6 +33,22 @@ final class StreamRequestTests: XCTestCase {
         let request = try StreamRequest.decode(Data(#"{"version":1,"kind":"stream","options":{},"later":7}"#.utf8))
         XCTAssertEqual(request.options, StreamOptions())
         XCTAssertEqual(request.options?.appliesSavedMutes, true)
+        XCTAssertNil(request.options?.fieldFilters, "A 3.0.0 request")
+    }
+    
+    /// Field filters round-trip, including none at all, which is not the same as a 3.0.0 request that names none.
+    /// Without them, the key isn't written, so a 3.0.0 Security Extension reads the request as before.
+    func testFieldFiltersRoundTrip() throws {
+        let json = #"""
+            {"version":1,"kind":"stream","options":{"fieldFilters":["ES_EVENT_TYPE_NOTIFY_CLOSE.modified"]}}
+            """#
+        let request = try StreamRequest.decode(Data(json.utf8))
+        XCTAssertEqual(request.options?.fieldFilters, ["ES_EVENT_TYPE_NOTIFY_CLOSE.modified"])
+        XCTAssertEqual(try StreamRequest.decode(request.encoded()), request)
+        let none = StreamRequest(.stream, options: StreamOptions(fieldFilters: []))
+        XCTAssertEqual(try StreamRequest.decode(none.encoded()).options?.fieldFilters, [])
+        let legacy = String(decoding: StreamRequest(.stream, options: StreamOptions()).encoded(), as: UTF8.self)
+        XCTAssertFalse(legacy.contains("fieldFilters"), legacy)
     }
     
     /// Every request survives a round trip.
@@ -86,10 +102,30 @@ final class StreamRequestTests: XCTestCase {
                                      skippedWhilePaused: 5, pauses: 1))
         XCTAssertEqual(StreamReply.decode(Data(#"{"version":3,"status":"later","sensorVersion":"3.0 (1)"}"#.utf8))?
                         .status, .unsupported)
+        XCTAssertNil(StreamReply.decode(Data(started.utf8))?.stream?.fieldFilters, "From a 3.0.0 Security Extension")
+        XCTAssertNil(StreamReply.decode(Data(stopped.utf8))?.summary?.fieldFiltered)
         XCTAssertNil(StreamReply.decode(Data(#"{"version":1,"status":"ok"}"#.utf8)))
         let reply = StreamReply(status: .sessionLimit, problem: "Three streams are running.",
                                 sensorVersion: "3.0.0 (1)")
         XCTAssertEqual(StreamReply.decode(reply.encoded()), reply)
+    }
+    
+    /// A 3.0.1 reply says which field filters apply when the stream starts, and what they left out when it stops.
+    func testFieldFilterRepliesRead() {
+        let started = #"""
+            {"version":1,"status":"ok","sensorVersion":"3.0.1 (1)","stream":{"events":["ES_EVENT_TYPE_NOTIFY_CLOSE"],\#
+            "fieldFilters":["ES_EVENT_TYPE_NOTIFY_CLOSE.modified"]}}
+            """#
+        XCTAssertEqual(StreamReply.decode(Data(started.utf8))?.stream,
+                       StreamStarted(events: ["ES_EVENT_TYPE_NOTIFY_CLOSE"], savedMutes: nil,
+                                     fieldFilters: ["ES_EVENT_TYPE_NOTIFY_CLOSE.modified"]))
+        let stopped = #"""
+            {"version":1,"status":"ok","sensorVersion":"3.0.1 (1)","summary":{"captured":2,"delivered":2,\#
+            "droppedByEndpointSecurity":0,"droppedWhileBehind":0,"skippedWhilePaused":0,"pauses":0,\#
+            "fieldFiltered":{"ES_EVENT_TYPE_NOTIFY_CLOSE":7}}}
+            """#
+        XCTAssertEqual(StreamReply.decode(Data(stopped.utf8))?.summary?.fieldFiltered,
+                       ["ES_EVENT_TYPE_NOTIFY_CLOSE": 7])
     }
 }
 

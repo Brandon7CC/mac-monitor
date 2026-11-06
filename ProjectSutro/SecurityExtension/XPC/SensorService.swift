@@ -30,6 +30,10 @@ import SutroESFramework
 /// **Saved mute set:** any user's Mac Monitor may change it, administrator or not, while it owns the event stream or
 /// nobody does. `macmonitor` changes it only as root.
 ///
+/// **Field filters:** they travel as `FieldFilter` wire names beside event names in `eventSubscriptions(reply:)` and
+/// `setSubscription(_:enabled:reply:)`, and like subscriptions only the owner changes them. They're kept in memory,
+/// so they return to the defaults (close: only modified files) whenever the Security Extension restarts.
+///
 /// **Updates:** any user's Mac Monitor may install one, administrator or not, while it owns the event stream or nobody
 /// does. The Security Extension downloads the latest release itself and installs it only once Gatekeeper accepts it
 /// and it's signed by Swiftly Detecting's team, so the most a caller can do is bring Mac Monitor up to date.
@@ -62,6 +66,10 @@ final class SensorService: NSObject {
     /// Mac Monitor's event subscriptions. They outlive a capture session, so a Mac Monitor that reconnects keeps the
     /// ones it chose.
     private var subscriptions: [es_event_type_t] = defaultEventSubscriptions
+    
+    /// Mac Monitor's field filters. Like `subscriptions`, they outlive a capture session and return to the defaults
+    /// when the Security Extension restarts.
+    private var fieldFilters = Set(defaultFieldFilters)
     
     /// Endpoint Security's default mutes (``ESMutedPath`` JSON), from the first capture session this process started.
     private var appleDefaultMutes: Set<String> = []
@@ -174,12 +182,18 @@ extension SensorService: SensorProtocol {
     
     func eventSubscriptions(reply: @escaping ([String]) -> Void) {
         perform(reply) { [self] in
-            Set((capture?.subscribedEvents ?? subscriptions).map { eventTypeToString(from: $0) }).sorted()
+            Set((capture?.subscribedEvents ?? subscriptions).map { eventTypeToString(from: $0) })
+                .union((capture?.fieldFilters ?? fieldFilters).map(\.rawValue)).sorted()
         }
     }
     
     func setSubscription(_ event: String, enabled: Bool, reply: @escaping (Bool) -> Void) {
         performForOwner(refusing: false, reply) { [self] in
+            if let filter = FieldFilter(rawValue: event) {
+                guard let capture, capture.setFieldFilter(filter, enabled: enabled) else { return false }
+                fieldFilters = capture.fieldFilters
+                return true
+            }
             guard let capture, capture.setSubscription(eventStringToType(from: event), enabled: enabled) else {
                 return false
             }
@@ -268,6 +282,7 @@ extension SensorService {
         do {
             var configuration = CaptureConfiguration(events: subscriptions, label: "Mac Monitor")
             configuration.mutes = mutes
+            configuration.fieldFilters = fieldFilters
             let session = try CaptureSession(configuration) { [weak self] event in
                 self?.queue.async { self?.sink?.batcher.enqueue(event.json) }
             }

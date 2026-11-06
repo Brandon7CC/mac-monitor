@@ -71,6 +71,7 @@ final class StreamCommandRun {
     
     /// - Parameters:
     ///   - harness: The in-process Security Extension.
+    ///   - endpoint: Where to connect instead of `harness`, such as a ``LegacyStreamHarness`` relaying to it.
     ///   - formatter: How events become output.
     ///   - scope: Which events are the pipeline's own.
     ///   - toolVersion: `macmonitor`'s version.
@@ -78,10 +79,10 @@ final class StreamCommandRun {
     ///   - requirement: The code signing requirement `macmonitor` pins on the Security Extension, if any.
     ///   - filter: Which events are written.
     ///   - limit: The most events to write (`--count`), if any.
-    init(harness: StreamHarness, formatter: StreamPipeline.Formatter, scope: PipelineScope,
-         toolVersion: String = "3.0.0 (1)", isChatty: Bool = true, requirement: String? = nil,
+    init(harness: StreamHarness, endpoint: NSXPCListenerEndpoint? = nil, formatter: StreamPipeline.Formatter,
+         scope: PipelineScope, toolVersion: String = "3.0.0 (1)", isChatty: Bool = true, requirement: String? = nil,
          filter: StreamFilter = StreamFilter(), limit: Int? = nil) {
-        let client = StreamClient(connection: NSXPCConnection(listenerEndpoint: harness.endpoint),
+        let client = StreamClient(connection: NSXPCConnection(listenerEndpoint: endpoint ?? harness.endpoint),
                                   requirement: requirement)
         let pipeline = StreamPipeline(formatter: formatter, scope: scope, forTerminal: false, filter: filter,
                                       limit: limit)

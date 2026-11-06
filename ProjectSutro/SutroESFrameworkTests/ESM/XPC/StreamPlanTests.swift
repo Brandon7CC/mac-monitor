@@ -14,10 +14,13 @@ import EndpointSecurity
 /// Pins what a Security Extension agrees to stream: NOTIFY events Mac Monitor models, each once, in order, and never
 /// more names than ``StreamPlan/maximumEvents``.
 final class StreamPlanTests: XCTestCase {
-    /// No events means Mac Monitor's defaults. The saved mutes apply unless the request says otherwise.
+    /// No events, from a 3.0.0 request without field filters, means 3.0.0's defaults: never close, which it would
+    /// stream unfiltered. The saved mutes apply unless the request says otherwise.
     func testNoEventsMeansTheDefaults() throws {
         let plan = try StreamPlan(StreamOptions())
-        XCTAssertEqual(plan.events, defaultEventSubscriptions)
+        XCTAssertEqual(plan.events, defaultEventSubscriptionsWithoutFieldFilters)
+        XCTAssertFalse(plan.events.contains(ES_EVENT_TYPE_NOTIFY_CLOSE))
+        XCTAssertNil(plan.fieldFilters)
         XCTAssertTrue(plan.appliesSavedMutes)
         XCTAssertFalse(try StreamPlan(StreamOptions(appliesSavedMutes: false)).appliesSavedMutes)
     }
@@ -46,5 +49,44 @@ final class StreamPlanTests: XCTestCase {
         let tooMany = Array(repeating: "ES_EVENT_TYPE_NOTIFY_EXEC", count: StreamPlan.maximumEvents + 1)
         XCTAssertThrowsError(try StreamPlan(StreamOptions(events: tooMany)))
         XCTAssertNoThrow(try StreamPlan(StreamOptions(events: Array(tooMany.dropLast()))))
+    }
+    
+    /// With the field filters named, no events means every default, close included, modified-only. No filters at
+    /// all means the same events, every close streamed.
+    func testFieldFiltersWithTheDefaults() throws {
+        let filtered = try StreamPlan(StreamOptions(fieldFilters: [FieldFilter.modifiedCloses.rawValue]))
+        XCTAssertEqual(filtered.events, defaultEventSubscriptions)
+        XCTAssertTrue(filtered.events.contains(ES_EVENT_TYPE_NOTIFY_CLOSE))
+        XCTAssertEqual(filtered.fieldFilters, [.modifiedCloses])
+        let unfiltered = try StreamPlan(StreamOptions(fieldFilters: []))
+        XCTAssertEqual(unfiltered.events, defaultEventSubscriptions)
+        XCTAssertEqual(unfiltered.fieldFilters, [])
+    }
+    
+    /// A filter on an event the stream doesn't subscribe to is dropped: it would check nothing.
+    func testFiltersOnlyApplyToSubscribedEvents() throws {
+        let options = StreamOptions(events: ["ES_EVENT_TYPE_NOTIFY_EXEC"],
+                                    fieldFilters: [FieldFilter.modifiedCloses.rawValue])
+        XCTAssertEqual(try StreamPlan(options).fieldFilters, [])
+        let closes = StreamOptions(events: ["ES_EVENT_TYPE_NOTIFY_CLOSE"],
+                                   fieldFilters: [FieldFilter.modifiedCloses.rawValue])
+        XCTAssertEqual(try StreamPlan(closes).fieldFilters, [.modifiedCloses])
+    }
+    
+    /// A filter this build doesn't know comes from a newer `macmonitor`: unsupported. Two filters on one event, or
+    /// more names than ``StreamPlan/maximumEvents``, are invalid. Naming one filter twice is the same as once.
+    func testWhatFieldFiltersAreRefused() {
+        let unknown = thrown(XPCRequestError.self) {
+            try StreamPlan(StreamOptions(fieldFilters: ["ES_EVENT_TYPE_NOTIFY_CLOSE.was_mapped_writable"]))
+        }
+        XCTAssertEqual(unknown?.status(as: StreamReply.Status.self), .unsupported)
+        XCTAssertEqual(unknown?.description, "ES_EVENT_TYPE_NOTIFY_CLOSE.was_mapped_writable isn't a field filter "
+                       + "this Security Extension knows. Open Mac Monitor to finish updating.")
+        let close = ES_EVENT_TYPE_NOTIFY_CLOSE
+        XCTAssertEqual(try StreamPlan.fieldFilters(named: Array(repeating: FieldFilter.modifiedCloses.rawValue,
+                                                                count: 2), over: [close]), [.modifiedCloses])
+        let tooMany = Array(repeating: FieldFilter.modifiedCloses.rawValue, count: StreamPlan.maximumEvents + 1)
+        let error = thrown(XPCRequestError.self) { try StreamPlan(StreamOptions(fieldFilters: tooMany)) }
+        XCTAssertEqual(error?.status(as: StreamReply.Status.self), .invalid)
     }
 }

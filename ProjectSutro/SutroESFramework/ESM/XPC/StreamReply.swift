@@ -59,6 +59,10 @@ public struct StreamStarted: Codable, Equatable, Sendable {
     public var events: [String]
     /// How many saved mutes apply, or `nil` for a stream without them (`--no-mutes`).
     public var savedMutes: Int?
+    /// The ``FieldFilter`` wire names applied, sorted: those asked for whose event is subscribed. Set, possibly empty,
+    /// by a Security Extension 3.0.1 or later for a request that sent ``StreamOptions/fieldFilters``. `nil` from an
+    /// older one, or for a 3.0.0 request.
+    public var fieldFilters: [String]? = nil
 }
 
 
@@ -67,7 +71,8 @@ public struct StreamStarted: Codable, Equatable, Sendable {
 ///
 /// `macmonitor` counts every `global_seq_num` gap it sees. Of those, ``droppedByEndpointSecurity`` were lost before
 /// they reached the Security Extension, and the rest while `macmonitor` was behind: dropped with the buffer full
-/// (``droppedWhileBehind``), or skipped while capture was paused (``skippedWhilePaused``).
+/// (``droppedWhileBehind``), or skipped while capture was paused (``skippedWhilePaused``). Messages a field filter
+/// left out (``fieldFiltered``) leave gaps too, but are neither drops nor losses.
 public struct StreamSummary: Codable, Equatable, Sendable {
     /// Events the Security Extension serialized for the stream.
     public var captured: Int
@@ -81,4 +86,7 @@ public struct StreamSummary: Codable, Equatable, Sendable {
     public var skippedWhilePaused: Int
     /// How many times capture paused until `macmonitor` caught up.
     public var pauses: Int
+    /// Messages the stream's field filters left out, by `ES_EVENT_TYPE_*` name: never lost, and never in
+    /// ``skippedWhilePaused``. `nil` for a 3.0.0 request, or from an older Security Extension.
+    public var fieldFiltered: [String: Int]? = nil
 }

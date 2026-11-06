@@ -64,7 +64,8 @@ func errnoText(_ code: Int32 = errno) -> String {
 /// * A field eslogger writes is always written: `null` when the value is absent (encode the optional with `encode`,
 ///   never `encodeIfPresent`). Mac Monitor's own fields may be left out.
 /// * `seq_num` and `global_seq_num` count the messages one Endpoint Security client received, so they're Mac
-///   Monitor's own and never equal eslogger's.
+///   Monitor's own and never equal eslogger's. Messages a field filter left out (``FieldFilter``) still count, so
+///   they leave gaps.
 /// * `remote_thread_create`'s `thread_state.state` is always `null`: eslogger writes no thread state bytes. Mac Monitor
 ///   keeps them in its own `state_base64` (``ThreadState``).
 enum ESLogger {

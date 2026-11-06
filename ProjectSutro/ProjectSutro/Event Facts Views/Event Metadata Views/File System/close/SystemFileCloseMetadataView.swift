@@ -23,6 +23,26 @@ struct SystemFileCloseMetadataView: View {
         }
     }
 
+    /// Whether the file was written through the descriptor, and whether it was mapped writable: Mac Monitor keeps only
+    /// modified closes by default, and a file changed only through a writable mapping closes unmodified. Endpoint
+    /// Security reports `was_mapped_writable` from message version 6.
+    private var writeFacts: some View {
+        HStack {
+            Text("\u{2022} **Modified:**")
+                .padding([.leading], 5.0)
+            GroupBox {
+                Text("`\(String(event.modified))`")
+            }.help("Whether the file was written through this descriptor before it closed.")
+
+            if esSystemEvent.version >= 6 {
+                Text("\u{2022} **Mapped writable:**")
+                GroupBox {
+                    Text("`\(String(event.was_mapped_writable))`")
+                }.help("Whether the file was mapped writable. A file changed only through a writable mapping closes unmodified.")
+            }
+        }.frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     @ViewBuilder
     private var eventContent: some View {
         VStack(alignment: .leading) {
@@ -56,7 +76,8 @@ struct SystemFileCloseMetadataView: View {
                             }
                         }.frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    
+
+                    writeFacts
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }
             

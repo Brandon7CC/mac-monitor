@@ -13,7 +13,8 @@ import SutroESFramework
 /// Settings ▸ Subscriptions: every event Mac Monitor supports on this Mac, by class of telemetry. A list beside the
 /// events picks All events, every class in its own section, or one class, as System Settings ▸ Notifications picks an
 /// app. Each event has a switch that subscribes the Security Extension to it or unsubscribes it right away, and its
-/// symbol takes its class's color while it's on.
+/// symbol takes its class's color while it's on. An event with a field filter, such as Close's "Only modified files",
+/// has a checkbox under its name that turns the filter on or off.
 struct SubscriptionsSettingsView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @Binding var allFilters: Filters
@@ -27,36 +28,50 @@ struct SubscriptionsSettingsView: View {
             .onAppear { systemExtensionManager.requestEventSubscriptions() }
     }
 
-    /// Subscribe to events. While the event filter is on, they join it too, so their events show.
+    /// Subscribe to events, or turn field filters on. While the event filter is on, events join it too, so they show.
     ///
-    /// - Parameter names: The events' names.
+    /// - Parameter names: The events' names, or field filters' wire names.
     private func subscribe(_ names: [String]) {
         for name in names {
-            if eventMaskEnabled && !allFilters.events.contains(name) { allFilters.events.append(name) }
+            if eventMaskEnabled && FieldFilter(rawValue: name) == nil && !allFilters.events.contains(name) {
+                allFilters.events.append(name)
+            }
             systemExtensionManager.setSubscription(name, enabled: true)
         }
     }
 
-    /// Unsubscribe from events.
+    /// Unsubscribe from events, or turn field filters off.
     ///
-    /// - Parameter names: The events' names.
+    /// - Parameter names: The events' names, or field filters' wire names.
     private func unsubscribe(_ names: [String]) {
         names.forEach { systemExtensionManager.setSubscription($0, enabled: false) }
     }
 
-    /// Mac Monitor's default subscriptions, and nothing else.
+    /// Mac Monitor's default field filters, then its default subscriptions, and nothing else. A Security Extension
+    /// that can't apply the filters (older than 3.0.1) gets the defaults that need none, so it never records every
+    /// close.
     private func reset() {
-        let defaults = Set(systemExtensionManager.getCoreEvents())
-        let subscribed = systemExtensionManager.monitoredEventStrings
-        unsubscribe(subscribed.subtracting(defaults).sorted())
-        subscribe(defaults.subtracting(subscribed).sorted())
+        systemExtensionManager.resetFieldFilters { applies in
+            let defaults = Set(systemExtensionManager.getCoreEvents(appliesFieldFilters: applies))
+            let subscribed = events(in: systemExtensionManager.monitoredEventStrings)
+            unsubscribe(subscribed.subtracting(defaults).sorted())
+            subscribe(defaults.subtracting(subscribed).sorted())
+            systemExtensionManager.requestEventSubscriptions()
+        }
+    }
+
+    /// No subscriptions at all. Field filters are left as they are.
+    private func unsubscribeAll() {
+        unsubscribe(events(in: systemExtensionManager.monitoredEventStrings).sorted())
         systemExtensionManager.requestEventSubscriptions()
     }
 
-    /// No subscriptions at all.
-    private func unsubscribeAll() {
-        unsubscribe(systemExtensionManager.monitoredEventStrings.sorted())
-        systemExtensionManager.requestEventSubscriptions()
+    /// The event names in what the Security Extension reports, without its field filters' wire names.
+    ///
+    /// - Parameter names: ``EndpointSecurityManager/monitoredEventStrings``.
+    /// - Returns: The events alone.
+    private func events(in names: Set<String>) -> Set<String> {
+        names.filter { FieldFilter(rawValue: $0) == nil }
     }
 }
 
@@ -85,11 +100,12 @@ struct SubscriptionsPane: View {
                 Text("\(total) of \(EventCatalog.events.count) events subscribed").foregroundStyle(.secondary)
                 Spacer()
                 Button("Reset Subscriptions", action: reset)
-                    .help("Subscribe to Mac Monitor's default events, and unsubscribe from the rest.")
+                    .help("Subscribe to Mac Monitor's default events, with their default filters (close: only "
+                          + "modified files), and unsubscribe from the rest.")
                 Button("Unsubscribe from All…", role: .destructive) { confirmsUnsubscribeAll = true }
-                    .disabled(subscribed.isEmpty)
+                    .disabled(total == 0)
             }
-            if subscribed.isEmpty {
+            if total == 0 {
                 Label("Mac Monitor isn't subscribed to any events, so it records nothing. Reset Subscriptions "
                       + "subscribes to its usual set again.", systemImage: "exclamationmark.triangle.fill")
                     .symbolRenderingMode(.multicolor)
@@ -222,7 +238,7 @@ private struct ClassSection: View {
                         subscribed.contains(event.name)
                     } set: { on in
                         set([event.name], on)
-                    })
+                    }, subscribed: subscribed, set: set)
                 }
             }
             .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
@@ -232,12 +248,16 @@ private struct ClassSection: View {
 }
 
 
-/// One event: its symbol, in its class's color while it's subscribed, its name for people and its full name, Apple's
-/// documentation, and its switch.
+/// One event: its symbol, in its class's color while it's subscribed, its name for people and its full name, a
+/// checkbox for each field filter it offers, Apple's documentation, and its switch.
 private struct SubscriptionRow: View {
     let event: EventCatalog.Event
     let tint: Color
     @Binding var isOn: Bool
+    /// What the Security Extension last said it's subscribed to, with the wire names of its field filters.
+    let subscribed: Set<String>
+    /// Subscribes to events or turns field filters on, or the reverse.
+    let set: ([String], Bool) -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -245,6 +265,19 @@ private struct SubscriptionRow: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(event.title).foregroundStyle(isOn ? .primary : .secondary)
                 Text(event.name).font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
+                /// Disabled while the event is off, keeping the state the Security Extension holds.
+                ForEach(FieldFilter.offered(for: eventStringToType(from: event.name)), id: \.self) { filter in
+                    Toggle(filter.title, isOn: Binding {
+                        subscribed.contains(filter.rawValue)
+                    } set: { on in
+                        set([filter.rawValue], on)
+                    })
+                    .toggleStyle(.checkbox)
+                    .controlSize(.small)
+                    .disabled(!isOn)
+                    .help(filter.help)
+                    .padding(.top, 3)
+                }
             }
             Spacer(minLength: 8)
             Link(destination: event.documentation) { Image(systemName: "book") }
@@ -261,10 +294,15 @@ private struct SubscriptionRow: View {
 // MARK: - Presentation
 private extension EventCatalog.Group {
     /// - Parameter query: A search, lowercased, or "".
-    /// - Returns: The class with only its events the search finds, by name for people or full name, or `nil`.
+    /// - Returns: The class with only its events the search finds, by name for people, full name, or the title of a
+    ///   field filter it offers, or `nil`.
     func matching(_ query: String) -> EventCatalog.Group? {
         guard !query.isEmpty else { return self }
-        let events = events.filter { $0.title.lowercased().contains(query) || $0.name.lowercased().contains(query) }
+        let events = events.filter { event in
+            event.title.lowercased().contains(query) || event.name.lowercased().contains(query)
+                || FieldFilter.offered(for: eventStringToType(from: event.name))
+                    .contains { $0.title.lowercased().contains(query) }
+        }
         return events.isEmpty ? nil : with(events)
     }
 }

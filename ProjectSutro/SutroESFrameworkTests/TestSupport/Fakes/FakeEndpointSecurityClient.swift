@@ -61,14 +61,20 @@ final class FakeEndpointSecurityClient: EndpointSecurityClient {
     private let lock: OSAllocatedUnfairLock<State>
     /// What ``mutedPaths()`` lists: Endpoint Security's default mutes, as a test sets them.
     private let presetMutedPaths: [ESMutedPath]
+    /// Runs inside each successful ``subscribe(_:)``, before it returns, so a test can deliver messages the way
+    /// Endpoint Security may while the session is still subscribing.
+    private let onSubscribe: ((FakeEndpointSecurityClient, [es_event_type_t]) -> Void)?
     
     /// - Parameters:
     ///   - handler: The session's handler for this client's messages.
     ///   - refusing: The kinds of call to refuse.
     ///   - mutedPaths: What ``mutedPaths()`` lists.
-    init(handler: @escaping (UnsafePointer<es_message_t>) -> Void, refusing: Set<Kind>, mutedPaths: [ESMutedPath]) {
+    ///   - onSubscribe: Runs inside each successful ``subscribe(_:)``, with this client and the events added.
+    init(handler: @escaping (UnsafePointer<es_message_t>) -> Void, refusing: Set<Kind>, mutedPaths: [ESMutedPath],
+         onSubscribe: ((FakeEndpointSecurityClient, [es_event_type_t]) -> Void)? = nil) {
         lock = OSAllocatedUnfairLock(uncheckedState: State(handler: handler, refusing: refusing))
         presetMutedPaths = mutedPaths
+        self.onSubscribe = onSubscribe
     }
     
     /// Every call so far, in order.
@@ -137,13 +143,15 @@ final class FakeEndpointSecurityClient: EndpointSecurityClient {
         }
     }
     
-    /// Record the call.
+    /// Record the call, then run the factory's ``FakeEndpointSecurityClientFactory/onSubscribe`` hook if it succeeds.
     ///
     /// - Parameter events: The events to add.
     /// - Returns: `false` if subscribing is refused, unless the list is empty: like the live client, that succeeds
     ///   without asking Endpoint Security.
     func subscribe(_ events: [es_event_type_t]) -> Bool {
-        record(.subscribe(events)) || events.isEmpty
+        let subscribed = record(.subscribe(events)) || events.isEmpty
+        if subscribed { onSubscribe?(self, events) }
+        return subscribed
     }
     
     /// Record the call.
@@ -229,6 +237,9 @@ final class FakeEndpointSecurityClientFactory: EndpointSecurityClientFactory {
     /// What each client lists as muted, by request.
     private let mutedPaths: [Int: [ESMutedPath]]
     private var requests: Int = 0
+    /// Runs inside every successful `subscribe` of each client made from now on, with the client and the events it
+    /// added: a test delivers from here to reach the session before it has finished starting.
+    var onSubscribe: ((FakeEndpointSecurityClient, [es_event_type_t]) -> Void)?
     
     /// - Parameters:
     ///   - refusals: Refusals by request.
@@ -258,7 +269,7 @@ final class FakeEndpointSecurityClientFactory: EndpointSecurityClientFactory {
         defer { requests += 1 }
         if let refusal = refusals[requests] { throw ClientRefusal(result: refusal) }
         let client = FakeEndpointSecurityClient(handler: handler, refusing: refusing[requests] ?? [],
-                                                mutedPaths: mutedPaths[requests] ?? [])
+                                                mutedPaths: mutedPaths[requests] ?? [], onSubscribe: onSubscribe)
         clients.append(client)
         return client
     }

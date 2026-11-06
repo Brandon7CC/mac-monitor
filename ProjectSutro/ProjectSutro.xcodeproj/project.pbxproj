@@ -98,6 +98,7 @@
 		2854A54B2E6DE836004149AF /* SystemSessionGroupTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2854A54A2E6DE82E004149AF /* SystemSessionGroupTableView.swift */; };
 		F17E00000000000000000026 /* GroupSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000025 /* GroupSummary.swift */; };
 		285932562A379C2000B9C7A6 /* EventSubscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 285932552A379C2000B9C7A6 /* EventSubscriptions.swift */; };
+		FF1C00000000000000000002 /* FieldFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1C00000000000000000001 /* FieldFilter.swift */; };
 		2881CE17294AFFC700F97F99 /* ESOpenSSHLoginEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2881CE13294AFFC700F97F99 /* ESOpenSSHLoginEvent+CoreDataClass.swift */; };
 		2881CE19294AFFC700F97F99 /* ESLaunchItemRemoveEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2881CE15294AFFC700F97F99 /* ESLaunchItemRemoveEvent+CoreDataClass.swift */; };
 		2881CE1C294D0B2300F97F99 /* TableContextMenus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2881CE1B294D0B2300F97F99 /* TableContextMenus.swift */; };
@@ -395,6 +396,7 @@
 		CB1C00000000000000000072 /* ToolVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000071 /* ToolVersion.swift */; };
 		CB1C00000000000000000074 /* StreamClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000073 /* StreamClient.swift */; };
 		CB1C00000000000000000076 /* StreamCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000075 /* StreamCommand.swift */; };
+		FF1C00000000000000000004 /* StreamCommand+FieldFilters.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1C00000000000000000003 /* StreamCommand+FieldFilters.swift */; };
 		CB1C00000000000000000078 /* FileOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000077 /* FileOutput.swift */; };
 		CB1C00000000000000000080 /* MuteInvocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000007F /* MuteInvocation.swift */; };
 		CB1C00000000000000000082 /* MuteCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000081 /* MuteCommand.swift */; };
@@ -686,6 +688,7 @@
 		2854A54A2E6DE82E004149AF /* SystemSessionGroupTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSessionGroupTableView.swift; sourceTree = "<group>"; };
 		F17E00000000000000000025 /* GroupSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupSummary.swift; sourceTree = "<group>"; };
 		285932552A379C2000B9C7A6 /* EventSubscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSubscriptions.swift; sourceTree = "<group>"; };
+		FF1C00000000000000000001 /* FieldFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldFilter.swift; sourceTree = "<group>"; };
 		2881CE13294AFFC700F97F99 /* ESOpenSSHLoginEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESOpenSSHLoginEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		2881CE15294AFFC700F97F99 /* ESLaunchItemRemoveEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLaunchItemRemoveEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		2881CE1B294D0B2300F97F99 /* TableContextMenus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableContextMenus.swift; sourceTree = "<group>"; };
@@ -982,6 +985,7 @@
 		CB1C00000000000000000071 /* ToolVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolVersion.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000073 /* StreamClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamClient.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000075 /* StreamCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamCommand.swift; sourceTree = "<group>"; };
+		FF1C00000000000000000003 /* StreamCommand+FieldFilters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamCommand+FieldFilters.swift"; sourceTree = "<group>"; };
 		CB1C00000000000000000077 /* FileOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOutput.swift; sourceTree = "<group>"; };
 		CB1C0000000000000000007F /* MuteInvocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteInvocation.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000081 /* MuteCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteCommand.swift; sourceTree = "<group>"; };
@@ -1682,6 +1686,7 @@
 			isa = PBXGroup;
 			children = (
 				285932552A379C2000B9C7A6 /* EventSubscriptions.swift */,
+				FF1C00000000000000000001 /* FieldFilter.swift */,
 				28A608A52D9BA06D00962337 /* EventType.swift */,
 				282DFE092D9DE004006E0C94 /* EventType+ESMapping.swift */,
 				282DFE072D9DDFBA006E0C94 /* EventType+Accessors.swift */,
@@ -3631,6 +3636,7 @@
 			isa = PBXGroup;
 			children = (
 				CB1C00000000000000000075 /* StreamCommand.swift */,
+				FF1C00000000000000000003 /* StreamCommand+FieldFilters.swift */,
 				CB1C00000000000000000073 /* StreamClient.swift */,
 				CB1C0000000000000000003B /* StreamPipeline.swift */,
 				CB1C00000000000000000033 /* PipelineScope.swift */,
@@ -3931,6 +3937,7 @@
 				CB1C00000000000000000078 /* FileOutput.swift in Sources */,
 				CD0F00000000000000000006 /* String+Counted.swift in Sources */,
 				CB1C00000000000000000076 /* StreamCommand.swift in Sources */,
+				FF1C00000000000000000004 /* StreamCommand+FieldFilters.swift in Sources */,
 				CB1C00000000000000000074 /* StreamClient.swift in Sources */,
 				CB1C00000000000000000054 /* CommandLineExit.swift in Sources */,
 				CB1C00000000000000000052 /* CommandLineHelp.swift in Sources */,
@@ -4136,6 +4143,7 @@
 				281BBE782A391754009B94F8 /* OpenDirectoryGroupAddEvent.swift in Sources */,
 				CADD9D7C2E8DB6C4009EC919 /* UIPCConnectEvent.swift in Sources */,
 				285932562A379C2000B9C7A6 /* EventSubscriptions.swift in Sources */,
+				FF1C00000000000000000002 /* FieldFilter.swift in Sources */,
 				2852BBA429D984EA00AA833C /* ESProcessSignalEvent+CoreDataClass.swift in Sources */,
 				280C78CF2E8DE21E00B172E5 /* UIPCBindEvent.swift in Sources */,
 				289646C62A4B990C000E9564 /* ESAuthorizationPetitionEvent+CoreDataClass.swift in Sources */,

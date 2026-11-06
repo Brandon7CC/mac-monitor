@@ -23,6 +23,10 @@ enrichment.
 Two of eslogger's integers that Mac Monitor can't reproduce keep eslogger's keys: `seq_num` and `global_seq_num` count
 the messages of the ES client that received them, so Mac Monitor's numbers never match eslogger's.
 
+Since Mac Monitor 3.0.1, a close of an unmodified file is left out by default (Settings ▸ Subscriptions turns that off
+for Mac Monitor's recording, and `macmonitor stream --every close` for one stream). Its message still advances
+`seq_num` and `global_seq_num`, so close gaps and file-client `global_seq_num` gaps are expected, not losses.
+
 ## Versions
 
 Every record carries `telemetry_version`, the version of this schema it follows. eslogger's own `schema_version` (an

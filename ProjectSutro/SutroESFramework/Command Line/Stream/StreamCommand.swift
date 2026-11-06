@@ -57,8 +57,9 @@ public enum StreamOutputError: Error, Equatable {
 /// event captured before the stop has been written. A stream stops itself the same way once it has written its
 /// `--count` of events or run for its `--for` time.
 ///
-/// Diagnostics go to standard error: a drop notice at most once a second, a version mismatch, each change to the
-/// saved mute set the stream follows, and (when standard error is a terminal) a banner and a summary.
+/// Diagnostics go to standard error: a drop notice at most once a second, a version mismatch, field filters the
+/// Security Extension can't apply, each change to the saved mute set the stream follows, and (when standard error is
+/// a terminal) a banner and a summary. Gaps a field filter leaves are never reported as losses.
 public final class StreamCommand: NSObject {
     /// How a stream ended.
     public enum Outcome: Equatable {
@@ -93,6 +94,8 @@ public final class StreamCommand: NSObject {
     private var isStopping = false
     /// Has the first `--predicate` that couldn't be evaluated been reported?
     private var saidUnchecked = false
+    /// The field filters the stream asked for.
+    private var askedFieldFilters: Set<FieldFilter> = []
     
     /// - Parameters:
     ///   - client: The connection to the Security Extension, not yet activated.
@@ -120,6 +123,9 @@ public final class StreamCommand: NSObject {
         queue.sync {
             self.completion = completion
             duration = invocation.duration
+            askedFieldFilters = invocation.fieldFilters
+            /// Until the answer says which apply: a batch can arrive before it's handled.
+            pipeline.meter.fieldFilteredTypes = Set(invocation.fieldFilters.map { Int($0.event.rawValue) })
         }
         client.activate(receiving: self) { [weak self] failure in
             self?.queue.async { self?.end(.failed(failure)) }
@@ -206,7 +212,8 @@ extension StreamCommand: StreamReaderProtocol {
 
 // MARK: - Diagnostics
 extension StreamCommand {
-    /// The stream started: say so, and warn if the Security Extension is another version. Call on ``queue``.
+    /// The stream started: say so, and warn if the Security Extension is another version or can't apply the field
+    /// filters asked for. Call on ``queue``.
     ///
     /// - Parameter reply: The stream request's answer.
     private func started(_ reply: StreamReply) {
@@ -219,12 +226,17 @@ extension StreamCommand {
                 Mac Monitor to finish updating.
                 """)
         }
+        let echoed = reply.stream?.fieldFilters
+        pipeline.meter.fieldFilteredTypes = Self.fieldFilteredTypes(echoed: echoed)
+        if echoed == nil, let stream = reply.stream {
+            Self.unappliedFieldFilters(asked: askedFieldFilters, events: stream.events).forEach(diagnose)
+        }
         guard isChatty, let stream = reply.stream else { return }
         /// Say how to see what the saved set hides: a stream applies it unless asked not to.
         let mutes = stream.savedMutes.map { "with \($0) saved mutes (--no-mutes shows everything)" }
             ?? "without the saved mutes"
         let events = String.counted(stream.events.count, "event")
-        diagnose("macmonitor: streaming \(events) \(mutes). \(ending)")
+        diagnose("macmonitor: streaming \(events) \(mutes)\(Self.keeping(echoed: echoed)). \(ending)")
     }
     
     /// How the stream ends, for the banner.
@@ -315,7 +327,8 @@ extension StreamCommand {
             let lost = Self.losses(seen: pipeline.meter.dropped, summary: summary)
             let filtered = pipeline.filtered > 0 ? " (\(pipeline.filtered) filtered out)" : ""
             diagnose("""
-                macmonitor: wrote \(pipeline.written) events\(filtered), lost \(lost.total) \
+                macmonitor: wrote \(pipeline.written) events\(filtered)\(Self.leftOut(summary.fieldFiltered)), \
+                lost \(lost.total) \
                 (\(lost.byEndpointSecurity) by Endpoint Security, \(lost.total - lost.byEndpointSecurity) while \
                 macmonitor was behind).
                 """)

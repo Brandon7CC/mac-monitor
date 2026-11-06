@@ -32,7 +32,7 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
         case .stream:
             return ("Stream Endpoint Security events until Ctrl-C, or for a time or a count.",
                     "sudo macmonitor stream [EVENT...] [--format text|jsonl|pretty] [--no-mutes] [--include-self] "
-                        + "[--for DURATION] [--count N] [FILTER...]", """
+                        + "[--every EVENT] [--for DURATION] [--count N] [FILTER...]", """
                 EVENT is a short name (exec), a full name (ES_EVENT_TYPE_NOTIFY_EXEC), or all. With no EVENT, \
                 macmonitor streams the events Mac Monitor records by default. Run 'macmonitor events' to list them.
 
@@ -45,6 +45,9 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                                     Easier to read in a terminal. --pretty for short.
                   --no-mutes        Don't apply the saved mute set that Mac Monitor and macmonitor share.
                   --include-self    Show the events of macmonitor's own pipeline, such as jq's.
+                  --every EVENT     Stream every EVENT, not only those Mac Monitor keeps by default. With no
+                                    --every, close streams only closes of modified files. --every all turns every
+                                    such default off.
                   --for DURATION    Stop after DURATION: seconds, or with a unit, such as 500ms, 30s, 5m or 1h.
                                     At most a year.
                   --count N         Stop after writing N events.
@@ -67,7 +70,10 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                 anywhere in the value unless anchored with ^ or $, and is case-sensitive unless it starts with (?i). \
                 The record is what --format jsonl writes ('macmonitor schema' describes it). --signing-id, --grep and \
                 --predicate read it, so they make text output as slow as JSONL. Filtered events are never counted as \
-                lost, and --count counts only events written.
+                lost, and --count counts only events written. Closes left out as unmodified are never counted as lost \
+                either: the closing line says how many there were. A file changed only through a writable mapping \
+                closes unmodified, and mmap events show such mappings. Mac Monitor's own Settings choice doesn't \
+                change a stream's.
 
                 A stream stops at Ctrl-C, or at --for or --count, whichever comes first. Either way it writes every \
                 event captured before it stopped, up to N, and exits 0 unless it was interrupted.

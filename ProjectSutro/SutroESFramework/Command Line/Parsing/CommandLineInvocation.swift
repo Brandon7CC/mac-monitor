@@ -56,7 +56,7 @@ public enum CommandLineInvocation: Equatable {
 
 // MARK: - Stream
 /// `macmonitor stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes]
-/// [--include-self] [--for DURATION] [--count N] [FILTER...]`.
+/// [--include-self] [--every EVENT] [--for DURATION] [--count N] [FILTER...]`.
 public struct StreamInvocation: Equatable {
     /// The events, each once, in the order named. None means Mac Monitor's defaults.
     public var events: [es_event_type_t] = []
@@ -66,6 +66,9 @@ public struct StreamInvocation: Equatable {
     public var appliesSavedMutes: Bool = true
     /// Show the pipeline's own events? `--include-self`.
     public var includeSelf: Bool = false
+    /// The field filters to ask for: Mac Monitor's defaults. `--every EVENT` turns off EVENT's; `--every all` turns
+    /// off every one.
+    public var fieldFilters: Set<FieldFilter> = Set(defaultFieldFilters)
     /// Stop after this many seconds. `--for`.
     public var duration: TimeInterval?
     /// Stop after writing this many events. `--count`.
@@ -73,9 +76,11 @@ public struct StreamInvocation: Equatable {
     /// Which events are written: `--pid`, `--process`, `--signing-id`, `--target`, `--grep` and `--predicate`.
     public var filter = StreamFilter()
     
-    /// The request's options for the Security Extension.
+    /// The request's options for the Security Extension. The field filters are always sent, even none, so a
+    /// Security Extension 3.0.1 or later never reads it as a 3.0.0 request.
     public var options: StreamOptions {
-        StreamOptions(events: events.map { eventTypeToString(from: $0) }, appliesSavedMutes: appliesSavedMutes)
+        StreamOptions(events: events.map { eventTypeToString(from: $0) }, appliesSavedMutes: appliesSavedMutes,
+                      fieldFilters: fieldFilters.map(\.rawValue).sorted())
     }
     
     /// The format to write in.

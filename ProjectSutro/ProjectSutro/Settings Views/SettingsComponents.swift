@@ -97,7 +97,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .securityExtension:
             return ["full disk access", "fda", "install", "uninstall", "requirements"]
         case .subscriptions:
-            return ["events", "exec", "fork", "subscribe"]
+            return ["events", "exec", "fork", "subscribe", "close", "modified", "filter"]
         case .pathMuting:
             return ["mute", "unmute", "path", "import", "export"]
         case .findings:

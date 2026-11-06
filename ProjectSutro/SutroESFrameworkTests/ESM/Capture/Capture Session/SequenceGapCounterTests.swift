@@ -89,4 +89,55 @@ final class SequenceGapCounterTests: XCTestCase {
         XCTAssertEqual(tracker.global.dropped, 0)
         XCTAssertEqual(tracker.droppedByType(), [exit: 2])
     }
+    
+    /// A file client's tracker where two closes a field filter left out make gaps, and one open was really dropped.
+    ///
+    /// - Returns: The tracker: `global_seq_num` lost 3 and 4 (closes 2 and 3), `seq_num` lost close 2 and 3 and
+    ///   open 2.
+    private func trackerWithLeftOutCloses() -> ClientSequenceTracker {
+        let open = Int(ES_EVENT_TYPE_NOTIFY_OPEN.rawValue), close = Int(ES_EVENT_TYPE_NOTIFY_CLOSE.rawValue)
+        var tracker = ClientSequenceTracker()
+        for (type, sequence, global) in [(open, 1, 1), (close, 1, 2), (close, 4, 5), (open, 3, 6)] {
+            tracker.observe(eventType: type, sequence: UInt64(sequence), globalSequence: UInt64(global))
+        }
+        return tracker
+    }
+    
+    /// Drops counted without some types are the other types' `seq_num` gaps alone.
+    func testDropsCanLeaveTypesUncounted() {
+        let open = Int(ES_EVENT_TYPE_NOTIFY_OPEN.rawValue), close = Int(ES_EVENT_TYPE_NOTIFY_CLOSE.rawValue)
+        let tracker = trackerWithLeftOutCloses()
+        XCTAssertEqual(tracker.global.dropped, 2)
+        XCTAssertEqual(tracker.dropped(uncounting: [close]), 1)
+        XCTAssertEqual(tracker.dropped(uncounting: []), 3)
+        XCTAssertEqual(tracker.dropped(uncounting: [close, open]), 0)
+    }
+    
+    /// A report that leaves a type uncounted holds only the other types' drops. One that leaves none uncounted is the
+    /// report it always was.
+    func testReportsCanLeaveTypesUncounted() {
+        let close = Int(ES_EVENT_TYPE_NOTIFY_CLOSE.rawValue)
+        let tracker = trackerWithLeftOutCloses()
+        var uncounting = DropReportMark()
+        XCTAssertEqual(uncounting.takeReport(of: .file, from: tracker, uncounting: [close]), CaptureDropReport(
+            eventClass: .file, dropped: 1, droppedByType: ["ES_EVENT_TYPE_NOTIFY_OPEN": 1]))
+        XCTAssertNil(uncounting.takeReport(of: .file, from: tracker, uncounting: [close]))
+        var counting = DropReportMark()
+        XCTAssertEqual(counting.takeReport(of: .file, from: tracker), CaptureDropReport(
+            eventClass: .file, dropped: 2,
+            droppedByType: ["ES_EVENT_TYPE_NOTIFY_OPEN": 1, "ES_EVENT_TYPE_NOTIFY_CLOSE": 2]))
+        XCTAssertNil(counting.takeReport(of: .file, from: tracker, uncounting: []))
+    }
+    
+    /// Changing what's counted between reports never traps, and never makes an empty report, even when the new count
+    /// is below the last. Counting a type again reports its drops as new.
+    func testChangingWhatsCountedNeverTraps() {
+        let close = Int(ES_EVENT_TYPE_NOTIFY_CLOSE.rawValue)
+        let tracker = trackerWithLeftOutCloses()
+        var mark = DropReportMark()
+        XCTAssertNotNil(mark.takeReport(of: .file, from: tracker))
+        XCTAssertNil(mark.takeReport(of: .file, from: tracker, uncounting: [close]), "1 is below the 2 reported")
+        XCTAssertEqual(mark.takeReport(of: .file, from: tracker), CaptureDropReport(
+            eventClass: .file, dropped: 1, droppedByType: ["ES_EVENT_TYPE_NOTIFY_CLOSE": 2]))
+    }
 }

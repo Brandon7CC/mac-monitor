@@ -56,3 +56,30 @@ public enum CommandLineEvents {
         }.sorted { $0.name < $1.name }
     }
 }
+
+
+// MARK: - Field filters
+extension CommandLineParser {
+    /// What `--every` takes: each event that has a field filter, by short name, then `all`.
+    static let everyChoices = FieldFilter.filteredEvents.map {
+        CommandLineEvents.shortName(eventTypeToString(from: $0))
+    } + ["all"]
+    
+    /// Turn off an event's field filters, or every one, for `--every`.
+    ///
+    /// - Parameters:
+    ///   - value: An event's name, or `all`.
+    ///   - invocation: The stream.
+    /// - Throws: ``CommandLineUsageError`` for anything but an event that has a field filter, or `all`.
+    static func every(_ value: String, in invocation: inout StreamInvocation) throws {
+        guard value != "all" else {
+            invocation.fieldFilters = []
+            return
+        }
+        guard let event = CommandLineEvents.event(named: value), !FieldFilter.offered(for: event).isEmpty else {
+            throw CommandLineUsageError("--every takes \(everyChoices.dropLast().joined(separator: ", ")) or "
+                                        + "\(everyChoices.last ?? "all"), not '\(value)'.", command: "stream")
+        }
+        invocation.fieldFilters = invocation.fieldFilters.filter { $0.event != event }
+    }
+}

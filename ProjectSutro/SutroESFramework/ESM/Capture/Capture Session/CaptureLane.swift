@@ -33,6 +33,10 @@ import os
 /// sequence gaps are Endpoint Security's drops only, never messages ignored while stopped, and reading the counters
 /// never waits for an event being built. Messages skipped because the lane isn't recording (and isn't closed) are
 /// counted under the control lock, so once recording is turned on, every message skipped before it is counted.
+///
+/// **Field filters:** a message its type's ``FieldFilter`` turns away is left out: counted under the control lock,
+/// after sequence accounting (so it's never a drop) and before the recording check (so it's never skipped). It never
+/// reaches the serializer or the ``LaunchServicesHold``.
 final class CaptureLane {
     /// What the handler checks before it serializes a message, and before it emits the event.
     private struct Control {
@@ -46,13 +50,24 @@ final class CaptureLane {
         var sensorID: String
         /// Messages skipped while open but not recording.
         var skipped: UInt64 = 0
+        /// Each event type's field filter, by its raw value (``FieldFilter/table(_:)``).
+        var fieldFilters: ContiguousArray<FieldFilter?>
+        /// Messages a field filter left out while open, by event type raw value. Allocated once.
+        var fieldFiltered = ContiguousArray<UInt64>(repeating: 0, count: Int(ES_EVENT_TYPE_LAST.rawValue))
         
-        /// The Sensor ID to stamp on a message, while recording and open. A message turned away while open but not
-        /// recording is counted as skipped.
+        /// The Sensor ID to stamp on a message, while open, admitted by its type's field filter, and recording. A
+        /// message its filter turns away is counted as left out, and one turned away while not recording as skipped.
         ///
+        /// - Parameter message: The message. Only read during the call.
         /// - Returns: The Sensor ID, or `nil` to skip the message.
-        mutating func admit() -> String? {
+        mutating func admit(_ message: UnsafePointer<es_message_t>) -> String? {
             guard !isClosed else { return nil }
+            let type = Int(message.pointee.event_type.rawValue)
+            if type < fieldFilters.count, let filter = fieldFilters[type], !filter.admits(message) {
+                /// `type` is below the table's size, which is at most `ES_EVENT_TYPE_LAST`.
+                fieldFiltered[type] &+= 1
+                return nil
+            }
             guard isRecording else {
                 skipped &+= 1
                 return nil
@@ -99,15 +114,17 @@ final class CaptureLane {
     ///   - label: Names the lane's session in the log.
     ///   - sensorID: The Sensor ID to stamp on events.
     ///   - serializer: Builds each event's JSON.
+    ///   - fieldFilters: Each event type's field filter (``FieldFilter/table(_:)``), in place before any message.
     ///   - launchServices: Lets the exec lane hold app execs. `nil` holds nothing.
     ///   - emit: Receives each event in order, under the lane's locks. It must not block.
     init(_ eventClass: EventClass, label: String, sensorID: String, serializer: any EventSerializing,
-         launchServices: LaunchServicesReading? = nil, emit: @escaping (CapturedEvent) -> Void) {
+         fieldFilters: ContiguousArray<FieldFilter?>, launchServices: LaunchServicesReading? = nil,
+         emit: @escaping (CapturedEvent) -> Void) {
         self.eventClass = eventClass
         self.label = label
         self.serializer = serializer
         self.emit = emit
-        control = OSAllocatedUnfairLock(initialState: Control(sensorID: sensorID))
+        control = OSAllocatedUnfairLock(initialState: Control(sensorID: sensorID, fieldFilters: fieldFilters))
         hold = launchServices.flatMap { reader in
             EventClassTable.eventClass(of: ES_EVENT_TYPE_NOTIFY_EXEC) == eventClass
                 ? LaunchServicesHold(eventClass: eventClass, upgrader: LaunchedByParentUpgrader(reader: reader),
@@ -116,7 +133,8 @@ final class CaptureLane {
         }
     }
     
-    /// The client's handler: count the message, then, while recording, serialize it and emit it.
+    /// The client's handler: count the message, then, unless its field filter leaves it out and while recording,
+    /// serialize it and emit it.
     ///
     /// - Parameter message: The message. Only valid during the call.
     func handle(_ message: UnsafePointer<es_message_t>) {
@@ -125,7 +143,7 @@ final class CaptureLane {
             counters.sequences.observe(message)
         }
         gate.withLockUnchecked {
-            guard let sensorID = control.withLock({ $0.admit() }) else { return }
+            guard let sensorID = control.withLockUnchecked({ $0.admit(message) }) else { return }
             let lane = LaneContext(eventClass: eventClass, sensorID: sensorID, encoder: encoder,
                                    processPaths: processPaths, holdsForLaunchServices: hold != nil)
             guard let serialized = serializer.serializeEvent(message, in: lane) else {
@@ -199,6 +217,13 @@ final class CaptureLane {
         control.withLock { $0.isRecording = recording }
     }
     
+    /// Check these field filters from the next message on. Has no effect on an event already being built.
+    ///
+    /// - Parameter table: Each event type's field filter (``FieldFilter/table(_:)``).
+    func setFieldFilters(_ table: ContiguousArray<FieldFilter?>) {
+        control.withLock { $0.fieldFilters = table }
+    }
+    
     /// Stamp a new Sensor ID on events from now on.
     ///
     /// - Parameter sensorID: The Sensor ID.
@@ -233,17 +258,37 @@ final class CaptureLane {
         control.withLock { $0.skipped }
     }
     
+    /// Messages field filters left out while the lane was open, over its lifetime.
+    var fieldFilteredMessages: UInt64 {
+        control.withLock { $0.fieldFiltered.reduce(0, &+) }
+    }
+    
+    /// Messages field filters left out while the lane was open, over its lifetime, by event type.
+    ///
+    /// - Returns: Counts by `es_event_type_t` raw value, for the types with any.
+    func fieldFilteredByType() -> [Int: UInt64] {
+        control.withLock { state in
+            var counts: [Int: UInt64] = [:]
+            for (type, count) in state.fieldFiltered.enumerated() where count > 0 { counts[type] = count }
+            return counts
+        }
+    }
+    
     /// The lane's lifetime counters.
     ///
     /// - Parameter subscribedEvents: How many events the lane's client is subscribed to.
     /// - Returns: The counters.
     func statistics(subscribedEvents: Int) -> CaptureLaneStatistics {
-        counters.withLockUnchecked { counters in
+        /// Read before the counters' lock: the two locks are never held at once.
+        let fieldFiltered = fieldFilteredByType()
+        return counters.withLockUnchecked { counters in
             CaptureLaneStatistics(eventClass: eventClass, subscribedEvents: subscribedEvents,
                                   messages: counters.messages, dropped: counters.sequences.global.dropped,
                                   gaps: counters.sequences.global.gaps,
                                   regressions: counters.sequences.global.regressions,
                                   droppedByType: counters.sequences.droppedByType().byEventTypeName(),
+                                  fieldFiltered: fieldFiltered.values.reduce(0, &+),
+                                  fieldFilteredByType: fieldFiltered.byEventTypeName(),
                                   serializationFailures: counters.serializationFailures)
         }
     }

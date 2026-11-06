@@ -44,6 +44,7 @@ public struct CommandLineOption: Equatable {
         CommandLineOption("--format", .choice(StreamOutputFormat.allCases.map(\.rawValue))),
         CommandLineOption("--json"), CommandLineOption("--pretty"), CommandLineOption("--text"),
         CommandLineOption("--no-mutes"), CommandLineOption("--include-self"),
+        CommandLineOption("--every", .choice(CommandLineParser.everyChoices)),
         CommandLineOption("--for", .text), CommandLineOption("--count", .text), CommandLineOption("--pid", .text)
     ] + ["--process", "--signing-id", "--target", "--grep", "--predicate"].map { CommandLineOption($0, .text) }
 

@@ -164,16 +164,17 @@ public enum CommandLineParser {
     }
     
     /// `stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes] [--include-self]
-    /// [--for DURATION] [--count N] [--pid PID] [--process|--signing-id|--target|--grep REGEX]
+    /// [--every EVENT] [--for DURATION] [--count N] [--pid PID] [--process|--signing-id|--target|--grep REGEX]
     /// [--predicate PREDICATE]`.
     ///
     /// `--json`, `--pretty` and `--text` are short for `--format jsonl|pretty|text`. Each filter option may be given
-    /// more than once (``StreamFilter``).
+    /// more than once (``StreamFilter``), and so may `--every`.
     ///
     /// - Parameter cursor: The arguments.
     /// - Returns: The stream asked for.
     /// - Throws: ``CommandLineUsageError`` for an event that can't be streamed, a bad format, two formats, a bad
-    ///   duration, count, process ID, regular expression or predicate, or an unknown option.
+    ///   duration, count, process ID, regular expression or predicate, an `--every` event with no field filter, or an
+    ///   unknown option.
     static func stream(_ cursor: inout ArgumentCursor) throws -> StreamInvocation {
         var invocation = StreamInvocation(), seen = Set<UInt32>()
         while let argument = cursor.next() {
@@ -195,6 +196,8 @@ public enum CommandLineParser {
                 invocation.appliesSavedMutes = false
             case .option("--include-self", nil):
                 invocation.includeSelf = true
+            case .option("--every", let attached):
+                try every(cursor.value(of: "--every", attached: attached, command: "stream"), in: &invocation)
             case .option("--for", let attached):
                 invocation.duration = try duration(cursor.value(of: "--for", attached: attached, command: "stream"))
             case .option("--count", let attached):

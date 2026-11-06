@@ -10,7 +10,7 @@ import EndpointSecurity
 
 
 // MARK: - Configuration
-/// What a ``CaptureSession`` subscribes to and mutes.
+/// What a ``CaptureSession`` subscribes to, mutes, and leaves out.
 public struct CaptureConfiguration {
     /// The events to subscribe to. Only the NOTIFY events Mac Monitor models (`supportedEvents`) are kept. Anything
     /// else (an AUTH event, an unknown name read as `ES_EVENT_TYPE_LAST`) is left out and logged.
@@ -21,6 +21,9 @@ public struct CaptureConfiguration {
     /// Mute this process on every client, as eslogger mutes itself, so that what the session's own process does (such
     /// as spooling events to disk) never feeds back into the capture.
     public var mutesSelf: Bool = true
+    /// The field filters every lane checks before it builds an event. None unless set: `SensorService` and
+    /// `StreamSession` set it.
+    public var fieldFilters: Set<FieldFilter> = []
     /// Names the session in the log, such as "Mac Monitor".
     public var label: String
     

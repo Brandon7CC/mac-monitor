@@ -73,6 +73,19 @@ final class EventSubscriptionsTests: XCTestCase {
         XCTAssertEqual(defaultEventSubscriptions.count, thisMac.defaults.count)
     }
 
+    /// Close is a default only with its field filter, which is the one on by default. A client that can't apply it
+    /// gets 3.0.0's defaults: the same list without close.
+    func testCloseIsADefaultOnlyWithItsFieldFilter() {
+        XCTAssertEqual(defaultFieldFilters, [.modifiedCloses])
+        XCTAssertTrue(defaultEventSubscriptions.contains(ES_EVENT_TYPE_NOTIFY_CLOSE))
+        let thisMac = Self.handLists(on: ProcessInfo.processInfo.operatingSystemVersion)
+        let legacy = Self.names(thisMac.defaults.filter { $0 != ES_EVENT_TYPE_NOTIFY_CLOSE })
+        XCTAssertEqual(Set(Self.names(defaultEventSubscriptionsWithoutFieldFilters)), Set(legacy))
+        XCTAssertEqual(defaultEventSubscriptionsWithoutFieldFilters.count, legacy.count)
+        XCTAssertEqual(defaultEventSubscriptionsWithoutFieldFilters,
+                       defaultEventSubscriptions.filter { $0 != ES_EVENT_TYPE_NOTIFY_CLOSE }, "In the same order")
+    }
+
     /// Every event name, and two Mac Monitor doesn't know, shows the icon the `switch` gave it before
     /// ``ModeledEvent/symbols``.
     func testIconsMatchTheSwitch() {
@@ -103,7 +116,7 @@ private extension EventSubscriptionsTests {
         ES_EVENT_TYPE_NOTIFY_PTY_GRANT, ES_EVENT_TYPE_NOTIFY_UIPC_CONNECT, ES_EVENT_TYPE_NOTIFY_UIPC_BIND
     ]
 
-    /// The core events subscribed to by default, as the hand list gave them.
+    /// The core events subscribed to by default, as the hand list gave them. 3.0.1 adds close, with its field filter.
     static let coreDefaults: [es_event_type_t] = [
         ES_EVENT_TYPE_NOTIFY_EXEC, ES_EVENT_TYPE_NOTIFY_FORK, ES_EVENT_TYPE_NOTIFY_EXIT, ES_EVENT_TYPE_NOTIFY_CREATE,
         ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR, ES_EVENT_TYPE_NOTIFY_MMAP, ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD,
@@ -113,7 +126,7 @@ private extension EventSubscriptionsTests {
         ES_EVENT_TYPE_NOTIFY_RENAME, ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE, ES_EVENT_TYPE_NOTIFY_CS_INVALIDATED,
         ES_EVENT_TYPE_NOTIFY_TRACE, ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN, ES_EVENT_TYPE_NOTIFY_SETMODE,
         ES_EVENT_TYPE_NOTIFY_PTY_GRANT, ES_EVENT_TYPE_NOTIFY_UIPC_CONNECT, ES_EVENT_TYPE_NOTIFY_UIPC_BIND,
-        ES_EVENT_TYPE_NOTIFY_LINK
+        ES_EVENT_TYPE_NOTIFY_LINK, ES_EVENT_TYPE_NOTIFY_CLOSE
     ]
 
     /// The events macOS 14 adds, offered and subscribed to by default, as the hand list gave them.

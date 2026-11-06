@@ -23,34 +23,81 @@ public struct StreamPlan: Equatable {
     public let events: [es_event_type_t]
     /// Apply the saved mute set, and follow its changes?
     public let appliesSavedMutes: Bool
+    /// The field filters to apply, only those on subscribed events, or `nil` for a 3.0.0 request that named none.
+    public let fieldFilters: Set<FieldFilter>?
 }
 
 
 extension StreamPlan {
     /// Validate a request's options.
     ///
+    /// No events means the defaults: with the close a field filter keeps modified-only, or, for a 3.0.0 request
+    /// (no ``StreamOptions/fieldFilters``), without the events that are default only with a filter.
+    ///
     /// - Parameter options: The options.
-    /// - Throws: ``XPCRequestError/invalid(_:)`` for more than ``maximumEvents`` names, or a name that isn't a
-    ///   NOTIFY event Mac Monitor models on this Mac.
+    /// - Throws: ``XPCRequestError/invalid(_:)`` for more than ``maximumEvents`` event or filter names, a name that
+    ///   isn't a NOTIFY event Mac Monitor models on this Mac, or two filters on one event.
+    ///   ``XPCRequestError/unsupported(_:)`` for a field filter this build doesn't know.
     public init(_ options: StreamOptions) throws(XPCRequestError) {
         guard options.events.count <= Self.maximumEvents else {
             throw .invalid("""
                 The request names \(options.events.count) events. A stream can name at most \(Self.maximumEvents).
                 """)
         }
-        guard !options.events.isEmpty else {
-            self.init(events: defaultEventSubscriptions, appliesSavedMutes: options.appliesSavedMutes)
-            return
-        }
-        let supported = Self.supportedEventsByName()
+        let events = options.events.isEmpty
+            ? (options.fieldFilters == nil ? defaultEventSubscriptionsWithoutFieldFilters : defaultEventSubscriptions)
+            : try Self.events(named: options.events)
+        var filters: Set<FieldFilter>?
+        if let names = options.fieldFilters { filters = try Self.fieldFilters(named: names, over: events) }
+        self.init(events: events, appliesSavedMutes: options.appliesSavedMutes, fieldFilters: filters)
+    }
+    
+    /// The events a request names.
+    ///
+    /// - Parameter names: `ES_EVENT_TYPE_NOTIFY_*` names.
+    /// - Returns: The events, each once, in the order first named.
+    /// - Throws: ``XPCRequestError/invalid(_:)`` for a name that isn't a NOTIFY event Mac Monitor models on this Mac.
+    private static func events(named names: [String]) throws(XPCRequestError) -> [es_event_type_t] {
+        let supported = supportedEventsByName()
         var events: [es_event_type_t] = [], seen = Set<UInt32>()
-        for name in options.events {
+        for name in names {
             guard let event = supported[name] else {
                 throw .invalid("\(name) isn't an event macmonitor can stream on this Mac.")
             }
             if seen.insert(event.rawValue).inserted { events.append(event) }
         }
-        self.init(events: events, appliesSavedMutes: options.appliesSavedMutes)
+        return events
+    }
+    
+    /// The field filters a request names, on the events it streams.
+    ///
+    /// - Parameters:
+    ///   - names: ``FieldFilter`` wire names.
+    ///   - events: The events the stream subscribes to.
+    /// - Returns: The filters whose event is among `events`.
+    /// - Throws: ``XPCRequestError/invalid(_:)`` for more than ``maximumEvents`` names or two filters on one event,
+    ///   ``XPCRequestError/unsupported(_:)`` for a name this build doesn't know: a newer `macmonitor`.
+    static func fieldFilters(named names: [String],
+                             over events: [es_event_type_t]) throws(XPCRequestError) -> Set<FieldFilter> {
+        guard names.count <= maximumEvents else {
+            throw .invalid("""
+                The request names \(names.count) field filters. A stream can name at most \(maximumEvents).
+                """)
+        }
+        var filters = Set<FieldFilter>(), filtered = Set<UInt32>()
+        for name in names {
+            guard let filter = FieldFilter(rawValue: name) else {
+                throw .unsupported("""
+                    \(name) isn't a field filter this Security Extension knows. Open Mac Monitor to finish updating.
+                    """)
+            }
+            guard filters.insert(filter).inserted else { continue }
+            guard filtered.insert(filter.event.rawValue).inserted else {
+                throw .invalid("The request names two field filters on \(eventTypeToString(from: filter.event)).")
+            }
+        }
+        let subscribed = Set(events.map(\.rawValue))
+        return filters.filter { subscribed.contains($0.event.rawValue) }
     }
     
     /// Every event a stream may subscribe to, by its `ES_EVENT_TYPE_NOTIFY_*` name: the NOTIFY events Mac Monitor

@@ -30,6 +30,10 @@ public struct CaptureLaneStatistics: Codable, Equatable, Sendable {
     public let regressions: UInt64
     /// Dropped messages by `ES_EVENT_TYPE_*` name (`seq_num` gaps), for the types that lost any.
     public let droppedByType: [String: UInt64]
+    /// Messages its field filters left out (``FieldFilter``). Never dropped, never serialized.
+    public let fieldFiltered: UInt64
+    /// Of those, the count by `ES_EVENT_TYPE_*` name, for the types with any.
+    public let fieldFilteredByType: [String: UInt64]
     /// Messages that couldn't be serialized while recording.
     public let serializationFailures: UInt64
 }

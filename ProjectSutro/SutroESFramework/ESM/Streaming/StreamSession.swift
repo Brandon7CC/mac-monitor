@@ -18,7 +18,8 @@ import OSLog
 /// ``EventBatcher/Limits-swift.struct/commandLine`` limits. When `macmonitor` falls behind, the batcher pauses capture
 /// rather than buffering without bound. `macmonitor` sees what it missed as `global_seq_num` gaps, and the summary
 /// counts it. Each change to the saved set is applied, then told to `macmonitor`
-/// (``StreamReaderProtocol/savedMutesChanged(_:)``), since muted events never show as gaps.
+/// (``StreamReaderProtocol/savedMutesChanged(_:)``), since muted events never show as gaps. The field filters a request
+/// names are echoed when it starts, and what they left out is counted in the summary: their gaps aren't losses.
 ///
 /// **Stop:** a stop request drains the capture session and the batcher, so everything captured up to that moment is
 /// delivered, then answers with a ``StreamSummary`` and closes. Closing (also when the connection goes away) deletes
@@ -48,6 +49,8 @@ final class StreamSession: NSObject {
     private var skippedAtPause: UInt64?
     /// Messages capture skipped during earlier pauses.
     private var skippedWhilePaused: UInt64 = 0
+    /// Did the request name field filters? Only then are they echoed and counted: a 3.0.0 `macmonitor` reads neither.
+    private var requestsFieldFilters = false
     
     /// - Parameters:
     ///   - connection: The `macmonitor` connection.
@@ -132,6 +135,8 @@ extension StreamSession {
         }
         hasStreamed = true
         var configuration = CaptureConfiguration(events: plan.events, label: label)
+        configuration.fieldFilters = plan.fieldFilters ?? []
+        requestsFieldFilters = plan.fieldFilters != nil
         if plan.appliesSavedMutes {
             /// Follow the saved set from the moment it's read, so no change is missed. Changes hop onto `queue`.
             let (mutes, subscription) = service.savedMutes.follow { [weak self] list, change in
@@ -152,12 +157,15 @@ extension StreamSession {
             self.capture = capture
             capture.isRecording = true
             let savedMutes = plan.appliesSavedMutes ? configuration.mutes.count : nil
+            let filters = capture.fieldFilters.map(\.rawValue).sorted()
             StreamService.logger.log("""
                 \(self.label, privacy: .public) started a stream of \(capture.subscribedEvents.count) events \
-                \(savedMutes.map { "with \($0) saved mutes" } ?? "without the saved mutes", privacy: .public).
+                \(savedMutes.map { "with \($0) saved mutes" } ?? "without the saved mutes", privacy: .public) \
+                and field filters: \(filters.isEmpty ? "none" : filters.joined(separator: ", "), privacy: .public).
                 """)
             let events = capture.subscribedEvents.map { eventTypeToString(from: $0) }
-            return answer(.ok, stream: StreamStarted(events: events, savedMutes: savedMutes))
+            return answer(.ok, stream: StreamStarted(events: events, savedMutes: savedMutes,
+                                                     fieldFilters: requestsFieldFilters ? filters : nil))
         } catch {
             muteSubscription = nil
             service.slots.release(number)
@@ -190,7 +198,8 @@ extension StreamSession {
                 \(summary.captured) events, \(summary.pauses) pauses, \
                 \(summary.droppedWhileBehind + summary.skippedWhilePaused) lost while behind \
                 (\(summary.droppedWhileBehind) dropped with the buffer full, \(summary.skippedWhilePaused) skipped \
-                while paused), \(summary.droppedByEndpointSecurity) dropped by Endpoint Security.
+                while paused), \(summary.droppedByEndpointSecurity) dropped by Endpoint Security, \
+                \(self.capture?.fieldFilteredMessages ?? 0) left out by field filters.
                 """)
         }
         muteSubscription = nil
@@ -260,10 +269,12 @@ extension StreamSession {
         var skipped = skippedWhilePaused
         /// A pause still going counts up to now.
         if let skippedAtPause, let capture { skipped += capture.skippedMessages - skippedAtPause }
+        let fieldFiltered = (capture?.fieldFilteredByType() ?? [:]).mapValues { Int(clamping: $0) }
         return StreamSummary(captured: counters.enqueued, delivered: counters.delivered,
                              droppedByEndpointSecurity: droppedByEndpointSecurity,
                              droppedWhileBehind: counters.dropped,
-                             skippedWhilePaused: Int(skipped), pauses: counters.pauses)
+                             skippedWhilePaused: Int(skipped), pauses: counters.pauses,
+                             fieldFiltered: requestsFieldFilters ? fieldFiltered : nil)
     }
     
     /// The answer for a capture session that couldn't start.
