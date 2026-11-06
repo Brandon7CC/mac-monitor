@@ -90,7 +90,8 @@ final class CommandLineBinaryTests: XCTestCase {
         XCTAssertEqual(run.error, "macmonitor: Unknown command 'bogus'. Run 'macmonitor help'.\n")
     }
 
-    /// `stream` without root exits 77 and says to use sudo.
+    /// `stream` without root exits 77 and says to use sudo, whether the Security Extension refuses it with a reason
+    /// or, as for this unsigned build, cuts it off before answering.
     func testStreamWithoutRootExits77() throws {
         try XCTSkipIf(geteuid() == 0, "The tests run as root.")
         let run = try run(["stream"])

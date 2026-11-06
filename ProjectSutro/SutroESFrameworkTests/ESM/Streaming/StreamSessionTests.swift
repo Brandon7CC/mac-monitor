@@ -7,6 +7,7 @@
 
 import XCTest
 import EndpointSecurity
+import os
 @testable import SutroESFramework
 
 
@@ -169,6 +170,35 @@ final class StreamSessionTests: XCTestCase {
         XCTAssertEqual(connection.send(stream())?.status, .refused)
         XCTAssertEqual(connection.sendMutes(MuteRequest(.reset))?.status, .refused)
         XCTAssertTrue(harness.factories.isEmpty)
+    }
+    
+    /// Without root, the live rule decides each request by the level as it stands: refused at the default, streaming
+    /// and listing the saved mute set but not changing it once streaming is allowed, and changing it too once muting
+    /// is. Each reply says what the caller may do, and the refusals say why.
+    func testACallerWithoutRootGetsWhatTheLevelAllows() throws {
+        try XCTSkipIf(geteuid() == 0, "The test process is root, which may always do everything.")
+        let level = OSAllocatedUnfairLock(initialState: CommandLineAccess.rootOnly)
+        let admitting = StreamService.granting { level.withLock { $0 } }
+        let harness = StreamHarness(savedMutes: savedMutes, admitting: admitting)
+        let add = MuteRequest(.add, [MuteFile.Entry(path: "/usr/bin/yes", type: "ES_MUTE_PATH_TYPE_PREFIX")])
+        let refused = harness.connect(reader: TestStreamReader())
+        defer { refused.invalidate() }
+        XCTAssertEqual(refused.send(stream()), StreamReply(status: .refused, problem: CommandLineAccess.needsRoot,
+                                                           sensorVersion: "3.0.0 (1)"))
+        XCTAssertEqual(refused.sendMutes(MuteRequest(.list))?.problems, [CommandLineAccess.needsRoot])
+        
+        level.withLock { $0 = .streaming }
+        XCTAssertEqual(refused.sendMutes(MuteRequest(.list))?.access, .list, "The next request sees the change")
+        let changing = refused.sendMutes(add)
+        XCTAssertEqual(changing?.status, .refused)
+        XCTAssertEqual(changing?.problems, [CommandLineAccess.needsMuteChanges])
+        XCTAssertEqual(refused.send(stream())?.status, .ok)
+        
+        level.withLock { $0 = .streamingAndMuting }
+        let changed = refused.sendMutes(add)
+        XCTAssertEqual(changed?.status, .ok)
+        XCTAssertEqual(changed?.access, .write)
+        XCTAssertEqual(harness.factories.count, 1)
     }
     
     /// A `--no-mutes` stream starts with no path mutes and ignores changes. A stream with them gets each change, made

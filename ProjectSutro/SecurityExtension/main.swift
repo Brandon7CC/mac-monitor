@@ -14,9 +14,12 @@ import SutroESFramework
 /// The one saved mute set, shared by Mac Monitor's capture and every `macmonitor` stream.
 let savedMutes = SavedMuteSet()
 
+/// Who may use `macmonitor` without `sudo`: Settings ▸ Command Line. Only root by default.
+let commandLineAccess = CommandLineAccessStore()
+
 /// Lives for the life of the process: `NSXPCListener` only holds its delegate weakly.
-let sensorListener = SensorListener(app: SensorService(savedMutes: savedMutes),
-                                    commandLine: StreamService(savedMutes: savedMutes))
+let sensorListener = SensorListener(app: SensorService(savedMutes: savedMutes, commandLineAccess: commandLineAccess),
+                                    commandLine: StreamService(savedMutes: savedMutes, access: commandLineAccess))
 
 autoreleasepool {
     os_log("🏎 Hello from the Mac Monitor Security Extension!")

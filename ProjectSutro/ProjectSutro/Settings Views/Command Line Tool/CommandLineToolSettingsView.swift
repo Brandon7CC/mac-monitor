@@ -13,9 +13,13 @@ import SutroESFramework
 // MARK: - Settings ▸ Command Line
 /// Settings ▸ Command Line: link `macmonitor` into `/usr/local/bin`, so `sudo macmonitor` works in any terminal, or
 /// remove the link, through the administrator password prompt. The installer package never links it.
+///
+/// Below that, who may use it without `sudo` (``CommandLineAccessSection``). The usage examples drop `sudo` when the
+/// Security Extension would let this user run them without it.
 struct CommandLineToolSettingsView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @StateObject private var installer = CommandLineToolInstaller()
+    @StateObject private var access = CommandLineAccessModel()
 
     /// The tool inside this copy of Mac Monitor, which works without the link.
     private let toolPath = Bundle.main.bundlePath + CommandLineToolLink.toolInBundle
@@ -34,30 +38,33 @@ struct CommandLineToolSettingsView: View {
                 }
                 if installer.inspection.map({ $0.link != .current }) ?? false {
                     SettingsSection(title: "Run it without installing") {
-                        CommandRow(command: "sudo \"\(toolPath)\" stream")
+                        CommandRow(command: "\(sudo)\"\(toolPath)\" stream")
                     }
                 }
+                CommandLineAccessSection(model: access, manager: systemExtensionManager)
                 SettingsSection(title: "Usage") {
                     VStack(spacing: 0) {
-                        CommandRow(command: "sudo macmonitor stream", meaning: "Mac Monitor's default events, as text")
+                        CommandRow(command: "\(sudo)macmonitor stream",
+                                   meaning: "Mac Monitor's default events, as text")
                         Divider()
-                        CommandRow(command: "sudo macmonitor stream exec | jq -c .",
+                        CommandRow(command: "\(sudo)macmonitor stream exec | jq -c .",
                                    meaning: "Only exec events, as JSONL")
                         Divider()
-                        CommandRow(command: #"sudo macmonitor stream exec --target '/osascript$' --predicate "#
+                        CommandRow(command: sudo + #"macmonitor stream exec --target '/osascript$' --predicate "#
                                    + #"'event.exec.script_content CONTAINS[c] "display dialog" AND "#
                                    + #"event.exec.script_content CONTAINS[c] "password"'"#,
                                    meaning: "An osascript script asking for a password, as macOS stealers do")
                         Divider()
-                        CommandRow(command: #"sudo macmonitor stream exec --predicate 'process.audit_token.euid == 0 "#
+                        CommandRow(command: sudo
+                                   + #"macmonitor stream exec --predicate 'process.audit_token.euid == 0 "#
                                    + #"AND NOT event.exec.target.signing_id BEGINSWITH "com.apple."'"#,
                                    meaning: "Programs root runs that Apple didn't sign")
                         Divider()
-                        CommandRow(command: #"sudo macmonitor stream open "#
+                        CommandRow(command: sudo + #"macmonitor stream open "#
                                    + #"--predicate 'target_path CONTAINS "/Library/Keychains/"'"#,
                                    meaning: "Anything opening a keychain")
                         Divider()
-                        CommandRow(command: "sudo macmonitor mute list",
+                        CommandRow(command: "\(sudo)macmonitor mute list",
                                    meaning: "The saved mute set Mac Monitor and macmonitor share")
                         Divider()
                         CommandRow(command: "macmonitor help", meaning: "Every command and option")
@@ -71,6 +78,11 @@ struct CommandLineToolSettingsView: View {
                                                           set: { if !$0 { installer.failure = nil } }),
                actions: { Button("OK", role: .cancel, action: {}) },
                message: { Text(installer.failure ?? "") })
+    }
+
+    /// `sudo ` before a command, unless the Security Extension lets this user stream without it.
+    private var sudo: String {
+        (access.access ?? .rootOnly).grant(forEffectiveUser: getuid()).mayStream ? "" : "sudo "
     }
 
     /// The buttons for what may be done now: look again, Remove..., and Install..., Update... or Repair...

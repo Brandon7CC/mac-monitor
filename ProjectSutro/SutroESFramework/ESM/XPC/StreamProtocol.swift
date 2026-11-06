@@ -9,8 +9,9 @@ import Foundation
 
 
 // MARK: - StreamProtocol
-/// Exported by the Security Extension (sensor) to `macmonitor`, and only on connections from root
-/// (``SensorListenerRouter``).
+/// Exported by the Security Extension (sensor) to `macmonitor`, and only on connections pinned to `macmonitor`'s code
+/// signature (``SensorListenerRouter``). Each request is decided by the caller's effective user and
+/// ``CommandLineAccess``: root may always stream and change mutes.
 ///
 /// A connection streams at most once. A ``StreamRequest/Kind-swift.enum/stream`` request starts the connection's own
 /// capture session (one Endpoint Security client per event class), whose events arrive through the

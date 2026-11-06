@@ -304,6 +304,8 @@
 		C11D00000000000000000006 /* CommandLineToolLinker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000005 /* CommandLineToolLinker.swift */; };
 		C11D00000000000000000008 /* CommandLineToolAuthorization.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000007 /* CommandLineToolAuthorization.swift */; };
 		C11D00000000000000000012 /* CommandLineToolInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000011 /* CommandLineToolInstaller.swift */; };
+		ED359BF7CAC3487DBEEC5821 /* CommandLineAccessSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F47BFF6EFFCC5A071E883BF /* CommandLineAccessSection.swift */; };
+		D7780672127C2B660AECC828 /* CommandLineAccessModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AAD753A0A4FFBAC4DC5827D /* CommandLineAccessModel.swift */; };
 		C11D00000000000000000014 /* CommandLineToolSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11D00000000000000000013 /* CommandLineToolSettingsView.swift */; };
 		F17E00000000000000000016 /* SettingsComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000015 /* SettingsComponents.swift */; };
 		F17E0000000000000000003C /* SymbolPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000003B /* SymbolPicker.swift */; };
@@ -380,6 +382,9 @@
 		CB1C00000000000000000011 /* StreamPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000010 /* StreamPlan.swift */; };
 		CB1C00000000000000000013 /* CaptureSession+Drain.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000012 /* CaptureSession+Drain.swift */; };
 		CB1C0000000000000000001D /* SensorListenerRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000001C /* SensorListenerRouter.swift */; };
+		37C57AD3860D8FD159D6A6D5 /* PeerSignature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FE251EA98108555E2281F03 /* PeerSignature.swift */; };
+		7701C44B6EDFB9C43C99C7A8 /* CommandLineAccessStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5EF4B691118ED697B056210 /* CommandLineAccessStore.swift */; };
+		7223A5DFDB0ACEE4AE61AD75 /* CommandLineAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 977CFB6E60CA9EE1E08789F9 /* CommandLineAccess.swift */; };
 		CB1C0000000000000000001F /* StreamSlots.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000001E /* StreamSlots.swift */; };
 		CB1C00000000000000000021 /* StreamService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000020 /* StreamService.swift */; };
 		CB1C00000000000000000023 /* StreamSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000022 /* StreamSession.swift */; };
@@ -908,6 +913,8 @@
 		C11D00000000000000000005 /* CommandLineToolLinker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolLinker.swift; sourceTree = "<group>"; };
 		C11D00000000000000000007 /* CommandLineToolAuthorization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolAuthorization.swift; sourceTree = "<group>"; };
 		C11D00000000000000000011 /* CommandLineToolInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolInstaller.swift; sourceTree = "<group>"; };
+		3F47BFF6EFFCC5A071E883BF /* CommandLineAccessSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineAccessSection.swift; sourceTree = "<group>"; };
+		3AAD753A0A4FFBAC4DC5827D /* CommandLineAccessModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineAccessModel.swift; sourceTree = "<group>"; };
 		C11D00000000000000000013 /* CommandLineToolSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolSettingsView.swift; sourceTree = "<group>"; };
 		F17E00000000000000000015 /* SettingsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsComponents.swift; sourceTree = "<group>"; };
 		F17E0000000000000000003B /* SymbolPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymbolPicker.swift; sourceTree = "<group>"; };
@@ -984,6 +991,9 @@
 		CB1C00000000000000000010 /* StreamPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamPlan.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000012 /* CaptureSession+Drain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CaptureSession+Drain.swift"; sourceTree = "<group>"; };
 		CB1C0000000000000000001C /* SensorListenerRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorListenerRouter.swift; sourceTree = "<group>"; };
+		5FE251EA98108555E2281F03 /* PeerSignature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerSignature.swift; sourceTree = "<group>"; };
+		F5EF4B691118ED697B056210 /* CommandLineAccessStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineAccessStore.swift; sourceTree = "<group>"; };
+		977CFB6E60CA9EE1E08789F9 /* CommandLineAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineAccess.swift; sourceTree = "<group>"; };
 		CB1C0000000000000000001E /* StreamSlots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSlots.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000020 /* StreamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamService.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000022 /* StreamSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSession.swift; sourceTree = "<group>"; };
@@ -3531,6 +3541,9 @@
 				CB1C0000000000000000000E /* StreamReply.swift */,
 				CB1C00000000000000000010 /* StreamPlan.swift */,
 				CB1C0000000000000000001C /* SensorListenerRouter.swift */,
+				5FE251EA98108555E2281F03 /* PeerSignature.swift */,
+				F5EF4B691118ED697B056210 /* CommandLineAccessStore.swift */,
+				977CFB6E60CA9EE1E08789F9 /* CommandLineAccess.swift */,
 			);
 			path = XPC;
 			sourceTree = "<group>";
@@ -3646,6 +3659,8 @@
 			children = (
 				C11D00000000000000000013 /* CommandLineToolSettingsView.swift */,
 				C11D00000000000000000011 /* CommandLineToolInstaller.swift */,
+				3F47BFF6EFFCC5A071E883BF /* CommandLineAccessSection.swift */,
+				3AAD753A0A4FFBAC4DC5827D /* CommandLineAccessModel.swift */,
 			);
 			path = "Command Line Tool";
 			sourceTree = "<group>";
@@ -4013,6 +4028,9 @@
 				CB1C00000000000000000021 /* StreamService.swift in Sources */,
 				CB1C0000000000000000001F /* StreamSlots.swift in Sources */,
 				CB1C0000000000000000001D /* SensorListenerRouter.swift in Sources */,
+				37C57AD3860D8FD159D6A6D5 /* PeerSignature.swift in Sources */,
+				7701C44B6EDFB9C43C99C7A8 /* CommandLineAccessStore.swift in Sources */,
+				7223A5DFDB0ACEE4AE61AD75 /* CommandLineAccess.swift in Sources */,
 				CB1C00000000000000000013 /* CaptureSession+Drain.swift in Sources */,
 				CB1C00000000000000000011 /* StreamPlan.swift in Sources */,
 				CB1C0000000000000000000F /* StreamReply.swift in Sources */,
@@ -4417,6 +4435,8 @@
 				28823F502ECC3400000B7F5C /* SystemGetExtattrMetadataView.swift in Sources */,
 				28CEF0FD29776D31003057D2 /* SystemProcExitMetadataView.swift in Sources */,
 				C11D00000000000000000012 /* CommandLineToolInstaller.swift in Sources */,
+				ED359BF7CAC3487DBEEC5821 /* CommandLineAccessSection.swift in Sources */,
+				D7780672127C2B660AECC828 /* CommandLineAccessModel.swift in Sources */,
 				C11D00000000000000000014 /* CommandLineToolSettingsView.swift in Sources */,
 				F17E00000000000000000016 /* SettingsComponents.swift in Sources */,
 				F17E00000000000000000036 /* FindingsSettingsView.swift in Sources */,

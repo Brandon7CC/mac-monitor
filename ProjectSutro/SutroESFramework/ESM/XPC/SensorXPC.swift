@@ -57,11 +57,11 @@ public enum SensorXPC {
     public static let agentRequirement: String = requirement(for: "com.swiftlydetecting.agent")
     
     /// The code signing requirement for `macmonitor`: what the Security Extension enforces on every connection from
-    /// root.
+    /// root, or from a process signed as `macmonitor`.
     public static let commandLineRequirement: String = requirement(for: "com.swiftlydetecting.agent.cli")
     
     /// What the Security Extension's listener admits: Mac Monitor or `macmonitor`. Each connection is then pinned to
-    /// exactly one of them by its effective user (``SensorListenerRouter``).
+    /// exactly one of them (``SensorListenerRouter``).
     public static let listenerRequirement: String = either(agentRequirement, commandLineRequirement)
     
     /// The most `macmonitor stream` sessions at once. Each holds ``CaptureSession/clientsPerSession`` Endpoint
@@ -240,6 +240,23 @@ public enum SensorXPC {
     ///   - reply: A ``CommandLineToolLinker/Outcome`` raw value.
     func changeCommandLineTool(action: String, tool: String, expected: String, authorization: Data,
                                reply: @escaping (Int) -> Void)
+    
+    // MARK: Command line access
+    /// Who may use `macmonitor stream` and `macmonitor mute` without `sudo`. Any Mac Monitor may ask.
+    ///
+    /// - Parameter reply: A ``CommandLineAccess`` raw value.
+    func commandLineAccess(reply: @escaping (String) -> Void)
+    
+    /// Change who may use `macmonitor` without `sudo`. The Security Extension stores and enforces it
+    /// (``CommandLineAccessStore``).
+    ///
+    /// Like the saved mute set, any user's Mac Monitor may change it, administrator or not, while it owns the event
+    /// stream or nobody does. No password is asked.
+    ///
+    /// - Parameters:
+    ///   - access: A ``CommandLineAccess`` raw value.
+    ///   - reply: A ``CommandLineAccessChange`` raw value: `.streamOwned` if another connection owns the event stream.
+    func setCommandLineAccess(_ access: String, reply: @escaping (Int) -> Void)
 }
 
 

@@ -18,7 +18,8 @@ import Foundation
 public enum CommandLineCommand: String, CaseIterable, Sendable {
     case stream, mute, events, schema, validate, completion, version, help
     
-    /// Does the command need root? Only what talks to the Security Extension does.
+    /// Does the command need root? Only what talks to the Security Extension does, and then the Security Extension
+    /// decides: root always, and any user when Mac Monitor's Settings allows it (``CommandLineAccess``).
     public var requiresRoot: Bool {
         switch self {
         case .stream, .mute: return true
@@ -190,7 +191,8 @@ public enum CommandLineHelp {
             Commands:
             \(list.joined(separator: "\n"))
 
-            Run 'macmonitor help <command>' for a command's options. \(rooted) need root: run them with sudo.
+            Run 'macmonitor help <command>' for a command's options. \(rooted) need root: run them with sudo, or \
+            allow them without sudo in \(CommandLineAccess.setting).
 
             """
     }

@@ -286,7 +286,9 @@ final class CommandLineParserTests: XCTestCase {
     /// Every command parses as itself, and the overview lists it and names the commands that need root. The help for
     /// stream, validate and mute names every option they take.
     func testTheHelpMatchesTheCommands() throws {
-        XCTAssertTrue(CommandLineHelp.text(for: nil).contains(" stream and mute need root: run them with sudo."))
+        XCTAssertTrue(CommandLineHelp.text(for: nil).contains(" stream and mute need root: run them with sudo, or "
+                                                               + "allow them without sudo in Mac Monitor > Settings "
+                                                               + "> Command Line."))
         let lines: [CommandLineCommand: String] = [.mute: "mute list", .validate: "validate trace.jsonl",
                                                    .completion: "completion zsh"]
         for command in CommandLineCommand.allCases {

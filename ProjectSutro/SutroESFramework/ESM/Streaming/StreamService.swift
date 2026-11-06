@@ -12,7 +12,8 @@ import notify
 
 
 // MARK: - Stream service
-/// Serves `sudo macmonitor` (Security Extension context).
+/// Serves `macmonitor` (Security Extension context): root's, and any user's when Settings allows it
+/// (``CommandLineAccess``).
 ///
 /// Every connection the router hands it gets its own ``StreamSession``: its own queue, capture session (one Endpoint
 /// Security client per event class), mutes, and batcher. So nothing a `macmonitor` does, or fails to do, touches Mac
@@ -30,8 +31,8 @@ public final class StreamService {
     let slots: StreamSlots
     /// The Security Extension's version, such as "3.0.0 (1)".
     let sensorVersion: String
-    /// Is the caller allowed? Asked on the thread delivering each request: root only.
-    let admits: (NSXPCConnection?) -> Bool
+    /// What the caller may do. Asked on the thread delivering each request.
+    let grant: (NSXPCConnection?) -> CommandLineGrant
     /// Makes each stream's capture session.
     let makeCapture: CaptureMaker
     /// Called when a stream that held Endpoint Security clients closes, from its queue: Endpoint Security may have
@@ -41,18 +42,33 @@ public final class StreamService {
     private let sessionNumbers = OSAllocatedUnfairLock(initialState: UInt64(0))
     static let logger = Logger(subsystem: "com.swiftlydetecting.agent.securityextension", category: "StreamService")
     
-    /// The live service's admission rule: only a connection whose effective user is root. Asked on the thread
-    /// delivering each request, where the connection is `NSXPCConnection.current()`.
-    public static let rootOnly: (NSXPCConnection?) -> Bool = { $0?.effectiveUserIdentifier == 0 }
-    
-    /// The live service: ``SensorXPC/maxCommandLineStreams`` streams on live Endpoint Security clients, for root only.
-    /// A stream that closes posts ``SensorXPC/sensorReleasedNotification``, so a Mac Monitor that Endpoint Security
-    /// refused (`.tooManyClients`) tries again.
+    /// An admission rule: what a connection's effective user may do at the level `access` reads at each request.
+    /// Asked on the thread delivering each request, where the connection is `NSXPCConnection.current()`. No
+    /// connection may do nothing.
     ///
-    /// - Parameter savedMutes: The saved mute set, shared with Mac Monitor's capture.
-    public convenience init(savedMutes: SavedMuteSet) {
+    /// - Parameter access: Reads the level, such as ``CommandLineAccessStore/access``.
+    /// - Returns: The rule.
+    public static func granting(_ access: @escaping () -> CommandLineAccess)
+        -> (NSXPCConnection?) -> CommandLineGrant {
+        { connection in
+            guard let connection else { return .refused(CommandLineAccess.needsRoot) }
+            return access().grant(forEffectiveUser: connection.effectiveUserIdentifier)
+        }
+    }
+    
+    /// The default rule: only root.
+    public static let rootOnly = granting { .rootOnly }
+    
+    /// The live service: ``SensorXPC/maxCommandLineStreams`` streams on live Endpoint Security clients, for root and,
+    /// when Settings allows it, any user. A stream that closes posts ``SensorXPC/sensorReleasedNotification``,
+    /// so a Mac Monitor that Endpoint Security refused (`.tooManyClients`) tries again.
+    ///
+    /// - Parameters:
+    ///   - savedMutes: The saved mute set, shared with Mac Monitor's capture.
+    ///   - access: Who may use `macmonitor` without `sudo`, read at each request.
+    public convenience init(savedMutes: SavedMuteSet, access: CommandLineAccessStore) {
         self.init(savedMutes: savedMutes, slots: StreamSlots(capacity: SensorXPC.maxCommandLineStreams),
-                  sensorVersion: Self.version(of: .main), admits: Self.rootOnly,
+                  sensorVersion: Self.version(of: .main), grant: Self.granting { access.access },
                   makeCapture: { try CaptureSession($0, emit: $1) },
                   released: { notify_post(SensorXPC.sensorReleasedNotification) })
     }
@@ -61,16 +77,16 @@ public final class StreamService {
     ///   - savedMutes: The saved mute set.
     ///   - slots: Caps the streams.
     ///   - sensorVersion: The Security Extension's version.
-    ///   - admits: Is the caller allowed?
+    ///   - grant: What the caller may do.
     ///   - makeCapture: Makes each stream's capture session.
     ///   - released: Called when a stream that held Endpoint Security clients closes.
     init(savedMutes: SavedMuteSet, slots: StreamSlots, sensorVersion: String,
-         admits: @escaping (NSXPCConnection?) -> Bool, makeCapture: @escaping CaptureMaker,
+         grant: @escaping (NSXPCConnection?) -> CommandLineGrant, makeCapture: @escaping CaptureMaker,
          released: @escaping () -> Void = {}) {
         self.savedMutes = savedMutes
         self.slots = slots
         self.sensorVersion = sensorVersion
-        self.admits = admits
+        self.grant = grant
         self.makeCapture = makeCapture
         self.released = released
     }
@@ -80,7 +96,7 @@ public final class StreamService {
     /// The invalidation handler keeps the session until it has closed: the connection releases its handlers once it's
     /// invalidated, which breaks the cycle through the session's batcher.
     ///
-    /// - Parameter connection: A connection from root, not yet activated.
+    /// - Parameter connection: A connection from `macmonitor`, not yet activated.
     public func accept(_ connection: NSXPCConnection) {
         let number = sessionNumbers.withLock { number -> UInt64 in
             number += 1

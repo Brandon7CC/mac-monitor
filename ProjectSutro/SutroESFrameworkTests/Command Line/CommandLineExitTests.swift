@@ -83,18 +83,25 @@ final class CommandLineExitTests: XCTestCase {
         }
     }
     
-    /// A root-only command without root exits 77 and says how to run the same command line with sudo, quoting what
-    /// a shell would split or expand.
-    func testNotRoot() {
-        let failure = CommandLineFailure.notRoot("mute", arguments: ["mute", "list"])
-        XCTAssertEqual(failure.exit, .noPermission)
-        XCTAssertEqual(failure.description, "macmonitor: 'mute' needs root: sudo macmonitor mute list")
-        XCTAssertEqual(CommandLineFailure.notRoot("stream", arguments: ["stream", "exec", "fork", "--format=jsonl"])
-                        .message, "'stream' needs root: sudo macmonitor stream exec fork --format=jsonl")
-        XCTAssertEqual(CommandLineFailure.notRoot("mute", arguments: ["mute", "add", "/Users/b/It's mine", "--type",
-                                                                      "prefix", "--event", "$HOME", ""]).message,
-                       #"'mute' needs root: sudo macmonitor mute add '/Users/b/It'\''s mine' --type prefix --event "#
-                        + #"'$HOME' ''"#)
+    /// A refusal for a caller who isn't root exits 77 and says how to run the same command line with sudo, quoting
+    /// what a shell would split or expand. Root, and any other failure, get no hint.
+    func testARefusalSuggestsSudo() {
+        let refused = CommandLineFailure(.noPermission, "No.")
+        let suggest = { refused.suggestingSudo(arguments: $0, isRoot: false).message }
+        XCTAssertEqual(suggest(["mute", "list"]), "No. Run it with sudo: sudo macmonitor mute list")
+        XCTAssertEqual(suggest(["stream", "exec", "fork", "--format=jsonl"]),
+                       "No. Run it with sudo: sudo macmonitor stream exec fork --format=jsonl")
+        XCTAssertEqual(suggest(["mute", "add", "/Users/b/It's mine", "--type", "prefix", "--event", "$HOME", ""]),
+                       #"No. Run it with sudo: sudo macmonitor mute add '/Users/b/It'\''s mine' --type prefix "#
+                        + #"--event '$HOME' ''"#)
+        XCTAssertEqual(refused.suggestingSudo(arguments: ["stream"], isRoot: true), refused)
+        XCTAssertEqual(CommandLineFailure.noAnswer.suggestingSudo(arguments: ["stream"], isRoot: false), .noAnswer)
+        XCTAssertEqual(CommandLineFailure.setUserID("stream").exit, .noPermission)
+        let cutOff = CommandLineFailure.refusedBeforeAnswer.suggestingSudo(arguments: ["stream"], isRoot: false)
+        XCTAssertEqual(cutOff, CommandLineFailure(.noPermission, "The Security Extension refused macmonitor without "
+                                                     + "root. Run it with sudo: sudo macmonitor stream"))
+        XCTAssertEqual(CommandLineFailure.refusedBeforeAnswer.suggestingSudo(arguments: ["stream"], isRoot: true),
+                       .refusedBeforeAnswer, "Root keeps the update hint")
         XCTAssertEqual(CommandLineExit.noPermission.rawValue, 77)
         XCTAssertEqual(CommandLineExit.usage.rawValue, 64)
         XCTAssertEqual(CommandLineExit.temporaryFailure.rawValue, 75)

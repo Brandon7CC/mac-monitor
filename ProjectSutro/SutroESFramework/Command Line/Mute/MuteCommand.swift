@@ -13,9 +13,10 @@ import os
 /// `macmonitor mute ...` (command line context): one request about the saved mute set, and what to write about the
 /// Security Extension's answer.
 ///
-/// The Security Extension never reads a file: `import` reads it here, as root, with ``MuteFileReader`` (Mac Monitor's
-/// mute files and the lists exported before 3.0), says what was left out, and sends the mutes. `export` writes the
-/// saved set to standard output, so the shell creates the file, as the user.
+/// The Security Extension never reads a file: `import` reads it here, as the user running `macmonitor` (root, unless
+/// Settings allows mute changes without `sudo`), with ``MuteFileReader`` (Mac Monitor's mute files and the lists
+/// exported before 3.0), says what was left out, and sends the mutes. `export` writes the saved set to
+/// standard output, so the shell creates the file, as the user.
 ///
 /// `import` and `reset` replace or grow the set Mac Monitor and every stream follow, so they say what they'd change
 /// and ask first, unless given `--yes` (see `MuteCommand+Confirmation.swift`).

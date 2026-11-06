@@ -34,12 +34,35 @@ final class SensorListenerRouterTests: XCTestCase {
         }
     }
     
+    /// A process that isn't root but is signed as `macmonitor` is `macmonitor`: pinned to its requirement and handed
+    /// to its endpoint, which decides each request by `CommandLineAccess`. The hint is asked only for peers that aren't
+    /// root, and a peer it doesn't match stays Mac Monitor.
+    func testASignedCommandLineToolWithoutRootIsTheCommandLineTool() {
+        var asked: [pid_t] = []
+        let hinted = SensorListenerRouter<FakePeer>(app: { $0.log.append("app") },
+                                                    commandLine: { $0.log.append("commandLine") },
+                                                    signedAsCommandLine: { asked.append($0.processIdentifier)
+                                                        return $0.processIdentifier == 700 })
+        let tool = FakePeer(euid: 501, pid: 700)
+        XCTAssertEqual(hinted.route(tool), .commandLine)
+        XCTAssertEqual(tool.log, ["requirement \(SensorXPC.commandLineRequirement)", "commandLine"])
+        let app = FakePeer(euid: 501, pid: 701)
+        XCTAssertEqual(hinted.route(app), .app)
+        XCTAssertEqual(app.log, ["requirement \(SensorXPC.agentRequirement)", "app"])
+        XCTAssertEqual(hinted.route(FakePeer(euid: 0, pid: 702)), .commandLine)
+        XCTAssertEqual(asked, [700, 701], "Never asked for root")
+    }
+    
     /// The two roles' requirements are different programs.
     func testTheRolesPinDifferentPrograms() {
         XCTAssertNotEqual(SensorListenerRouter<FakePeer>.Role.app.requirement,
                           SensorListenerRouter<FakePeer>.Role.commandLine.requirement)
         XCTAssertEqual(SensorListenerRouter<FakePeer>.role(forEffectiveUser: 0), .commandLine)
         XCTAssertEqual(SensorListenerRouter<FakePeer>.role(forEffectiveUser: 501), .app)
+        XCTAssertEqual(SensorListenerRouter<FakePeer>.role(forEffectiveUser: 501, signedAsCommandLine: true),
+                       .commandLine)
+        XCTAssertEqual(SensorListenerRouter<FakePeer>.role(forEffectiveUser: 0, signedAsCommandLine: false),
+                       .commandLine)
     }
     
     /// A connection a listener accepts carries the peer's effective user: this test process isn't root, so its
@@ -80,12 +103,15 @@ private final class Pinger: NSObject, Ping, NSXPCListenerDelegate {
     /// How many pings reached the endpoint.
     var pings: Int { calls.withLock { count } }
     
-    /// - Parameter routes: Route each connection through ``SensorListenerRouter``, or serve it unpinned.
-    init(routes: Bool) {
+    /// - Parameters:
+    ///   - routes: Route each connection through ``SensorListenerRouter``, or serve it unpinned.
+    ///   - hint: What the router's signature hint says about every peer.
+    init(routes: Bool, hint: Bool = false) {
         super.init()
         guard routes else { return }
         router = SensorListenerRouter<NSXPCConnection>(app: { [weak self] in self?.serve($0) },
-                                                       commandLine: { [weak self] in self?.serve($0) })
+                                                       commandLine: { [weak self] in self?.serve($0) },
+                                                       signedAsCommandLine: { _ in hint })
     }
     
     /// Answer pings on a connection.
@@ -139,13 +165,17 @@ extension SensorListenerRouterTests {
     }
     
     /// The router's pin is enforced, not just set: this test process isn't signed as Mac Monitor, so its message
-    /// never reaches the endpoint. The same endpoint without the router answers it.
+    /// never reaches the endpoint. The same endpoint without the router answers it. A hint that wrongly says it's
+    /// `macmonitor` changes nothing either: the pin to `macmonitor`'s requirement cuts it off the same way.
     func testAnUnsignedCallerNeverReachesTheEndpoint() {
         let unpinned = Pinger(routes: false)
         XCTAssertTrue(ping(unpinned), "Without the router the endpoint answers")
         let routed = Pinger(routes: true)
         XCTAssertFalse(ping(routed))
         XCTAssertEqual(routed.pings, 0)
+        let fooled = Pinger(routes: true, hint: true)
+        XCTAssertFalse(ping(fooled))
+        XCTAssertEqual(fooled.pings, 0)
     }
 }
 

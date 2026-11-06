@@ -35,7 +35,7 @@ Look here before writing a helper of your own, and move one here once a second t
 | `FakeEndpointSecurityClient.swift` | `es_new_client`: records each call, refuses calls on request, holds `es_sync_client` until released, and `deliver(_:)` hands a message to the session's handler. `FakeEndpointSecurityClientFactory.client(.process)` finds a session's client by class |
 | `FakeBatchDelivery.swift` | The reader of an `EventBatcher`: keeps each batch and replies only when told (`FakeBatchDelivery`), and an in-memory backlog (`FakeBacklog`) |
 | `FakeLaunchServicesReaders.swift` | Launch Services: scripted records (`FakeLaunchServicesReader`), or reads that wait until `open()` (`WaitingLaunchServicesReader`) |
-| `FakePeer.swift` | An XPC connection from one effective user, which records the code signing requirement pinned on it |
+| `FakePeer.swift` | An XPC connection from one effective user and process, which records the code signing requirement pinned on it |
 | `StreamHarness.swift` | The Security Extension's side of `macmonitor`: the real `StreamService` on an in-process listener, capturing on fake clients |
 | `StreamCommandHarness.swift` | `macmonitor stream` in a test: `StreamCommandRun` with output kept in `BufferOutput` |
 | `ToolLinkFixture.swift` | A pretend `/` in a temporary directory, for linking `/usr/local/bin/macmonitor` |

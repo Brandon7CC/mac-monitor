@@ -263,10 +263,10 @@ final class CommandLineStreamTests: XCTestCase {
         }
     }
     
-    /// The live service admits only root. It's asked on the thread delivering the request, with the caller's real
-    /// connection.
-    func testTheLiveServiceAdmitsOnlyRoot() throws {
-        XCTAssertFalse(StreamService.rootOnly(nil))
+    /// The default rule admits only root. It's asked on the thread delivering the request, with the caller's real
+    /// connection, and its refusal says how to run the same command line with sudo.
+    func testTheDefaultRuleAdmitsOnlyRoot() throws {
+        XCTAssertEqual(StreamService.rootOnly(nil), .refused(CommandLineAccess.needsRoot))
         let asked = Recorded<uid_t?>()
         let recording = StreamHarness(savedMutes: savedMutes, admitting: { connection in
             asked.append(connection?.effectiveUserIdentifier)
@@ -279,6 +279,9 @@ final class CommandLineStreamTests: XCTestCase {
         guard geteuid() != 0 else { return }
         guard case .failed(let failure) = run.reported.first else { return XCTFail("\(run.reported)") }
         XCTAssertEqual(failure.exit, .noPermission)
+        XCTAssertEqual(failure.message, CommandLineAccess.needsRoot)
+        XCTAssertTrue(failure.suggestingSudo(arguments: ["stream"], isRoot: false).message
+                        .hasSuffix("Run it with sudo: sudo macmonitor stream"))
         XCTAssertTrue(recording.factories.isEmpty, "No capture for a caller that isn't root")
     }
     

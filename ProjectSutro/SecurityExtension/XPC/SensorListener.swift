@@ -15,8 +15,8 @@ import SutroESFramework
 /// The Security Extension's one listener, on `SensorXPC.machServiceName`.
 ///
 /// It admits Mac Monitor or `macmonitor` (`SensorXPC.listenerRequirement`), and ``SensorListenerRouter`` hands each
-/// connection to exactly one of them by the effective user that connected: root's go to the ``StreamService``,
-/// everyone else's to the ``SensorService``.
+/// connection to exactly one of them: root's, and any process's signed as `macmonitor`, go to the ``StreamService``,
+/// everyone else's to the ``SensorService``. The ``StreamService`` decides each request by `CommandLineAccess`.
 final class SensorListener: NSObject {
     private let listener = NSXPCListener(machServiceName: SensorXPC.machServiceName)
     private let router: SensorListenerRouter<NSXPCConnection>
@@ -26,7 +26,8 @@ final class SensorListener: NSObject {
     ///   - app: Serves Mac Monitor. Kept for the life of the listener.
     ///   - commandLine: Serves `macmonitor`. Kept for the life of the listener.
     init(app: SensorService, commandLine: StreamService) {
-        router = SensorListenerRouter(app: app.accept, commandLine: commandLine.accept)
+        router = SensorListenerRouter(app: app.accept, commandLine: commandLine.accept,
+                                      signedAsCommandLine: PeerSignature.isCommandLine)
     }
     
     /// Start accepting connections, then announce that we're ready.
@@ -66,7 +67,10 @@ extension SensorListener: NSXPCListenerDelegate {
     ///   pins each connection to its role's requirement before it's activated.
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
         if router.route(connection) == .commandLine {
-            logger.log("Accepted a macmonitor connection (pid \(connection.processIdentifier), euid 0).")
+            logger.log("""
+                Accepted a macmonitor connection (pid \(connection.processIdentifier), \
+                euid \(connection.effectiveUserIdentifier)).
+                """)
         }
         return true
     }

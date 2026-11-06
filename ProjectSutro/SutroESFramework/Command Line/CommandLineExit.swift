@@ -37,7 +37,7 @@ public enum CommandLineExit: Int32, Sendable {
     case ioError = 74
     /// Too many streams, or Endpoint Security clients: try again later (`EX_TEMPFAIL`).
     case temporaryFailure = 75
-    /// Not root (`EX_NOPERM`).
+    /// Not root, and the Security Extension doesn't let this user without it, or run set-user-ID (`EX_NOPERM`).
     case noPermission = 77
 }
 
@@ -73,15 +73,31 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
         "macmonitor: \(message)"
     }
     
-    /// A command that needs root, run without it: says how to run the same command line again with `sudo`.
+    /// A command that talks to the Security Extension, run set-user-ID: `macmonitor` only runs as the user who
+    /// started it, so the Security Extension decides by who that is.
+    ///
+    /// - Parameter command: The command, such as "mute".
+    /// - Returns: The failure: exit 77.
+    public static func setUserID(_ command: String) -> CommandLineFailure {
+        CommandLineFailure(.noPermission, """
+            '\(command)' doesn't run set-user-ID: its real and effective users must match. Run it with sudo instead.
+            """)
+    }
+    
+    /// The same failure, saying how to run the same command line again with `sudo` when the Security Extension
+    /// refused a caller who isn't root (exit 77). A connection it cut off before answering (``refusedBeforeAnswer``)
+    /// counts too: a Security Extension older than 3.0.1, or a `macmonitor` it doesn't trust, only accepts root's. Any
+    /// other failure is returned as it is.
     ///
     /// - Parameters:
-    ///   - command: The command, such as "mute".
     ///   - arguments: The whole command line, without the program's name.
-    /// - Returns: The failure: exit 77.
-    public static func notRoot(_ command: String, arguments: [String]) -> CommandLineFailure {
-        let line = (["sudo", "macmonitor"] + arguments.map(shellQuoted)).joined(separator: " ")
-        return CommandLineFailure(.noPermission, "'\(command)' needs root: \(TerminalSafeText.text(line))")
+    ///   - isRoot: Is `macmonitor` running as root? Then `sudo` wouldn't help.
+    /// - Returns: The failure.
+    public func suggestingSudo(arguments: [String], isRoot: Bool) -> CommandLineFailure {
+        guard !isRoot, exit == .noPermission || self == .refusedBeforeAnswer else { return self }
+        let reason = self == .refusedBeforeAnswer ? "The Security Extension refused macmonitor without root." : message
+        let line = (["sudo", "macmonitor"] + arguments.map(Self.shellQuoted)).joined(separator: " ")
+        return CommandLineFailure(.noPermission, "\(reason) Run it with sudo: \(TerminalSafeText.text(line))")
     }
     
     /// The failure a command line that can't be read stands for.
@@ -122,7 +138,7 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
                 updating its Security Extension.
                 """)
         case .refused:
-            return CommandLineFailure(.noPermission, "The Security Extension only streams to root.\(problem)")
+            return CommandLineFailure(.noPermission, reason ?? "The Security Extension refused macmonitor.")
         case .alreadyStreaming:
             return CommandLineFailure(.software, "The stream had already started.\(problem)")
         case .sessionLimit, .clientLimit:
@@ -178,15 +194,19 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
                 Mac Monitor's Security Extension isn't running. Open Mac Monitor and allow its Security Extension.
                 """)
         case (.interrupted?, false):
-            return CommandLineFailure(.unavailable, """
-                The Security Extension refused macmonitor. If Mac Monitor was just updated, open it once to finish \
-                updating its Security Extension.
-                """)
+            return refusedBeforeAnswer
         default:
             return CommandLineFailure(.unavailable,
                                       "Couldn't reach the Security Extension: \(error.localizedDescription)")
         }
     }
+    
+    /// The Security Extension cut the connection off before answering: it doesn't accept this `macmonitor`, or it's
+    /// older than `macmonitor`.
+    public static let refusedBeforeAnswer = CommandLineFailure(.unavailable, """
+        The Security Extension refused macmonitor. If Mac Monitor was just updated, open it once to finish updating \
+        its Security Extension.
+        """)
     
     /// The Security Extension went away mid-stream: it was updated, turned off, or crashed.
     public static let stopped = CommandLineFailure(.unavailable, """

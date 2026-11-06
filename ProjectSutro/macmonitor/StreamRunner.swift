@@ -10,7 +10,7 @@ import SutroESFramework
 
 
 // MARK: - Stream runner
-/// `sudo macmonitor stream`, as a process: standard output and error, signals, and the exit status. The stream itself
+/// `macmonitor stream`, as a process: standard output and error, signals, and the exit status. The stream itself
 /// is ``StreamCommand``'s.
 ///
 /// **Stopping:** the first `SIGINT`, `SIGTERM` or `SIGHUP` asks the Security Extension to stop, and batches keep being

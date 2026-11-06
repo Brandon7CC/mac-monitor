@@ -28,7 +28,10 @@ import SutroESFramework
 /// can claim the stream; `StreamService` posts it too when a stream frees its clients.
 ///
 /// **Saved mute set:** any user's Mac Monitor may change it, administrator or not, while it owns the event stream or
-/// nobody does. `macmonitor` changes it only as root.
+/// nobody does. `macmonitor` changes it as root, or as any user when Settings allows it (`CommandLineAccess`).
+///
+/// **Command line access:** any Mac Monitor may read who can use `macmonitor` without `sudo`. Like the saved mute set,
+/// any user's Mac Monitor may change it, administrator or not, while it owns the event stream or nobody does.
 ///
 /// **Field filters:** they travel as `FieldFilter` wire names beside event names in `eventSubscriptions(reply:)` and
 /// `setSubscription(_:enabled:reply:)`, and like subscriptions only the owner changes them. They're kept in memory,
@@ -79,9 +82,15 @@ final class SensorService: NSObject {
     private let savedMutes: SavedMuteSet
     private var muteSubscription: AnyCancellable?
     
-    /// - Parameter savedMutes: The saved mute set, loaded before the listener starts.
-    init(savedMutes: SavedMuteSet) {
+    /// Who may use `macmonitor` without `sudo`, shared with the `StreamService`.
+    private let commandLineAccess: CommandLineAccessStore
+    
+    /// - Parameters:
+    ///   - savedMutes: The saved mute set, loaded before the listener starts.
+    ///   - commandLineAccess: Who may use `macmonitor` without `sudo`.
+    init(savedMutes: SavedMuteSet, commandLineAccess: CommandLineAccessStore) {
         self.savedMutes = savedMutes
+        self.commandLineAccess = commandLineAccess
     }
     
     /// Configure and activate a Mac Monitor connection the router pinned to `SensorXPC.agentRequirement`.
@@ -246,6 +255,30 @@ extension SensorService: SensorProtocol {
         }
     }
 
+    func commandLineAccess(reply: @escaping (String) -> Void) {
+        reply(commandLineAccess.access.rawValue)
+    }
+    
+    func setCommandLineAccess(_ access: String, reply: @escaping (Int) -> Void) {
+        /// Read on the thread delivering the message, as `mutes(_:reply:)` does.
+        let caller = NSXPCConnection.current()
+        queue.async { [self] in
+            guard let level = CommandLineAccess(rawValue: access) else {
+                return reply(CommandLineAccessChange.invalid.rawValue)
+            }
+            /// The same rule as the saved mute set: while nobody owns the event stream, or only its owner.
+            guard caller != nil, MuteAccess.controlsStream(caller, owner: sink?.connection) else {
+                return reply(CommandLineAccessChange.streamOwned.rawValue)
+            }
+            let outcome = commandLineAccess.change(to: level)
+            logger.log("""
+                Command line access \(level.rawValue, privacy: .public): \
+                \(String(describing: outcome), privacy: .public)
+                """)
+            reply(outcome.rawValue)
+        }
+    }
+    
     func installUpdate(reply: @escaping (String?) -> Void) {
         /// Read on the thread delivering the message, as `mutes(_:reply:)` does.
         let caller = NSXPCConnection.current()

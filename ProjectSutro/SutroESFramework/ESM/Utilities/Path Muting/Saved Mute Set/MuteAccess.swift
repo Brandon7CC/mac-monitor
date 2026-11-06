@@ -15,12 +15,15 @@ import Foundation
 public enum MuteAccess: String, Codable, Sendable {
     /// List it, but not change it: another Mac Monitor owns the event stream.
     case read
+    /// List and export it, but not change it: `macmonitor` without `sudo`, while Settings lets it stream but not
+    /// change mutes (``CommandLineAccess/streaming``).
+    case list
     /// List and change it.
     case write
 
     /// What a Mac Monitor connection may do. Any user's Mac Monitor may change the saved set, administrator or not,
     /// but like installing an update, only while it owns the event stream or nobody does. Anyone may list it.
-    /// `macmonitor` changes it only as root.
+    /// `macmonitor` changes it as root, or as any user when Settings allows it (``CommandLineGrant``).
     ///
     /// - Parameters:
     ///   - caller: The connection a request arrived on, if any. Without one, nothing may change.
@@ -48,6 +51,8 @@ public enum MuteAccess: String, Codable, Sendable {
             return nil
         case .read:
             return (.refused, "Only the Mac Monitor that owns the event stream can change the saved mute set.")
+        case .list:
+            return (.refused, CommandLineAccess.needsMuteChanges)
         }
     }
 }

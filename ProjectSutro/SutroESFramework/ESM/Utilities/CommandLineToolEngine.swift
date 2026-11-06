@@ -26,3 +26,29 @@ extension EndpointSecurityManager {
         }
     }
 }
+
+
+extension EndpointSecurityManager {
+    // MARK: Command line access
+    /// Ask the Security Extension who may use `macmonitor` without `sudo` (agent context).
+    ///
+    /// - Parameter completion: Called on the main thread with the level, or `nil` if the Security Extension couldn't
+    ///   be reached.
+    public func commandLineAccess(completion: @escaping (CommandLineAccess?) -> Void) {
+        sensor.call { $0.commandLineAccess(reply: $1) } completion: { level in
+            completion(level.flatMap(CommandLineAccess.init(rawValue:)))
+        }
+    }
+
+    /// Ask the Security Extension to change who may use `macmonitor` without `sudo` (agent context).
+    ///
+    /// - Parameters:
+    ///   - access: The new level.
+    ///   - completion: Called on the main thread. `.unavailable` if the Security Extension couldn't be reached.
+    public func setCommandLineAccess(_ access: CommandLineAccess,
+                                     completion: @escaping (CommandLineAccessChange) -> Void) {
+        sensor.call { $0.setCommandLineAccess(access.rawValue, reply: $1) } completion: { status in
+            completion(status.flatMap(CommandLineAccessChange.init(rawValue:)) ?? .unavailable)
+        }
+    }
+}

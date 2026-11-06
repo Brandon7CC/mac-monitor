@@ -13,23 +13,28 @@ import SutroESFramework
 /// `macmonitor`: read the command line, check root, run the command, exit.
 ///
 /// Everything with logic in it lives in `SutroESFramework`, where the tests reach it; this is process glue. Only
-/// `stream` and `mute` need root, and then both the effective and the real user must be root: `macmonitor` never
-/// drops privileges after it connects, and refuses to run set-user-ID. `schema` and `validate` need neither root nor
-/// the Security Extension.
+/// `stream` and `mute` talk to the Security Extension, which decides who may: root, and any user when Settings allows
+/// it (`CommandLineAccess`). `macmonitor` doesn't guess. It asks, and a refusal says how to run the same command
+/// line with `sudo`. It refuses to run set-user-ID, so the real and effective users match, and never drops privileges
+/// after it connects. `schema` and `validate` need neither root nor the Security Extension.
 enum CommandLineTool {
+    /// The command line, without the program's name, for a refusal's `sudo` hint.
+    private static var arguments: [String] = []
+    
     /// Run a command line. Commands that finish right away exit here; `stream` and `validate` return, and exit from
     /// the main queue once they're done.
     ///
     /// - Parameter arguments: The arguments, without the program's name.
     static func run(_ arguments: [String]) {
+        Self.arguments = arguments
         let invocation: CommandLineInvocation
         do {
             invocation = try CommandLineParser.parse(arguments)
         } catch {
             fail(.parsing(error))
         }
-        if invocation.requiresRoot && !(geteuid() == 0 && getuid() == 0) {
-            fail(.notRoot(invocation.command, arguments: arguments))
+        if invocation.requiresRoot && geteuid() != getuid() {
+            fail(.setUserID(invocation.command))
         }
         switch invocation {
         case .help(let command):
@@ -75,6 +80,7 @@ enum CommandLineTool {
     /// - Parameter failure: The failure.
     /// - Returns: Never.
     static func fail(_ failure: CommandLineFailure) -> Never {
+        let failure = failure.suggestingSudo(arguments: arguments, isRoot: geteuid() == 0)
         FileOutput.writeError(failure.description)
         exit(failure.exit.rawValue)
     }

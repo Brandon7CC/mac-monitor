@@ -72,6 +72,7 @@ macmonitor validate trace.jsonl            # check an export against the schema
 
 - Text on a terminal, JSONL when piped: the same records as Export telemetry, an `eslogger` superset.
 - `macmonitor help <command>` covers every option.
+- (`3.0.1+`) `stream` and `mute` need root by default. Settings ▸ Command Line ▸ Without sudo lets any user stream, and separately change mutes, without `sudo`. The Security Extension keeps and enforces it, and only accepts its own signed `macmonitor`. While it's on, any user on the Mac, and any program they run, can read every process's events.
 
 ![The command line tool](./Resources/v3.0.0/cli-v3.0.png)
 

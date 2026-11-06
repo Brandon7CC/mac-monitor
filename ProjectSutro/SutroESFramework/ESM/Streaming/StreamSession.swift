@@ -75,10 +75,11 @@ final class StreamSession: NSObject {
 // MARK: - StreamProtocol
 extension StreamSession: StreamProtocol {
     func perform(_ request: Data, reply: @escaping (Data) -> Void) {
-        /// The router only hands root's connections here. Check again on the thread delivering the message.
-        guard service.admits(NSXPCConnection.current()) else {
-            StreamService.logger.error("\(self.label, privacy: .public): refused a stream request from non-root.")
-            return reply(answer(.refused, problem: "Only root can use macmonitor.").encoded())
+        /// Decided on the thread delivering the message, by the caller's effective user and `CommandLineAccess`.
+        let grant = service.grant(NSXPCConnection.current())
+        guard grant.mayStream else {
+            StreamService.logger.error("\(self.label, privacy: .public): refused a stream request.")
+            return reply(answer(.refused, problem: grant.refusal).encoded())
         }
         queue.async { [self] in
             respond(to: request) { reply($0.encoded()) }
@@ -86,11 +87,13 @@ extension StreamSession: StreamProtocol {
     }
     
     func mutes(_ request: Data, reply: @escaping (Data) -> Void) {
-        guard service.admits(NSXPCConnection.current()) else {
-            StreamService.logger.error("\(self.label, privacy: .public): refused a mute request from non-root.")
-            return reply(MuteReply(status: .refused, mutes: [], problems: ["Only root can use macmonitor."]).encoded())
+        let grant = service.grant(NSXPCConnection.current())
+        guard let access = grant.muteAccess else {
+            StreamService.logger.error("\(self.label, privacy: .public): refused a mute request.")
+            return reply(MuteReply(status: .refused, mutes: [], problems: [grant.refusal ?? ""]).encoded())
         }
-        service.savedMutes.handle(request, access: .write, caller: label, reply: reply)
+        /// Without `sudo`, it may only list it, unless Settings lets it change it.
+        service.savedMutes.handle(request, access: access, caller: label, reply: reply)
     }
 }
 

@@ -41,8 +41,8 @@ public struct PredicateAudience: Equatable, Sendable {
 ///
 /// `NSPredicate`'s format language does more than compare. `FUNCTION(x, 'selector')` calls any Objective-C method,
 /// `CAST('NSTask', 'Class')` names any class, a `SUBQUERY` variable reaches key-value coding on any value, and a key
-/// path past a value (`path.release`) has key-value coding call that method on it. `macmonitor` runs as root, so a
-/// `--predicate` made from text someone else chose could run code. Two guards make every predicate data-only:
+/// path past a value (`path.release`) has key-value coding call that method on it. `macmonitor` usually runs as root,
+/// so a `--predicate` made from text someone else chose could run code. Two guards make every predicate data-only:
 ///
 /// - ``check(_:for:in:)-(NSPredicate,_,_)`` refuses, as it's parsed, a predicate with any expression but key paths,
 ///   constants, sets, `SELF`, and `NSPredicate`'s own arithmetic, string and aggregate functions (``functions``).

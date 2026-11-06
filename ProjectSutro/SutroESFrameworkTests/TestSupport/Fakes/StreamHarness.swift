@@ -27,16 +27,19 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
     /// - Parameters:
     ///   - savedMutes: The saved mute set.
     ///   - capacity: The most streams at once.
-    ///   - admits: Treat every caller as root?
-    ///   - admitting: Decides who's admitted instead, such as ``StreamService/rootOnly``.
+    ///   - admits: Treat every caller as root? Otherwise every caller is refused as one who isn't.
+    ///   - grant: What every caller may do instead, such as ``CommandLineGrant/streaming``.
+    ///   - admitting: Decides what each caller may do instead, such as ``StreamService/rootOnly``.
     ///   - refusals: `es_new_client` refusals for every stream, by client: `[0: .tooManyClients]` refuses the first.
     ///   - serializer: Builds each event's JSON.
     init(savedMutes: SavedMuteSet, capacity: Int = SensorXPC.maxCommandLineStreams, admits: Bool = true,
-         admitting: ((NSXPCConnection?) -> Bool)? = nil, refusals: [Int: NewClientResult] = [:],
+         grant: CommandLineGrant? = nil, admitting: ((NSXPCConnection?) -> CommandLineGrant)? = nil,
+         refusals: [Int: NewClientResult] = [:],
          serializer: any EventSerializing = StubSerializer.globalSequence) {
         let (made, releases) = (madeFactories, releaseCount)
+        let fixed = grant ?? (admits ? .everything : .refused(CommandLineAccess.needsRoot))
         service = StreamService(savedMutes: savedMutes, slots: StreamSlots(capacity: capacity),
-                                sensorVersion: "3.0.0 (1)", admits: admitting ?? { _ in admits },
+                                sensorVersion: "3.0.0 (1)", grant: admitting ?? { _ in fixed },
                                 makeCapture: { configuration, emit in
             let factory = FakeEndpointSecurityClientFactory(refusals: refusals)
             made.append(factory)
