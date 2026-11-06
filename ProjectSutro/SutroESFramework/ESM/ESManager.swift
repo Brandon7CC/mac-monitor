@@ -160,7 +160,8 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// The reply is held until the batch has been saved to Core Data. That's the back-pressure: when inserts fall
     /// behind, the Security Extension stops sending and spools to disk instead of this process growing without bound.
     ///
-    /// Execs and forks from an older Security Extension get their launched-by parent here.
+    /// Execs and forks from an older Security Extension get their launched-by parent here, and its events get their
+    /// processes' ages (``Message/completeReceived(path:)``).
     ///
     /// Batches are accepted even after recording stops: the Security Extension stops serializing at the source, so
     /// anything still arriving was recorded before Stop and belongs in the trace. A Clear discards older events by time
@@ -185,8 +186,8 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         var messages: [Message] = decoded.filter { shouldInsert($0, droppingPlatformBinaries: dropping) }
         guard !messages.isEmpty else { return reply() }
         /// An exec or fork without a launched-by parent (from an older Security Extension) gets one, with its parent's
-        /// path read now.
-        for index in messages.indices { messages[index].resolveLaunchedByParent(by: .app, path: ProcessPath.live) }
+        /// path read now, and processes without an age (a 3.0.0 Security Extension sends none) get theirs.
+        for index in messages.indices { messages[index].completeReceived(path: ProcessPath.live) }
         
         eventBufferQueue.async { [messages] in
             self.eventBuffer.append(contentsOf: messages)

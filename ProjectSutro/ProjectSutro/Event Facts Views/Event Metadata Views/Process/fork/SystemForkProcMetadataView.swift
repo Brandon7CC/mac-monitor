@@ -33,7 +33,7 @@ struct SystemForkProcMetadataView: View {
                 .font(.title2)
             
             // MARK: Process
-            ProcessView(message: selectedMessage, process: forkEvent.child)
+            ProcessView(message: selectedMessage, process: forkEvent.child, ageText: forkEvent.childAgeText)
             
             Divider()
             

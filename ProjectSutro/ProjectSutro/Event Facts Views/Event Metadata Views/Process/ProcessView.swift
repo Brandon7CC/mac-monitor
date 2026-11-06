@@ -11,6 +11,9 @@ import SutroESFramework
 struct ProcessView: View {
     var message: ESMessage
     var process: ESProcess
+    /// How old the process was at the event, as text, or `nil`. Passed in because ``process`` may be a shared row,
+    /// which has no age: the event keeps it (``ESMessage/processAgeText``, ``ESProcessForkEvent/childAgeText``).
+    let ageText: String?
     
     var executable: ESFile? {
         process.executable
@@ -52,6 +55,7 @@ struct ProcessView: View {
                     GroupBox {
                         Text("`\(process.start_time)`")
                     }
+                    ProcessAgeFact(ageText: ageText)
                     
                     // MARK: File Quarantine
                     if process.file_quarantine_type != "DISABLED" {
@@ -136,6 +140,24 @@ struct ProcessView: View {
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
+
+// MARK: - Process age
+/// How old a process was at its event (``EventAge``), or nothing when that's unknown. The Groups inspector names the
+/// same fact "Process age".
+struct ProcessAgeFact: View {
+    /// The age as text, or `nil`.
+    let ageText: String?
+    
+    var body: some View {
+        if let ageText {
+            Label("**Process age:**", systemImage: "hourglass")
+            GroupBox {
+                Text("`\(ageText)`")
             }
         }
     }

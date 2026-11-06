@@ -44,7 +44,7 @@ struct SystemGetTaskMetadataView: View {
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     
-                    ProcessView(message: esSystemEvent, process: event.target)
+                    ProcessView(message: esSystemEvent, process: event.target, ageText: event.target.processAgeText)
                     
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }

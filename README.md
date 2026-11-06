@@ -78,6 +78,7 @@ macmonitor validate trace.jsonl            # check an export against the schema
 
 ## What are some standout features?
 - **High fidelity ES events, enriched**: code signing, quarantine, script content, and the process that really launched each one.
+  - (`3.0.1+`) Every process carries `process_age_ms`, how old it was at the event: search `process.process_age_ms < 1000` for young processes.
 - **Dynamic event subscriptions**: change what you subscribe to on the fly to cut down on noise.
   - (`3.0.1+`) Close is on by default, for modified files only. Change that in Settings ▸ Subscriptions; `macmonitor stream --every close` streams every close for that stream only.
 - **Path muting at the API level**: `es_mute_path` and `es_mute_path_events`, with every `ES_MUTE_PATH_TYPE_*`. **I'd love it if the ES team added inversion on a per-event basis instead of per-client**.

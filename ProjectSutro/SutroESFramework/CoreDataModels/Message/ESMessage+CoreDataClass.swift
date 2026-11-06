@@ -98,6 +98,9 @@ public class ESMessage: NSManagedObject, Identifiable {
     /// The `id` this event's initiating process had (and exports): ``process`` may be shared, and keeps the `id` of the
     /// first event that stored it.
     @NSManaged public var process_id: UUID?
+    /// How old this event's initiating process was at the event, in milliseconds (``Process/process_age_ms``), or
+    /// `nil` when its start time is unknown: ``process`` may be shared by events of other ages, so it has none.
+    @NSManaged public var process_age_ms: NSNumber?
     
     /// Thread
     @NSManaged public var thread: ESThread?
@@ -211,6 +214,7 @@ public class ESMessage: NSManagedObject, Identifiable {
         attach(ESProcess.row(for: message.process, version: message.version, in: context),
                to: #keyPath(ESMessage.process))
         self.process_id = message.process.id
+        self.process_age_ms = message.process.process_age_ms.map { NSNumber(value: $0) }
         self.thread = message.thread.map { ESThread(from: $0, insertIntoManagedObjectContext: context) }
         
         // MARK: Event
@@ -334,7 +338,8 @@ extension ESMessage: Encodable {
         try container.encode(sensor_id, forKey: .sensor_id)
         
         // MARK: Process and thread
-        try container.encode(ESProcessRecord(process: process, id: process_id ?? process.id), forKey: .process)
+        try container.encode(ESProcessRecord(process: process, id: process_id ?? process.id, ageMs: process_age_ms),
+                             forKey: .process)
         /// `null` when Endpoint Security named no thread, as eslogger writes it.
         try container.encode(thread, forKey: .thread)
         

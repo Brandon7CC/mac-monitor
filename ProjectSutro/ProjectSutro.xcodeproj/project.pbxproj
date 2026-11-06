@@ -36,6 +36,7 @@
 		2826554129FA2947000A7C95 /* uninstall.sh in Copy uninstaller */ = {isa = PBXBuildFile; fileRef = 2826553F29FA2938000A7C95 /* uninstall.sh */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		282744AA28EF75F400464C5B /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282744A928EF75F400464C5B /* Message.swift */; };
 		282DFE082D9DDFBA006E0C94 /* EventType+Accessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282DFE072D9DDFBA006E0C94 /* EventType+Accessors.swift */; };
+		A6E000000000000000000002 /* EventType+Processes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6E000000000000000000001 /* EventType+Processes.swift */; };
 		282DFE0A2D9DE004006E0C94 /* EventType+ESMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282DFE092D9DE004006E0C94 /* EventType+ESMapping.swift */; };
 		282FEDEA295FCE3600572E22 /* ESXProtectRemediate+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282FEDE6295FCE3600572E22 /* ESXProtectRemediate+CoreDataClass.swift */; };
 		282FEDEC295FCE3600572E22 /* ESXProtectDetect+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282FEDE8295FCE3600572E22 /* ESXProtectDetect+CoreDataClass.swift */; };
@@ -224,6 +225,7 @@
 		28EF8F042D7E47D600223464 /* Process.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EF8F032D7E47D600223464 /* Process.swift */; };
 		28EF8F0B2D7EA45400223464 /* ESFile+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EF8F052D7EA45400223464 /* ESFile+CoreDataClass.swift */; };
 		28EF8F0D2D7EA45400223464 /* ESProcess+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EF8F072D7EA45400223464 /* ESProcess+CoreDataClass.swift */; };
+		A6E000000000000000000004 /* EventAge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6E000000000000000000003 /* EventAge.swift */; };
 		28EF8F0F2D7EA45400223464 /* ESStat+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EF8F092D7EA45400223464 /* ESStat+CoreDataClass.swift */; };
 		28FE271A29E4E0740003B1B9 /* ESEventsEnumerated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28FE271929E4E0740003B1B9 /* ESEventsEnumerated.swift */; };
 		28FFA9B6290F0D0000977D3F /* AgentSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28FFA9B5290F0D0000977D3F /* AgentSettingsView.swift */; };
@@ -624,6 +626,7 @@
 		2826553F29FA2938000A7C95 /* uninstall.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = uninstall.sh; path = Uninstall/uninstall.sh; sourceTree = "<group>"; };
 		282744A928EF75F400464C5B /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		282DFE072D9DDFBA006E0C94 /* EventType+Accessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventType+Accessors.swift"; sourceTree = "<group>"; };
+		A6E000000000000000000001 /* EventType+Processes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventType+Processes.swift"; sourceTree = "<group>"; };
 		282DFE092D9DE004006E0C94 /* EventType+ESMapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventType+ESMapping.swift"; sourceTree = "<group>"; };
 		282E64D628F9C6110060ABFA /* libsystem_kernel.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsystem_kernel.tbd; path = usr/lib/system/libsystem_kernel.tbd; sourceTree = SDKROOT; };
 		282E64D828F9C94E0060ABFA /* Kernel.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kernel.framework; path = System/Library/Frameworks/Kernel.framework; sourceTree = SDKROOT; };
@@ -814,6 +817,7 @@
 		28EF8F032D7E47D600223464 /* Process.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Process.swift; sourceTree = "<group>"; };
 		28EF8F052D7EA45400223464 /* ESFile+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESFile+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28EF8F072D7EA45400223464 /* ESProcess+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESProcess+CoreDataClass.swift"; sourceTree = "<group>"; };
+		A6E000000000000000000003 /* EventAge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventAge.swift; sourceTree = "<group>"; };
 		28EF8F092D7EA45400223464 /* ESStat+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESStat+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28FE271929E4E0740003B1B9 /* ESEventsEnumerated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESEventsEnumerated.swift; sourceTree = "<group>"; };
 		28FFA9B5290F0D0000977D3F /* AgentSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSettingsView.swift; sourceTree = "<group>"; };
@@ -1690,6 +1694,7 @@
 				28A608A52D9BA06D00962337 /* EventType.swift */,
 				282DFE092D9DE004006E0C94 /* EventType+ESMapping.swift */,
 				282DFE072D9DDFBA006E0C94 /* EventType+Accessors.swift */,
+				A6E000000000000000000001 /* EventType+Processes.swift */,
 			);
 			path = EventType;
 			sourceTree = "<group>";
@@ -3287,6 +3292,7 @@
 			isa = PBXGroup;
 			children = (
 				28EF8F072D7EA45400223464 /* ESProcess+CoreDataClass.swift */,
+				A6E000000000000000000003 /* EventAge.swift */,
 				CA9C061E2E907D2C00A0D5C8 /* Thread */,
 				CA9C061D2E907D2400A0D5C8 /* Audit Token */,
 			);
@@ -4051,6 +4057,7 @@
 				28823F312EC82CAE000B7F5C /* MProtectEvent.swift in Sources */,
 				2820DD0F297225770053CB48 /* LaunchItemRemoveEvent.swift in Sources */,
 				282DFE082D9DDFBA006E0C94 /* EventType+Accessors.swift in Sources */,
+				A6E000000000000000000002 /* EventType+Processes.swift in Sources */,
 				28EC62D7292446B700EAC8AD /* ESFileCreateEvent+CoreDataClass.swift in Sources */,
 				28B865D82A31266C00F06441 /* OpenDirectoryCreateUserEvent.swift in Sources */,
 				284BAECB2A4CCD8E007F1193 /* OpenDirectoryCreateGroupEvent.swift in Sources */,
@@ -4121,6 +4128,7 @@
 				28EF8F0B2D7EA45400223464 /* ESFile+CoreDataClass.swift in Sources */,
 				CAE9E4532E4FF87C001143C2 /* ESTCCModifyEvent+CoreDataClass.swift in Sources */,
 				28EF8F0D2D7EA45400223464 /* ESProcess+CoreDataClass.swift in Sources */,
+				A6E000000000000000000004 /* EventAge.swift in Sources */,
 				CA4CE5A42E53E70C00C057EB /* SignedFileInfo.swift in Sources */,
 				CAD3D9802E0F110900028111 /* ESNewPath+CoreDataClass.swift in Sources */,
 				28EF8F0F2D7EA45400223464 /* ESStat+CoreDataClass.swift in Sources */,

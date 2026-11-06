@@ -64,9 +64,13 @@ extension TelemetrySchemaSource {
             enrichment("ruid_human", .string, "The name of the real user.",
                      absent: Absence("the user has no name on the Mac that wrote the record, or isn't a system "
                                      + "account in a trace opened from another Mac")),
+            enrichment("process_age_ms", .nullable(.integer),
+                       "How old the process was at the event: milliseconds from `start_time` to the message's time, "
+                       + "rounded. Every process in a record has its own. Negative when the clock stepped back between "
+                       + "the two. null when `start_time` is unknown (0). Since telemetry 1.1.0."),
         ])
     }
-    
+
     /// A file: `es_file_t`.
     static var file: SchemaObject {
         SchemaObject("A file: es_file_t.", [

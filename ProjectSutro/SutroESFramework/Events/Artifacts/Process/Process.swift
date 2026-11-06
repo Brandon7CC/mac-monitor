@@ -64,7 +64,11 @@ public struct Process: Identifiable, Codable, Hashable {
     public var cs_validation_category_string: String?
     /// The names of the flags set in ``codesigning_flags`` (``ProcessHelpers/codeSigningFlagNames(_:)``).
     public var codesigning_flag_names: [String] = []
-    
+    /// Milliseconds from ``start_time`` to the message's time: how old the process was at the event. `nil` when
+    /// ``start_time`` is unknown, and negative when the clock stepped back. Set with the message's time
+    /// (``Message/deriveProcessAges()``), never by ``enrich()``, which doesn't know it.
+    public var process_age_ms: Int?
+
     public init(from process: es_process_t, version: Int) {
         self.start_time = TimeVal(from: process.start_time)
 

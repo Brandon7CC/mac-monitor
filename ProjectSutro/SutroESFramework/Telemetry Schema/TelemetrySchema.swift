@@ -22,7 +22,7 @@ public enum TelemetrySchema {
     /// The version of the records' shape, independent of the app's: MAJOR when a key is removed, renamed or retyped,
     /// or a value's format changes. MINOR when a key, event type or value is added. PATCH when only the schema's text
     /// changes.
-    public static let version = "1.0.0"
+    public static let version = "1.1.0"
     /// The key every record carries ``version`` under.
     public static let versionKey = "telemetry_version"
     /// The schema's file name: in the repository's `Schema` folder and the framework's resources.

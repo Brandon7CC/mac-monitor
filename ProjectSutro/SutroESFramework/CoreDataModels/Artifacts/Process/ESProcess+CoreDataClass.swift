@@ -53,6 +53,10 @@ public class ESProcess: NSManagedObject, Identifiable {
     @NSManaged public var codesigning_type: String
     @NSManaged public var is_adhoc_signed: Bool
     @NSManaged public var file_quarantine_type: String
+    /// How old the process was at its event (``Process/process_age_ms``), in an owned row only. A shared row is
+    /// shared by events of different ages, so each of them keeps its own (``ESMessage/process_age_ms``,
+    /// ``ESProcessExecEvent/target_age_ms``, ``ESProcessForkEvent/child_age_ms``) and this stays `nil`.
+    @NSManaged public var process_age_ms: NSNumber?
 
     convenience init(
         from process: Process,
@@ -128,13 +132,16 @@ public class ESProcess: NSManagedObject, Identifiable {
         self.euid_human = process.euid_human
         self.ruid = Int64(process.ruid ?? 0)
         self.ruid_human = process.ruid_human
+        self.process_age_ms = process.process_age_ms.map { NSNumber(value: $0) }
     }
     
     /// The row for `process`: shared with every other event (and `EXEC` target or `FORK` child) of the same process
     /// when `context` has ``EventRowCaches``, or a new row otherwise.
     ///
     /// A shared row keeps the `id` of the first process stored in it, so whoever attaches it keeps their own `id` to
-    /// export (``ESMessage/process_id``, ``ESProcessExecEvent/target_id``, ``ESProcessForkEvent/child_id``).
+    /// export (``ESMessage/process_id``, ``ESProcessExecEvent/target_id``, ``ESProcessForkEvent/child_id``), and their
+    /// own age (``ESMessage/process_age_ms``, ``ESProcessExecEvent/target_age_ms``,
+    /// ``ESProcessForkEvent/child_age_ms``): the row has none.
     ///
     /// - Parameters:
     ///   - process: The process.
@@ -143,7 +150,9 @@ public class ESProcess: NSManagedObject, Identifiable {
     /// - Returns: The row, which may be a fault: attach it with ``NSManagedObject/attach(_:to:)``.
     static func row(for process: Process, version: Int, in context: NSManagedObjectContext) -> ESProcess {
         EventRowCaches.row(\.processes, for: ProcessRowKey(version: version, process: process.rowKey), in: context) {
-            ESProcess(from: process, version: version, insertIntoManagedObjectContext: context)
+            let row = ESProcess(from: process, version: version, insertIntoManagedObjectContext: context)
+            row.process_age_ms = nil
+            return row
         }
     }
     
@@ -159,13 +168,21 @@ public class ESProcess: NSManagedObject, Identifiable {
     }
 }
 
-/// An ``ESProcess`` encoded with the `id` of the process it stands for, which a shared row doesn't have.
+/// An ``ESProcess`` encoded with the `id` and the age of the process it stands for, which a shared row doesn't have.
 struct ESProcessRecord: Encodable {
+    /// The row, which may be shared.
     let process: ESProcess
+    /// The event's own `id` for the process.
     let id: UUID?
+    /// The event's own age of the process, in milliseconds, or `nil` when it's unknown.
+    let ageMs: NSNumber?
     
+    /// Encode the row as the event's process.
+    ///
+    /// - Parameter encoder: The encoder.
+    /// - Throws: The encoder's error.
     func encode(to encoder: Encoder) throws {
-        try process.encode(to: encoder, id: id)
+        try process.encode(to: encoder, id: id, ageMs: ageMs)
     }
 }
 
@@ -173,19 +190,21 @@ struct ESProcessRecord: Encodable {
 extension ESProcess: Encodable {
     enum CodingKeys: String, CodingKey {
         case id, start_time, pid, ppid, original_ppid, group_id, session_id, audit_token, audit_token_string, parent_audit_token, parent_audit_token_string, responsible_audit_token, responsible_audit_token_string, codesigning_flags, cdhash, signing_id, team_id, is_adhoc_signed, is_platform_binary, is_es_client, cs_validation_category, cs_validation_category_string, executable, file_quarantine_type, codesigning_type, tty, euid, euid_human, ruid, ruid_human
-        case codesigning_flag_names
+        case codesigning_flag_names, process_age_ms
     }
     
     public func encode(to encoder: Encoder) throws {
-        try encode(to: encoder, id: id)
+        try encode(to: encoder, id: id, ageMs: process_age_ms)
     }
     
-    /// Encode this process as the one with `id`.
+    /// Encode this process as the one with `id` and the age `ageMs`.
     ///
     /// - Parameters:
     ///   - encoder: The encoder.
     ///   - id: The `id` to encode: the event's own, for a shared row.
-    func encode(to encoder: Encoder, id: UUID?) throws {
+    ///   - ageMs: The age to encode, in milliseconds: the event's own, for a shared row.
+    /// - Throws: The encoder's error.
+    func encode(to encoder: Encoder, id: UUID?, ageMs: NSNumber?) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         
         try container.encode(id, forKey: .id)
@@ -233,6 +252,8 @@ extension ESProcess: Encodable {
         try container.encode(ruid, forKey: .ruid)
         try container.encodeIfPresent(euid_human, forKey: .euid_human)
         try container.encodeIfPresent(ruid_human, forKey: .ruid_human)
+        /// `null` when the start time is unknown, so the key is always there.
+        try container.encode(ageMs?.intValue, forKey: .process_age_ms)
     }
 }
 

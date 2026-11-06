@@ -201,7 +201,12 @@ struct SystemTargetProcessView: View {
                         } else {
                             Text("\u{2022} **Code signing type:** `\(selectedMessage.process.codesigning_type)`")
                         }
-                        
+
+                        /// The process row may be shared: its age is the event's, as the Parent tab reads it.
+                        if let age = selectedMessage.processAgeText {
+                            Text("\u{2022} **Parent process age:** `\(age)`")
+                        }
+
                         HStack {
                             Label("**Parent user:**", systemImage: "person.fill")
                             InitiatingUserView(selectedMessage: selectedMessage)

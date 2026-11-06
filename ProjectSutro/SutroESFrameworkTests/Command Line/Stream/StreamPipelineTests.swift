@@ -47,7 +47,7 @@ final class StreamPipelineTests: XCTestCase {
     
     /// JSONL: each event's export record, in order, byte for byte.
     func testJSONLIsTheExport() throws {
-        let messages = try allFixtureMessages()
+        let messages = try allSentFixtureMessages()
         let pipeline = StreamPipeline(formatter: .jsonl([ExportEncoder(model: eventModel)]), scope: nobody,
                                       forTerminal: false)
         let output = String(decoding: pipeline.process(try messages.map(wire)), as: UTF8.self)
@@ -56,7 +56,7 @@ final class StreamPipelineTests: XCTestCase {
     
     /// Pretty prints each record like Export telemetry ▸ JSON (pretty), in order, each ending in a newline.
     func testPrettyIsThePrettyExport() throws {
-        let messages = try allFixtureMessages()
+        let messages = try allSentFixtureMessages()
         let pipeline = StreamPipeline(formatter: .jsonl([ExportEncoder(model: eventModel, pretty: true)]),
                                       scope: nobody, forTerminal: true)
         let output = String(decoding: pipeline.process(try messages.map(wire)), as: UTF8.self)

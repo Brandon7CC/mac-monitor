@@ -231,6 +231,7 @@ struct SystemEventGroupTableViews: View {
             facts: [("Command line", row.commandLine), ("Path", row.path),
                     ("Script", exec?.resolved_script_path ?? ""),
                     ("Executable age", exec?.executableAgeText.map { "\($0) old at exec" } ?? ""),
+                    ("Process age", exec?.targetAgeText.map { "\($0) old at exec" } ?? ""),
                     ("Signing", row.signing.rawValue),
                     ("Signing flags", target?.codesigningFlagNames.joined(separator: ", ") ?? ""),
                     ("Signing ID", target?.signing_id ?? ""), ("Team ID", target?.team_id ?? ""),

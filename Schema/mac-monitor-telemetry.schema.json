@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:mac-monitor:telemetry:1.0.0",
-  "title": "Mac Monitor telemetry 1.0.0",
+  "$id": "urn:mac-monitor:telemetry:1.1.0",
+  "title": "Mac Monitor telemetry 1.1.0",
   "description": "The records Mac Monitor writes: its JSONL and pretty exports, and the macmonitor command line's output. Each record is eslogger's JSON for an Endpoint Security event plus Mac Monitor's enrichments; every key is marked x-mac-monitor-origin: eslogger or mac-monitor, and everything under a Mac Monitor key is Mac Monitor's. Each GitHub release attaches the schema as Mac-Monitor.telemetry.schema.json, and the latest is at https://github.com/Brandon7CC/mac-monitor/releases/latest/download/Mac-Monitor.telemetry.schema.json.",
   "type": "object",
   "properties": {
@@ -197,7 +197,7 @@
       "description": "The version of Mac Monitor's telemetry schema the record follows.",
       "x-mac-monitor-origin": "mac-monitor",
       "type": "string",
-      "const": "1.0.0"
+      "const": "1.1.0"
     },
     "thread": {
       "x-mac-monitor-origin": "eslogger",
@@ -2672,6 +2672,11 @@
           "x-mac-monitor-origin": "eslogger",
           "type": "integer"
         },
+        "process_age_ms": {
+          "description": "How old the process was at the event: milliseconds from `start_time` to the message's time, rounded. Every process in a record has its own. Negative when the clock stepped back between the two. null when `start_time` is unknown (0). Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["integer", "null"]
+        },
         "responsible_audit_token": {
           "x-mac-monitor-origin": "eslogger",
           "$ref": "#/$defs/audit_token"
@@ -2741,6 +2746,7 @@
         "parent_audit_token_string",
         "pid",
         "ppid",
+        "process_age_ms",
         "responsible_audit_token",
         "responsible_audit_token_string",
         "ruid",

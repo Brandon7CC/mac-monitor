@@ -44,7 +44,8 @@ struct SystemProcExitMetadataView: View {
                     }
                     
                     // MARK: Process
-                    ProcessView(message: esSystemEvent, process: esSystemEvent.process)
+                    ProcessView(message: esSystemEvent, process: esSystemEvent.process,
+                                ageText: esSystemEvent.processAgeText)
                     
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 

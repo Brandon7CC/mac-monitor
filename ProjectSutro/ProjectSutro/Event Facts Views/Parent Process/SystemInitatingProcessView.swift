@@ -69,6 +69,17 @@ struct SystemInitiatingProcessView: View {
                             }
                         }
                         
+                        /// The process row may be shared: its age is the event's.
+                        if let age = selectedMessage.processAgeText {
+                            HStack {
+                                Text("\u{2022} **Parent process age:**")
+                                    .font(.title3)
+                                GroupBox {
+                                    Text("`\(age)`")
+                                }
+                            }
+                        }
+                        
                         HStack {
                             Text("\u{2022} **Parent process path:**")
                             GroupBox {

@@ -152,7 +152,10 @@ public final class StreamPipeline {
         let (scope, filters) = (scope, filters)
         let encoded = parts.indices.concurrentMap { index in
             Chunk(parts[index], scope: scope, filter: filters[index]) { event, decoder in
-                let message = try decoder.decode(Message.self, from: event)
+                var received = try decoder.decode(Message.self, from: event)
+                /// A 3.0.0 Security Extension sends no process ages.
+                received.deriveProcessAges()
+                let message = received
                 let header = EventHeader(message)
                 let record = { encoders[index].line(for: message) }
                 return Decoded(header: header, record: record) { made in format(header, made ?? record()) }

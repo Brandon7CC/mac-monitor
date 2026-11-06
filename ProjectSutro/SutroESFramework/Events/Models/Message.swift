@@ -128,6 +128,7 @@ public struct Message: Codable, IdentityHashable {
         /// Mac Monitor enrichment: `es_event_type`, `action_type_string`, `context` and `target_path`.
         enrich()
         deriveExecutableAge()
+        deriveProcessAges()
     }
 }
 
@@ -168,8 +169,50 @@ extension Message: ESEnrichable {
         guard case .exec(var exec) = event, exec.executable_age_ms == nil,
               let birth = exec.target.executable?.stat.st_birthtimespec, birth.tv_sec > 0 else { return }
         let born = Date(timeIntervalSince1970: TimeInterval(birth.tv_sec) + TimeInterval(birth.tv_nsec) / 1e9)
-        exec.executable_age_ms = Int((message_darwin_time.timeIntervalSince(born) * 1000).rounded())
+        exec.executable_age_ms = Self.milliseconds(from: born, to: message_darwin_time)
         event = .exec(exec)
+    }
+
+    /// Derive every process's ``Process/process_age_ms`` from the message's time: the initiating process's, and every
+    /// one the event carries (``EventType/forEachProcess(_:)``). A process that has an age keeps it, and one whose
+    /// start time is unknown (`tv_sec` 0 or less) gets none. Not part of ``enrich()``, like
+    /// ``deriveExecutableAge()``.
+    mutating func deriveProcessAges() {
+        let time = message_darwin_time
+        Self.deriveAge(of: &process, at: time)
+        event.forEachProcess { Self.deriveAge(of: &$0, at: time) }
+    }
+
+    /// Fill in what an older Security Extension leaves out of an event Mac Monitor receives over XPC: an exec's or a
+    /// fork's launched-by parent (``resolveLaunchedByParent(by:path:)``), and every process's age, which a 3.0.0
+    /// Security Extension doesn't send (``deriveProcessAges()``). What the event carries is kept.
+    ///
+    /// - Parameter path: Names a process's executable from its pid and, when known, its token: ``ProcessPath/live``.
+    mutating func completeReceived(path: (Int32, AuditToken?) -> String?) {
+        resolveLaunchedByParent(by: .app, path: path)
+        deriveProcessAges()
+    }
+
+    /// Derive a process's ``Process/process_age_ms``, unless it has one or its start time is unknown.
+    ///
+    /// - Parameters:
+    ///   - process: The process.
+    ///   - time: The message's time.
+    private static func deriveAge(of process: inout Process, at time: Date) {
+        let start = process.start_time
+        guard process.process_age_ms == nil, start.tv_sec > 0 else { return }
+        let started = Date(timeIntervalSince1970: TimeInterval(start.tv_sec) + TimeInterval(start.tv_usec) / 1e6)
+        process.process_age_ms = milliseconds(from: started, to: time)
+    }
+
+    /// Whole milliseconds between two times, rounded: negative when `end` is before `start`.
+    ///
+    /// - Parameters:
+    ///   - start: The earlier time: a birth or a start.
+    ///   - end: The later time: the message's.
+    /// - Returns: The milliseconds.
+    static func milliseconds(from start: Date, to end: Date) -> Int {
+        Int((end.timeIntervalSince(start) * 1000).rounded())
     }
 }
 

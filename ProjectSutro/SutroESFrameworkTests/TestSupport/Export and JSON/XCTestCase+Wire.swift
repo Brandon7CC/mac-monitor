@@ -34,6 +34,19 @@ extension XCTestCase {
         try Self.eventFixtures.flatMap(fixtureMessages)
     }
     
+    /// Every event in every JSONL fixture, as a Security Extension sends it: with every process's age, which a 2.1.0
+    /// export's local time doesn't give when it's opened (``Message/deriveProcessAges()``).
+    ///
+    /// - Returns: The events.
+    /// - Throws: The error reading a fixture or a record.
+    func allSentFixtureMessages() throws -> [Message] {
+        try allFixtureMessages().map { message in
+            var sent = message
+            sent.deriveProcessAges()
+            return sent
+        }
+    }
+    
     /// An event as the Security Extension sends it: a capture lane's streaming encoder's JSON.
     ///
     /// - Parameter message: The event.

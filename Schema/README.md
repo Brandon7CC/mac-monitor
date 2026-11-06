@@ -36,7 +36,12 @@ integer) is untouched. The telemetry version is independent of the app's and fol
 - **MINOR** when a key, an event type, or a value of an enum is added.
 - **PATCH** when only the schema's text changes.
 
-Telemetry 1.0.0 is the version Mac Monitor 3.0.0 ships. `released-versions.txt` lists each released version with the
+Telemetry 1.0.0 is the version Mac Monitor 3.0.0 ships. Telemetry 1.1.0, from Mac Monitor 3.0.1, adds
+`process_age_ms` to every process object: how old the process was at the event, in milliseconds from its
+`start_time` to the message's time, `null` when the start time is unknown and negative when the clock stepped back.
+A trace without it (eslogger's, or one exported from 3.0.0) gets it derived from its own `start_time` and `time`
+when it's opened. One exported before 3.0.0 gets none: its `time` is the recording Mac's local time, which can't be
+read back exactly. `released-versions.txt` lists each released version with the
 SHA-256 of the file released with it, and a test fails if a released version's file changes. To validate an older
 trace, use the schema attached to the release that wrote it. A trace exported before Mac Monitor 3.0.0 names no
 telemetry version, and no schema describes it: open it with File > Open Trace... and export it again to check it.

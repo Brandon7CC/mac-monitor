@@ -17,6 +17,8 @@ final class PredicateTextTests: XCTestCase {
     func testKeyPaths() {
         let keyPaths = RecordKeyPaths.shared
         XCTAssertEqual(keyPaths.nodes["event.exec.target.is_adhoc_signed"]?.type, "boolean")
+        XCTAssertEqual(keyPaths.nodes["process.process_age_ms"]?.type, "integer")
+        XCTAssertEqual(keyPaths.nodes["event.signal.target.process_age_ms"]?.type, "integer")
         XCTAssertTrue(keyPaths.nodes["es_event_type"]?.values.contains("ES_EVENT_TYPE_NOTIFY_EXEC") == true)
         XCTAssertTrue(keyPaths.nodes[""]?.children.contains("event") == true)
         XCTAssertEqual(keyPaths.validCount(of: ["process", "@count"]), 2)

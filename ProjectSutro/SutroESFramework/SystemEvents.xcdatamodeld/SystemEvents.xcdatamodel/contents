@@ -229,6 +229,7 @@
         <attribute name="sip_status" optional="YES" attributeType="String"/>
         <attribute name="mach_time" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="message_darwin_time" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="process_age_ms" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
         <attribute name="process_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="schema_version" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="sensor_id" optional="YES" attributeType="String"/>
@@ -371,6 +372,7 @@
         <attribute name="parent_audit_token_string" optional="YES" attributeType="String"/>
         <attribute name="pid" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="ppid" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="process_age_ms" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
         <attribute name="responsible_audit_token_string" optional="YES" attributeType="String"/>
         <attribute name="ruid" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="ruid_human" optional="YES" attributeType="String"/>
@@ -427,6 +429,7 @@
         <attribute name="signing_id" optional="YES" attributeType="String"/>
         <attribute name="start_time" optional="YES" attributeType="String"/>
         <attribute name="submitted_by_audit_token" optional="YES" attributeType="String"/>
+        <attribute name="target_age_ms" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
         <attribute name="target_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="target_proc_audit_token_string" optional="YES" attributeType="String"/>
         <attribute name="target_proc_parent_audit_token_string" optional="YES" attributeType="String"/>
@@ -441,6 +444,7 @@
         <attribute name="stat" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
     <entity name="ESProcessForkEvent" representedClassName="ESProcessForkEvent" syncable="YES">
+        <attribute name="child_age_ms" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
         <attribute name="child_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="launched_by_parent_job" optional="YES" attributeType="String"/>
         <attribute name="launched_by_parent_path" optional="YES" attributeType="String"/>

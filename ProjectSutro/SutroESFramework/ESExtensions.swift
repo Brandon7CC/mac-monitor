@@ -241,8 +241,19 @@ enum ESLogger {
     ///     is a `time` of that shape local time. Anywhere else it's UTC.
     /// - Returns: The time, or `nil` if `time` isn't one.
     static func date(fromTime time: String, legacy: Bool) -> Date? {
-        if legacy, matches(time, legacyTimeTemplate) { return legacyFormatter.date(from: time) }
+        if isLocalTime(time, legacy: legacy) { return legacyFormatter.date(from: time) }
         return utcTimespec(from: time).map { ProcessHelpers.timespecToTimestamp(timespec: $0) }
+    }
+    
+    /// Is `time` the recording Mac's local time, as Mac Monitor wrote it up to 2.1.0? ``date(fromTime:legacy:)`` reads
+    /// such a time in this Mac's time zone, so it's only right when both Macs share one.
+    ///
+    /// - Parameters:
+    ///   - time: An event's `time`.
+    ///   - legacy: Could the event come from Mac Monitor 2.1.0 or older (it's Mac Monitor's, not eslogger's)?
+    /// - Returns: `true` if `legacy` and `time` has the shape 2.1.0 wrote, such as `2026-10-03T17:01:59.285Z`.
+    static func isLocalTime(_ time: String, legacy: Bool) -> Bool {
+        legacy && matches(time, legacyTimeTemplate)
     }
     
     /// A UTC time as eslogger writes `time`, or as ``TimeSpec/humanFormat()`` and ``TimeVal/humanFormat()`` write

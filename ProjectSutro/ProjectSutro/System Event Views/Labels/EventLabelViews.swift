@@ -197,18 +197,3 @@ extension ESProcess {
         !is_adhoc_signed && (signing_id.nonEmpty ?? "Unknown") != "Unknown"
     }
 }
-
-
-// MARK: - Executable age
-extension ESProcessExecEvent {
-    /// How long before the exec its executable was created, such as "3.25 s", "4 min" or "12 days", or `nil`.
-    var executableAgeText: String? {
-        guard let age = executableAge else { return nil }
-        switch age {
-        case ..<60: return String(format: "%.2fs", age)
-        case ..<3600: return "\(Int(age) / 60)min"
-        case ..<86_400: return "\(Int(age) / 3600)h"
-        default: return "\(Int(age) / 86_400) days"
-        }
-    }
-}

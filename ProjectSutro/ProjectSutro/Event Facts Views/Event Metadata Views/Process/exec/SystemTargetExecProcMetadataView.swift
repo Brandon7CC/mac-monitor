@@ -83,6 +83,8 @@ struct SystemTargetExecProcMetadataView: View {
                                 GroupBox {
                                     Text("`\(start_time)`")
                                 }
+                                /// The target row may be shared: its age is the exec's.
+                                ProcessAgeFact(ageText: event.targetAgeText)
                                 
                                 // MARK: File Quarantine
                                 if event.target.file_quarantine_type != "DISABLED" {
