@@ -23,7 +23,8 @@ final class FindingTests: XCTestCase {
             let predicate = try? StreamFilter.Predicate(finding.predicate, for: .finding)
             XCTAssertNotNil(predicate?.storePredicate, "\(finding.name) reads every event's record")
         }
-        XCTAssertEqual(Finding.defaults.count, 13)
+        XCTAssertEqual(Finding.defaults.count, 12)
+        XCTAssertFalse(Finding.defaults.contains { $0.name == "Not quarantined" })
         XCTAssertEqual(Finding.defaults.first?.id, UUID(uuidString: "6D4D0F1D-0000-4000-8000-000000000001"))
     }
 
@@ -32,16 +33,16 @@ final class FindingTests: XCTestCase {
         func exec(_ target: [String: Any], _ exec: [String: Any] = [:]) -> NSDictionary {
             ["es_event_type": "ES_EVENT_TYPE_NOTIFY_EXEC", "event": ["exec": exec.merging(["target": target]) { $1 }]]
         }
+        func open(_ path: String, by executable: String) -> NSDictionary {
+            ["es_event_type": "ES_EVENT_TYPE_NOTIFY_OPEN", "target_path": path,
+             "process": ["executable": ["path": executable]]]
+        }
         let mmap = "ES_EVENT_TYPE_NOTIFY_MMAP"
+        let login = "/Users/a/Library/Keychains/login.keychain-db"
         let cases: [(String, NSDictionary, NSDictionary)] = [
             ("Reflective loading",
              ["es_event_type": mmap, "target_path": "/private/var/folders/T/NSCreateObjectFileImageFromMemory-cgAR"],
              ["es_event_type": mmap, "target_path": "/tmp/NSCreateObjectFileImageFromMemory.txt"]),
-            ("Not quarantined",
-             ["es_event_type": "ES_EVENT_TYPE_NOTIFY_CREATE", "process": ["file_quarantine_type": "OPT_IN"],
-              "event": ["create": ["is_quarantined": 0]]],
-             ["es_event_type": "ES_EVENT_TYPE_NOTIFY_CREATE", "process": ["file_quarantine_type": "DISABLED"],
-              "event": ["create": ["is_quarantined": 0]]]),
             ("Quarantine removed",
              ["es_event_type": "ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR",
               "event": ["deleteextattr": ["extattr": "com.apple.quarantine"]]],
@@ -50,10 +51,14 @@ final class FindingTests: XCTestCase {
             ("AppleScript / JXA",
              ["es_event_type": mmap, "target_path": "/System/Library/ScriptingAdditions/StandardAdditions.osax/x"],
              ["es_event_type": mmap, "target_path": "/usr/lib/libSystem.B.dylib"]),
-            ("Keychain opened",
-             ["es_event_type": "ES_EVENT_TYPE_NOTIFY_OPEN",
-              "target_path": "/Users/a/Library/Keychains/login.keychain-db"],
-             ["es_event_type": "ES_EVENT_TYPE_NOTIFY_OPEN", "target_path": "/Users/a/Library/Keychain.txt"]),
+            ("Keychain opened", open(login, by: "/tmp/stealer"), open("/Users/a/Library/Keychain.txt", by: "/tmp/a")),
+            ("Keychain opened", open("/Library/Keychains/System.keychain", by: "/usr/bin/security"),
+             open(login, by: "/usr/sbin/securityd")),
+            ("Keychain opened", open(login, by: "/Applications/secd.app/Contents/MacOS/secd"),
+             open("/System/Library/Keychains/SystemRootCertificates.keychain", by: "/tmp/a")),
+            ("Login",
+             ["es_event_type": "ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGIN", "event": ["openssh_login": ["success": false]]],
+             ["es_event_type": "ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGOUT"]),
             ("New executable", exec([:], ["executable_age_ms": 4]), exec([:], ["executable_age_ms": 1_000])),
             ("Adhoc or unsigned", exec(["codesigning_type": "ADHOC", "signing_id": "a.out"]),
              exec(["codesigning_type": "DEVELOPER_ID", "signing_id": "com.example.app"])),
@@ -137,19 +142,22 @@ final class FindingTests: XCTestCase {
 
     /// Earlier 3.0 builds saved every finding in full. A shipped finding they saved unedited, even an earlier version
     /// of it, follows this build with its switches: the five minute New executable becomes the one second one,
-    /// AppleScript loaded becomes AppleScript / JXA, and Non-Apple as root goes. An edited one, someone's own, and a
-    /// deletion stay as saved.
+    /// AppleScript loaded becomes AppleScript / JXA, 3.0.0's Keychain opened and Login become 3.0.1's, and Non-Apple
+    /// as root and Not quarantined go. An edited one, someone's own, and a deletion stay as saved.
     func testEarlierSavedListsFollowShippedFindings() throws {
         let own = Finding(name: "Applet", explanation: "", symbol: "star", color: .red, predicate: "process.pid == 1",
                           correlation: true, groups: false, isEnabled: false)
         var oldAge = try XCTUnwrap(Finding.previousDefaults.first { $0.name == "New executable" })
         oldAge.showsInTables = false
         let oldScript = try XCTUnwrap(Finding.previousDefaults.first { $0.name == "AppleScript loaded" })
+        let oldKeychain = try XCTUnwrap(Finding.previousDefaults.first { $0.name == "Keychain opened" })
+        let oldLogin = try XCTUnwrap(Finding.previousDefaults.first { $0.name == "Login" })
+        let older = [oldAge, oldScript, oldKeychain, oldLogin]
         var edited = Finding.defaults[0]
         edited.name = "Mine"
-        let earlier = [edited] + Finding.defaults.dropFirst().map { $0.id == oldAge.id ? oldAge : $0 }
-            .map { $0.id == oldScript.id ? oldScript : $0 }
-            + Finding.previousDefaults.filter { $0.name == "Non-Apple as root" } + [own]
+        let earlier = [edited] + Finding.defaults.dropFirst().map { finding in
+            older.first { $0.id == finding.id } ?? finding
+        } + Finding.previousDefaults.filter { ["Non-Apple as root", "Not quarantined"].contains($0.name) } + [own]
         let saved = try XCTUnwrap(SavedFindings(data: JSONEncoder().encode(earlier)))
         var age = try XCTUnwrap(Finding.defaults.first { $0.id == oldAge.id })
         age.showsInTables = false
@@ -208,7 +216,7 @@ final class FindingTests: XCTestCase {
             XCTAssertTrue(StoredEventValues.canEvaluate(predicate.parsed), source)
         }
         for source in [#"target_path MATCHES ".*x""#, #"ALL event.exec.env BEGINSWITH "A=""#,
-                       #"process.executable.path == "/bin/sh""#, #"es_event_type == process.signing_id"#,
+                       #"process.tty.path == "/dev/ttys000""#, #"es_event_type == process.signing_id"#,
                        #"ANY event.exec.args == "-c""#, "event.exec.env == event.exec.env"] {
             let predicate = try StreamFilter.Predicate(source, for: .finding)
             XCTAssertFalse(StoredEventValues.canEvaluate(predicate.parsed), source)

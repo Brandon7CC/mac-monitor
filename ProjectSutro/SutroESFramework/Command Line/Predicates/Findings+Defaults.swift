@@ -19,15 +19,6 @@ public extension Finding {
                 predicate: type("CREATE", "WRITE", "MMAP")
                     + #" AND target_path CONTAINS "/NSCreateObjectFileImageFromMemory-""#,
                 correlation: true, groups: false),
-        Finding(id: uuid(2), name: "Not quarantined",
-                explanation: "Written without the quarantine attribute by a process whose files macOS quarantines, or "
-                    + "by ArchiveService outside its temporary folder. Gatekeeper won't check it when it's opened.",
-                symbol: "exclamationmark.shield", color: .orange,
-                predicate: "(" + type("CREATE", "RENAME") + #" AND process.file_quarantine_type != "DISABLED" "#
-                    + "AND (event.create.is_quarantined == 0 OR event.rename.is_quarantined == 0)) OR ("
-                    + type("CREATE") + #" AND process.executable.name == "ArchiveService" "#
-                    + #"AND NOT target_path BEGINSWITH "/private/var/folders/" AND event.create.is_quarantined == 0)"#,
-                correlation: true, groups: false),
         Finding(id: uuid(3), name: "Quarantine removed",
                 explanation: "Deleted com.apple.quarantine, so Gatekeeper won't check the file when it's opened.",
                 symbol: "xmark.shield", color: .red,
@@ -49,19 +40,22 @@ public extension Finding {
                     + #"OR target_path CONTAINS "JavaScript.component" OR target_path CONTAINS ".osax")"#,
                 correlation: true, groups: false),
         Finding(id: uuid(7), name: "Keychain opened",
-                explanation: "Opened a keychain, which holds passwords and keys.",
-                symbol: "key", color: .blue, predicate: type("OPEN") + #" AND target_path CONTAINS "/Keychains/""#,
+                explanation: "Opened a keychain file, which holds passwords and keys, as a stealer copying "
+                    + "login.keychain-db does. The keychain daemons' own opens, and macOS's certificate keychains, "
+                    + "are left out.",
+                symbol: "key", color: .blue,
+                predicate: type("OPEN") + #" AND target_path CONTAINS "/Library/Keychains/" "#
+                    + #"AND NOT target_path BEGINSWITH "/System/" AND NOT process.executable.path IN {"#
+                    + keychainDaemons.map { #""\#($0)""# }.joined(separator: ", ") + "}",
                 correlation: true, groups: false),
         Finding(id: uuid(8), name: "Login",
-                explanation: "A login, by the login window, login(1), or SSH.",
+                explanation: "A login, or a failed login attempt, by the login window, login(1), or SSH.",
                 symbol: "person.badge.key", color: .blue,
                 predicate: type("LOGIN_LOGIN", "LW_SESSION_LOGIN", "OPENSSH_LOGIN"),
                 correlation: true, groups: false),
         Finding(id: uuid(9), name: "New executable",
                 explanation: "Its executable was created less than a second before it ran, as a dropper's payload is.",
-                symbol: "clock.badge.exclamationmark", color: .orange,
-                predicate: type("EXEC") + " AND event.exec.executable_age_ms >= 0 "
-                    + "AND event.exec.executable_age_ms < 1000",
+                symbol: "clock.badge.exclamationmark", color: .orange, predicate: newExecutablePredicate,
                 correlation: false, groups: true, tables: true),
         Finding(id: uuid(10), name: "Adhoc or unsigned",
                 explanation: "Ran code that isn't signed by a known developer: adhoc, as a freshly compiled or "
@@ -89,13 +83,22 @@ public extension Finding {
                     + #"IN {"curl", "wget", "nscurl", "ftp", "tftp", "scp", "sftp"}"#,
                 correlation: false, groups: true),
     ]
+
+    /// The predicate an exec of a new executable matches: one created less than
+    /// ``ESProcessExecEvent/newExecutableAge`` before it ran. The New executable finding, its mark, Event Facts' clock
+    /// and Event Search's starter search all use it, so they select the same execs.
+    ///
+    /// - Author: Brandon Dalton
+    static let newExecutablePredicate = type("EXEC") + " AND event.exec.executable_age_ms >= 0 "
+        + "AND event.exec.executable_age_ms < \(Int(ESProcessExecEvent.newExecutableAge * 1000))"
 }
 
 
 // MARK: - Earlier defaults
 extension Finding {
-    /// Shipped findings as earlier 3.0 builds had them, before this build changed or dropped them. Those builds saved
-    /// every finding in full, so a saved copy that matches one of these was never edited (``SavedFindings``).
+    /// Shipped findings as earlier builds had them, before a later one changed or dropped them. The 3.0 betas saved
+    /// every finding in full, so a saved copy that matches one of these was never edited (``SavedFindings``). One whose
+    /// identity this build no longer ships goes.
     static let previousDefaults: [Finding] = [
         Finding(id: uuid(6), name: "AppleScript loaded",
                 explanation: "Mapped an Open Scripting Architecture component, as a process running AppleScript does.",
@@ -116,7 +119,33 @@ extension Finding {
                 predicate: type("EXEC") + #" AND event.exec.target.euid == 0 "#
                     + #"AND event.exec.target.codesigning_type != "PLATFORM""#,
                 correlation: false, groups: true),
+        // 3.0.0's. 3.0.1 dropped Not quarantined: `is_quarantined` is read after the event, so most created files
+        // read as gone, and apps exempt their own paths from quarantine. It narrowed Keychain opened, which matched
+        // macOS's certificate keychains and the keychain daemons, and said Login matches a failed attempt too.
+        Finding(id: uuid(2), name: "Not quarantined",
+                explanation: "Written without the quarantine attribute by a process whose files macOS quarantines, or "
+                    + "by ArchiveService outside its temporary folder. Gatekeeper won't check it when it's opened.",
+                symbol: "exclamationmark.shield", color: .orange,
+                predicate: "(" + type("CREATE", "RENAME") + #" AND process.file_quarantine_type != "DISABLED" "#
+                    + "AND (event.create.is_quarantined == 0 OR event.rename.is_quarantined == 0)) OR ("
+                    + type("CREATE") + #" AND process.executable.name == "ArchiveService" "#
+                    + #"AND NOT target_path BEGINSWITH "/private/var/folders/" AND event.create.is_quarantined == 0)"#,
+                correlation: true, groups: false),
+        Finding(id: uuid(7), name: "Keychain opened",
+                explanation: "Opened a keychain, which holds passwords and keys.",
+                symbol: "key", color: .blue, predicate: type("OPEN") + #" AND target_path CONTAINS "/Keychains/""#,
+                correlation: true, groups: false),
+        Finding(id: uuid(8), name: "Login",
+                explanation: "A login, by the login window, login(1), or SSH.",
+                symbol: "person.badge.key", color: .blue,
+                predicate: type("LOGIN_LOGIN", "LW_SESSION_LOGIN", "OPENSSH_LOGIN"),
+                correlation: true, groups: false),
     ]
+
+    /// The daemons that open keychain files as their work: securityd and its system instance, secd for the data
+    /// protection keychain, and trustd for certificates. They're on the sealed system volume, so a path is theirs.
+    static let keychainDaemons = ["/usr/sbin/securityd", "/usr/libexec/securityd_system", "/usr/libexec/secd",
+                                  "/usr/libexec/trustd"]
 }
 
 // MARK: - Built-in marks

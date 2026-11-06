@@ -69,11 +69,27 @@ final class EventSearchController: ObservableObject {
                        source: "event.exec.script_content CONTAINS[c] \"hidden answer\""),
         SavedPredicate(name: "Freshly compiled",
                        source: "ANY event.exec.target.codesigning_flag_names == \"CS_LINKER_SIGNED\""),
-        SavedPredicate(name: "New executables", source: "event.exec.executable_age_ms < 300000"),
+        SavedPredicate(name: "New executables", source: Finding.newExecutablePredicate),
         SavedPredicate(name: "Reflective loading", source: "es_event_type == \"ES_EVENT_TYPE_NOTIFY_EXEC\" AND "
                        + "SUBQUERY(correlated, $e, $e.target_path CONTAINS \"NSCreateObjectFileImageFromMemory\")"
                        + ".@count > 0"),
     ]
+
+    /// Starter predicates as earlier builds had them, by name. 3.0.0's New executables read five minutes, where its
+    /// finding read one second.
+    private static let earlierStarterSources = ["New executables": "event.exec.executable_age_ms < 300000"]
+
+    /// Saved predicates, with an earlier build's starter predicate that was never edited swapped for this build's.
+    ///
+    /// - Author: Brandon Dalton
+    /// - Parameter saved: The predicates as saved.
+    /// - Returns: The predicates to offer.
+    static func updatingStarters(_ saved: [SavedPredicate]) -> [SavedPredicate] {
+        saved.map { predicate in
+            guard earlierStarterSources[predicate.name] == predicate.source else { return predicate }
+            return starterPredicates.first { $0.name == predicate.name } ?? predicate
+        }
+    }
 
     init(defaults: UserDefaults = .standard) {
         /// Read the schema's keys now, off the main thread, so the editor opens without reading them.
@@ -82,7 +98,7 @@ final class EventSearchController: ObservableObject {
         }
         recents = defaults.stringArray(forKey: Key.recents) ?? []
         saved = defaults.data(forKey: Key.saved).flatMap { try? JSONDecoder().decode([SavedPredicate].self, from: $0) }
-            ?? Self.starterPredicates
+            .map(Self.updatingStarters) ?? Self.starterPredicates
         /// After the change: `revision` publishes before it's set.
         findingsChange = FindingStore.shared.$revision.dropFirst().receive(on: DispatchQueue.main)
             .sink { [weak self] _ in

@@ -345,7 +345,7 @@ final class StoredEventValues: NSObject {
         "event.exec.target.is_adhoc_signed", "event.exec.target.signing_id", "event.exec.target.executable.path",
         "event.exec.dyld_exec_path", "event.create.is_quarantined", "event.rename.is_quarantined",
         "event.deleteextattr.extattr", "event.setextattr.extattr", "event.iokit_open.user_client_class",
-        "event.exit.stat", "process.executable.name",
+        "event.exit.stat", "process.executable.name", "process.executable.path",
     ])
     /// Strings the store keeps as `nil` where the record writes "".
     static let emptyWhenNil: Set<String> = [

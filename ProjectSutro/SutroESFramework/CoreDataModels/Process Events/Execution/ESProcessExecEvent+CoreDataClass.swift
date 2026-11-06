@@ -193,8 +193,11 @@ extension ESProcessExecEvent: Encodable {
 
 // MARK: - Executable age
 extension ESProcessExecEvent {
-    /// An executable created less than this many seconds before it ran is new, as a dropper's payload is.
-    public static let newExecutableAge: TimeInterval = 300
+    /// An executable created less than this many seconds before it ran is new, as a dropper's payload is. The New
+    /// executable finding and its mark use it too (``Finding/newExecutablePredicate``).
+    ///
+    /// - Author: Brandon Dalton
+    public static let newExecutableAge: TimeInterval = 1
 
     /// Seconds from the executable's birth to the exec (``executable_age_ms``), or `nil` when it's unknown or the
     /// birth time is after the exec.

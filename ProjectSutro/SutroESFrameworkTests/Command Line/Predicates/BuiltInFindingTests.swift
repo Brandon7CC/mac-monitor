@@ -152,6 +152,63 @@ final class BuiltInFindingTests: XCTestCase {
         }
     }
 
+    /// Every default with a twin mark and that mark select the same events, so searching for the finding finds the
+    /// rows its mark is drawn on. It's checked on each label's event and near miss, the synthetic corpus and the
+    /// lineage fixture, as records and as stored events.
+    ///
+    /// - Author: Brandon Dalton
+    func testEachTwinSelectsItsDefaultsEvents() throws {
+        let twins = Finding.builtInMarks.compactMap { mark in
+            Finding.defaults.first { $0.id == mark.id }.map { (finding: $0, mark: mark) }
+        }
+        XCTAssertEqual(twins.count, 2)
+        let crafted = cases.flatMap { [$0.1, $0.2] }
+        try withEventStore(try SyntheticCorpus.records().map(\.message) + (try lineageTrace())) { _, stored in
+            let records = try stored.map { event in
+                try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(event)) as? NSDictionary)
+            } + crafted
+            for (finding, mark) in twins {
+                let found = try StreamFilter.Predicate(finding.predicate, for: .finding)
+                let marked = try StreamFilter.Predicate(mark.predicate, for: .finding)
+                for record in records {
+                    XCTAssertEqual(try found.evaluate(on: record), try marked.evaluate(on: record), finding.name)
+                }
+                for event in stored {
+                    XCTAssertEqual(FindingMatcher([finding]).matches(event).isEmpty,
+                                   FindingMatcher([mark]).matches(event).isEmpty, finding.name)
+                }
+            }
+        }
+    }
+
+    /// New executable means one thing everywhere: the finding, its mark, Event Facts' orange clock and Event Search's
+    /// starter search all select an exec whose executable was created less than a second before it ran.
+    ///
+    /// - Author: Brandon Dalton
+    func testNewExecutableAgreesEverywhere() throws {
+        let finding = try XCTUnwrap(Finding.defaults.first { $0.name == "New executable" })
+        let mark = try XCTUnwrap(Finding.labelMarks.first { $0.id == finding.id })
+        XCTAssertEqual(finding.predicate, Finding.newExecutablePredicate)
+        XCTAssertEqual(ESProcessExecEvent.newExecutableAge, 1)
+        let base = try XCTUnwrap(SyntheticCorpus.records().first { $0.label == "exec (full)" }?.message)
+        let ages = [-5, 0, 999, 1_000, 299_999, 300_000]
+        let messages = try ages.map { age in
+            var message = base
+            guard case .exec(var exec) = message.event else { throw XCTSkip("not an exec") }
+            exec.executable_age_ms = age
+            message.event = .exec(exec)
+            return message
+        }
+        try withEventStore(messages) { _, stored in
+            for (age, event) in zip(ages, stored) {
+                let expected = age >= 0 && age < 1_000
+                XCTAssertEqual(!FindingMatcher([finding]).matches(event).isEmpty, expected, "\(age)")
+                XCTAssertEqual(!FindingMatcher([mark]).matches(event).isEmpty, expected, "\(age)")
+                XCTAssertEqual(event.event.exec?.isNewExecutable, expected, "\(age)")
+            }
+        }
+    }
+
     /// A finding that marks the tables and is a twin of a mark drawn beside it is drawn once, as the mark, unless its
     /// symbol changed. The rest are drawn.
     func testTwinsDrawOnce() throws {
