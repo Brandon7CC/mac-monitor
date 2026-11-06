@@ -467,6 +467,7 @@
 		F17E0000000000000000003A /* Findings+Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000039 /* Findings+Defaults.swift */; };
 		F17E00000000000000000030 /* StreamFilter+Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002F /* StreamFilter+Store.swift */; };
 		F17E0000000000000000002C /* PredicateText.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000002B /* PredicateText.swift */; };
+		F17E00000000000000000040 /* CompletionPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000003F /* CompletionPlacement.swift */; };
 		F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000029 /* StreamFilter+Relations.swift */; };
 		D15C00000000000000000166 /* RelatedEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000165 /* RelatedEvents.swift */; };
 		D15C00000000000000000168 /* RelatedEvents+Subquery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000167 /* RelatedEvents+Subquery.swift */; };
@@ -1053,6 +1054,7 @@
 		F17E00000000000000000039 /* Findings+Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Findings+Defaults.swift"; sourceTree = "<group>"; };
 		F17E0000000000000000002F /* StreamFilter+Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Store.swift"; sourceTree = "<group>"; };
 		F17E0000000000000000002B /* PredicateText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateText.swift; sourceTree = "<group>"; };
+		F17E0000000000000000003F /* CompletionPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionPlacement.swift; sourceTree = "<group>"; };
 		F17E00000000000000000029 /* StreamFilter+Relations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Relations.swift"; sourceTree = "<group>"; };
 		D15C00000000000000000165 /* RelatedEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelatedEvents.swift; sourceTree = "<group>"; };
 		D15C00000000000000000167 /* RelatedEvents+Subquery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RelatedEvents+Subquery.swift"; sourceTree = "<group>"; };
@@ -3661,6 +3663,7 @@
 				D15C00000000000000000163 /* StreamFilter+Records.swift */,
 				F17E0000000000000000002F /* StreamFilter+Store.swift */,
 				F17E0000000000000000002B /* PredicateText.swift */,
+				F17E0000000000000000003F /* CompletionPlacement.swift */,
 				F17E00000000000000000037 /* NSExpression+Walking.swift */,
 				F17E00000000000000000031 /* Findings.swift */,
 				F17E00000000000000000039 /* Findings+Defaults.swift */,
@@ -3947,6 +3950,7 @@
 				F17E0000000000000000003A /* Findings+Defaults.swift in Sources */,
 				F17E00000000000000000030 /* StreamFilter+Store.swift in Sources */,
 				F17E0000000000000000002C /* PredicateText.swift in Sources */,
+				F17E00000000000000000040 /* CompletionPlacement.swift in Sources */,
 				F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */,
 				D15C00000000000000000166 /* RelatedEvents.swift in Sources */,
 				D15C00000000000000000168 /* RelatedEvents+Subquery.swift in Sources */,

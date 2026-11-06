@@ -79,6 +79,33 @@ final class CompletingTextView: NSTextView {
         super.viewWillMove(toWindow: newWindow)
     }
 
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        observePlacement()
+    }
+
+    /// What moves the list: its window moving, resizing, going full screen or to another display, and the displays
+    /// or the Dock changing.
+    private var placementObservers: [NSObjectProtocol] = []
+
+    /// Place the list again when its window or the displays change, so it stays on screen.
+    private func observePlacement() {
+        let center = NotificationCenter.default
+        placementObservers.forEach(center.removeObserver)
+        placementObservers = []
+        guard let window else { return }
+        let replace: @Sendable (Notification) -> Void = { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.isListShowing else { return }
+                self.showCompletion()
+            }
+        }
+        let names = [NSWindow.didMoveNotification, NSWindow.didResizeNotification, NSWindow.didChangeScreenNotification]
+        placementObservers = names.map { center.addObserver(forName: $0, object: window, queue: .main, using: replace) }
+            + [center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil,
+                                  queue: .main, using: replace)]
+    }
+
     /// The list's keys while it shows: Up Arrow, Down Arrow, Tab, Return and Escape. Tab with the list away brings it
     /// back.
     override func doCommand(by selector: Selector) {
@@ -167,10 +194,11 @@ final class CompletingTextView: NSTextView {
 
 
 // MARK: - The list
-/// The completions' floating list, under the word being completed. It never takes the keyboard: the text view keeps
-/// typing, and tells it what to show.
+/// The completions' floating list, under the word being completed, or over it near the bottom of the screen, and
+/// always inside the visible frame of the screen the word is on (``CompletionPlacement``). It never takes the
+/// keyboard: the text view keeps typing, and tells it what to show.
 private final class CompletionPanel: NSPanel {
-    private let host = NSHostingView(rootView: CompletionList(items: [], selected: 0, typed: "") { _ in })
+    private let host = NSHostingView(rootView: CompletionList(items: [], selected: 0, typed: "", rows: 0) { _ in })
 
     init() {
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
@@ -194,10 +222,24 @@ private final class CompletionPanel: NSPanel {
     ///   - choose: Takes a completion clicked.
     func show(_ items: [PredicateText.Completion.Item], selected: Int, typed: String, below line: NSRect,
               in parent: NSWindow, choose: @escaping (Int) -> Void) {
-        host.rootView = CompletionList(items: items, selected: selected, typed: typed, choose: choose)
-        let size = host.fittingSize
-        setFrame(NSRect(x: line.minX - 28, y: line.minY - size.height - 4, width: size.width, height: size.height),
-                 display: true)
+        let screens = NSScreen.screens.map { CompletionPlacement.Screen(frame: $0.frame, visibleFrame: $0.visibleFrame) }
+        let visibleFrame = CompletionPlacement.visibleFrame(
+            at: line, on: screens, fallback: (parent.screen ?? NSScreen.main)?.visibleFrame ?? parent.frame)
+        /// As many rows as fit on the roomier side of the line, measured once with them all and again if that's
+        /// too tall.
+        var rows = min(items.count, CompletionList.visible)
+        host.rootView = CompletionList(items: items, selected: selected, typed: typed, rows: rows, choose: choose)
+        var size = host.fittingSize
+        let fitting = CompletionPlacement.rows(rows, measuring: size.height, rowHeight: CompletionList.rowPitch,
+                                               within: CompletionPlacement.maximumHeight(at: line, in: visibleFrame))
+        if fitting != rows {
+            rows = fitting
+            host.rootView = CompletionList(items: items, selected: selected, typed: typed, rows: rows, choose: choose)
+            size = host.fittingSize
+        }
+        /// The list's text, after its badge and padding, lines up with the word's.
+        let placement = CompletionPlacement(size: size, at: line, offset: -28, in: visibleFrame)
+        setFrame(placement.frame, display: true)
         if parent.childWindows?.contains(self) != true { parent.addChildWindow(self, ordered: .above) }
         orderFront(nil)
     }
@@ -214,23 +256,41 @@ private struct CompletionList: View {
     let items: [PredicateText.Completion.Item]
     let selected: Int
     let typed: String
+    /// How many rows show at once; the rest scroll.
+    let rows: Int
     let choose: (Int) -> Void
 
-    /// The most rows shown at once, around the chosen one.
-    private static let visible = 8
+    /// The most rows shown at once, when the screen has room for them.
+    static let visible = 8
+    /// A row's height.
+    private static let rowHeight: CGFloat = 22
+    /// The space between rows.
+    private static let rowSpacing: CGFloat = 1
+    /// The height each row adds to the list.
+    static let rowPitch = rowHeight + rowSpacing
+    /// The space around the rows.
+    private static let padding: CGFloat = 4
 
     var body: some View {
-        let start = max(0, min(selected - Self.visible / 2, items.count - Self.visible))
-        let shown = Array(items.indices.dropFirst(start).prefix(Self.visible))
         VStack(alignment: .leading, spacing: 0) {
-            VStack(spacing: 1) {
-                ForEach(shown, id: \.self) { index in
-                    row(items[index], isSelected: index == selected)
-                        .contentShape(Rectangle())
-                        .onTapGesture { choose(index) }
+            ScrollViewReader { proxy in
+                ScrollView(.vertical) {
+                    LazyVStack(spacing: Self.rowSpacing) {
+                        ForEach(items.indices, id: \.self) { index in
+                            row(items[index], isSelected: index == selected)
+                                .contentShape(Rectangle())
+                                .onTapGesture { choose(index) }
+                                .id(index)
+                        }
+                    }
+                    .padding(Self.padding)
                 }
+                .scrollIndicators(rows < items.count ? .automatic : .never)
+                .frame(height: CGFloat(rows) * Self.rowPitch - Self.rowSpacing + Self.padding * 2)
+                .onAppear { proxy.scrollTo(selected) }
+                .onChange(of: selected) { proxy.scrollTo($0) }
+                .onChange(of: items) { _ in proxy.scrollTo(selected) }
             }
-            .padding(4)
             if items.indices.contains(selected) {
                 footer(items[selected])
             }
@@ -257,7 +317,7 @@ private struct CompletionList: View {
         }
         .foregroundStyle(isSelected ? .white : .primary)
         .padding(.horizontal, 8)
-        .frame(height: 22)
+        .frame(height: Self.rowHeight)
         .background(isSelected ? Color.accentColor : .clear, in: RoundedRectangle(cornerRadius: 5))
     }
 
