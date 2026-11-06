@@ -1621,6 +1621,14 @@
           "x-mac-monitor-origin": "eslogger",
           "type": "integer"
         },
+        "flag_names": {
+          "description": "The names of the bits `flags` has, from sys/mman.h, in bit order, one name per bit: MAP_SHARED, MAP_PRIVATE (not MAP_COPY), MAP_FIXED, MAP_RENAME, MAP_NORESERVE, MAP_RESERVED0080, MAP_NOEXTEND, MAP_HASSEMAPHORE, MAP_NOCACHE, MAP_JIT, MAP_ANON (not MAP_ANONYMOUS), MAP_RESILIENT_CODESIGN, MAP_RESILIENT_MEDIA, MAP_32BIT, MAP_TRANSLATED_ALLOW_EXECUTE, MAP_UNIX03, MAP_TPRO. Empty for flags of 0: MAP_FILE is 0, so it's never named. Bits sys/mman.h doesn't name are left out; `flags` keeps them.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "flags": {
           "x-mac-monitor-origin": "eslogger",
           "type": "integer"
@@ -1629,16 +1637,41 @@
           "x-mac-monitor-origin": "eslogger",
           "type": "integer"
         },
+        "max_protection_names": {
+          "description": "The names of the bits `max_protection` has, from sys/mman.h, in bit order: PROT_READ, PROT_WRITE, PROT_EXEC. It's a vm_prot_t, named with PROT_* too: its low three bits are VM_PROT_READ, VM_PROT_WRITE and VM_PROT_EXECUTE, the same bits. PROT_NONE alone for 0. Other bits are left out; `max_protection` keeps them.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "protection": {
           "x-mac-monitor-origin": "eslogger",
           "type": "integer"
+        },
+        "protection_names": {
+          "description": "The names of the bits `protection` has, from sys/mman.h, in bit order: PROT_READ, PROT_WRITE, PROT_EXEC. PROT_NONE alone for 0. Other bits are left out; `protection` keeps them.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "source": {
           "x-mac-monitor-origin": "eslogger",
           "$ref": "#/$defs/file"
         }
       },
-      "required": ["file_pos", "flags", "max_protection", "protection", "source"],
+      "required": [
+        "file_pos",
+        "flag_names",
+        "flags",
+        "max_protection",
+        "max_protection_names",
+        "protection",
+        "protection_names",
+        "source"
+      ],
       "additionalProperties": false
     },
     "mount_event": {
@@ -1762,7 +1795,7 @@
           "type": "integer"
         },
         "flags": {
-          "description": "The names of the flags `protection` has: PROT_READ.",
+          "description": "The names of the flags `protection` has, from mach/vm_prot.h, in bit order: VM_PROT_READ, VM_PROT_WRITE, VM_PROT_EXECUTE. VM_PROT_NONE alone for 0. Other bits are left out; `protection` keeps them.",
           "x-mac-monitor-origin": "mac-monitor",
           "type": "array",
           "items": {

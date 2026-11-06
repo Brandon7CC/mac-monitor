@@ -41,10 +41,13 @@ Telemetry 1.0.0 is the version Mac Monitor 3.0.0 ships. Telemetry 1.1.0, from Ma
 `start_time` to the message's time, `null` when the start time is unknown and negative when the clock stepped back.
 A trace without it (eslogger's, or one exported from 3.0.0) gets it derived from its own `start_time` and `time`
 when it's opened. One exported before 3.0.0 gets none: its `time` is the recording Mac's local time, which can't be
-read back exactly. `released-versions.txt` lists each released version with the
-SHA-256 of the file released with it, and a test fails if a released version's file changes. To validate an older
-trace, use the schema attached to the release that wrote it. A trace exported before Mac Monitor 3.0.0 names no
-telemetry version, and no schema describes it: open it with File > Open Trace... and export it again to check it.
+read back exactly. It also adds `protection_names`, `max_protection_names` and `flag_names` to `mmap` events: the
+`PROT_*` and `MAP_*` names of the bits `protection`, `max_protection` and `flags` have, in bit order, written beside
+the integers whenever a record is exported, so a trace exported before 3.0.1 gets them too. `released-versions.txt`
+lists each released version with the SHA-256 of the file released with it, and a test fails if a released version's
+file changes. To validate an older trace, use the schema attached to the release that wrote it. A trace exported
+before Mac Monitor 3.0.0 names no telemetry version, and no schema describes it: open it with File > Open Trace... and
+export it again to check it.
 
 ## Checking a trace
 

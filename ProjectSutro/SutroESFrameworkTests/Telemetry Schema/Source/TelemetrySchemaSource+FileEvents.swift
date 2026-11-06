@@ -44,6 +44,17 @@ extension TelemetrySchemaSource {
          event(ES_EVENT_TYPE_NOTIFY_MMAP, "A file mapped into memory: es_event_mmap_t.", [
             eslogger("protection", .integer), eslogger("max_protection", .integer), eslogger("flags", .integer),
             eslogger("file_pos", .integer), eslogger("source", .ref("file")),
+            enrichment("protection_names", .array(.string), Self.protectionNames("protection")),
+            enrichment("max_protection_names", .array(.string), Self.protectionNames("max_protection", note:
+                " It's a vm_prot_t, named with PROT_* too: its low three bits are VM_PROT_READ, VM_PROT_WRITE and "
+                + "VM_PROT_EXECUTE, the same bits.")),
+            enrichment("flag_names", .array(.string),
+                       "The names of the bits `flags` has, from sys/mman.h, in bit order, one name per bit: "
+                       + "MAP_SHARED, MAP_PRIVATE (not MAP_COPY), MAP_FIXED, MAP_RENAME, MAP_NORESERVE, "
+                       + "MAP_RESERVED0080, MAP_NOEXTEND, MAP_HASSEMAPHORE, MAP_NOCACHE, MAP_JIT, MAP_ANON (not "
+                       + "MAP_ANONYMOUS), MAP_RESILIENT_CODESIGN, MAP_RESILIENT_MEDIA, MAP_32BIT, "
+                       + "MAP_TRANSLATED_ALLOW_EXECUTE, MAP_UNIX03, MAP_TPRO. Empty for flags of 0: MAP_FILE is 0, so "
+                       + "it's never named. Bits sys/mman.h doesn't name are left out; `flags` keeps them."),
          ]),
          event(ES_EVENT_TYPE_NOTIFY_MPROTECT, "A memory region's protection changed: es_event_mprotect_t.", [
             eslogger("protection", .integer),
@@ -51,10 +62,24 @@ extension TelemetrySchemaSource {
             eslogger("size", .integer, "Unsigned."),
             enrichment("hex_address", .string, "`address` in hex."),
             enrichment("kb_size", .integer, "`size` in kilobytes."),
-            enrichment("flags", .array(.string), "The names of the flags `protection` has: PROT_READ."),
+            enrichment("flags", .array(.string),
+                       "The names of the flags `protection` has, from mach/vm_prot.h, in bit order: VM_PROT_READ, "
+                       + "VM_PROT_WRITE, VM_PROT_EXECUTE. VM_PROT_NONE alone for 0. Other bits are left out; "
+                       + "`protection` keeps them."),
          ]),
          mount,
         ]
+    }
+    
+    /// The description of an mmap protection's names.
+    ///
+    /// - Parameters:
+    ///   - key: The protection's key: `protection` or `max_protection`.
+    ///   - note: What else to say about the protection, after its names.
+    /// - Returns: The description.
+    private static func protectionNames(_ key: String, note: String = "") -> String {
+        "The names of the bits `\(key)` has, from sys/mman.h, in bit order: PROT_READ, PROT_WRITE, PROT_EXEC."
+            + note + " PROT_NONE alone for 0. Other bits are left out; `\(key)` keeps them."
     }
     
     /// An extended attribute event: its file and the attribute's name.
