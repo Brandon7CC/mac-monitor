@@ -133,10 +133,12 @@ struct SystemEnrichedEventView: View {
                 Text(Self.seconds(row.seconds)).monospacedDigit().foregroundStyle(.secondary)
             }
             .width(min: 64, ideal: 72, max: 90)
-            /// A finding's dot after the type: the card above says what it found.
+            /// The type's symbol in its kind's color, as the Groups table colors a process's by its signing, and a
+            /// finding's dot after the type: the card above says what it found.
             TableColumn("Event") { row in
-                HStack(spacing: 6) {
-                    Label(row.type, systemImage: row.symbol).font(.body.monospaced())
+                HStack(spacing: 5) {
+                    Image(systemName: row.symbol).foregroundStyle(row.kind.color).help(row.kind.title)
+                    Text(row.type).font(.body.monospaced()).lineLimit(1)
                     if let finding = row.finding {
                         Circle().fill(finding.tint).frame(width: 7, height: 7).help(finding.title(1))
                     }
