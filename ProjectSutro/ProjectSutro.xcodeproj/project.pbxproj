@@ -189,6 +189,7 @@
 		28CEF0F129776CAF003057D2 /* SystemOpenSSHLoginMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0F029776CAF003057D2 /* SystemOpenSSHLoginMetadataView.swift */; };
 		28CEF0F529776CE0003057D2 /* SystemBTMRemoveMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0F429776CE0003057D2 /* SystemBTMRemoveMetadataView.swift */; };
 		28CEF0F729776CEF003057D2 /* SystemBTMAddMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0F629776CEF003057D2 /* SystemBTMAddMetadataView.swift */; };
+		B7D0BB000000000000000010 /* LaunchItemBundleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D0BB00000000000000000F /* LaunchItemBundleView.swift */; };
 		28CEF0F929776D00003057D2 /* SystemFileCreateMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0F829776D00003057D2 /* SystemFileCreateMetadataView.swift */; };
 		28CEF0FB29776D1D003057D2 /* SystemMMAPMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0FA29776D1D003057D2 /* SystemMMAPMetadataView.swift */; };
 		28CEF0FD29776D31003057D2 /* SystemProcExitMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0FC29776D31003057D2 /* SystemProcExitMetadataView.swift */; };
@@ -317,7 +318,12 @@
 		CA4CE5BF2E53F80B00C057EB /* ESSignedFileInfo+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE5B92E53F80B00C057EB /* ESSignedFileInfo+CoreDataClass.swift */; };
 		CA4CE6462E59041400C057EB /* SystemGatekeeperUserOverrideMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4CE6452E59040800C057EB /* SystemGatekeeperUserOverrideMetadataView.swift */; };
 		CA5936432E875F7B008A115D /* ESLaunchItem+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA59363E2E875F05008A115D /* ESLaunchItem+CoreDataClass.swift */; };
+		B7D0BB000000000000000008 /* ExportedLaunchItemBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D0BB000000000000000007 /* ExportedLaunchItemBundle.swift */; };
 		CA5936472E8873B9008A115D /* LaunchItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA5936462E8873B6008A115D /* LaunchItem.swift */; };
+		B7D0BB000000000000000006 /* LaunchItem+Reading.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D0BB000000000000000005 /* LaunchItem+Reading.swift */; };
+		B7D0BB000000000000000004 /* LaunchItemBundle+Reading.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D0BB000000000000000003 /* LaunchItemBundle+Reading.swift */; };
+		B7D0BC000000000000000004 /* LaunchItemBundle+SigningGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D0BC000000000000000003 /* LaunchItemBundle+SigningGuard.swift */; };
+		B7D0BB000000000000000002 /* LaunchItemBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D0BB000000000000000001 /* LaunchItemBundle.swift */; };
 		CA5936492E8AFF50008A115D /* SetModeEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA5936482E8AFF4A008A115D /* SetModeEvent.swift */; };
 		B0D900000000000000000002 /* XattrEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0D900000000000000000001 /* XattrEvent.swift */; };
 		B0D900000000000000000004 /* TargetFileEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0D900000000000000000003 /* TargetFileEvent.swift */; };
@@ -417,7 +423,12 @@
 		CB9800000000000000000014 /* StreamingJSONEncoder+Artifacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000013 /* StreamingJSONEncoder+Artifacts.swift */; };
 		CB9800000000000000000016 /* StreamingJSONEncoder+SortedKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000015 /* StreamingJSONEncoder+SortedKeys.swift */; };
 		CC990000000000000000000A /* ProcessHelpers+Quarantine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9900000000000000000009 /* ProcessHelpers+Quarantine.swift */; };
+		B7D0BB00000000000000000E /* ProcessHelpers+Provenance.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D0BB00000000000000000D /* ProcessHelpers+Provenance.swift */; };
+		B7D0BB00000000000000000C /* ProcessHelpers+PropertyLists.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D0BB00000000000000000B /* ProcessHelpers+PropertyLists.swift */; };
+		B7D0BC000000000000000006 /* ProcessHelpers+ContainedFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D0BC000000000000000005 /* ProcessHelpers+ContainedFiles.swift */; };
 		CC990000000000000000000C /* ProcessHelpers+CodeSigning.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC990000000000000000000B /* ProcessHelpers+CodeSigning.swift */; };
+		B7D0BB00000000000000000A /* StaticCodeSigning.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D0BB000000000000000009 /* StaticCodeSigning.swift */; };
+		B7D0BC000000000000000002 /* DeadlineQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D0BC000000000000000001 /* DeadlineQueue.swift */; };
 		CD0F00000000000000000002 /* XPCMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F00000000000000000001 /* XPCMessage.swift */; };
 		CD0F00000000000000000004 /* Data+WriteAll.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F00000000000000000003 /* Data+WriteAll.swift */; };
 		CD0F00000000000000000006 /* String+Counted.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F00000000000000000005 /* String+Counted.swift */; };
@@ -783,6 +794,7 @@
 		28CEF0F029776CAF003057D2 /* SystemOpenSSHLoginMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemOpenSSHLoginMetadataView.swift; sourceTree = "<group>"; };
 		28CEF0F429776CE0003057D2 /* SystemBTMRemoveMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemBTMRemoveMetadataView.swift; sourceTree = "<group>"; };
 		28CEF0F629776CEF003057D2 /* SystemBTMAddMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemBTMAddMetadataView.swift; sourceTree = "<group>"; };
+		B7D0BB00000000000000000F /* LaunchItemBundleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchItemBundleView.swift; sourceTree = "<group>"; };
 		28CEF0F829776D00003057D2 /* SystemFileCreateMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemFileCreateMetadataView.swift; sourceTree = "<group>"; };
 		28CEF0FA29776D1D003057D2 /* SystemMMAPMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMMAPMetadataView.swift; sourceTree = "<group>"; };
 		28CEF0FC29776D31003057D2 /* SystemProcExitMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemProcExitMetadataView.swift; sourceTree = "<group>"; };
@@ -910,7 +922,12 @@
 		CA4CE5B92E53F80B00C057EB /* ESSignedFileInfo+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESSignedFileInfo+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CA4CE6452E59040800C057EB /* SystemGatekeeperUserOverrideMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemGatekeeperUserOverrideMetadataView.swift; sourceTree = "<group>"; };
 		CA59363E2E875F05008A115D /* ESLaunchItem+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLaunchItem+CoreDataClass.swift"; sourceTree = "<group>"; };
+		B7D0BB000000000000000007 /* ExportedLaunchItemBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportedLaunchItemBundle.swift; sourceTree = "<group>"; };
 		CA5936462E8873B6008A115D /* LaunchItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchItem.swift; sourceTree = "<group>"; };
+		B7D0BB000000000000000005 /* LaunchItem+Reading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LaunchItem+Reading.swift"; sourceTree = "<group>"; };
+		B7D0BB000000000000000003 /* LaunchItemBundle+Reading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LaunchItemBundle+Reading.swift"; sourceTree = "<group>"; };
+		B7D0BC000000000000000003 /* LaunchItemBundle+SigningGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LaunchItemBundle+SigningGuard.swift"; sourceTree = "<group>"; };
+		B7D0BB000000000000000001 /* LaunchItemBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchItemBundle.swift; sourceTree = "<group>"; };
 		CA5936482E8AFF4A008A115D /* SetModeEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetModeEvent.swift; sourceTree = "<group>"; };
 		B0D900000000000000000001 /* XattrEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XattrEvent.swift; sourceTree = "<group>"; };
 		B0D900000000000000000003 /* TargetFileEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetFileEvent.swift; sourceTree = "<group>"; };
@@ -1009,7 +1026,12 @@
 		CB9800000000000000000013 /* StreamingJSONEncoder+Artifacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+Artifacts.swift"; sourceTree = "<group>"; };
 		CB9800000000000000000015 /* StreamingJSONEncoder+SortedKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+SortedKeys.swift"; sourceTree = "<group>"; };
 		CC9900000000000000000009 /* ProcessHelpers+Quarantine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessHelpers+Quarantine.swift"; sourceTree = "<group>"; };
+		B7D0BB00000000000000000D /* ProcessHelpers+Provenance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessHelpers+Provenance.swift"; sourceTree = "<group>"; };
+		B7D0BB00000000000000000B /* ProcessHelpers+PropertyLists.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessHelpers+PropertyLists.swift"; sourceTree = "<group>"; };
+		B7D0BC000000000000000005 /* ProcessHelpers+ContainedFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessHelpers+ContainedFiles.swift"; sourceTree = "<group>"; };
 		CC990000000000000000000B /* ProcessHelpers+CodeSigning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessHelpers+CodeSigning.swift"; sourceTree = "<group>"; };
+		B7D0BB000000000000000009 /* StaticCodeSigning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticCodeSigning.swift; sourceTree = "<group>"; };
+		B7D0BC000000000000000001 /* DeadlineQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeadlineQueue.swift; sourceTree = "<group>"; };
 		CD0F00000000000000000001 /* XPCMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCMessage.swift; sourceTree = "<group>"; };
 		CD0F00000000000000000003 /* Data+WriteAll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+WriteAll.swift"; sourceTree = "<group>"; };
 		CD0F00000000000000000005 /* String+Counted.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Counted.swift"; sourceTree = "<group>"; };
@@ -2871,6 +2893,8 @@
 				CA4CE5A32E53E70400C057EB /* SignedFileInfo.swift */,
 				CB9800000000000000000005 /* CodeSigningCertificateCache.swift */,
 				CC990000000000000000000B /* ProcessHelpers+CodeSigning.swift */,
+				B7D0BB000000000000000009 /* StaticCodeSigning.swift */,
+				B7D0BC000000000000000001 /* DeadlineQueue.swift */,
 				28A608A32D9B633000962337 /* X509Cert.swift */,
 			);
 			path = "Code Signing";
@@ -2922,6 +2946,7 @@
 			isa = PBXGroup;
 			children = (
 				CA59363E2E875F05008A115D /* ESLaunchItem+CoreDataClass.swift */,
+				B7D0BB000000000000000007 /* ExportedLaunchItemBundle.swift */,
 			);
 			path = "Service Management";
 			sourceTree = "<group>";
@@ -2930,6 +2955,10 @@
 			isa = PBXGroup;
 			children = (
 				CA5936462E8873B6008A115D /* LaunchItem.swift */,
+				B7D0BB000000000000000005 /* LaunchItem+Reading.swift */,
+				B7D0BB000000000000000003 /* LaunchItemBundle+Reading.swift */,
+				B7D0BC000000000000000003 /* LaunchItemBundle+SigningGuard.swift */,
+				B7D0BB000000000000000001 /* LaunchItemBundle.swift */,
 			);
 			path = "Service Management";
 			sourceTree = "<group>";
@@ -3193,6 +3222,7 @@
 		CAC48AFB2E25DC5000260C5F /* Service Management */ = {
 			isa = PBXGroup;
 			children = (
+				B7D0BB00000000000000000F /* LaunchItemBundleView.swift */,
 				280C78E92E8DEBC100B172E5 /* launch_item_remove */,
 				280C78E82E8DEBB300B172E5 /* launch_item_add */,
 			);
@@ -3283,6 +3313,9 @@
 				28A169CF2DA4E57000CA630B /* Thread.swift */,
 				28B865D52A3119C700F06441 /* ProcessHelpers.swift */,
 				CC9900000000000000000009 /* ProcessHelpers+Quarantine.swift */,
+				B7D0BB00000000000000000D /* ProcessHelpers+Provenance.swift */,
+				B7D0BB00000000000000000B /* ProcessHelpers+PropertyLists.swift */,
+				B7D0BC000000000000000005 /* ProcessHelpers+ContainedFiles.swift */,
 				28B343A92D8769D2004127E8 /* AuditToken.swift */,
 				7E5A1C000000000000000005 /* AuditToken+Values.swift */,
 				28EF8F032D7E47D600223464 /* Process.swift */,
@@ -4088,12 +4121,17 @@
 				28CEF10C297774C3003057D2 /* ESLoginLoginEvent+CoreDataClass.swift in Sources */,
 				28B865D62A3119C700F06441 /* ProcessHelpers.swift in Sources */,
 				CC990000000000000000000A /* ProcessHelpers+Quarantine.swift in Sources */,
+				B7D0BB00000000000000000E /* ProcessHelpers+Provenance.swift in Sources */,
+				B7D0BB00000000000000000C /* ProcessHelpers+PropertyLists.swift in Sources */,
+				B7D0BC000000000000000006 /* ProcessHelpers+ContainedFiles.swift in Sources */,
 				282DFE0A2D9DE004006E0C94 /* EventType+ESMapping.swift in Sources */,
 				28A169DB2DAE12C300CA630B /* AuthResult.swift in Sources */,
 				2852BBA129D982B800AA833C /* ProcessSignalEvent.swift in Sources */,
 				28ADAC452DCC77AA000DB4D2 /* FileDestination.swift in Sources */,
 				CB9800000000000000000006 /* CodeSigningCertificateCache.swift in Sources */,
 				CC990000000000000000000C /* ProcessHelpers+CodeSigning.swift in Sources */,
+				B7D0BB00000000000000000A /* StaticCodeSigning.swift in Sources */,
+				B7D0BC000000000000000002 /* DeadlineQueue.swift in Sources */,
 				28A608A42D9B634600962337 /* X509Cert.swift in Sources */,
 				2852BBA729D9EF7C00AA833C /* RemoteThreadCreateEvent.swift in Sources */,
 				CA5936582E8B163E008A115D /* ESPTYGrantEvent+CoreDataClass.swift in Sources */,
@@ -4109,6 +4147,7 @@
 				7E5A1C000000000000000030 /* LaunchServicesReader.swift in Sources */,
 				CA5936512E8B07FD008A115D /* ESSetModeEvent+CoreDataClass.swift in Sources */,
 				CA5936432E875F7B008A115D /* ESLaunchItem+CoreDataClass.swift in Sources */,
+				B7D0BB000000000000000008 /* ExportedLaunchItemBundle.swift in Sources */,
 				2852BBB329DB74BF00AA833C /* CodeSignatureInvalidatedEvent.swift in Sources */,
 				284BAED32A4CE6E5007F1193 /* OpenDirectoryAttributeValueAddEvent.swift in Sources */,
 				2852BBC829DBA05500AA833C /* ESProcessTraceEvent+CoreDataClass.swift in Sources */,
@@ -4124,6 +4163,10 @@
 				281BBE7B2A391949009B94F8 /* ESODGroupAddEvent+CoreDataClass.swift in Sources */,
 				28C6DF1E2A46CDA200E97922 /* ESXPCConnectEvent+CoreDataClass.swift in Sources */,
 				CA5936472E8873B9008A115D /* LaunchItem.swift in Sources */,
+				B7D0BB000000000000000006 /* LaunchItem+Reading.swift in Sources */,
+				B7D0BB000000000000000004 /* LaunchItemBundle+Reading.swift in Sources */,
+				B7D0BC000000000000000004 /* LaunchItemBundle+SigningGuard.swift in Sources */,
+				B7D0BB000000000000000002 /* LaunchItemBundle.swift in Sources */,
 				282FEDEA295FCE3600572E22 /* ESXProtectRemediate+CoreDataClass.swift in Sources */,
 				CADD9D902E8F0680009EC919 /* Profile.swift in Sources */,
 				2820DD01297224990053CB48 /* ProcessExecEvent.swift in Sources */,
@@ -4296,6 +4339,7 @@
 				284409632A4BA07E009D6753 /* SystemAuthorizationPetitionMetadataView.swift in Sources */,
 				28CEF0F929776D00003057D2 /* SystemFileCreateMetadataView.swift in Sources */,
 				28CEF0F729776CEF003057D2 /* SystemBTMAddMetadataView.swift in Sources */,
+				B7D0BB000000000000000010 /* LaunchItemBundleView.swift in Sources */,
 				28C5039A2A1BE1D80066DC0D /* TableExecEventContextMenu.swift in Sources */,
 				28B865CF2A3107D900F06441 /* AppIconView.swift in Sources */,
 				28A2501F29A35D5F007B0753 /* SystemFDDuplicateMetadataView.swift in Sources */,

@@ -172,8 +172,23 @@ public class ProcessHelpers {
     /// - Returns: The text, cut at the limit back to the end of a whole character, or `nil` if the file isn't UTF-8
     ///   text or isn't a regular file (``openRegularFile(at:)``).
     public static func getFileContents(at path: String) -> String? {
-        guard let file = openRegularFile(at: path),
-              let data = try? file.read(upToCount: fileContentsLimit + 1) ?? Data() else { return nil }
+        readRegularFile(at: path).flatMap(limitedText(of:))
+    }
+
+    /// The bytes of a regular file, up to one more than ``fileContentsLimit``, so a caller can tell a file that's cut.
+    ///
+    /// - Parameter path: The file's path, or a `file://` URL's.
+    /// - Returns: The bytes, or `nil` if the path isn't a regular file (``openRegularFile(at:)``) or can't be read.
+    static func readRegularFile(at path: String) -> Data? {
+        guard let file = openRegularFile(at: path) else { return nil }
+        return try? file.read(upToCount: fileContentsLimit + 1) ?? Data()
+    }
+
+    /// Bytes as UTF-8 text, up to ``fileContentsLimit``.
+    ///
+    /// - Parameter data: The bytes.
+    /// - Returns: The text, cut at the limit back to the end of a whole character, or `nil` if it isn't UTF-8.
+    static func limitedText(of data: Data) -> String? {
         guard data.count > fileContentsLimit else { return String(data: data, encoding: .utf8) }
         /// A UTF-8 character is at most 4 bytes, so one of the last 4 cuts ends on a whole one.
         for end in stride(from: fileContentsLimit, to: fileContentsLimit - 4, by: -1) {

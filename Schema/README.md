@@ -43,7 +43,14 @@ A trace without it (eslogger's, or one exported from 3.0.0) gets it derived from
 when it's opened. One exported before 3.0.0 gets none: its `time` is the recording Mac's local time, which can't be
 read back exactly. It also adds `protection_names`, `max_protection_names` and `flag_names` to `mmap` events: the
 `PROT_*` and `MAP_*` names of the bits `protection`, `max_protection` and `flags` have, in bit order, written beside
-the integers whenever a record is exported, so a trace exported before 3.0.1 gets them too. `released-versions.txt`
+the integers whenever a record is exported, so a trace exported before 3.0.1 gets them too. And it adds `bundle` and
+`app_bundle` to every launch item: the app or helper bundle the item names, and the bundle of the app it belongs to,
+with their Info.plist's path and essentials, signing, quarantine, where-froms, birth time and `age_ms`. They're read
+from the Mac that recorded the event when it recorded it, never when a trace is opened, so a trace without them (an
+eslogger trace, or one exported before 3.0.1) keeps none and exports them as `null`, and they're `null` on a remove
+whose bundle is already gone. `plist_contents` now also holds a bundle item's Info.plist, a property list stored in
+binary is converted to XML, and none is read through a symbolic link below its bundle, app or folder.
+`released-versions.txt`
 lists each released version with the SHA-256 of the file released with it, and a test fails if a released version's
 file changes. To validate an older trace, use the schema attached to the release that wrote it. A trace exported
 before Mac Monitor 3.0.0 names no telemetry version, and no schema describes it: open it with File > Open Trace... and

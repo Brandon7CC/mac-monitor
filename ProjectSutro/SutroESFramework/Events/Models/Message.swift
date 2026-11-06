@@ -129,6 +129,7 @@ public struct Message: Codable, IdentityHashable {
         enrich()
         deriveExecutableAge()
         deriveProcessAges()
+        deriveBundleAges()
     }
 }
 
@@ -171,6 +172,22 @@ extension Message: ESEnrichable {
         let born = Date(timeIntervalSince1970: TimeInterval(birth.tv_sec) + TimeInterval(birth.tv_nsec) / 1e9)
         exec.executable_age_ms = Self.milliseconds(from: born, to: message_darwin_time)
         event = .exec(exec)
+    }
+
+    /// Derive a launch item's bundle ages (``LaunchItemBundle/age_ms``) from the message's time: its own bundle's and
+    /// its app's, for `btm_launch_item_add` and `btm_launch_item_remove`. A bundle that has an age keeps it, and one
+    /// whose birth time is unknown gets none. Not part of ``enrich()``, like ``deriveExecutableAge()``.
+    mutating func deriveBundleAges() {
+        switch event {
+        case .btm_launch_item_add(var add):
+            add.item.deriveBundleAges(at: message_darwin_time)
+            event = .btm_launch_item_add(add)
+        case .btm_launch_item_remove(var remove):
+            remove.item.deriveBundleAges(at: message_darwin_time)
+            event = .btm_launch_item_remove(remove)
+        default:
+            return
+        }
     }
 
     /// Derive every process's ``Process/process_age_ms`` from the message's time: the initiating process's, and every

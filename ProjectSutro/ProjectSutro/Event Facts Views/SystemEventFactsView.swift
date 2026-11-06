@@ -60,11 +60,13 @@ struct SystemEventFactsView : View {
         return (path, content)
     }
     
-    /// A launch item's property list, if Mac Monitor read it.
+    /// A launch item's property list, if Mac Monitor read it: an agent's or daemon's launchd plist, or a bundle item's
+    /// Info.plist.
     private var plist: (path: String, content: String)? {
-        guard let event = selectedMessage.event.btm_launch_item_add, let plist = event.item.plist_contents,
-              !plist.isEmpty else { return nil }
-        return (event.item.item_path, plist)
+        let event = selectedMessage.event
+        guard let item = event.btm_launch_item_add?.item ?? event.btm_launch_item_remove?.item,
+              let plist = item.plist_contents, !plist.isEmpty else { return nil }
+        return (item.plistPath, plist)
     }
     
     var body: some View {

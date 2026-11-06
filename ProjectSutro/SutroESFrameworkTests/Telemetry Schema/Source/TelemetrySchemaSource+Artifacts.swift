@@ -15,7 +15,7 @@ extension TelemetrySchemaSource {
     static var artifacts: [String: SchemaObject] {
         ["process": process, "file": file, "stat": stat, "audit_token": auditToken, "thread": thread,
          "action": action, "launched_by_parent": launchedByParent, "launch_item": launchItem, "od_member": odMember,
-         "thread_state": threadState, "signed_file_info": signedFileInfo]
+         "thread_state": threadState, "signed_file_info": signedFileInfo, "launch_item_bundle": launchItemBundle]
     }
     
     /// A process: `es_process_t`.
@@ -154,8 +154,78 @@ extension TelemetrySchemaSource {
             eslogger("managed", .boolean),
             eslogger("uid", .integer),
             enrichment("uid_human", .nullable(.string), "The name of `uid`, when it's a system account."),
-            enrichment("plist_contents", .string, "The item's property list, read when the event was recorded.",
-                     absent: Absence("the property list couldn't be read")),
+            enrichment("plist_contents", .string,
+                       "The item's property list as text, read from the Mac that recorded the event, when it recorded "
+                       + "it: an agent's or daemon's launchd plist, or the Info.plist of the bundle an app, login item "
+                       + "or user item names (`bundle`). A property list stored in binary is converted to XML. Cut at "
+                       + "1 MiB. Not read through a symbolic link below the item's folder, app or bundle.",
+                       absent: Absence("the item has no property list, or it couldn't be read")),
+            enrichment("bundle", .nullable(.ref("launch_item_bundle")),
+                       "The bundle the item names, for an ES_BTM_ITEM_TYPE_APP, ES_BTM_ITEM_TYPE_LOGIN_ITEM or "
+                       + "ES_BTM_ITEM_TYPE_USER_ITEM item whose path (absolute, or relative to `app_path`) is a bundle "
+                       + "directory. null for other items, for a path that isn't a bundle, and on a remove when the "
+                       + "bundle is already gone. Also null when the event wasn't recorded by Mac Monitor 3.0.1 or "
+                       + "later (an eslogger trace, or one exported before 3.0.1, opened and exported again): bundles "
+                       + "are read only at capture, never when a trace is opened. Since telemetry 1.1.0."),
+            enrichment("app_bundle", .nullable(.ref("launch_item_bundle")),
+                       "The bundle at `app_path`, the app a helper, agent or daemon belongs to, of any item type. "
+                       + "null when the item has no app, its app isn't a bundle, or, on a remove, it's already gone. "
+                       + "Also null when the event wasn't recorded by Mac Monitor 3.0.1 or later (an eslogger trace, "
+                       + "or one exported before 3.0.1, opened and exported again): bundles are read only at capture, "
+                       + "never when a trace is opened. Since telemetry 1.1.0."),
+        ])
+    }
+    
+    /// A launch item's bundle: what Mac Monitor read of an app or helper bundle.
+    static var launchItemBundle: SchemaObject {
+        SchemaObject("An app or helper bundle a launch item names, read by the Security Extension from the Mac that "
+                     + "recorded the event, when it recorded it: never when a trace is opened. Each value is null "
+                     + "when the bundle doesn't have it or it couldn't be read. Since telemetry 1.1.0.", [
+            enrichment("path", .string, "The bundle directory read."),
+            enrichment("info_plist_path", .nullable(.string),
+                       "The bundle's Info.plist: Contents/Info.plist, or Info.plist at the top of a shallow bundle. "
+                       + "Named whether or not it could be read (it isn't through a symbolic link below the bundle); "
+                       + "null only in a record that doesn't name it."),
+            enrichment("identifier", .nullable(.string), "CFBundleIdentifier, from the bundle's Info.plist."),
+            enrichment("name", .nullable(.string), "CFBundleDisplayName, else CFBundleName, from the Info.plist."),
+            enrichment("version", .nullable(.string), "CFBundleVersion, from the Info.plist."),
+            enrichment("short_version", .nullable(.string), "CFBundleShortVersionString, from the Info.plist."),
+            enrichment("executable_path", .nullable(.string),
+                       "The bundle's executable, as CFBundle finds it: Contents/MacOS/ and CFBundleExecutable, or "
+                       + "CFBundleExecutable beside a shallow bundle's Info.plist, named whether or not the file "
+                       + "exists. NSExecutable without CFBundleExecutable, and without either, the file named as the "
+                       + "bundle without its extension, when there's one."),
+            enrichment("is_ui_element", .nullable(.boolean),
+                       "LSUIElement, from the Info.plist, as a Boolean (also when it's written as a number or as "
+                       + "\"1\", \"YES\" or \"true\"): the app runs as an agent, without a Dock icon or menu bar."),
+            enrichment("is_background_only", .nullable(.boolean),
+                       "LSBackgroundOnly, from the Info.plist, read as `is_ui_element` is: the app runs with no user "
+                       + "interface at all."),
+            enrichment("signing_id", .nullable(.string),
+                       "The bundle's signing identifier, from a static read of its signature "
+                       + "(SecStaticCodeCreateWithPath and SecCodeCopySigningInformation, without validating it). "
+                       + "null for an unsigned bundle."),
+            enrichment("team_id", .nullable(.string),
+                       "The bundle's team identifier, from its signature. null for Apple platform, adhoc and unsigned "
+                       + "bundles."),
+            enrichment("codesigning_type", .nullable(.values(CodeSigningType.allCases.map(\.rawValue))),
+                       "How the bundle as a whole is signed: PLATFORM when its signature has a platform identifier, "
+                       + "ADHOC or UNSIGNED, otherwise APP_STORE or DEVELOPER_ID by its certificates (UNKNOWN for "
+                       + "others). null when the signature couldn't be read: also when the Info.plist couldn't be, or "
+                       + "a FIFO or other special file is where Security would open it."),
+            enrichment("is_quarantined", .integer,
+                       "1 if the bundle directory has a com.apple.quarantine attribute, 0 if not, and 2 if it "
+                       + "couldn't be found."),
+            enrichment("where_froms", .nullable(.array(.string)),
+                       "Where the bundle was downloaded from: the strings of the binary property list array in the "
+                       + "bundle directory's com.apple.metadata:kMDItemWhereFroms attribute, the download URL and then "
+                       + "the page it was found on. null without the attribute."),
+            enrichment("birth_time", .nullable(.pattern(.timespec)),
+                       "When the bundle directory was created: its st_birthtimespec."),
+            enrichment("age_ms", .nullable(.integer),
+                       "How old the bundle was at the event: milliseconds from `birth_time` to the message's time, "
+                       + "rounded. Negative when the clock stepped back between the two. null when `birth_time` is "
+                       + "unknown."),
         ])
     }
     

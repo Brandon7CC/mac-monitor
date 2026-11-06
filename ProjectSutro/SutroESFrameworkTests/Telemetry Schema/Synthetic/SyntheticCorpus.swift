@@ -101,6 +101,14 @@ enum SyntheticCorpus {
             all.append(variant("user UUID", ["member_type": Int(ES_OD_MEMBER_TYPE_USER_UUID.rawValue)]))
             all.append(variant("group UUID", ["member_type": Int(ES_OD_MEMBER_TYPE_GROUP_UUID.rawValue)]))
             all.append(variant("member without value", absent: [unflagged, "OpenDirectoryMember.member_value"]))
+        case ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD, ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_REMOVE:
+            /// Bundles whose Info.plist and signature couldn't be read, and that have no where-froms or birth time,
+            /// from a record that doesn't name the Info.plist.
+            let keys = ["info_plist_path", "identifier", "name", "version", "short_version", "executable_path",
+                        "is_ui_element", "is_background_only", "signing_id", "team_id", "codesigning_type",
+                        "where_froms", "birth_time", "age_ms"]
+            all.append(variant("bundle without values",
+                               absent: Set(keys.map { "LaunchItemBundle.\($0)" }).union([unflagged])))
         default:
             break
         }

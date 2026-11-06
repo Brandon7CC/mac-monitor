@@ -79,6 +79,7 @@ macmonitor validate trace.jsonl            # check an export against the schema
 ## What are some standout features?
 - **High fidelity ES events, enriched**: code signing, quarantine, script content, and the process that really launched each one.
   - (`3.0.1+`) Every process carries `process_age_ms`, how old it was at the event: search `process.process_age_ms < 1000` for young processes.
+  - (`3.0.1+`) Background task (BTM) add and remove events describe the bundle a launch item names and its parent app: Info.plist essentials, signing, quarantine, download origin and the bundle's age, with the Info.plist in the PLIST tab. Search `event.btm_launch_item_add.item.bundle.is_ui_element == true` for login items that hide from the Dock.
   - (`3.0.1+`) mmap events name their protections and flags, such as `PROT_READ | PROT_EXEC`: search `ANY event.mmap.protection_names == "PROT_EXEC"` for executable mappings.
 - **Dynamic event subscriptions**: change what you subscribe to on the fly to cut down on noise.
   - (`3.0.1+`) Close is on by default, for modified files only. Change that in Settings ▸ Subscriptions; `macmonitor stream --every close` streams every close for that stream only.

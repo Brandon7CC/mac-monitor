@@ -53,9 +53,18 @@ extension ProcessHelpers {
     /// - Returns: ``CodeSigningType/appStore`` or ``CodeSigningType/developerId`` by the first certificate whose
     ///   subject names one, otherwise ``CodeSigningType/unknown``.
     static func certificateType(at path: String) -> CodeSigningType {
-        for certificate in CodeSigningCertificateCache.shared.certificates(at: path) {
-            if certificate.summary.hasPrefix("Apple Mac OS") { return .appStore }
-            if certificate.summary.hasPrefix("Developer ID Application") { return .developerId }
+        certificateType(summaries: CodeSigningCertificateCache.shared.certificates(at: path).map(\.summary))
+    }
+
+    /// The code signing type a validly signed executable's or bundle's certificates tell.
+    ///
+    /// - Parameter summaries: The certificates' subject summaries, leaf first.
+    /// - Returns: ``CodeSigningType/appStore`` or ``CodeSigningType/developerId`` by the first certificate whose
+    ///   subject names one, otherwise ``CodeSigningType/unknown``.
+    static func certificateType(summaries: [String]) -> CodeSigningType {
+        for summary in summaries {
+            if summary.hasPrefix("Apple Mac OS") { return .appStore }
+            if summary.hasPrefix("Developer ID Application") { return .developerId }
         }
         return .unknown
     }

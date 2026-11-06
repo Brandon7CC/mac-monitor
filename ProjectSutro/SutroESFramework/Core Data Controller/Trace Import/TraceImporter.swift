@@ -265,9 +265,10 @@ public final class TraceImporter {
     /// (``ESLogger/time(_:darwinTime:)``). A new path's directory, which exports from 2.0.0 to 2.1.0 leave out, is read
     /// back from the event's destination path, and a rename's `mode`, which 2.0.0 to 2.1.0 wrote as 0, is dropped (see
     /// ``Message/repairNewPath()``). An event without Mac Monitor's own fields (one of eslogger's) gets them derived
-    /// from its Endpoint Security fields (``Message/enrich()``). Once the time is read, an exec's executable age, and
-    /// the age of every process the record gives none, are derived from it (``Message/deriveExecutableAge()``,
-    /// ``Message/deriveProcessAges()``): a record's own ages are kept. A time read as 2.1.0's local time
+    /// from its Endpoint Security fields (``Message/enrich()``). Once the time is read, an exec's executable age, the
+    /// age of every process the record gives none, and the age of a launch item's bundles, are derived from it
+    /// (``Message/deriveExecutableAge()``, ``Message/deriveProcessAges()``, ``Message/deriveBundleAges()``): a
+    /// record's own ages are kept, and a bundle is never read from this Mac's disk. A time read as 2.1.0's local time
     /// (``ESLogger/isLocalTime(_:legacy:)``) derives no age: start and birth times are UTC, so the ages would be off
     /// by the time zones' difference whenever the trace is opened in another zone than it was recorded in.
     ///
@@ -302,6 +303,7 @@ public final class TraceImporter {
         if isExactTime {
             message.deriveExecutableAge()
             message.deriveProcessAges()
+            message.deriveBundleAges()
         }
         message.repairNewPath()
         return message

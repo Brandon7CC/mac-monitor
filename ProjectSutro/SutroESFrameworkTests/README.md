@@ -72,6 +72,12 @@ Look here before writing a helper of your own, and move one here once a second t
 | `SchemaKeyPaths.swift` | The schema's keys at the paths `Fixtures/eslogger-keys.json` uses |
 | `SchemaParts.swift` | Every part of a schema document, for checks that walk all of it |
 
+### Bundles
+
+| File | What it's for |
+|---|---|
+| `XCTestCase+Bundles.swift` | Unsigned app and shallow bundles in a temporary folder (`makeBundle`), with an XML or binary Info.plist, quarantine and where-froms attributes (`quarantine`, `setWhereFroms`), and the `es_btm_launch_item_t` and `file://` URLs Background Task Management gives (`rawLaunchItem`, `fileURL`) |
+
 ### Errors
 
 | File | What it's for |

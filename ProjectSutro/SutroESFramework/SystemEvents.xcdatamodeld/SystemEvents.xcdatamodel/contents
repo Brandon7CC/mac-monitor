@@ -150,8 +150,10 @@
         <attribute name="user_client_type" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
     <entity name="ESLaunchItem" representedClassName="ESLaunchItem" syncable="YES">
+        <attribute name="appBundleData" optional="YES" attributeType="Binary"/>
         <attribute name="app_path" optional="YES" attributeType="String"/>
         <attribute name="app_url" optional="YES" attributeType="String"/>
+        <attribute name="bundleData" optional="YES" attributeType="Binary"/>
         <attribute name="item_path" optional="YES" attributeType="String"/>
         <attribute name="item_type" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="item_type_string" optional="YES" attributeType="String"/>
