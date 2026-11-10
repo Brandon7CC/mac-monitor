@@ -32,7 +32,7 @@ final class IndicatorAlertCoalescerTests: XCTestCase {
         }
     }
 
-    /// The first match posts at once; one within its window folds, and posts as a summary of one, with the latest
+    /// The first match posts at once. One within its window folds, and posts as a summary of one, with the latest
     /// event, exactly when the window ends.
     func testASecondMatchIsSummarizedWhenTheWindowEnds() throws {
         let id = UUID()
@@ -50,7 +50,7 @@ final class IndicatorAlertCoalescerTests: XCTestCase {
         XCTAssertNil(coalescer.nextDeadline)
     }
 
-    /// A summary counts at most 16 distinct processes, a repeat never counting as more; past them it says "or
+    /// A summary counts at most 16 distinct processes, a repeat never counting as more. Past them it says "or
     /// more". It runs from its earliest match's time, whatever order they came in, and opens its newest.
     func testASummaryCountsSixteenProcessesFromItsEarliestMatch() throws {
         let (id, base) = (UUID(), Date())
@@ -76,7 +76,7 @@ final class IndicatorAlertCoalescerTests: XCTestCase {
         XCTAssertFalse(sixteen.hasMoreProcesses, "Sixteen distinct processes, one of them twice, are all counted")
     }
 
-    /// While matches keep coming, windows run 60, 120, 240, 480, 900 and 900 seconds; after 900 seconds with none,
+    /// While matches keep coming, windows run 60, 120, 240, 480, 900 and 900 seconds. After 900 seconds with none,
     /// the next notice's window is 60 again.
     func testWindowsDoubleToFifteenMinutesAndStartOverAfterQuiet() throws {
         let id = UUID()
@@ -101,7 +101,7 @@ final class IndicatorAlertCoalescerTests: XCTestCase {
         XCTAssertEqual(run.posts, ["0.00:1:1", "60.00s:1:1", "200.00:1:1", "320.00s:1:1"])
     }
 
-    /// Three Medium notices may post at once, then one every two minutes; the rest go to the overflow.
+    /// Three Medium notices may post at once, then one every two minutes. The rest go to the overflow.
     func testMediumTokensBurstThreeThenComeBackEveryTwoMinutes() throws {
         var coalescer = IndicatorAlertCoalescer()
         let events = try (0..<6).map { _ in try alertEvent(UUID()) }
@@ -166,7 +166,7 @@ final class IndicatorAlertCoalescerTests: XCTestCase {
         XCTAssertEqual(overflow.count, 29)
     }
 
-    /// A Medium event older than two minutes goes only to the overflow; a High that old still posts.
+    /// A Medium event older than two minutes goes only to the overflow. A High that old still posts.
     func testOldMediumsOnlyGoToTheOverflow() throws {
         var coalescer = IndicatorAlertCoalescer()
         let (medium, high) = (try alertEvent(UUID()), try alertEvent(UUID(), .high))
@@ -201,7 +201,7 @@ final class IndicatorAlertCoalescerTests: XCTestCase {
         XCTAssertEqual(coalescer.overflow.entries[events[0].indicator.id]?.count, 1)
     }
 
-    /// No deadline while idle; otherwise the earliest of a window's end and the overflow's.
+    /// No deadline while idle. Otherwise the earliest of a window's end and the overflow's.
     func testTheNextDeadlineIsTheEarliestDue() throws {
         var coalescer = IndicatorAlertCoalescer()
         XCTAssertNil(coalescer.nextDeadline)

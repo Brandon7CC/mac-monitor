@@ -50,7 +50,7 @@ struct SystemChartEventView: View {
     private static let largestBarShare = 0.6
 
     /// The axis's upper bound, past the largest count, so the largest bar's label and count fit beside it. On a log
-    /// scale a bar's length grows with the count's logarithm, so the bound is the count raised to `1 / share`; on a
+    /// scale a bar's length grows with the count's logarithm, so the bound is the count raised to `1 / share`. On a
     /// linear one it's the count divided by the share.
     ///
     /// - Parameter largest: The largest count.

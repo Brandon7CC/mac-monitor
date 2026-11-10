@@ -17,7 +17,7 @@ import Foundation
 /// * every scalar's bytes as `JSONEncoder` writes them: strings escaped the same way (slashes included), numbers in
 ///   Swift's shortest form without a trailing `.0`, a `Date` as its seconds since 2001 (`deferredToDate`), `Data` in
 ///   base64, a `URL` as its absolute string, a `UUID` as its uppercase string, and `{}` for a nested value that encodes
-///   nothing;
+///   nothing.
 /// * an object's members in the order its `encode(to:)` encodes them (declaration order for a synthesized conformance),
 ///   where `JSONEncoder` writes them in its hash table's order, which changes from one encode to the next.
 ///

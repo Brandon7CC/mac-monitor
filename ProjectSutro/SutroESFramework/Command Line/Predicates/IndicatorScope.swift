@@ -24,9 +24,9 @@ public enum IndicatorScope: Hashable {
     /// Those whose symbol marks the event tables.
     case symbol
 
-    /// The list's rows, in the groups it divides: every indicator; the tactics that have one, in ATT&CK's order; then
-    /// those with no tactic if there are any, those off and those whose symbol marks the tables. While searching, only
-    /// All and the rows with an indicator the search finds.
+    /// The list's rows, in the groups it divides: every indicator, then the tactics that have one, in ATT&CK's order,
+    /// then those with no tactic if there are any, those off and those whose symbol marks the tables. While searching,
+    /// only All and the rows with an indicator the search finds.
     ///
     /// - Parameters:
     ///   - indicators: Every indicator.

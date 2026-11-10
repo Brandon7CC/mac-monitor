@@ -14,7 +14,7 @@ import CoreData
 /// Pins what happens to an event a view is still showing when a Clear deletes it. Its rows go first, so until the view
 /// context hears, its relationships read nil: on macOS 13 an exec label forced its nil exec and Mac Monitor crashed.
 /// A Clear must tell the view context about every event it loaded, and no view may force an event's payload it hasn't
-/// checked for. A Clear usually replaces the store, after which the view context forgets everything; while an export
+/// checked for. A Clear usually replaces the store, after which the view context forgets everything, while an export
 /// reads the store it deletes the rows instead, and must name every event the view context loaded.
 final class GoneEventTests: XCTestCase {
     /// An event the view context loads after a Clear begins, as a table can in the turn before it lets go, is gone

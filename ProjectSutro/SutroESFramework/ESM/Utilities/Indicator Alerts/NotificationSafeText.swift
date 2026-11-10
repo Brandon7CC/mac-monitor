@@ -22,7 +22,7 @@ public enum NotificationSafeText {
     static let ellipsis: Unicode.Scalar = "\u{2026}"
 
     /// Text for a notification: newlines, tabs and other C0 and C1 controls (DEL too), and the LINE SEPARATOR and
-    /// PARAGRAPH SEPARATOR that break a line as a newline does, become a space; the bidirectional and zero-width
+    /// PARAGRAPH SEPARATOR that break a line as a newline does, become a space. The bidirectional and zero-width
     /// characters are removed, and runs of spaces become one, trimmed at both ends. Other non-ASCII text is kept.
     ///
     /// - Parameter text: Text from an event.

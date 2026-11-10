@@ -120,7 +120,7 @@ extension LaunchItemBundle {
     ///   - plist: The Info.plist's dictionary.
     ///   - layout: The bundle's layout.
     /// - Returns: `CFBundleExecutable` or, without that key, `NSExecutable`, when it's a non-empty string, whether or
-    ///   not the file exists; else the bundle's name without its extension, when that file exists; else `nil`.
+    ///   not the file exists, else the bundle's name without its extension, when that file exists, else `nil`.
     func executablePath(_ plist: [String: Any], layout: Layout) -> String? {
         if let named = ((plist["CFBundleExecutable"] ?? plist["NSExecutable"]) as? String).nonEmpty {
             return layout.executablePath(named: named, in: path)
@@ -135,7 +135,7 @@ extension LaunchItemBundle {
     /// An Info.plist flag such as `LSUIElement`, which apps write as a Boolean, a number or a string.
     ///
     /// - Parameter value: The key's value.
-    /// - Returns: The Boolean, 1 or 0, or "1", "YES" or "true" (any case) and "0", "NO" or "false"; `nil` for anything
+    /// - Returns: The Boolean, 1 or 0, or "1", "YES" or "true" (any case) and "0", "NO" or "false". `nil` for anything
     ///   else, or no value.
     static func flag(_ value: Any?) -> Bool? {
         switch value {

@@ -41,7 +41,7 @@ final class SignalTrap {
         return trap
     }
     
-    /// Stop on the first signal; exit on the second.
+    /// Stop on the first signal. Exit on the second.
     ///
     /// - Parameters:
     ///   - number: The signal.

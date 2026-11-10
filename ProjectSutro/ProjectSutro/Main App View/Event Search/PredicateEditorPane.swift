@@ -217,7 +217,7 @@ private struct WindowToolbar<Tools: View>: ViewModifier {
     }
 }
 
-/// The predicate editor in its own window, popped out of the main window. Closing the window closes the editor; its
+/// The predicate editor in its own window, popped out of the main window. Closing the window closes the editor. Its
 /// Dock button puts the editor back beside the tables.
 struct PredicateEditorWindow: View {
     @ObservedObject var search: EventSearchController

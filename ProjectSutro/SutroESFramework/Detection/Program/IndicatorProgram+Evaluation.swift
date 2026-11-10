@@ -11,7 +11,7 @@ import Foundation
 // MARK: - Evaluation
 extension IndicatorProgram {
     /// Does an event match? The program's arrays are read in place while it's evaluated. Lanes evaluate a set's
-    /// programs through ``CompiledIndicators``, which borrows the event; this one takes its own copy, for tests and
+    /// programs through ``CompiledIndicators``, which borrows the event. This one takes its own copy, for tests and
     /// single programs.
     ///
     /// - Parameters:
@@ -60,7 +60,7 @@ extension IndicatorProgram {
     /// It runs a program as `NSPredicate` evaluates its predicate on the event's record (checked against it by
     /// `StringMatchingTests`, `IndicatorFuzzTests` and `CompiledIndicatorsParityTests`):
     ///
-    /// - `== nil` and `!= nil` test for a value. A missing value `!=` a constant is true; `==`, ordering, `IN`,
+    /// - `== nil` and `!= nil` test for a value. A missing value `!=` a constant is true. `==`, ordering, `IN`,
     ///   `BEGINSWITH`, `ENDSWITH`, `CONTAINS` and `LIKE` are false on one.
     /// - Numbers, and Booleans as 1 and 0, compare as numbers, as `NSNumber` does.
     /// - `ANY` over a missing or empty array is false.
@@ -153,7 +153,7 @@ extension IndicatorProgram {
 
         /// `ANY` of an array's strings, in two passes, which is exact as `ANY` asks only whether some element
         /// matches. The first visits each element's own storage, charging ``ScanCost/element(_:)``, compares an
-        /// ASCII one on its bytes, and leaves the rest; the second, only when the first found no match and left one,
+        /// ASCII one on its bytes, and leaves the rest. The second, only when the first found no match and left one,
         /// sends those to Foundation. So non-ASCII elements can't spend the pool before an ASCII match is read. The
         /// second goes on past an element its pool refused, as a later, smaller one may still fit and match.
         ///

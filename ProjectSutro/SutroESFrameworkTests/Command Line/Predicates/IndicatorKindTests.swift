@@ -11,7 +11,7 @@ import XCTest
 
 // MARK: - Kinds of rule
 /// Pins the guard on an indicator's `kind`: this build reads rules on one event, with or without the key, and never
-/// reads a later build's rule over several events as one. Saved, such a rule is kept as it was and written back; in a
+/// reads a later build's rule over several events as one. Saved, such a rule is kept as it was and written back. In a
 /// shared file, it isn't imported.
 final class IndicatorKindTests: XCTestCase {
     /// An indicator without a kind is a rule on one event, and so is one whose kind says so.

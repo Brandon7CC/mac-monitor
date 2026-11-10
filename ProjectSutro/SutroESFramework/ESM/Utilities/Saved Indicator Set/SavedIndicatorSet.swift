@@ -273,7 +273,7 @@ public final class SavedIndicatorSet {
     ///   - indicators: The set now.
     ///   - request: The update.
     /// - Returns: The next set, in order.
-    /// - Throws: ``IndicatorRequestProblem`` for no fields, an identity named twice or one the set doesn't have;
+    /// - Throws: ``IndicatorRequestProblem`` for no fields, an identity named twice or one the set doesn't have.
     ///   ``IndicatorFileError`` for an indicator the update leaves past a limit.
     private func updated(_ indicators: [Indicator], by request: IndicatorRequest) throws -> [Indicator] {
         guard !request.fields.isEmpty else { throw IndicatorRequestProblem("Name the fields to change.") }

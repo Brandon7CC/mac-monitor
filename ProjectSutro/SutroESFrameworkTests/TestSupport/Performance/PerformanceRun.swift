@@ -14,7 +14,7 @@ import XCTest
 ///
 /// | Variable | Meaning |
 /// |---|---|
-/// | `SUTRO_PERFORMANCE` | `1` runs the ``PerformanceTestCase``s; otherwise they're skipped |
+/// | `SUTRO_PERFORMANCE` | `1` runs the ``PerformanceTestCase``s. Otherwise they're skipped |
 /// | `SUTRO_PERFORMANCE_SAMPLES` | Samples per benchmark, 10 by default |
 /// | `SUTRO_PERFORMANCE_RESULTS` | The results file, by default a new one in `ProjectSutro/build/Performance` |
 /// | `SUTRO_PERFORMANCE_CONFIGURATION` | The build configuration, as the script built it |

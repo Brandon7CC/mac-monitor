@@ -14,7 +14,7 @@ import Foundation
 /// taken back, so a compiled program's fields keep naming the same paths. The telemetry schema bounds how many there
 /// can be.
 ///
-/// **Threading:** thread-safe. Only compiling a rule and describing a field take its lock; reading an event's values
+/// **Threading:** thread-safe. Only compiling a rule and describing a field take its lock. Reading an event's values
 /// never does.
 final class RecordFields: @unchecked Sendable {
     /// The one table, for every set in the process.

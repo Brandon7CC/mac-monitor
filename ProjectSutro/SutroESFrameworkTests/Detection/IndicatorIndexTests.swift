@@ -19,7 +19,7 @@ final class IndicatorIndexTests: XCTestCase {
     /// The close type check every rule here starts with.
     static let close = #"es_event_type == "ES_EVENT_TYPE_NOTIFY_CLOSE" AND "#
 
-    /// String comparisons with an ASCII constant give anchors, folded constants lowered; the rest give none.
+    /// String comparisons with an ASCII constant give anchors, folded constants lowered. The rest give none.
     func testComparisonsGiveTheirAnchors() throws {
         let path = IndicatorField.targetPath
         XCTAssertEqual(try need(#"target_path ENDSWITH[c] ".PLIST""#), [anchor(path, .suffix, ".plist", true)])
@@ -66,7 +66,7 @@ final class IndicatorIndexTests: XCTestCase {
     }
 
     /// An event is evaluated against the rules whose literals it has, whole values only when it's all of it, and
-    /// those that need nothing; a value that isn't ASCII has every anchor of its field. A `LIKE` is evaluated when
+    /// those that need nothing. A value that isn't ASCII has every anchor of its field. A `LIKE` is evaluated when
     /// the value starts with its pattern's first literal, whether or not the rest matches.
     func testAnEventIsEvaluatedAgainstTheRulesItCouldMatch() throws {
         let compiled = CompiledIndicators([#"target_path ENDSWITH[c] ".plist""#, #"target_path BEGINSWITH "/Library/""#,

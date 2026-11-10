@@ -11,9 +11,9 @@ import XCTest
 
 // MARK: - osascript, dropped
 /// Pins what becomes of osascript, which 3.1.0 stopped shipping because AppleScript / JXA covers it, on a Mac that had
-/// it: the Mac's set drops it unless its rule was edited, when it stays as the user's own; a user's 3.0 copy is
-/// offered only when edited; a user's leftover view switches and silence change
-/// nothing; a trace stamped with it keeps that verdict; and its identity is never shipped again.
+/// it: the Mac's set drops it unless its rule was edited, when it stays as the user's own. A user's 3.0 copy is
+/// offered only when edited. A user's leftover view switches and silence change
+/// nothing. A trace stamped with it keeps that verdict, and its identity is never shipped again.
 final class RetiredIndicatorTests: XCTestCase {
     /// Every exec.
     private static let exec = #"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC""#
@@ -33,7 +33,7 @@ final class RetiredIndicatorTests: XCTestCase {
         XCTAssertEqual(osascript.severity, .low)
     }
 
-    /// No shipped indicator matches an exec of osascript any more, as osascript did; AppleScript / JXA matches the
+    /// No shipped indicator matches an exec of osascript any more, as osascript did. AppleScript / JXA matches the
     /// scripting component it maps.
     func testNoShippedIndicatorMatchesAnOsascriptExec() throws {
         let exec: NSDictionary = ["es_event_type": "ES_EVENT_TYPE_NOTIFY_EXEC", "event": ["exec": ["target": [

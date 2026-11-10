@@ -15,7 +15,7 @@ import OSLog
 /// every captured event with (``SavedIndicatorSet``), asked for and changed over XPC (``IndicatorRequest``).
 ///
 /// It publishes the set as the Security Extension last sent it, why it can't run some of them (``problems``), and
-/// whether this Mac Monitor may change it (``canChangeIndicators``). Every change is a request; its reply is the set
+/// whether this Mac Monitor may change it (``canChangeIndicators``). Every change is a request. Its reply is the set
 /// after it, so nothing is asked for afterwards. A request with no reply, from a Security Extension older than 3.1 or
 /// none at all, leaves the set as it was and read-only (``Connection/unavailable``), with ``updateNotice``. There's no
 /// timeout of its own: XPC's reply or error decides. Mac Monitor's transport sends nothing to a Security Extension
@@ -237,7 +237,7 @@ public extension EndpointSecurityManager {
     /// Sends indicator requests over Mac Monitor's own connection to the Security Extension, so it knows Mac Monitor
     /// as the app that owns the event stream, or not (``IndicatorEngine/connect(_:)``). A request waits until the
     /// Security Extension running now has said it answers them (``SensorSupport``). One that doesn't is sent
-    /// nothing, and the request has no reply; one that stops answering is asked again before the next request.
+    /// nothing, and the request has no reply. One that stops answering is asked again before the next request.
     var indicatorTransport: IndicatorEngine.Transport {
         { [weak self] request, reply in
             guard let self else { return DispatchQueue.main.async { reply(nil) } }

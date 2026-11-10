@@ -17,7 +17,7 @@ final class ScanBudgetTests: XCTestCase {
     /// Spent to its ceiling in every order, an event's pools never spend past its limit, the index never past its
     /// eighth, a large field past its half or the three past five eighths, and no allowance is ever negative. Every
     /// other field keeps a quarter whatever the large ones and the index spend, and nearly all of it when they spend
-    /// nothing; one padded large field leaves the other two an eighth.
+    /// nothing. One padded large field leaves the other two an eighth.
     func testThePoolsKeepTheirGuaranteesInEveryOrder() {
         let large: [ScanPool] = [.commandLine, .env, .script]
         for order in permutations(ScanPool.allCases) {
@@ -44,7 +44,7 @@ final class ScanBudgetTests: XCTestCase {
         }
     }
 
-    /// A charge that fits spends it; one that doesn't spends nothing and is noted for the rule and the event, and a
+    /// A charge that fits spends it. One that doesn't spends nothing and is noted for the rule and the event, and a
     /// new rule's refusals are its own. Setting the limit starts a new event, with each ceiling the same fraction.
     func testChargesAndRefusals() {
         var scan = ScanBudget()
@@ -136,7 +136,7 @@ final class ScanBudgetTests: XCTestCase {
     }
 
     /// A field's Foundation string and its `LIKE` units are each charged once per event, however many comparisons
-    /// read them, by its shape; an `ANY` element's are charged each time. `ENDSWITH` shares the string of a value
+    /// read them, by its shape. An `ANY` element's are charged each time. `ENDSWITH` shares the string of a value
     /// within the window, and has one of its own, its last window, past it.
     func testTheCacheIsChargedOnce() throws {
         let bytes = 2_001

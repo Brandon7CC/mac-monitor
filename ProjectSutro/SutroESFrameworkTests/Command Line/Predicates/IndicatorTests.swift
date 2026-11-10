@@ -229,7 +229,7 @@ final class IndicatorTests: XCTestCase {
     }
 
     /// An indicator filter lists the indicators it shows the events of, by identity, on each record's `indicators`: a
-    /// indicator that's edited is still filtered by, and one that's off or unusable is dropped; one that doesn't mark
+    /// indicator that's edited is still filtered by, and one that's off or unusable is dropped. One that doesn't mark
     /// the tables isn't. Any indicator's lists every offered indicator, however many: every default, as each is on.
     func testIndicatorSelectionFollowsTheIndicators() throws {
         func predicate(_ selection: IndicatorSelection, _ indicators: [Indicator]) -> StreamFilter.Predicate? {

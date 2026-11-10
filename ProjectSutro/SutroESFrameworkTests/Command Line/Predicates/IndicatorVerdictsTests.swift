@@ -29,7 +29,7 @@ final class IndicatorVerdictsTests: XCTestCase {
     }
 
     /// An event's verdicts come back from the wire as they went in, from the Security Extension's streaming encoder
-    /// and from `JSONEncoder`, hits and none; an event without them has no key.
+    /// and from `JSONEncoder`, hits and none. An event without them has no key.
     func testVerdictsRoundTripOnTheWire() throws {
         var message = try XCTUnwrap(SyntheticCorpus.records().first).message
         XCTAssertNil(message.indicators)

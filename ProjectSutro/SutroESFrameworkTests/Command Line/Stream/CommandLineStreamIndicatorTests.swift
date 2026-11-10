@@ -12,7 +12,7 @@ import EndpointSecurity
 
 // MARK: - macmonitor stream --indicator, end to end
 /// Pins `macmonitor stream`'s indicators: each record lists the verdicts the Security Extension stamped its event
-/// with, and only those; `--indicator` takes a name, ignoring case, or an ID, and is checked against the Mac's set on
+/// with, and only those. `--indicator` takes a name, ignoring case, or an ID, and is checked against the Mac's set on
 /// the stream's own connection before the stream starts. One no event can match stops it (64), and a Security
 /// Extension that has no indicators stops it with "Update the Security Extension" (69). A record also lists what the
 /// Security Extension couldn't rule out, under `indicators_undetermined`.

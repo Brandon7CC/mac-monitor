@@ -24,8 +24,8 @@ final class EventIndicatorAgreementTests: XCTestCase {
     private static let deleted = Indicator(name: "Deleted since", description: "", symbol: "star", color: .red,
                                            predicate: "TRUEPREDICATE", severity: .low)
 
-    /// An event stamped with two verdicts, one of an indicator since deleted; one stamped with none, which the
-    /// list's indicators would match; and one with no verdicts, which they match now. Each surface lists the same
+    /// An event stamped with two verdicts, one of an indicator since deleted, one stamped with none, which the
+    /// list's indicators would match, and one with no verdicts, which they match now. Each surface lists the same
     /// indicators for each.
     func testDotsSearchAndExportAgree() throws {
         let indicators = [Self.stamped, Self.every]
@@ -52,7 +52,7 @@ final class EventIndicatorAgreementTests: XCTestCase {
     }
 
     /// A verdict's indicator shows as the list has it now, though it's been turned off since, and before one the
-    /// list no longer has; summaries list every indicator in the list's order.
+    /// list no longer has. Summaries list every indicator in the list's order.
     func testVerdictsShowAsTheListHasThem() throws {
         var off = Self.every
         off.isEnabled = false

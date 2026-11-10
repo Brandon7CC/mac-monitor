@@ -60,7 +60,7 @@ final class IndicatorExchangeTests: XCTestCase {
     }
 
     /// A hand-written indicator's severity is read when it names one, and is medium when it names one this build
-    /// doesn't know; each severity comes back from a file as it went in.
+    /// doesn't know. Each severity comes back from a file as it went in.
     func testHandWrittenSeverityImports() throws {
         func imported(_ severity: String) throws -> IndicatorSeverity? {
             let file = #"[{"name": "Mine", "predicate": "TRUEPREDICATE", "severity": \#(severity)}]"#

@@ -75,7 +75,7 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     
     // MARK: Event subscriptions
     /// The Security Extension's event subscriptions, as `ES_EVENT_TYPE_*` names, and the wire names of the field
-    /// filters in effect (``FieldFilter``; see ``requestEventSubscriptions()``). For the events alone, go through
+    /// filters in effect (``FieldFilter``, see ``requestEventSubscriptions()``). For the events alone, go through
     /// `supportedEvents` or `EventCatalog`, as the filter and mute sheets do.
     @Published public var monitoredEventStrings: Set<String> = []
     /// Has the Security Extension answered ``requestEventSubscriptions()`` yet? Until it has,

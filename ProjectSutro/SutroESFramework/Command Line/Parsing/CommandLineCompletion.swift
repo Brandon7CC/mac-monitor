@@ -59,7 +59,7 @@ public enum CommandLineCompletion {
             let takesPath = [.add, .remove, .import].contains(name)
             return Command("mute \(name.rawValue)", CommandLineOption.mute(name), takesPath ? [.file] : [])
         }
-        /// Only import's argument is a file; edit's --file takes one too. An indicator's ID or name isn't completed.
+        /// Only import's argument is a file, and edit's --file takes one. An indicator's ID or name isn't completed.
         let indicators = IndicatorInvocation.Name.allCases.map { name in
             Command("indicators \(name.rawValue)", CommandLineOption.indicators(name), name == .import ? [.file] : [])
         }

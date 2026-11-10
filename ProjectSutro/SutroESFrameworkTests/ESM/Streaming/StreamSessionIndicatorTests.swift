@@ -12,7 +12,7 @@ import os
 
 // MARK: - The indicator set over a stream's connection
 /// Pins the Mac's indicator set as `macmonitor` reaches it over a real NSXPC connection: every stream follows it,
-/// `--no-mutes` too, so one `macmonitor`'s change reaches every running stream from its next event; and who may list
+/// `--no-mutes` too, so one `macmonitor`'s change reaches every running stream from its next event, and who may list
 /// or change it without root is the level Settings sets, as for mutes.
 final class StreamSessionIndicatorTests: XCTestCase {
     /// Every close.

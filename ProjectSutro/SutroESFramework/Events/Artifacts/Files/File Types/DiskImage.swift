@@ -18,13 +18,14 @@ import Foundation
 ///   can't be told. An image of encryption's first version, which macOS 27's `hdiutil` doesn't write any more, ends
 ///   with `cdsaencr` instead, after data.
 /// - A sparse image (`.sparseimage`) starts with `sprs`, and an Apple sparse image (`.asif`) with `shdw`.
-/// - A raw image, as a read/write one (`UDRW`) is, starts with what the disk does: a protective MBR's `0x55AA` at 510
-///   and a GPT's `EFI PART` at 512; a FAT or exFAT boot sector, at 0 or after an MBR at 512, whose `0x55AA` is at
-///   its 510 and whose file system's 8-byte name is at a fixed place in it (`EXFAT   ` at 3, `FAT12   ` or
-///   `FAT16   ` at 54, `FAT32   ` at 82); an Apple Partition Map's driver descriptor (`ER` at 0) and first entry
-///   (`PM` at 512); or with no partition map, an APFS container's superblock (`NXSB` at 32, with the object type of
-///   one at 24) or an HFS+ volume's header (`H+` version 4 or `HX` version 5 at 1024). Only data is checked: these
-///   are binary formats, so text with the same bytes stays text.
+/// - A raw image, as a read/write one (`UDRW`) is, starts with what the disk does. Only data is checked: these are
+///   binary formats, so text with the same bytes stays text.
+///   - A protective MBR's `0x55AA` at 510 and a GPT's `EFI PART` at 512.
+///   - A FAT or exFAT boot sector, at 0 or after an MBR at 512, whose `0x55AA` is at its 510 and whose file system's
+///     8-byte name is at a fixed place in it (`EXFAT   ` at 3, `FAT12   ` or `FAT16   ` at 54, `FAT32   ` at 82).
+///   - An Apple Partition Map's driver descriptor (`ER` at 0) and first entry (`PM` at 512).
+///   - With no partition map, an APFS container's superblock (`NXSB` at 32, with the object type of one at 24) or an
+///     HFS+ volume's header (`H+` version 4 or `HX` version 5 at 1024).
 /// - A sparse bundle (`.sparsebundle`) is a folder. Its `Info.plist`, and the `Info.bckup` copy of it, say what the
 ///   bundle is (`com.apple.diskimage.sparsebundle`), and they're named for the bundle they declare, as a zip's first
 ///   entry names the document, whether they're XML or binary property lists. Its `token` and `lock` are empty, and

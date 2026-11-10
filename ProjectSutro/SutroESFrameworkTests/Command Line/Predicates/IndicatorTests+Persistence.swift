@@ -10,8 +10,8 @@ import Foundation
 
 // MARK: - Persistence
 /// The records each persistence default matches, and the ones close to them it doesn't: one for every place it covers,
-/// and the false positives it leaves out. Builds from 1.9 until 3.1.0 wrote a rename's new-path separator as `\/`;
-/// the cases that use it cover traces those builds recorded.
+/// and the false positives it leaves out. Builds from 1.9 until 3.1.0 wrote a rename's new-path separator as `\/`.
+/// The cases that use it cover traces those builds recorded.
 extension IndicatorTests {
     /// A case: a default's name, a record it matches, and a record it doesn't.
     typealias Case = (String, NSDictionary, NSDictionary)

@@ -102,7 +102,7 @@ final class SensorSupportTests: XCTestCase {
     }
 
     /// One that answers is sent the request, and its reply comes back. A request with no reply means asking again
-    /// before the next one; one with a reply doesn't.
+    /// before the next one. One with a reply doesn't.
     func testARequestWithNoReplyAsksAgain() {
         let probe = ScriptedProbe()
         let support = SensorSupport(probe: probe.ask)
@@ -123,7 +123,7 @@ final class SensorSupportTests: XCTestCase {
 
 // MARK: - Probing on a connection of its own
 /// Pins ``SensorClient``'s probe against listeners in the test process: a Security Extension older than 3.1 closes
-/// the connection that sends `indicators`, and only that one; one that knows the call answers it.
+/// the connection that sends `indicators`, and only that one. One that knows the call answers it.
 final class SensorClientProbeTests: XCTestCase {
     /// Exports the one call a Security Extension from 3.1 on answers here.
     @objc private protocol IndicatorAnswering {
@@ -156,8 +156,8 @@ final class SensorClientProbeTests: XCTestCase {
         }
     }
 
-    /// An older Security Extension closes the probe's connection, so the probe gets no reply, on the main queue;
-    /// another connection to it, as Mac Monitor's own is, still works.
+    /// An older Security Extension closes the probe's connection, so the probe gets no reply, on the main queue.
+    /// Another connection to it, as Mac Monitor's own is, still works.
     func testAnOlderSecurityExtensionClosesOnlyTheProbe() throws {
         let service = ServiceBeforeIndicators()
         let probed = probe(NSXPCConnection(listenerEndpoint: service.endpoint))

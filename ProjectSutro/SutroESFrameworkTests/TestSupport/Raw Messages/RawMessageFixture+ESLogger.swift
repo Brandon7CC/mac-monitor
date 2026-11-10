@@ -140,7 +140,7 @@ extension XCTestCase {
     /// - Parameters:
     ///   - record: eslogger's record.
     ///   - version: The message's version, if not the record's.
-    ///   - fill: Places the record's event in the message, such as ``RawMessageFixture/fillODEvent(eslogger:)``;
+    ///   - fill: Places the record's event in the message, such as ``RawMessageFixture/fillODEvent(eslogger:)``.
     ///     `false` if it can't.
     /// - Returns: The event.
     func capture(eslogger record: [String: Any], version: UInt32? = nil,

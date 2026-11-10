@@ -79,7 +79,7 @@ final class IndicatorAlertTapTests: XCTestCase {
         XCTAssertEqual(delivered.all, [[events[1]]])
     }
 
-    /// An event recorded before a Clear is inserted and dropped, so it isn't kept; one after it is.
+    /// An event recorded before a Clear is inserted and dropped, so it isn't kept. One after it is.
     func testEventsFromBeforeAClearAreNotKept() throws {
         let store = CoreDataController(model: eventModel)
         let old = try alertMessage([alertHit("Dylib")], time: Date().addingTimeInterval(-5))
@@ -96,8 +96,8 @@ final class IndicatorAlertTapTests: XCTestCase {
         XCTAssertEqual(insert([live], into: store), [])
     }
 
-    /// Mac Monitor's own path: a live batch's eligible event notifies once it's saved, and its other events don't;
-    /// a trace's events, inserted another way, never reach the tap.
+    /// Mac Monitor's own path: a live batch's eligible event notifies once it's saved, and its other events don't.
+    /// A trace's events, inserted another way, never reach the tap.
     func testTheManagerNotifiesForSavedLiveEvents() throws {
         let manager = EndpointSecurityManager()
         let store = CoreDataController(model: eventModel)

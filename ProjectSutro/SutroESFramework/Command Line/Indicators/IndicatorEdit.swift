@@ -77,8 +77,8 @@ extension CommandLineParser {
     /// - Parameter cursor: The arguments.
     /// - Returns: The edit.
     /// - Throws: ``CommandLineUsageError``: 64 for no indicator or more than one, an option given twice or without its
-    ///   value, an unknown option, nothing to change, or options that don't go together; 65 for a value that can't be
-    ///   used.
+    ///   value, an unknown option, nothing to change, or options that don't go together, and 65 for a value that
+    ///   can't be used.
     static func indicatorEdit(_ cursor: inout ArgumentCursor) throws -> IndicatorInvocation {
         var references: [String] = [], given: [String: String] = [:], flags = Set<String>()
         let valued = Set(IndicatorEdit.fieldOptions.map(\.option) + ["--file"])

@@ -34,9 +34,9 @@ enum ScanPool: Int, CaseIterable, Sendable {
 ///
 /// The event's allowance, ``eventLimit``, is split by where a read comes from (``ScanPool``):
 ///
-/// - the index gets at most an eighth (``indexLimit``), and running out only costs it pruning;
+/// - the index gets at most an eighth (``indexLimit``), and running out only costs it pruning.
 /// - each of `command_line`, `env` and `script_content` gets at most half (``fieldLimit``), and the three together
-///   five eighths (``largeLimit``);
+///   five eighths (``largeLimit``).
 /// - so every other field always has at least a quarter left, however the large ones are padded.
 ///
 /// A read that doesn't fit is refused: its comparison comes out undetermined (``IndicatorVerdict/unknown``), never

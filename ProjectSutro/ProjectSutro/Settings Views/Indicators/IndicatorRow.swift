@@ -13,7 +13,7 @@ import SutroESFramework
 /// One indicator, as Subscriptions draws an event (``SettingsItemRow``): its symbol, in its color while it's on, its
 /// name and severity, its technique and how it marks the tables, why the Security Extension can't run it if it
 /// can't, a crossed-out bell when this user said not to notify for it, an Edit button, and its switch, which is
-/// off-limits while the Mac's indicators can't be changed. Clicking the row edits it too; its description is its
+/// off-limits while the Mac's indicators can't be changed. Clicking the row edits it too. Its description is its
 /// help.
 struct IndicatorRow: View {
     let indicator: Indicator

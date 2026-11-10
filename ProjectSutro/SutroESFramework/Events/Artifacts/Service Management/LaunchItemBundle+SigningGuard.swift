@@ -41,7 +41,7 @@ extension LaunchItemBundle {
 
     /// Is a folder's entry one Security can open and read safely? Only `stat(2)`, which never opens it.
     ///
-    /// - Parameter path: The entry. A symbolic link is followed; a broken one is safe, as there's nothing to open.
+    /// - Parameter path: The entry. A symbolic link is followed. A broken one is safe, as there's nothing to open.
     /// - Returns: `true` for a folder, a regular file (an Info.plist no longer than
     ///   ``ProcessHelpers/fileContentsLimit``), or nothing at all.
     private static func isSafeEntry(_ path: String) -> Bool {

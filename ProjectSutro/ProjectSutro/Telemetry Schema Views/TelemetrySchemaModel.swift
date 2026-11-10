@@ -37,7 +37,7 @@ final class TelemetrySchemaModel: ObservableObject {
         var state: State
     }
     
-    /// The most issues a report keeps; every issue is still counted.
+    /// The most issues a report keeps. Every issue is still counted.
     static let issueLimit = 100
     /// How the window checks only eslogger's keys, which a report's hint for eslogger's own JSON ends with.
     static let esloggerAdvice = "Check eslogger's Fields checks only the keys eslogger writes."
@@ -46,7 +46,7 @@ final class TelemetrySchemaModel: ObservableObject {
     let schema: Swift.Result<Data, Error>
     /// The schema's text, empty if it couldn't be read.
     let schemaText: String
-    /// The trace being checked, or whose report is showing; `nil` when neither is.
+    /// The trace being checked, or whose report is showing. `nil` when neither is.
     @Published private(set) var check: TraceCheck?
     
     /// Stops the check that's running: read by the validator before each record.
@@ -132,7 +132,7 @@ final class TelemetrySchemaModel: ObservableObject {
         check = nil
     }
     
-    /// Record where the current check has got; a stopped check's are dropped.
+    /// Record where the current check has got. A stopped check's are dropped.
     ///
     /// - Parameters:
     ///   - run: The check's number.

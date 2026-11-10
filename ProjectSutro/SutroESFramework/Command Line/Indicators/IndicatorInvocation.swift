@@ -126,7 +126,7 @@ extension CommandLineParser {
     ///
     /// - Parameter cursor: The arguments.
     /// - Returns: The indicator to add: medium unless a severity is given.
-    /// - Throws: ``CommandLineUsageError``: 64 for a missing or repeated option, a positional, or an unknown option;
+    /// - Throws: ``CommandLineUsageError``: 64 for a missing or repeated option, a positional, or an unknown option.
     ///   65 for a name that's too long, an unknown severity, or a predicate the Security Extension can't run.
     static func indicatorAdd(_ cursor: inout ArgumentCursor) throws -> IndicatorInvocation {
         var given: [String: String] = [:]

@@ -33,7 +33,7 @@ final class CompiledIndicatorsTests: XCTestCase {
         XCTAssertEqual(compiled.hits(for: message, values: &values), [])
     }
 
-    /// Without a set nothing is evaluated (`nil`); with one, an event that matches nothing has `[]`.
+    /// Without a set nothing is evaluated (`nil`). With one, an event that matches nothing has `[]`.
     func testVerdictsAreNilOnlyWithoutASet() throws {
         var values = MessageValueCache()
         let message = try exec()

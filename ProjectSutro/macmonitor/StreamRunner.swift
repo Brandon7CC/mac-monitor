@@ -14,7 +14,7 @@ import SutroESFramework
 /// is ``StreamCommand``'s.
 ///
 /// **Stopping:** the first `SIGINT`, `SIGTERM` or `SIGHUP` asks the Security Extension to stop, and batches keep being
-/// written until it answers; then `macmonitor` exits by that signal. If the answer doesn't come within 3 seconds
+/// written until it answers, then `macmonitor` exits by that signal. If the answer doesn't come within 3 seconds
 /// (standard output is stalled, say), a ``StopWatchdog`` exits anyway, and so does a second signal. A stream that
 /// stops itself at its `--count` or `--for` exits 0.
 enum StreamRunner {

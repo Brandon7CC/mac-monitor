@@ -21,7 +21,7 @@ final class IndicatorAlertSettingsTests: XCTestCase {
         XCTAssertFalse(IndicatorSeverity.allCases.contains(where: settings.notifies))
     }
 
-    /// The switches and the silenced indicators read back as saved; each switch is its own, and Low never notifies.
+    /// The switches and the silenced indicators read back as saved. Each switch is its own, and Low never notifies.
     func testSettingsRoundTrip() {
         let defaults = makeDefaults()
         let saved = IndicatorAlertSettings(high: false, medium: true, silenced: [UUID(), UUID()])
@@ -55,7 +55,7 @@ final class IndicatorAlertSettingsTests: XCTestCase {
     }
 
     /// The status line is the first that applies: macOS refusing, notifications off, quiet, not asked yet, then the
-    /// Security Extension, then another user's stream; none while they can show. Only not asked offers to ask.
+    /// Security Extension, then another user's stream. None while they can show. Only not asked offers to ask.
     func testTheStatusIsTheFirstThatApplies() {
         typealias Status = IndicatorAlertStatus
         XCTAssertEqual(Status.current(authorization: .notAllowed, connection: .unavailable, streamOwned: true),

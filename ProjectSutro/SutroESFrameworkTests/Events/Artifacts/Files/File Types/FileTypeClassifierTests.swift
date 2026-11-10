@@ -334,7 +334,7 @@ final class FileTypeClassifierTests: XCTestCase {
         assertType(Samples.starting(with: Samples.text("dyld_v1  arm64e")), "dyld_shared_cache")
     }
 
-    /// A PE has `PE\0\0` where `e_lfanew` points; an `MZ` without one is an executable only when it isn't text.
+    /// A PE has `PE\0\0` where `e_lfanew` points. An `MZ` without one is an executable only when it isn't text.
     func testWindowsExecutable() {
         var pe = Samples.starting(with: Samples.text("MZ"), length: 256)
         pe.replaceSubrange(0x3C..<0x40, with: Samples.word(0x80))
@@ -360,7 +360,7 @@ final class FileTypeClassifierTests: XCTestCase {
         assertType(Samples.text("Notes on <plist> files"), "public.plain-text")
     }
 
-    /// Valid UTF-8 without a NUL is text, even cut mid-character at 4 KB; anything else is data. No bytes is empty.
+    /// Valid UTF-8 without a NUL is text, even cut mid-character at 4 KB. Anything else is data. No bytes is empty.
     func testTextAndData() {
         assertType(Samples.text("hello, world\n"), "public.plain-text")
         assertType(Samples.text("caf\u{E9} \u{1F600}"), "public.plain-text")

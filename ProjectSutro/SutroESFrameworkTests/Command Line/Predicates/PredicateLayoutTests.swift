@@ -90,7 +90,7 @@ final class PredicateLayoutTests: XCTestCase {
 
     /// Nested groups each go a level deeper and close back at the level they opened at. A group with no `AND` or
     /// `OR`, a `NOT (...)` of one condition, a quoted string's parentheses and `AND`, and a `SUBQUERY`'s arguments stay
-    /// on their line; `NOT(` with no space is still a group. `AND(` with no space, `&&` and `||` join as `AND` and
+    /// on their line. `NOT(` with no space is still a group. `AND(` with no space, `&&` and `||` join as `AND` and
     /// `OR` do, and `SUBQUERY (` with a space is still a function's arguments.
     func testNestedGroupsIndent() {
         let predicate = #"a == 1 AND ((b == 2) OR (NOT(c == 3 OR d == 4) AND e CONTAINS "x (y) AND z")) "#
@@ -153,7 +153,7 @@ final class PredicateLayoutTests: XCTestCase {
     }
 
     /// The operators and modifiers the shipped indicators use are exactly those pinned, each read as one token of
-    /// its kind, so the popover colors it as one; `nil`, `YES` and `NO` are keywords. Laying a predicate out never
+    /// its kind, so the popover colors it as one. `nil`, `YES` and `NO` are keywords. Laying a predicate out never
     /// splits, merges or recolors a token, and no token runs over a line.
     func testShippedOperatorTokens() {
         var used: [PredicateText.Token.Kind: Set<String>] = [:]

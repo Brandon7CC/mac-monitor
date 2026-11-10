@@ -16,7 +16,7 @@ import Foundation
 /// `macmonitor stream` does: an event the Security Extension didn't evaluate has no key. Records encoded to match an
 /// indicator don't write it, so a predicate never reads another indicator's matches, stored or not. Beside stored
 /// verdicts, a record also lists under `indicators_undetermined` those the Security Extension couldn't rule out
-/// (``ESMessage/recordedUndetermined``); hits matched as it's written never have them.
+/// (``ESMessage/recordedUndetermined``). Hits matched as it's written never have them.
 ///
 /// An encoder is given indicators by encoding inside ``encoding(with:_:)``, which an `ESMessage` reads as it encodes.
 /// Any encoder works, the streaming one too, since its `userInfo` is always empty.
@@ -81,7 +81,7 @@ public extension RecordIndicators {
 // MARK: - Indicator hits
 /// An indicator an event matched: what an export record's `indicators` lists, with who evaluated it. The Security
 /// Extension makes them as it captures the event (``CompiledIndicators``), and they travel with it
-/// (``IndicatorVerdicts``); Mac Monitor makes them as it writes a record of an event that has none
+/// (``IndicatorVerdicts``). Mac Monitor makes them as it writes a record of an event that has none
 /// (``RecordIndicators``). The wire's shape is the record's, so an imported trace keeps its verdicts.
 public struct IndicatorHit: Codable, Hashable, Sendable {
     /// The indicator's identity.

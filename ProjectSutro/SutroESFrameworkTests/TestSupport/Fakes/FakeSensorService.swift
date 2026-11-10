@@ -87,7 +87,7 @@ final class FakeSensorService: NSObject, NSXPCListenerDelegate, SensorProtocol {
     }
 
     // MARK: SensorProtocol
-    /// The first caller owns the event stream; any other is refused.
+    /// The first caller owns the event stream. Any other is refused.
     func start(recording: Bool, reply: @escaping (NewClientResult) -> Void) {
         let caller = NSXPCConnection.current()
         reply(state.withLockUnchecked { state in

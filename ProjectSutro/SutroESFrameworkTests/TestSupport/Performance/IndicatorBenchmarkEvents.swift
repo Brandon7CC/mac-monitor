@@ -73,7 +73,7 @@ extension XCTestCase {
     /// Connects of one type that match no shipped indicator, as nearly every one does, from those `macmonitor stream`
     /// recorded (`Fixtures/macmonitor-3.1-resolver.jsonl`), each with native strings: for a Unix domain socket,
     /// platform binaries' connects to the resolver's, which the index finds and Unsigned code resolved a name rules out
-    /// by the process's signing, and to syslog's, docker's and an ssh agent's, which the index rules out; for XPC, a
+    /// by the process's signing, and to syslog's, docker's and an ssh agent's, which the index rules out. For XPC, a
     /// platform binary's to the resolver's service and to others.
     ///
     /// - Parameters:

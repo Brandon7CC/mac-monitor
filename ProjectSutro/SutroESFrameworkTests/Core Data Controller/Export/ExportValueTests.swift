@@ -233,7 +233,7 @@ final class ExportValueTests: XCTestCase {
         }
     }
     
-    /// The Security Extension's `login_login` without a user ID exports `null`, as eslogger writes it, not root's 0;
+    /// The Security Extension's `login_login` without a user ID exports `null`, as eslogger writes it, not root's 0,
     /// and so does an older Security Extension's, which sent -1 in its place.
     func testLoginWithoutUID() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN)

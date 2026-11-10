@@ -32,7 +32,7 @@ final class IndicatorEditingTests: XCTestCase {
         return (original, edited)
     }
 
-    /// Every editable field that differs is listed, in order; whether it's on and its views never are.
+    /// Every editable field that differs is listed, in order. Whether it's on and its views never are.
     func testChangedFieldsListsOnlyEditableFieldsInOrder() throws {
         let (original, edited) = try everyFieldChanged()
         XCTAssertEqual(original.changedFields(to: edited), Indicator.EditableField.allCases)

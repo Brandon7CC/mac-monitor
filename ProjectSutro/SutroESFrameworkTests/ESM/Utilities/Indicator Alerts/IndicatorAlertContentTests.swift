@@ -19,7 +19,7 @@ final class IndicatorAlertContentTests: XCTestCase {
     /// A candidate from an exec of `/usr/bin/launchctl` (pid 812) that created a LaunchAgent.
     ///
     /// - Parameters:
-    ///   - hits: Its hits; the first is the notification's.
+    ///   - hits: Its hits. The first is the notification's.
     ///   - change: Changes the event further.
     /// - Returns: The candidate.
     private func event(_ hits: [IndicatorHit] = [], age: TimeInterval = 0,
@@ -48,7 +48,7 @@ final class IndicatorAlertContentTests: XCTestCase {
     }
 
     /// A first notice: the severity and name, the process, what it did with the home folder as `~`, its signing and
-    /// ATT&CK; the default sound for High only.
+    /// ATT&CK, with the default sound for High only.
     func testAFirstNotice() throws {
         let notice = content(.first(try event()))
         XCTAssertEqual(notice.title, "High: Launch job loaded")
@@ -60,7 +60,7 @@ final class IndicatorAlertContentTests: XCTestCase {
         XCTAssertEqual(content(.first(try event([alertHit("Dylib", .medium)]))).title, "Medium: Dylib")
     }
 
-    /// The subtitle names another user's process by user, and a process without an executable by pid; ad hoc and
+    /// The subtitle names another user's process by user, and a process without an executable by pid. Ad hoc and
     /// unsigned processes say so.
     func testTheProcessAndItsSigning() throws {
         let root = try event { $0.process.euid = 0; $0.process.euid_human = "root" }
@@ -72,7 +72,7 @@ final class IndicatorAlertContentTests: XCTestCase {
         XCTAssertTrue(content(.first(unsigned)).body.hasSuffix("\nunsigned. Persistence, T1543.001"))
     }
 
-    /// The event's other hits are named, two and a count of the rest; an event older than a minute says when.
+    /// The event's other hits are named, two and a count of the rest. An event older than a minute says when.
     func testOtherHitsAndAnOldEventsTime() throws {
         let hits = [alertHit("XProtect", .high), alertHit("Ran a script", .low), alertHit("Adhoc", .medium),
                     alertHit("Download tool", .low), alertHit("Login", .low)]
@@ -132,7 +132,7 @@ final class IndicatorAlertContentTests: XCTestCase {
         XCTAssertTrue(content(.summary(many)).subtitle.hasSuffix("from 3 or more processes"))
     }
 
-    /// The overflow lists three indicators, the rarest first, and how many more; it plays no sound, and its click
+    /// The overflow lists three indicators, the rarest first, and how many more. It plays no sound, and its click
     /// opens the first listed indicator's latest event and searches for them all.
     func testTheOverflow() throws {
         let entries = try [("Mach-O written", 24), ("Launch job loaded", 2), ("Dylib inserted", 1),

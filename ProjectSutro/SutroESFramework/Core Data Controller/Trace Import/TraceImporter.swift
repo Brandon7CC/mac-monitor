@@ -16,12 +16,12 @@ import os
 /// Takes what `/usr/bin/eslogger` writes and what Mac Monitor writes or receives from its Security Extension, told
 /// apart by their content rather than the file's extension:
 /// - eslogger's JSON Lines, and its `--oslog` events read back with `log show` (`--style json` or `ndjson`, whose
-///   entries carry the event as their `eventMessage`, or a text style, whose lines end with it);
+///   entries carry the event as their `eventMessage`, or a text style, whose lines end with it).
 /// - Mac Monitor's exports: JSONL (one compact event per line) and pretty JSON (pretty-printed events joined by "\n",
 ///   not an array). Since 3.0.0 an export is eslogger's JSON plus Mac Monitor's own fields, among them its telemetry
 ///   version (``TelemetrySchema/versionKey``), which is ignored: a re-export carries the version it's written in. 2.0
-///   and 2.1 wrote their own shape;
-/// - the Security Extension's own `Message` JSON (the XPC wire format), one per line;
+///   and 2.1 wrote their own shape.
+/// - the Security Extension's own `Message` JSON (the XPC wire format), one per line.
 /// - a JSON array of any of these, compact or pretty.
 ///
 /// Every event is read with ``TraceDecoder``, which bridges these shapes for all event types at once instead of with a

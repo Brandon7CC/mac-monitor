@@ -256,7 +256,7 @@ private struct CompletionList: View {
     let items: [PredicateText.Completion.Item]
     let selected: Int
     let typed: String
-    /// How many rows show at once; the rest scroll.
+    /// How many rows show at once. The rest scroll.
     let rows: Int
     let choose: (Int) -> Void
 

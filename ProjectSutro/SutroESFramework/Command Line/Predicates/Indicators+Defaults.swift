@@ -14,9 +14,9 @@ public extension Indicator {
     /// They're the `indicators` of `Detection/DefaultIndicators.json`, read from this binary (``DefaultIndicators``).
     ///
     /// Each has the severity its evidence earns: high only for an XProtect detection, which is malware macOS itself
-    /// found; medium for persistence, injection, payloads, password checks and privacy permissions written around
+    /// found. Medium for persistence, injection, payloads, password checks and privacy permissions written around
     /// tccd, which are suspicious but have benign uses (a new executable, an inserted dylib, a login hook, a change to
-    /// authentication, a password checked with dscl, a TCC database written); and low for context and what's often
+    /// authentication, a password checked with dscl, a TCC database written), and low for context and what's often
     /// benign (a login, a download tool, a plist, an archive or a compiled script written, quarantine removed, a
     /// keychain opened, a name resolved by unsigned code).
     static let defaults: [Indicator] = DefaultIndicators.file.indicators

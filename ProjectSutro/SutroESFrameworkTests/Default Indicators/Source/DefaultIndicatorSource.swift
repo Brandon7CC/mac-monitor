@@ -17,7 +17,7 @@ import Foundation
 ///
 /// Each default's number (``Indicator/uuid(_:)``) is its identity on every Mac, in every saved set and every verdict a
 /// trace keeps. A number is never given to another indicator, not even once its own is dropped: those dropped are
-/// ``Indicator/retiredNumbers``. A change to a default reaches every Mac that didn't edit it; one someone edited keeps
+/// ``Indicator/retiredNumbers``. A change to a default reaches every Mac that didn't edit it. One someone edited keeps
 /// their edit (``SavedIndicators``).
 ///
 /// Each predicate is built here from named parts that say what they're for, since JSON has no comments and repeats
@@ -55,10 +55,10 @@ extension Indicator {
     /// what ``defaults`` reads from the file.
     ///
     /// Each has the severity its evidence earns: high for an XProtect detection, which is malware macOS itself
-    /// found, and for a file a File Quarantine-aware app leaves unquarantined, which Gatekeeper never checks; medium
+    /// found, and for a file a File Quarantine-aware app leaves unquarantined, which Gatekeeper never checks. Medium
     /// for persistence, injection, payloads, password checks and privacy permissions written around tccd, which are
     /// suspicious but have benign uses (a new executable, an inserted dylib, a login hook, a change to
-    /// authentication, a password checked with dscl, a TCC database written); and low for context and what's often
+    /// authentication, a password checked with dscl, a TCC database written), and low for context and what's often
     /// benign (a login, a download tool, a plist, an archive or a compiled script written, quarantine removed, a
     /// keychain opened, a name resolved by unsigned code).
     static let sourceDefaults: [Indicator] = [

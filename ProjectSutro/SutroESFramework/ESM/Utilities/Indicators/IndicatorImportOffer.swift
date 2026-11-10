@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - 3.0 indicators
 /// The indicators a user kept in Mac Monitor 3.0, offered once to the Mac's set. Mac Monitor 3.1 keeps one set for
-/// the Mac, which starts as Mac Monitor's own; nothing of a user's 3.0 indicators reaches it unless they import them.
+/// the Mac, which starts as Mac Monitor's own. Nothing of a user's 3.0 indicators reaches it unless they import them.
 ///
 /// Only what's additive is offered:
 /// - **Added:** the user's own indicators the Mac doesn't have. Each keeps its switches. So is an edited copy of one

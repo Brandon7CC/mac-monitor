@@ -123,7 +123,7 @@ final class FileModeTests: XCTestCase {
         XCTAssertEqual(added(from: 0o100600, to: 0o601), [.madeExecutable])
     }
 
-    /// Execute bits the file had already, or taken away, earn nothing; any new execute bit does.
+    /// Execute bits the file had already, or taken away, earn nothing. Any new execute bit does.
     func testExecuteAlreadySetIsNotCalledOut() {
         XCTAssertEqual(added(from: 0o100755, to: 0o755), [])
         XCTAssertEqual(added(from: 0o100755, to: 0o644), [])
@@ -145,7 +145,7 @@ final class FileModeTests: XCTestCase {
         XCTAssertEqual(added(from: 0o040755, to: 0o6777), [.worldWritable])
     }
 
-    /// A sticky directory, as `/tmp`'s 1777 is, isn't called out as world-writable; a sticky file still is.
+    /// A sticky directory, as `/tmp`'s 1777 is, isn't called out as world-writable. A sticky file still is.
     func testStickyDirectoryIsNotWorldWritable() {
         XCTAssertEqual(added(from: 0o040755, to: 0o1777), [])
         XCTAssertEqual(added(from: 0o041755, to: 0o1777), [])
@@ -165,7 +165,7 @@ final class FileModeTests: XCTestCase {
         XCTAssertEqual(added(from: 0o100644, to: 0o4755), [.madeExecutable, .setuidAdded])
     }
 
-    /// Write for others is called out when added; write for the owner or group isn't.
+    /// Write for others is called out when added. Write for the owner or group isn't.
     func testWorldWritable() {
         XCTAssertEqual(added(from: 0o100644, to: 0o646), [.worldWritable])
         XCTAssertEqual(added(from: 0o100644, to: 0o664), [])

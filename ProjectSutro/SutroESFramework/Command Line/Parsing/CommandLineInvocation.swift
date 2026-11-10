@@ -84,7 +84,7 @@ public struct StreamInvocation: Equatable {
     public var appliesSavedMutes: Bool = true
     /// Show the pipeline's own events? `--include-self`.
     public var includeSelf: Bool = false
-    /// The field filters to ask for: Mac Monitor's defaults. `--every EVENT` turns off EVENT's; `--every all` turns
+    /// The field filters to ask for: Mac Monitor's defaults. `--every EVENT` turns off EVENT's. `--every all` turns
     /// off every one.
     public var fieldFilters: Set<FieldFilter> = Set(defaultFieldFilters)
     /// Stop after this many seconds. `--for`.

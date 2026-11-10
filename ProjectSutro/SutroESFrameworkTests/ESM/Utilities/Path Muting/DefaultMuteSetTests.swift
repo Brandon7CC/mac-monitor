@@ -111,8 +111,8 @@ final class DefaultMuteSetTests: XCTestCase {
     }
     
     /// The idle and install noise a Sublime Text install trace showed is muted with the narrowest type that removes
-    /// it: the Secure Enclave and Bluetooth daemons' programs only as mmap targets, so their execs stay seen;
-    /// logd_helper's file writes but not its mmaps, a tell of a program run for the first time; and siriactionsd's
+    /// it: the Secure Enclave and Bluetooth daemons' programs only as mmap targets, so their execs stay seen,
+    /// logd_helper's file writes but not its mmaps, a tell of a program run for the first time, and siriactionsd's
     /// connects not at all, as they show a Shortcut running in the background.
     func testInstallNoiseIsMutedNarrowly() {
         let list = MuteList.shippedDefault(for: alice)

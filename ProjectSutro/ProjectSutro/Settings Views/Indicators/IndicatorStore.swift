@@ -14,7 +14,7 @@ import SutroESFramework
 // MARK: - Store
 /// The indicators Event Facts looks for, as Settings > Indicators edits them: the Mac's indicator set, which the
 /// Security Extension keeps and stamps every event with (``IndicatorEngine``), as this user sees it. Each indicator's
-/// view switches, where it shows in Correlation, Groups and the tables, are this user's (``IndicatorOverlay``); the
+/// view switches, where it shows in Correlation, Groups and the tables, are this user's (``IndicatorOverlay``). The
 /// rest is the Mac's, and every change to it is a request to the Security Extension. Its matchers find them in
 /// Correlation, Groups, and the event tables, from each event's stored verdicts when it has them.
 @MainActor

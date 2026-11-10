@@ -37,7 +37,7 @@ extension NSXPCConnection: PeerConnection {}
 /// role's requirement before the role's endpoint configures and activates it, so:
 /// - a process signed as Mac Monitor that the router took for `macmonitor` (root, or a reused process ID) reaches
 ///   neither ``StreamProtocol`` nor ``SensorProtocol``: it's offered `macmonitor`'s interface and cut off on its
-///   first message. Nothing runs Mac Monitor as root;
+///   first message. Nothing runs Mac Monitor as root.
 /// - a process signed as `macmonitor` that the router took for Mac Monitor is cut off the same way.
 ///
 /// The `macmonitor` role grants nothing by itself. Whether a request may stream or change mutes is decided per

@@ -48,12 +48,16 @@ extension Indicator {
         + #" AND event.exec.command_line CONTAINS "com.apple.atrun" AND "#
         + anyOf("event.exec.command_line CONTAINS", [" enable ", " load ", " bootstrap ", " kickstart "]) + ")"
 
-    /// The predicate a change to authentication matches: sudo's configuration, a PAM stack or a module in
-    /// `/usr/local/lib/pam` written or put in place, other than an editor's or visudo's temporary file, which neither
-    /// reads; an authorization plugin or OpenDirectory module added, the executable inside one replaced, or a staged
-    /// folder of them renamed over the plugins or modules folder, which ship empty, with either separator a rename's
-    /// new path has had; the authorization database written by anything but authd; or a petition for a right that adds
-    /// or modifies rights. A petition's context lists every right it asks for, as in
+    /// The predicate a change to authentication matches:
+    /// - sudo's configuration, a PAM stack or a module in `/usr/local/lib/pam` written or put in place, other than an
+    ///   editor's or visudo's temporary file, which neither reads.
+    /// - An authorization plugin or OpenDirectory module added, the executable inside one replaced, or a staged folder
+    ///   of them renamed over the plugins or modules folder, which ship empty, with either separator a rename's new
+    ///   path has had.
+    /// - The authorization database written by anything but authd, or a petition for a right that adds or modifies
+    ///   rights.
+    ///
+    /// A petition's context lists every right it asks for, as in
     /// `[right1,right2] petitioner → instigator`.
     static let authenticationModifiedPredicate = "(" + written(or: "CREATE", "RENAME", "LINK") + " AND "
         + anyOf("target_path BEGINSWITH[c]", ["/private/etc/sudo", "/private/etc/pam.d", "/usr/local/lib/pam"])
@@ -168,9 +172,9 @@ extension Indicator {
     /// The predicate a terminal startup command matches: a file written, linked or renamed into a home folder's
     /// iTerm2 `Scripts/AutoLaunch` folder, or as the `AutoLaunch.scpt` older iTerm builds run, other than the folder
     /// created empty and the Python runtime and caches a full-environment script keeps in its `iterm2env` and
-    /// `__pycache__`; or an exec whose command line names Terminal's preferences and a profile's `CommandString`, or
+    /// `__pycache__`, or an exec whose command line names Terminal's preferences and a profile's `CommandString`, or
     /// iTerm2's and a profile's `Command` (which `Custom Command` also has) or `Initial Text`, or imports either domain
-    /// with `defaults import`. Domains are compared ignoring case, as `defaults` finds them; keys aren't. Command lines
+    /// with `defaults import`. Domains are compared ignoring case, as `defaults` finds them. Keys aren't. Command lines
     /// that read, export or remove preferences are left out.
     static let terminalStartupPredicate = "(" + written(or: "CREATE", "RENAME", "LINK") + " AND "
         + inHomeLibrary("Application Support/iTerm")
@@ -185,7 +189,7 @@ extension Indicator {
 
     /// The predicate a login or logout hook matches: an exec whose command line names loginwindow's preferences and
     /// `LoginHook` or `LogoutHook`, as `defaults write`, PlistBuddy and plutil do, or imports the domain whole with
-    /// `defaults import`, other than one that reads, exports or removes preferences; or root's
+    /// `defaults import`, other than one that reads, exports or removes preferences, or root's
     /// `com.apple.loginwindow.plist` written, linked or renamed into place by anything but cfprefsd, which saves what
     /// `defaults write` asks for, whatever key it changes. Names are compared ignoring case. A harness that restores
     /// loginwindow's preferences with `defaults import` matches too, as one restoring Terminal's does.

@@ -27,11 +27,14 @@ import EndpointSecurity
 /// (``IndicatorDraft/readingCheapestFirst``), so how a rule is written can't make an event's large fields be read
 /// before a cheap field rules it out.
 ///
-/// What it refuses, each with its own ``SensorProblem``: `MATCHES`, `SUBQUERY`, `ALL`, `BETWEEN`, functions,
-/// aggregates and variables; a key path it doesn't read (``IndicatorField``) or one filled after capture; a string
-/// compared with a number, ordered, or an array compared without `ANY`; `?`, `\` or other than ASCII in a `LIKE`
-/// pattern; a number that isn't whole within ±2^53 or finite; more than ``maxNodes`` nodes; a constant over
-/// ``maxConstantBytes``; a rule that names no event type; and one whose type checks can never all pass.
+/// What it refuses, each with its own ``SensorProblem``:
+/// - `MATCHES`, `SUBQUERY`, `ALL`, `BETWEEN`, functions, aggregates and variables.
+/// - A key path it doesn't read (``IndicatorField``) or one filled after capture.
+/// - A string compared with a number, ordered, or an array compared without `ANY`.
+/// - `?`, `\` or other than ASCII in a `LIKE` pattern.
+/// - A number that isn't whole within ±2^53 or finite.
+/// - More than ``maxNodes`` nodes, or a constant over ``maxConstantBytes``.
+/// - A rule that names no event type, and one whose type checks can never all pass.
 public enum IndicatorCompiler {
     /// The deepest parentheses and braces may nest.
     public static let maxDepth = 32

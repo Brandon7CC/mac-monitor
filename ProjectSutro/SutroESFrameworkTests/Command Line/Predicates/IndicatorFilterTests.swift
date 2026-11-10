@@ -11,7 +11,7 @@ import XCTest
 
 // MARK: - Indicator filter
 /// Pins the main window's indicator filter as its controls show it: Any indicator filters by the indicators that are on
-/// and mark the tables, and switches off; it stays on when it's dropped, and says why, the reason the Filters sheet's
+/// and mark the tables, and switches off. It stays on when it's dropped, and says why, the reason the Filters sheet's
 /// switch can't be turned on, so it can still be switched off.
 final class IndicatorFilterTests: XCTestCase {
     /// The defaults, every one offered.

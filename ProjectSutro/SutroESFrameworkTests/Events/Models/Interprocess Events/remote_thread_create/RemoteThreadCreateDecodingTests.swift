@@ -119,8 +119,8 @@ final class RemoteThreadCreateDecodingTests: XCTestCase {
     
     // MARK: The Security Extension's messages
     
-    /// The Security Extension records the thread state and the flavor's name, and the app reads them back over XPC;
-    /// a `thread_create` sends neither key.
+    /// The Security Extension records the thread state and the flavor's name, and the app reads them back over XPC.
+    /// A `thread_create` sends neither key.
     func testWireRoundTrip() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE)
         let threadState = fixture.threadState(bytes: [0, 1, 2, 0xFF])

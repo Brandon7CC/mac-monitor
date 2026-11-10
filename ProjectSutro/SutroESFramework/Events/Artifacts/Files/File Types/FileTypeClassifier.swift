@@ -109,7 +109,7 @@ enum FileTypeClassifier {
     ///   - type: The type its first bytes gave (``classify(header:slice:)``).
     ///   - trailer: The file's last ``trailerLength`` bytes, or `nil` when they weren't read.
     /// - Returns: When ``readsTrailer(for:)``, ``FileType/diskImage`` for a trailer that starts with `koly`, or
-    ///   ``FileType/encryptedDiskImage`` for data that ends with `cdsaencr`; else `type`.
+    ///   ``FileType/encryptedDiskImage`` for data that ends with `cdsaencr`, else `type`.
     static func classify(_ type: FileType, trailer: [UInt8]?) -> FileType {
         guard let trailer, readsTrailer(for: type) else { return type }
         return DiskImage.type(type, trailer: trailer)

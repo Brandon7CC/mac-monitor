@@ -11,7 +11,7 @@ import XCTest
 // MARK: - Signals
 /// Sends the built `macmonitor` (``BuiltTool``) signals while `validate` checks a long trace, and checks how it ends:
 /// its `SignalTrap` stops the check on the first `SIGINT`, `SIGTERM` or `SIGHUP`, writes the report so far and exits
-/// by that signal, so a shell sees 130 for Ctrl-C; a second signal exits at once with 128 plus its number.
+/// by that signal, so a shell sees 130 for Ctrl-C. A second signal exits at once with 128 plus its number.
 final class CommandLineSignalTests: XCTestCase {
     /// The records in the long trace: enough that checking them takes seconds.
     private static let longTraceRecords = 200_000

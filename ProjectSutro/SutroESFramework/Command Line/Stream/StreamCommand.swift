@@ -302,7 +302,7 @@ extension StreamCommand {
     ///
     /// - Parameter change: The change, or `nil` if it didn't read.
     /// - Returns: Such as "Mac Monitor (pid 501) changed the saved mute set: 1 added, 0 removed, 0 changed, 79 mutes
-    ///   now. This stream applies it; --no-mutes shows everything."
+    ///   now. This stream applies it. --no-mutes shows everything."
     static func describe(_ change: MuteSetChange?) -> String {
         let consequence = "This stream applies it; --no-mutes shows everything."
         guard let change else { return "The saved mute set changed. \(consequence)" }

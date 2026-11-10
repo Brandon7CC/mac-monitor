@@ -157,7 +157,7 @@ extension StringMatching {
 /// The values one lane has given Foundation for the event it's evaluating, so each is made once per event however
 /// many comparisons read it: an event field's first and last ``StringMatching/foundationLimit`` bytes as `NSString`s,
 /// with their shapes, and its `LIKE` units for each set of options. Kept in ``MessageValueCache``. Each is charged to
-/// the event's ``ScanBudget`` when it's made, and never again that event; an array's element is made each time it's
+/// the event's ``ScanBudget`` when it's made, and never again that event. An array's element is made each time it's
 /// compared.
 ///
 /// **Threading:** not thread-safe. One per lane, used on the lane's queue.

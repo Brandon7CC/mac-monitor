@@ -12,7 +12,7 @@ import SutroESFramework
 // MARK: - Command line tool
 /// `macmonitor`: read the command line, check root, run the command, exit.
 ///
-/// Everything with logic in it lives in `SutroESFramework`, where the tests reach it; this is process glue. `stream`,
+/// Everything with logic in it lives in `SutroESFramework`, where the tests reach it. This is process glue. `stream`,
 /// `mute` and `indicators` talk to the Security Extension, which decides who may: root, and any user when Settings
 /// allows it (`CommandLineAccess`). `status` asks it too, but only reads, so anyone may. `macmonitor` doesn't guess.
 /// It asks, and a refusal says how to run the same command line with `sudo`. It refuses to run set-user-ID, so the
@@ -22,7 +22,7 @@ enum CommandLineTool {
     /// The command line, without the program's name, for a refusal's `sudo` hint.
     private static var arguments: [String] = []
     
-    /// Run a command line. Commands that finish right away exit here; `stream` and `validate` return, and exit from
+    /// Run a command line. Commands that finish right away exit here. `stream` and `validate` return, and exit from
     /// the main queue once they're done.
     ///
     /// - Parameter arguments: The arguments, without the program's name.

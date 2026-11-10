@@ -43,7 +43,7 @@ public protocol SensorUpdating: AnyObject {
 /// can't change recording, subscriptions, the saved mute set, or install updates. It can still read state and check
 /// for updates. A start Endpoint Security refuses (`.tooManyClients` while `macmonitor` streams hold clients, say)
 /// leaves no owner. When the owner goes away we post ``SensorXPC/sensorReleasedNotification`` so a refused Mac Monitor
-/// can claim the stream; ``StreamService`` posts it too when a stream frees its clients.
+/// can claim the stream. ``StreamService`` posts it too when a stream frees its clients.
 ///
 /// **Saved mute set and indicators:** any user's Mac Monitor may change them, administrator or not, while it owns the
 /// event stream or nobody does. `macmonitor` changes them as root, or as any user when Settings allows it

@@ -14,7 +14,7 @@ import SutroESFramework
 /// ``ValidateCommand``'s.
 ///
 /// **Stopping:** the check runs off the main queue, so a signal can reach it. The first `SIGINT`, `SIGTERM` or
-/// `SIGHUP` stops it before its next record; the report so far is written, saying it stopped, and `macmonitor` exits
+/// `SIGHUP` stops it before its next record. The report so far is written, saying it stopped, and `macmonitor` exits
 /// by that signal (130 for Ctrl-C), as a stream does. A second signal exits at once.
 enum ValidateRunner {
     /// Start checking. Runs until it exits, on the main queue.

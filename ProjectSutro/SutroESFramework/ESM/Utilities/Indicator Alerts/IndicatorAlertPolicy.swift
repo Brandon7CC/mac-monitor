@@ -15,7 +15,7 @@ import Foundation
 /// it captured the event, this user hasn't silenced it, and it isn't known to be off: a batch stamped just before
 /// someone turned an indicator off may still be on its way. An indicator this Mac Monitor doesn't know yet, such as one
 /// `macmonitor` just added, isn't suppressed. An event gives at most one candidate, its strongest eligible hit, ties
-/// going to the set's order; its other hits, eligible or not, are only named.
+/// going to the set's order. Its other hits, eligible or not, are only named.
 public enum IndicatorAlertPolicy {
     /// The notification an event may give.
     ///

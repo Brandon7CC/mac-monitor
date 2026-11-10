@@ -14,7 +14,7 @@ import Foundation
 ///
 /// Mounts are listed with `getfsstat` and `MNT_NOWAIT`, which answers from the kernel's own copy of each mount's
 /// `statfs` without asking a file system (a `statfs` of a path on a network volume waits on its server). A volume's
-/// `f_fsid.val[0]` is the `st_dev` of its files. A device no mount has is remembered as not local; the list is read
+/// `f_fsid.val[0]` is the `st_dev` of its files. A device no mount has is remembered as not local. The list is read
 /// again for a device not seen before.
 ///
 /// Not thread-safe: each ``FileTypeMemory`` keeps its own, used under its capture lane's gate.

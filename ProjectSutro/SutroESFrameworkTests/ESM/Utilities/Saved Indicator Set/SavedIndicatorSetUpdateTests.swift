@@ -11,8 +11,9 @@ import XCTest
 
 // MARK: - Updating indicators in the Mac's set
 /// Pins `update`, how an edit reaches the Security Extension: only the fields named change, in the indicator's place,
-/// so another writer's switch survives and a removed indicator is never brought back; what's refused and why; what it
-/// compiles; how a shipped indicator it changes is saved; and that each hit says whether this Mac edited it.
+/// so another writer's switch survives and a removed indicator is never brought back. It also pins what's refused and
+/// why, what it compiles, how a shipped indicator it changes is saved, and that each hit says whether this Mac edited
+/// it.
 final class SavedIndicatorSetUpdateTests: XCTestCase {
     /// Every exec.
     private static let exec = #"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC""#
@@ -109,7 +110,7 @@ final class SavedIndicatorSetUpdateTests: XCTestCase {
         XCTAssertEqual(reply.indicators, Indicator.defaults)
     }
 
-    /// A severity or name update compiles nothing; a predicate update compiles only its new predicate. The compiled
+    /// A severity or name update compiles nothing. A predicate update compiles only its new predicate. The compiled
     /// hits carry the update.
     func testUpdateCompilesOnlyTheNewPredicate() throws {
         var edited = target

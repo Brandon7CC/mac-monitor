@@ -31,7 +31,7 @@ struct ProcessLineageSidebar: View {
     }
     
     /// The tree's first row: how many processes it shows, and under that which parents it follows, so the tree says
-    /// which it is when the View menu or Settings changes it. VoiceOver reads the two as one element; the tooltip
+    /// which it is when the View menu or Settings changes it. VoiceOver reads the two as one element. The tooltip
     /// says where to change it.
     ///
     /// - Parameter count: The processes the tree shows, the selected event's included.
@@ -106,8 +106,8 @@ struct ProcessLineageSidebar: View {
     /// dimmed row that can't be chosen.
     ///
     /// - Parameter selected: The selected event.
-    /// - Returns: Its process's launched-by parents from the farthest; for an event that didn't create a process, the
-    ///   process that caused it, as in the Unix tree; then the event.
+    /// - Returns: Its process's launched-by parents from the farthest. For an event that didn't create a process, the
+    ///   process that caused it, as in the Unix tree, then the event.
     private func launchedByParentTree(of selected: ESMessage) -> some View {
         let container = CoreDataController.shared
         /// One lookup per update.

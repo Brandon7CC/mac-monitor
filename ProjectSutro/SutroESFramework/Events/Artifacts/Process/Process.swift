@@ -194,7 +194,7 @@ extension Process: ESEnrichable {
 /// up, for the whole process, so with more users running (this Mac had 42) most lookups went to opendirectoryd and
 /// back: 45 to 61 µs on an Endpoint Security thread, and about 200 µs, every time, for an ID with no user. Names are
 /// kept for five minutes, and forgotten at once when Directory Services posts the notifications libinfo itself
-/// forgets on (a user changed on this Mac); a change made on a directory server posts nothing, so the five minutes
+/// forgets on (a user changed on this Mac). A change made on a directory server posts nothing, so the five minutes
 /// bound how long an old name lasts. IDs with no user are kept for a few seconds. If the notifications can't be had,
 /// nothing is kept.
 ///

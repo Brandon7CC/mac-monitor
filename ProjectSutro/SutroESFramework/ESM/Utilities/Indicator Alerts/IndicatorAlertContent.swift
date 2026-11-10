@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - What a notification says
 /// A notification's text and fields, from what the coalescer decided to post (``IndicatorAlert``). Mac Monitor hands
-/// them to `UNUserNotificationCenter` as they are; nothing here imports it.
+/// them to `UNUserNotificationCenter` as they are. Nothing here imports it.
 ///
 /// Every string from an event is cleaned and capped (``NotificationSafeText``): names and signing identifiers at 64
 /// scalars, paths at 160 (cut in the middle, with the home folder as `~`), and the body at 320. Nothing an event's

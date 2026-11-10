@@ -26,8 +26,8 @@ final class RecordIndicatorsPrecedenceTests: XCTestCase {
     }
 
     /// A record lists the stored verdicts when the event has them, though the writer's indicators would match it
-    /// differently; empty ones list none. Without stored verdicts, it lists the writer's matches, tagged `export`,
-    /// with their severities; verdicts that can't be read count as none. A writer with no indicators, as
+    /// differently. Empty ones list none. Without stored verdicts, it lists the writer's matches, tagged `export`,
+    /// with their severities. Verdicts that can't be read count as none. A writer with no indicators, as
     /// `macmonitor stream`'s, lists only the verdicts the event carries, and no key for an event without them.
     func testStoredVerdictsComeFirst() throws {
         let every = Self.every

@@ -13,7 +13,7 @@ import XCTest
 /// Pins Settings > Indicators' list and sections as Subscriptions draws its own: the rows in their groups, their
 /// counts, a search that shows every indicator it finds whatever was picked, and the cards each row shows.
 final class IndicatorScopeTests: XCTestCase {
-    /// Two persistence indicators, one off and one whose symbol marks the tables; an execution one; and one with no
+    /// Two persistence indicators, one off and one whose symbol marks the tables, an execution one, and one with no
     /// tactic.
     private var indicators: [Indicator] {
         [Self.indicator("Launch agent", tactic: .persistence, tables: [.dot, .symbol]),
@@ -44,8 +44,8 @@ final class IndicatorScopeTests: XCTestCase {
         XCTAssertEqual(IndicatorScope.groups(for: []), [[.all], [.off, .symbol]])
     }
 
-    /// While searching, the list keeps All and only the rows with an indicator found, dropping groups left empty;
-    /// spaces alone aren't a search.
+    /// While searching, the list keeps All and only the rows with an indicator found, dropping groups left empty.
+    /// Spaces alone aren't a search.
     func testSearchKeepsOnlyRowsWithAMatch() {
         XCTAssertEqual(IndicatorScope.groups(for: indicators, search: "cron"),
                        [[.all], [.tactic(.persistence)], [.off]])
@@ -87,7 +87,7 @@ final class IndicatorScopeTests: XCTestCase {
         XCTAssertEqual(cards.map(\.id), ["execution", "persistence", "none"])
     }
 
-    /// A row's cards hold only its indicators; a search finds among them all, whatever row was picked; and the
+    /// A row's cards hold only its indicators. A search finds among them all, whatever row was picked, and the
     /// sections say why there are none.
     func testCardsFollowTheRowAndTheSearch() {
         let off = IndicatorCard.cards(of: indicators, in: .off)
@@ -119,7 +119,7 @@ final class IndicatorScopeTests: XCTestCase {
     }
 
     /// A header counts every one of its tactic's indicators, as Subscriptions' header counts a class's every event,
-    /// so the number doesn't change with the row picked or the search; its cards still show only those picked.
+    /// so the number doesn't change with the row picked or the search. Its cards still show only those picked.
     func testHeaderCountsTheWholeTactic() {
         for (scope, search) in [(IndicatorScope.off, ""), (.symbol, ""), (.all, "cron"), (.all, "launch")] {
             let cards = IndicatorCard.cards(of: indicators, in: scope, search: search)

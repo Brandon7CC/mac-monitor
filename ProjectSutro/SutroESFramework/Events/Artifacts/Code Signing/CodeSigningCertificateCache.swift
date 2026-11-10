@@ -20,7 +20,7 @@ import os
 ///
 /// **Freshness:** the key is the path plus the file's stat (device, inode, size, and change and modification times),
 /// so a file that was rewritten or replaced is read again, as it was before. A capture lane gives the stat Endpoint
-/// Security took of the executable with the event (``certificates(at:stat:)``), which costs nothing; without one, a
+/// Security took of the executable with the event (``certificates(at:stat:)``), which costs nothing. Without one, a
 /// `stat(2)` of the path is taken on every lookup, about 2 µs. An entry is used for ``lifetime`` after it was read,
 /// which bounds how long a change of trust (a revoked or expired certificate) goes unseen. A path that can't be
 /// `stat`ed, or a signature that can't be read, isn't remembered.

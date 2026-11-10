@@ -89,7 +89,7 @@ final class ClearTests: XCTestCase {
     }
 
     /// A new store, and the one each Clear swaps in, has none of the 51 indexes Core Data makes for `ESEventType`'s
-    /// relationships, which nothing looks up and every save updated; events still save and read back.
+    /// relationships, which nothing looks up and every save updated. Events still save and read back.
     func testStoresDropTheEventTypeIndexes() throws {
         let store = CoreDataController(model: eventModel)
         XCTAssertEqual(try eventTypeIndexes(of: store), [], "A new store kept them")

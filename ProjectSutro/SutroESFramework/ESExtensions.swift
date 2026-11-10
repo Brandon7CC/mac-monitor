@@ -208,7 +208,7 @@ enum ESLogger {
     /// - Parameters:
     ///   - time: The message's `time`.
     ///   - darwinTime: The message's `message_darwin_time`.
-    /// - Returns: `time` if it's already in eslogger's format (``isESLoggerTime(_:)``), otherwise `darwinTime` in it;
+    /// - Returns: `time` if it's already in eslogger's format (``isESLoggerTime(_:)``), otherwise `darwinTime` in it.
     ///   `time` as it is if `darwinTime` is too far from 1970 to be a time.
     static func time(_ time: String, darwinTime: Date) -> String {
         guard !isESLoggerTime(time) else { return time }

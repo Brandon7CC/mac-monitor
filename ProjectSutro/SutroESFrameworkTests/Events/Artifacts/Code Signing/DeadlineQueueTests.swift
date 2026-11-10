@@ -22,7 +22,7 @@ final class DeadlineQueueTests: XCTestCase {
     }
 
     /// Work that blocks gives nothing at the deadline, and the caller doesn't wait for it. Until it returns, runs are
-    /// refused at once and their work never runs; once it has, runs run again.
+    /// refused at once and their work never runs. Once it has, runs run again.
     func testBlockedWorkIsAbandoned() {
         let queue = DeadlineQueue(label: "test.deadline", timeout: .milliseconds(100))
         let release = DispatchSemaphore(value: 0), returned = DispatchSemaphore(value: 0)

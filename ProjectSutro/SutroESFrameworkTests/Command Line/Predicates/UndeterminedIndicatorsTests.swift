@@ -11,7 +11,7 @@ import XCTest
 
 // MARK: - Undetermined indicators on the wire
 /// Pins `indicators_undetermined` as an event carries it from the Security Extension: each entry is a hit's keys and
-/// `reason` in one object, through both encoders; a reason this build doesn't know is kept; and a list that can't be
+/// `reason` in one object, through both encoders. A reason this build doesn't know is kept, and a list that can't be
 /// read is `nil`, so its event still decodes, as the app and File > Open Trace read it.
 final class UndeterminedIndicatorsTests: XCTestCase {
     /// An entry writes the hit's keys and `reason` in one object, the same through the Security Extension's streaming
@@ -29,7 +29,7 @@ final class UndeterminedIndicatorsTests: XCTestCase {
     }
 
     /// An event's undetermined indicators come back from the wire as they went in, through both encoders, beside its
-    /// verdicts; an event without them has no key.
+    /// verdicts. An event without them has no key.
     func testTheyRoundTripOnTheWire() throws {
         var message = try XCTUnwrap(SyntheticCorpus.records().first).message
         XCTAssertNil(try jsonObject(encoding: message)["indicators_undetermined"])
@@ -56,7 +56,7 @@ final class UndeterminedIndicatorsTests: XCTestCase {
     }
 
     /// A list that can't be read is `nil`, and its event still decodes: not an array, an entry without its reason, a
-    /// reason that's `null` or empty, an entry whose hit can't be read, and `null`; on the wire, a reason that isn't a
+    /// reason that's `null` or empty, an entry whose hit can't be read, and `null`. On the wire, a reason that isn't a
     /// string too. A missing key is `nil` too, and `[]` reads as an empty list. Open Trace, whose decoder fills in
     /// missing values, reads each the same way, so it never keeps an entry with a made-up reason.
     func testAnUnreadableListIsNil() throws {

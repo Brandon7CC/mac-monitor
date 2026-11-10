@@ -14,7 +14,7 @@ import EndpointSecurity
 /// Pins every comparison a compiled indicator makes to `NSPredicate`'s, on the same value and constant: each operator
 /// by `[]`, `[c]`, `[d]` and `[cd]`, on ASCII, NFC and NFD strings, an ASCII constant against an NFD value with a
 /// combining mark right after the match, the Kelvin sign, the long s, a carriage return and line feed, and empty
-/// strings; the nil table; and Booleans, whole numbers and fractions compared as numbers.
+/// strings, the nil table, and Booleans, whole numbers and fractions compared as numbers.
 final class StringMatchingTests: XCTestCase {
     /// NFC and NFD spellings of "Résumé".
     static let nfc = "R\u{E9}sum\u{E9}", nfd = "Re\u{301}sume\u{301}"
@@ -140,7 +140,7 @@ final class StringMatchingTests: XCTestCase {
 
     /// A window cut inside a scalar backs off to where it starts: byte 65,536 is the second byte of an "é", the third
     /// of a "€" or the fourth of an emoji, at the first window's end and at the last's start. Each window then holds
-    /// whole scalars, and a match well inside it stands for the whole value; without the backoff Foundation couldn't
+    /// whole scalars, and a match well inside it stands for the whole value. Without the backoff Foundation couldn't
     /// read the window, and these would come out undetermined. Bytes that aren't UTF-8 make an empty window, still
     /// marked as cut, so a comparison on it is undetermined, never false.
     func testFoundationCutsWhereAScalarStarts() throws {
@@ -183,7 +183,7 @@ final class StringMatchingTests: XCTestCase {
     /// A value of exactly 64 KiB is read whole: `CONTAINS` and `ENDSWITH` decide on a match right at its end, and
     /// `LIKE` runs, with nothing counted as cut. One byte more and it's a window: the same `CONTAINS` and `LIKE` come
     /// out undetermined, and `ENDSWITH` still decides on the last window. Two windows are cut: the first, for
-    /// `CONTAINS`, and the last, for `ENDSWITH`; `LIKE` reads none.
+    /// `CONTAINS`, and the last, for `ENDSWITH`. `LIKE` reads none.
     func testAValueAtTheLimitIsReadWhole() throws {
         let limit = StringMatching.foundationLimit
         let whole = "\u{E9}" + String(repeating: "a", count: limit - 5) + "Z\u{E9}"

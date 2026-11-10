@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: - Performance environment
 /// What a results file was measured on: the Mac, its macOS, and the Mac Monitor build. Two files are only comparable
-/// benchmark by benchmark when their builds are both optimized; across Macs, the chip and cores say why they differ.
+/// benchmark by benchmark when their builds are both optimized. Across Macs, the chip and cores say why they differ.
 struct PerformanceEnvironment: Codable {
     /// The hardware.
     struct Machine: Codable {

@@ -13,7 +13,7 @@ import AppKit
 /// Long text to read, select, and search with ⌘F: monospaced and wrapped in a scrolling AppKit text view, with line
 /// numbers, and colored for its language as Xcode colors code (ReadOnlyTextView+Syntax.swift).
 ///
-/// SwiftUI's `Text` lays out all of its string at once, which is slow for the telemetry schema's hundred-odd kilobytes;
+/// SwiftUI's `Text` lays out all of its string at once, which is slow for the telemetry schema's hundred-odd kilobytes.
 /// `NSTextView` lays out what's on screen.
 struct ReadOnlyTextView: NSViewRepresentable {
     /// What the text is, for its colors.

@@ -30,7 +30,7 @@ public struct Filters: Equatable {
 
 // MARK: - Filters sheet
 /// The toolbar's Filters sheet: what's hidden from the tables, which indicator and predicate they show only, and what
-/// isn't recorded at all. It reads the Security Extension's subscriptions; ``FilterSheet`` lays it out.
+/// isn't recorded at all. It reads the Security Extension's subscriptions. ``FilterSheet`` lays it out.
 struct FilterView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     /// "Drop platform binaries" only applies while recording, not to an open trace.

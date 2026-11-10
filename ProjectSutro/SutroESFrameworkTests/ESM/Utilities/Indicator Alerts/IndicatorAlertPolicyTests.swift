@@ -50,7 +50,7 @@ final class IndicatorAlertPolicyTests: XCTestCase {
         XCTAssertNil(try picked([high], silenced))
     }
 
-    /// An indicator known to be off never notifies; one this Mac Monitor doesn't know isn't suppressed.
+    /// An indicator known to be off never notifies. One this Mac Monitor doesn't know isn't suppressed.
     func testAKnownDisabledIndicatorDoesntNotify() throws {
         let hit = alertHit("Dylib")
         XCTAssertNil(try picked([hit], both, disabled: [hit.id]))
@@ -63,7 +63,7 @@ final class IndicatorAlertPolicyTests: XCTestCase {
         XCTAssertNil(try picked([], both))
     }
 
-    /// The strongest eligible hit wins, ties going to the set's order; the others, eligible or not, are named
+    /// The strongest eligible hit wins, ties going to the set's order. The others, eligible or not, are named
     /// strongest first, two of them, ties in the set's order, with a count of the rest.
     func testTheStrongestHitWinsAndTheRestAreNamed() throws {
         let hits = [alertHit("Ran a script", .low), alertHit("Dylib", .medium), alertHit("Login hook", .medium),

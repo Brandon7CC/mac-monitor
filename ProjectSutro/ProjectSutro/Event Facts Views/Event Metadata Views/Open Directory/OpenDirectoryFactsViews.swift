@@ -134,7 +134,7 @@ struct OpenDirectoryNodeView: View {
     /// An error's description, whose names are Markdown code spans.
     ///
     /// - Parameter text: The description.
-    /// - Returns: The description, formatted; as it is if it isn't valid Markdown.
+    /// - Returns: The description, formatted, as it is if it isn't valid Markdown.
     private static func markdown(_ text: String) -> AttributedString {
         (try? AttributedString(markdown: text)) ?? AttributedString(text)
     }

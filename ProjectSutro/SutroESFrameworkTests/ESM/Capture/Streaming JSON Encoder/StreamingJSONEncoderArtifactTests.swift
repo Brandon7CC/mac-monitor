@@ -12,7 +12,7 @@ import XCTest
 // MARK: - Artifacts
 /// Pins the artifacts ``StreamingJSONEncoder`` writes member by member (``StreamingJSONEncoder/writeArtifact(_:)``) to
 /// what their synthesized `encode(to:)` writes: every stored property, in declaration order, so one added to a type but
-/// not to its writer fails here; and, with keys sorted, every message is byte for byte `JSONEncoder`'s.
+/// not to its writer fails here, and, with keys sorted, every message is byte for byte `JSONEncoder`'s.
 final class StreamingJSONEncoderArtifactTests: XCTestCase {
     /// Each artifact writes every stored property, in declaration order, with the values `JSONEncoder` writes.
     func testArtifactsWriteEveryStoredProperty() throws {

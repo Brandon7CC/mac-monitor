@@ -50,7 +50,7 @@ extension IndicatorTests {
     }
 
     /// The event tables' search reads the record Export telemetry writes. A predicate that names `indicators` sees
-    /// exactly the exported record, every key, for every event of the synthetic corpus and the fixtures; one that
+    /// exactly the exported record, every key, for every event of the synthetic corpus and the fixtures. One that
     /// doesn't sees it without `indicators`, and nothing else left out. A key exports add that the search can't see
     /// fails here, as `indicators` once did.
     func testSearchReadsTheExportedRecord() throws {

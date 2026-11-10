@@ -38,7 +38,7 @@ final class IndicatorCompilerTests: XCTestCase {
         }
     }
 
-    /// Every rule names its event types; one that names none, or only types this build doesn't know, is refused.
+    /// Every rule names its event types. One that names none, or only types this build doesn't know, is refused.
     func testRulesNameTheirTypes() {
         XCTAssertEqual(problem(#"target_path == "x""#), .untyped)
         XCTAssertEqual(problem(Self.exec + #" OR target_path == "x""#), .untyped)
@@ -141,7 +141,7 @@ final class IndicatorCompilerTests: XCTestCase {
 
 // MARK: - Programs
 extension IndicatorCompilerTests {
-    /// A top-level `AND`'s type checks that every event the rule runs on passes are dropped; one inside an `OR` or a
+    /// A top-level `AND`'s type checks that every event the rule runs on passes are dropped. One inside an `OR` or a
     /// `NOT` stays, as a comparison of the type's number.
     func testOnlyTopLevelTypeChecksAreDropped() throws {
         XCTAssertEqual(try rule(Self.exec + #" AND event.exec.target.executable.name == "curl""#).program.description,

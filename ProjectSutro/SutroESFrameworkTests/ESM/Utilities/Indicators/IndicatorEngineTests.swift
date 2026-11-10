@@ -11,9 +11,9 @@ import XCTest
 
 // MARK: - Mac Monitor's side of the Mac's indicator set
 /// Pins what Settings > Indicators shows of the Mac's set: the set as the Security Extension sends it, kept for when
-/// it can't; read-only with "Update the Security Extension" when a request gets no reply, as from one older than 3.1;
-/// read-only while another Mac Monitor owns the stream or a newer one saved the set; and each change made as a
-/// request, with why the Security Extension can't run an indicator.
+/// it can't. It's read-only with "Update the Security Extension" when a request gets no reply, as from one older
+/// than 3.1, and read-only while another Mac Monitor owns the stream or a newer one saved the set. Each change is
+/// made as a request, with why the Security Extension can't run an indicator.
 final class IndicatorEngineTests: XCTestCase {
     /// Every exec.
     private static let exec = #"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC""#
@@ -112,7 +112,7 @@ final class IndicatorEngineTests: XCTestCase {
     }
 
     /// Each change is a request whose reply shows the set after it: an add, which may bring one the Security
-    /// Extension can't run, with its reason; turning one off; removing one; and Restore Defaults, after which the set
+    /// Extension can't run, with its reason, turning one off, removing one, and Restore Defaults, after which the set
     /// is the shipped one again, whatever its view switches.
     func testChangesShowTheSetAfterThem() throws {
         let engine = IndicatorEngine(defaults: makeDefaults(), transport: transport(to: try loadedSet()))

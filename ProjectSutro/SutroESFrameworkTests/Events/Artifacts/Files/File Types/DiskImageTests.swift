@@ -54,7 +54,7 @@ final class DiskImageTests: XCTestCase {
 
     // MARK: Signatures at the start
 
-    /// An encrypted image starts with `encrcdsa`, whatever image it wraps; text that starts so stays text.
+    /// An encrypted image starts with `encrcdsa`, whatever image it wraps. Text that starts so stays text.
     func testEncryptedImage() {
         assertType(Samples.starting(with: Samples.text("encrcdsa") + [0, 0, 0, 2]), "com.apple.disk-image")
         assertType(Samples.text("encrcdsa is an encrypted image's header\n"), "public.plain-text")
@@ -73,7 +73,7 @@ final class DiskImageTests: XCTestCase {
         assertType(Samples.starting(with: [0x1F, 0x8B]), "org.gnu.gnu-zip-archive", trailer: trailer)
     }
 
-    /// A sparse image starts with `sprs`, and an Apple sparse image with `shdw`, then their versions; text that
+    /// A sparse image starts with `sprs`, and an Apple sparse image with `shdw`, then their versions. Text that
     /// starts so stays text.
     func testSparseImages() {
         assertType(Samples.starting(with: Samples.text("sprs") + Samples.word(3, bigEndian: true)),
@@ -194,8 +194,8 @@ final class DiskImageTests: XCTestCase {
 
     // MARK: Sparse bundles
 
-    /// A sparse bundle's `Info.plist`, as `hdiutil` writes it, is named for the bundle, whatever surrounds its kind;
-    /// a property list of another kind, or text that isn't one, holding its kind, isn't.
+    /// A sparse bundle's `Info.plist`, as `hdiutil` writes it, is named for the bundle, whatever surrounds its kind.
+    /// A property list of another kind, or text that isn't one, holding its kind, isn't.
     func testSparseBundleInfo() {
         let info = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -226,7 +226,7 @@ final class DiskImageTests: XCTestCase {
     }
 
     /// A sparse bundle's `Info.plist` converted to a binary property list, which `diskimagesiod` attaches as it
-    /// does an XML one, is named for the bundle too; a binary property list of another kind isn't.
+    /// does an XML one, is named for the bundle too. A binary property list of another kind isn't.
     func testSparseBundleBinaryInfo() throws {
         /// - Parameter kind: The bundle's kind.
         /// - Returns: The binary property list `plutil -convert binary1` makes of a bundle's `Info.plist`.

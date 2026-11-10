@@ -59,7 +59,7 @@ final class CommandLineBinaryTests: XCTestCase {
     }
 
     /// `--version` prints the tool's version, such as "macmonitor 3.0.0 (1)", on its first line. Root gets the
-    /// Security Extension's on a second; anyone else gets only the one.
+    /// Security Extension's on a second. Anyone else gets only the one.
     func testVersion() throws {
         let run = try run(["--version"])
         XCTAssertEqual(run.status, 0)

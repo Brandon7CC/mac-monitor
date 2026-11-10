@@ -232,7 +232,7 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
     ///   - failure: Why there's no answer.
     ///   - operation: What the request asked.
     /// - Returns: ``indicatorsUnanswered`` for a connection cut off before any answer (``refusedBeforeAnswer``), or
-    ///   for no answer to a list (``noAnswer``); ``indicatorChangeUnanswered`` for no answer to a change. Any other
+    ///   for no answer to a list (``noAnswer``), ``indicatorChangeUnanswered`` for no answer to a change, and any other
     ///   failure as it is.
     public static func indicators(_ failure: CommandLineFailure, to operation: IndicatorRequest.Operation)
         -> CommandLineFailure {

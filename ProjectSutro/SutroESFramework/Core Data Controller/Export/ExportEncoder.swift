@@ -16,7 +16,7 @@ import CoreData
 /// saved), and is encoded as the export encodes it: with ``StreamingJSONEncoder`` where it sorts keys as this Mac's
 /// `JSONEncoder` does (``StreamingJSONEncoder/sortsKeysAsJSONEncoderDoes``), which is several times quicker, and
 /// otherwise, or pretty-printed, with ``ProcessHelpers/eventToJSON(value:pretty:)``. Either way each record is an
-/// eslogger superset with the export's bytes. A JSONL record is one line; a pretty one spans lines. Every record here
+/// eslogger superset with the export's bytes. A JSONL record is one line. A pretty one spans lines. Every record here
 /// ends with a newline, where an export's last record has none. It never touches `CoreDataController.shared`, the
 /// user's caches, or their preferences.
 ///

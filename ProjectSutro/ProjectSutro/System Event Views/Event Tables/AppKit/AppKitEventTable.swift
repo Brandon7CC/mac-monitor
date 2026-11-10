@@ -254,7 +254,7 @@ struct AppKitEventTable: NSViewRepresentable {
         // MARK: Selection
         /// The user changed the selection: share it.
         ///
-        /// A few rows are looked up right away; a large selection (e.g. ⌘A) is looked up off the main thread and shared
+        /// A few rows are looked up right away. A large selection (e.g. ⌘A) is looked up off the main thread and shared
         /// when that finishes.
         ///
         /// - Parameter notification: The table's selection change.
@@ -295,7 +295,7 @@ struct AppKitEventTable: NSViewRepresentable {
             let request = selectionRequest, version = query.version
             parent.model.indexes(of: wanted, in: query.rows) { [weak self] indexes in
                 guard let self, request == self.selectionRequest else { return }
-                /// Rows inserted meanwhile shift the indexes; rows replaced meanwhile mean looking again.
+                /// Rows inserted meanwhile shift the indexes. Rows replaced meanwhile mean looking again.
                 guard let current = query.current(indexes, from: version) else {
                     return self.syncSelection(force: true)
                 }
@@ -356,7 +356,7 @@ struct AppKitEventTable: NSViewRepresentable {
         
         /// Show or hide the column a header menu item stands for.
         ///
-        /// - Parameter item: The chosen item; its `representedObject` is the column.
+        /// - Parameter item: The chosen item. Its `representedObject` is the column.
         @objc private func toggleColumn(_ item: NSMenuItem) {
             guard let tableColumn = item.representedObject as? NSTableColumn else { return }
             tableColumn.isHidden.toggle()

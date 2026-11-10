@@ -20,7 +20,7 @@ final class CompiledIndicatorsUndeterminedTests: XCTestCase {
                                    "Terminal startup command", "Login hook set"]
 
     /// The crafted launchctl copy lists exactly the five rules that read its command line, in the set's order, for
-    /// its budget; the rest are decided, and nothing it matches with no budget is missing from both lists.
+    /// its budget. The rest are decided, and nothing it matches with no budget is missing from both lists.
     func testTheCraftedLaunchctlCopyListsItsCommandLineRules() throws {
         let message = try AdversarialEvent.asciiCrafted.message(self)
         let (budgeted, unlimited) = evaluations(of: message)
@@ -65,7 +65,7 @@ final class CompiledIndicatorsUndeterminedTests: XCTestCase {
     }
 
     /// Forty rules left undetermined list the first 32 and count 40, the event counted once in each of the lane's
-    /// counts; the index, with no budget, kept every one of them.
+    /// counts. The index, with no budget, kept every one of them.
     func testUndeterminedRulesAreListedUpTo32() throws {
         let rules = (0..<40).map { execIndicator("Q\($0)", #"event.exec.command_line CONTAINS "q\#($0)""#) }
         let evaluation = try evaluateWithNoBudget(CompiledIndicators(rules))

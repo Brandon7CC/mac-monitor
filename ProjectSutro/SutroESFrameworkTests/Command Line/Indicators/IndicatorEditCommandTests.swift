@@ -227,7 +227,7 @@ final class IndicatorEditCommandTests: XCTestCase {
         XCTAssertEqual(try current(), Indicator.defaults)
     }
 
-    /// `export ID|NAME...` writes only the indicators named, in the order named, each once; one no indicator has is
+    /// `export ID|NAME...` writes only the indicators named, in the order named, each once. One no indicator has is
     /// refused (65) and nothing is written.
     func testExportNamedIndicators() throws {
         let keychain = try XCTUnwrap(Indicator.defaults.first { $0.name == "Keychain opened" })

@@ -32,7 +32,7 @@ struct ProcessTreeCommands: Commands {
         }
     }
     
-    /// Whether a choice is the one made, as a menu item's check mark. Checking it makes it the choice; unchecking the
+    /// Whether a choice is the one made, as a menu item's check mark. Checking it makes it the choice. Unchecking the
     /// choice made does nothing, so one item is always checked.
     ///
     /// - Parameter choice: The item's choice.

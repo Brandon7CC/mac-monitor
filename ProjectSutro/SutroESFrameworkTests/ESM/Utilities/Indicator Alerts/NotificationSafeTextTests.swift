@@ -14,7 +14,7 @@ import XCTest
 /// kept, and how lengths count.
 final class NotificationSafeTextTests: XCTestCase {
     /// Newlines, tabs and other C0 controls, DEL, C1 controls and the line and paragraph separators become one
-    /// space; runs collapse, and the ends are trimmed.
+    /// space. Runs collapse, and the ends are trimmed.
     func testControlsBecomeOneSpace() {
         XCTAssertEqual(NotificationSafeText.clean("a\nb\tc\u{1B}[31md\u{7F}e\u{85}f\r\n g"), "a b c [31md e f g")
         XCTAssertEqual(NotificationSafeText.clean(" \n lead  and   trail \t"), "lead and trail")
@@ -34,7 +34,7 @@ final class NotificationSafeTextTests: XCTestCase {
         XCTAssertEqual(NotificationSafeText.clean("Résumé 日本語 ü"), "Résumé 日本語 ü")
     }
 
-    /// Caps count scalars, the ellipsis included, so combining marks can't stretch a line; text within its cap is
+    /// Caps count scalars, the ellipsis included, so combining marks can't stretch a line. Text within its cap is
     /// kept whole.
     func testCapsCountScalars() {
         XCTAssertEqual(NotificationSafeText.truncated("abcdef", to: 6), "abcdef")

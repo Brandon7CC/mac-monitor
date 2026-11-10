@@ -117,7 +117,7 @@ final class EventQueryModel: ObservableObject {
                 self?.pump()
             },
         ]
-        /// Batches saved before now were never announced to this model. The reload below covers them; their
+        /// Batches saved before now were never announced to this model. The reload below covers them. Their
         /// notifications still in flight are dropped by `received`.
         lastBatch = max(lastBatch, controller.lastInsertBatch)
         self.spec = spec

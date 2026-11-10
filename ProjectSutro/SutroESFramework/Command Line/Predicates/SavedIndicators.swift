@@ -102,7 +102,7 @@ public struct SavedIndicators {
     }
 
     /// Does a saved reference name a rule on one event? As ``Indicator/init(from:)`` reads a full entry's `kind`:
-    /// missing or `null` is one, and so is ``Indicator/kind``; anything else, a string or not, is a rule this build
+    /// missing or `null` is one, and so is ``Indicator/kind``. Anything else, a string or not, is a rule this build
     /// can't run.
     ///
     /// - Parameter kind: The reference's `kind` value, or `nil` when it has none.

@@ -6,7 +6,7 @@
 #  Adhoc signs a Mac Monitor build produced with Community.xcconfig so that it
 #  can be loaded in a virtual machine with SIP disabled and
 #  `amfi_get_out_of_my_way=1` set. The signature carries the real entitlements
-#  and identifiers; only the certificate chain is missing. Such a build will
+#  and identifiers. Only the certificate chain is missing. Such a build will
 #  NOT load on a normally configured Mac.
 #
 #  Author: Brandon Dalton
@@ -41,7 +41,7 @@ for path in "$SYSEXT_FRAMEWORK" "$APP_FRAMEWORK" "$SYSEXT" "$CLI" "$APP_ENTITLEM
     [[ -e "$path" ]] || { echo "missing: $path" >&2; exit 66; }
 done
 
-# codesign reports every --force re-sign on stderr; that is expected here, so hide only that line.
+# codesign reports every --force re-sign on stderr. That is expected here, so hide only that line.
 sign() {
     "$CODESIGN" --force --sign - --timestamp=none "$@" 2> >("$GREP" -v "replacing existing signature" >&2)
 }

@@ -67,7 +67,7 @@ extension EventQueryModel.Worker {
     /// SQLite sorts the rows by the column's raw bytes (and the rest of the sort within each value), a grouped fetch
     /// counts each value's rows in the same order, and only the distinct values are sorted here. Wherever
     /// `localizedStandardCompare` orders the values consistently (it isn't transitive for some invisible or
-    /// full-width characters) this is SQLite's own order; either way it agrees with `NSSortDescriptor.compare`, which
+    /// full-width characters) this is SQLite's own order. Either way it agrees with `NSSortDescriptor.compare`, which
     /// `merge` uses.
     ///
     /// - Parameters:

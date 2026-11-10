@@ -41,7 +41,7 @@ final class IndicatorSeverityTests: XCTestCase {
         XCTAssertEqual(IndicatorSeverity.allCases.map(\.name), ["Low", "Medium", "High"])
     }
 
-    /// One shared without a severity, or with one this build doesn't know, is medium; one with a severity keeps it,
+    /// One shared without a severity, or with one this build doesn't know, is medium. One with a severity keeps it,
     /// and it's encoded.
     func testMissingOrUnknownSeverityIsMedium() throws {
         let decoder = JSONDecoder()

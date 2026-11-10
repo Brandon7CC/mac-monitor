@@ -51,7 +51,7 @@ struct BuiltTool {
     }
 
     /// Start the tool, loading the framework from its own folder, as Xcode does when it runs it. Standard error is
-    /// read from the start; standard output only from ``LaunchedTool/readOutput(upTo:)`` or
+    /// read from the start. Standard output only from ``LaunchedTool/readOutput(upTo:)`` or
     /// ``LaunchedTool/finish()``, so a test can leave the tool blocked writing it.
     ///
     /// - Parameters:

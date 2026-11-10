@@ -147,7 +147,7 @@ public struct MuteSet {
              paths: systemInstallerSandboxes),
             (eventType: ES_EVENT_TYPE_NOTIFY_SETMODE, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX,
              paths: systemInstallerSandboxes),
-            /// launchd's own log, closed after every job it starts. Its unlink and rename stay seen; a rewrite in place
+            /// launchd's own log, closed after every job it starts. Its unlink and rename stay seen. A rewrite in place
             /// by root does not, as the default stream has no write or open.
             (eventType: ES_EVENT_TYPE_NOTIFY_CLOSE, muteType: ES_MUTE_PATH_TYPE_TARGET_LITERAL, paths: [
                 "/dev/console",

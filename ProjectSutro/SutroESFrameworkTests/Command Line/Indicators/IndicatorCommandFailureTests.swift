@@ -94,7 +94,7 @@ final class IndicatorCommandFailureTests: XCTestCase {
         XCTAssertEqual(service.heldChanges, [.update, .update])
     }
 
-    /// A connection cut off before any answer is a Security Extension older than 3.1, whatever was asked; no answer
+    /// A connection cut off before any answer is a Security Extension older than 3.1, whatever was asked. No answer
     /// in time is one only for a list. Any other failure is said as it is.
     func testWhichFailuresSayTheExtensionIsOlder() {
         let changes: [IndicatorRequest.Operation] = [.add, .remove, .setEnabled, .replace, .update]

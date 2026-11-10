@@ -326,7 +326,7 @@ enum StringMatching {
     /// `/Users/`, `/Library/` and an empty last one. One segment alone is the whole value. The first is anchored at the
     /// start and the last at the end, and each in between is found leftmost after the one before, which is the
     /// leftmost match a `*` pattern can have, so the match is linear. An empty pattern matches nothing. The first and
-    /// last are compared in place, at most their length; only the searches spend the budget.
+    /// last are compared in place, at most their length. Only the searches spend the budget.
     ///
     /// - Parameters:
     ///   - value: The value.

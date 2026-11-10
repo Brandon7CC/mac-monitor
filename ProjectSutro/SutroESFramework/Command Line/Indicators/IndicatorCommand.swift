@@ -17,7 +17,7 @@ import os
 /// Settings allows changes without `sudo`), at most ``IndicatorLimits/maxFileBytes``, and sends the indicators.
 /// `export` writes the set, or the indicators it names, to standard output, so the shell creates the file, as the
 /// user. `remove`, `enable`, `disable` and `edit` list the set first to find each indicator by its ID or name, then
-/// send identities; `edit` sends only the fields it changes (see `IndicatorCommand+Edit.swift`).
+/// send identities. `edit` sends only the fields it changes (see `IndicatorCommand+Edit.swift`).
 ///
 /// `import` and `edit --file` change the set Mac Monitor and every stream run from a file, so they say what they
 /// would change and ask first, unless given `--yes` (see `IndicatorCommand+Confirmation.swift`). Every name, reason
@@ -35,8 +35,8 @@ public final class IndicatorCommand {
     private let readFile: (String) throws -> Data
     /// Writes indicators as an indicator file, for `export` and `list --format json`.
     private let encode: ([Indicator]) throws -> Data
-    /// How long to wait for each answer. A Security Extension older than 3.1 cuts the connection off at the request;
-    /// the timeout covers one that never answers.
+    /// How long to wait for each answer. A Security Extension older than 3.1 cuts the connection off at the request.
+    /// The timeout covers one that never answers.
     let timeout: DispatchTimeInterval
 
     /// - Parameters:

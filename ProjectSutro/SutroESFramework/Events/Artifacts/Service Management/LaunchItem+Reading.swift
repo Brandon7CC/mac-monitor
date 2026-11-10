@@ -30,8 +30,8 @@ extension LaunchItem {
         resolvedLocation(of: itemPath, app: appPath).map { $0.directory.appendingPathComponent($0.relativePath) }
     }
 
-    /// Where an item is on this Mac: an absolute item path, as a legacy plist's and an app's are, is in its folder;
-    /// another is relative to its app, as an `SMAppService` agent's plist or login item is
+    /// Where an item is on this Mac: an absolute item path, as a legacy plist's and an app's are, is in its folder.
+    /// Another is relative to its app, as an `SMAppService` agent's plist or login item is
     /// (`Contents/Library/LoginItems/Helper.app`).
     ///
     /// - Parameters:

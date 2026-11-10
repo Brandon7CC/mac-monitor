@@ -15,10 +15,10 @@ import Foundation
 ///
 /// Foundation's costs grow with what a value is made of as well as with its length (``ValueShape``):
 ///
-/// - a scalar that isn't ASCII costs a search more than its bytes do;
-/// - a diacritic-insensitive (`[d]`) search takes time quadratic in each run of combining marks;
+/// - a scalar that isn't ASCII costs a search more than its bytes do.
+/// - a diacritic-insensitive (`[d]`) search takes time quadratic in each run of combining marks.
 /// - `ENDSWITH` reorders each run of marks in a buffer of 64, in time quadratic in the part of it that fits, so a
-///   value of many runs of 64 costs about 50 µs a run;
+///   value of many runs of 64 costs about 50 µs a run.
 /// - NFKC, which `LIKE` needs, takes time quadratic in a run of marks it reorders, up to about 0.7 µs for a scalar it
 ///   expands, and time that grows with the value's length for each scalar it changes.
 ///
@@ -62,7 +62,7 @@ enum ScanCost {
     static func make(_ bytes: Int) -> Int { 64 + bytes + bytes >> 2 }
 
     /// `NSString` `==` with options, or `BEGINSWITH`: they read the value as far as the constant and the grapheme
-    /// cluster where it stops matching, which is at most the shape's longest run past it; 150 to 362 ns, and up to
+    /// cluster where it stops matching, which is at most the shape's longest run past it. 150 to 362 ns, and up to
     /// 10 ns a scalar of a run of marks.
     ///
     /// - Parameters:
@@ -74,7 +74,7 @@ enum ScanCost {
         128 + 4 * (constant + shape.longestRun)
     }
 
-    /// Foundation's `CONTAINS`: 2.5 to 5 ns a byte, and up to 23 ns a scalar that isn't ASCII; with `[d]`, up to
+    /// Foundation's `CONTAINS`: 2.5 to 5 ns a byte, and up to 23 ns a scalar that isn't ASCII. With `[d]`, up to
     /// 0.8 ns more per square of each run's length.
     ///
     /// - Parameters:
@@ -100,7 +100,7 @@ enum ScanCost {
         192 + 10 * bytes + 8 * shape.cappedRunSquares + (diacritics ? shape.runSquares >> 1 : 0)
     }
 
-    /// A value's `LIKE` units, NFKC and folded: 4 to 35 ns a byte on most text; up to 0.7 µs a scalar NFKC expands
+    /// A value's `LIKE` units, NFKC and folded: 4 to 35 ns a byte on most text. Up to 0.7 µs a scalar NFKC expands
     /// (U+FDFA is eighteen), 0.04 ns more per byte of the value for each scalar it changes, and 0.33 ns per square
     /// of a run of marks it reorders.
     ///

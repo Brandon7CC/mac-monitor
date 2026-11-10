@@ -85,7 +85,7 @@ final class MessageSerializerIndicatorTests: XCTestCase {
     }
 
     /// A close of a path that isn't ASCII, past Foundation's window, whose `ENDSWITH[c]` costs more than the other
-    /// fields' pool has, lists the indicator as undetermined, by the scan budget, and not as a hit; a close the set
+    /// fields' pool has, lists the indicator as undetermined, by the scan budget, and not as a hit. A close the set
     /// decides lists none.
     func testAnUndecidedCloseListsItsIndicator() throws {
         let ends = ownIndicator("Ends", #"es_event_type == "ES_EVENT_TYPE_NOTIFY_CLOSE" AND "#
