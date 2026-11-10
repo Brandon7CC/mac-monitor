@@ -400,7 +400,6 @@
 		BA97AFD02875471D0099C035 /* ProjectSutroApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA97AFCF2875471D0099C035 /* ProjectSutroApp.swift */; };
 		BA97AFD22875471D0099C035 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA97AFD12875471D0099C035 /* ContentView.swift */; };
 		BA97AFD42875471E0099C035 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BA97AFD32875471E0099C035 /* Assets.xcassets */; };
-		BA97AFD72875471E0099C035 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BA97AFD62875471E0099C035 /* Preview Assets.xcassets */; };
 		BA97AFEA28754ABF0099C035 /* libEndpointSecurity.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = BA97AFE928754ABF0099C035 /* libEndpointSecurity.tbd */; };
 		BA97AFED28754ABF0099C035 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA97AFEC28754ABF0099C035 /* main.swift */; };
 		BA97AFF228754ABF0099C035 /* com.swiftlydetecting.agent.securityextension.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = BA97AFE728754ABF0099C035 /* com.swiftlydetecting.agent.securityextension.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -1143,7 +1142,6 @@
 		BA97AFCF2875471D0099C035 /* ProjectSutroApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectSutroApp.swift; sourceTree = "<group>"; };
 		BA97AFD12875471D0099C035 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		BA97AFD32875471E0099C035 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		BA97AFD62875471E0099C035 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		BA97AFDD2875471E0099C035 /* ProjectSutro.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ProjectSutro.entitlements; sourceTree = "<group>"; };
 		BA97AFE728754ABF0099C035 /* com.swiftlydetecting.agent.securityextension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = com.swiftlydetecting.agent.securityextension.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA97AFE928754ABF0099C035 /* libEndpointSecurity.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libEndpointSecurity.tbd; path = usr/lib/libEndpointSecurity.tbd; sourceTree = SDKROOT; };
@@ -3262,17 +3260,8 @@
 				BA97AFD32875471E0099C035 /* Assets.xcassets */,
 				BA97AFDD2875471E0099C035 /* ProjectSutro.entitlements */,
 				2826553F29FA2938000A7C95 /* uninstall.sh */,
-				BA97AFD52875471E0099C035 /* Preview Content */,
 			);
 			path = ProjectSutro;
-			sourceTree = "<group>";
-		};
-		BA97AFD52875471E0099C035 /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				BA97AFD62875471E0099C035 /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
 			sourceTree = "<group>";
 		};
 		BA97AFE828754ABF0099C035 /* Frameworks */ = {
@@ -4489,7 +4478,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				28AE6BD928FB85AF009AC91F /* README.md in Resources */,
-				BA97AFD72875471E0099C035 /* Preview Assets.xcassets in Resources */,
 				BA97AFD42875471E0099C035 /* Assets.xcassets in Resources */,
 				2826554029FA2938000A7C95 /* uninstall.sh in Resources */,
 			);
@@ -5487,7 +5475,6 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 0;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "\"ProjectSutro/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=macosx*]" = 4HMJQ7V3SX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -5533,7 +5520,6 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 0;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "\"ProjectSutro/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=macosx*]" = 4HMJQ7V3SX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -5768,7 +5754,6 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 0;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "\"ProjectSutro/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ProjectSutro/Info.plist;
