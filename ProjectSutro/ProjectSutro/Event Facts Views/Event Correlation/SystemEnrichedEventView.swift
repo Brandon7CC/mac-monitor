@@ -148,7 +148,8 @@ struct SystemEnrichedEventView: View {
                     }
                 }
             }
-            .width(min: 100, ideal: 220, max: 320)
+            /// Wide enough at its narrowest for a type, its dot and the longest badge, `MH_EXECUTE`.
+            .width(min: 170, ideal: 220, max: 320)
             /// The rest of the width. Cut in the middle, which keeps both who it's about (an XPC connection's
             /// service) and where (a path's file name).
             TableColumn("Context") { row in

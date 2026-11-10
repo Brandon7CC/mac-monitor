@@ -58,7 +58,7 @@ struct FileTypeFact: View {
 // MARK: - File type badge
 /// An event's file type as a small capsule beside the event in a table: a Mach-O's `MH_*` file type, else what the
 /// type is called, in the color of the most severe indicator the event matched. Gray for none or Low, orange for
-/// Medium, red for High.
+/// Medium, red for High. It's always drawn whole: in a narrow column, what's beside it gives way.
 struct FileTypeBadge: View {
     /// The event's `file_type`: a type identifier, or one of Mac Monitor's own.
     let identifier: String
@@ -94,6 +94,7 @@ struct FileTypeBadge: View {
         Text(machOType ?? name.text)
             .font(.system(size: 10, weight: .medium)).monospaced(machOType != nil)
             .lineLimit(1)
+            .fixedSize()
             .foregroundStyle(color)
             .padding(.horizontal, 5).padding(.vertical, 1)
             .background(color.opacity(0.14), in: Capsule())
