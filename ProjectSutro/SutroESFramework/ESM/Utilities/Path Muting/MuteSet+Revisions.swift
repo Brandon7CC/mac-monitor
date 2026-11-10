@@ -71,7 +71,12 @@ extension MuteSet {
         /// Closes in the user's caches, where creates and renames were muted already.
         Revision(number: 3, release: "3.1", added: homePaths("Library/Caches", in: home).map {
             mute($0, ES_MUTE_PATH_TYPE_TARGET_PREFIX, ES_EVENT_TYPE_NOTIFY_CLOSE)
-        }, removed: [])
+        }, removed: []),
+        /// The folder system_installd unpacks system software packages in.
+        Revision(number: 4, release: "3.1", added: [
+            mute("/Library/Apple/System/Library/InstallerSandboxes/", ES_MUTE_PATH_TYPE_TARGET_PREFIX,
+                 ES_EVENT_TYPE_NOTIFY_CLOSE, ES_EVENT_TYPE_NOTIFY_RENAME, ES_EVENT_TYPE_NOTIFY_SETMODE)
+        ], removed: [])
     ] }
 
     /// The default set's revision: what Reset, a first run and an update save.

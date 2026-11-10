@@ -24,7 +24,8 @@ final class DefaultMuteSetRevisionTests: XCTestCase {
 
     /// The default set's digest at each revision, for `/Users/alice` without Xcode's mutes on macOS 14 and later.
     private let digests = [2: "51c99f84bd57fd33ea774dd42c6791b53103c8dff8558216fcc27633417aa72c",
-                           3: "7b8d618ed0e247eeadb4f1e8ed90e9b013aad496f55b821214a2ae7c68e8e77f"]
+                           3: "7b8d618ed0e247eeadb4f1e8ed90e9b013aad496f55b821214a2ae7c68e8e77f",
+                           4: "f7dc6dbd389bc7db5d7377cf6c6241e38e27cd17b327b280695d0ec61ea9ae1d"]
 
     /// A fresh directory for the saved set.
     ///
@@ -119,6 +120,21 @@ final class DefaultMuteSetRevisionTests: XCTestCase {
         XCTAssertFalse(merged.wasDefault)
         XCTAssertEqual(merged.merged.scopes[caches], current(xcode: false).scopes[caches])
         XCTAssertFalse(merged.merged.keys.contains { $0.path == "/usr/libexec/logd" })
+    }
+
+    /// Revision 4 mutes closes, renames and setmodes in the folder system_installd unpacks system software packages
+    /// in. Revision 3's set has no mute there, and an unchanged one becomes the current default set.
+    func testRevisionFourMutesTheSystemInstallersSandboxes() throws {
+        let sandboxes = MuteList.Key(path: "/Library/Apple/System/Library/InstallerSandboxes/",
+                                     type: ES_MUTE_PATH_TYPE_TARGET_PREFIX)
+        let three = MuteList.shippedDefault(home: alice, mutesXcode: false, revision: 3)
+        XCTAssertNil(three.scopes[sandboxes])
+        XCTAssertEqual(current(xcode: false).scopes[sandboxes],
+                       .events([ES_EVENT_TYPE_NOTIFY_CLOSE, ES_EVENT_TYPE_NOTIFY_RENAME, ES_EVENT_TYPE_NOTIFY_SETMODE]))
+        XCTAssertFalse(current(xcode: false).keys.contains { $0.path.hasPrefix("/Library/InstallerSandboxes") })
+        let plan = try XCTUnwrap(MuteSetUpgrade.plan(for: three, revision: 3, mutesXcode: false))
+        XCTAssertTrue(plan.wasDefault)
+        XCTAssertEqual(plan.merged, current(xcode: false))
     }
 
     /// A set at the current revision, or a newer one, has nothing to upgrade.

@@ -58,6 +58,11 @@ public struct MuteSet {
         /// temporary files, created, closed, renamed into place and set read-only. Not logd_helper's mmaps: it maps
         /// each program run for the first time, a cheap tell of something new.
         let stateWriters = ["/usr/libexec/dasd", "/usr/libexec/logd_helper"]
+        /// Where system_installd unpacks a system software package before it moves the files into place: a close, a
+        /// rename and a setmode for each file, about 900 events a second through an update. System Integrity
+        /// Protection keeps the folder for Apple's installer. A rename that leaves it still shows, since a rename is
+        /// muted only when both of its paths are.
+        let systemInstallerSandboxes = ["/Library/Apple/System/Library/InstallerSandboxes/"]
         
         // MARK: - Event-Specific Mute Rules
         var eventRules = [
@@ -137,7 +142,11 @@ public struct MuteSet {
             /// devices (`/dev/tty.*`) and disks (`/dev/disk*`, `/dev/rdisk*`) stay seen.
             (eventType: ES_EVENT_TYPE_NOTIFY_CLOSE, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: [
                 "/dev/ttys"
-            ]),
+            ] + systemInstallerSandboxes),
+            (eventType: ES_EVENT_TYPE_NOTIFY_RENAME, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX,
+             paths: systemInstallerSandboxes),
+            (eventType: ES_EVENT_TYPE_NOTIFY_SETMODE, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX,
+             paths: systemInstallerSandboxes),
             /// launchd's own log, closed after every job it starts. Its unlink and rename stay seen; a rewrite in place
             /// by root does not, as the default stream has no write or open.
             (eventType: ES_EVENT_TYPE_NOTIFY_CLOSE, muteType: ES_MUTE_PATH_TYPE_TARGET_LITERAL, paths: [
