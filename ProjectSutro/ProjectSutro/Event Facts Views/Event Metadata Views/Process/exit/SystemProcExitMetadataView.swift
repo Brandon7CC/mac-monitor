@@ -8,7 +8,8 @@
 import SwiftUI
 import SutroESFramework
 
-/// What an `exit` event says: how the process ended, and the process.
+/// What an `exit` event says: how the process ended. An exit carries only its status (`es_event_exit_t.stat`), and
+/// the process that exited is the one that made the event, which Message details already shows.
 struct SystemProcExitMetadataView: View {
     var esSystemEvent: ESMessage
 
@@ -16,13 +17,7 @@ struct SystemProcExitMetadataView: View {
     var body: some View {
         if let event = esSystemEvent.event.exit {
             EventFactsCard(message: esSystemEvent) {
-                FactsBox {
-                    FactsBox {
-                        ExitStatusFacts(status: event.stat)
-                    }
-                    ProcessView(message: esSystemEvent, process: esSystemEvent.process,
-                                ageText: esSystemEvent.processAgeText)
-                }
+                FactsBox { ExitStatusFacts(status: event.stat) }
             }
         }
     }
