@@ -19,8 +19,8 @@ final class ClassColorTests: XCTestCase {
 
     /// The catalog names each class once, with a color, and no other source puts a class's title beside a color.
     func testClassesAreColoredOnlyInTheCatalog() throws {
-        let catalog = try String(contentsOf: app.appendingPathComponent("Settings Views/EventCatalog.swift"),
-                                 encoding: .utf8)
+        let source = app.appendingPathComponent("Settings Views/Subscriptions/EventCatalog.swift")
+        let catalog = try String(contentsOf: source, encoding: .utf8)
         let entry = try NSRegularExpression(pattern: #"^\s*\("([^"]+)", "[^"]+", \.(\w+), \["#,
                                             options: .anchorsMatchLines)
         let titles = entry.matches(in: catalog, range: NSRange(catalog.startIndex..., in: catalog)).map {

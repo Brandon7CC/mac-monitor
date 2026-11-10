@@ -2939,17 +2939,65 @@
 				D15C00000000000000000155 /* Command Line Tool */,
 				D15C00000000000000000156 /* Indicators */,
 				284F855B2E7210AC001542E3 /* Muting */,
-				28FFA9B5290F0D0000977D3F /* AgentSettingsView.swift */,
-				284CFE162A16EE1900D0038B /* SystemDetailsSettingsView.swift */,
-				F17E00000000000000000017 /* EventCatalog.swift */,
-				F17E0000000000000000001D /* ContextMenuSettingsView.swift */,
-				F17E00000000000000000019 /* TelemetrySchemaSettingsView.swift */,
-				284CFE1C2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift */,
-				F17E00000000000000000015 /* SettingsComponents.swift */,
-				4D4D0000000000000000007C /* SettingsCatalog.swift */,
-				F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */,
+				0D0D0D00000000000000F001 /* Shared */,
+				0D0D0D00000000000000F002 /* Security Extension */,
+				0D0D0D00000000000000F003 /* Subscriptions */,
+				0D0D0D00000000000000F004 /* Telemetry Schema */,
+				0D0D0D00000000000000F005 /* Context Menus */,
+				0D0D0D00000000000000F006 /* System Details */,
 			);
 			path = "Settings Views";
+			sourceTree = "<group>";
+		};
+		0D0D0D00000000000000F001 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				28FFA9B5290F0D0000977D3F /* AgentSettingsView.swift */,
+				F17E00000000000000000015 /* SettingsComponents.swift */,
+				4D4D0000000000000000007C /* SettingsCatalog.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		0D0D0D00000000000000F002 /* Security Extension */ = {
+			isa = PBXGroup;
+			children = (
+				F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */,
+			);
+			path = "Security Extension";
+			sourceTree = "<group>";
+		};
+		0D0D0D00000000000000F003 /* Subscriptions */ = {
+			isa = PBXGroup;
+			children = (
+				284CFE1C2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift */,
+				F17E00000000000000000017 /* EventCatalog.swift */,
+			);
+			path = Subscriptions;
+			sourceTree = "<group>";
+		};
+		0D0D0D00000000000000F004 /* Telemetry Schema */ = {
+			isa = PBXGroup;
+			children = (
+				F17E00000000000000000019 /* TelemetrySchemaSettingsView.swift */,
+			);
+			path = "Telemetry Schema";
+			sourceTree = "<group>";
+		};
+		0D0D0D00000000000000F005 /* Context Menus */ = {
+			isa = PBXGroup;
+			children = (
+				F17E0000000000000000001D /* ContextMenuSettingsView.swift */,
+			);
+			path = "Context Menus";
+			sourceTree = "<group>";
+		};
+		0D0D0D00000000000000F006 /* System Details */ = {
+			isa = PBXGroup;
+			children = (
+				284CFE162A16EE1900D0038B /* SystemDetailsSettingsView.swift */,
+			);
+			path = "System Details";
 			sourceTree = "<group>";
 		};
 		28EC62DF292591F600EAC8AD /* System Event Views */ = {
@@ -4152,14 +4200,22 @@
 				4D4D0000000000000000000D /* IndicatorRow.swift */,
 				4D4D000000000000000000AC /* IndicatorAlertsSection.swift */,
 				4D4D0000000000000000006A /* IndicatorImportBanner.swift */,
-				4D4D0000000000000000000F /* IndicatorEditorSheet.swift */,
 				F17E00000000000000000033 /* IndicatorStore.swift */,
 				4D4D00000000000000000068 /* IndicatorMarks.swift */,
 				F17E00000000000000000049 /* IndicatorsFile.swift */,
+				0D0D0D00000000000000F101 /* Editor */,
+			);
+			path = Indicators;
+			sourceTree = "<group>";
+		};
+		0D0D0D00000000000000F101 /* Editor */ = {
+			isa = PBXGroup;
+			children = (
+				4D4D0000000000000000000F /* IndicatorEditorSheet.swift */,
 				F17E0000000000000000003D /* RepresentativeEventPicker.swift */,
 				F17E0000000000000000003B /* SymbolPicker.swift */,
 			);
-			path = Indicators;
+			path = Editor;
 			sourceTree = "<group>";
 		};
 		D15C0000000000000000015B /* Parsing */ = {
