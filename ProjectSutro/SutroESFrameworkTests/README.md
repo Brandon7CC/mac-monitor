@@ -34,16 +34,16 @@ otherwise: `testStreamWithoutRootExits77` runs when `SUTRO_STREAM_REFUSED` is `1
 through `xcodebuild`), saying this Mac's Security Extension refuses this user's `stream`, and
 `testASetUserIDCopyExits77` runs only as root, which alone can make a set-user-ID copy owned by another user.
 
-Two tests read events from outside the checkout: `Detection/MessageValuesParityTests` checks the Security Extension's
-indicator values, and `Detection/CompiledIndicatorsParityTests` its verdicts, against the records of every event the
+Two tests read events from outside the checkout: `Detection/Fields/MessageValuesParityTests` checks the Security Extension's
+indicator values, and `Detection/Set/CompiledIndicatorsParityTests` its verdicts, against the records of every event the
 macath harnesses recorded (`*.events.jsonl`, `macathEvents()`). They find them in
 `research/macOS/mac-atomic-test-harnesses/runs` in a folder holding the checkout, or in the folder
 `SUTRO_MACATH_RUNS` names (`TEST_RUNNER_SUTRO_MACATH_RUNS` through `xcodebuild`), and are skipped without them.
 
 The Security Extension's string matching is pinned to `NSPredicate` by differential tests
-(`Detection/StringMatchingTests`) and by fuzzing (`Detection/IndicatorFuzzTests`), which compiles random predicates and
+(`Detection/Matching/StringMatchingTests`) and by fuzzing (`Detection/Compiler/IndicatorFuzzTests`), which compiles random predicates and
 checks each that compiles against `NSPredicate` on every corpus event's record. Their seeds are fixed
-(`SeededGenerator`), so a failure repeats. `Detection/IndicatorIndexTests` checks that the index a set picks each
+(`SeededGenerator`), so a failure repeats. `Detection/Set/IndicatorIndexTests` checks that the index a set picks each
 event's rules by never leaves out one the event matches: on every corpus and macath event against the shipped rules,
 copies of them and 2,048 path rules, and on random rules from the same grammar, whose hits must be the rules'
 evaluated one by one.
