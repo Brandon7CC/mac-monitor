@@ -60,7 +60,7 @@ final class StreamRequestTests: XCTestCase {
     }
     
     /// A newer version, or a kind this build doesn't know, is unsupported rather than malformed. Anything that isn't a
-    /// request, a version below 1, or a request too large, is invalid.
+    /// request, or a version below 1, is invalid.
     func testWhatIsRefusedAndWhy() {
         let cases: [(String, StreamReply.Status)] = [
             (#"{"version":2,"kind":"stream"}"#, .unsupported),
@@ -78,9 +78,15 @@ final class StreamRequestTests: XCTestCase {
             let error = thrown(XPCRequestError.self) { try StreamRequest.decode(Data(json.utf8)) }
             XCTAssertEqual(error?.status(as: StreamReply.Status.self), status, json)
         }
-        let large = Data(repeating: 0x20, count: StreamRequest.maximumSize + 1)
-        let tooLarge = thrown(XPCRequestError.self) { try StreamRequest.decode(large) }
-        XCTAssertEqual(tooLarge?.status(as: StreamReply.Status.self), .invalid)
+    }
+    
+    /// A request of every kind, padded with spaces to exactly 64 KiB, reads. One byte more is too large, though it's
+    /// still the same request.
+    func testTheSizeLimitIsExact() {
+        let options = StreamOptions(events: ["ES_EVENT_TYPE_NOTIFY_EXEC"],
+                                    fieldFilters: ["ES_EVENT_TYPE_NOTIFY_CLOSE.modified"])
+        assertSizeLimit(StreamRequest.Kind.allCases.map { StreamRequest($0, options: options) },
+                        refusal: "The request is larger than 64 KiB.")
     }
     
     /// A version 1 reply reads. A reply with a status this build doesn't know reads as unsupported. A reply without
@@ -110,17 +116,17 @@ final class StreamRequestTests: XCTestCase {
         XCTAssertEqual(StreamReply.decode(reply.encoded()), reply)
     }
     
-    /// A 3.0.1 reply says which field filters apply when the stream starts, and what they left out when it stops.
+    /// A 3.1.0 reply says which field filters apply when the stream starts, and what they left out when it stops.
     func testFieldFilterRepliesRead() {
         let started = #"""
-            {"version":1,"status":"ok","sensorVersion":"3.0.1 (1)","stream":{"events":["ES_EVENT_TYPE_NOTIFY_CLOSE"],\#
+            {"version":1,"status":"ok","sensorVersion":"3.1.0 (1)","stream":{"events":["ES_EVENT_TYPE_NOTIFY_CLOSE"],\#
             "fieldFilters":["ES_EVENT_TYPE_NOTIFY_CLOSE.modified"]}}
             """#
         XCTAssertEqual(StreamReply.decode(Data(started.utf8))?.stream,
                        StreamStarted(events: ["ES_EVENT_TYPE_NOTIFY_CLOSE"], savedMutes: nil,
                                      fieldFilters: ["ES_EVENT_TYPE_NOTIFY_CLOSE.modified"]))
         let stopped = #"""
-            {"version":1,"status":"ok","sensorVersion":"3.0.1 (1)","summary":{"captured":2,"delivered":2,\#
+            {"version":1,"status":"ok","sensorVersion":"3.1.0 (1)","summary":{"captured":2,"delivered":2,\#
             "droppedByEndpointSecurity":0,"droppedWhileBehind":0,"skippedWhilePaused":0,"pauses":0,\#
             "fieldFiltered":{"ES_EVENT_TYPE_NOTIFY_CLOSE":7}}}
             """#

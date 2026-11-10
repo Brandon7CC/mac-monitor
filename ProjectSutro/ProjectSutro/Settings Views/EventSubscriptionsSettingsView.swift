@@ -9,9 +9,9 @@ import SwiftUI
 import SutroESFramework
 
 
-// MARK: - Settings ▸ Subscriptions
-/// Settings ▸ Subscriptions: every event Mac Monitor supports on this Mac, by class of telemetry. A list beside the
-/// events picks All events, every class in its own section, or one class, as System Settings ▸ Notifications picks an
+// MARK: - Settings > Subscriptions
+/// Settings > Subscriptions: every event Mac Monitor supports on this Mac, by class of telemetry. A list beside the
+/// events picks All events, every class in its own section, or one class, as System Settings > Notifications picks an
 /// app. Each event has a switch that subscribes the Security Extension to it or unsubscribes it right away, and its
 /// symbol takes its class's color while it's on. An event with a field filter, such as Close's "Only modified files",
 /// has a checkbox under its name that turns the filter on or off.
@@ -21,7 +21,8 @@ struct SubscriptionsSettingsView: View {
     @Binding var eventMaskEnabled: Bool
 
     var body: some View {
-        SubscriptionsPane(subscribed: systemExtensionManager.monitoredEventStrings, set: { names, on in
+        SubscriptionsPane(subscribed: systemExtensionManager.monitoredEventStrings,
+                          isLoaded: systemExtensionManager.hasEventSubscriptions, set: { names, on in
             on ? subscribe(names) : unsubscribe(names)
             systemExtensionManager.requestEventSubscriptions()
         }, reset: reset, unsubscribeAll: unsubscribeAll)
@@ -48,7 +49,7 @@ struct SubscriptionsSettingsView: View {
     }
 
     /// Mac Monitor's default field filters, then its default subscriptions, and nothing else. A Security Extension
-    /// that can't apply the filters (older than 3.0.1) gets the defaults that need none, so it never records every
+    /// that can't apply the filters (older than 3.1.0) gets the defaults that need none, so it never records every
     /// close.
     private func reset() {
         systemExtensionManager.resetFieldFilters { applies in
@@ -80,6 +81,9 @@ struct SubscriptionsSettingsView: View {
 struct SubscriptionsPane: View {
     /// What the Security Extension last said it's subscribed to.
     let subscribed: Set<String>
+    /// Has the Security Extension said yet? Until it has, the pane counts nothing, warns of nothing, and its
+    /// switches are off-limits: none subscribed isn't known, only not known yet.
+    let isLoaded: Bool
     /// Subscribes to events, or unsubscribes from them.
     let set: ([String], Bool) -> Void
     let reset: () -> Void
@@ -97,7 +101,8 @@ struct SubscriptionsPane: View {
         let total = EventCatalog.events.filter { subscribed.contains($0.name) }.count
         SettingsPage(pane: .subscriptions) {
             HStack(spacing: 10) {
-                Text("\(total) of \(EventCatalog.events.count) events subscribed").foregroundStyle(.secondary)
+                Text(isLoaded ? "\(total) of \(EventCatalog.events.count) events subscribed" : "Loading subscriptions")
+                    .foregroundStyle(.secondary)
                 Spacer()
                 Button("Reset Subscriptions", action: reset)
                     .help("Subscribe to Mac Monitor's default events, with their default filters (close: only "
@@ -105,50 +110,32 @@ struct SubscriptionsPane: View {
                 Button("Unsubscribe from All…", role: .destructive) { confirmsUnsubscribeAll = true }
                     .disabled(total == 0)
             }
-            if total == 0 {
+            if isLoaded, total == 0 {
                 Label("Mac Monitor isn't subscribed to any events, so it records nothing. Reset Subscriptions "
                       + "subscribes to its usual set again.", systemImage: "exclamationmark.triangle.fill")
                     .symbolRenderingMode(.multicolor)
             }
-            HStack(alignment: .top, spacing: 16) {
-                VStack(spacing: 10) {
-                    SettingsSearchField(text: $query, prompt: "Search events")
-                    ScrollView {
-                        VStack(spacing: 1) {
-                            ClassRow(title: "All events", symbol: "list.bullet", tint: .gray, isBold: true,
-                                     count: query.isEmpty ? "\(total)/\(EventCatalog.events.count)"
-                                        : "\(listed.reduce(0) { $0 + $1.events.count })",
-                                     isSelected: query.isEmpty && picked == nil) { pick(nil) }
-                            Divider().padding(.horizontal, 8).padding(.vertical, 3)
-                            ForEach(listed) { group in
-                                let count = group.events.filter { subscribed.contains($0.name) }.count
-                                ClassRow(title: group.title, symbol: group.symbol, tint: group.tint, isBold: false,
-                                         count: query.isEmpty ? "\(count)/\(group.events.count)"
-                                            : "\(group.events.count)",
-                                         isSelected: query.isEmpty && picked == group.title) { pick(group.title) }
-                            }
-                        }
-                        .padding(4)
-                    }
-                    .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.separator))
+            SettingsCatalog(query: $query, prompt: "Search events", empty: shown.isEmpty ? "No events match." : nil) {
+                SettingsClassRow(title: "All events", symbol: "list.bullet", tint: .gray, isBold: true,
+                                 count: query.isEmpty ? "\(total)/\(EventCatalog.events.count)"
+                                    : "\(listed.reduce(0) { $0 + $1.events.count })", unit: "subscribed",
+                                 isSelected: query.isEmpty && picked == nil) { pick(nil) }
+                SettingsClassDivider()
+                ForEach(listed) { group in
+                    let count = group.events.filter { subscribed.contains($0.name) }.count
+                    SettingsClassRow(title: group.title, symbol: group.symbol, tint: group.tint, isBold: false,
+                                     count: query.isEmpty ? "\(count)/\(group.events.count)" : "\(group.events.count)",
+                                     unit: "subscribed",
+                                     isSelected: query.isEmpty && picked == group.title) { pick(group.title) }
                 }
-                .frame(width: 290)
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 18) {
-                        ForEach(shown) { group in
-                            /// Every event of its class, not only those the search finds.
-                            let whole = EventCatalog.groups.first { $0.title == group.title } ?? group
-                            ClassSection(group: group, whole: whole, subscribed: subscribed, set: set)
-                        }
-                        if shown.isEmpty {
-                            Text("No events match.").foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity).padding(.vertical, 40)
-                        }
-                    }
-                    .padding(.trailing, 4)
+            } sections: {
+                ForEach(shown) { group in
+                    /// Every event of its class, not only those the search finds.
+                    let whole = EventCatalog.groups.first { $0.title == group.title } ?? group
+                    ClassSection(group: group, whole: whole, subscribed: subscribed, set: set)
                 }
             }
+            .disabled(!isLoaded)
         }
         .confirmationDialog("Unsubscribe from all events?", isPresented: $confirmsUnsubscribeAll) {
             Button("Unsubscribe from All", role: .destructive, action: unsubscribeAll)
@@ -169,37 +156,6 @@ struct SubscriptionsPane: View {
 
 
 // MARK: - Classes
-/// A class in the list beside the events: its tile, its name, and how many of its events are subscribed.
-private struct ClassRow: View {
-    let title: String
-    let symbol: String
-    let tint: Color
-    let isBold: Bool
-    let count: String
-    let isSelected: Bool
-    let pick: () -> Void
-
-    var body: some View {
-        Button(action: pick) {
-            HStack(spacing: 10) {
-                SettingsRowIcon(symbol, tint)
-                Text(title).fontWeight(isBold ? .semibold : .regular).lineLimit(1)
-                Spacer(minLength: 4)
-                Text(count).monospacedDigit().font(.callout)
-                    .foregroundStyle(isSelected ? Color.white.opacity(0.85) : .secondary)
-            }
-            .foregroundStyle(isSelected ? Color.white : .primary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(isSelected ? Color.accentColor : .clear, in: RoundedRectangle(cornerRadius: 7))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
-
 /// A class's section: its tile, name and count, Turn All On or Off, then its events.
 private struct ClassSection: View {
     /// The class, with only the events the search finds.
@@ -213,36 +169,17 @@ private struct ClassSection: View {
     var body: some View {
         let count = whole.events.filter { subscribed.contains($0.name) }.count
         let every = count == whole.events.count
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                Image(systemName: group.symbol)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 32, height: 32)
-                    .background(group.tint.gradient, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(group.title).font(.title3.bold())
-                    Text("\(count) of \(whole.events.count) subscribed").font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer()
-                Button(every ? "Turn All Off" : "Turn All On") {
-                    set(whole.events.map(\.name).filter { subscribed.contains($0) == every }, !every)
-                }
-                .controlSize(.small)
-            }
-            VStack(spacing: 0) {
-                ForEach(Array(group.events.enumerated()), id: \.element.id) { index, event in
-                    if index > 0 { Divider().padding(.leading, 50) }
-                    SubscriptionRow(event: event, tint: group.tint, isOn: Binding {
-                        subscribed.contains(event.name)
-                    } set: { on in
-                        set([event.name], on)
-                    }, subscribed: subscribed, set: set)
-                }
-            }
-            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.separator))
+        SettingsClassSection(header: SettingsClassHeader(
+            title: group.title, symbol: group.symbol, tint: group.tint,
+            detail: "\(count) of \(whole.events.count) subscribed", allOn: every
+        ) { on in
+            set(whole.events.map(\.name).filter { subscribed.contains($0) != on }, on)
+        }, items: group.events) { event in
+            SubscriptionRow(event: event, tint: group.tint, isOn: Binding {
+                subscribed.contains(event.name)
+            } set: { on in
+                set([event.name], on)
+            }, subscribed: subscribed, set: set)
         }
     }
 }
@@ -260,33 +197,27 @@ private struct SubscriptionRow: View {
     let set: ([String], Bool) -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            SettingsRowIcon(event.symbol, isOn ? tint : Color(nsColor: .tertiaryLabelColor))
-            VStack(alignment: .leading, spacing: 1) {
-                Text(event.title).foregroundStyle(isOn ? .primary : .secondary)
-                Text(event.name).font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
-                /// Disabled while the event is off, keeping the state the Security Extension holds.
-                ForEach(FieldFilter.offered(for: eventStringToType(from: event.name)), id: \.self) { filter in
-                    Toggle(filter.title, isOn: Binding {
-                        subscribed.contains(filter.rawValue)
-                    } set: { on in
-                        set([filter.rawValue], on)
-                    })
-                    .toggleStyle(.checkbox)
-                    .controlSize(.small)
-                    .disabled(!isOn)
-                    .help(filter.help)
-                    .padding(.top, 3)
-                }
+        SettingsItemRow(title: event.title, symbol: event.symbol, tint: tint,
+                        switchLabel: "Subscribe to \(event.title)", isOn: $isOn, badges: {}) {
+            Text(event.name).font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
+            /// Disabled while the event is off, keeping the state the Security Extension holds.
+            ForEach(FieldFilter.offered(for: eventStringToType(from: event.name)), id: \.self) { filter in
+                Toggle(filter.title, isOn: Binding {
+                    subscribed.contains(filter.rawValue)
+                } set: { on in
+                    set([filter.rawValue], on)
+                })
+                .toggleStyle(.checkbox)
+                .controlSize(.small)
+                .disabled(!isOn)
+                .help(filter.help)
+                .padding(.top, 3)
             }
-            Spacer(minLength: 8)
+        } accessory: {
             Link(destination: event.documentation) { Image(systemName: "book") }
                 .help("Apple's documentation for \(event.name)")
                 .accessibilityLabel("Documentation for \(event.title)")
-            Toggle("Subscribe to \(event.title)", isOn: $isOn).labelsHidden().toggleStyle(.switch)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
     }
 }
 

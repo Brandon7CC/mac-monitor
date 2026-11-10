@@ -10,7 +10,7 @@ import XCTest
 
 
 // MARK: - A 3.0.0 Security Extension
-/// A Security Extension older than 3.0.1, in the test process: it relays each `macmonitor` connection to a
+/// A Security Extension older than 3.1.0, in the test process: it relays each `macmonitor` connection to a
 /// ``StreamHarness`` without the request's ``StreamOptions/fieldFilters``, as a 3.0.0 Security Extension ignores that
 /// key. The stream then applies no field filter, and its answer echoes none.
 final class LegacyStreamHarness: NSObject, NSXPCListenerDelegate {
@@ -108,6 +108,15 @@ final class LegacyStreamRelay: NSObject, StreamProtocol, StreamReaderProtocol {
     ///   - reply: The harness's answer.
     func mutes(_ request: Data, reply: @escaping (Data) -> Void) {
         service?.mutes(request, reply: reply)
+    }
+
+    /// Relay an indicator request unchanged.
+    ///
+    /// - Parameters:
+    ///   - request: A JSON encoded ``IndicatorRequest``.
+    ///   - reply: The harness's answer.
+    func indicators(_ request: Data, reply: @escaping (Data) -> Void) {
+        service?.indicators(request, reply: reply)
     }
 
     /// Relay a batch to `macmonitor`, and its reply back. A batch for a reader that's gone is replied to at once.

@@ -41,7 +41,7 @@ enum EventCatalog {
         /// Its SF Symbol, on its tile.
         let symbol: String
         /// Its color, set here and nowhere else: its tile's, and its events' wherever they're shown by class
-        /// (Settings ▸ Subscriptions, Event Facts' correlation).
+        /// (Settings > Subscriptions, Event Facts' correlation).
         let tint: Color
         let events: [Event]
         var id: String { title }

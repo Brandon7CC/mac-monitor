@@ -14,19 +14,23 @@ import SQLite3
 // MARK: - Clear
 /// Pins how a Clear empties the event store: by swapping in a new, empty store, which takes a fraction of a second at
 /// any size, so a recording or a trace that starts right after carries on at once. While an export reads the store, the
-/// rows are deleted instead, and the export still writes every event it started with.
+/// rows are deleted instead, and the export still writes every event it started with. A Clear also keeps out events
+/// recorded before it, and a trace keeps out every recorded event until the next Clear.
 final class ClearTests: XCTestCase {
-    /// Events of every type, made up as happening now, so a Clear made before now discards none of them.
+    /// Events of every type, made up as happening at one time: now by default, so a Clear made before now discards
+    /// none of them.
     ///
-    /// - Parameter count: How many.
+    /// - Parameters:
+    ///   - count: How many.
+    ///   - date: When they happened, as the Security Extension stamps it (`message_darwin_time`).
     /// - Returns: The events.
     /// - Throws: The error making up an event.
-    private func events(_ count: Int) throws -> [Message] {
+    private func events(_ count: Int, at date: Date = Date()) throws -> [Message] {
         let corpus = try SyntheticCorpus.records().map(\.message)
         return (0..<count).map { index in
             var message = corpus[index % corpus.count]
             message.id = UUID()
-            message.message_darwin_time = Date()
+            message.message_darwin_time = date
             return message
         }
     }
@@ -36,10 +40,17 @@ final class ClearTests: XCTestCase {
     /// - Parameters:
     ///   - messages: The events.
     ///   - store: The event store.
-    private func record(_ messages: [Message], in store: CoreDataController) {
+    /// - Returns: The events the store kept, by ID.
+    @discardableResult
+    private func record(_ messages: [Message], in store: CoreDataController) -> Set<UUID> {
         let saved = expectation(description: "saved")
-        store.insertSystemEvents(messages: messages) { saved.fulfill() }
+        var kept: Set<UUID> = []
+        store.insertSystemEvents(messages: messages, watching: Set(messages.map(\.id))) {
+            kept = $0
+            saved.fulfill()
+        }
         wait(for: [saved], timeout: 60)
+        return kept
     }
 
     /// Clear, and wait until the Clear has finished.
@@ -134,5 +145,50 @@ final class ClearTests: XCTestCase {
                       "The export isn't the store as it was when it started")
         XCTAssertEqual(identifiers(of: store), before, "The Clear took the store from under the export")
         XCTAssertEqual(store.eventCount, 0)
+    }
+
+    // MARK: What a Clear keeps out
+
+    /// Events that happened before a Clear but reach the store after it, as events still on their way from the
+    /// Security Extension do, are discarded, and those that happened after it are kept. The cutoff is the Clear's call:
+    /// an event from just before it goes, one from as it returned stays.
+    func testEventsFromBeforeAClearAreDiscarded() throws {
+        let store = CoreDataController(model: eventModel)
+        let cleared = expectation(forNotification: CoreDataController.eventsDidClear, object: store)
+        let calling = Date()
+        store.clearSystemEvents()
+        let returned = Date()
+        let older = try events(100, at: calling.addingTimeInterval(-0.001))
+        let newer = try events(100, at: returned)
+        /// Queued behind the Clear, interleaved, so neither half is kept or dropped by where it is in the batch.
+        let kept = record(zip(older, newer).flatMap { [$0, $1] }, in: store)
+        wait(for: [cleared], timeout: 120)
+
+        XCTAssertEqual(kept, Set(newer.map(\.id)), "The store didn't keep exactly the events from after the Clear")
+        XCTAssertEqual(store.eventCount, newer.count)
+    }
+
+    /// While a trace is open, no recorded event joins it, however recent, whether it arrives as the trace is read or
+    /// after. The Clear that closes the trace lets recording fill the store again.
+    func testATraceKeepsOutRecordedEvents() throws {
+        let store = CoreDataController(model: eventModel)
+        let url = try esloggerTrace(10)
+        let opened = expectation(description: "opened")
+        var summary: TraceImporter.Summary?
+        store.openTrace(at: url) { summary = $0; opened.fulfill() }
+        /// Dated a minute ahead, so a cutoff at the Clear's time would keep them.
+        let duringImport = record(try events(50, at: Date().addingTimeInterval(60)), in: store)
+        wait(for: [opened], timeout: 60)
+        let afterImport = record(try events(50, at: Date().addingTimeInterval(60)), in: store)
+
+        XCTAssertEqual(duringImport, [], "Recorded events joined the trace as it was read")
+        XCTAssertEqual(afterImport, [], "Recorded events joined the trace once it was read")
+        XCTAssertEqual(try XCTUnwrap(summary).saved, 10)
+        XCTAssertEqual(try storedMachTimes(in: store), Array(0..<10), "The store holds more than the trace")
+
+        clear(store)
+        let live = try events(20)
+        XCTAssertEqual(record(live, in: store), Set(live.map(\.id)), "Recording didn't resume after the trace closed")
+        XCTAssertEqual(store.eventCount, live.count)
     }
 }

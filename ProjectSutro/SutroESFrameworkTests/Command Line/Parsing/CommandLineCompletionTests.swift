@@ -90,7 +90,9 @@ final class CommandLineCompletionTests: XCTestCase {
 
     /// bash completes commands, options, option values, events and mute commands, and leaves paths to bash.
     func testBashCompletesWhatTheParserTakes() throws {
-        XCTAssertEqual(try bashCompletions("macmonitor", "st"), ["stream"])
+        XCTAssertEqual(try bashCompletions("macmonitor", "str"), ["stream"])
+        XCTAssertEqual(try bashCompletions("macmonitor", "st"), ["status", "stream"])
+        XCTAssertEqual(try bashCompletions("macmonitor", "status", "--"), ["--json"])
         XCTAssertEqual(try bashCompletions("macmonitor", "stream", "--f"), ["--for", "--format"])
         XCTAssertEqual(try bashCompletions("macmonitor", "stream", "--format", ""), ["jsonl", "pretty", "text"])
         XCTAssertEqual(try bashCompletions("macmonitor", "stream", "exe"), ["exec"])
@@ -101,6 +103,30 @@ final class CommandLineCompletionTests: XCTestCase {
         XCTAssertEqual(try bashCompletions("macmonitor", "mute", "add", "--"), ["--event", "--type"])
         XCTAssertEqual(try bashCompletions("macmonitor", "mute", "add", "/us"), [], "bash completes the path")
         XCTAssertEqual(try bashCompletions("macmonitor", "completion", ""), ["bash", "zsh"])
+    }
+
+    /// bash completes the indicator commands, their options and `--severity`'s and `--tactic`'s values, and leaves
+    /// `import`'s file and `edit --file`'s to bash. An indicator's ID or name isn't completed.
+    func testBashCompletesIndicatorCommands() throws {
+        XCTAssertEqual(try bashCompletions("macmonitor", "ind"), ["indicators"])
+        XCTAssertEqual(try bashCompletions("macmonitor", "indicators", ""), IndicatorInvocation.Name.allCases
+            .map(\.rawValue).sorted())
+        XCTAssertEqual(try bashCompletions("macmonitor", "indicators", "e"), ["edit", "enable", "export"])
+        XCTAssertEqual(try bashCompletions("macmonitor", "indicators", "edit", "--"),
+                       CommandLineOption.indicators(.edit).map(\.name).sorted())
+        XCTAssertEqual(try bashCompletions("macmonitor", "indicators", "edit", "--severity", "h"), ["high"])
+        XCTAssertEqual(try bashCompletions("macmonitor", "indicators", "edit", "--tactic", "per"), ["persistence"])
+        XCTAssertEqual(try bashCompletions("macmonitor", "indicators", "edit", "--file", "/us"), [],
+                       "bash completes the file")
+        XCTAssertEqual(try bashCompletions("macmonitor", "indicators", "add", "--"),
+                       ["--name", "--predicate", "--severity"])
+        XCTAssertEqual(try bashCompletions("macmonitor", "indicators", "add", "--severity", ""),
+                       ["high", "low", "medium"])
+        XCTAssertEqual(try bashCompletions("macmonitor", "indicators", "add", "--predicate", ""), [])
+        XCTAssertEqual(try bashCompletions("macmonitor", "indicators", "list", "--"), ["--format", "--json"])
+        XCTAssertEqual(try bashCompletions("macmonitor", "indicators", "import", "--"), ["--replace", "--yes"])
+        XCTAssertEqual(try bashCompletions("macmonitor", "indicators", "import", "/us"), [], "bash completes it")
+        XCTAssertEqual(CommandLineCompletion.parents, ["indicators", "mute"])
     }
 
     /// zsh's script lists every command with its summary, every option, and every event.
@@ -115,5 +141,10 @@ final class CommandLineCompletionTests: XCTestCase {
         }
         XCTAssertTrue(script.contains("local -a events=(\(CommandLineCompletion.events))"))
         XCTAssertTrue(script.contains("'mute add')"))
+        for name in IndicatorInvocation.Name.allCases {
+            XCTAssertTrue(script.contains("'indicators \(name.rawValue)')"), name.rawValue)
+        }
+        XCTAssertTrue(script.contains("(indicators|mute)"))
+        XCTAssertTrue(script.contains("--severity) compadd -- low medium high; return ;;"))
     }
 }

@@ -21,6 +21,16 @@ public struct FileRenameEvent: Codable, IdentityHashable {
     /// @note Mac Monitor enrichment
     public var destination_path: String = ""
     public var is_quarantined: Int16 = 0
+
+    /* Mac Monitor enrichment, read from the renamed file at capture: FileTypeReader */
+    /// What the renamed file's first bytes are: a Launch Services type identifier (`public.zip-archive`),
+    /// ``FileType/empty``, ``FileType/dyldSharedCache`` or ``FileType/replaced``, taken from the close that wrote it
+    /// when there was one. `nil` for a folder, or when the file wasn't read (dataless, on a volume that isn't local,
+    /// gone, or one the process couldn't read), or in a record from Mac Monitor before 3.1.0 or eslogger.
+    public var file_type: String?
+    /// The `MH_*` file type of a renamed Mach-O, such as `MH_EXECUTE`. `nil` for any other file, or as
+    /// ``file_type`` is.
+    public var mach_o_type: String?
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let fileRenameEvent: es_event_rename_t = rawMessage.pointee.event.rename

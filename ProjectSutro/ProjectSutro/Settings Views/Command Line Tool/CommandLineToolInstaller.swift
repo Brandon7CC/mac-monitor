@@ -11,7 +11,7 @@ import SutroESFramework
 
 
 // MARK: - Command line tool installer
-/// Settings ▸ Command Line's state: what's at `/usr/local/bin/macmonitor`, and the change being made there.
+/// Settings > Command Line's state: what's at `/usr/local/bin/macmonitor`, and the change being made there.
 ///
 /// An administrator approves each change (``CommandLineToolAuthorization``), then the Security Extension makes it.
 final class CommandLineToolInstaller: ObservableObject {

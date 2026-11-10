@@ -142,6 +142,16 @@ final class TraceBuildGate {
 
 // MARK: - Saving a built batch
 extension CoreDataController {
+    /// What saving a batch of a trace's events did.
+    enum TraceSave: Equatable {
+        /// Stored, and announced (``eventsInserted``).
+        case saved
+        /// Dropped, because a Clear has closed the trace since it opened. Not a failure: the trace is gone.
+        case dropped
+        /// Not stored, because the store couldn't save it (the disk is full).
+        case failed
+    }
+
     /// Save a batch built by ``TraceInsertPipeline`` on `privateMOC`'s queue, and announce it (``eventsInserted``).
     ///
     /// It does what ``insertTraceEvents(_:clear:completion:)`` does with a batch it builds itself.
@@ -149,16 +159,15 @@ extension CoreDataController {
     /// - Parameters:
     ///   - built: The batch.
     ///   - clear: The Clear that opened the trace. Once another Clear has run, the batch is dropped.
-    ///   - completion: Called on the private context's queue with whether the batch was saved. A batch dropped for a
-    ///     closed trace counts as saved, as in ``insertTraceEvents(_:clear:completion:)``.
-    func saveTraceEvents(_ built: TraceInsertPipeline.Built, clear: Int, completion: @escaping (Bool) -> Void) {
+    ///   - completion: Called on the private context's queue with what the save did.
+    func saveTraceEvents(_ built: TraceInsertPipeline.Built, clear: Int, completion: @escaping (TraceSave) -> Void) {
         privateMOC.perform {
-            var saved = false
-            defer { completion(saved) }
+            var outcome = TraceSave.failed
+            defer { completion(outcome) }
             let context = built.context
             guard self.canSave.withLock({ $0 }) else { return context.performAndWait { context.reset() } }
             guard clear == self.currentClear else {
-                saved = true
+                outcome = .dropped
                 return context.performAndWait { context.reset() }
             }
             let batch = self.lastInsertBatch + 1
@@ -180,7 +189,7 @@ extension CoreDataController {
             }
             self.nextInsertOrder = order
             guard let ids else { return }
-            saved = true
+            outcome = .saved
             self.savedBatch.withLock { $0 = batch }
             NotificationCenter.default.post(name: Self.eventsInserted, object: self,
                                             userInfo: [Self.insertedObjectIDsKey: ids, Self.insertBatchKey: batch])

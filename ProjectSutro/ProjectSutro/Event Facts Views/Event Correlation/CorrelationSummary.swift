@@ -12,7 +12,7 @@ import SutroESFramework
 
 // MARK: - Summary
 /// The events a process instigated, as the Correlation tab shows them: a row each, how many of each kind, and the
-/// findings worth a look. Made once from ``ESMessage/correlated_array`` on the main thread, the view context's queue.
+/// indicators worth a look. Made once from ``ESMessage/correlated_array`` on the main thread, the view context's queue.
 struct CorrelationSummary {
     /// One correlated event.
     struct Row: Identifiable {
@@ -27,10 +27,10 @@ struct CorrelationSummary {
         /// Its context, as the event tables show it.
         let context: String
         let target: String
-        /// The first finding it's part of.
-        let finding: Finding?
-        /// Every finding it's part of, by identity.
-        let findings: Set<UUID>
+        /// The first indicator it's part of.
+        let indicator: Indicator?
+        /// Every indicator it's part of, by identity.
+        let indicators: Set<UUID>
 
         var id: NSManagedObjectID { message.objectID }
 
@@ -44,7 +44,7 @@ struct CorrelationSummary {
         }
     }
 
-    /// A kind of event: its group in Settings ▸ Subscriptions (``EventCatalog``).
+    /// A kind of event: its group in Settings > Subscriptions (``EventCatalog``).
     struct Kind: Identifiable, Hashable {
         let title: String
         let color: Color
@@ -57,15 +57,15 @@ struct CorrelationSummary {
     let rows: [Row]
     /// Each kind with its number of events, most first.
     let kinds: [(kind: Kind, count: Int)]
-    /// Each finding with its events, in Settings ▸ Indicators' order.
-    let findings: [(finding: Finding, rows: [Row])]
+    /// Each indicator with its events, in Settings > Indicators' order.
+    let indicators: [(indicator: Indicator, rows: [Row])]
     /// Seconds from the exec to the last event.
     let duration: Double
 
     /// - Parameters:
     ///   - exec: An exec event, whose target's events are summarized.
-    ///   - matcher: The findings to look for (``FindingStore``).
-    init(exec: ESMessage, matcher: FindingMatcher) {
+    ///   - matcher: The indicators to look for, read from each event's stored verdicts first (``IndicatorStore``).
+    init(exec: ESMessage, matcher: EventIndicatorMatcher) {
         processName = exec.event.exec?.target.executable?.name ?? exec.process.executable?.name ?? "Process"
         let start = exec.message_darwin_time
         rows = exec.correlated_array.reversed().map { message in
@@ -76,17 +76,17 @@ struct CorrelationSummary {
                        type: CommandLineEvents.shortName(name),
                        symbol: eventStringToImage(from: name), kind: Self.kind(of: name),
                        context: Self.stored(message.context), target: Self.stored(message.target_path),
-                       finding: matched.first,
-                       findings: Set(matched.map(\.id)))
+                       indicator: matched.first,
+                       indicators: Set(matched.map(\.id)))
         }
         var counts: [Kind: Int] = [:]
         rows.forEach { counts[$0.kind, default: 0] += 1 }
         kinds = counts.map { ($0.key, $0.value) }
             .sorted { $0.count > $1.count || ($0.count == $1.count && $0.kind.title < $1.kind.title) }
         let rows = rows
-        findings = matcher.order.compactMap { finding in
-            let matching = rows.filter { $0.findings.contains(finding.id) }
-            return matching.isEmpty ? nil : (finding, matching)
+        indicators = matcher.order.compactMap { indicator in
+            let matching = rows.filter { $0.indicators.contains(indicator.id) }
+            return matching.isEmpty ? nil : (indicator, matching)
         }
         duration = rows.last?.seconds ?? 0
     }

@@ -12,7 +12,7 @@ import SutroESFramework
 
 // MARK: - Requirements
 /// The requirements checklist: what Mac Monitor needs before it can talk to Endpoint Security, each with a check or a
-/// cross, and a button that opens the place to fix it. It shows on its own when something is missing, and Settings ▸
+/// cross, and a button that opens the place to fix it. It shows on its own when something is missing, and Settings >
 /// Security Extension shows the same rows. Mac Monitor looks again whenever it comes to the front, so the rows turn to
 /// checks as the user fixes them.
 struct RequirementsView: View {
@@ -49,7 +49,7 @@ struct RequirementsView: View {
 
 
 // MARK: - Rows
-/// Requirements as a grouped list, as the checklist and Settings ▸ Security Extension show them.
+/// Requirements as a grouped list, as the checklist and Settings > Security Extension show them.
 struct RequirementRows: View {
     let rows: [SetupRequirements.Row]
 
@@ -124,9 +124,9 @@ struct RequirementStatusIcon: View {
 // MARK: - Actions
 /// What a requirement's button does.
 enum RequirementActions {
-    /// System Settings ▸ Privacy & Security ▸ Full Disk Access.
+    /// System Settings > Privacy & Security > Full Disk Access.
     static let fullDiskAccess = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!
-    /// Is this macOS 15 or later, where extensions are allowed in General ▸ Login Items & Extensions?
+    /// Is this macOS 15 or later, where extensions are allowed in General > Login Items & Extensions?
     static let hasExtensionsPane = ProcessInfo.processInfo.isOperatingSystemAtLeast(
         OperatingSystemVersion(majorVersion: 15, minorVersion: 0, patchVersion: 0))
     /// Where the Security Extension is allowed. On macOS 15 and later, Login Items & Extensions' list of Endpoint

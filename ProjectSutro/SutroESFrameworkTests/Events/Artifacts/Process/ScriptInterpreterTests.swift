@@ -13,23 +13,27 @@ import XCTest
 /// Pins which executables count as scripting interpreters, whose script Mac Monitor looks for among an exec's arguments
 /// when ES leaves the exec's `script` empty (it's only set for a script run directly, such as `./app.ts`).
 final class ScriptInterpreterTests: XCTestCase {
-    /// Every supported interpreter matches by its name alone, bun included.
+    /// Every supported interpreter matches by its name alone, bun and the shells included.
     func testInterpreterNames() {
-        for name in ["bash", "osascript", "ruby", "perl", "python", "node", "bun", "swift"] {
+        for name in ["bash", "zsh", "dash", "ksh", "csh", "tcsh", "osascript", "ruby", "perl", "python", "node", "bun",
+                     "swift", "tclsh", "expect"] {
             XCTAssertTrue(ProcessHelpers.isScriptingInterpreter(name), name)
+            XCTAssertEqual(ScriptInterpreter.named(name)?.name, name)
         }
     }
     
     /// An interpreter's name followed by a version still matches.
     func testVersionedNames() {
-        for name in ["python3", "python3.12", "ruby3.3", "perl5.34", "node22"] {
+        for name in ["python3", "python3.12", "ruby3.3", "perl5.34", "node22", "tclsh8.5"] {
             XCTAssertTrue(ProcessHelpers.isScriptingInterpreter(name), name)
         }
     }
     
-    /// Names that only start with an interpreter's name aren't interpreters.
+    /// Names that only start with an interpreter's name aren't interpreters. Nor is `sh`: `/bin/sh` runs `bash` in
+    /// the same process, whose exec is the one looked at, so `sh` would read every script twice.
     func testLookalikeNames() {
-        for name in ["bundle", "bundler", "bunzip2", "bunx", "python3-config", "swift-frontend", "zsh", ""] {
+        for name in ["bundle", "bundler", "bunzip2", "bunx", "python3-config", "swift-frontend", "zshell", "sh",
+                     "expectations", ""] {
             XCTAssertFalse(ProcessHelpers.isScriptingInterpreter(name), name)
         }
     }
@@ -40,9 +44,10 @@ final class ScriptInterpreterTests: XCTestCase {
         try Data("console.log(\"hello\");\n".utf8).write(to: directory.appendingPathComponent("app.ts"))
         try Data([0xCF, 0xFA, 0xED, 0xFE, 0x00, 0x01, 0x02]).write(to: directory.appendingPathComponent("tool"))
         let script = directory.appendingPathComponent("app.ts").path
+        let bun = try XCTUnwrap(ScriptInterpreter.named("bun"))
         /// The script `args` name, resolved in the temporary directory.
         func resolved(_ args: [String]) -> String? {
-            ProcessHelpers.parseScriptFromArgs(args: args, workingDirectory: directory.path)
+            ProcessHelpers.scriptFromArgs(args: args, interpreter: bun, workingDirectory: directory.path)?.path
         }
         
         XCTAssertEqual(resolved(["bun", "app.ts"]), script)
@@ -51,9 +56,10 @@ final class ScriptInterpreterTests: XCTestCase {
     }
     
     /// Only a regular file can be the script: a FIFO, a directory or a missing file among the arguments isn't one, and
-    /// looking never waits. A FIFO with no writer (`bash -c : /tmp/fifo`) used to block the lane building the exec
-    /// until something wrote to it.
+    /// looking never waits. A FIFO with no writer (`bash /tmp/fifo`) used to block the lane building the exec until
+    /// something wrote to it.
     func testOnlyRegularFilesAreScripts() throws {
+        let bash = try XCTUnwrap(ScriptInterpreter.named("bash"))
         let directory = try makeTemporaryDirectory()
         let fifo = directory.appendingPathComponent("fifo").path
         XCTAssertEqual(mkfifo(fifo, 0o600), 0)
@@ -65,14 +71,15 @@ final class ScriptInterpreterTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory.appendingPathComponent("folder"),
                                                 withIntermediateDirectories: false)
         
-        let (script, content): (String?, String?) = try awaitCallback(timeout: 5) { looked in
+        let (scripts, content): ([String], String?) = try awaitCallback(timeout: 5) { looked in
             DispatchQueue.global().async {
-                looked((ProcessHelpers.parseScriptFromArgs(args: ["bash", "-c", ":", fifo, "folder", "missing"],
-                                                           workingDirectory: directory.path),
-                        ProcessHelpers.getFileContents(at: fifo)))
+                looked((["fifo", "folder", "missing"].compactMap {
+                    ProcessHelpers.scriptFromArgs(args: ["bash", $0], interpreter: bash,
+                                                  workingDirectory: directory.path)?.path
+                }, ProcessHelpers.getScriptContents(at: fifo, for: nil)))
             }
         }
-        XCTAssertNil(script)
+        XCTAssertEqual(scripts, [])
         XCTAssertNil(content)
         XCTAssertNil(ProcessHelpers.getFileContents(at: directory.path))
     }

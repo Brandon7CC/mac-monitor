@@ -64,17 +64,26 @@ struct SystemFileCloseMetadataView: View {
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     
                     
+                    /// As create and rename show theirs: whether the file is still there, and Show in Finder while
+                    /// it is.
                     if let path = event.target.path {
-                        VStack(alignment: .leading) {
-                            Text("\u{2022} File path:")
-                                .bold()
-                                .padding([.leading], 5.0)
+                        HStack {
+                            FileExistsLabel(title: "**File path:**", path: path)
                             GroupBox {
                                 Text(path)
                                     .monospaced()
+                                    .lineLimit(10)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
+                            ShowInFinderButton(path: path)
                         }.frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    /// Read from a modified file's first bytes when the event was recorded: none when it wasn't read.
+                    if let fileType = event.file_type {
+                        FileTypeFact(identifier: fileType, machOType: event.mach_o_type)
+                            .padding([.leading], 5.0)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
                     writeFacts

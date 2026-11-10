@@ -64,8 +64,12 @@ extension TelemetrySchemaSource {
             eslogger("fds", .array(.object(fd))),
             eslogger("script", .nullable(.ref("file"))),
             enrichment("resolved_script_path", .nullable(.string),
-                     "The script run: `script`'s path, or the script an interpreter's arguments name."),
-            enrichment("script_content", .nullable(.string), "The script's text, read when the event was recorded."),
+                     "The script run: `script`'s path, or, when Endpoint Security reports none, the script an "
+                        + "interpreter's arguments name, if the exec's user could read it."),
+            enrichment("script_content", .nullable(.string),
+                     "The script's text, read when the event was recorded: only if the exec's user could read it and, "
+                        + "for `script`, only while it's still the file Endpoint Security reported. It stops at the "
+                        + "first NUL byte and at 1 MiB, and invalid UTF-8 reads as U+FFFD."),
             eslogger("cwd", .ref("file")),
             eslogger("last_fd", .integer),
             eslogger("args", .array(.string)),

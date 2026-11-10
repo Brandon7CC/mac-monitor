@@ -31,10 +31,27 @@ public extension StreamFilter.Predicate {
         try collect(Self.record(of: message))
     }
 
+    /// Search events as the event tables do: a predicate that names `indicators` or `indicators_undetermined`
+    /// (``readsIndicators``) sees each event's, so it reads the same record Export telemetry writes. One that doesn't
+    /// is spared matching them, and one that names only `indicators_undetermined`, which only stored verdicts list,
+    /// reads those alone (``readsIndicatorHits``).
+    ///
+    /// - Parameters:
+    ///   - indicators: The indicators, as Settings > Indicators has them. Read only when the predicate names
+    ///     `indicators`.
+    ///   - body: Evaluates the predicate on the events, on their context's queue.
+    /// - Returns: What `body` returns.
+    /// - Throws: What `body` throws.
+    func searching<T>(indicators: @autoclosure () -> [Indicator], _ body: () throws -> T) rethrows -> T {
+        let listed: RecordIndicators? = readsIndicatorHits ? RecordIndicators(indicators())
+            : readsIndicators ? .stored : nil
+        return try RecordIndicators.encoding(with: listed, body)
+    }
+
     /// - Parameter message: An event.
     /// - Returns: Its record, the JSON Export telemetry writes for it.
     /// - Throws: The encoder's error.
-    private static func record(of message: ESMessage) throws -> NSDictionary {
+    static func record(of message: ESMessage) throws -> NSDictionary {
         try JSONSerialization.jsonObject(with: JSONEncoder().encode(message)) as? NSDictionary ?? NSDictionary()
     }
 }

@@ -59,6 +59,7 @@ final class TelemetrySchemaDriftTests: XCTestCase {
                                            "signing_info": NSNull()])
         assertValid([("eslogger gatekeeper_user_override", try jsonText(override))],
                      with: try generatedValidator(mode: .eslogger), coverage: coverage)
+        assertValid(try indicatedExports(), with: try generatedValidator(), coverage: coverage)
         let seen = coverage.observations
         let (document, generator) = TelemetrySchemaSource.generate()
         let parts = SchemaParts(document.foundation)
@@ -131,5 +132,52 @@ final class TelemetrySchemaDriftTests: XCTestCase {
             XCTAssertEqual(report.records, messages.count)
             XCTAssertTrue(report.isValid, report.report(fileName: url.lastPathComponent))
         }
+    }
+    
+    /// Synthetic records that list indicators, as Export telemetry and `macmonitor stream` write them. Matched as
+    /// they're written (`export`): one Mac Monitor ships, with its tactic and technique, and two of someone's own with
+    /// neither, all matching every event, a severity each. Then the Security Extension's verdicts, stored with the
+    /// event (`security_extension`), which the record lists instead: hits, and none. The first also lists two the
+    /// Security Extension couldn't rule out, one Mac Monitor ships and one of someone's own, a reason each.
+    ///
+    /// - Returns: A few labeled records.
+    /// - Throws: When the corpus can't be read, or the event model is missing.
+    private func indicatedExports() throws -> [(label: String, json: String)] {
+        var shipped = Indicator.defaults[0]
+        shipped.predicate = "event_type >= 0"
+        let own = Indicator(name: "Every event", description: "", symbol: "star", color: .red,
+                            predicate: "event_type >= 0", severity: .high)
+        var quiet = own
+        quiet.id = UUID()
+        quiet.severity = .low
+        XCTAssertEqual(Set([shipped, own, quiet].map(\.severity)), Set(IndicatorSeverity.allCases))
+        let encoder = ExportEncoder(model: try XCTUnwrap(ExportEncoder.model), indicators: [shipped, own, quiet])
+        let records = try SyntheticCorpus.records().prefix(2)
+        let matched = records.map { record in
+            ("\(record.label) with indicators", String(decoding: encoder.line(for: record.message), as: UTF8.self))
+        }
+        let verdicts = [IndicatorVerdicts([shipped, own, quiet].map {
+            IndicatorHit($0, isDefault: $0.id == shipped.id, evaluatedBy: .securityExtension)
+        }), IndicatorVerdicts()]
+        var undecided = own
+        undecided.id = UUID()
+        let unsettled = zip([Indicator.defaults[1], undecided], UndeterminedReason.known)
+        let undetermined = [UndeterminedIndicators(unsettled.map {
+            IndicatorUndetermined(IndicatorHit($0, isDefault: $0.id == Indicator.defaults[1].id,
+                                               evaluatedBy: .securityExtension), reason: $1)
+        }), nil]
+        let stamped = zip(records, zip(verdicts, undetermined)).map { record, stamp in
+            var message = record.message
+            (message.indicators, message.indicators_undetermined) = stamp
+            return ("\(record.label) with \(stamp.0.hits.count) stamped indicators",
+                    String(decoding: encoder.line(for: message), as: UTF8.self))
+        }
+        XCTAssertTrue(stamped[0].1.contains(#""evaluated_by":"security_extension""#), stamped[0].0)
+        for reason in UndeterminedReason.known {
+            XCTAssertTrue(stamped[0].1.contains(#""reason":"\#(reason.rawValue)""#), stamped[0].0)
+        }
+        XCTAssertTrue(stamped[1].1.contains(#""indicators":[]"#), stamped[1].0)
+        XCTAssertTrue(matched[0].1.contains(#""evaluated_by":"export""#), matched[0].0)
+        return matched + stamped
     }
 }

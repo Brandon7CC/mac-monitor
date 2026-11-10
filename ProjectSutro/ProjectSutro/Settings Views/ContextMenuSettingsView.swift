@@ -9,8 +9,8 @@ import SwiftUI
 import SutroESFramework
 
 
-// MARK: - Settings ▸ Context Menus
-/// Settings ▸ Context Menus: what right-clicking an event offers. Process executions have their own menu, so the
+// MARK: - Settings > Context Menus
+/// Settings > Context Menus: what right-clicking an event offers. Process executions have their own menu, so the
 /// picker at the top chooses which menu the switches edit, and the preview shows that menu as the switches leave it.
 struct ContextMenuSettingsView: View {
     @EnvironmentObject var userPrefs: UserPrefs

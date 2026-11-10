@@ -1,0 +1,147 @@
+{
+  "classes": {
+    "AppAgentProtocol": {
+      "receiveWithEvents:reply:": {
+        "arguments": [
+          "NSArray, NSData, NSDate, NSDictionary, NSNull, NSNumber, NSOrderedSet, NSSet, NSString"
+        ],
+        "reply": []
+      },
+      "updateProgress:": {
+        "arguments": [
+          "NSData"
+        ],
+        "reply": []
+      }
+    },
+    "SensorProtocol": {
+      "appleMuteSetWithReply:": {
+        "arguments": [],
+        "reply": [
+          "NSArray, NSData, NSDate, NSDictionary, NSNull, NSNumber, NSOrderedSet, NSSet, NSString"
+        ]
+      },
+      "changeCommandLineToolWithAction:tool:expected:authorization:reply:": {
+        "arguments": [
+          "NSString",
+          "NSString",
+          "NSString",
+          "NSData"
+        ],
+        "reply": [
+          ""
+        ]
+      },
+      "checkForUpdateWithReply:": {
+        "arguments": [],
+        "reply": [
+          "NSData"
+        ]
+      },
+      "eventSubscriptionsWithReply:": {
+        "arguments": [],
+        "reply": [
+          "NSArray, NSData, NSDate, NSDictionary, NSNull, NSNumber, NSOrderedSet, NSSet, NSString"
+        ]
+      },
+      "installUpdateWithReply:": {
+        "arguments": [],
+        "reply": [
+          "NSString"
+        ]
+      },
+      "mutes:reply:": {
+        "arguments": [
+          "NSData"
+        ],
+        "reply": [
+          "NSData"
+        ]
+      },
+      "setRecording:reply:": {
+        "arguments": [
+          ""
+        ],
+        "reply": [
+          ""
+        ]
+      },
+      "setSubscription:enabled:reply:": {
+        "arguments": [
+          "NSString",
+          ""
+        ],
+        "reply": [
+          ""
+        ]
+      },
+      "startWithRecording:reply:": {
+        "arguments": [
+          ""
+        ],
+        "reply": [
+          ""
+        ]
+      }
+    },
+    "StreamProtocol": {
+      "mutes:reply:": {
+        "arguments": [
+          "NSData"
+        ],
+        "reply": [
+          "NSData"
+        ]
+      },
+      "perform:reply:": {
+        "arguments": [
+          "NSData"
+        ],
+        "reply": [
+          "NSData"
+        ]
+      }
+    },
+    "StreamReaderProtocol": {
+      "receiveWithEvents:reply:": {
+        "arguments": [
+          "NSArray, NSData, NSDate, NSDictionary, NSNull, NSNumber, NSOrderedSet, NSSet, NSString"
+        ],
+        "reply": []
+      },
+      "savedMutesChanged:": {
+        "arguments": [
+          "NSData"
+        ],
+        "reply": []
+      }
+    }
+  },
+  "protocols": {
+    "AppAgentProtocol": {
+      "receiveWithEvents:reply:": "v32@0:8@16@?24",
+      "updateProgress:": "v24@0:8@16"
+    },
+    "SensorProtocol": {
+      "appleMuteSetWithReply:": "v24@0:8@?16",
+      "changeCommandLineToolWithAction:tool:expected:authorization:reply:": "v56@0:8@16@24@32@40@?48",
+      "checkForUpdateWithReply:": "v24@0:8@?16",
+      "eventSubscriptionsWithReply:": "v24@0:8@?16",
+      "installUpdateWithReply:": "v24@0:8@?16",
+      "mutes:reply:": "v32@0:8@16@?24",
+      "setRecording:reply:": "v28@0:8B16@?20",
+      "setSubscription:enabled:reply:": "v36@0:8@16B24@?28",
+      "startWithRecording:reply:": "v28@0:8B16@?20"
+    },
+    "StreamProtocol": {
+      "mutes:reply:": "v32@0:8@16@?24",
+      "perform:reply:": "v32@0:8@16@?24"
+    },
+    "StreamReaderProtocol": {
+      "receiveWithEvents:reply:": "v32@0:8@16@?24",
+      "savedMutesChanged:": "v24@0:8@16"
+    }
+  },
+  "release": "3.0.0",
+  "source": "The protocols in SensorXPC.swift and StreamProtocol.swift at tag v3.0.0, compiled, with each method's selector and Objective-C type encoding, inherited methods included. Under classes, the classes NSXPCInterface(with:) allows for each argument and each reply argument (classes(for:argumentIndex:ofReply:)), joined by \", \", empty for one that isn't an object."
+}

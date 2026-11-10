@@ -185,7 +185,7 @@ struct UpdateAvailableSheet: View {
 
 // MARK: - Check results
 extension View {
-    /// Shows how a check for updates went, the same from Mac Monitor ▸ Check for Updates and from Settings ▸ General ▸
+    /// Shows how a check for updates went, the same from Mac Monitor > Check for Updates and from Settings > General >
     /// Check Now: a newer release opens ``UpdateAvailableSheet``, and otherwise an alert says Mac Monitor is up to date
     /// or GitHub couldn't be reached.
     ///

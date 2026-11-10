@@ -48,8 +48,37 @@ struct SystemIOKitOpenMetadataView: View {
                             Text("`\(event.user_client_class)`")
                                 .frame(alignment: .leading)
                         }
+                        /// What opening it gives, for a class ``IOKitUserClients`` knows.
+                        if let description = event.userClientDescription {
+                            InfoTip(text: description)
+                        }
                     }.frame(maxWidth: .infinity, alignment: .leading)
-                    
+
+                    /// The service's class, read from the registry at capture, else its path's last component.
+                    if let service = event.serviceName {
+                        HStack{
+                            Text("\u{2022} **Service:**")
+                                .padding([.leading], 5.0)
+                            GroupBox {
+                                Text(service)
+                                    .monospaced()
+                                    .frame(alignment: .leading)
+                            }
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    if let driver = event.driver_bundle_id {
+                        HStack{
+                            Text("\u{2022} **Driver:**")
+                                .padding([.leading], 5.0)
+                            GroupBox {
+                                Text(driver)
+                                    .monospaced()
+                                    .frame(alignment: .leading)
+                            }
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
                     if let parent_path = event.parent_path {
                         HStack{
                             Text("\u{2022} **Parent path:**")

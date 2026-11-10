@@ -74,6 +74,106 @@ final class DefaultMuteSetTests: XCTestCase {
         XCTAssertFalse(list.keys.contains { $0.path.hasPrefix("/Users/") && programMutes.contains($0.type) })
     }
     
+    /// Closes of terminals and the console are muted, and only for close: every process a terminal starts closes its
+    /// standard streams on it. Closes of disks and serial devices stay seen, as raw disk writes matter.
+    func testTerminalClosesAreMutedButDisksAndSerialDevicesAreNot() {
+        let list = MuteList.shippedDefault(for: alice)
+        XCTAssertEqual(list.scopes[MuteList.Key(path: "/dev/ttys", type: ES_MUTE_PATH_TYPE_TARGET_PREFIX)],
+                       .events([ES_EVENT_TYPE_NOTIFY_CLOSE]))
+        guard case .events(let console)? = list.scopes[MuteList.Key(path: "/dev/console",
+                                                                     type: ES_MUTE_PATH_TYPE_TARGET_LITERAL)] else {
+            return XCTFail("/dev/console isn't muted for chosen events")
+        }
+        XCTAssertTrue(console.contains(ES_EVENT_TYPE_NOTIFY_CLOSE))
+
+        /// A target mute that would cover a path, for close or for every event.
+        func closeMute(covering path: String) -> MuteList.Key? {
+            list.keys.first { key in
+                let covers = key.type == ES_MUTE_PATH_TYPE_TARGET_PREFIX ? path.hasPrefix(key.path)
+                    : key.type == ES_MUTE_PATH_TYPE_TARGET_LITERAL && path == key.path
+                guard covers else { return false }
+                if case .events(let events)? = list.scopes[key] { return events.contains(ES_EVENT_TYPE_NOTIFY_CLOSE) }
+                return true
+            }
+        }
+        XCTAssertNotNil(closeMute(covering: "/dev/ttys001"))
+        for path in ["/dev/rdisk3", "/dev/disk2s1", "/dev/tty.usbserial-1410", "/dev/cu.usbserial-1410", "/dev/tty"] {
+            XCTAssertNil(closeMute(covering: path), path)
+        }
+    }
+
+    /// swcd's mmaps of web credential JSON are muted, and nothing else of it is.
+    func testSwcdMapsAreMuted() {
+        let list = MuteList.shippedDefault(for: alice)
+        XCTAssertEqual(list.scopes[MuteList.Key(path: "/usr/libexec/swcd", type: ES_MUTE_PATH_TYPE_LITERAL)],
+                       .events([ES_EVENT_TYPE_NOTIFY_MMAP]))
+    }
+    
+    /// The idle and install noise a Sublime Text install trace showed is muted with the narrowest type that removes
+    /// it: the Secure Enclave and Bluetooth daemons' programs only as mmap targets, so their execs stay seen;
+    /// logd_helper's file writes but not its mmaps, a tell of a program run for the first time; and siriactionsd's
+    /// connects not at all, as they show a Shortcut running in the background.
+    func testInstallNoiseIsMutedNarrowly() {
+        let list = MuteList.shippedDefault(for: alice)
+        func scope(_ path: String, _ type: es_mute_path_type_t) -> MuteScope? {
+            list.scopes[MuteList.Key(path: path, type: type)]
+        }
+        let mmap: Set = [ES_EVENT_TYPE_NOTIFY_MMAP]
+        for path in ["/usr/libexec/seputil", "/usr/sbin/bluetoothd",
+                     "/System/Library/Caches/com.apple.coresymbolicationd/data"] {
+            XCTAssertEqual(scope(path, ES_MUTE_PATH_TYPE_TARGET_LITERAL), .events(mmap), path)
+        }
+        XCTAssertEqual(scope("/System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/Resources/",
+                             ES_MUTE_PATH_TYPE_TARGET_PREFIX), .events(mmap))
+        guard case .events(let launchdLog)? = scope("/private/var/log/com.apple.xpc.launchd/launchd.log",
+                                                    ES_MUTE_PATH_TYPE_TARGET_LITERAL) else {
+            return XCTFail("launchd's log isn't muted for chosen events")
+        }
+        XCTAssertEqual(launchdLog, [ES_EVENT_TYPE_NOTIFY_CLOSE])
+
+        let writes: Set = [ES_EVENT_TYPE_NOTIFY_CREATE, ES_EVENT_TYPE_NOTIFY_CLOSE, ES_EVENT_TYPE_NOTIFY_RENAME,
+                           ES_EVENT_TYPE_NOTIFY_SETMODE]
+        XCTAssertEqual(scope("/usr/libexec/logd_helper", ES_MUTE_PATH_TYPE_LITERAL), .events(writes))
+        guard case .events(let dasd)? = scope("/usr/libexec/dasd", ES_MUTE_PATH_TYPE_LITERAL) else {
+            return XCTFail("dasd isn't muted for chosen events")
+        }
+        XCTAssertTrue(writes.isSubset(of: dasd))
+        guard case .events(let updater)? = scope("/usr/libexec/spotlightknowledged.updater",
+                                                 ES_MUTE_PATH_TYPE_LITERAL) else {
+            return XCTFail("spotlightknowledged.updater isn't muted for chosen events")
+        }
+        XCTAssertEqual(updater, [ES_EVENT_TYPE_NOTIFY_MMAP, ES_EVENT_TYPE_NOTIFY_MPROTECT])
+
+        XCTAssertNil(scope("/usr/libexec/siriactionsd", ES_MUTE_PATH_TYPE_LITERAL))
+        guard #available(macOS 14, *) else { return }
+        for path in ["/usr/libexec/xpcproxy", "/System/Library/CoreServices/WiFiAgent.app/Contents/MacOS/WiFiAgent",
+                     "/usr/libexec/dasd", "/usr/libexec/UserEventAgent"] {
+            guard case .events(let events)? = scope(path, ES_MUTE_PATH_TYPE_LITERAL) else {
+                XCTFail("\(path) isn't muted for chosen events")
+                continue
+            }
+            XCTAssertTrue(events.contains(ES_EVENT_TYPE_NOTIFY_XPC_CONNECT), path)
+            XCTAssertFalse(events.contains(ES_EVENT_TYPE_NOTIFY_EXEC), path)
+        }
+    }
+
+    /// cfprefsd's renames are seen, as they're how it saves a property list, and the rest of what it does is still
+    /// muted: its closes are of temporary files.
+    func testCfprefsdRenamesAreSeen() {
+        let list = MuteList.shippedDefault(for: alice)
+        func scope(_ type: es_mute_path_type_t) -> MuteScope? {
+            list.scopes[MuteList.Key(path: "/usr/sbin/cfprefsd", type: type)]
+        }
+        guard case .events(let literal)? = scope(ES_MUTE_PATH_TYPE_LITERAL),
+              case .events(let prefix)? = scope(ES_MUTE_PATH_TYPE_PREFIX) else {
+            return XCTFail("cfprefsd isn't muted for chosen events")
+        }
+        XCTAssertFalse(literal.contains(ES_EVENT_TYPE_NOTIFY_RENAME))
+        XCTAssertFalse(prefix.contains(ES_EVENT_TYPE_NOTIFY_RENAME))
+        XCTAssertTrue(prefix.contains(ES_EVENT_TYPE_NOTIFY_CLOSE))
+        XCTAssertTrue(literal.contains(ES_EVENT_TYPE_NOTIFY_CREATE))
+    }
+    
     /// Xcode's tools are muted only when root owns Xcode. An Xcode expanded from a `.xip` belongs to whoever expanded
     /// it, so a program they put inside would run unseen. Its mutes end in `/`, so they never cover a sibling folder.
     func testXcodeIsMutedOnlyWhenRootOwnsIt() {
@@ -120,7 +220,7 @@ final class DefaultMuteSetTests: XCTestCase {
         consoleUser = nil
         let saved = makeSavedSet()
         saved.load()
-        XCTAssertEqual(savedFile(in: store), MuteFile(.shippedDefault(for: nil)).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(.shippedDefault(for: nil)))
         XCTAssertEqual(saved.send(MuteRequest(.list)).notice, SavedMuteSet.noConsoleUser)
         
         let leftOut = saved.send(MuteRequest(.reset))
@@ -134,7 +234,7 @@ final class DefaultMuteSetTests: XCTestCase {
         XCTAssertEqual(reset.changed, true)
         XCTAssertEqual(reset.problems, [])
         XCTAssertNil(reset.notice)
-        XCTAssertEqual(savedFile(in: store), MuteFile(.shippedDefault(for: alice)).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(.shippedDefault(for: alice)))
     }
     
     /// A Reset with no one logged in, such as `macmonitor mute reset` over SSH at the login window, takes the
@@ -148,7 +248,7 @@ final class DefaultMuteSetTests: XCTestCase {
         XCTAssertEqual(reset.changed, true)
         XCTAssertEqual(reset.problems, [])
         XCTAssertEqual(reset.notice, SavedMuteSet.noConsoleUser)
-        XCTAssertEqual(savedFile(in: store), MuteFile(.shippedDefault(for: nil)).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(.shippedDefault(for: nil)))
         XCTAssertEqual(saved.send(MuteRequest(.list)).notice, SavedMuteSet.noConsoleUser)
         
         let entry = MuteFile.Entry(path: "/usr/bin/yes", type: "ES_MUTE_PATH_TYPE_LITERAL")
@@ -199,6 +299,6 @@ final class DefaultMuteSetTests: XCTestCase {
         XCTAssertEqual(savedFile(in: store), Data(earlier.utf8))
         
         XCTAssertEqual(saved.send(MuteRequest(.reset)).mutes, MuteFile(.shippedDefault(for: alice)).mutes)
-        XCTAssertEqual(savedFile(in: store), MuteFile(.shippedDefault(for: alice)).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(.shippedDefault(for: alice)))
     }
 }

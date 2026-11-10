@@ -14,8 +14,6 @@ import CoreGraphics
 /// screen's visible frame, which leaves out the menu bar and the Dock.
 ///
 /// Every rectangle is in screen coordinates, with y growing up, as AppKit's are.
-///
-/// - Author: Brandon Dalton
 public struct CompletionPlacement: Equatable, Sendable {
     /// One display: its whole frame, and the part of it that's left once the menu bar and the Dock are taken out.
     public struct Screen: Equatable, Sendable {

@@ -12,8 +12,8 @@ import SutroESFramework
 // MARK: - Syntax
 /// How a predicate's text is colored, as Xcode colors code, in light and dark.
 enum PredicateSyntax {
-    static let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
-    static let boldFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .semibold)
+    static let font = monospaced(size: 12)
+    static let boldFont = monospaced(size: 12, weight: .semibold)
     static let keyColor = dynamic(light: 0x0F68A0, dark: 0x67B7A4)
     static let keywordColor = dynamic(light: 0x9B2393, dark: 0xFC5FA3)
     static let stringColor = dynamic(light: 0xC41A16, dark: 0xFC6A5D)
@@ -21,11 +21,23 @@ enum PredicateSyntax {
     static let variableColor = dynamic(light: 0x6C36A9, dark: 0xA167E6)
     static let commentColor = dynamic(light: 0x5D6C79, dark: 0x6C7986)
 
+    /// - Parameters:
+    ///   - size: The text's size, in points.
+    ///   - weight: Its weight, regular for the text and semibold for keywords.
+    /// - Returns: The monospaced font a predicate is in.
+    static func monospaced(size: CGFloat, weight: NSFont.Weight = .regular) -> NSFont {
+        NSFont.monospacedSystemFont(ofSize: size, weight: weight)
+    }
+
     /// Color a predicate's text, and underline each key path from its first key that isn't where it puts it, as the
     /// predicate is refused for it.
     ///
-    /// - Parameter storage: The editor's text.
-    static func highlight(_ storage: NSTextStorage) {
+    /// - Parameters:
+    ///   - storage: The predicate's text, such as the editor's.
+    ///   - size: The text's size, in points: 12 in the editor.
+    static func highlight(_ storage: NSTextStorage, size: CGFloat = 12) {
+        let font = monospaced(size: size)
+        let boldFont = monospaced(size: size, weight: .semibold)
         let full = NSRange(location: 0, length: storage.length)
         storage.beginEditing()
         storage.setAttributes([.font: font, .foregroundColor: NSColor.labelColor], range: full)
@@ -71,10 +83,7 @@ enum PredicateSyntax {
     ///   - dark: In dark mode.
     /// - Returns: A color that follows the appearance.
     private static func dynamic(light: Int, dark: Int) -> NSColor {
-        NSColor(name: nil) { appearance in
-            let hex = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
-            return NSColor(srgbRed: CGFloat(hex >> 16 & 0xFF) / 255, green: CGFloat(hex >> 8 & 0xFF) / 255,
-                           blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
-        }
+        .appearance(light: .hex(light), dark: .hex(dark))
     }
 }
+

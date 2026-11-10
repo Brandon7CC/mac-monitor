@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import EndpointSecurity
 import OSLog
 import os
 import notify
@@ -24,9 +25,15 @@ import notify
 public final class StreamService {
     /// Makes a stream's capture session: live, or on fake clients in the tests.
     typealias CaptureMaker = (CaptureConfiguration, @escaping (CapturedEvent) -> Void) throws -> CaptureSession
+    /// Asks for Mac Monitor's capture: it calls back, from any queue, with the app's state and whether its capture
+    /// holds Endpoint Security clients.
+    public typealias AppCapture = (@escaping (SensorReport.App, Bool) -> Void) -> Void
     
     /// The saved mute set every stream applies unless asked not to.
     let savedMutes: SavedMuteSet
+    /// The Mac's indicator set, which every stream follows and stamps its events with, `--no-mutes` or not, or `nil`
+    /// for none.
+    let savedIndicators: SavedIndicatorSet?
     /// The streams running.
     let slots: StreamSlots
     /// The Security Extension's version, such as "3.0.0 (1)".
@@ -38,6 +45,11 @@ public final class StreamService {
     /// Called when a stream that held Endpoint Security clients closes, from its queue: Endpoint Security may have
     /// refused Mac Monitor's clients while the stream held its own.
     let released: () -> Void
+    /// Asks Mac Monitor's side of the Security Extension who is connected (``SensorService/captureState(_:)``): the
+    /// app's connection, whether it records, and whether it holds Endpoint Security clients.
+    let appCapture: AppCapture
+    /// Asks Endpoint Security for a client and lets it go, when nothing here holds one to judge by.
+    let probe: () -> NewClientResult
     /// The last session's number.
     private let sessionNumbers = OSAllocatedUnfairLock(initialState: UInt64(0))
     static let logger = Logger(subsystem: "com.swiftlydetecting.agent.securityextension", category: "StreamService")
@@ -65,30 +77,68 @@ public final class StreamService {
     ///
     /// - Parameters:
     ///   - savedMutes: The saved mute set, shared with Mac Monitor's capture.
+    ///   - savedIndicators: The Mac's indicator set, shared with Mac Monitor's capture.
     ///   - access: Who may use `macmonitor` without `sudo`, read at each request.
-    public convenience init(savedMutes: SavedMuteSet, access: CommandLineAccessStore) {
-        self.init(savedMutes: savedMutes, slots: StreamSlots(capacity: SensorXPC.maxCommandLineStreams),
+    ///   - appCapture: Asks Mac Monitor's side who is connected, for `macmonitor status`.
+    public convenience init(savedMutes: SavedMuteSet, savedIndicators: SavedIndicatorSet,
+                            access: CommandLineAccessStore, appCapture: @escaping AppCapture) {
+        self.init(savedMutes: savedMutes, savedIndicators: savedIndicators,
+                  slots: StreamSlots(capacity: SensorXPC.maxCommandLineStreams),
                   sensorVersion: Self.version(of: .main), grant: Self.granting { access.access },
                   makeCapture: { try CaptureSession($0, emit: $1) },
-                  released: { notify_post(SensorXPC.sensorReleasedNotification) })
+                  released: { notify_post(SensorXPC.sensorReleasedNotification) },
+                  appCapture: appCapture, probe: Self.probeEndpointSecurity)
     }
     
     /// - Parameters:
     ///   - savedMutes: The saved mute set.
+    ///   - savedIndicators: The indicator set every stream follows. `nil` stamps none.
     ///   - slots: Caps the streams.
     ///   - sensorVersion: The Security Extension's version.
     ///   - grant: What the caller may do.
     ///   - makeCapture: Makes each stream's capture session.
     ///   - released: Called when a stream that held Endpoint Security clients closes.
-    init(savedMutes: SavedMuteSet, slots: StreamSlots, sensorVersion: String,
-         grant: @escaping (NSXPCConnection?) -> CommandLineGrant, makeCapture: @escaping CaptureMaker,
-         released: @escaping () -> Void = {}) {
+    ///   - appCapture: Asks Mac Monitor's side who is connected: nobody, unless given.
+    ///   - probe: Asks Endpoint Security for a client and lets it go: it may, unless given.
+    init(savedMutes: SavedMuteSet, savedIndicators: SavedIndicatorSet? = nil, slots: StreamSlots,
+         sensorVersion: String, grant: @escaping (NSXPCConnection?) -> CommandLineGrant,
+         makeCapture: @escaping CaptureMaker, released: @escaping () -> Void = {},
+         appCapture: @escaping AppCapture = { $0(SensorReport.App(connected: false, recording: false), false) },
+         probe: @escaping () -> NewClientResult = { .success }) {
         self.savedMutes = savedMutes
+        self.savedIndicators = savedIndicators
         self.slots = slots
         self.sensorVersion = sensorVersion
         self.grant = grant
         self.makeCapture = makeCapture
         self.released = released
+        self.appCapture = appCapture
+        self.probe = probe
+    }
+
+    /// What the Security Extension says of itself, for `macmonitor status`.
+    ///
+    /// Endpoint Security isn't asked for a client while Mac Monitor's capture or a stream holds one: holding one
+    /// already says it may. Only an idle Security Extension is asked, and lets the client go at once.
+    ///
+    /// - Parameter reply: Receives the report, from any queue.
+    func report(_ reply: @escaping (SensorReport) -> Void) {
+        appCapture { [self] app, holdsClients in
+            let streams = slots.count
+            let result: NewClientResult = holdsClients || streams > 0 ? .success : probe()
+            reply(SensorReport(endpointSecurity: SensorReport.EndpointSecurity(result), app: app, streams: streams,
+                               streamCapacity: slots.capacity))
+        }
+    }
+
+    /// Ask Endpoint Security for a client that subscribes to nothing, and delete it.
+    ///
+    /// - Returns: What `es_new_client` returned: `.notPermitted` without Full Disk Access.
+    static func probeEndpointSecurity() -> NewClientResult {
+        var client: OpaquePointer?
+        let result = es_new_client(&client) { _, _ in }
+        if let client { es_delete_client(client) }
+        return result == ES_NEW_CLIENT_RESULT_SUCCESS ? .success : NewClientResult(result)
     }
     
     /// Configure and activate a connection the router pinned to `macmonitor`'s requirement.

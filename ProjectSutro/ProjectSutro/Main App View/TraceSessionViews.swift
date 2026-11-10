@@ -14,7 +14,8 @@ import SutroESFramework
 // MARK: - Toolbar
 /// The toolbar's trace status: what a trace held that isn't showing, or "Clearing previous events..." while a Clear
 /// that takes a while (many events) is deleting. Reading a trace and saving one show in a window's sheet
-/// (``TraceOpenSheet``, ``TraceSaveSheet``).
+/// (``TraceOpenSheet``, ``TraceSaveSheet``). It's the last of the toolbar's status items, so it pads its trailing edge
+/// as the event count before it does, to stay inside the capsule macOS 26 and later draw around them.
 struct TraceStatusView: View {
     /// The session whose trace this shows.
     @ObservedObject var session: TraceSession
@@ -30,6 +31,7 @@ struct TraceStatusView: View {
                 .labelStyle(.titleAndIcon)
                 .symbolRenderingMode(.multicolor)
                 .help(problems.details)
+                .padding(.trailing)
         }
     }
     
@@ -41,6 +43,7 @@ struct TraceStatusView: View {
             Text("Clearing previous events…")
                 .foregroundColor(.secondary)
         }
+        .padding(.trailing)
     }
     
     /// What a trace held that isn't showing.

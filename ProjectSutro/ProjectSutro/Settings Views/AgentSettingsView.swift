@@ -42,7 +42,7 @@ class UserPrefs: ObservableObject {
     @AppStorage("forcedDarkMode") var forcedDarkMode: Bool = false
     
     
-    /// Put both event tables' context menus back as Mac Monitor ships them: Settings ▸ Context Menus' Reset.
+    /// Put both event tables' context menus back as Mac Monitor ships them: Settings > Context Menus' Reset.
     public func resetContextPreferences() {
         contextInitiatingEUIDFilter = true
         contextInitiatingPathFilter = true
@@ -58,7 +58,7 @@ class UserPrefs: ObservableObject {
         contextExecEventUnsubscribe = true
     }
 
-    /// Reset the context menus, and warn again before quitting and clearing: Settings ▸ General's Reset.
+    /// Reset the context menus, and warn again before quitting and clearing: Settings > General's Reset.
     public func resetAllPreferences() {
         resetContextPreferences()
         lifecycleWarnBeforeQuit = true
@@ -132,7 +132,12 @@ struct AgentSettingsView: View {
             .modifier(NoSidebarToggle())
         } detail: {
             pane(selection)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                /// A minimum height of none, so the column's is the window's and never the pane's. SwiftUI asks a
+                /// column for its smallest size at no width, where text that wraps and keeps its height
+                /// (`fixedSize(horizontal: false, vertical: true)`) is a character wide and thousands of points
+                /// tall. Outside a scroll view that became the pane's minimum height, and the split view was laid
+                /// out that tall inside the window, its sidebar and the pane's top out of sight above it.
+                .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .top)
                 .navigationTitle(selection.title)
                 .toolbar {
                     ToolbarItem(placement: .navigation) {
@@ -151,10 +156,14 @@ struct AgentSettingsView: View {
                 }
         }
         .searchable(text: $query, placement: .sidebar, prompt: "Search")
-        /// The window can keep its view when it closes, so start over at General each time it opens.
+        /// The window can keep its view when it closes, so start over at General each time it opens. Event Facts'
+        /// Show in Settings opens Indicators instead.
         .onAppear {
-            selection = .general
+            selection = IndicatorStore.shared.revealRequest == nil ? .general : .indicators
             history = ([], [])
+        }
+        .onReceive(IndicatorStore.shared.$revealRequest) { request in
+            if request != nil { show(.indicators) }
         }
         .frame(minWidth: 820, idealWidth: 1000, maxWidth: .infinity, minHeight: 560, idealHeight: 720,
                maxHeight: .infinity)
@@ -196,7 +205,7 @@ struct AgentSettingsView: View {
         case .systemDetails: SystemDetailsSettingsView()
         case .subscriptions: SubscriptionsSettingsView(allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled)
         case .pathMuting: PathMutingSettingsView()
-        case .findings: FindingsSettingsView()
+        case .indicators: IndicatorsSettingsView()
         case .commandLine: SettingsPage(pane: pane) { CommandLineToolSettingsView() }
         case .telemetrySchema: TelemetrySchemaSettingsView()
         case .eventTables: ContextMenuSettingsView()

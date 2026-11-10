@@ -36,6 +36,17 @@ public struct CaptureLaneStatistics: Codable, Equatable, Sendable {
     public let fieldFilteredByType: [String: UInt64]
     /// Messages that couldn't be serialized while recording.
     public let serializationFailures: UInt64
+    /// Events that matched more indicators than a record lists (``CompiledIndicators/hitLimit``): their records list
+    /// the first.
+    public let hitCappedEvents: UInt64
+    /// Values the indicators compared only the first or last ``StringMatching/foundationLimit`` bytes of: a
+    /// comparison such a window can't decide, of a value with a character that isn't ASCII, comes out undetermined.
+    public let truncatedEvaluations: UInt64
+    /// Events whose indicator scan budget (``ScanBudget``) ran out somewhere, the index's included.
+    public let scanExhaustedEvents: UInt64
+    /// Events with indicators the Security Extension couldn't rule out, for its budget or Foundation's window: their
+    /// records list them (``Message/indicators_undetermined``).
+    public let undeterminedEvents: UInt64
 }
 
 

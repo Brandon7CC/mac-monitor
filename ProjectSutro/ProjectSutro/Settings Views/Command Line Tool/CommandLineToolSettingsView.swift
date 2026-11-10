@@ -10,8 +10,8 @@ import AppKit
 import SutroESFramework
 
 
-// MARK: - Settings ▸ Command Line
-/// Settings ▸ Command Line: link `macmonitor` into `/usr/local/bin`, so `sudo macmonitor` works in any terminal, or
+// MARK: - Settings > Command Line
+/// Settings > Command Line: link `macmonitor` into `/usr/local/bin`, so `sudo macmonitor` works in any terminal, or
 /// remove the link, through the administrator password prompt. The installer package never links it.
 ///
 /// Below that, who may use it without `sudo` (``CommandLineAccessSection``). The usage examples drop `sudo` when the
@@ -66,6 +66,9 @@ struct CommandLineToolSettingsView: View {
                         Divider()
                         CommandRow(command: "\(sudo)macmonitor mute list",
                                    meaning: "The saved mute set Mac Monitor and macmonitor share")
+                        Divider()
+                        CommandRow(command: "\(sudo)macmonitor indicators list",
+                                   meaning: "The indicators the Security Extension stamps every event with")
                         Divider()
                         CommandRow(command: "macmonitor help", meaning: "Every command and option")
                     }

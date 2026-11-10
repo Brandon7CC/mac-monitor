@@ -39,6 +39,11 @@ public enum MuteLimits {
 /// Types and events use their Endpoint Security names, and no events (or none listed) means every event. `PREFIX`
 /// and `LITERAL` match the process, `TARGET_PREFIX` and `TARGET_LITERAL` the target. Unknown keys are ignored, so a
 /// later version can add fields. A change in meaning bumps ``version``.
+///
+/// The saved set also records `defaultsRevision`, the revision of Mac Monitor's default set it was last brought up
+/// to (``MuteSet/currentRevision``), so an upgrade knows what changed since (``MuteSetUpgrade``), and
+/// `declinedRevision`, a newer default set the user chose not to take in. Exports and imports leave them out. 3.0
+/// ignores them and doesn't keep them.
 public struct MuteFile: Codable, Equatable, Sendable {
     /// The format version this Mac Monitor writes and reads.
     public static let currentVersion: Int = 1
@@ -46,20 +51,33 @@ public struct MuteFile: Codable, Equatable, Sendable {
     public var version: Int
     /// The mutes, one per path and type when the file is canonical.
     public var mutes: [Entry]
+    /// The default set revision the saved set was last brought up to. Only the saved set has one.
+    public var defaultsRevision: Int?
+    /// A newer default set revision the user chose not to take in, so it's never applied by itself.
+    public var declinedRevision: Int?
     
     /// - Parameters:
     ///   - version: The format version.
     ///   - mutes: The entries.
-    public init(version: Int = MuteFile.currentVersion, mutes: [Entry]) {
+    ///   - defaultsRevision: The default set revision, for the saved set.
+    ///   - declinedRevision: A newer revision the user declined, for the saved set.
+    public init(version: Int = MuteFile.currentVersion, mutes: [Entry], defaultsRevision: Int? = nil,
+                declinedRevision: Int? = nil) {
         self.version = version
         self.mutes = mutes
+        self.defaultsRevision = defaultsRevision
+        self.declinedRevision = declinedRevision
     }
     
     /// A list's file, in canonical order: by type name then path, each entry's events by name.
     ///
-    /// - Parameter list: The list.
-    public init(_ list: MuteList) {
-        self.init(mutes: list.mutes.map(Entry.init))
+    /// - Parameters:
+    ///   - list: The list.
+    ///   - defaultsRevision: The default set revision, for the saved set.
+    ///   - declinedRevision: A newer revision the user declined, for the saved set.
+    public init(_ list: MuteList, defaultsRevision: Int? = nil, declinedRevision: Int? = nil) {
+        self.init(mutes: list.mutes.map(Entry.init), defaultsRevision: defaultsRevision,
+                  declinedRevision: declinedRevision)
     }
     
     /// Read the version first, so a newer file is reported as such rather than as malformed.
@@ -73,6 +91,9 @@ public struct MuteFile: Codable, Equatable, Sendable {
         guard version >= 1 else { throw MuteFileError.malformed("“version” is \(version)") }
         guard version <= Self.currentVersion else { throw MuteFileError.unsupportedVersion(version) }
         mutes = try container.decode([Entry].self, forKey: .mutes)
+        /// A revision that doesn't read is treated as missing: the set is then compared with the 3.0 default set.
+        defaultsRevision = (try? container.decodeIfPresent(Int.self, forKey: .defaultsRevision)) ?? nil
+        declinedRevision = (try? container.decodeIfPresent(Int.self, forKey: .declinedRevision)) ?? nil
     }
     
     /// The file's bytes: pretty printed with sorted keys and unescaped slashes, plus a final newline. The same

@@ -10,14 +10,19 @@
 //
 //  The files can come from two commits on one Mac (a regression check) or one
 //  commit on two Macs (an M1 Max against an M5): the header shows each file's
-//  Mac, macOS and build, and warns when a build wasn't optimized or a run
-//  started throttled.
+//  Mac, macOS and build, and warns when a run started throttled.
+//
+//  It refuses to gate on an unoptimized build (`"optimized": false`, as Xcode's
+//  Community configuration writes), whose times say little about what ships:
+//  it exits non-zero and names the file. --unoptimized lists the times and the
+//  change anyway, with no faster or slower verdict.
 //
 //  Created by Brandon Dalton on 11/5/26.
 //
-//  Usage: compare-performance.js [--cpu] <before.json> <after.json>
+//  Usage: compare-performance.js [--cpu] [--unoptimized] <before.json> <after.json>
 //
-//    --cpu  Compare CPU time rather than wall time.
+//    --cpu          Compare CPU time rather than wall time.
+//    --unoptimized  Compare files from unoptimized builds, without verdicts.
 //
 
 ObjC.import("Foundation")
@@ -52,11 +57,25 @@ function describe(label, document) {
         : `${machine.performance_cores}P+${machine.efficiency_cores}E`
     const lines = [`${label}: ${machine.model} ${machine.chip} (${cores}), macOS ${system.version} (${system.build}), `
         + `Mac Monitor ${build.mac_monitor_version} ${build.commit || "?"}, ${build.configuration}`]
-    if (!build.optimized) lines.push(`  ⚠️  ${name} is an unoptimized build: its times say little about the app`)
+    if (!build.optimized) lines.push(`  ⚠️  ${name} is an unoptimized build: its times aren't gated`)
     if (system.thermal_state !== "nominal") lines.push(`  ⚠️  ${name} started ${system.thermal_state}ly throttled`)
     if (system.low_power_mode) lines.push(`  ⚠️  ${name} ran in Low Power Mode`)
     if (machine.translated) lines.push(`  ⚠️  ${name} ran under Rosetta`)
     return lines
+}
+
+/**
+ * Refuse to gate on a file from an unoptimized build.
+ *
+ * @param {string[]} paths - The two files' paths, before and after.
+ * @param {object[]} documents - The two parsed files, in the same order.
+ * @throws {Error} Naming each unoptimized file, so osascript exits non-zero.
+ */
+function requireOptimized(paths, documents) {
+    const unoptimized = paths.filter((path, index) => documents[index].environment.build.optimized !== true)
+    if (unoptimized.length === 0) return
+    throw new Error(`Won't gate on an unoptimized build: ${unoptimized.join(", ")}. Measure with `
+        + "test-performance.sh (-O, whole module), or pass --unoptimized to list the times without verdicts.")
 }
 
 /**
@@ -78,9 +97,11 @@ function time(nanoseconds) {
  */
 function run(argv) {
     const metric = argv.includes("--cpu") ? "cpu_ns" : "wall_ns"
-    const paths = argv.filter(argument => argument !== "--cpu")
-    if (paths.length !== 2) return "Usage: compare-performance.js [--cpu] <before.json> <after.json>"
+    const gated = !argv.includes("--unoptimized")
+    const paths = argv.filter(argument => argument !== "--cpu" && argument !== "--unoptimized")
+    if (paths.length !== 2) return "Usage: compare-performance.js [--cpu] [--unoptimized] <before.json> <after.json>"
     const [before, after] = paths.map(readResults)
+    if (gated) requireOptimized(paths, [before, after])
     const lines = [...describe("Before", before), ...describe("After ", after), ""]
     if (before.environment.machine.model !== after.environment.machine.model) {
         lines.push("Different Macs: the change is the hardware's (and macOS's) as much as the code's.", "")
@@ -101,7 +122,7 @@ function run(argv) {
         const [x, y] = [a[metric], b[metric]]
         const change = (y.median - x.median) / x.median
         const noise = Math.max(0.03, 2 * Math.max(x.stddev / x.mean || 0, y.stddev / y.mean || 0))
-        const verdict = Math.abs(change) <= noise ? "~" : change < 0 ? "faster" : "slower"
+        const verdict = !gated ? "not gated" : Math.abs(change) <= noise ? "~" : change < 0 ? "faster" : "slower"
         const percent = `${change >= 0 ? "+" : ""}${(change * 100).toFixed(1)}%`
         lines.push(`${name.padEnd(width)}  ${time(x.median).padStart(12)}  ${time(y.median).padStart(12)}  `
             + `${percent.padStart(7)} ${verdict} (per ${b.unit}, ±${(noise * 100).toFixed(0)}%)`)

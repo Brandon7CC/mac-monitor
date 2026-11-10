@@ -73,7 +73,7 @@ public final class StreamCommand: NSObject {
     
     /// The shortest time between two drop notices, in nanoseconds.
     static let noticeInterval: UInt64 = 1_000_000_000
-    private let client: StreamClient
+    let client: StreamClient
     private let pipeline: StreamPipeline
     private let output: StreamOutput
     /// Writes one line to standard error.
@@ -82,6 +82,8 @@ public final class StreamCommand: NSObject {
     private let isChatty: Bool
     /// `macmonitor`'s own version, such as "3.0.0 (1)".
     private let toolVersion: String
+    /// How long to wait for the list `--indicator` is checked against (``checkIndicators(_:timeout:completion:)``).
+    private let indicatorTimeout: DispatchTimeInterval
     /// Writes batches and handles answers, in order.
     private let queue = DispatchQueue(label: "com.swiftlydetecting.agent.cli.stream")
     /// Called once, on ``queue``, with how the stream ended.
@@ -104,9 +106,12 @@ public final class StreamCommand: NSObject {
     ///   - toolVersion: `macmonitor`'s own version.
     ///   - isChatty: Write the banner and the summary (standard error is a terminal).
     ///   - diagnose: Writes one line to standard error.
+    ///   - indicatorTimeout: How long to wait for the Mac's indicators, for `--indicator`: 10 seconds unless given.
     public init(client: StreamClient, pipeline: StreamPipeline, output: StreamOutput, toolVersion: String,
-                isChatty: Bool, diagnose: @escaping (String) -> Void) {
+                isChatty: Bool, diagnose: @escaping (String) -> Void,
+                indicatorTimeout: DispatchTimeInterval = .seconds(10)) {
         self.client = client
+        self.indicatorTimeout = indicatorTimeout
         self.pipeline = pipeline
         self.output = output
         self.toolVersion = toolVersion
@@ -114,7 +119,8 @@ public final class StreamCommand: NSObject {
         self.diagnose = diagnose
     }
     
-    /// Start streaming.
+    /// Start streaming. With `--indicator`, each is checked against the Mac's indicators first, and the stream doesn't
+    /// start if one can't match (`StreamCommand+Indicators.swift`).
     ///
     /// - Parameters:
     ///   - invocation: The stream asked for.
@@ -130,16 +136,23 @@ public final class StreamCommand: NSObject {
         client.activate(receiving: self) { [weak self] failure in
             self?.queue.async { self?.end(.failed(failure)) }
         }
-        client.send(StreamRequest(.stream, options: invocation.options), timeout: .seconds(10)) { [self] result in
-            queue.async { [self] in
-                switch result {
-                case .failure(let failure):
-                    end(.failed(failure))
-                case .success(let reply):
-                    if let failure = CommandLineFailure.reply(reply) { return end(.failed(failure)) }
-                    started(reply)
+        let start = { [self] in
+            client.send(StreamRequest(.stream, options: invocation.options), timeout: .seconds(10)) { [self] result in
+                queue.async { [self] in
+                    switch result {
+                    case .failure(let failure):
+                        end(.failed(failure))
+                    case .success(let reply):
+                        if let failure = CommandLineFailure.reply(reply) { return end(.failed(failure)) }
+                        started(reply)
+                    }
                 }
             }
+        }
+        guard !invocation.filter.indicators.isEmpty else { return start() }
+        checkIndicators(invocation.filter.indicators, timeout: indicatorTimeout) { [self] failure in
+            guard let failure else { return start() }
+            queue.async { [self] in end(.failed(failure)) }
         }
     }
     

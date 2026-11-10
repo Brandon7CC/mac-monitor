@@ -12,7 +12,8 @@ import XCTest
 // MARK: - Enrichment on a capture lane
 /// Times the file system reads Mac Monitor's enrichment makes while a capture lane builds an event: File Quarantine
 /// (every create and rename, and every exec's checks), a script's or plist's contents (an interpreter's exec, a launch
-/// item), and a file's first 4 KB, the read a file type check of an mmap or a modified close would make.
+/// item), and a file's first 4 KB, as a file type check of an mmap or a modified close reads it
+/// (`FileTypePerformanceTests` times the whole check).
 ///
 /// The files are in a temporary folder, read again and again, so they're in the buffer cache: these are the system
 /// call costs, not the disk's.
@@ -85,7 +86,8 @@ final class ProcessHelpersPerformanceTests: PerformanceTestCase {
         try benchmarkContents("limit", size: ProcessHelpers.fileContentsLimit * 2, reads: 50)
     }
     
-    /// A file's first 4 KB, opened as enrichment opens a file (``ProcessHelpers/openRegularFile(at:)``).
+    /// A file's first 4 KB, opened as enrichment opens a file
+    /// (``ProcessHelpers/openRegularFile(at:for:expecting:)``).
     func testHeaderOfAFile() throws {
         let path = try file(size: 1 << 20)
         let reads = 5_000

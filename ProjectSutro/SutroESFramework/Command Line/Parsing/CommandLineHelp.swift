@@ -16,14 +16,14 @@ import Foundation
 /// ``CommandLineInvocation`` case, and `CommandLineTool.run` in `macmonitor` runs that case. A command that needs
 /// neither root nor the Security Extension, as `schema` and `validate` don't, runs entirely in `macmonitor`.
 public enum CommandLineCommand: String, CaseIterable, Sendable {
-    case stream, mute, events, schema, validate, completion, version, help
+    case stream, mute, indicators, status, events, schema, validate, completion, version, help
     
     /// Does the command need root? Only what talks to the Security Extension does, and then the Security Extension
     /// decides: root always, and any user when Mac Monitor's Settings allows it (``CommandLineAccess``).
     public var requiresRoot: Bool {
         switch self {
-        case .stream, .mute: return true
-        case .events, .schema, .validate, .completion, .version, .help: return false
+        case .stream, .mute, .indicators: return true
+        case .status, .events, .schema, .validate, .completion, .version, .help: return false
         }
     }
     
@@ -65,12 +65,18 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                                           'process.executable.path ENDSWITH "/curl"'
                                           'ANY event.exec.args CONTAINS[c] "token"'
                                           'process.audit_token.euid == 0 AND event_type == 9'
+                  --indicator NAME|ID     An indicator the event matched, by its name, ignoring case, or its
+                                          ID, as 'macmonitor indicators list' shows them:
+                                          --indicator 'Plist modified'.
 
                 A filter given more than once matches any of its values. --predicate is the exception. Every one \
                 given must match. An event is written only if every filter given matches it. REGEX is found \
                 anywhere in the value unless anchored with ^ or $, and is case-sensitive unless it starts with (?i). \
-                The record is what --format jsonl writes ('macmonitor schema' describes it). --signing-id, --grep and \
-                --predicate read it, so they make text output as slow as JSONL. Filtered events are never counted as \
+                The record is what --format jsonl writes ('macmonitor schema' describes it). Its indicators key lists \
+                the indicators in this Mac's set ('macmonitor indicators') that the Security Extension matched as it \
+                captured the event. A Security Extension older than macmonitor matches none and leaves the key out, \
+                and --indicator then stops the stream. --signing-id, --grep, --predicate and --indicator read the \
+                record, so they make text output as slow as JSONL. Filtered events are never counted as \
                 lost, and --count counts only events written. Closes left out as unmodified are never counted as lost \
                 either: the closing line says how many there were. A file changed only through a writable mapping \
                 closes unmodified, and mmap events show such mappings. Mac Monitor's own Settings choice doesn't \
@@ -101,8 +107,11 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                   reset [--yes]                           Restore Mac Monitor's default set. Its mutes for a home
                                                           folder's caches and Biome streams are for the user logged
                                                           in at the console.
+                  update [--yes]                          Merge a newer Mac Monitor's default set into a saved set
+                                                          you've changed, keeping your changes. A saved set you
+                                                          haven't changed is updated on upgrade by itself.
                 
-                import and reset say what they'd change and ask first. --yes goes ahead without asking, and is \
+                import, reset and update say what they'd change and ask first. --yes goes ahead without asking, and is \
                 needed when there's no terminal to ask at.
                 
                 PATH is absolute. TYPE is literal (the default), prefix, target-literal, or target-prefix: literal \
@@ -112,6 +121,74 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                 The saved set lives in the Security Extension. It applies to Mac Monitor and to every stream without \
                 --no-mutes, including streams already running, and survives restarts. Muted events are never \
                 captured, so they never show as lost.
+                """)
+        case .indicators:
+            return ("Show or change the indicators the Security Extension runs on every event.",
+                    "sudo macmonitor indicators " + IndicatorInvocation.Name.allCases.map(\.rawValue)
+                        .joined(separator: "|"), """
+                Commands:
+                  list [--format text|json]               Show this Mac's indicators: a table, or with --format json
+                                                          (--json for short) the indicator file export writes.
+                  show ID|NAME...                         Show every detail of indicators: state, severity, tactic,
+                                                          technique, description and predicate.
+                  add --name NAME --predicate PREDICATE [--severity SEVERITY]
+                                                          Add an indicator of your own: medium unless SEVERITY says.
+                  edit ID|NAME [--name NAME] [--predicate PREDICATE] [--severity SEVERITY]
+                       [--description TEXT] [--tactic TACTIC|none] [--technique TECHNIQUE|none]
+                       [--symbol SYMBOL]                  Change an indicator's fields, Mac Monitor's own included.
+                  edit ID|NAME --file FILE|- [--yes]      Change an indicator as one exported indicator says: the
+                                                          editable keys it has, the rest ignored.
+                  edit ID|NAME --restore                  Put one of Mac Monitor's own back as this build ships it.
+                  import FILE|- [--replace] [--yes]       Add an indicator file's indicators, replacing those with
+                                                          the same ID, or with --replace make the set exactly them.
+                                                          Reads files Mac Monitor's Settings > Indicators exports.
+                                                          - reads standard input.
+                  remove ID|NAME...                       Remove indicators, Mac Monitor's own included.
+                  enable ID|NAME...                       Turn indicators on.
+                  disable ID|NAME...                      Turn indicators off.
+                  export [ID|NAME...]                     Write the set, or the indicators named, as an indicator
+                                                          file to standard output.
+
+                import and edit --file say what they would change, Mac Monitor's own indicators they would remove, \
+                turn off or replace among them, and ask first. --yes goes ahead without asking, and is needed when \
+                there's no terminal to ask at.
+
+                edit keeps an indicator's ID, so earlier records, streams following it with --indicator ID, and each \
+                user's table marks stay with it. It never turns an indicator on or off, and never changes how \
+                anyone's tables mark it. Records already captured keep the name and severity they had; a search by \
+                indicators.id finds them across a rename, indicators.name doesn't. A name another indicator has is \
+                refused. --file takes the editable keys present in one exported indicator (name, description, \
+                symbol, color, predicate, tactic, technique and severity) and ignores the rest, \
+                such as isEnabled; 'macmonitor indicators export ID > one.json' writes one to start from. TACTIC is \
+                an ATT&CK tactic in any case, by name, ID or as the JSON writes it: "Defense Evasion", TA0005 or \
+                defenseEvasion. TECHNIQUE is one such as T1059.002. none clears either. SYMBOL is an SF Symbol's \
+                name, which macmonitor can't check: Mac Monitor shows its plain symbol for one it doesn't know. \
+                Editing the rule of one of Mac Monitor's own, not just its tactic, technique or severity, stops Mac \
+                Monitor updates changing it, until edit --restore.
+
+                NAME is an indicator's name, ignoring case, and ID its identity, as list shows them. A name two \
+                indicators share is refused: use the ID. PREDICATE is an NSPredicate on an event's record, as \
+                'macmonitor stream --predicate' takes one, that names its event types by their payloads or by \
+                es_event_type, such as 'event.exec != nil AND process.executable.path ENDSWITH "/curl"'. \
+                SEVERITY is low, medium or high: how strong a sign of something malicious a match is. It doesn't \
+                change what matches.
+
+                The set lives in the Security Extension, which matches it against every event it captures for Mac \
+                Monitor and for every stream, --no-mutes included, and lists the matches in each record's \
+                indicators key. A change applies at once, to every user and every stream already running, and \
+                survives restarts. An indicator the Security Extension can't run is kept, and list says why.
+                """)
+        case .status:
+            return ("Show what's installed, what it needs, and who is capturing.", "macmonitor status [--json]", """
+                Shows the versions of macmonitor, Mac Monitor and its Security Extension, whether the Security \
+                Extension is activated and has Full Disk Access, whether Mac Monitor is connected and recording, how \
+                many macmonitor streams are running. It needs no root, and changes nothing.
+
+                Options:
+                  --json   Write JSON, for a script. A part that isn't known is null.
+
+                It exits 0 when the Security Extension is activated and Endpoint Security lets it capture, and \
+                \(CommandLineExit.unavailable.rawValue) when it isn't ready, after showing why.
                 """)
         case .events:
             return ("List the events macmonitor can stream.", "macmonitor events", """
@@ -151,7 +228,11 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                          updating Mac Monitor.
                   bash   Add eval "$(macmonitor completion bash)" to ~/.bash_profile.
                 """)
-        case .version: return ("Show macmonitor's version.", "macmonitor version", "")
+        case .version:
+            return ("Show macmonitor's version.", "macmonitor version", """
+                'macmonitor -v' and 'macmonitor --version' do the same. As root, it shows the Security Extension's \
+                version too. 'macmonitor status' shows every version without root.
+                """)
         case .help: return ("Show help for a command.", "macmonitor help [COMMAND]", "")
         }
     }
@@ -181,7 +262,9 @@ public enum CommandLineHelp {
             let name = command.rawValue
             return "  \(name.padding(toLength: width, withPad: " ", startingAt: 0))   \(command.help.summary)"
         }
-        let rooted = commands.filter(\.requiresRoot).map(\.rawValue).joined(separator: " and ")
+        let rooted = commands.filter(\.requiresRoot).map(\.rawValue)
+        let named = rooted.count > 1 ? rooted.dropLast().joined(separator: ", ") + " and " + (rooted.last ?? "")
+            : rooted.joined()
         return """
             macmonitor streams Endpoint Security events from Mac Monitor's Security Extension, and checks traces \
             against Mac Monitor's telemetry schema.
@@ -191,7 +274,7 @@ public enum CommandLineHelp {
             Commands:
             \(list.joined(separator: "\n"))
 
-            Run 'macmonitor help <command>' for a command's options. \(rooted) need root: run them with sudo, or \
+            Run 'macmonitor help <command>' for a command's options. \(named) need root: run them with sudo, or \
             allow them without sudo in \(CommandLineAccess.setting).
 
             """

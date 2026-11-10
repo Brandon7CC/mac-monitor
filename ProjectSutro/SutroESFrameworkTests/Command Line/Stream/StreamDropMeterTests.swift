@@ -122,7 +122,7 @@ final class StreamDropMeterTests: XCTestCase {
         XCTAssertEqual(meter.takeReport().map(\.eventClass), [.process, .memory])
     }
     
-    /// With no filtered types, as from a Security Extension older than 3.0.1, every gap is a loss again.
+    /// With no filtered types, as from a Security Extension older than 3.1.0, every gap is a loss again.
     func testClearingTheFilteredTypesCountsEveryGap() {
         let meter = StreamDropMeter()
         meter.fieldFilteredTypes = [Int(ES_EVENT_TYPE_NOTIFY_CLOSE.rawValue)]

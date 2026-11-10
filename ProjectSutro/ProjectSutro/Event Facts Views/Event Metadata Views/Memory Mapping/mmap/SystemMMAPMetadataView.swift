@@ -49,6 +49,11 @@ struct SystemMMAPMetadataView: View {
                         }
                     }
                     
+                    /// Read from the file's first bytes when the event was recorded: none when it wasn't read.
+                    if let fileType = event.file_type {
+                        FileTypeFact(identifier: fileType, machOType: event.mach_o_type)
+                    }
+                    
                     HStack {
                         Text("\u{2022} **Protection:**")
                         MemoryProtectionFact(protection: event.protection)
@@ -136,13 +141,7 @@ struct MemoryMappingCalloutBadge: View {
     }
 
     var body: some View {
-        Text(style.text)
-            .font(.caption.bold())
-            .foregroundStyle(style.color)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 2)
-            .background(style.color.opacity(0.18), in: RoundedRectangle(cornerRadius: 5))
-            .help(style.help)
+        CalloutBadge(text: style.text, color: style.color, help: style.help)
     }
 }
 

@@ -9,8 +9,8 @@ import Foundation
 
 
 // MARK: - Stream filter
-/// Which events `macmonitor stream` writes: `--pid`, `--process`, `--signing-id`, `--target`, `--grep` and
-/// `--predicate`.
+/// Which events `macmonitor stream` writes: `--pid`, `--process`, `--signing-id`, `--target`, `--grep`,
+/// `--predicate` and `--indicator`.
 ///
 /// An option given more than once matches an event if any of its values does, and an event is written only if every
 /// option given matches it: `--process curl --process wget --signing-id '^com\.apple\.'` writes Apple's curl and
@@ -19,9 +19,13 @@ import Foundation
 /// A pattern is a regular expression (`NSRegularExpression`), found anywhere in the value unless it's anchored, and
 /// case-sensitive unless it starts with `(?i)`. `--predicate` is an `NSPredicate` on the event's record.
 ///
-/// `--pid`, `--process` and `--target` read the event's header, which every format decodes. `--signing-id`, `--grep`
-/// and `--predicate` read its export record, the line `--format jsonl` writes, so text output with one of them encodes
-/// every event's record too, as JSONL output does. Events filtered out were captured and read, so they're never lost.
+/// `--indicator` names an indicator in the Mac's set by its name, ignoring case, or its identity: an event whose
+/// record lists it, as the Security Extension matched it, is written.
+///
+/// `--pid`, `--process` and `--target` read the event's header, which every format decodes. `--signing-id`, `--grep`,
+/// `--predicate` and `--indicator` read its export record, the line `--format jsonl` writes, so text output with one
+/// of them encodes every event's record too, as JSONL output does. Events filtered out were captured and read, so
+/// they're never lost.
 public struct StreamFilter: Equatable {
     /// A regular expression, as typed.
     public struct Pattern: Equatable {
@@ -88,9 +92,35 @@ public struct StreamFilter: Equatable {
         ///   - maxLength: The longest predicate taken, in characters.
         /// - Throws: ``CommandLineUsageError`` if it's too long, `NSPredicate` can't read it, or it does more than
         ///   compare values.
-        private init(_ source: String, for audience: PredicateAudience, maxLength: Int) throws {
+        init(_ source: String, for audience: PredicateAudience, maxLength: Int) throws {
+            let parsed = try Self.parse(source, for: audience, maxLength: maxLength)
+            self.parsed = parsed
+            matches = BoundedMatches()
+            related = RelatedEvents(matches: matches)
+            predicate = try matches.rewrite(related.rewrite(parsed, for: audience), for: audience)
+            self.source = source
+            self.audience = audience
+        }
+
+        /// Read a predicate and check it only compares the record's values, without making it ready to evaluate:
+        /// what ``IndicatorCompiler`` reads.
+        ///
+        /// - Parameters:
+        ///   - source: The predicate's format.
+        ///   - audience: Who its errors are for.
+        ///   - maxLength: The longest predicate taken, in characters.
+        /// - Returns: The predicate, parsed and checked (``parsed``).
+        /// - Throws: ``CommandLineUsageError`` if it's too long, `NSPredicate` can't read it, or it does more than
+        ///   compare values.
+        static func parse(_ source: String, for audience: PredicateAudience,
+                          maxLength: Int = maxLength) throws -> NSPredicate {
             guard source.count <= maxLength else {
                 throw CommandLineUsageError("\(audience.name) can't be longer than \(Self.maxLength) characters.",
+                                            command: audience.command)
+            }
+            /// `NSPredicate`'s scanner ends the process on some unclosed strings.
+            guard !PredicateText.endsInsideQuote(source) else {
+                throw CommandLineUsageError("\(audience.name) can't read '\(source)': a quoted string isn't closed.",
                                             command: audience.command)
             }
             let parsed: NSPredicate
@@ -105,17 +135,25 @@ public struct StreamFilter: Equatable {
                                             command: audience.command)
             }
             try PredicateGuard.check(parsed, for: audience)
-            self.parsed = parsed
-            matches = BoundedMatches()
-            related = RelatedEvents(matches: matches)
-            predicate = try matches.rewrite(related.rewrite(parsed, for: audience), for: audience)
-            self.source = source
-            self.audience = audience
+            return parsed
         }
 
         /// Does it compare events with related ones, in a `SUBQUERY`? Then give ``collect(_:)`` every event before
         /// evaluating it on any.
         public var relatesEvents: Bool { !related.isEmpty }
+
+        /// Does it name the record's `indicators` or `indicators_undetermined`? Then its events' records are encoded
+        /// with them (``RecordIndicators``), only when it's asked for.
+        public var readsIndicators: Bool {
+            source.range(of: #"\bindicators(_undetermined)?\b"#, options: .regularExpression) != nil
+        }
+
+        /// Does it name the record's `indicators` itself? Then an event without stored verdicts is matched against
+        /// every indicator as its record is encoded. One that names only `indicators_undetermined` reads stored
+        /// verdicts alone (``RecordIndicators/stored``), since only those list it.
+        public var readsIndicatorHits: Bool {
+            source.range(of: #"\bindicators\b"#, options: .regularExpression) != nil
+        }
 
         /// Keep an event its `SUBQUERY`s pick as a related event.
         ///
@@ -221,13 +259,15 @@ public struct StreamFilter: Equatable {
     public var greps: [Pattern] = []
     /// `--predicate`: the event's record.
     public var predicates: [Predicate] = []
+    /// `--indicator`: the names, ignoring case, or identities of the indicators the event's record lists.
+    public var indicators: [String] = []
 
     /// No filter: every event is written.
     public init() {}
 
     /// Does deciding need the event's export record?
     public var readsRecords: Bool {
-        !(signingIDs.isEmpty && greps.isEmpty && predicates.isEmpty)
+        !(signingIDs.isEmpty && greps.isEmpty && predicates.isEmpty && indicators.isEmpty)
     }
 
     /// The same filter for another thread.
@@ -247,7 +287,7 @@ public struct StreamFilter: Equatable {
             && Self.any(targets) { $0.matches(header.targetPath ?? "") }
     }
 
-    /// Does an event's record pass `--signing-id`, `--grep` and `--predicate`?
+    /// Does an event's record pass `--signing-id`, `--grep`, `--indicator` and `--predicate`?
     ///
     /// - Parameter record: The event's export record.
     /// - Returns: `true` if it does.
@@ -256,8 +296,23 @@ public struct StreamFilter: Equatable {
     public func admits(record: NSDictionary) throws -> Bool {
         let signingID = record.value(forKeyPath: "process.signing_id") as? String ?? ""
         guard Self.any(signingIDs, { $0.matches(signingID) }),
-              Self.any(greps, { pattern in Self.containsString(record, where: pattern.matches) }) else { return false }
+              Self.any(greps, { pattern in Self.containsString(record, where: pattern.matches) }),
+              Self.any(indicators, { reference in
+                  (record["indicators"] as? [NSDictionary] ?? []).contains { Self.hit($0, isNamed: reference) }
+              }) else { return false }
         return try predicates.allSatisfy { try $0.evaluate(on: record) }
+    }
+
+    /// Is a record's indicator the one an `--indicator` value names?
+    ///
+    /// - Parameters:
+    ///   - hit: An entry of the record's `indicators`.
+    ///   - reference: The value: a name, ignoring case, or an identity.
+    /// - Returns: `true` when its name or its identity is the value.
+    private static func hit(_ hit: NSDictionary, isNamed reference: String) -> Bool {
+        if (hit["name"] as? String)?.caseInsensitiveCompare(reference) == .orderedSame { return true }
+        guard let id = (hit["id"] as? String).flatMap(UUID.init(uuidString:)) else { return false }
+        return id == UUID(uuidString: reference)
     }
 
     /// Does any value pass, or are there none to pass?

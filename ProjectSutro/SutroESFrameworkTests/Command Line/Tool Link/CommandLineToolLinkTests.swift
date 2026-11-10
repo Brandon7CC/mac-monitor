@@ -10,7 +10,7 @@ import XCTest
 
 
 // MARK: - What Settings sees
-/// Pins what Settings ▸ Command Line sees at `/usr/local/bin/macmonitor` and what it may do there, against a pretend
+/// Pins what Settings > Command Line sees at `/usr/local/bin/macmonitor` and what it may do there, against a pretend
 /// `/` in a temporary directory: only Mac Monitor's own links are ever changed, and only a tool root alone can change
 /// is ever linked.
 final class CommandLineToolLinkTests: XCTestCase {

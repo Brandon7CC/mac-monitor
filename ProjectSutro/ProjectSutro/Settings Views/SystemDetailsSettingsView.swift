@@ -10,8 +10,8 @@ import AppKit
 import SutroESFramework
 
 
-// MARK: - Settings ▸ System Details
-/// Settings ▸ System Details: this Mac, System Integrity Protection, and the Sensor ID Mac Monitor records with every
+// MARK: - Settings > System Details
+/// Settings > System Details: this Mac, System Integrity Protection, and the Sensor ID Mac Monitor records with every
 /// event.
 struct SystemDetailsSettingsView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager

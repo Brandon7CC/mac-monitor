@@ -15,9 +15,50 @@ extension TelemetrySchemaSource {
     static var artifacts: [String: SchemaObject] {
         ["process": process, "file": file, "stat": stat, "audit_token": auditToken, "thread": thread,
          "action": action, "launched_by_parent": launchedByParent, "launch_item": launchItem, "od_member": odMember,
-         "thread_state": threadState, "signed_file_info": signedFileInfo, "launch_item_bundle": launchItemBundle]
+         "thread_state": threadState, "signed_file_info": signedFileInfo, "launch_item_bundle": launchItemBundle,
+         "indicator": indicator, "indicator_undetermined": indicatorUndetermined]
     }
     
+    /// An indicator a record lists: one of the saved set's predicates the event matched, with its severity and who
+    /// matched it.
+    static var indicator: SchemaObject {
+        SchemaObject("An indicator from this Mac's saved set that the event matched.", [
+            enrichment("id", .pattern(.uuid), "The indicator's identity, the same on every Mac for one Mac Monitor "
+                        + "ships."),
+            enrichment("name", .string, "What Settings > Indicators calls it, such as Background item added."),
+            enrichment("tactic", .nullable(.values(Indicator.Tactic.allCases.map(\.name).sorted())),
+                       "The MITRE ATT&CK tactic it's for, by name, or null for none."),
+            enrichment("tactic_id", .nullable(.values(Indicator.Tactic.allCases.map(\.identifier).sorted())),
+                       "The tactic's ATT&CK identity, such as TA0003, or null for none."),
+            enrichment("technique", .nullable(.string),
+                       "The ATT&CK technique it finds, such as T1543.001, or null for none."),
+            enrichment("severity", .values(IndicatorSeverity.allCases.map(\.rawValue).sorted()),
+                       "How strong a sign of malicious activity a match is: high for a strong one, medium for "
+                        + "suspicious behavior that has benign uses, low for context and noisy signals. It never "
+                        + "changes what matches."),
+            enrichment("default", .boolean, "Whether it is one of Mac Monitor's default indicators, which Mac "
+                        + "Monitor ships. edited says whether this Mac changed it."),
+            enrichment("edited", .boolean, "Whether this Mac changed one Mac Monitor ships: its name, description, "
+                        + "symbol, color, predicate, tactic, technique or severity. Always false when default is "
+                        + "false."),
+            enrichment("evaluated_by", .values(IndicatorEvaluator.known.map(\.rawValue).sorted()),
+                       "Who matched it: security_extension, the Security Extension as it captured the event, or "
+                        + "export, Mac Monitor as it wrote the record of an event the Security Extension did not "
+                        + "evaluate."),
+        ])
+    }
+    
+    /// An indicator the Security Extension couldn't rule out for the event: an indicator's keys, and why.
+    static var indicatorUndetermined: SchemaObject {
+        SchemaObject("An indicator from this Mac's saved set that the Security Extension could not rule out for the "
+                        + "event: it may or may not match.", indicator.keys + [
+            enrichment("reason", .values(UndeterminedReason.known.map(\.rawValue).sorted()),
+                       "Why it wasn't decided: scan_budget when evaluating the event's values exceeded the Security "
+                        + "Extension's per-event scan budget, or value_limit when a value that isn't ASCII was "
+                        + "longer than the 64 KiB the Security Extension compares."),
+        ])
+    }
+
     /// A process: `es_process_t`.
     static var process: SchemaObject {
         SchemaObject("A process: es_process_t, as eslogger writes it, with Mac Monitor's enrichments.", [
@@ -164,14 +205,14 @@ extension TelemetrySchemaSource {
                        "The bundle the item names, for an ES_BTM_ITEM_TYPE_APP, ES_BTM_ITEM_TYPE_LOGIN_ITEM or "
                        + "ES_BTM_ITEM_TYPE_USER_ITEM item whose path (absolute, or relative to `app_path`) is a bundle "
                        + "directory. null for other items, for a path that isn't a bundle, and on a remove when the "
-                       + "bundle is already gone. Also null when the event wasn't recorded by Mac Monitor 3.0.1 or "
-                       + "later (an eslogger trace, or one exported before 3.0.1, opened and exported again): bundles "
+                       + "bundle is already gone. Also null when the event wasn't recorded by Mac Monitor 3.1.0 or "
+                       + "later (an eslogger trace, or one exported before 3.1.0, opened and exported again): bundles "
                        + "are read only at capture, never when a trace is opened. Since telemetry 1.1.0."),
             enrichment("app_bundle", .nullable(.ref("launch_item_bundle")),
                        "The bundle at `app_path`, the app a helper, agent or daemon belongs to, of any item type. "
                        + "null when the item has no app, its app isn't a bundle, or, on a remove, it's already gone. "
-                       + "Also null when the event wasn't recorded by Mac Monitor 3.0.1 or later (an eslogger trace, "
-                       + "or one exported before 3.0.1, opened and exported again): bundles are read only at capture, "
+                       + "Also null when the event wasn't recorded by Mac Monitor 3.1.0 or later (an eslogger trace, "
+                       + "or one exported before 3.1.0, opened and exported again): bundles are read only at capture, "
                        + "never when a trace is opened. Since telemetry 1.1.0."),
         ])
     }

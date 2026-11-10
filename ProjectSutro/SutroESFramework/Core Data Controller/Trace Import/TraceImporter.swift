@@ -189,23 +189,24 @@ public final class TraceImporter {
                 return !failed
             }
             let span = earliest...latest
-            let done = { [count = messages.count] (saved: Bool) in
+            /// Only stored batches count toward the summary: one dropped for a closed trace isn't a failure either.
+            let done = { [count = messages.count] (outcome: CoreDataController.TraceSave) in
                 saves.withLock { state in
-                    guard saved else {
-                        state.failed = true
-                        return
+                    switch outcome {
+                    case .saved:
+                        state.events += count
+                        state.range = state.range?.including(span) ?? span
+                    case .dropped: break
+                    case .failed: state.failed = true
                     }
-                    state.events += count
-                    state.range = state.range?.including(span) ?? span
                 }
                 saving.signal()
             }
             switch built {
             case nil: store.insertTraceEvents(messages, clear: clear, completion: done)
             case .built(let batch)?: store.saveTraceEvents(batch, clear: clear, completion: done)
-            /// As ``CoreDataController/insertTraceEvents(_:clear:completion:)`` reports a batch of a closed trace.
-            case .closed?: done(true)
-            case .failed?: done(false)
+            case .closed?: done(.dropped)
+            case .failed?: done(.failed)
             }
             handed += messages.count
             return true

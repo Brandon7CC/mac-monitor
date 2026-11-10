@@ -20,7 +20,7 @@ import Foundation
 /// **Implementations:**
 /// - Agent: ``SensorClient``
 /// - Command line: ``StreamClient``, in `macmonitor`
-/// - Sensor: `SensorService` and ``StreamService``, behind `SensorListener` in the Security Extension target
+/// - Sensor: ``SensorService`` and ``StreamService``, behind `SensorListener` in the Security Extension target
 ///
 public enum SensorXPC {
     /// The team identifier that signs Mac Monitor, the Security Extension, and the update packages.
@@ -186,7 +186,7 @@ public enum SensorXPC {
     ///
     /// - Parameters:
     ///   - event: The `ES_EVENT_TYPE_*` name, or a ``FieldFilter`` wire name to turn that filter on or off. A
-    ///     Security Extension older than 3.0.1 replies `false` to a filter.
+    ///     Security Extension older than 3.1.0 replies `false` to a filter.
     ///   - enabled: `true` to subscribe or turn the filter on, `false` to unsubscribe or turn it off.
     ///   - reply: `true` if Endpoint Security accepted the request, or `false` if the caller doesn't own the event
     ///     stream.
@@ -203,6 +203,21 @@ public enum SensorXPC {
     ///   - request: A JSON encoded ``MuteRequest`` (at most ``MuteLimits/maxFileBytes``).
     ///   - reply: A JSON encoded ``MuteReply``.
     func mutes(_ request: Data, reply: @escaping (Data) -> Void)
+    
+    // MARK: Indicators
+    /// Read or change the Mac's indicator set: the one set the Security Extension keeps on disk and stamps every event
+    /// with, in Mac Monitor's capture and in every `macmonitor stream`. Severity and everything else but an
+    /// indicator's view switches are Mac-wide.
+    ///
+    /// Who may change it follows the saved mute set's rule (``MuteAccess/app(_:owner:)``). Every reply says which
+    /// (``IndicatorReply/access``). A Security Extension older than 3.1.0 has no such call, and NSXPC closes the
+    /// connection that sends it, so Mac Monitor first asks on a connection of its own (``SensorSupport``) and
+    /// treats no answer as an extension to update.
+    ///
+    /// - Parameters:
+    ///   - request: A JSON encoded ``IndicatorRequest`` (at most ``IndicatorLimits/maxFileBytes``).
+    ///   - reply: A JSON encoded ``IndicatorReply``.
+    func indicators(_ request: Data, reply: @escaping (Data) -> Void)
     
     /// The paths Apple mutes by default, captured when the Security Extension first started capture.
     ///
@@ -242,7 +257,9 @@ public enum SensorXPC {
                                reply: @escaping (Int) -> Void)
     
     // MARK: Command line access
-    /// Who may use `macmonitor stream` and `macmonitor mute` without `sudo`. Any Mac Monitor may ask.
+    /// Who may use `macmonitor stream`, `macmonitor mute` and `macmonitor indicators` without `sudo`. Any Mac Monitor
+    /// may ask, so Mac Monitor asks on a connection of its own (``SensorClient/probe(caller:_:completion:)``): a
+    /// Security Extension older than 3.1.0 has no such call, and NSXPC closes the connection that sends it.
     ///
     /// - Parameter reply: A ``CommandLineAccess`` raw value.
     func commandLineAccess(reply: @escaping (String) -> Void)
@@ -251,7 +268,9 @@ public enum SensorXPC {
     /// (``CommandLineAccessStore``).
     ///
     /// Like the saved mute set, any user's Mac Monitor may change it, administrator or not, while it owns the event
-    /// stream or nobody does. No password is asked.
+    /// stream or nobody does. No password is asked. So it goes on Mac Monitor's own connection, and only once the
+    /// Security Extension running now has answered ``commandLineAccess(reply:)`` (``SensorSupport``): one older than
+    /// 3.1.0 has neither call.
     ///
     /// - Parameters:
     ///   - access: A ``CommandLineAccess`` raw value.

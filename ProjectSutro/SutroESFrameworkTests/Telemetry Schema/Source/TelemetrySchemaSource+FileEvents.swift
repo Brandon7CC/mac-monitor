@@ -7,6 +7,7 @@
 
 import Foundation
 import EndpointSecurity
+@testable import SutroESFramework
 
 
 // MARK: - File events
@@ -21,7 +22,7 @@ extension TelemetrySchemaSource {
          event(ES_EVENT_TYPE_NOTIFY_CLOSE, "A file closed: es_event_close_t.", [
             eslogger("target", .ref("file")), eslogger("modified", .boolean),
             eslogger("was_mapped_writable", .boolean),
-         ]),
+         ] + fileType(of: "target", when: ", only when `modified` is true (an unmodified close's file isn't read)")),
          event(ES_EVENT_TYPE_NOTIFY_UNLINK, "A file deleted: es_event_unlink_t.", [
             eslogger("target", .ref("file")), eslogger("parent_dir", .ref("file")),
          ]),
@@ -40,6 +41,21 @@ extension TelemetrySchemaSource {
          ]),
          event(ES_EVENT_TYPE_NOTIFY_SETMODE, "A file's mode set: es_event_setmode_t.", [
             eslogger("mode", .integer), eslogger("target", .ref("file")),
+            enrichment("mode_symbolic", .string,
+                       "`mode`'s permission bits as `ls -l` shows them, without the file type: rw-r--r--. Setuid and "
+                       + "setgid show in the owner's and group's execute place as s, or S without execute, and the "
+                       + "sticky bit in others' as t or T. Derived from `mode` when the record is written. Since "
+                       + "telemetry 1.1.0."),
+            enrichment("previous_mode", .nullable(.integer),
+                       "The file's permission bits before the change (st_mode & 07777): Endpoint Security's stat of "
+                       + "`target` is from before it. null when `target` has no stat. Derived when the record is "
+                       + "written. Since telemetry 1.1.0."),
+            enrichment("mode_added", .array(.values(FileModeCallout.allCases.map(\.telemetryName))),
+                       "What the change added that's worth a look, in this order: executable (an execute bit, as "
+                       + "chmod +x gives), setuid, setgid and world_writable (S_IWOTH). A directory gets none of the "
+                       + "first three, and a sticky directory (1777, as /tmp is) not world_writable either. Without "
+                       + "`previous_mode`, every bit `mode` sets counts as added. Derived when the record is "
+                       + "written. Since telemetry 1.1.0."),
          ]),
          event(ES_EVENT_TYPE_NOTIFY_MMAP, "A file mapped into memory: es_event_mmap_t.", [
             eslogger("protection", .integer), eslogger("max_protection", .integer), eslogger("flags", .integer),
@@ -55,7 +71,7 @@ extension TelemetrySchemaSource {
                        + "MAP_ANONYMOUS), MAP_RESILIENT_CODESIGN, MAP_RESILIENT_MEDIA, MAP_32BIT, "
                        + "MAP_TRANSLATED_ALLOW_EXECUTE, MAP_UNIX03, MAP_TPRO. Empty for flags of 0: MAP_FILE is 0, so "
                        + "it's never named. Bits sys/mman.h doesn't name are left out; `flags` keeps them."),
-         ]),
+         ] + fileType(of: "source")),
          event(ES_EVENT_TYPE_NOTIFY_MPROTECT, "A memory region's protection changed: es_event_mprotect_t.", [
             eslogger("protection", .integer),
             eslogger("address", .integer, "Unsigned."),
@@ -68,6 +84,44 @@ extension TelemetrySchemaSource {
                        + "`protection` keeps them."),
          ]),
          mount,
+        ]
+    }
+    
+    /// `file_type` and `mach_o_type`: what an event's file is, read from its first bytes at capture.
+    ///
+    /// - Parameters:
+    ///   - key: The file's key: `source` or `target`.
+    ///   - when: When the file is read, after "when it recorded it", or "" for every event.
+    /// - Returns: The two keys.
+    private static func fileType(of key: String, when: String = "") -> [SchemaKey] {
+        [
+            enrichment("file_type", .nullable(.string),
+                       "What `\(key)` is by its content, never its name: the Launch Services type identifier of its "
+                       + "first 4 KB, sniffed by the Mac that recorded the event when it recorded it\(when). A Mach-O "
+                       + "is com.apple.mach-o-executable, -dylib, -bundle, -object or -core by its filetype, else "
+                       + "com.apple.mach-o-binary (a universal binary by the slice the recording Mac runs, else its "
+                       + "first; one whose slice is a static library is public.archive). A script is named by its #! "
+                       + "interpreter, through /usr/bin/env too: public.zsh-script, public.python-script, "
+                       + "com.apple.applescript.text for osascript (com.netscape.javascript-source with -l "
+                       + "JavaScript), else public.script. Compiled AppleScript and JXA (FasdUAS, JsOsaDAS) are "
+                       + "com.apple.applescript.script, and Java class files com.sun.java-class. Archives (an Apple "
+                       + "Archive raw or compressed, as aa archive writes it), disk images (a UDIF trailer), ELF and "
+                       + "PE binaries, property lists and PDFs have their own; other UTF-8 text without a NUL is "
+                       + "public.plain-text, and anything else public.data. Or `empty` "
+                       + "for a file of 0 bytes by the event's stat, `dyld_shared_cache` for a dyld shared cache (its "
+                       + "first bytes are dyld_v1), and `replaced` when the path no longer names `\(key)`: its device "
+                       + "or inode differ, or a symbolic link is on the path now. null when the file isn't read: not "
+                       + "a regular file, dataless, on a volume that isn't local, gone, a path Endpoint Security cut "
+                       + "short, or not readable by the process's effective user and group. Also null when the event "
+                       + "wasn't recorded by Mac Monitor 3.1.0 or later (an eslogger trace, or one exported before "
+                       + "3.1.0): the file is read only at capture, never when a trace is opened. Since telemetry "
+                       + "1.1.0."),
+            enrichment("mach_o_type", .nullable(.string),
+                       "The mach-o/loader.h name of a Mach-O's filetype, read with `file_type`: MH_EXECUTE, MH_DYLIB, "
+                       + "MH_BUNDLE, MH_OBJECT, MH_CORE, MH_DYLINKER, MH_KEXT_BUNDLE, MH_FILESET, MH_DSYM and the "
+                       + "others, or its value in hex (0x1f) for one without a name. A universal binary's is that of "
+                       + "the slice `file_type` names it by. null when `\(key)` isn't Mach-O, or as `file_type` is. "
+                       + "Since telemetry 1.1.0."),
         ]
     }
     
@@ -133,7 +187,9 @@ extension TelemetrySchemaSource {
             eslogger("destination_type", .integer),
             eslogger("destination", .object(destination(newPath))),
             enrichment("destination_path", .string, "The destination's full path."),
-        ] + destinationEnrichments)
+        ] + destinationEnrichments + fileType(of: "source", when: ", where it was renamed to, or from the bytes the "
+            + "modified close that wrote that version of it read, as a file written under one name and renamed into "
+            + "place is"))
     }
     
     /// A file system mounted: `es_event_mount_t`.

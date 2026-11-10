@@ -37,7 +37,7 @@ public struct MuteImport: Sendable {
 /// can't use, and never reads a file itself.
 public enum MuteFileReader {
     /// Read a version 1 mute file, or the list Mac Monitor exported before 3.0 (one `ESMutedPath` JSON object per
-    /// line, such as Export ▸ Current mute set... and the files in "Mute sets/").
+    /// line, such as Export > Current mute set... and the files in "Mute sets/").
     ///
     /// The version 1 reader goes first. If both fail, the error shown is the legacy one only when the first line reads
     /// as a legacy entry.

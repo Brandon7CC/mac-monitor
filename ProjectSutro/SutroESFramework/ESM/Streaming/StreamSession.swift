@@ -13,7 +13,8 @@ import OSLog
 // MARK: - Stream session
 /// One `macmonitor` connection (Security Extension context): at most one stream, on its own capture session.
 ///
-/// **Stream:** a stream request reserves a slot, follows the saved mute set (unless `--no-mutes`), and starts a
+/// **Stream:** a stream request reserves a slot, follows the saved mute set (unless `--no-mutes`) and the Mac's
+/// indicator set (always: each event carries its verdicts, so `macmonitor` has nothing to be told), and starts a
 /// capture session whose events go through an ``EventBatcher`` with the
 /// ``EventBatcher/Limits-swift.struct/commandLine`` limits. When `macmonitor` falls behind, the batcher pauses capture
 /// rather than buffering without bound. `macmonitor` sees what it missed as `global_seq_num` gaps, and the summary
@@ -42,6 +43,8 @@ final class StreamSession: NSObject {
     private var batcher: EventBatcher?
     /// Applies saved mute set changes to `capture` while held.
     private var muteSubscription: AnyCancellable?
+    /// Applies indicator set changes to `capture` while held.
+    private var indicatorSubscription: AnyCancellable?
     /// Has the connection asked to stream? One stream a connection.
     private var hasStreamed: Bool = false
     private var isClosed: Bool = false
@@ -77,7 +80,9 @@ extension StreamSession: StreamProtocol {
     func perform(_ request: Data, reply: @escaping (Data) -> Void) {
         /// Decided on the thread delivering the message, by the caller's effective user and `CommandLineAccess`.
         let grant = service.grant(NSXPCConnection.current())
-        guard grant.mayStream else {
+        /// A status request only reads, so anyone `macmonitor` runs as may send it.
+        let isStatus = (try? StreamRequest.decode(request))?.kind == .status
+        guard isStatus || grant.mayStream else {
             StreamService.logger.error("\(self.label, privacy: .public): refused a stream request.")
             return reply(answer(.refused, problem: grant.refusal).encoded())
         }
@@ -88,12 +93,26 @@ extension StreamSession: StreamProtocol {
     
     func mutes(_ request: Data, reply: @escaping (Data) -> Void) {
         let grant = service.grant(NSXPCConnection.current())
-        guard let access = grant.muteAccess else {
+        guard let access = grant.savedSetAccess else {
             StreamService.logger.error("\(self.label, privacy: .public): refused a mute request.")
             return reply(MuteReply(status: .refused, mutes: [], problems: [grant.refusal ?? ""]).encoded())
         }
         /// Without `sudo`, it may only list it, unless Settings lets it change it.
         service.savedMutes.handle(request, access: access, caller: label, reply: reply)
+    }
+    
+    func indicators(_ request: Data, reply: @escaping (Data) -> Void) {
+        let grant = service.grant(NSXPCConnection.current())
+        guard let access = grant.savedSetAccess else {
+            StreamService.logger.error("\(self.label, privacy: .public): refused an indicator request.")
+            return reply(IndicatorReply(status: .refused, indicators: [], failure: grant.refusal).encoded())
+        }
+        guard let savedIndicators = service.savedIndicators else {
+            return reply(IndicatorReply(status: .storageFailed, indicators: [],
+                                        failure: "This Security Extension keeps no indicators.").encoded())
+        }
+        /// The same rule as the saved mute set: without `sudo`, only a list, unless Settings allows changes.
+        savedIndicators.handle(request, access: access, caller: label, reply: reply)
     }
 }
 
@@ -115,15 +134,21 @@ extension StreamSession {
                 reply(start(try StreamPlan(request.options ?? StreamOptions())))
             case .stop:
                 stop(reply: reply)
+            case .status:
+                service.report { [self] report in
+                    queue.async { reply(self.answer(.ok, report: report)) }
+                }
             }
         } catch {
             reply(answer(error.status(), problem: error.description))
         }
     }
     
-    /// Start the connection's stream: reserve a slot, follow the saved mute set if asked, and start capture.
+    /// Start the connection's stream: reserve a slot, follow the saved mute set if asked and the indicator set always,
+    /// and start capture.
     ///
-    /// The mutes and subscriptions are in place before capture starts recording, so no message arrives unmuted.
+    /// The mutes, indicators and subscriptions are in place before capture starts recording, so no message arrives
+    /// unmuted or unjudged.
     ///
     /// - Parameter plan: The validated request.
     /// - Returns: The answer: what the stream subscribed to, or why it couldn't start.
@@ -139,6 +164,14 @@ extension StreamSession {
         hasStreamed = true
         var configuration = CaptureConfiguration(events: plan.events, label: label)
         configuration.fieldFilters = plan.fieldFilters ?? []
+        /// Every stream is evaluated, `--no-mutes` too: its records carry the verdicts. Changes hop onto `queue`.
+        if let savedIndicators = service.savedIndicators {
+            let (indicators, subscription) = savedIndicators.follow { [weak self] compiled in
+                self?.queue.async { self?.applyIndicators(compiled) }
+            }
+            configuration.indicators = indicators
+            indicatorSubscription = subscription
+        }
         requestsFieldFilters = plan.fieldFilters != nil
         if plan.appliesSavedMutes {
             /// Follow the saved set from the moment it's read, so no change is missed. Changes hop onto `queue`.
@@ -171,6 +204,7 @@ extension StreamSession {
                                                      fieldFilters: requestsFieldFilters ? filters : nil))
         } catch {
             muteSubscription = nil
+            indicatorSubscription = nil
             service.slots.release(number)
             return startFailure(error)
         }
@@ -206,6 +240,7 @@ extension StreamSession {
                 """)
         }
         muteSubscription = nil
+        indicatorSubscription = nil
         capture?.stop()
         batcher?.close()
         /// Releasing the batcher releases its delivery, the only strong reference to the connection.
@@ -225,6 +260,14 @@ extension StreamSession {
         capture.applyMutes(list)
         let proxy = connection?.remoteObjectProxyWithErrorHandler { _ in }
         (proxy as? StreamReaderProtocol)?.savedMutesChanged(change.encoded())
+    }
+    
+    /// Apply a change to the indicator set. Call on ``queue``.
+    ///
+    /// - Parameter compiled: The set now, compiled.
+    private func applyIndicators(_ compiled: CompiledIndicators) {
+        guard let capture, !isClosed else { return }
+        capture.applyIndicators(compiled)
     }
     
     /// Pause or resume capture for the batcher, counting what capture skips while paused. Call on ``queue``.
@@ -256,11 +299,12 @@ extension StreamSession {
     ///   - problem: What went wrong.
     ///   - stream: The stream that started.
     ///   - summary: What the stream delivered and lost.
+    ///   - report: What the Security Extension says of itself.
     /// - Returns: The answer.
     private func answer(_ status: StreamReply.Status, problem: String? = nil, stream: StreamStarted? = nil,
-                        summary: StreamSummary? = nil) -> StreamReply {
+                        summary: StreamSummary? = nil, report: SensorReport? = nil) -> StreamReply {
         StreamReply(status: status, problem: problem, sensorVersion: service.sensorVersion, stream: stream,
-                    summary: summary)
+                    summary: summary, report: report)
     }
     
     /// What the stream has delivered and lost so far. Call on ``queue``.

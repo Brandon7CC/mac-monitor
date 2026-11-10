@@ -39,11 +39,20 @@ final class CommandLineAccessStoreTests: XCTestCase {
 
     /// Every change, wider or narrower, is kept, and a new store reads it back.
     func testItKeepsEachChange() {
-        for access in [CommandLineAccess.streaming, .streamingAndMuting, .streaming, .rootOnly, .streamingAndMuting] {
+        for access in [CommandLineAccess.streaming, .streamingAndChanges, .streaming, .rootOnly, .streamingAndChanges] {
             XCTAssertEqual(store.change(to: access), .done)
             XCTAssertEqual(store.access, access)
             XCTAssertEqual(CommandLineAccessStore(defaults: defaults).access, access, "Kept")
         }
+    }
+
+    /// The level that lets anyone change mutes and indicators is stored as `streamingAndChanges`. Its name before
+    /// 3.1, `streamingAndMuting`, never shipped, so it reads as anything unknown does: root only.
+    func testTheChangesLevelIsStoredByItsName() {
+        XCTAssertEqual(store.change(to: .streamingAndChanges), .done)
+        XCTAssertEqual(defaults.string(forKey: CommandLineAccessStore.key), "streamingAndChanges")
+        defaults.set("streamingAndMuting", forKey: CommandLineAccessStore.key)
+        XCTAssertEqual(store.access, .rootOnly)
     }
 
     /// Every outcome but done tells the user something, and survives the trip over XPC.

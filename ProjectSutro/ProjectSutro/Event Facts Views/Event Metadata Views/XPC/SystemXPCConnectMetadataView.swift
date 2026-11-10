@@ -44,6 +44,7 @@ struct SystemXPCConnectMetadataView: View {
 
                     HStack {
                         Text("\u{2022} Domain type:")
+                            .bold()
                         GroupBox {
                             Text(event.service_domain_type_string)
                                 .monospaced()

@@ -16,7 +16,7 @@ public enum StreamOutputFormat: String, CaseIterable, Sendable {
     case text
     /// One export record per line (``ExportEncoder``), an eslogger superset: the default anywhere else.
     case jsonl
-    /// Pretty-printed records, like Export telemetry ▸ JSON (pretty)
+    /// Pretty-printed records, like Export telemetry > JSON (pretty)
     case pretty
 }
 
@@ -40,7 +40,9 @@ public final class StreamPipeline {
         /// Export records, one per line or pretty-printed, from one or more encoders.
         case jsonl([ExportEncoder])
         
-        /// As many encoders as pay off on this Mac: half its active cores, from 1 to 4.
+        /// As many encoders as pay off on this Mac: half its active cores, from 1 to 4. Each record lists the
+        /// verdicts the Security Extension stamped its event with, and has no `indicators` key without them
+        /// (``RecordIndicators/stored``).
         ///
         /// - Parameters:
         ///   - model: The event model, such as ``ExportEncoder/model``.

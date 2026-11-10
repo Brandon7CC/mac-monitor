@@ -81,7 +81,7 @@ final class CommandLineStreamFieldFilterTests: XCTestCase {
             """)
     }
 
-    /// A Security Extension older than 3.0.1 echoes no filters: macmonitor warns, terminal or not, for each filter
+    /// A Security Extension older than 3.1.0 echoes no filters: macmonitor warns, terminal or not, for each filter
     /// asked for on an event it streams, and counts every gap again.
     func testAnOlderSecurityExtensionIsWarnedAbout() {
         let (close, exec) = ("ES_EVENT_TYPE_NOTIFY_CLOSE", "ES_EVENT_TYPE_NOTIFY_EXEC")
@@ -95,7 +95,7 @@ final class CommandLineStreamFieldFilterTests: XCTestCase {
                        [Int(ES_EVENT_TYPE_NOTIFY_CLOSE.rawValue)])
     }
 
-    /// Against a Security Extension older than 3.0.1, which ignores the filter and echoes none, a stream that isn't on
+    /// Against a Security Extension older than 3.1.0, which ignores the filter and echoes none, a stream that isn't on
     /// a terminal still says it gets every close, and reports a gap between closes as lost again.
     func testAnOlderSecurityExtensionCountsCloseGapsAsLost() throws {
         let harness = StreamHarness(savedMutes: savedMutes, serializer: MessageSerializer())

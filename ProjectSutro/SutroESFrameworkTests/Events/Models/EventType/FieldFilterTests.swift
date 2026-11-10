@@ -15,7 +15,7 @@ import EndpointSecurity
 /// in.
 final class FieldFilterTests: XCTestCase {
     /// Every filter is on an event Mac Monitor streams, named after it, and never read as an event, so a Security
-    /// Extension older than 3.0.1 refuses it.
+    /// Extension older than 3.1.0 refuses it.
     func testEveryFilterIsNamedAfterAnEventItNeverNames() {
         for filter in FieldFilter.allCases {
             XCTAssertTrue(supportedEvents.contains(filter.event), filter.rawValue)

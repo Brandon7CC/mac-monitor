@@ -9,8 +9,8 @@ import SwiftUI
 import SutroESFramework
 
 
-// MARK: - Settings ▸ Security Extension
-/// Settings ▸ Security Extension: the same requirements the checklist shows, a way to look again, and reinstalling or
+// MARK: - Settings > Security Extension
+/// Settings > Security Extension: the same requirements the checklist shows, a way to look again, and reinstalling or
 /// uninstalling the Security Extension.
 struct SecurityExtensionSettingsView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager

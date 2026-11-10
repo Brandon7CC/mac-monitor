@@ -139,6 +139,12 @@ public class ESMessage: NSManagedObject, Identifiable {
         /// Mac Monitor's enrichment beside eslogger's `schema_version`: the telemetry schema the record follows
         /// (``TelemetrySchema/version``).
         case telemetry_version
+        /// Mac Monitor's enrichment: the indicators the event matched, when the writer lists them: its stored
+        /// verdicts, else those it matches now (``RecordIndicators``).
+        case indicators
+        /// Mac Monitor's enrichment beside `indicators`: those the Security Extension couldn't rule out, written only
+        /// with its stored verdicts (``ESMessage/recordedUndetermined``).
+        case indicators_undetermined
         case seq_num
         case global_seq_num
         
@@ -233,6 +239,10 @@ public class ESMessage: NSManagedObject, Identifiable {
         // MARK: Context and target path
         self.context = message.context ?? "Not supported"
         self.target_path = message.target_path ?? "Not supported"
+
+        // MARK: Indicators
+        self.indicatorsData = ESMessage.indicatorsData(of: message.indicators)
+        self.indicatorsUndeterminedData = ESMessage.undeterminedData(of: message.indicators_undetermined)
     }
     
     /// Store an event as the event store does: inserted with its instigator's token, its columns
@@ -321,6 +331,10 @@ extension ESMessage: Encodable {
         try container.encode(version, forKey: .version)
         try container.encode(schema_version, forKey: .schema_version)
         try container.encode(TelemetrySchema.version, forKey: .telemetry_version)
+        if let indicators = RecordIndicators.current, let hits = recordedIndicators(with: indicators) {
+            try container.encode(hits, forKey: .indicators)
+            try container.encodeIfPresent(recordedUndetermined, forKey: .indicators_undetermined)
+        }
         if version >= 2 {
             try container.encode(seq_num, forKey: .seq_num)
         }

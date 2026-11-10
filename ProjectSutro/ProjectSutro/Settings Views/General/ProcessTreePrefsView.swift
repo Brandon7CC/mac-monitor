@@ -9,7 +9,7 @@ import SwiftUI
 
 
 // MARK: - Process tree preferences
-/// Settings ▸ General's process tree setting: which parents Event Facts' process tree follows, the same choice the
+/// Settings > General's process tree setting: which parents Event Facts' process tree follows, the same choice the
 /// View menu makes (``ProcessTreeCommands``).
 struct ProcessTreePrefsView: View {
     /// Which parents the tree follows.

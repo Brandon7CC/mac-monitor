@@ -233,3 +233,46 @@ public enum PredicateText {
         return words
     }
 }
+
+
+// MARK: - Quotes
+public extension PredicateText {
+    /// Walk a predicate's text outside its quoted strings: between `"`, `'` or backticks, a backslash in one escaping
+    /// the character after it.
+    ///
+    /// - Parameters:
+    ///   - text: A predicate.
+    ///   - body: Given each byte outside a string.
+    /// - Returns: The quote the text ends inside, or `nil` when every string is closed.
+    @discardableResult
+    static func forEachUnquotedByte(in text: String, _ body: (UInt8) -> Void) -> UInt8? {
+        var quote: UInt8?
+        var escaped = false
+        for byte in text.utf8 {
+            if let open = quote {
+                if escaped {
+                    escaped = false
+                } else if byte == UInt8(ascii: "\\") {
+                    escaped = true
+                } else if byte == open {
+                    quote = nil
+                }
+            } else {
+                switch byte {
+                case UInt8(ascii: "\""), UInt8(ascii: "'"), UInt8(ascii: "`"): quote = byte
+                default: body(byte)
+                }
+            }
+        }
+        return quote
+    }
+
+    /// Does a predicate end inside a quoted string? `NSPredicate`'s scanner ends the whole process on some such text,
+    /// as `a == "x\` or an unclosed backtick, rather than raise, so it's refused before anything parses it.
+    ///
+    /// - Parameter text: A predicate.
+    /// - Returns: Whether a string is still open at its end.
+    static func endsInsideQuote(_ text: String) -> Bool {
+        forEachUnquotedByte(in: text) { _ in } != nil
+    }
+}

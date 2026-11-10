@@ -11,7 +11,7 @@ import SutroESFramework
 
 
 // MARK: - Command line access model
-/// Settings ▸ Command Line ▸ Without sudo's state: who may use `macmonitor` without `sudo`, as the Security
+/// Settings > Command Line > Without sudo's state: who may use `macmonitor` without `sudo`, as the Security
 /// Extension stores it, and the change being made.
 ///
 /// The Security Extension decides whether this Mac Monitor may change it (while it owns the event stream or nobody

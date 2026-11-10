@@ -17,6 +17,11 @@ import OSLog
 /// every follower, which applies it to its session (``CaptureSession/applyMutes(_:)``). Each follower also learns who
 /// changed the set and how (``MuteSetChange``), so a stream can say so.
 ///
+/// **Upgrades:** a saved set from an earlier default set revision that no one has changed becomes the current default
+/// set when it loads, unless the user declined that revision. One someone has changed is kept, and every reply offers
+/// the merge (``MuteSetUpdate``) until a ``MuteRequest/Operation/update`` or a Reset takes it in (``MuteSetUpgrade``).
+/// A ``MuteRequest/Operation/decline`` is saved with the set, so it holds for every user and for the CLI.
+///
 /// **Threading:** all state lives on ``queue``. Followers are called on it in change order and must hop to their
 /// session's own queue. Nothing here ever waits on a session's queue, so a session may call ``follow(_:)``
 /// synchronously from its own. A follower must never call back in synchronously.
@@ -24,28 +29,28 @@ public final class SavedMuteSet {
     /// Receives each new saved set, and who changed it how.
     public typealias Follower = (MuteList, MuteSetChange) -> Void
     
-    /// Whether the saved set can be changed.
-    enum State: Equatable {
-        case writable
-        /// The file was written by a newer Mac Monitor: only Reset may overwrite it.
-        case readOnly(version: Int)
-        /// The directory can't be trusted: nothing is saved.
-        case unavailable(reason: String)
-    }
-    
-    private let store: MuteStore
+    let store: MuteStore
     /// Who's logged in at the console: the default set mutes their home folder's caches.
     private let consoleUser: () -> ConsoleUser?
     /// Serializes everything below.
     let queue = DispatchQueue(label: "com.swiftlydetecting.agent.securityextension.mutes")
-    private var list = MuteList()
-    private(set) var state: State = .writable
+    var list = MuteList()
+    /// The default set revision ``list`` was last brought up to (``MuteSet/revisions``).
+    var defaultsRevision = MuteSet.currentRevision
+    /// A newer default set revision the user declined, saved with the set.
+    var declinedRevision: Int?
+    /// The saved set with a newer default set merged in, and what that changes, while it hasn't been taken in.
+    var pendingUpdate: (list: MuteList, update: MuteSetUpdate)?
+    /// The newer default set applied by itself when the set loaded, said with every reply until the next change.
+    var appliedUpdate: MuteSetUpdate?
+    /// Whether the saved set can be changed. A file from a newer Mac Monitor may only be overwritten by a Reset.
+    private(set) var state: SavedSetState = .writable
     /// Told to the user with every reply until the next change: the set was recovered, can't be changed, or leaves
     /// out the per-user mutes because no one was logged in when it was made.
-    private var notice: String?
+    var notice: String?
     private var isLoaded = false
-    private var followers: [UInt64: Follower] = [:]
-    private var nextFollower: UInt64 = 0
+    /// Every capture session that follows the set.
+    private lazy var followers = FollowerRegistry<Follower>(queue: queue)
     let logger = Logger(subsystem: "com.swiftlydetecting.agent.securityextension", category: "SavedMuteSet")
     
     /// - Parameters:
@@ -71,11 +76,14 @@ public final class SavedMuteSet {
     public func follow(_ follower: @escaping Follower) -> (MuteList, AnyCancellable) {
         queue.sync {
             loadIfNeeded()
-            let id = nextFollower
-            nextFollower += 1
-            followers[id] = follower
-            return (list, AnyCancellable { [weak self] in self?.queue.async { self?.followers[id] = nil } })
+            return (list, followers.add(follower))
         }
+    }
+
+    /// How many capture sessions follow the set now. A released subscription stops counting once ``queue`` has run
+    /// what was queued before this.
+    var followerCount: Int {
+        queue.sync { followers.count }
     }
     
     /// Answer a request from Mac Monitor or `macmonitor`.
@@ -135,6 +143,7 @@ public final class SavedMuteSet {
         case .writable, .readOnly:
             break
         }
+        if request.operation == .decline { return decline(by: caller) }
         let next: MuteList, warnings: [String], leftOut: String?
         do {
             (next, warnings, leftOut) = try nextList(for: request)
@@ -145,8 +154,13 @@ public final class SavedMuteSet {
             notice = leftOut ?? notice
             return reply(.ok, problems: warnings)
         }
+        /// Reset and update bring the set up to the current default set, with nothing left to decline. Other changes
+        /// keep its revision and what was declined.
+        let isCurrent = [.reset, .update].contains(request.operation)
+        let revision = isCurrent ? MuteSet.currentRevision : defaultsRevision
+        let declined = isCurrent ? nil : declinedRevision
         do {
-            try store.save(next)
+            try store.save(next, defaultsRevision: revision, declinedRevision: declined)
         } catch {
             logger.fault("""
                 Couldn't save the mute set \(caller, privacy: .public) asked for: \
@@ -159,10 +173,14 @@ public final class SavedMuteSet {
         let difference = list.difference(to: next)
         logChange(request.operation, by: caller, difference, from: list, to: next)
         list = next
+        defaultsRevision = revision
+        declinedRevision = declined
         state = .writable
         notice = leftOut
+        appliedUpdate = nil
+        refreshUpdate()
         let change = MuteSetChange(by: caller, difference, mutes: next.count)
-        followers.keys.sorted().forEach { followers[$0]?(next, change) }
+        followers.notify { $0(next, change) }
         return reply(.ok, changed: true, problems: warnings)
     }
     
@@ -198,6 +216,10 @@ public final class SavedMuteSet {
         case .reset:
             let (next, leftOut) = defaultSet()
             return (next, [], leftOut)
+        case .update:
+            return (pendingUpdate?.list ?? list, [], nil)
+        case .decline:
+            return (list, [], nil)
         }
     }
     
@@ -213,8 +235,14 @@ public final class SavedMuteSet {
     ///   - changed: Did the set change?
     ///   - problems: Why the request was refused or invalid, and what was left out of it.
     /// - Returns: The reply.
-    private func reply(_ status: MuteReply.Status, changed: Bool = false, problems: [String] = []) -> MuteReply {
-        MuteReply(status: status, changed: changed, mutes: MuteFile(list).mutes, problems: problems, notice: notice)
+    func reply(_ status: MuteReply.Status, changed: Bool = false, problems: [String] = []) -> MuteReply {
+        let update = pendingUpdate.map { pending in
+            var update = pending.update
+            update.declined = (declinedRevision ?? 0) >= update.revision
+            return update
+        }
+        return MuteReply(status: status, changed: changed, mutes: MuteFile(list).mutes, problems: problems,
+                         notice: notice, update: update, applied: appliedUpdate)
     }
 }
 
@@ -235,12 +263,16 @@ extension SavedMuteSet {
         isLoaded = true
         do {
             switch try store.load() {
-            case .saved(let saved, let warnings):
+            case .saved(let saved, let warnings, let revision, let declined):
                 list = saved
-                logger.log("Loaded the saved mute set (\(saved.count) mutes).")
-                guard !warnings.isEmpty else { return }
-                notice = "Some saved mutes were left out. \(warnings.joined(separator: " "))"
-                logger.error("Left out of the saved mute set: \(warnings.joined(separator: " "), privacy: .public)")
+                declinedRevision = declined
+                let revisionText = revision.map { "default set revision \($0)" } ?? "no default set revision"
+                logger.log("Loaded the saved mute set (\(saved.count) mutes, \(revisionText, privacy: .public)).")
+                if !warnings.isEmpty {
+                    notice = "Some saved mutes were left out. \(warnings.joined(separator: " "))"
+                    logger.error("Left out of the saved mute set: \(warnings.joined(separator: " "), privacy: .public)")
+                }
+                upgrade(from: revision)
             case .missing:
                 notice = startFromDefault()
                 logger.log("Created the saved mute set from Mac Monitor's default set (\(self.list.count) mutes).")
@@ -333,7 +365,7 @@ extension SavedMuteSet {
     ///   - difference: How the set changed.
     ///   - old: The set before.
     ///   - new: The set after.
-    private func logChange(_ operation: MuteRequest.Operation, by caller: String, _ difference: MuteListDifference,
+    func logChange(_ operation: MuteRequest.Operation, by caller: String, _ difference: MuteListDifference,
                            from old: MuteList, to new: MuteList) {
         let (added, removed, changed) = (difference.added, difference.removed, difference.changed)
         logger.log("""

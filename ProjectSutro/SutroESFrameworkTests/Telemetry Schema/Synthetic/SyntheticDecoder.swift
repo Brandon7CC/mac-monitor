@@ -47,12 +47,13 @@ struct SyntheticDecoder: Decoder {
     func singleValueContainer() throws -> SingleValueDecodingContainer { self }
     
     /// Is the value under `key` of the type being decoded `nil`? Only in an empty variant, unless Endpoint Security
-    /// never leaves it out, or when the variant leaves the key out on purpose.
+    /// never leaves it out, or when the variant leaves the key out on purpose or no record fills it.
     ///
     /// - Parameter key: The key.
     /// - Returns: `true` to decode `nil`.
     func isNil(_ key: String) -> Bool {
-        if variant.absent.contains("\(owner).\(key)") || variant.absent.contains("*.\(key)") { return true }
+        if variant.absent.contains("\(owner).\(key)") || variant.absent.contains("*.\(key)")
+            || SyntheticValues.unfilled.contains("\(owner).\(key)") { return true }
         return !variant.full && !SyntheticValues.neverNil.contains("\(owner).\(key)")
             && !SyntheticValues.neverNil.contains("*.\(key)")
     }

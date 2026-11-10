@@ -73,6 +73,9 @@ public final class MuteCommand {
         case .reset(let confirmed):
             request = MuteRequest(.reset)
             change = confirmed ? nil : .reset(for: consoleUser())
+        case .update(let confirmed):
+            request = MuteRequest(.update)
+            change = confirmed ? nil : .update
         case .importFile(let path, let merge, let confirmed):
             do {
                 let list = try importList(from: path)
@@ -130,6 +133,9 @@ public final class MuteCommand {
         say(reply.notice)
         if let failure = CommandLineFailure.reply(reply) { return .failure(failure) }
         reply.problems.forEach { diagnose("macmonitor: \(TerminalSafeText.text($0))") }
+        if case .update = invocation {} else if let update = reply.update, !update.declined {
+            diagnose("macmonitor: \(Self.offer(update))")
+        }
         let count = String.counted(reply.mutes.count, "mute")
         let text: String
         switch invocation {
@@ -139,6 +145,9 @@ public final class MuteCommand {
             return output.writeResult(MuteFile(mutes: reply.mutes).encoded())
         case .reset:
             text = "The saved mute set is Mac Monitor's default set again: \(count).\n"
+        case .update:
+            text = reply.changed ? "Merged Mac Monitor's latest default set into the saved mute set: \(count) now.\n"
+                : "The saved mute set already has Mac Monitor's latest default set: \(count).\n"
         case .add(let entry):
             text = "\(reply.changed ? "Muted" : "Already muted:") \(MuteTable.describe(entry)). \(count) now.\n"
         case .remove(let entry):
@@ -148,6 +157,18 @@ public final class MuteCommand {
             text = "\(reply.changed ? verb : "The saved set already had them"): \(count) now.\n"
         }
         return output.writeResult(Data(text.utf8))
+    }
+    
+    /// What every other mute command says while a newer default set waits to be merged.
+    ///
+    /// - Parameter update: The update.
+    /// - Returns: Such as "Mac Monitor 3.1's default mute set adds 13 mutes. ...".
+    static func offer(_ update: MuteSetUpdate) -> String {
+        """
+        Mac Monitor \(TerminalSafeText.text(update.release))'s default mute set \(update.summary) in your saved set, \
+        which has changes of your own, so it wasn't updated. Run 'macmonitor mute update' to merge it in and keep \
+        your changes.
+        """
     }
     
     /// Say the Security Extension's notice about the saved set on standard error, unless it was just said.
@@ -164,23 +185,13 @@ public final class MuteCommand {
 
 // MARK: - Reading a file to import
 extension MuteCommand {
-    /// Read a file to import: a regular file, never a device or a pipe that could hang, or standard input for `-`,
-    /// at most one byte past ``MuteLimits/maxFileBytes`` so a larger one is reported as too large.
+    /// Read a file to import (``FileInput/read(_:upTo:)``), at most one byte past ``MuteLimits/maxFileBytes`` so a
+    /// larger one is reported as too large.
     ///
     /// - Parameter path: The path, or `-`.
     /// - Returns: The bytes.
     /// - Throws: A `POSIXError`, or `CocoaError(.fileReadUnsupportedScheme)` for something that isn't a regular file.
     public static func readImport(_ path: String) throws -> Data {
-        guard path != "-" else {
-            return try FileHandle.standardInput.read(upToCount: MuteLimits.maxFileBytes + 1) ?? Data()
-        }
-        let descriptor = open(path, O_RDONLY | O_NONBLOCK)
-        guard descriptor >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
-        let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
-        var status = stat()
-        guard fstat(descriptor, &status) == 0, status.st_mode & S_IFMT == S_IFREG else {
-            throw CocoaError(.fileReadUnsupportedScheme)
-        }
-        return try file.read(upToCount: MuteLimits.maxFileBytes + 1) ?? Data()
+        try FileInput.read(path, upTo: MuteLimits.maxFileBytes)
     }
 }

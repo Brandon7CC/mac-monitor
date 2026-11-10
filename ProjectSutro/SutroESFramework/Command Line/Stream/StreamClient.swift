@@ -85,6 +85,20 @@ public final class StreamClient {
         }
     }
     
+    /// Send an indicator request. A Security Extension older than 3.1 has no indicators: it cuts the connection off
+    /// at the request (``CommandLineFailure/refusedBeforeAnswer``), or the timeout ends the wait.
+    ///
+    /// - Parameters:
+    ///   - request: The request.
+    ///   - timeout: How long to wait for the answer.
+    ///   - completion: Called once, on any thread: the answer, or why there's none.
+    public func send(_ request: IndicatorRequest, timeout: DispatchTimeInterval,
+                     completion: @escaping (Result<IndicatorReply, CommandLineFailure>) -> Void) {
+        call(timeout: timeout, decode: IndicatorReply.decode, completion: completion) { sensor, reply in
+            sensor.indicators(request.encoded(), reply: reply)
+        }
+    }
+
     /// Make one call on the Security Extension and decode its answer.
     ///
     /// - Parameters:

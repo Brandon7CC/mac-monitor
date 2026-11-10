@@ -173,8 +173,8 @@ final class StreamSessionTests: XCTestCase {
     }
     
     /// Without root, the live rule decides each request by the level as it stands: refused at the default, streaming
-    /// and listing the saved mute set but not changing it once streaming is allowed, and changing it too once muting
-    /// is. Each reply says what the caller may do, and the refusals say why.
+    /// and listing the saved mute set but not changing it once streaming is allowed, and changing it too once changes
+    /// are. Each reply says what the caller may do, and the refusals say why.
     func testACallerWithoutRootGetsWhatTheLevelAllows() throws {
         try XCTSkipIf(geteuid() == 0, "The test process is root, which may always do everything.")
         let level = OSAllocatedUnfairLock(initialState: CommandLineAccess.rootOnly)
@@ -191,10 +191,10 @@ final class StreamSessionTests: XCTestCase {
         XCTAssertEqual(refused.sendMutes(MuteRequest(.list))?.access, .list, "The next request sees the change")
         let changing = refused.sendMutes(add)
         XCTAssertEqual(changing?.status, .refused)
-        XCTAssertEqual(changing?.problems, [CommandLineAccess.needsMuteChanges])
+        XCTAssertEqual(changing?.problems, [CommandLineAccess.needsChanges])
         XCTAssertEqual(refused.send(stream())?.status, .ok)
         
-        level.withLock { $0 = .streamingAndMuting }
+        level.withLock { $0 = .streamingAndChanges }
         let changed = refused.sendMutes(add)
         XCTAssertEqual(changed?.status, .ok)
         XCTAssertEqual(changed?.access, .write)

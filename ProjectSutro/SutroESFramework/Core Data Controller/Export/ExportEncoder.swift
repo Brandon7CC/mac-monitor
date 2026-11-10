@@ -10,7 +10,7 @@ import CoreData
 
 
 // MARK: - Export encoder
-/// Encodes events the way Export telemetry ▸ JSONL (lines) writes them, without an event store: `macmonitor`'s JSONL.
+/// Encodes events the way Export telemetry > JSONL (lines) writes them, without an event store: `macmonitor`'s JSONL.
 ///
 /// Each event becomes the same `ESMessage` the store keeps, in a context with no persistent store (so nothing is ever
 /// saved), and is encoded with the same ``ProcessHelpers/eventToJSON(value:pretty:)``: one record per line, an
@@ -29,12 +29,18 @@ public final class ExportEncoder {
     private let context: NSManagedObjectContext
     
     public let pretty: Bool
+    /// The indicators each record lists: the verdicts each event carries, else these matched now.
+    private let indicators: RecordIndicators
     
     /// - Parameters:
     ///   - model: The event model, such as ``model``.
     ///   - pretty: Pretty-print each record.
-    public init(model: NSManagedObjectModel, pretty: Bool = false) {
+    ///   - indicators: The indicators matched for an event that carries no verdicts, or `nil` to match none: each
+    ///     record then lists the verdicts its event carries (``RecordIndicators/stored``), as `macmonitor stream`'s
+    ///     do, and an event without them has no `indicators` key.
+    public init(model: NSManagedObjectModel, pretty: Bool = false, indicators: [Indicator]? = nil) {
         self.pretty = pretty
+        self.indicators = indicators.map(RecordIndicators.init) ?? .stored
         context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
         context.persistentStoreCoordinator = NSPersistentStoreCoordinator(managedObjectModel: model)
         context.undoManager = nil
@@ -48,7 +54,9 @@ public final class ExportEncoder {
         context.performAndWait {
             autoreleasepool {
                 let row = ESMessage(from: message, insertIntoManagedObjectContext: context)
-                let json = ProcessHelpers.eventToJSON(value: row, pretty: pretty)
+                let json = RecordIndicators.encoding(with: indicators) {
+                    ProcessHelpers.eventToJSON(value: row, pretty: pretty)
+                }
                 var line = Data(json.utf8)
                 line.append(0x0A)
                 return line

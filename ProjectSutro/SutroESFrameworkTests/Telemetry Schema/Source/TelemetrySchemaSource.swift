@@ -41,6 +41,28 @@ enum TelemetrySchemaSource {
             eslogger("schema_version", .integer, "eslogger's own schema version."),
             enrichment(TelemetrySchema.versionKey, .constant(TelemetrySchema.version),
                      "The version of Mac Monitor's telemetry schema the record follows."),
+            enrichment("indicators", .array(.ref("indicator")),
+                       "The indicators in this Mac's saved set (Settings > Indicators, `macmonitor indicators`) that "
+                        + "this event matched, evaluated by the Security Extension as it captured the event "
+                        + "(`evaluated_by: security_extension`). When the Security Extension did not evaluate the "
+                        + "event, these are the indicators Mac Monitor matched as it wrote the record (`evaluated_by: "
+                        + "export`). Empty when none matched. The indicators the Security Extension could not rule "
+                        + "out are in `indicators_undetermined`.",
+                       absent: Absence("nothing was evaluated: the writer had no indicators to match, or the record "
+                                       + "is from Mac Monitor before 3.1.0")),
+            enrichment("indicators_undetermined", .array(.ref("indicator_undetermined")),
+                       "The indicators in this Mac's saved set that the Security Extension could not rule out for "
+                        + "this event, in the set's order, at most \(CompiledIndicators.undeterminedLimit). `reason` "
+                        + "says why: `scan_budget` when evaluating the event's values exceeded the Security "
+                        + "Extension's per-event scan budget, and `value_limit` when a value that isn't ASCII was "
+                        + "longer than the 64 KiB the Security Extension compares. Each may or may not match. While "
+                        + "`indicators` has fewer than \(CompiledIndicators.hitLimit) entries and "
+                        + "`indicators_undetermined` fewer than \(CompiledIndicators.undeterminedLimit), an "
+                        + "indicator in neither did not match. A list at its limit may have been cut short, and then "
+                        + "an indicator in neither may match. A consumer that must not miss a match should treat both "
+                        + "lists as possible matches; one that wants only certain matches reads `indicators`.",
+                       absent: Absence("every indicator was decided, or the record wasn't evaluated by the Security "
+                                       + "Extension (`evaluated_by: export` never writes it)")),
             eslogger("seq_num", .integer, "The message's sequence number among its type's, for the client that "
                         + "received it: Mac Monitor's numbers never match eslogger's."),
             eslogger("global_seq_num", .integer, "The message's sequence number among all, for the client that "

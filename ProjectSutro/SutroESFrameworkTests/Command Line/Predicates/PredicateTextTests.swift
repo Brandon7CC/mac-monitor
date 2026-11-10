@@ -97,4 +97,21 @@ final class PredicateTextTests: XCTestCase {
         XCTAssertNil(completions(#"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC""#))
         XCTAssertNil(completions("nothing.like.this"))
     }
+
+    /// Strings between `"`, `'` and backticks are skipped, a backslash escaping the character after it, and a
+    /// predicate that ends inside one is refused before `NSPredicate`'s scanner, which ends the process on some, reads
+    /// it.
+    func testUnclosedStringsAreRefused() {
+        var outside = ""
+        let open = PredicateText.forEachUnquotedByte(in: #"a == "x\")" AND (b == 'y') OR `z`"#) {
+            outside.unicodeScalars.append(Unicode.Scalar($0))
+        }
+        XCTAssertNil(open)
+        XCTAssertEqual(outside, "a ==  AND (b == ) OR ")
+        for text in [#"a == "x\"#, #"a == "x\""#, "a == 'x", "`a", #"es_event_type == "x"#] {
+            XCTAssertTrue(PredicateText.endsInsideQuote(text), text)
+            XCTAssertThrowsError(try StreamFilter.Predicate(text, for: .indicator), text)
+        }
+        XCTAssertFalse(PredicateText.endsInsideQuote(#"a == "x\\""#))
+    }
 }

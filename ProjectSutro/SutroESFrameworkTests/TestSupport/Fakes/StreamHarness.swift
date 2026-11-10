@@ -32,20 +32,27 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
     ///   - admitting: Decides what each caller may do instead, such as ``StreamService/rootOnly``.
     ///   - refusals: `es_new_client` refusals for every stream, by client: `[0: .tooManyClients]` refuses the first.
     ///   - serializer: Builds each event's JSON.
+    ///   - savedIndicators: The indicator set every stream follows and stamps its events with. `nil` stamps none.
+    ///   - appCapture: What Mac Monitor's side says of the app, for a status request: not connected unless given.
+    ///   - probe: What Endpoint Security answers an idle Security Extension that asks for a client.
     init(savedMutes: SavedMuteSet, capacity: Int = SensorXPC.maxCommandLineStreams, admits: Bool = true,
          grant: CommandLineGrant? = nil, admitting: ((NSXPCConnection?) -> CommandLineGrant)? = nil,
-         refusals: [Int: NewClientResult] = [:],
-         serializer: any EventSerializing = StubSerializer.globalSequence) {
+         refusals: [Int: NewClientResult] = [:], serializer: any EventSerializing = StubSerializer.globalSequence,
+         savedIndicators: SavedIndicatorSet? = nil,
+         appCapture: @escaping StreamService.AppCapture = { $0(SensorReport.App(connected: false, recording: false),
+                                                              false) },
+         probe: @escaping () -> NewClientResult = { .success }) {
         let (made, releases) = (madeFactories, releaseCount)
         let fixed = grant ?? (admits ? .everything : .refused(CommandLineAccess.needsRoot))
-        service = StreamService(savedMutes: savedMutes, slots: StreamSlots(capacity: capacity),
+        service = StreamService(savedMutes: savedMutes, savedIndicators: savedIndicators,
+                                slots: StreamSlots(capacity: capacity),
                                 sensorVersion: "3.0.0 (1)", grant: admitting ?? { _ in fixed },
                                 makeCapture: { configuration, emit in
             let factory = FakeEndpointSecurityClientFactory(refusals: refusals)
             made.append(factory)
             return try CaptureSession(configuration, clients: factory, serializer: serializer,
                                       sensorID: { "SENSOR" }, emit: emit)
-        }, released: { releases.withLock { $0 += 1 } })
+        }, released: { releases.withLock { $0 += 1 } }, appCapture: appCapture, probe: probe)
         super.init()
         listener.delegate = self
         listener.activate()
@@ -209,5 +216,21 @@ extension NSXPCConnection {
         }
         _ = replied.wait(timeout: .now() + 5)
         return reply.withLock { $0 }
+    }
+    
+    /// Send an indicator request and wait for the reply.
+    ///
+    /// - Parameter request: The request.
+    /// - Returns: The reply, or `nil` if none came.
+    func sendIndicators(_ request: IndicatorRequest) -> IndicatorReply? {
+        let replied = DispatchSemaphore(value: 0)
+        let reply = OSAllocatedUnfairLock<IndicatorReply?>(uncheckedState: nil)
+        let proxy = remoteObjectProxyWithErrorHandler { _ in replied.signal() }
+        (proxy as? StreamProtocol)?.indicators(request.encoded()) { data in
+            reply.withLockUnchecked { $0 = IndicatorReply.decode(data) }
+            replied.signal()
+        }
+        _ = replied.wait(timeout: .now() + 10)
+        return reply.withLockUnchecked { $0 }
     }
 }

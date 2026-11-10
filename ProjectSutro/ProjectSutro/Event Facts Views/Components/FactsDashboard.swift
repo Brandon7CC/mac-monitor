@@ -105,7 +105,7 @@ struct InsightCard: View {
         .help(explanation)
     }
 
-    /// - Parameter names: Names, such as the files a finding is about, with repeats.
+    /// - Parameter names: Names, such as the files an indicator is about, with repeats.
     /// - Returns: Each name once, in order, joined by commas.
     static func detail(_ names: [String]) -> String {
         NSOrderedSet(array: names.filter { !$0.isEmpty }).array.compactMap { $0 as? String }.joined(separator: ", ")
@@ -123,7 +123,7 @@ struct InsightGrid<Content: View>: View {
 
 
 // MARK: - Filters
-/// What the events are limited to, such as a kind or a finding, with a button to stop.
+/// What the events are limited to, such as a kind or an indicator, with a button to stop.
 struct FilterToken: View {
     let title: String
     let color: Color

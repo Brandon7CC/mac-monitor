@@ -79,8 +79,8 @@ final class StreamingExportTests: XCTestCase {
             + allFixtureMessages().enumerated().map { ("fixture[\($0)]", $1) }
         var different: [String] = []
         for (label, message) in events {
-            withStoredEvent(message) { stored in
-                let streamed = String(decoding: (try? encoder.encode(stored)) ?? Data("{}".utf8), as: UTF8.self)
+            try withStoredEvent(message) { stored in
+                let streamed = String(decoding: try encoder.encode(stored), as: UTF8.self)
                 if streamed != ProcessHelpers.eventToJSON(value: stored) { different.append(label) }
             }
         }

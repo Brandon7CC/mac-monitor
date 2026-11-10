@@ -13,8 +13,6 @@ import XCTest
 /// Pins where the predicate editor's completion list goes: under the line, over it near the bottom of the screen, left
 /// of the right edge, inside the visible frame of the screen the line is on (never the menu bar or the Dock), and as
 /// few rows as it takes to fit.
-///
-/// - Author: Brandon Dalton
 final class CompletionPlacementTests: XCTestCase {
     /// A 1440 × 900 display at the origin, with a 25 point menu bar and an 80 point Dock at the bottom.
     private let main = CompletionPlacement.Screen(frame: CGRect(x: 0, y: 0, width: 1440, height: 900),

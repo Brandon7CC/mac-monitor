@@ -9,7 +9,12 @@
     }
   ],
   "defaultOptions" : {
-
+    "environmentVariableEntries" : [
+      {
+        "key" : "SUTRO_REQUIRE_TOOL",
+        "value" : "1"
+      }
+    ]
   },
   "testTargets" : [
     {

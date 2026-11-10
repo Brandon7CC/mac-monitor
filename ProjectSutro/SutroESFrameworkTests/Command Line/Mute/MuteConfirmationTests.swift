@@ -66,8 +66,10 @@ final class MuteConfirmationTests: XCTestCase {
         let odd = ConsoleUser(name: "eve\u{1B}[2J", uid: 503, home: "/Users/eve\u{202E}")
         let question = MuteCommand.PendingChange.reset(for: odd).question
         XCTAssertTrue(question.contains(#"/Users/eve\u{202E}, the home folder of eve\x1B[2J,"#), question)
-        XCTAssertEqual(MuteCommand.PendingChange.reset(for: nil).result(MuteList()), .shippedDefault(for: nil))
-        XCTAssertEqual(MuteCommand.PendingChange.reset(for: .tester).result(MuteList()), .testDefault)
+        let emptyReply = MuteReply(status: .ok, mutes: [])
+        XCTAssertEqual(MuteCommand.PendingChange.reset(for: nil).result(MuteList(), emptyReply),
+                       .shippedDefault(for: nil))
+        XCTAssertEqual(MuteCommand.PendingChange.reset(for: .tester).result(MuteList(), emptyReply), .testDefault)
     }
     
     /// A change counts mutes by path and type: new ones, lost ones, and ones whose events change.

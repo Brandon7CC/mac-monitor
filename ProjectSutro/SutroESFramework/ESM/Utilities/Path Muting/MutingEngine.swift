@@ -12,7 +12,7 @@ import OSLog
 // MARK: - Where a request comes from
 /// Where a change to the saved mute set was asked for, which decides where its refusals and warnings show.
 public enum MuteRequestOrigin: Sendable {
-    /// Settings ▸ Path Muting, or the per-event list: shown there (``EndpointSecurityManager/muteProblems``).
+    /// Settings > Path Muting, or the per-event list: shown there (``EndpointSecurityManager/muteProblems``).
     case settings
     /// An event's menu in the main window: shown there (``EndpointSecurityManager/eventMuteProblems``).
     case eventMenu
@@ -66,6 +66,8 @@ extension EndpointSecurityManager {
             }
             self.savedMutes = reply.mutes.map(ESMutedPath.init)
             self.muteNotice = reply.notice
+            self.muteUpdate = reply.update
+            self.muteUpdateApplied = reply.applied
             /// Refusals and what was left out, shown where the request was made. Each change replaces what the last
             /// one left, so a refusal never shows up later, out of context. A list only adds to it.
             let problems = reply.status == .ok || !reply.problems.isEmpty

@@ -20,7 +20,7 @@ import SutroESFramework
 struct EventFilterSpec: Equatable {
     var filters: Filters
     var searchText: String
-    /// The predicate on each event's record, as `macmonitor stream --predicate` takes one, or `nil`. It's the finding
+    /// The predicate on each event's record, as `macmonitor stream --predicate` takes one, or `nil`. It's the indicator
     /// filter's and the user's predicate joined by `AND` (``EventSearchController/recordPredicate``). Core Data can't
     /// evaluate it, so the query model checks each event that passes the rest (``EventQueryModel/Worker``).
     var recordPredicate: StreamFilter.Predicate?

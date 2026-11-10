@@ -25,10 +25,10 @@ struct ProjectSutroApp: App {
     @Environment(\.openWindow) private var openEventJSON
     
     /// The main window's identifier, to open one for a trace when none is open.
-    private static let mainWindow = "main"
+    static let mainWindow = "main"
     /// The Telemetry Schema window's identifier: Help > Telemetry Schema...
     static let schemaWindow = "telemetry-schema"
-    /// The Settings window's identifier: Mac Monitor ▸ Settings... (⌘,).
+    /// The Settings window's identifier: Mac Monitor > Settings... (⌘,).
     static let settingsWindow = "settings"
     /// The predicate editor's own window, when it's popped out of the main window.
     static let predicateEditorWindow = "predicate-editor"
@@ -104,6 +104,11 @@ struct ProjectSutroApp: App {
             }
             .onAppear {
                 ForcedDarkMode.follow()
+                /// The Mac's indicators, over Mac Monitor's own connection to the Security Extension.
+                IndicatorStore.shared.connect(systemExtensionManager)
+                /// Notifications for this user's indicator matches, and their clicks.
+                IndicatorAlertCenter.shared.attach(systemExtensionManager, search: predicateSearch,
+                                                   openWindow: openEventJSON)
                 UserDefaults.standard.set(false, forKey: "lifecycleQuitInternal")
                 /// If auto-updates are enabled then check at app launch
                 if userPrefs.autoUpdates && EndpointSecurityManager.supportsUpdates {
@@ -283,7 +288,10 @@ struct ProjectSutroApp: App {
                 .environmentObject(systemExtensionManager)
                 .environmentObject(predicateSearch)
                 .environmentObject(userPrefs)
-                .onAppear { ForcedDarkMode.follow() }
+                .onAppear {
+                    ForcedDarkMode.follow()
+                    IndicatorStore.shared.connect(systemExtensionManager)
+                }
         }
         .windowToolbarStyle(.unified)
         /// Wide enough for Path Muting's search, its grouping, and its inspector beside the table.
@@ -298,11 +306,14 @@ struct ProjectSutroApp: App {
                     .environmentObject(systemExtensionManager)
                     .environmentObject(userPrefs)
                     .environment(\.managedObjectContext, systemExtensionManager.coreDataContainer.container.viewContext)
-                    .frame(minWidth: 700, minHeight: 400)
-                
+                    /// No minimum width here: one would stand in for the columns' own, letting the window narrow past
+                    /// what the process tree and the facts need, and push them off its edge.
+                    .frame(minHeight: 400)
             }
         }
-        .defaultPosition(.topLeading).defaultSize(width: 1000, height: 900)
+        .defaultPosition(.topLeading).defaultSize(width: 1200, height: 900)
+        /// Never narrower than its columns.
+        .windowResizability(.contentMinSize)
         /// Never the window a trace opens in.
         .handlesExternalEvents(matching: [])
         

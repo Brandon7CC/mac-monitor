@@ -14,14 +14,14 @@ import Foundation
 extension StreamCommand {
     /// The event types whose gaps aren't losses: those of the filters the Security Extension says it applied.
     ///
-    /// - Parameter echoed: ``StreamStarted/fieldFilters``: `nil` from a Security Extension older than 3.0.1, whose gaps
+    /// - Parameter echoed: ``StreamStarted/fieldFilters``: `nil` from a Security Extension older than 3.1.0, whose gaps
     ///   are all real. Names this build doesn't know are ignored.
     /// - Returns: `es_event_type_t` raw values, for ``StreamDropMeter/fieldFilteredTypes``.
     static func fieldFilteredTypes(echoed: [String]?) -> Set<Int> {
         Set(filters(named: echoed ?? []).map { Int($0.event.rawValue) })
     }
 
-    /// Warnings for filters asked for that a Security Extension older than 3.0.1 can't apply, on the events it streams.
+    /// Warnings for filters asked for that a Security Extension older than 3.1.0 can't apply, on the events it streams.
     ///
     /// - Parameters:
     ///   - asked: The filters the stream asked for.

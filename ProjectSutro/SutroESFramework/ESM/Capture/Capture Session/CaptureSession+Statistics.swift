@@ -78,6 +78,16 @@ extension CaptureSession {
                 \(lane.dropped) (in \(lane.gaps) gaps), field filters left out \(lane.fieldFiltered), and \
                 \(lane.serializationFailures) couldn't be serialized.
                 """)
+            if lane.hitCappedEvents > 0 || lane.truncatedEvaluations > 0 || lane.scanExhaustedEvents > 0
+                || lane.undeterminedEvents > 0 {
+                Self.logger.log("""
+                    \(self.label, privacy: .public): on the \(lane.eventClass.rawValue, privacy: .public) client, \
+                    \(lane.hitCappedEvents) events matched more than \(CompiledIndicators.hitLimit) indicators, \
+                    indicators compared only part of \(lane.truncatedEvaluations) values, \
+                    \(lane.scanExhaustedEvents) events ran out of their indicator scan budget, and \
+                    \(lane.undeterminedEvents) records list undetermined indicators.
+                    """)
+            }
             guard lane.regressions > 0 else { continue }
             Self.logger.fault("""
                 \(self.label, privacy: .public): Endpoint Security's global_seq_num repeated or went backwards \

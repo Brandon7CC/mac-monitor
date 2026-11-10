@@ -49,15 +49,23 @@ final class MuteRequestTests: XCTestCase {
         XCTAssertEqual(try MuteRequest.decode(bare), MuteRequest(.reset))
     }
     
-    /// Text that isn't a request, a version below 1, and a request over 1 MiB, are invalid.
+    /// Text that isn't a request, and a version below 1, are invalid.
     func testInvalidRequests() {
         let requests = [Data("nope".utf8), Data(#"{"operation": "list"}"#.utf8),
                         Data(#"{"version": 0, "operation": "list"}"#.utf8),
-                        Data(#"{"version": -7, "operation": "reset"}"#.utf8),
-                        Data(count: MuteLimits.maxFileBytes + 1)]
+                        Data(#"{"version": -7, "operation": "reset"}"#.utf8)]
         for data in requests {
             let error = thrown(XPCRequestError.self) { try MuteRequest.decode(data) }
             XCTAssertEqual(error?.status(as: MuteReply.Status.self), .invalid)
         }
+    }
+    
+    /// A request of every operation, padded with spaces to exactly 1 MiB, reads. One byte more is too large, though
+    /// it's still the same request.
+    func testTheSizeLimitIsExact() {
+        let mutes = [MuteFile.Entry(path: "/a", type: "ES_MUTE_PATH_TYPE_LITERAL",
+                                    events: ["ES_EVENT_TYPE_NOTIFY_OPEN"])]
+        assertSizeLimit(MuteRequest.Operation.allCases.map { MuteRequest($0, mutes) },
+                        refusal: "The request is larger than 1 MiB.")
     }
 }

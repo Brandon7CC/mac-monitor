@@ -16,7 +16,7 @@ import EndpointSecurity
 ///
 /// The raw value is the wire name: its event's `ES_EVENT_TYPE_*` name, a period, the field. It travels beside event
 /// names in ``SensorProtocol/eventSubscriptions(reply:)`` and in ``StreamOptions/fieldFilters``. It never names an event
-/// (`eventStringToType(from:)` reads it as `ES_EVENT_TYPE_LAST`), so a Security Extension older than 3.0.1 refuses it.
+/// (`eventStringToType(from:)` reads it as `ES_EVENT_TYPE_LAST`), so a Security Extension older than 3.1.0 refuses it.
 /// An event has at most one filter on at a time.
 public enum FieldFilter: String, CaseIterable, Sendable {
     /// Only closes of modified files: `es_event_close_t.modified`.

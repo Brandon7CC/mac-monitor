@@ -13,7 +13,7 @@ import Foundation
 /// the Security Extension, and Full Disk Access (agent context).
 ///
 /// It's made from what the app knows (``EndpointSecurityManager/requirements``) and decides nothing on its own: the
-/// requirements checklist, the toolbar and Settings ▸ Security Extension all show the same rows.
+/// requirements checklist, the toolbar and Settings > Security Extension all show the same rows.
 public struct SetupRequirements: Equatable {
     /// Where Mac Monitor is running from.
     public enum Location: Equatable {
@@ -119,7 +119,7 @@ public struct SetupRequirements: Equatable {
         case installExtension
         /// Open the System Settings pane where the Security Extension is allowed.
         case openExtensions
-        /// Open System Settings ▸ Privacy & Security ▸ Full Disk Access.
+        /// Open System Settings > Privacy & Security > Full Disk Access.
         case openFullDiskAccess
     }
 
@@ -143,7 +143,7 @@ public struct SetupRequirements: Equatable {
     public let client: NewClientResult
     /// Is System Integrity Protection off? Then Endpoint Security doesn't ask for Full Disk Access.
     public let sipDisabled: Bool
-    /// Does System Settings have General ▸ Login Items & Extensions (macOS 15 and later)?
+    /// Does System Settings have General > Login Items & Extensions (macOS 15 and later)?
     public let hasExtensionsPane: Bool
 
     /// Every requirement, in the order they're done.

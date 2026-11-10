@@ -13,11 +13,11 @@ import SutroESFramework
 // MARK: - Panes
 /// Settings' panes, as the sidebar lists them.
 enum SettingsPane: String, CaseIterable, Identifiable {
-    case securityExtension, subscriptions, pathMuting, findings, commandLine, telemetrySchema, general, eventTables
+    case securityExtension, subscriptions, pathMuting, indicators, commandLine, telemetrySchema, general, eventTables
     case systemDetails
 
     /// The sidebar's groups under the Security Extension card, in order.
-    static let groups: [[SettingsPane]] = [[.general], [.subscriptions, .pathMuting], [.findings],
+    static let groups: [[SettingsPane]] = [[.general], [.subscriptions, .pathMuting], [.indicators],
                                            [.commandLine, .telemetrySchema], [.eventTables, .systemDetails]]
 
     var id: String { rawValue }
@@ -28,7 +28,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .securityExtension: return "Security Extension"
         case .subscriptions: return "Subscriptions"
         case .pathMuting: return "Path Muting"
-        case .findings: return "Indicators"
+        case .indicators: return "Indicators"
         case .commandLine: return "Command Line"
         case .telemetrySchema: return "Telemetry Schema"
         case .general: return "General"
@@ -46,14 +46,13 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .subscriptions: return "The Endpoint Security events Mac Monitor records."
         case .pathMuting:
             return "Paths whose events Mac Monitor never captures. Mac Monitor and macmonitor share one saved set."
-        case .findings:
+        case .indicators:
             return "What Event Facts points out among an exec's correlated events and a group's execs, and what "
                 + "marks events in the tables: a predicate each."
         case .commandLine:
             return "Stream events to a terminal or a pipe with sudo macmonitor, while Mac Monitor keeps recording."
         case .telemetrySchema:
-            return "The shape of every record Mac Monitor exports and macmonitor writes: eslogger's JSON plus Mac "
-                + "Monitor's enrichments."
+            return "eslogger's JSON plus Mac Monitor's enrichments, in every export and stream."
         case .general: return "Updates, warnings, and how Event Facts draws the process tree."
         case .eventTables:
             return "What right-clicking an event offers: filter by it, mute it, or unsubscribe from its type."
@@ -68,7 +67,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .securityExtension: return "checkmark.shield.fill"
         case .subscriptions: return "bolt.fill"
         case .pathMuting: return "speaker.slash.fill"
-        case .findings: return "sparkle.magnifyingglass"
+        case .indicators: return "sparkle.magnifyingglass"
         case .commandLine: return "terminal.fill"
         case .telemetrySchema: return "curlybraces"
         case .general: return "gearshape.fill"
@@ -85,7 +84,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .pathMuting, .general: return .gray
         case .commandLine: return Color(white: 0.22)
         case .telemetrySchema: return .purple
-        case .findings: return .orange
+        case .indicators: return .orange
         case .eventTables: return .green
         case .systemDetails: return Color(white: 0.4)
         }
@@ -100,7 +99,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
             return ["events", "exec", "fork", "subscribe", "close", "modified", "filter"]
         case .pathMuting:
             return ["mute", "unmute", "path", "import", "export"]
-        case .findings:
+        case .indicators:
             return ["findings", "detections", "correlation", "groups", "predicate", "reflective", "applescript",
                     "script", "marks"]
         case .commandLine:
@@ -216,25 +215,29 @@ struct SettingsSearchField: View {
 }
 
 
-/// A form row's small colored tile, as System Settings starts its rows: a white symbol on a color.
+/// A form row's small colored tile, as System Settings starts its rows: a white symbol on a color. A section's header
+/// draws a larger one.
 struct SettingsRowIcon: View {
     let symbol: String
     let tint: Color
+    let size: CGFloat
 
     /// - Parameters:
     ///   - symbol: The SF Symbol.
     ///   - tint: The tile's color.
-    init(_ symbol: String, _ tint: Color) {
+    ///   - size: The tile's width and height, 22 points for a row.
+    init(_ symbol: String, _ tint: Color, size: CGFloat = 22) {
         self.symbol = symbol
         self.tint = tint
+        self.size = size
     }
 
     var body: some View {
         Image(systemName: symbol)
-            .font(.system(size: 11.5, weight: .semibold))
+            .font(.system(size: size * 0.52, weight: .semibold))
             .foregroundStyle(.white)
-            .frame(width: 22, height: 22)
-            .background(tint.gradient, in: RoundedRectangle(cornerRadius: 5.5, style: .continuous))
+            .frame(width: size, height: size)
+            .background(tint.gradient, in: RoundedRectangle(cornerRadius: size / 4, style: .continuous))
             .accessibilityHidden(true)
     }
 }

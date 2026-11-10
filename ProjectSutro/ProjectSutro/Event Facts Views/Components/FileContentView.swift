@@ -23,14 +23,21 @@ struct FileContentView: View {
     let content: String
     /// What the text is, for its colors.
     var language: ReadOnlyTextView.Language = .plain
+    /// Where the text came from, as the tooltip of an info icon after the title, such as who named a script. `nil`
+    /// shows no icon.
+    var source: String? = nil
 
     var body: some View {
+        let lineCount = content.lineCount
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 Text(title).font(titleIsPath ? .body.monospaced().weight(.semibold) : .headline)
                     .lineLimit(1).truncationMode(.middle)
                     .textSelection(.enabled)
                     .help(title)
+                if let source {
+                    InfoTip(text: source)
+                }
                 Spacer(minLength: 8)
                 Text("\(lineCount.formatted()) \(lineCount == 1 ? "line" : "lines")")
                     .foregroundStyle(.secondary).monospacedDigit()
@@ -47,11 +54,6 @@ struct FileContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
-
-    /// How many lines the text has.
-    private var lineCount: Int {
-        content.reduce(into: 1) { if $1 == "\n" { $0 += 1 } } - (content.hasSuffix("\n") ? 1 : 0)
-    }
 }
 
 extension FileContentView {
@@ -61,8 +63,9 @@ extension FileContentView {
     ///   - path: The file the text is from.
     ///   - content: The text.
     ///   - language: What the text is, for its colors.
-    init(path: String, content: String, language: ReadOnlyTextView.Language = .plain) {
-        self.init(title: path, titleIsPath: true, content: content, language: language)
+    ///   - source: Where the text came from, as an info icon's tooltip after the path, or `nil` for no icon.
+    init(path: String, content: String, language: ReadOnlyTextView.Language = .plain, source: String? = nil) {
+        self.init(title: path, titleIsPath: true, content: content, language: language, source: source)
     }
 }
 

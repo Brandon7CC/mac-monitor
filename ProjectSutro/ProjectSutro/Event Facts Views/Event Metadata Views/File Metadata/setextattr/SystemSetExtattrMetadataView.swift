@@ -54,6 +54,7 @@ struct SystemSetXattrMetadataView: View {
                     if let path = event.target.path {
                         VStack(alignment: .leading) {
                             Text("\u{2022} File path:")
+                                .bold()
                             GroupBox {
                                 Text(path)
                                     .monospaced()

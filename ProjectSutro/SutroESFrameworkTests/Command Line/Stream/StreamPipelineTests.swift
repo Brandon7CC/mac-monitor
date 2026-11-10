@@ -54,7 +54,7 @@ final class StreamPipelineTests: XCTestCase {
         XCTAssertEqual(output, messages.map { exportText($0) + "\n" }.joined())
     }
     
-    /// Pretty prints each record like Export telemetry ▸ JSON (pretty), in order, each ending in a newline.
+    /// Pretty prints each record like Export telemetry > JSON (pretty), in order, each ending in a newline.
     func testPrettyIsThePrettyExport() throws {
         let messages = try allSentFixtureMessages()
         let pipeline = StreamPipeline(formatter: .jsonl([ExportEncoder(model: eventModel, pretty: true)]),

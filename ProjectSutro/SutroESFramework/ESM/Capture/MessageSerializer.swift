@@ -21,8 +21,16 @@ struct LaneContext {
     /// The executables of the processes the lane's events have named, for the launched-by parents it stamps. The lane's
     /// own: only one thread uses it at a time.
     var processPaths = ProcessPathMemory(capacity: ProcessPathMemory.laneCapacity)
+    /// The types of the files the lane's mmaps mapped (``FileTypeMemory``). The lane's own: only one thread uses it at
+    /// a time.
+    var fileTypes = FileTypeMemory()
     /// Does the lane hold app execs (``LaunchServicesHold``)?
     var holdsForLaunchServices = false
+    /// The indicators the message was admitted with, which its event is stamped with. `nil` evaluates nothing, and
+    /// the event carries no verdicts.
+    var indicators: CompiledIndicators? = nil
+    /// The lane's values for evaluating them. The lane's own: only one thread uses it at a time.
+    var indicatorState = LaneIndicators()
 }
 
 
@@ -54,7 +62,10 @@ protocol EventSerializing {
 ///
 /// It also stamps the launched-by parent of the process an exec or fork creates (``LaunchedByParent``), from the
 /// message's own fields: no lock and no IPC. A parent's path comes from the processes the lane's execs and forks named
-/// before (``LaneContext/processPaths``), or else from one `proc_pidpath`, remembered for the next child.
+/// before (``LaneContext/processPaths``), or else from one `proc_pidpath`, remembered for the next child. And it names
+/// the type of an mmap's file, or a modified close's, from the file's first bytes
+/// (``Message/identifyFileType(of:in:)``). Last, it stamps the indicators the event matches, from the lane's set
+/// (``LaneContext/indicators``), so an exec held for Launch Services carries its verdicts while it waits.
 struct MessageSerializer: EventSerializing {
     /// This Mac's macOS version, read when the session starts rather than per event.
     private let macOSVersion: String
@@ -90,8 +101,8 @@ struct MessageSerializer: EventSerializing {
         return (try? lane.encoder.encode(event)).map(SerializedEvent.json)
     }
     
-    /// Build the `Message` with the Sensor ID, macOS version, SIP status and, for execs and forks, the launched-by
-    /// parent.
+    /// Build the `Message` with the Sensor ID, macOS version, SIP status, for execs and forks the launched-by parent,
+    /// for mmaps and modified closes the file's type, and the indicators it matches.
     ///
     /// - Parameters:
     ///   - message: The message. Only valid during the call.
@@ -104,6 +115,8 @@ struct MessageSerializer: EventSerializing {
             paths.path(of: pid, token, reading: processPath)
         }
         paths.remember(processesOf: event)
+        event.identifyFileType(of: message, in: lane.fileTypes)
+        lane.indicatorState.stamp(&event, with: lane.indicators)
         return event
     }
 }

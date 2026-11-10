@@ -21,9 +21,10 @@ public enum CommandLineExit: Int32, Sendable {
     /// A command line `macmonitor` can't act on: an unknown command or option, a missing argument, or a change that
     /// asks first with no terminal to ask at (`EX_USAGE`).
     case usage = 64
-    /// Data `macmonitor` can't use: mutes named on the command line (a relative path, an unknown type or event), in a
-    /// file to import, or refused by the Security Extension, or a trace to validate with a record that doesn't follow
-    /// the telemetry schema or isn't JSON, or with no records (`EX_DATAERR`).
+    /// Data `macmonitor` can't use: mutes or indicators named on the command line (a relative path, an unknown type or
+    /// event, an indicator no one has or a predicate the Security Extension can't run), in a file to import, or
+    /// refused by the Security Extension, or a trace to validate with a record that doesn't follow the telemetry schema
+    /// or isn't JSON, or with no records (`EX_DATAERR`).
     case dataError = 65
     /// A file to import, or a trace to validate, that can't be read: missing, unreadable, or not a regular file
     /// (`EX_NOINPUT`).
@@ -33,7 +34,7 @@ public enum CommandLineExit: Int32, Sendable {
     case unavailable = 69
     /// A bug (`EX_SOFTWARE`).
     case software = 70
-    /// Standard output, or the saved mute set, can't be written (`EX_IOERR`).
+    /// Standard output, the saved mute set, or the indicators, can't be written (`EX_IOERR`).
     case ioError = 74
     /// Too many streams, or Endpoint Security clients: try again later (`EX_TEMPFAIL`).
     case temporaryFailure = 75
@@ -49,6 +50,8 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
     public let exit: CommandLineExit
     /// What to tell the user, as a sentence or two.
     public let message: String
+    /// Does the message already say to use `sudo`, so ``suggestingSudo(arguments:isRoot:)`` adds no hint?
+    private let advisesSudo: Bool
     
     /// The NSXPC error codes `macmonitor` can tell apart (`NSCocoaErrorDomain`).
     enum XPCError: Int {
@@ -64,8 +67,17 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
     ///   - exit: The exit status.
     ///   - message: What to tell the user.
     public init(_ exit: CommandLineExit, _ message: String) {
+        self.init(exit, message, advisesSudo: false)
+    }
+    
+    /// - Parameters:
+    ///   - exit: The exit status.
+    ///   - message: What to tell the user.
+    ///   - advisesSudo: Does the message already say to use `sudo`?
+    private init(_ exit: CommandLineExit, _ message: String, advisesSudo: Bool) {
         self.exit = exit
         self.message = message
+        self.advisesSudo = advisesSudo
     }
     
     /// The message, as `macmonitor` prints it on standard error.
@@ -77,24 +89,24 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
     /// started it, so the Security Extension decides by who that is.
     ///
     /// - Parameter command: The command, such as "mute".
-    /// - Returns: The failure: exit 77.
+    /// - Returns: The failure: exit 77, already saying to use `sudo`, so it gets no hint.
     public static func setUserID(_ command: String) -> CommandLineFailure {
         CommandLineFailure(.noPermission, """
             '\(command)' doesn't run set-user-ID: its real and effective users must match. Run it with sudo instead.
-            """)
+            """, advisesSudo: true)
     }
     
     /// The same failure, saying how to run the same command line again with `sudo` when the Security Extension
     /// refused a caller who isn't root (exit 77). A connection it cut off before answering (``refusedBeforeAnswer``)
-    /// counts too: a Security Extension older than 3.0.1, or a `macmonitor` it doesn't trust, only accepts root's. Any
-    /// other failure is returned as it is.
+    /// counts too: a Security Extension older than 3.1.0, or a `macmonitor` it doesn't trust, only accepts root's. Any
+    /// other failure, or one that already says to use `sudo` (``setUserID(_:)``), is returned as it is.
     ///
     /// - Parameters:
     ///   - arguments: The whole command line, without the program's name.
     ///   - isRoot: Is `macmonitor` running as root? Then `sudo` wouldn't help.
     /// - Returns: The failure.
     public func suggestingSudo(arguments: [String], isRoot: Bool) -> CommandLineFailure {
-        guard !isRoot, exit == .noPermission || self == .refusedBeforeAnswer else { return self }
+        guard !isRoot, !advisesSudo, exit == .noPermission || self == .refusedBeforeAnswer else { return self }
         let reason = self == .refusedBeforeAnswer ? "The Security Extension refused macmonitor without root." : message
         let line = (["sudo", "macmonitor"] + arguments.map(Self.shellQuoted)).joined(separator: " ")
         return CommandLineFailure(.noPermission, "\(reason) Run it with sudo: \(TerminalSafeText.text(line))")
@@ -166,10 +178,68 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
         case .readOnly:
             return failure(.unavailable, "The saved mute set was written by a newer Mac Monitor. It can only be reset.")
         case .unsupported:
-            return CommandLineFailure(.unavailable, """
-                The Security Extension is older than macmonitor. Open Mac Monitor to finish updating its Security \
-                Extension.
-                """)
+            return olderSecurityExtension
+        }
+    }
+    
+    /// The failure a Security Extension's answer to an indicator request stands for.
+    ///
+    /// - Parameter reply: The answer.
+    /// - Returns: `nil` for `ok`, else the failure, with the Security Extension's reason escaped for a terminal, or a
+    ///   sentence of its own when it gave none.
+    public static func reply(_ reply: IndicatorReply) -> CommandLineFailure? {
+        let failure = { (exit: CommandLineExit, fallback: String) in
+            CommandLineFailure(exit, reply.failure.map(TerminalSafeText.text) ?? fallback)
+        }
+        switch reply.status {
+        case .ok: return nil
+        case .refused: return failure(.noPermission, "The Security Extension refused the change.")
+        case .invalid: return failure(.dataError, "The Security Extension refused the indicators.")
+        case .storageFailed: return failure(.ioError, "The indicators couldn't be saved, so nothing changed.")
+        case .readOnly:
+            return failure(.unavailable, "The indicators were saved by a newer Mac Monitor. They can't be changed.")
+        case .unsupported: return olderSecurityExtension
+        }
+    }
+    
+    /// The Security Extension is older than `macmonitor`: it doesn't know the request.
+    public static let olderSecurityExtension = CommandLineFailure(.unavailable, """
+        The Security Extension is older than macmonitor. Open Mac Monitor to finish updating its Security Extension.
+        """)
+    
+    /// The Security Extension didn't answer an indicator request: one older than 3.1 has no indicators, and cuts the
+    /// connection off at the request.
+    public static let indicatorsUnanswered = CommandLineFailure(.unavailable, """
+        The Security Extension didn't answer about indicators: it's likely older than macmonitor, or doesn't accept \
+        this macmonitor. Update the Security Extension: open Mac Monitor to finish updating it.
+        """)
+    
+    /// The Security Extension didn't answer a change to the indicators in time: it may still have made it, such as
+    /// a large import it was still compiling and saving.
+    public static let indicatorChangeUnanswered = CommandLineFailure(.unavailable, """
+        The Security Extension didn't answer in time, so the change may have been made. Run 'macmonitor indicators \
+        list' to see this Mac's indicators.
+        """)
+
+    /// The failure an indicator request ended with, saying a Security Extension that didn't answer is likely older
+    /// than 3.1.
+    ///
+    /// A Security Extension older than 3.1 cuts the connection off at any indicator request, so a cut-off connection
+    /// is always one. Only a list that times out is taken for one too: a change that times out was reached by a
+    /// Security Extension that may be slow to compile and save it, and the change may have been made.
+    ///
+    /// - Parameters:
+    ///   - failure: Why there's no answer.
+    ///   - operation: What the request asked.
+    /// - Returns: ``indicatorsUnanswered`` for a connection cut off before any answer (``refusedBeforeAnswer``), or
+    ///   for no answer to a list (``noAnswer``); ``indicatorChangeUnanswered`` for no answer to a change. Any other
+    ///   failure as it is.
+    public static func indicators(_ failure: CommandLineFailure, to operation: IndicatorRequest.Operation)
+        -> CommandLineFailure {
+        switch failure {
+        case refusedBeforeAnswer: return indicatorsUnanswered
+        case noAnswer: return operation == .list ? indicatorsUnanswered : indicatorChangeUnanswered
+        default: return failure
         }
     }
     
@@ -264,12 +334,15 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
     
     /// A change that asks first, with no terminal to ask at.
     ///
-    /// - Parameter command: The command, such as "mute reset".
+    /// - Parameters:
+    ///   - command: The command, such as "mute reset".
+    ///   - changed: What it changes, such as "the indicators": the saved mute set unless given.
     /// - Returns: The failure: exit 64.
-    public static func unconfirmed(_ command: String) -> CommandLineFailure {
+    public static func unconfirmed(_ command: String, changing changed: String = "the saved mute set")
+        -> CommandLineFailure {
         CommandLineFailure(.usage, """
-            '\(command)' changes the saved mute set Mac Monitor and every stream follow, and there's no terminal to \
-            ask at. Add --yes to go ahead.
+            '\(command)' changes \(changed) Mac Monitor and every stream follow, and there's no terminal to ask at. \
+            Add --yes to go ahead.
             """)
     }
 }

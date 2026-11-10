@@ -76,25 +76,26 @@ enum StoreNarrowing {
     /// - Parameters:
     ///   - predicate: A predicate ``PredicateGuard`` passed.
     ///   - variable: A `SUBQUERY`'s variable, whose key paths (`$e.path`) the conditions name, or `nil` for plain ones.
+    ///   - indicators: How to narrow a comparison on the identities a record's `indicators` lists, or `nil` not to.
     /// - Returns: What the store can narrow by for it, or `nil`.
-    static func predicate(for predicate: NSPredicate, variable: String? = nil) -> NSPredicate? {
+    static func predicate(for predicate: NSPredicate, variable: String? = nil,
+                          indicators: IndicatorNarrowing? = nil) -> NSPredicate? {
         switch predicate {
         case let compound as NSCompoundPredicate:
             let parts = compound.subpredicates.compactMap { $0 as? NSPredicate }
+            let narrowed = parts.compactMap { Self.predicate(for: $0, variable: variable, indicators: indicators) }
             switch compound.compoundPredicateType {
             /// Any part an event must pass.
             case .and:
-                let narrowed = parts.compactMap { Self.predicate(for: $0, variable: variable) }
                 return narrowed.isEmpty ? nil : NSCompoundPredicate(andPredicateWithSubpredicates: narrowed)
             /// Every part, or nothing: an event may pass the one that can't be said.
             case .or:
-                let narrowed = parts.compactMap { Self.predicate(for: $0, variable: variable) }
                 return narrowed.count == parts.count ? NSCompoundPredicate(orPredicateWithSubpredicates: narrowed) : nil
             default:
                 return nil
             }
         case let comparison as NSComparisonPredicate:
-            return narrowed(comparison, variable)
+            return narrowed(comparison, variable) ?? (variable == nil ? indicators?.narrowed(comparison) : nil)
         default:
             return nil
         }
@@ -105,6 +106,7 @@ enum StoreNarrowing {
     ///   - variable: A `SUBQUERY`'s variable, or `nil`.
     /// - Returns: The same comparison on a column, for `keyPath <op> constant` on a key path a column holds.
     private static func narrowed(_ comparison: NSComparisonPredicate, _ variable: String?) -> NSPredicate? {
+        if let type = payloadType(of: comparison, variable) { return type }
         guard comparison.comparisonPredicateModifier == .direct,
               operators.contains(comparison.predicateOperatorType),
               let path = keyPath(of: comparison.leftExpression, variable),
@@ -115,6 +117,26 @@ enum StoreNarrowing {
                                      rightExpression: comparison.rightExpression,
                                      modifier: .direct, type: comparison.predicateOperatorType,
                                      options: comparison.options)
+    }
+
+    /// A payload test (``PredicateEventTypes/payloadTest(_:)``) as the event type column: `event.exec != nil` is
+    /// `es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC"`, and `== nil` is `!=`, which the column, never empty, can say.
+    ///
+    /// - Parameters:
+    ///   - comparison: A comparison.
+    ///   - variable: A `SUBQUERY`'s variable, or `nil`.
+    /// - Returns: The comparison of the column, or `nil` for any other comparison.
+    private static func payloadType(of comparison: NSComparisonPredicate, _ variable: String?) -> NSPredicate? {
+        let right = comparison.rightExpression
+        guard comparison.comparisonPredicateModifier == .direct, comparison.options.isEmpty,
+              [.equalTo, .notEqualTo].contains(comparison.predicateOperatorType),
+              right.expressionType == .constantValue, right.constantValue == nil || right.constantValue is NSNull,
+              let path = keyPath(of: comparison.leftExpression, variable),
+              let type = PredicateEventTypes.payloads[path] else { return nil }
+        let isPresent = comparison.predicateOperatorType == .notEqualTo
+        return NSComparisonPredicate(leftExpression: NSExpression(forKeyPath: "es_event_type"),
+                                     rightExpression: NSExpression(forConstantValue: type), modifier: .direct,
+                                     type: isPresent ? .equalTo : .notEqualTo, options: [])
     }
 
     /// - Parameters:

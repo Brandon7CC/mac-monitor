@@ -8,6 +8,7 @@
 import SwiftUI
 import AppKit
 import CoreData
+import Combine
 import SutroESFramework
 
 
@@ -20,7 +21,8 @@ import SutroESFramework
 ///
 /// Clicking a column header sorts by it (the model refetches). Right-clicking the header shows or hides columns, and
 /// right-clicking (or Control-clicking) a row shows the event's menu (``EventRowMenu``). The
-/// columns' layout survives SwiftUI rebuilding the table (e.g. the mini-chart toggle).
+/// columns' layout survives SwiftUI rebuilding the table (e.g. the mini-chart toggle). A pinned column, the indicator
+/// dots, stays first.
 ///
 /// A file dropped on the table is opened as a trace (`openFile`). The table takes the drop itself rather than leave it
 /// to the window's SwiftUI `onDrop`, which a drop on an AppKit view inside it may never reach.
@@ -66,8 +68,9 @@ struct AppKitEventTable: NSViewRepresentable {
         tableView.allowsTypeSelect = false
         
         for column in columns {
-            let tableColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(column.title))
+            let tableColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(column.identifier))
             tableColumn.title = column.title
+            tableColumn.headerToolTip = column.id
             tableColumn.headerCell.alignment = .left
             tableColumn.minWidth = column.width.min
             tableColumn.maxWidth = column.width.max
@@ -75,10 +78,12 @@ struct AppKitEventTable: NSViewRepresentable {
             tableColumn.resizingMask = column.width.min == column.width.max
                 ? []
                 : [.autoresizingMask, .userResizingMask]
-            tableColumn.sortDescriptorPrototype = column.sortsAsText
-                ? NSSortDescriptor(key: column.sortKey, ascending: true,
-                                   selector: #selector(NSString.localizedStandardCompare(_:)))
-                : NSSortDescriptor(key: column.sortKey, ascending: true)
+            tableColumn.sortDescriptorPrototype = column.sortKey.map { key in
+                column.sortsAsText
+                    ? NSSortDescriptor(key: key, ascending: true,
+                                       selector: #selector(NSString.localizedStandardCompare(_:)))
+                    : NSSortDescriptor(key: key, ascending: true)
+            }
             tableColumn.isHidden = column.hiddenByDefault
             tableView.addTableColumn(tableColumn)
         }
@@ -90,6 +95,13 @@ struct AppKitEventTable: NSViewRepresentable {
             tableView.tableColumns[index].width = saved.width
             tableView.tableColumns[index].isHidden = saved.isHidden
             tableView.moveColumn(index, toColumn: position)
+        }
+        /// A layout saved before a pinned column was added leaves it last.
+        for (position, column) in columns.filter(\.pinned).enumerated() {
+            let index = tableView.column(withIdentifier: NSUserInterfaceItemIdentifier(column.identifier))
+            guard index >= 0 else { continue }
+            tableView.tableColumns[index].isHidden = false
+            if index != position { tableView.moveColumn(index, toColumn: position) }
         }
         
         let headerMenu = NSMenu()
@@ -111,6 +123,7 @@ struct AppKitEventTable: NSViewRepresentable {
         query.tableView = tableView
         query.onReplace = { [weak coordinator = context.coordinator] in coordinator?.syncSelection() }
         context.coordinator.syncSelection(force: true)
+        context.coordinator.observeIndicators()
         
         let scrollView = NSScrollView()
         scrollView.documentView = tableView
@@ -149,12 +162,34 @@ struct AppKitEventTable: NSViewRepresentable {
         
         /// Bumped to cancel selection work still running.
         private var selectionRequest = 0
-        /// The columns by identifier (their titles).
+        /// The columns by identifier.
         private let columns: [String: EventTableColumn]
+        /// Redraws the dots when the indicators change.
+        private var indicatorChanges: AnyCancellable?
         
         init(_ parent: AppKitEventTable) {
             self.parent = parent
-            columns = Dictionary(uniqueKeysWithValues: parent.columns.map { ($0.title, $0) })
+            columns = Dictionary(uniqueKeysWithValues: parent.columns.map { ($0.identifier, $0) })
+        }
+
+        /// Draw the dots again whenever the indicators change: after the change, since the store forgets the rows'
+        /// marks once it has published it.
+        @MainActor
+        func observeIndicators() {
+            indicatorChanges = IndicatorStore.shared.$revision.dropFirst().receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in self?.reloadDots() }
+        }
+
+        /// Draw the visible rows' dots again.
+        private func reloadDots() {
+            guard let tableView = parent.query.tableView else { return }
+            let visible = tableView.rows(in: tableView.visibleRect)
+            let dots = parent.columns.filter { if case .dot = $0.content { return true } else { return false } }
+                .map { tableView.column(withIdentifier: NSUserInterfaceItemIdentifier($0.identifier)) }
+                .filter { $0 >= 0 }
+            guard visible.length > 0, !dots.isEmpty else { return }
+            tableView.reloadData(forRowIndexes: IndexSet(integersIn: visible.location..<NSMaxRange(visible)),
+                                 columnIndexes: IndexSet(dots))
         }
         
         /// The event in `row`, unless it's been deleted (e.g. by Clear).
@@ -190,7 +225,25 @@ struct AppKitEventTable: NSViewRepresentable {
                     ?? EventHostingCell(identifier: identifier)
                 cell.show(view(message))
                 return cell
+            case .dot:
+                let cell = tableView.makeView(withIdentifier: identifier, owner: nil) as? EventDotCell
+                    ?? EventDotCell(identifier: identifier)
+                cell.show(IndicatorStore.shared.marks(for: message))
+                return cell
             }
+        }
+
+        /// Keep a pinned column first.
+        ///
+        /// - Parameters:
+        ///   - tableView: The table.
+        ///   - columnIndex: The column being dragged.
+        ///   - newColumnIndex: Where it would go, or -1 as the drag begins.
+        /// - Returns: Whether it can move there.
+        func tableView(_ tableView: NSTableView, shouldReorderColumn columnIndex: Int,
+                       toColumn newColumnIndex: Int) -> Bool {
+            let pinned = tableView.tableColumns.prefix { columns[$0.identifier.rawValue]?.pinned == true }.count
+            return columnIndex >= pinned && (newColumnIndex < 0 || newColumnIndex >= pinned)
         }
         
         func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
@@ -253,13 +306,14 @@ struct AppKitEventTable: NSViewRepresentable {
         /// The selected events' JSON records, in table order, for ⌘C.
         ///
         /// - Returns: One pretty-printed record per event, or `nil` without a table.
+        @MainActor
         func selectedEventsJSON() -> [String]? {
             guard let tableView = parent.query.tableView else { return nil }
             let rows = parent.query.rows, context = parent.model.viewContext
             return tableView.selectedRowIndexes.compactMap { index -> String? in
                 guard index < rows.count, let message = try? context.existingObject(with: rows[index]) as? ESMessage,
                       !message.isDeleted else { return nil }
-                return ProcessHelpers.eventToJSON(value: message, pretty: true)
+                return IndicatorStore.shared.json(of: message)
             }
         }
         

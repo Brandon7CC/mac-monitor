@@ -16,6 +16,11 @@ public class ESMMapEvent: NSManagedObject, Identifiable {
     @NSManaged public var flags: Int32
     @NSManaged public var file_pos: Int64
     @NSManaged public var source: ESFile
+    /// What the mapped file's first bytes are, read at capture: a type identifier, `empty`, `dyld_shared_cache` or
+    /// `replaced`. `nil` when the file wasn't read, or when the record had none.
+    @NSManaged public var file_type: String?
+    /// The `MH_*` file type of a mapped Mach-O, read at capture. `nil` for any other file, or as ``file_type`` is.
+    @NSManaged public var mach_o_type: String?
 
     enum CodingKeys: CodingKey {
         case protection
@@ -26,6 +31,8 @@ public class ESMMapEvent: NSManagedObject, Identifiable {
         case protection_names
         case max_protection_names
         case flag_names
+        case file_type
+        case mach_o_type
     }
     
     // MARK: - Custom Core Data initilizer for ESMMapEvent
@@ -36,13 +43,15 @@ public class ESMMapEvent: NSManagedObject, Identifiable {
         self.max_protection = event.max_protection
         self.flags = event.flags
         self.file_pos = event.file_pos
+        self.file_type = event.file_type
+        self.mach_o_type = event.mach_o_type
         attach(ESFile.row(for: event.source, in: context), to: #keyPath(ESMMapEvent.source))
     }
 }
 
 // MARK: - Mac Monitor enrichment
 /// Derived from the stored integers when read or written, not stored, as ``ESProcess/codesigningFlagNames`` is: a
-/// trace exported before Mac Monitor 3.0.1, or an event from a 3.0.0 Security Extension, gets them too.
+/// trace exported before Mac Monitor 3.1.0, or an event from a 3.0.0 Security Extension, gets them too.
 extension ESMMapEvent {
     /// The names of `protection`'s bits, such as `PROT_READ` and `PROT_EXEC`, or `PROT_NONE` for none.
     public var protectionNames: [String] {
@@ -74,5 +83,9 @@ extension ESMMapEvent: Encodable {
         try container.encode(protectionNames, forKey: .protection_names)
         try container.encode(maxProtectionNames, forKey: .max_protection_names)
         try container.encode(flagNames, forKey: .flag_names)
+        /// Always both keys: `null` when the file wasn't read, and in a record from eslogger or Mac Monitor before
+        /// 3.1.0, as opening a trace never reads the file.
+        try container.encode(file_type, forKey: .file_type)
+        try container.encode(mach_o_type, forKey: .mach_o_type)
     }
 }

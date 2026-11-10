@@ -27,6 +27,10 @@ import OSLog
 /// turns on, before it builds an event. They're in place before any client is created, so no message arrives
 /// unfiltered.
 ///
+/// **Indicators:** every lane stamps each event it builds with the indicators it matches: the configuration's set,
+/// then each set ``applyIndicators(_:)`` is given. The first is in place before any client is created, so no event
+/// goes out unevaluated.
+///
 /// **Order:** each class's events are emitted in the order its client delivers them, so `fork`, `exec`, and `exit`
 /// keep Endpoint Security's order, including while an app's exec is held (``LaunchServicesHold``). Classes interleave
 /// in the order their events are handled. Nothing re-sorts them by `mach_time`.
@@ -46,6 +50,8 @@ public final class CaptureSession {
     public let appleMuteSet: Set<String>
     /// The path mutes every client was last given (``applyMutes(_:)``), on top of Endpoint Security's own.
     public internal(set) var appliedMutes: MuteList
+    /// The indicators every lane was last given (``applyIndicators(_:)``), or `nil` for none.
+    public internal(set) var indicators: CompiledIndicators?
     /// Serialize and emit events? A new session isn't recording. Setting it never waits for an event being built.
     public var isRecording: Bool = false {
         didSet { lanes.forEach { $0.setRecording(isRecording) } }
@@ -85,7 +91,7 @@ public final class CaptureSession {
     /// 3. Mute this process and the configuration's paths on each client, then subscribe each to its class's events.
     ///
     /// - Parameters:
-    ///   - configuration: The events to subscribe to, the mutes, and the field filters.
+    ///   - configuration: The events to subscribe to, the mutes, the field filters, and the indicators.
     ///   - factory: Makes the clients.
     ///   - serializer: Builds each event's JSON.
     ///   - makeSensorID: Computes the Sensor ID stamped on events, now and on ``refreshSensorID()``.
@@ -101,7 +107,7 @@ public final class CaptureSession {
         let table = FieldFilter.table(configuration.fieldFilters)
         let lanes = EventClass.allCases.map {
             CaptureLane($0, label: label, sensorID: sensorID, serializer: serializer, fieldFilters: table,
-                        launchServices: launchServices, emit: emit)
+                        indicators: configuration.indicators, launchServices: launchServices, emit: emit)
         }
         try Self.createClients(for: lanes, with: factory, label: label)
         appleMuteSet = Set((lanes.first?.client?.mutedPaths() ?? []).map { ProcessHelpers.eventToJSON(value: $0) })
@@ -116,12 +122,14 @@ public final class CaptureSession {
         appliedMutes = configuration.mutes
         subscribedEvents = events
         fieldFilters = configuration.fieldFilters
+        indicators = configuration.indicators
         let shares = lanes.map { lane in "\(lane.eventClass.rawValue) \(events.filter(lane.serves).count)" }
         let filters = configuration.fieldFilters.map(\.rawValue).sorted().joined(separator: ", ")
         Self.logger.log("""
             \(label, privacy: .public): capturing with \(lanes.count) Endpoint Security clients \
             (events: \(shares.joined(separator: ", "), privacy: .public); \
-            field filters: \(filters.isEmpty ? "none" : filters, privacy: .public)).
+            field filters: \(filters.isEmpty ? "none" : filters, privacy: .public); \
+            \(Self.describe(configuration.indicators), privacy: .public)).
             """)
     }
     

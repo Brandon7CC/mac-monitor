@@ -84,7 +84,8 @@ final class CommandLineExitTests: XCTestCase {
     }
     
     /// A refusal for a caller who isn't root exits 77 and says how to run the same command line with sudo, quoting
-    /// what a shell would split or expand. Root, and any other failure, get no hint.
+    /// what a shell would split or expand. Root, any other failure, and a set-user-ID refusal, which already says to
+    /// use sudo, get no hint.
     func testARefusalSuggestsSudo() {
         let refused = CommandLineFailure(.noPermission, "No.")
         let suggest = { refused.suggestingSudo(arguments: $0, isRoot: false).message }
@@ -97,6 +98,8 @@ final class CommandLineExitTests: XCTestCase {
         XCTAssertEqual(refused.suggestingSudo(arguments: ["stream"], isRoot: true), refused)
         XCTAssertEqual(CommandLineFailure.noAnswer.suggestingSudo(arguments: ["stream"], isRoot: false), .noAnswer)
         XCTAssertEqual(CommandLineFailure.setUserID("stream").exit, .noPermission)
+        XCTAssertEqual(CommandLineFailure.setUserID("stream").suggestingSudo(arguments: ["stream"], isRoot: false),
+                       .setUserID("stream"), "One sudo hint, not two")
         let cutOff = CommandLineFailure.refusedBeforeAnswer.suggestingSudo(arguments: ["stream"], isRoot: false)
         XCTAssertEqual(cutOff, CommandLineFailure(.noPermission, "The Security Extension refused macmonitor without "
                                                      + "root. Run it with sudo: sudo macmonitor stream"))
@@ -106,7 +109,34 @@ final class CommandLineExitTests: XCTestCase {
         XCTAssertEqual(CommandLineExit.usage.rawValue, 64)
         XCTAssertEqual(CommandLineExit.temporaryFailure.rawValue, 75)
     }
-    
+
+    /// Run set-user-ID, so its real and effective users differ, a command that talks to the Security Extension is
+    /// refused with exit 77, whichever way round the users are. Every other command runs, and so does every command
+    /// whose users match, root's included.
+    func testOnlyTheSecurityExtensionsCommandsRefuseSetUserID() throws {
+        let lines: [CommandLineCommand: [String]] = [
+            .stream: ["stream"], .mute: ["mute", "list"], .indicators: ["indicators", "list"], .events: ["events"],
+            .schema: ["schema"], .validate: ["validate", "trace.jsonl"], .completion: ["completion", "zsh"],
+            .version: ["--version"], .help: ["help"], .status: ["status"]
+        ]
+        XCTAssertEqual(Set(lines.keys), Set(CommandLineCommand.allCases), "Every command has a line")
+        for (command, line) in lines {
+            let invocation = try CommandLineParser.parse(line)
+            XCTAssertEqual(invocation.id, command)
+            for (real, effective) in [(501, 0), (0, 501), (0, 4_294_967_294), (501, 502)] as [(uid_t, uid_t)] {
+                let expected: CommandLineFailure? = command.requiresRoot ? .setUserID(command.rawValue) : nil
+                XCTAssertEqual(invocation.refusal(realUser: real, effectiveUser: effective), expected,
+                               "\(line) as \(real), effectively \(effective)")
+            }
+            for user in [0, 501] as [uid_t] {
+                XCTAssertNil(invocation.refusal(realUser: user, effectiveUser: user), "\(line) as \(user)")
+            }
+        }
+        XCTAssertEqual(CommandLineFailure.setUserID("mute").message, """
+            'mute' doesn't run set-user-ID: its real and effective users must match. Run it with sudo instead.
+            """)
+    }
+
     /// A stream's closing line counts losses at its very end, which leave no gap for `macmonitor` to see, from the
     /// Security Extension's summary.
     func testLossesAtTheEndOfAStreamAreCounted() {

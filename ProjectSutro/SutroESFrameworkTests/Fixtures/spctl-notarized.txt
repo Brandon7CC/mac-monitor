@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>assessment:authority</key>
+	<dict>
+		<key>assessment:authority:flags</key>
+		<integer>0</integer>
+		<key>assessment:authority:row</key>
+		<integer>12</integer>
+		<key>assessment:authority:source</key>
+		<string>Notarized Developer ID</string>
+	</dict>
+	<key>assessment:originator</key>
+	<string>Developer ID Installer: Brandon Dalton (4HMJQ7V3SX)</string>
+	<key>assessment:remote</key>
+	<true/>
+	<key>assessment:verdict</key>
+	<true/>
+</dict>
+</plist>

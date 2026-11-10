@@ -15,6 +15,9 @@ extension EventType {
     /// Payloads the tests read.
     var mount: MountEvent? { if case .mount(let e) = self { e } else { nil } }
     var mprotect: MProtectEvent? { if case .mprotect(let e) = self { e } else { nil } }
+    var iokit_open: IOKitOpenEvent? { if case .iokit_open(let e) = self { e } else { nil } }
+    var mmap: MMapEvent? { if case .mmap(let e) = self { e } else { nil } }
+    var close: FileCloseEvent? { if case .close(let e) = self { e } else { nil } }
     var remote_thread_create: RemoteThreadCreateEvent? {
         if case .remote_thread_create(let e) = self { e } else { nil }
     }

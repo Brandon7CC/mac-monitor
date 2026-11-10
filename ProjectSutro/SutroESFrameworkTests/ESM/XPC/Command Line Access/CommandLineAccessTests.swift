@@ -22,9 +22,9 @@ final class CommandLineAccessTests: XCTestCase {
             (.streaming, 0, .everything),
             (.streaming, 501, .streaming),
             (.streaming, 4_294_967_294, .streaming),
-            (.streamingAndMuting, 0, .everything),
-            (.streamingAndMuting, 501, .everything),
-            (.streamingAndMuting, 4_294_967_294, .everything),
+            (.streamingAndChanges, 0, .everything),
+            (.streamingAndChanges, 501, .everything),
+            (.streamingAndChanges, 4_294_967_294, .everything),
         ]
         for (access, euid, result) in expected {
             XCTAssertEqual(access.grant(forEffectiveUser: euid), result, "\(access) euid \(euid)")
@@ -35,13 +35,13 @@ final class CommandLineAccessTests: XCTestCase {
     func testWhatEachGrantMayDo() {
         let refused = CommandLineGrant.refused("No.")
         XCTAssertFalse(refused.mayStream)
-        XCTAssertNil(refused.muteAccess)
+        XCTAssertNil(refused.savedSetAccess)
         XCTAssertEqual(refused.refusal, "No.")
         XCTAssertTrue(CommandLineGrant.streaming.mayStream)
-        XCTAssertEqual(CommandLineGrant.streaming.muteAccess, .list)
+        XCTAssertEqual(CommandLineGrant.streaming.savedSetAccess, .list)
         XCTAssertNil(CommandLineGrant.streaming.refusal)
         XCTAssertTrue(CommandLineGrant.everything.mayStream)
-        XCTAssertEqual(CommandLineGrant.everything.muteAccess, .write)
+        XCTAssertEqual(CommandLineGrant.everything.savedSetAccess, .write)
         XCTAssertNil(CommandLineGrant.everything.refusal)
     }
 
@@ -49,8 +49,8 @@ final class CommandLineAccessTests: XCTestCase {
     /// administrator.
     func testTheRefusalsPointAtTheSetting() {
         XCTAssertEqual(MuteAccess.list.refusal?.status, .refused)
-        XCTAssertEqual(MuteAccess.list.refusal?.problem, CommandLineAccess.needsMuteChanges)
-        for refusal in [CommandLineAccess.needsRoot, CommandLineAccess.needsMuteChanges] {
+        XCTAssertEqual(MuteAccess.list.refusal?.problem, CommandLineAccess.needsChanges)
+        for refusal in [CommandLineAccess.needsRoot, CommandLineAccess.needsChanges] {
             XCTAssertTrue(refusal.contains(CommandLineAccess.setting), refusal)
             XCTAssertFalse(refusal.lowercased().contains("administrator"), refusal)
         }
@@ -61,7 +61,7 @@ final class CommandLineAccessTests: XCTestCase {
     func testTheLevelsAreOrdered() {
         XCTAssertEqual(CommandLineAccess.allCases.first, .rootOnly)
         XCTAssertLessThan(CommandLineAccess.rootOnly, .streaming)
-        XCTAssertLessThan(CommandLineAccess.streaming, .streamingAndMuting)
+        XCTAssertLessThan(CommandLineAccess.streaming, .streamingAndChanges)
         for access in CommandLineAccess.allCases {
             XCTAssertEqual(CommandLineAccess(rawValue: access.rawValue), access)
         }

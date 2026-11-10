@@ -62,6 +62,12 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     
     /// Signals from ``sensor`` waiting out their one-second delay. Main thread only.
     private var pendingSignals: Set<SensorClient.Signal> = []
+    /// Does the Security Extension running now answer indicator requests? Asked again after every handshake.
+    lazy var indicatorSupport = SensorSupport { [weak self] in self?.probeIndicators($0) ?? $0(false) }
+    /// Does it answer command line access requests? Asked again after every handshake.
+    lazy var commandLineAccessSupport = SensorSupport { [weak self] in
+        self?.probeCommandLineAccess($0) ?? $0(false)
+    }
     
     // MARK: Updates
     /// Where the update being installed is, or `nil` when none is (see ``installUpdate(completion:)``).
@@ -72,12 +78,19 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// filters in effect (``FieldFilter``; see ``requestEventSubscriptions()``). For the events alone, go through
     /// `supportedEvents` or `EventCatalog`, as the filter and mute sheets do.
     @Published public var monitoredEventStrings: Set<String> = []
+    /// Has the Security Extension answered ``requestEventSubscriptions()`` yet? Until it has,
+    /// ``monitoredEventStrings`` is empty because nothing is known, not because nothing is subscribed.
+    @Published public internal(set) var hasEventSubscriptions = false
     
     // MARK: Muting Enging properties
     /// The saved mute set, as the Security Extension last sent it (see ``requestMutes(_:from:completion:)``).
     @Published public var savedMutes: [ESMutedPath] = []
     /// Something to tell the user about the saved mute set: it was recovered, or can't be changed.
     @Published public var muteNotice: String?
+    /// A newer default mute set the saved set hasn't taken in, because the user changed the saved set.
+    @Published public var muteUpdate: MuteSetUpdate?
+    /// The newer default mute set applied by itself, as no one had changed the saved set.
+    @Published public var muteUpdateApplied: MuteSetUpdate?
     /// What the Security Extension refused or left out of the last change asked for in Settings, which shows it.
     @Published public var muteProblems: [String] = []
     /// What the Security Extension refused or left out of the last mute asked for from an event's menu, which the
@@ -117,6 +130,8 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         set { recordingState.withLock { $0 = newValue } }
     }
     private let recordingState = OSAllocatedUnfairLock(initialState: false)
+    /// Hands the live events this user's notifications are for to them, once the store keeps them.
+    public let indicatorAlertTap = IndicatorAlertTap()
     
     /// Should we drop platform binaries?
     ///
@@ -188,8 +203,10 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         /// An exec or fork without a launched-by parent (from an older Security Extension) gets one, with its parent's
         /// path read now, and processes without an age (a 3.0.0 Security Extension sends none) get theirs.
         for index in messages.indices { messages[index].completeReceived(path: ProcessPath.live) }
+        let alerting = indicatorAlertTap.candidates(in: messages)
         
         eventBufferQueue.async { [messages] in
+            if !alerting.isEmpty { self.indicatorAlertTap.hold(alerting) }
             self.eventBuffer.append(contentsOf: messages)
             self.pendingReplies.append(reply)
             
@@ -268,9 +285,11 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         self.eventBuffer = []
         self.pendingReplies = []
         
-        // Pass the entire batch to Core Data for processing.
-        self.coreDataContainer.insertSystemEvents(messages: batchToProcess) {
+        /// Pass the entire batch to Core Data, then notify for the events it kept.
+        let alerts = indicatorAlertTap.takeHeld()
+        coreDataContainer.insertSystemEvents(messages: batchToProcess, watching: Set(alerts.map(\.eventID))) { kept in
             replies.forEach { $0() }
+            self.indicatorAlertTap.deliver(alerts, kept: kept)
         }
     }
     
@@ -288,6 +307,12 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     public func kickoffXPCCommunication() {
         sensor.call { $0.start(recording: self.isRecording, reply: $1) } completion: { result in
             self.connectionResult = result ?? .internalSubsystem
+            /// It may be another version, and its indicators may have changed while it was away.
+            self.indicatorSupport.forget()
+            self.commandLineAccessSupport.forget()
+            if result != nil { NotificationCenter.default.post(name: IndicatorEngine.sensorReady, object: self) }
+            /// Its subscriptions, before anything shows them: Settings > Subscriptions would otherwise open on none.
+            if result != nil { self.requestEventSubscriptions() }
         }
     }
     

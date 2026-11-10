@@ -10,7 +10,7 @@ import EndpointSecurity
 
 
 // MARK: - Configuration
-/// What a ``CaptureSession`` subscribes to, mutes, and leaves out.
+/// What a ``CaptureSession`` subscribes to, mutes, leaves out, and evaluates.
 public struct CaptureConfiguration {
     /// The events to subscribe to. Only the NOTIFY events Mac Monitor models (`supportedEvents`) are kept. Anything
     /// else (an AUTH event, an unknown name read as `ES_EVENT_TYPE_LAST`) is left out and logged.
@@ -24,6 +24,10 @@ public struct CaptureConfiguration {
     /// The field filters every lane checks before it builds an event. None unless set: `SensorService` and
     /// `StreamSession` set it.
     public var fieldFilters: Set<FieldFilter> = []
+    /// The indicators every lane stamps the events it builds with (``Message/indicators``), in place before any
+    /// message. `nil`, the default, evaluates nothing, so events carry no verdicts. `SensorService` and
+    /// `StreamSession` set it.
+    public var indicators: CompiledIndicators?
     /// Names the session in the log, such as "Mac Monitor".
     public var label: String
     

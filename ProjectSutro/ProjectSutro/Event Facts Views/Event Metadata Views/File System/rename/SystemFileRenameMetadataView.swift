@@ -102,8 +102,14 @@ struct SystemFileRenameMetadataView: View {
                             ShowInFinderButton(path: sourcePath)
                         }
                     }
-                    
 
+                    /// Read from the renamed file's first bytes, or its close's, when the event was recorded: none
+                    /// when it wasn't read.
+                    if let fileType = event.file_type {
+                        FileTypeFact(identifier: fileType, machOType: event.mach_o_type)
+                            .padding([.leading], 5.0)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }
             

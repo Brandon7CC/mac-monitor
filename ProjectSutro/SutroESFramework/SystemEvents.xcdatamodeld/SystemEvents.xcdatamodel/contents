@@ -95,6 +95,8 @@
         <relationship name="stat" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESStat"/>
     </entity>
     <entity name="ESFileCloseEvent" representedClassName="ESFileCloseEvent" syncable="YES">
+        <attribute name="file_type" optional="YES" attributeType="String"/>
+        <attribute name="mach_o_type" optional="YES" attributeType="String"/>
         <attribute name="modified" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="was_mapped_writable" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <relationship name="target" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFile"/>
@@ -122,7 +124,9 @@
         <attribute name="destination_path" optional="YES" attributeType="String"/>
         <attribute name="destination_type" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="destination_type_string" optional="YES" attributeType="String"/>
+        <attribute name="file_type" optional="YES" attributeType="String"/>
         <attribute name="is_quarantined" optional="YES" attributeType="Integer 16" usesScalarValueType="YES"/>
+        <attribute name="mach_o_type" optional="YES" attributeType="String"/>
         <relationship name="destination" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFileDestination"/>
         <relationship name="source" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFile"/>
     </entity>
@@ -143,7 +147,9 @@
         <relationship name="target" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcess"/>
     </entity>
     <entity name="ESIOKitOpenEvent" representedClassName="ESIOKitOpenEvent" syncable="YES">
+        <attribute name="driver_bundle_id" optional="YES" attributeType="String"/>
         <attribute name="has_parent_fields" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="parent_class" optional="YES" attributeType="String"/>
         <attribute name="parent_path" optional="YES" attributeType="String"/>
         <attribute name="parent_registry_id" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
         <attribute name="user_client_class" optional="YES" attributeType="String"/>
@@ -217,6 +223,8 @@
         <attribute name="exec_session_id" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
         <attribute name="global_seq_num" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="indicatorsData" optional="YES" attributeType="Binary"/>
+        <attribute name="indicatorsUndeterminedData" optional="YES" attributeType="Binary"/>
         <attribute name="initiating_euid_human" optional="YES" attributeType="String"/>
         <attribute name="insert_batch" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="insert_order" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
@@ -275,7 +283,9 @@
     </entity>
     <entity name="ESMMapEvent" representedClassName="ESMMapEvent" syncable="YES">
         <attribute name="file_pos" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="file_type" optional="YES" attributeType="String"/>
         <attribute name="flags" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="mach_o_type" optional="YES" attributeType="String"/>
         <attribute name="max_protection" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="protection" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="source" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFile"/>

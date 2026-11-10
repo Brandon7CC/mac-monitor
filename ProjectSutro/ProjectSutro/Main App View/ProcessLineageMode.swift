@@ -10,18 +10,20 @@ import SwiftUI
 
 // MARK: - Process tree mode
 /// Which parents the process tree in Event Facts' sidebar follows: one preference, chosen in the View menu
-/// (``ProcessTreeCommands``) and in Settings ▸ General (``ProcessTreePrefsView``). Each reads it through
+/// (``ProcessTreeCommands``) and in Settings > General (``ProcessTreePrefsView``). Each reads it through
 /// `@AppStorage` under ``storageKey``, so the sidebar follows a change from either at once.
 enum ProcessLineageMode: String, CaseIterable, Identifiable {
-    /// Each process's Unix parent: the default.
+    /// Each process's Unix parent.
     case unix
-    /// Each process's launched-by parent: the process that really caused it to run (``LaunchedByParent``).
+    /// Each process's launched-by parent: the process that really caused it to run (``LaunchedByParent``). The
+    /// default from 3.1.0.
     case launchedByParent
     
     /// The `UserDefaults` key the choice is kept under.
     static let storageKey = "processLineageMode"
-    /// The choice until one is made.
-    static let defaultMode = ProcessLineageMode.unix
+    /// The choice until one is made: launched-by parents, so an app opened from the Finder or the Dock sits under
+    /// them rather than under launchd. A choice made before 3.1.0 is kept.
+    static let defaultMode = ProcessLineageMode.launchedByParent
     
     var id: Self { self }
     

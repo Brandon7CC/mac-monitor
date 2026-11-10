@@ -12,9 +12,9 @@ import SutroESFramework
 
 
 // MARK: - Search
-/// The event tables' predicate search: the finding filter and the predicate the tables are filtered by, and the
-/// predicate editor's draft, saved predicates and recent ones. An event must match both the finding filter and the
-/// predicate. The search field's context narrows their matches. The finding filter follows edits in Settings ▸
+/// The event tables' predicate search: the indicator filter and the predicate the tables are filtered by, and the
+/// predicate editor's draft, saved predicates and recent ones. An event must match both the indicator filter and the
+/// predicate. The search field's context narrows their matches. The indicator filter follows edits in Settings >
 /// Indicators.
 @MainActor
 final class EventSearchController: ObservableObject {
@@ -27,20 +27,16 @@ final class EventSearchController: ObservableObject {
 
     /// The predicate applied in the predicate editor.
     @Published private(set) var applied: StreamFilter.Predicate?
-    /// The finding filter, set from the Filters sheet. It never shows in the predicate editor.
-    @Published private(set) var findingSelection: FindingSelection?
-    /// The finding filter's name, "Any indicator" or the indicator's. A deleted finding keeps the name it had.
-    @Published private(set) var findingName: String?
-    /// The finding filter's predicate, from the findings as they are now. It's `nil` when the filter is dropped
-    /// because no finding it names is offered.
-    @Published private(set) var findingPredicate: StreamFilter.Predicate?
-    /// What the event tables are filtered by: the finding filter and the applied predicate, joined by `AND`.
+    /// The indicator filter, which the Filters sheet's indicator card switches. The predicate editor's footer names it
+    /// while it filters, with a button to stop.
+    @Published private(set) var indicator = IndicatorFilter()
+    /// What the event tables are filtered by: the indicator filter and the applied predicate, joined by `AND`.
     @Published private(set) var recordPredicate: StreamFilter.Predicate?
     /// Is the predicate editor showing, beside the tables or in its own window?
     @Published var showsEditor = false
     /// Is the predicate editor in its own window (``PredicateEditorWindow``) rather than beside the tables?
     @Published var isPoppedOut = false
-    /// A main window's queries, for the editor's footer wherever it is and the finding editor's preview. They're the
+    /// A main window's queries, for the editor's footer wherever it is and the indicator editor's preview. They're the
     /// newest main window's. When it closes, another open main window's take their place, or none.
     @Published private(set) var queries: EventQueryModel?
     /// Each open main window's queries, oldest first.
@@ -52,13 +48,14 @@ final class EventSearchController: ObservableObject {
     /// Applied predicates, newest first.
     @Published private(set) var recents: [String]
     @Published private(set) var saved: [SavedPredicate]
-    /// Rebuilds the finding filter when the findings change.
-    private var findingsChange: AnyCancellable?
+    /// Rebuilds the indicator filter when the indicators change.
+    private var indicatorsChange: AnyCancellable?
 
     /// The most recent predicates kept.
     private static let recentLimit = 10
     private enum Key {
         static let recents = "recentSearchPredicates", saved = "savedSearchPredicates"
+        static let offeredStarters = "offeredStarterPredicates"
     }
 
     /// What Saved holds until a predicate is saved.
@@ -69,19 +66,23 @@ final class EventSearchController: ObservableObject {
                        source: "event.exec.script_content CONTAINS[c] \"hidden answer\""),
         SavedPredicate(name: "Freshly compiled",
                        source: "ANY event.exec.target.codesigning_flag_names == \"CS_LINKER_SIGNED\""),
-        SavedPredicate(name: "New executables", source: Finding.newExecutablePredicate),
+        SavedPredicate(name: "New executables", source: Indicator.newExecutablePredicate),
+        SavedPredicate(name: "Plist modified indicator", source: RecordIndicators.exampleQuery),
         SavedPredicate(name: "Reflective loading", source: "es_event_type == \"ES_EVENT_TYPE_NOTIFY_EXEC\" AND "
                        + "SUBQUERY(correlated, $e, $e.target_path CONTAINS \"NSCreateObjectFileImageFromMemory\")"
                        + ".@count > 0"),
     ]
 
+    /// Starter predicates added since a build that could save its own list, by name: each is added to a saved list
+    /// once.
+    private static let laterStarters = ["Plist modified indicator"]
+
     /// Starter predicates as earlier builds had them, by name. 3.0.0's New executables read five minutes, where its
-    /// finding read one second.
+    /// indicator read one second.
     private static let earlierStarterSources = ["New executables": "event.exec.executable_age_ms < 300000"]
 
     /// Saved predicates, with an earlier build's starter predicate that was never edited swapped for this build's.
     ///
-    /// - Author: Brandon Dalton
     /// - Parameter saved: The predicates as saved.
     /// - Returns: The predicates to offer.
     static func updatingStarters(_ saved: [SavedPredicate]) -> [SavedPredicate] {
@@ -99,11 +100,12 @@ final class EventSearchController: ObservableObject {
         recents = defaults.stringArray(forKey: Key.recents) ?? []
         saved = defaults.data(forKey: Key.saved).flatMap { try? JSONDecoder().decode([SavedPredicate].self, from: $0) }
             .map(Self.updatingStarters) ?? Self.starterPredicates
+        addLaterStarters(defaults)
         /// After the change: `revision` publishes before it's set.
-        findingsChange = FindingStore.shared.$revision.dropFirst().receive(on: DispatchQueue.main)
+        indicatorsChange = IndicatorStore.shared.$revision.dropFirst().receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else { return }
-                layer(findingSelection, with: applied)
+                layer(indicator.isOn, with: applied)
             }
     }
 
@@ -126,7 +128,7 @@ final class EventSearchController: ObservableObject {
         showsEditor = true
     }
     
-    /// Show or hide the predicate editor (View ▸ Predicate Editor, ⌥⌘F), or bring its window forward.
+    /// Show or hide the predicate editor (View > Predicate Editor, ⌥⌘F), or bring its window forward.
     ///
     /// - Parameter openWindow: Opens the editor's own window, when it's in one.
     func toggleEditor(_ openWindow: OpenWindowAction) {
@@ -147,69 +149,74 @@ final class EventSearchController: ObservableObject {
         }
     }
 
-    /// The finding filter's name while it filters the tables, or `nil` when it's off or dropped.
-    var filteringFinding: String? { findingPredicate == nil ? nil : findingName }
-
     /// What the tables are filtered by, such as "showing only Any indicator, filtering by ...". It's `nil` when neither
     /// is on.
     var summary: String? {
-        let parts = [filteringFinding.map { "showing only \($0)" },
+        let parts = [indicator.filtering.map { "showing only \($0)" },
                      applied.map { "filtering by \(Self.oneLine($0.source))" }].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: ", ")
     }
 
     /// Filter the tables by a predicate, or by none when it's empty. A predicate that can't be applied changes
-    /// nothing: the editor says why. The finding filter stays.
+    /// nothing: the editor says why. The indicator filter stays.
     ///
     /// - Parameter source: The predicate.
     func apply(_ source: String) {
         let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return clear() }
         guard let predicate = try? StreamFilter.Predicate(trimmed, for: .search),
-              layer(findingSelection, with: predicate) else { return }
+              layer(indicator.isOn, with: predicate) else { return }
         remember(trimmed)
     }
 
-    /// Stop filtering by the applied predicate, and empty the predicate editor. The finding filter stays.
+    /// Stop filtering by the applied predicate, and empty the predicate editor. The indicator filter stays.
     func clear() {
-        layer(findingSelection, with: nil)
+        layer(indicator.isOn, with: nil)
         draft = ""
     }
 
-    /// Show only a finding's events, or stop. The applied predicate and the predicate editor stay.
+    /// Show only the events of Any indicator, or stop. The applied predicate and the predicate editor stay.
     ///
-    /// - Parameter finding: The finding filter, or `nil` for none.
-    func filter(by finding: FindingSelection?) {
-        layer(finding, with: applied)
+    /// - Parameter isOn: Should the tables show only the indicators' events?
+    func filterByIndicators(_ isOn: Bool) {
+        layer(isOn, with: applied)
     }
 
-    /// Filter the tables by a finding filter and a predicate together. The finding filter's predicate is read from
-    /// the findings as they are now. A filter no offered finding matches is dropped, and its selection stays.
+    /// Filter the tables by the indicator filter and a predicate together. The indicator filter's predicate is read
+    /// from the indicators as they are now. A filter no offered indicator matches is dropped, and stays on.
     ///
     /// - Parameters:
-    ///   - finding: The finding filter.
+    ///   - indicatorFilter: Is the indicator filter on?
     ///   - predicate: The predicate applied in the editor.
     /// - Returns: Could they be parsed together? Nothing changes when they can't.
     @discardableResult
-    private func layer(_ finding: FindingSelection?, with predicate: StreamFilter.Predicate?) -> Bool {
-        let findings = FindingStore.shared.findings
-        let findingPredicate = finding?.predicate(offered: FindingStore.shared.offered, for: .search)
+    private func layer(_ indicatorFilter: Bool, with predicate: StreamFilter.Predicate?) -> Bool {
+        let next = indicator.switched(indicatorFilter, offered: IndicatorStore.shared.offered, for: .search)
         let combined: StreamFilter.Predicate?
         do {
-            combined = try StreamFilter.Predicate.all([findingPredicate, predicate].compactMap { $0 }, for: .search)
+            combined = try StreamFilter.Predicate.all([next.predicate, predicate].compactMap { $0 }, for: .search)
         } catch {
             return false
         }
-        findingSelection = finding
-        findingName = switch finding {
-        case .any: "Any indicator"
-        case .finding(let id): findings.first { $0.id == id }?.name ?? findingName
-        case nil: nil
-        }
-        self.findingPredicate = findingPredicate
+        indicator = next
         applied = predicate
         recordPredicate = combined
         return true
+    }
+
+    /// Add the starter predicates added since a saved list was written, once each: one deleted stays deleted.
+    ///
+    /// - Parameter defaults: Where Saved is kept.
+    private func addLaterStarters(_ defaults: UserDefaults) {
+        let offered = Set(defaults.stringArray(forKey: Key.offeredStarters) ?? [])
+        let added = Self.starterPredicates.filter { starter in
+            Self.laterStarters.contains(starter.name) && !offered.contains(starter.name)
+                && !saved.contains { $0.name == starter.name }
+        }
+        defaults.set(Array(offered.union(Self.laterStarters)).sorted(), forKey: Key.offeredStarters)
+        guard !added.isEmpty else { return }
+        saved += added
+        defaults.set(try? JSONEncoder().encode(saved), forKey: Key.saved)
     }
 
     /// Keep a predicate under a name in Saved, replacing one of the same name.
@@ -251,7 +258,7 @@ final class EventSearchController: ObservableObject {
 
 
 // MARK: - Search field
-/// Edit ▸ Find... (⌘F): text with a find bar, such as Event Facts' JSON tab, shows it when it has the focus or when
+/// Edit > Find... (⌘F): text with a find bar, such as Event Facts' JSON tab, shows it when it has the focus or when
 /// its window has no event search field, and otherwise the main window's search field takes the focus.
 @MainActor
 enum FindCommand {
@@ -289,10 +296,10 @@ extension NSView {
 }
 
 /// The event tables' search field, AppKit's own, which filters by each event's context as you type, and with a
-/// finding filter or predicate applied narrows its matches.
+/// indicator filter or predicate applied narrows its matches.
 struct EventSearchField: NSViewRepresentable {
     @Binding var text: String
-    /// Is a finding filter or predicate applied?
+    /// Is an indicator filter or predicate applied?
     let narrowsPredicate: Bool
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }

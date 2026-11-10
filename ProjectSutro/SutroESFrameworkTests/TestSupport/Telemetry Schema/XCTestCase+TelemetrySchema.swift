@@ -75,30 +75,55 @@ extension XCTestCase {
         try SyntheticCorpus.records().map { ($0.label, exportText($0.message)) }
     }
     
+    /// How many events each fixture holds, in the order ``fixtureExports(file:line:)`` reads them. Every one is an
+    /// event Mac Monitor records.
+    static let fixtureEventCounts: KeyValuePairs<String, Int> = [
+        "eslogger-exit.jsonl": 1, "eslogger-open.jsonl": 1, "eslogger-lineage.jsonl": 10, "eslogger-od.jsonl": 11,
+        "eslogger-remote-thread-create.jsonl": 2, "macmonitor-2.1-exit.jsonl": 1, "macmonitor-2.1-od.json": 6,
+    ]
+    
     /// Every record of eslogger's fixtures and Mac Monitor 2.1's, opened as File > Open Trace... opens them
-    /// (launched-by parents named) and exported without a store, as the command line encodes them. Event types Mac
-    /// Monitor doesn't record are left out, as Open Trace leaves them out.
+    /// (launched-by parents named) and exported without a store, as the command line encodes them. The 2.1 Open
+    /// Directory fixture is a map of events, so each is put in a 2.1 export of its own (`legacyRecord`). Every record
+    /// must be an event Mac Monitor records, and each fixture must give the count ``fixtureEventCounts`` pins.
     ///
-    /// - Returns: Each record's label (`eslogger-od.jsonl[3]`) and export, in the fixtures' order.
-    /// - Throws: The error reading a fixture or a record.
-    func fixtureExports() throws -> [(label: String, json: String)] {
+    /// - Parameters:
+    ///   - file: The caller's file.
+    ///   - line: The caller's line.
+    /// - Returns: Each record's label (`eslogger-od.jsonl[3]`, `macmonitor-2.1-od.json[od_create_user]`) and export,
+    ///   in the fixtures' order.
+    /// - Throws: The error reading a fixture or importing a record.
+    func fixtureExports(file: StaticString = #filePath, line: UInt = #line) throws -> [(label: String, json: String)] {
         var exports: [(label: String, json: String)] = []
-        for name in ["eslogger-exit.jsonl", "eslogger-open.jsonl", "eslogger-lineage.jsonl", "eslogger-od.jsonl",
-                     "eslogger-remote-thread-create.jsonl", "macmonitor-2.1-exit.jsonl", "macmonitor-2.1-od.json"] {
-            var messages: [Message] = []
-            let reader = try TraceRecordReader(url: try fixtureURL(name))
-            while let record = try reader.next() {
-                guard case .object(let json, _) = record else { continue }
-                do {
-                    messages.append(try TraceImporter.message(from: json))
-                } catch TraceImportError.unsupportedEvent, TraceImportError.notAnEvent {
-                    /// An event type Mac Monitor doesn't record, or a fixture's comment.
-                    continue
+        for (name, count) in Self.fixtureEventCounts {
+            var labelled: [(label: String, message: Message)] = []
+            if name.hasSuffix(".jsonl") {
+                let reader = try TraceRecordReader(url: try fixtureURL(name))
+                while let record = try reader.next() {
+                    guard case .object(let json, _) = record else { continue }
+                    labelled.append(("\(name)[\(labelled.count)]", try TraceImporter.message(from: json)))
+                }
+            } else {
+                for (key, event) in try legacyEvents(name) {
+                    let type = try XCTUnwrap(CommandLineEvents.notifyEvent(named: key), key, file: file, line: line)
+                    labelled.append(("\(name)[\(key)]", try importRecord(try legacyRecord(type, event))))
                 }
             }
+            XCTAssertEqual(labelled.count, count, "Events in \(name)", file: file, line: line)
+            var messages = labelled.map(\.message)
             TraceLaunchedByParents().fill(&messages)
-            exports += messages.enumerated().map { ("\(name)[\($0)]", exportText($1)) }
+            exports += zip(labelled, messages).map { ($0.label, exportText($1)) }
         }
         return exports
+    }
+    
+    /// The events of a Mac Monitor 2.1 fixture that holds them by key, as `macmonitor-2.1-od.json` does.
+    ///
+    /// - Parameter name: The fixture's file name.
+    /// - Returns: Each event's key, such as `od_create_user`, and object, sorted by key.
+    /// - Throws: An `XCTest` failure if the fixture has no `events` object.
+    private func legacyEvents(_ name: String) throws -> [(key: String, event: Any)] {
+        let events = try XCTUnwrap(try fixtureObject(name)["events"] as? [String: Any], "No events in \(name)")
+        return events.keys.sorted().map { ($0, events[$0]!) }
     }
 }

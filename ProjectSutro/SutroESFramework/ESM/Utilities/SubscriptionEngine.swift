@@ -22,10 +22,13 @@ extension EndpointSecurityManager {
     // MARK: - Agent Context
     
     // MARK: Step #1 in getting the list of events we're subscribed to from Endpoint Security
+    /// Ask the Security Extension what it's subscribed to, and keep its answer in ``monitoredEventStrings``. A
+    /// request that fails leaves what's known as it is.
     public func requestEventSubscriptions() {
         sensor.call { $0.eventSubscriptions(reply: $1) } completion: { response in
             guard let response else { return }
             self.monitoredEventStrings = Set(response)
+            self.hasEventSubscriptions = true
         }
     }
     
@@ -58,7 +61,7 @@ extension EndpointSecurityManager {
     /// Put every field filter back to its default (``defaultFieldFilters``).
     ///
     /// - Parameter completion: On main, `true` if the Security Extension applied every default filter: `false` from
-    ///   one older than 3.0.1, or without capture.
+    ///   one older than 3.1.0, or without capture.
     public func resetFieldFilters(completion: @escaping (Bool) -> Void) {
         var pending = FieldFilter.allCases.count, appliesAll = true
         for filter in FieldFilter.allCases {

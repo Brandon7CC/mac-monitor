@@ -11,7 +11,7 @@ import Foundation
 // MARK: - StreamProtocol
 /// Exported by the Security Extension (sensor) to `macmonitor`, and only on connections pinned to `macmonitor`'s code
 /// signature (``SensorListenerRouter``). Each request is decided by the caller's effective user and
-/// ``CommandLineAccess``: root may always stream and change mutes.
+/// ``CommandLineAccess``: root may always stream and change mutes and indicators.
 ///
 /// A connection streams at most once. A ``StreamRequest/Kind-swift.enum/stream`` request starts the connection's own
 /// capture session (one Endpoint Security client per event class), whose events arrive through the
@@ -35,6 +35,14 @@ import Foundation
     ///   - request: A JSON encoded ``MuteRequest`` (at most ``MuteLimits/maxFileBytes``).
     ///   - reply: A JSON encoded ``MuteReply``.
     func mutes(_ request: Data, reply: @escaping (Data) -> Void)
+    
+    /// Read or change the Mac's indicator set, as Mac Monitor does through
+    /// ``SensorProtocol/indicators(_:reply:)``. Root may always change it.
+    ///
+    /// - Parameters:
+    ///   - request: A JSON encoded ``IndicatorRequest`` (at most ``IndicatorLimits/maxFileBytes``).
+    ///   - reply: A JSON encoded ``IndicatorReply``.
+    func indicators(_ request: Data, reply: @escaping (Data) -> Void)
 }
 
 
@@ -56,7 +64,7 @@ public struct StreamRequest: XPCRequest, Equatable, Sendable {
     public static let noun = "stream request"
     
     /// What to do.
-    public enum Kind: String, Codable, Sendable {
+    public enum Kind: String, Codable, CaseIterable, Sendable {
         /// Reply with the Security Extension's version, and do nothing else.
         case hello
         /// Start the connection's stream with ``StreamRequest/options``.
@@ -64,6 +72,9 @@ public struct StreamRequest: XPCRequest, Equatable, Sendable {
         /// Stop the stream: no new events, every event already captured is delivered, and the reply carries the
         /// ``StreamSummary``.
         case stop
+        /// Reply with a ``SensorReport``, and change nothing. Any `macmonitor` may ask, root or not: it's what
+        /// `macmonitor status` reads. A Security Extension older than 3.1.0 answers that it doesn't know the kind.
+        case status
     }
     
     /// The request's version.
@@ -105,7 +116,7 @@ public struct StreamOptions: Codable, Equatable, Sendable {
     /// Apply the saved mute set, and follow its changes? `macmonitor stream --no-mutes` sends `false`.
     public var appliesSavedMutes: Bool = true
     /// ``FieldFilter`` wire names to apply. Missing means a 3.0.0 request: no field filters, and default events
-    /// without those that are default only with one. `macmonitor` 3.0.1 and later always sends it.
+    /// without those that are default only with one. `macmonitor` 3.1.0 and later always sends it.
     public var fieldFilters: [String]? = nil
 }
 

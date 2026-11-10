@@ -116,7 +116,7 @@ private extension EventSubscriptionsTests {
         ES_EVENT_TYPE_NOTIFY_PTY_GRANT, ES_EVENT_TYPE_NOTIFY_UIPC_CONNECT, ES_EVENT_TYPE_NOTIFY_UIPC_BIND
     ]
 
-    /// The core events subscribed to by default, as the hand list gave them. 3.0.1 adds close, with its field filter.
+    /// The core events subscribed to by default, as the hand list gave them. 3.1.0 adds close, with its field filter.
     static let coreDefaults: [es_event_type_t] = [
         ES_EVENT_TYPE_NOTIFY_EXEC, ES_EVENT_TYPE_NOTIFY_FORK, ES_EVENT_TYPE_NOTIFY_EXIT, ES_EVENT_TYPE_NOTIFY_CREATE,
         ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR, ES_EVENT_TYPE_NOTIFY_MMAP, ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD,

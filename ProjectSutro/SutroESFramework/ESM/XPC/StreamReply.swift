@@ -49,6 +49,8 @@ public struct StreamReply: XPCReply, Equatable, Sendable {
     public var stream: StreamStarted?
     /// What the stream delivered and lost, for a stop request.
     public var summary: StreamSummary?
+    /// What the Security Extension says of itself, for a status request. `nil` from one older than 3.1.0.
+    public var report: SensorReport? = nil
 }
 
 
@@ -60,7 +62,7 @@ public struct StreamStarted: Codable, Equatable, Sendable {
     /// How many saved mutes apply, or `nil` for a stream without them (`--no-mutes`).
     public var savedMutes: Int?
     /// The ``FieldFilter`` wire names applied, sorted: those asked for whose event is subscribed. Set, possibly empty,
-    /// by a Security Extension 3.0.1 or later for a request that sent ``StreamOptions/fieldFilters``. `nil` from an
+    /// by a Security Extension 3.1.0 or later for a request that sent ``StreamOptions/fieldFilters``. `nil` from an
     /// older one, or for a 3.0.0 request.
     public var fieldFilters: [String]? = nil
 }

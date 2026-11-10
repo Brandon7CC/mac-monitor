@@ -10,7 +10,7 @@ import XCTest
 
 // MARK: - Class colors
 /// Pins where a class of telemetry gets its color: the app's event catalog (`EventCatalog.swift`), with its title,
-/// symbol and events, and nowhere else. Settings ▸ Subscriptions and Event Facts' correlation once kept tables of
+/// symbol and events, and nowhere else. Settings > Subscriptions and Event Facts' correlation once kept tables of
 /// their own that disagreed (IPC and kernel was cyan in one and pink in the other).
 final class ClassColorTests: XCTestCase {
     /// The app's sources, beside the tests.

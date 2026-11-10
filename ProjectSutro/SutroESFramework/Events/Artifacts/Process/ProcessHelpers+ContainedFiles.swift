@@ -30,7 +30,8 @@ extension ProcessHelpers {
     /// can't, such as another user's password hash, and hand its text to Mac Monitor. So each component below the
     /// directory is opened with `O_NOFOLLOW` (a symbolic link isn't followed: there's no file), and a file with more
     /// than one link is refused unless it's owned by its directory's owner. Every component is `stat`ed before it's
-    /// opened, and opened with `O_NONBLOCK`, so a FIFO or device is never opened (``openRegularFile(at:)``).
+    /// opened, and opened with `O_NONBLOCK`, so a FIFO or device is never opened
+    /// (``openRegularFile(at:for:expecting:)``).
     ///
     /// - Parameters:
     ///   - relativePath: The file's path inside the directory, such as `Contents/Info.plist`: no `.` or `..`.

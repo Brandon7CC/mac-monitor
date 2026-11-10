@@ -28,8 +28,10 @@ public struct MuteSet {
     /// - Parameters:
     ///   - home: The home folder those two rules mute, or `nil` to leave them out (no one is logged in).
     ///   - mutesXcode: Mute Xcode's tools. By default, if root owns Xcode.
+    ///   - mutesXPCConnects: Include the XPC connect mutes. By default, on macOS 14 and later, which added the event.
+    ///     Upgrades pass `false` to find a set first saved on macOS 13.
     /// - Returns: The rules.
-    public static func `default`(home: String?, mutesXcode: Bool? = nil) -> MuteSet {
+    public static func `default`(home: String?, mutesXcode: Bool? = nil, mutesXPCConnects: Bool? = nil) -> MuteSet {
         let mutesXcode = mutesXcode ?? ownsXcode()
         let caches = homePaths("Library/Caches", in: home)
         let biomeStreams = homePaths("Library/Biome/streams", in: home)
@@ -48,8 +50,14 @@ public struct MuteSet {
             "/usr/libexec/xpcproxy",
             "/usr/libexec/opendirectoryd",
             "/System/Library/Frameworks/CoreSpotlight.framework/spotlightknowledged",
-            "/usr/libexec/mobileassetd"
+            "/usr/libexec/mobileassetd",
+            /// Maps system frameworks in bursts after apps are installed. It runs only from the sealed system volume.
+            "/usr/libexec/spotlightknowledged.updater"
         ]
+        /// Daemons that save their own state as property lists and logs: the scheduler's and the log helper's
+        /// temporary files, created, closed, renamed into place and set read-only. Not logd_helper's mmaps: it maps
+        /// each program run for the first time, a cheap tell of something new.
+        let stateWriters = ["/usr/libexec/dasd", "/usr/libexec/logd_helper"]
         
         // MARK: - Event-Specific Mute Rules
         var eventRules = [
@@ -60,22 +68,24 @@ public struct MuteSet {
                 "/System/Library/Frameworks/AddressBook.framework/Versions/A/Helpers/AddressBookManager.app/Contents/MacOS/AddressBookManager",
                 "/usr/libexec/mobileassetd",
                 "/usr/libexec/biomesyncd"
-            ]),
+            ] + stateWriters),
             (eventType: ES_EVENT_TYPE_NOTIFY_CLOSE, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: [
                 "/usr/libexec/runningboardd",
                 "/usr/libexec/biomesyncd",
                 "/System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService",
                 "/usr/libexec/containermanagerd"
-            ]),
+            ] + stateWriters),
             
             (eventType: ES_EVENT_TYPE_NOTIFY_CREATE, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: caches + [
                 "/System/Library/PrivateFrameworks/BiomeStreams.framework"
             ]),
+            /// Not cfprefsd: it saves every preference as a temporary file renamed over the .plist, so its renames are
+            /// the property list writes the Plist modified indicator looks for, `defaults write` into
+            /// ~/Library/LaunchAgents among them. Its closes, of those temporary files, stay muted.
             (eventType: ES_EVENT_TYPE_NOTIFY_RENAME, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: [
-                "/usr/sbin/cfprefsd",
                 "/usr/libexec/logd",
                 "/usr/libexec/mobileassetd"
-            ]),
+            ] + stateWriters),
             (eventType: ES_EVENT_TYPE_NOTIFY_RENAME, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: caches),
             (eventType: ES_EVENT_TYPE_NOTIFY_OPEN, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
                 "/usr/libexec/xpcproxy",
@@ -119,13 +129,41 @@ public struct MuteSet {
                 "/System/Library/PrivateFrameworks/CoreDuetContext.framework",
                 "/System/Library/CoreServices/diagnostics_agent"
             ]),
+            /// Every process a terminal starts closes its standard streams on the terminal when it exits, each a
+            /// modified close: most closes during terminal use. `process.tty` names the terminal already. Serial
+            /// devices (`/dev/tty.*`) and disks (`/dev/disk*`, `/dev/rdisk*`) stay seen.
+            (eventType: ES_EVENT_TYPE_NOTIFY_CLOSE, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: [
+                "/dev/ttys"
+            ]),
+            /// launchd's own log, closed after every job it starts. Its unlink and rename stay seen; a rewrite in place
+            /// by root does not, as the default stream has no write or open.
+            (eventType: ES_EVENT_TYPE_NOTIFY_CLOSE, muteType: ES_MUTE_PATH_TYPE_TARGET_LITERAL, paths: [
+                "/dev/console",
+                "/private/var/log/com.apple.xpc.launchd/launchd.log"
+            ]),
             (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: mappers),
+            /// The shared web credentials daemon maps every app's apple-app-site-association JSON from its cache in
+            /// /private/var/folders: over a third of an idle Mac's mmaps, and never code.
+            (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: [
+                "/usr/libexec/swcd"
+            ]),
             (eventType: ES_EVENT_TYPE_NOTIFY_MPROTECT, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: mappers),
             (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: [
                 "/Library/Caches/",
                 "/private/var/db/",
                 "/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/",
-                "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework"
+                "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework",
+                /// Media analysis models, mapped while the Mac is idle. On the sealed system volume.
+                "/System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/Resources/"
+            ]),
+            /// Files mapped over and over while the Mac is idle: the Secure Enclave and Bluetooth daemons' own
+            /// programs, and the symbolication cache. Only for mmap: a target mute for every event would also hide
+            /// these programs' execs. Root can write the cache folder with SIP on, but a file planted there is still
+            /// seen as it's created, renamed and closed, so Mach-O written still fires.
+            (eventType: ES_EVENT_TYPE_NOTIFY_MMAP, muteType: ES_MUTE_PATH_TYPE_TARGET_LITERAL, paths: [
+                "/usr/libexec/seputil",
+                "/usr/sbin/bluetoothd",
+                "/System/Library/Caches/com.apple.coresymbolicationd/data"
             ]),
             (eventType: ES_EVENT_TYPE_NOTIFY_DUP, muteType: ES_MUTE_PATH_TYPE_TARGET_LITERAL, paths: [
                 "/dev/null",
@@ -192,7 +230,7 @@ public struct MuteSet {
             (eventType: ES_EVENT_TYPE_NOTIFY_SETMODE, muteType: ES_MUTE_PATH_TYPE_LITERAL, paths: [
                 "/usr/sbin/cfprefsd",
                 "/usr/libexec/mobileassetd"
-            ])
+            ] + stateWriters)
         ]
         
         if mutesXcode {
@@ -203,11 +241,19 @@ public struct MuteSet {
             ]
         }
         
-        if #available(macOS 14, *) {
+        if mutesXPCConnects ?? hasXPCConnects {
             let sonomaRules = [
+                /// Daemons that connect to services all day: the launcher every XPC service starts through, the Wi-Fi
+                /// menu, the scheduler and the agent that runs launchd's event plug-ins. Endpoint Security can only
+                /// mute XPC connects by the connecting process. Not siriactionsd: its connects are how a Shortcut that
+                /// runs in the background is seen.
                 (ES_EVENT_TYPE_NOTIFY_XPC_CONNECT, ES_MUTE_PATH_TYPE_LITERAL, [
                     "/usr/sbin/bluetoothd",
-                    "/usr/libexec/airportd"
+                    "/usr/libexec/airportd",
+                    "/usr/libexec/xpcproxy",
+                    "/System/Library/CoreServices/WiFiAgent.app/Contents/MacOS/WiFiAgent",
+                    "/usr/libexec/dasd",
+                    "/usr/libexec/UserEventAgent"
                 ])
             ]
             eventRules.append(contentsOf: sonomaRules)
@@ -241,6 +287,12 @@ public struct MuteSet {
         }
         
         return MuteSet(eventSpecificRules: eventRules, globalRules: globalRules)
+    }
+    
+    /// Does this macOS have XPC connect events (macOS 14 and later)?
+    static var hasXPCConnects: Bool {
+        if #available(macOS 14, *) { return true }
+        return false
     }
     
     /// Where Xcode is installed.

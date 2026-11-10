@@ -81,6 +81,19 @@ enum SyntheticCorpus {
             /// A parent at message version 10 that Mac Monitor before 3.0.0 left out, registry ID and all.
             all.append(variant("parent unrecorded", absent: [unflagged, "IOKitOpenEvent.parent_path",
                                                              "IOKitOpenEvent.parent_registry_id"]))
+            /// A service the registry no longer had, or a record without Mac Monitor 3.1.0's registry values.
+            all.append(variant("service unread", absent: [unflagged, "IOKitOpenEvent.parent_class",
+                                                          "IOKitOpenEvent.driver_bundle_id"]))
+        case ES_EVENT_TYPE_NOTIFY_MMAP, ES_EVENT_TYPE_NOTIFY_CLOSE:
+            /// A file that isn't Mach-O, and one that wasn't read (or a record without Mac Monitor 3.1.0's file types).
+            let type = event.type == ES_EVENT_TYPE_NOTIFY_MMAP ? "MMapEvent" : "FileCloseEvent"
+            all.append(variant("not Mach-O", absent: [unflagged, "\(type).mach_o_type"]))
+            all.append(variant("file unread", absent: [unflagged, "\(type).file_type", "\(type).mach_o_type"]))
+        case ES_EVENT_TYPE_NOTIFY_SETMODE:
+            /// A regular file, rw-r--r--, given rwsr-xr-x: `mode_added` lists what that added.
+            all.append(variant("execute and setuid added", ["mode": 0o4755, "st_mode": 0o100644]))
+            /// A target with no stat, as a trace that didn't carry one has: `previous_mode` is null.
+            all.append(variant("target without stat", ["mode": 0o755, "st_mode": 0]))
         case ES_EVENT_TYPE_NOTIFY_CREATE, ES_EVENT_TYPE_NOTIFY_RENAME:
             /// A rename's new path has no mode.
             let mode: Set<String> = event.type == ES_EVENT_TYPE_NOTIFY_RENAME
@@ -141,7 +154,7 @@ enum SyntheticCorpus {
             guard let wrapped = mirror.children.first?.value else {
                 let qualified = "\(field.owner).\(field.key)"
                 let allowed = absent.contains(qualified) || absent.contains("*.\(field.key)")
-                    || derivedNils.contains(qualified)
+                    || derivedNils.contains(qualified) || SyntheticValues.unfilled.contains(qualified)
                 return allowed ? [] : [path]
             }
             return gaps(in: wrapped, at: path, field: field, absent: absent)

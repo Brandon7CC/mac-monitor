@@ -67,8 +67,18 @@ public struct Message: Codable, IdentityHashable {
     /// > Not all events will have this populated. For example, it doesn't make sense for ``IOKitOpenEvent`` events to have a target path.
     /// /// @note Mac Monitor enrichment
     public var target_path: String?
-    
-    
+
+    /// The indicators the Security Extension found the event matches as it captured it, or `nil` when nothing
+    /// evaluated it: an older Security Extension, or a trace that doesn't carry verdicts. A list that can't be read
+    /// decodes as `nil` (``IndicatorVerdicts``). It and ``indicators_undetermined`` are declared last, so these two
+    /// are the last keys on the wire.
+    public var indicators: IndicatorVerdicts?
+    /// The indicators the Security Extension couldn't rule out for the event, beside ``indicators``: `nil` when it
+    /// decided every one, or nothing evaluated the event. A list that can't be read decodes as `nil`
+    /// (``UndeterminedIndicators``), and a decoder from before 3.1 ignores the key.
+    public var indicators_undetermined: UndeterminedIndicators?
+
+
     // MARK: - Message init
     /// This Mac's macOS version as events carry it: `ProcessInfo`'s version string without "Version ", for example
     /// `27.0.1 (Build 26A434)`.

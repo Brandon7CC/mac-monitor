@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import SutroESFramework
 
 
 // MARK: - Table view
@@ -18,13 +19,13 @@ import AppKit
 /// them to the table always opens the row's menu, or its Event Facts, with `clickedRow` set, wherever on the row the
 /// click lands.
 ///
-/// Edit ▸ Copy (⌘C) copies the selected events' JSON, as Export telemetry ▸ Pretty JSON writes them.
+/// Edit > Copy (⌘C) copies the selected events' JSON, as Export telemetry > Pretty JSON writes them.
 final class EventTableView: NSTableView, NSMenuItemValidation {
     /// The most events ⌘C copies: more would hold up the main thread. Export telemetry handles any number.
     static let copyLimit = 10_000
     
     /// The selected events' JSON records, in table order, or `nil` when none are left. Set by the table's coordinator.
-    var selectedEventsJSON: (() -> [String]?)?
+    var selectedEventsJSON: (@MainActor () -> [String]?)?
     
     /// Copy the selected events' JSON, one pretty-printed record after another.
     ///
@@ -133,6 +134,56 @@ final class EventHostingCell: NSTableCellView {
         } else {
             host.rootView = content
         }
+    }
+}
+
+/// The first column's cell: a dot when the row's event matches an indicator, in the color of the most severe one it
+/// matches: red for High, orange for Medium, gray for Low. A selected row rings it in white, so its color still reads
+/// on the selection. Its help names the indicators.
+final class EventDotCell: NSTableCellView {
+    /// The dot's diameter, in points.
+    static let diameter: CGFloat = 6
+    /// How far the white ring of a selected row's dot reaches past it, in points.
+    static let ring: CGFloat = 1.5
+
+    /// The row's dot, as the highest severity its event matched, or `nil` for none.
+    var dot: IndicatorSeverity? {
+        didSet { if dot != oldValue { needsDisplay = true } }
+    }
+
+    override var backgroundStyle: NSView.BackgroundStyle {
+        didSet { if backgroundStyle != oldValue { needsDisplay = true } }
+    }
+
+    /// - Parameter identifier: The column's identifier, for reuse.
+    init(identifier: NSUserInterfaceItemIdentifier) {
+        super.init(frame: .zero)
+        self.identifier = identifier
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    /// - Parameter marks: The row's event's marks.
+    func show(_ marks: EventMarks) {
+        dot = marks.dot
+        toolTip = marks.dot == nil ? nil : marks.dotHelp
+        setAccessibilityLabel(toolTip)
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        guard let dot else { return }
+        if backgroundStyle == .emphasized {
+            NSColor.alternateSelectedControlTextColor.setFill()
+            NSBezierPath(ovalIn: circle(Self.diameter + 2 * Self.ring)).fill()
+        }
+        dot.nsColor.setFill()
+        NSBezierPath(ovalIn: circle(Self.diameter)).fill()
+    }
+
+    /// - Parameter diameter: A circle's diameter, in points.
+    /// - Returns: The circle's bounds, centered in the cell.
+    private func circle(_ diameter: CGFloat) -> NSRect {
+        NSRect(x: bounds.midX - diameter / 2, y: bounds.midY - diameter / 2, width: diameter, height: diameter)
     }
 }
 

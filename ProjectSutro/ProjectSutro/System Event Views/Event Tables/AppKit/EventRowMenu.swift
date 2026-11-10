@@ -24,6 +24,7 @@ import SutroESFramework
 ///
 /// While a trace is open the items that change what the Security Extension records (mute and unsubscribe) are left out,
 /// and so is "Advanced" if that leaves it empty.
+@MainActor
 struct EventRowMenu {
     /// The right-clicked event.
     let message: ESMessage
@@ -40,8 +41,7 @@ struct EventRowMenu {
     /// - Returns: The menu's items: the process execution menu for `EXEC` events, the general one for everything else.
     func items() -> [NSMenuItem] {
         guard let eventType = message.es_event_type else { return [] }
-        if let exec = message.event.exec { return execItems(exec, eventType) }
-        return nonExecItems(eventType)
+        return message.event.exec.map { execItems($0, eventType) } ?? nonExecItems(eventType)
     }
     
     // MARK: Non-exec
