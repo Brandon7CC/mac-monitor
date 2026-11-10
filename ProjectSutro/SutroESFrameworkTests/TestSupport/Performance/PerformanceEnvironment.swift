@@ -83,8 +83,8 @@ struct PerformanceEnvironment: Codable {
         let commit: String?
         /// The build configuration (``PerformanceRun/configuration``).
         let configuration: String
-        /// Was it compiled with optimization? Unoptimized numbers (Xcode's Community configuration) say little about
-        /// the shipped app.
+        /// Was the benchmarks' bundle compiled with optimization? Xcode's Community configuration optimizes Mac
+        /// Monitor's code and not this bundle, whose numbers then say little about the shipped app.
         let optimized: Bool
 
         /// The build these tests run.

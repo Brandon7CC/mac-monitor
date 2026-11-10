@@ -207,7 +207,8 @@ Name classes or tests to run only those (`test-performance.sh MessageSerializerP
 per benchmark (10), and `-o` for the results file. By default it's `ProjectSutro/build/Performance/<time>-<model>-<version>.json`,
 with a CSV beside it. In Xcode, pick the Performance test plan (Product > Test Plan) and run the benchmarks from the Test
 navigator: Xcode shows XCTest's clock, CPU and memory metrics for each, and the results file is written as well. Xcode
-builds them unoptimized, though, and the file says so.
+builds the benchmarks' own bundle unoptimized, though (only Mac Monitor's code is optimized in the Community
+configuration), and the file says so.
 
 Each results file holds the Mac (`hw.model`, chip, performance and efficiency cores, memory), macOS and its build, its
 thermal state and Low Power Mode when the run started, and Mac Monitor's version, commit and build configuration. Then
