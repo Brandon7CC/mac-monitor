@@ -63,7 +63,7 @@ final class BuiltInIndicatorTests: XCTestCase {
             ("Unquarantined app bundle", file("RENAME", "rename", 0, "/Applications/X.app"),
              file("RENAME", "rename", 1, "/Applications/X.app")),
             ("BTM database modified", file("RENAME", "rename", 0, btm + "/BackgroundItems-v13.btm"),
-             file("RENAME", "rename", 1, btm + "/BackgroundItems-v13.btm")),
+             file("RENAME", "rename", 0, btm + "d/BackgroundItems-v13.btm")),
             ("Quarantine removed",
              event("DELETEEXTATTR", ["event": ["deleteextattr": ["extattr": "com.apple.quarantine"]]]),
              event("DELETEEXTATTR", ["event": ["deleteextattr": ["extattr": "com.apple.quarantine.x"]]])),
@@ -140,14 +140,15 @@ final class BuiltInIndicatorTests: XCTestCase {
     func testBuiltInMarksKeepTheirNumbers() throws {
         let twins = Indicator.builtInMarks.filter { mark in Indicator.defaults.contains { $0.id == mark.id } }
         XCTAssertEqual(Set(Indicator.builtInMarks.map(\.id)).count, Indicator.builtInMarks.count)
-        XCTAssertEqual(Indicator.builtInMarks.count, 13)
+        XCTAssertEqual(Indicator.builtInMarks.count, 12)
         XCTAssertEqual(Set(twins.map(\.name)), ["New executable", "Ran a script", "Dylib inserted"])
         /// 18, 32 and 33 were the dyld exec path mismatch and the adhoc and unsigned warnings, now removed. 17 was the
-        /// dyld injection mark, now the Dylib inserted indicator's twin (50). The marks with the numbers 16 and 25 to
+        /// dyld injection mark, now the Dylib inserted indicator's twin (50). The marks with the numbers 16 and 24 to
         /// 30 became the defaults with those numbers in 3.1.0, and those 34 and 36 to 39 replaced were retired.
         XCTAssertEqual(Set(Indicator.builtInMarks.map(\.id)),
-                       Set([9, 11, 15, 19, 20, 21, 22, 23, 24, 31, 35, 40, 50].map(Indicator.uuid)))
-        XCTAssertTrue(Set([16, 25, 26, 27, 28, 29, 30].map(Indicator.uuid)).isSubset(of: Indicator.defaults.map(\.id)))
+                       Set([9, 11, 15, 19, 20, 21, 22, 23, 31, 35, 40, 50].map(Indicator.uuid)))
+        XCTAssertTrue(Set([16, 24, 25, 26, 27, 28, 29, 30].map(Indicator.uuid))
+            .isSubset(of: Indicator.defaults.map(\.id)))
         for twin in twins {
             let indicator = try XCTUnwrap(Indicator.defaults.first { $0.id == twin.id })
             XCTAssertEqual([twin.predicate, twin.symbol, twin.name],

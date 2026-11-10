@@ -96,9 +96,8 @@ struct IndicatorNarrowing {
         case (.equalTo, .constantValue):
             constants = [right.constantValue as Any]
         case (.in, .aggregate):
-            let members = (right.collection as? [NSExpression]) ?? []
-            guard members.allSatisfy({ $0.expressionType == .constantValue }) else { return nil }
-            constants = members.map { $0.constantValue as Any }
+            guard let members = right.constantMembers else { return nil }
+            constants = members.map { $0 as Any }
         case (.in, .constantValue):
             switch right.constantValue {
             case let array as NSArray: constants = array as [AnyObject]

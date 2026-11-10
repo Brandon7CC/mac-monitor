@@ -212,11 +212,12 @@ public extension IndicatorEngine {
         send(IndicatorRequest(.setEnabled, ids: ids, enabled: enabled), completion: completion)
     }
 
-    /// Make the set Mac Monitor's own indicators again (``IndicatorRequest/Operation/replace``).
+    /// Make the set the indicators the Security Extension ships again (``IndicatorRequest/Operation/reset``): its
+    /// own list, not this app's, which differs when the two are different builds.
     ///
     /// - Parameter completion: Called with the reply, or `nil`.
     func restoreDefaults(completion: ((IndicatorReply?) -> Void)? = nil) {
-        send(IndicatorRequest(.replace, indicators: Indicator.defaults), completion: completion)
+        send(IndicatorRequest(.reset), completion: completion)
     }
 
     /// Is the set Mac Monitor's own, whatever the view switches each indicator has?

@@ -160,7 +160,7 @@ final class StreamFilterTests: XCTestCase {
         }
         XCTAssertThrowsError(try StreamFilter.Predicate("process.signing_di == 'x'", for: .search)) { error in
             XCTAssertEqual((error as? CommandLineUsageError)?.message, "The predicate can't use 'process.signing_di': "
-                           + "'signing_di' isn't a key in Mac Monitor's records. Did you mean 'signing_id'? Settings ▸ "
+                           + "'signing_di' isn't a key in Mac Monitor's records. Did you mean 'signing_id'? Settings > "
                            + "Telemetry Schema describes them.")
         }
         XCTAssertThrowsError(try StreamFilter.Predicate("))", for: .search)) { error in

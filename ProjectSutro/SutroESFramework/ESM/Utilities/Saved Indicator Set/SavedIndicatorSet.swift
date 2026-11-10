@@ -243,6 +243,8 @@ public final class SavedIndicatorSet {
         case .replace:
             try IndicatorFile.validateIncoming(request.indicators)
             return request.indicators
+        case .reset:
+            return defaults
         case .remove:
             try checkKnown(request.ids)
             let removing = Set(request.ids)

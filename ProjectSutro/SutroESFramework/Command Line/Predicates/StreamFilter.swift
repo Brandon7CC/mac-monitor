@@ -224,23 +224,6 @@ public struct StreamFilter: Equatable {
                                  maxLength: .max)
         }
 
-        /// A predicate that matches an event when any source does. Each source is checked on its own first, and one
-        /// that can't be used is left out. The sources together may be longer than ``maxLength``.
-        ///
-        /// - Parameters:
-        ///   - sources: The predicates. Blank ones are left out.
-        ///   - audience: Who their errors are for.
-        /// - Returns: The one usable source alone, the usable sources in parentheses joined by `OR`, or `nil` when
-        ///   none can be used.
-        public static func any(_ sources: [String], for audience: PredicateAudience = .commandLine) -> Predicate? {
-            let parts = sources.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .compactMap { try? Predicate($0, for: audience) }
-            guard parts.count > 1 else { return parts.first }
-            return try? Predicate(parts.map { "(\($0.source))" }.joined(separator: " OR "), for: audience,
-                                  maxLength: .max)
-        }
-
         /// Two predicates are the same if they were typed the same.
         public static func == (lhs: Predicate, rhs: Predicate) -> Bool {
             lhs.source == rhs.source

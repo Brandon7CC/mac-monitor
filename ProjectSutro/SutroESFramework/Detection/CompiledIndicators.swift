@@ -41,7 +41,8 @@ public final class CompiledIndicators: @unchecked Sendable {
     public static let undeterminedLimit = 32
     /// The indicators Mac Monitor ships, by identity.
     public static let shippedDefaults = Indicator.byID(Indicator.defaults)
-    /// Logs the first event of a lane that matched more than ``hitLimit`` indicators.
+    /// Logs a lane's first event that matched more than ``hitLimit`` indicators, and a lane's first event whose scan
+    /// budget ran out.
     static let logger = Logger(subsystem: "com.swiftlydetecting.agent.securityextension",
                                category: "CompiledIndicators")
 

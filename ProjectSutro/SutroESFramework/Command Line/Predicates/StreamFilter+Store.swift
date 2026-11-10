@@ -155,9 +155,7 @@ enum StoreNarrowing {
         case .constantValue:
             return expression.constantValue
         case .aggregate:
-            let members = (expression.collection as? [NSExpression]) ?? []
-            guard members.allSatisfy({ $0.expressionType == .constantValue }) else { return nil }
-            return members.compactMap(\.constantValue) as NSArray
+            return expression.constantMembers.map { $0.compactMap { $0 } as NSArray }
         default:
             return nil
         }

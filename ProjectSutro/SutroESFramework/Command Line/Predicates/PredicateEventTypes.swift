@@ -105,7 +105,7 @@ enum PredicateEventTypes {
         case .in:
             let values: [Any]?
             switch right.expressionType {
-            case .aggregate: values = (right.collection as? [NSExpression])?.map { $0.constantValue as Any }
+            case .aggregate: values = right.constantMembers?.map { $0 as Any }
             case .constantValue: values = (right.constantValue as? NSArray).map { Array($0) }
             default: values = nil
             }

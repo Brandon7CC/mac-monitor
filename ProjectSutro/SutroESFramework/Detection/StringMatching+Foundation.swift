@@ -16,7 +16,7 @@ import Foundation
 ///
 /// `LIKE` isn't Foundation's: `NSPredicate` matches it on both strings in NFKC, folded as the options say, then in NFKC
 /// again, which ``likeUnits(of:options:)`` gives, and the pattern's segments are then matched on UTF-16 units as
-/// ``StringMatching/like(_:segments:folding:segment:)`` matches bytes. A pattern has to be ASCII
+/// ``StringMatching/like(_:segments:folding:budget:segment:)`` matches bytes. A pattern has to be ASCII
 /// (``IndicatorCompiler``): with a combining mark of its own, `NSPredicate`'s matching isn't that.
 ///
 /// Each reads at most ``foundationLimit`` bytes of the value, its window: the first, or for `ENDSWITH` the last

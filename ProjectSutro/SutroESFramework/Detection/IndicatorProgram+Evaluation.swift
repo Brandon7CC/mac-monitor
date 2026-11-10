@@ -64,7 +64,8 @@ extension IndicatorProgram {
     ///   `BEGINSWITH`, `ENDSWITH`, `CONTAINS` and `LIKE` are false on one.
     /// - Numbers, and Booleans as 1 and 0, compare as numbers, as `NSNumber` does.
     /// - `ANY` over a missing or empty array is false.
-    /// - `AND` and `OR` stop at the first child that decides them, in the order the predicate has them.
+    /// - `AND` and `OR` stop at the first child that decides them, in the order the compiler gave them, cheapest to
+    ///   read first (``IndicatorDraft/readingCheapestFirst``).
     ///
     /// Its verdicts are three-valued (``IndicatorVerdict``): a comparison the event's ``ScanBudget`` refused, or that
     /// Foundation's window couldn't decide, is `unknown`, which an `AND` or `OR` passes over to its next child and

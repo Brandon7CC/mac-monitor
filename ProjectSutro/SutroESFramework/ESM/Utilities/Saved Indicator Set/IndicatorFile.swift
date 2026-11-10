@@ -20,9 +20,6 @@ public enum IndicatorLimits {
     public static let maxIndicators = 2_048
     /// The longest predicate, in characters, as Settings takes one (``StreamFilter/Predicate/maxLength``).
     public static let maxPredicateLength = StreamFilter.Predicate.maxLength
-    /// The most nodes in one rule's program (``IndicatorCompiler/maxNodes``). A rule past it is kept and listed as a
-    /// problem, not run.
-    public static let maxNodesPerRule = IndicatorCompiler.maxNodes
     /// The most nodes in all of the set's programs.
     public static let maxNodes = 65_536
     /// The most rules the Security Extension runs on one event type.

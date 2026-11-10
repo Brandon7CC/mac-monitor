@@ -34,7 +34,25 @@ extension NSExpression {
     func keyPath(of variable: String) -> String? {
         guard expressionType == .function, function == "valueForKeyPath:", operand.expressionType == .variable,
               operand.variable == variable else { return nil }
-        return arguments?.first?.keyPath
+        return arguments?.first?.namedKeyPath
+    }
+
+    /// The kind of the `path` in `$variable.path`, which `ExpressionType` has no case for.
+    private static let keyPathSpecifier: UInt = 10
+
+    /// The key path it names, or `nil` when it names none. `keyPath` raises for an expression of any other kind,
+    /// such as the constant in `FUNCTION($e, 'valueForKeyPath:', 'path')`, and Swift can't catch that: whatever
+    /// reads a key path from a predicate someone typed, without having checked its kind, reads it here.
+    var namedKeyPath: String? {
+        expressionType == .keyPath || expressionType.rawValue == Self.keyPathSpecifier ? keyPath : nil
+    }
+
+    /// The constants of a set written in a predicate, as `{"a", "b"}` is, or `nil` for anything else, a set with a
+    /// member that isn't a constant included: `constantValue` raises for one, as `keyPath` does.
+    var constantMembers: [Any?]? {
+        guard expressionType == .aggregate, let members = collection as? [NSExpression],
+              members.allSatisfy({ $0.expressionType == .constantValue }) else { return nil }
+        return members.map(\.constantValue)
     }
 }
 

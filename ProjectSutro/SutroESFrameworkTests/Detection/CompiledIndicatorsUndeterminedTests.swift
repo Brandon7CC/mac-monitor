@@ -100,6 +100,20 @@ final class CompiledIndicatorsUndeterminedTests: XCTestCase {
         XCTAssertEqual(values.undeterminedEvents, 0)
     }
 
+    /// A 1 MiB ASCII command line and script, and a benign 16 KiB non-ASCII command line, from a target outside an
+    /// app bundle, leave every shipped rule decided and refuse nothing, the index's pool included: a rule that also
+    /// needs a target's path, as Browser extension sideloaded does, is anchored and ruled out on the path, never on a
+    /// search of the command line, so the line's pools still pay for the rules that need it. From a target inside an
+    /// app bundle that rule does search the line, and can still spend the pool the later rules share.
+    func testAHostileCommandLineLeavesTheShippedRulesDecided() throws {
+        var values = MessageValueCache()
+        for event in [AdversarialEvent.ascii, .nonascii16k] {
+            let evaluation = Self.shippedIndicators.evaluate(try event.message(self), values: &values)
+            XCTAssertEqual(evaluation.undetermined, [], event.rawValue)
+            XCTAssertEqual(values.lastEventRefused, 0, "\(event.rawValue): \(ScanPool.names(values.lastEventRefused))")
+        }
+    }
+
     /// A stamp writes what the evaluation decided: the crafted launchctl copy's hits as its verdicts and its five
     /// command-line rules, with their reason, as ``Message/indicators_undetermined``. An ordinary exec, decided whole,
     /// has none: `nil`, never an empty list.

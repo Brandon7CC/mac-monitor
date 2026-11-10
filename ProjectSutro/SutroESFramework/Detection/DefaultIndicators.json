@@ -607,11 +607,27 @@
       "symbol" : "gearshape.2",
       "tableMarks" : [
         "dot",
-        "symbol",
         "label"
       ],
       "tactic" : "defenseEvasion",
       "technique" : "T1070"
+    },
+    {
+      "color" : "orange",
+      "description" : "Replaced Background Task Management's database, which records login items, launch agents and launch daemons.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000018",
+      "isEnabled" : true,
+      "name" : "BTM database modified",
+      "predicate" : "event.rename != nil AND target_path BEGINSWITH \"/private/var/db/com.apple.backgroundtaskmanagement/\"",
+      "severity" : "low",
+      "symbol" : "exclamationmark.triangle.fill",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "persistence",
+      "technique" : "T1547.015"
     }
   ],
   "version" : 1

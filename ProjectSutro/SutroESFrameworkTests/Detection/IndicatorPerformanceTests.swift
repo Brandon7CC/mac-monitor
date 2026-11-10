@@ -176,7 +176,7 @@ extension IndicatorPerformanceTests {
         /// The shipped indicators, and two of the event's type on record fields (``recordFieldRules(for:in:)``).
         case recordFields
         /// The shipped indicators, and one on a record field and a path no event has, written record field first,
-        /// which the compiler reverses (``IndicatorDraft/readingRecordsLast``), so no event is walked.
+        /// which the compiler reverses (``IndicatorDraft/readingCheapestFirst``), so no event is walked.
         case guardedRecordField
 
         /// The rules.

@@ -35,8 +35,12 @@ public struct IndicatorRequest: XPCRequest, Equatable {
         case remove
         /// Turn the indicators ``IndicatorRequest/ids`` names on or off, as ``IndicatorRequest/enabled`` says.
         case setEnabled
-        /// Make the set exactly the request's indicators. Restore Defaults is a replace with ``Indicator/defaults``.
+        /// Make the set exactly the request's indicators.
         case replace
+        /// Make the set the indicators this Security Extension ships, whoever asks: Restore Defaults. The asker
+        /// sends none of its own, so a Mac Monitor of another build can't put its list in their place, which would
+        /// remove the indicators only this build ships and keep its older rules for the rest as if they were edits.
+        case reset
         /// Change the named fields (``IndicatorRequest/fields``) of indicators the set has, by identity, keeping
         /// their place, switch and views. One the set doesn't have is refused, never added, and fields not named
         /// stay as the set has them, so an edit undoes no other writer's change.

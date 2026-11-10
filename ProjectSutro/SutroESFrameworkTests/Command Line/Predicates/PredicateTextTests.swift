@@ -33,7 +33,7 @@ final class PredicateTextTests: XCTestCase {
         let refused = [
             ("SUBQUERY(correlated, $e, $e.create.destination.existing_file.name ENDSWITH 'x').@count > 0",
              "The predicate can't use '$e.create.destination.existing_file.name': 'create' isn't a key at the top of "
-             + "a record. Did you mean '$e.event.create.destination.existing_file.name'? Settings ▸ Telemetry Schema "
+             + "a record. Did you mean '$e.event.create.destination.existing_file.name'? Settings > Telemetry Schema "
              + "describes them."),
             ("process.signing_id.signing_id == nil",
              "The predicate can't use 'process.signing_id.signing_id': 'process.signing_id' has no key 'signing_id'."),

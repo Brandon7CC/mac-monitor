@@ -109,20 +109,6 @@ enum StringMatching {
             && matches(value, at: value.count - constant.count, constant, folding: folding)
     }
 
-    /// Does the value contain the constant? An empty constant is in nothing.
-    ///
-    /// - Parameters:
-    ///   - value: The value.
-    ///   - constant: The constant, already lowered when folding.
-    ///   - failure: The constant's failure table.
-    ///   - folding: Fold the value's letters?
-    /// - Returns: Whether it does.
-    static func contains(_ value: UnsafeBufferPointer<UInt8>, _ constant: UnsafeBufferPointer<UInt8>,
-                         failure: UnsafeBufferPointer<Int32>, folding: Bool) -> Bool {
-        var budget = Int.max
-        return contains(value, constant, failure: failure, folding: folding, budget: &budget) == .yes
-    }
-
     /// Does the value contain the constant, within a budget? An empty constant is in nothing.
     ///
     /// - Parameters:
@@ -334,22 +320,6 @@ enum StringMatching {
     }
 
     // MARK: LIKE
-    /// Does a value match a `LIKE` pattern of literal segments between `*`, with no budget?
-    ///
-    /// - Parameters:
-    ///   - value: The value.
-    ///   - count: How many segments.
-    ///   - folding: Fold the value's ASCII letters?
-    ///   - segment: Each segment, already lowered when folding, and its failure table.
-    /// - Returns: Whether it matches.
-    static func like<Unit: FixedWidthInteger>(
-        _ value: UnsafeBufferPointer<Unit>, segments count: Int, folding: Bool,
-        segment: (Int) -> (pattern: UnsafeBufferPointer<Unit>, failure: UnsafeBufferPointer<Int32>)
-    ) -> Bool {
-        var budget = Int.max
-        return like(value, segments: count, folding: folding, budget: &budget, segment: segment) == .yes
-    }
-
     /// Does a value match a `LIKE` pattern of literal segments between `*`, within a budget?
     ///
     /// The pattern is its segments, in order, as splitting it at every `*` gives them: `"/Users/*/Library/*"` is

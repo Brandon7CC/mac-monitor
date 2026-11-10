@@ -27,11 +27,11 @@ public struct PredicateAudience: Equatable, Sendable {
                                                       command: "stream", relatesEvents: false)
     /// An indicator's predicate, in Settings > Indicators, which compares one event at a time.
     public static let indicator = PredicateAudience(name: "The indicator's predicate",
-                                                    schema: "Settings ▸ Telemetry Schema describes them.", command: nil,
+                                                    schema: "Settings > Telemetry Schema describes them.", command: nil,
                                                     relatesEvents: false)
     /// The event tables' predicate search.
     public static let search = PredicateAudience(name: "The predicate",
-                                                 schema: "Settings ▸ Telemetry Schema describes them.", command: nil,
+                                                 schema: "Settings > Telemetry Schema describes them.", command: nil,
                                                  relatesEvents: true)
 }
 
@@ -113,14 +113,15 @@ enum PredicateGuard {
                 throw refusal(expression.description, for: audience)
             }
         case .function where expression.function == "valueForKeyPath:":
-            /// `$e.path`, a related event's key path, or `SUBQUERY(...).@count`.
-            guard let path = expression.arguments?.first, expression.arguments?.count == 1 else {
+            /// `$e.path`, a related event's key path, or `SUBQUERY(...).@count`. Anything else handed to
+            /// `valueForKeyPath:`, such as a constant, names no key path and is refused.
+            guard let path = expression.arguments?.first?.namedKeyPath, expression.arguments?.count == 1 else {
                 throw refusal(expression.description, for: audience)
             }
             switch expression.operand.expressionType {
             case .variable where variable != nil && expression.operand.variable == variable:
-                try checkKeys(path.keyPath, for: audience, of: variable)
-            case .subquery where path.keyPath == "@count":
+                try checkKeys(path, for: audience, of: variable)
+            case .subquery where path == "@count":
                 try check(expression.operand, for: audience, in: variable)
             default:
                 throw refusal(expression.description, for: audience)

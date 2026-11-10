@@ -68,6 +68,23 @@ final class SavedIndicatorSetChangeTests: XCTestCase {
         XCTAssertEqual(try savedIndicators(in: directory), Indicator.defaults)
     }
 
+    /// A reset, which Restore Defaults sends, makes the set the indicators this Security Extension ships and not any
+    /// the request brings: a Mac Monitor of another build can't put its own list in their place. It's saved as the
+    /// shipped set, with nothing recorded as removed or edited.
+    func testAResetIsTheExtensionsOwnDefaults() throws {
+        let shipped = Array(Indicator.defaults.prefix(3)) + [ownIndicator("Only this build's", Self.exec)]
+        let directory = try makeIndicatorDirectory()
+        let set = try makeSavedIndicatorSet(in: directory, defaults: shipped)
+        set.load()
+        XCTAssertEqual(set.send(IndicatorRequest(.remove, ids: [shipped[0].id, shipped[3].id])).indicators.count, 2)
+        let reset = set.send(IndicatorRequest(.reset, indicators: Array(Indicator.defaults.suffix(2))))
+        XCTAssertEqual(reset.status, .ok)
+        XCTAssertEqual(reset.indicators, shipped)
+        let reloaded = try makeSavedIndicatorSet(in: directory, defaults: shipped)
+        reloaded.load()
+        XCTAssertEqual(reloaded.send(IndicatorRequest(.list)).indicators, shipped)
+    }
+
     /// A request that names an identity the set doesn't have, none at all, or doesn't say on or off, is invalid, and
     /// so is one that brings an indicator past a limit. Nothing changes, on disk or in the followers' set.
     func testInvalidChangesChangeNothing() throws {

@@ -47,12 +47,12 @@ public struct IndicatorImportOffer: Equatable {
         let current = Dictionary(mac.map { ($0.id, $0) }) { first, _ in first }
         added = legacy.filter { original[$0.id] == nil && current[$0.id] == nil }
         edited = legacy.compactMap { indicator -> Indicator? in
-            if let shippedVersion = original[indicator.id], indicator.hasSameDetection(as: shippedVersion) {
+            if let shippedVersion = original[indicator.id], indicator.sameDetection(as: shippedVersion) {
                 return nil
             }
             guard Indicator.isShippedIdentity(indicator.id),
                   let base = current[indicator.id] ?? original[indicator.id],
-                  !indicator.hasSameDetection(as: base) else { return nil }
+                  !indicator.sameDetection(as: base) else { return nil }
             var replacement = indicator
             replacement.isEnabled = base.isEnabled
             replacement.copyViews(from: base)
@@ -83,18 +83,5 @@ public struct IndicatorImportOffer: Equatable {
     /// - Returns: The request that imports them: an add, so nothing else in the set changes.
     public func request(replacingEdited: Bool) -> IndicatorRequest {
         IndicatorRequest(.add, indicators: added + (replacingEdited ? edited : []))
-    }
-}
-
-
-extension Indicator {
-    /// Is it the same detection as another, whatever whether each is on and where each shows?
-    ///
-    /// - Parameter other: Another indicator.
-    /// - Returns: `true` when only their switches differ.
-    func hasSameDetection(as other: Indicator) -> Bool {
-        var mine = self
-        mine.copySwitches(from: other)
-        return mine == other
     }
 }

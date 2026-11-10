@@ -23,7 +23,7 @@ final class IndicatorTests: XCTestCase {
             let predicate = try? StreamFilter.Predicate(indicator.predicate, for: .indicator)
             XCTAssertNotNil(predicate?.storePredicate, "\(indicator.name) reads every event's record")
         }
-        XCTAssertEqual(Indicator.defaults.count, 39)
+        XCTAssertEqual(Indicator.defaults.count, 40)
         XCTAssertFalse(Indicator.defaults.contains { ["Not quarantined", "osascript"].contains($0.name) })
         XCTAssertEqual(Indicator.defaults.first?.id, UUID(uuidString: "6D4D0F1D-0000-4000-8000-000000000001"))
     }
@@ -63,13 +63,14 @@ final class IndicatorTests: XCTestCase {
     private let labels: Set<String> = [
         "Reflective loading", "Quarantine removed", "Background item added", "XProtect detection", "AppleScript / JXA",
         "Adhoc signed", "Unsigned", "Remote thread created", "Task port retrieved", "Process traced",
-        "Code signature invalidated", "HID device opened", "Background item removed",
+        "Code signature invalidated", "HID device opened", "Background item removed", "BTM database modified",
     ]
 
     func testTableMarks() {
         XCTAssertEqual(Set(Indicator.defaults.filter(\.showsInTables).map(\.name)),
                        Set(["Ran a script", "New executable", "Dylib inserted", "Elevated to root"]).union(labels)
-                        .subtracting(["Background item added"]), "Background item added draws no symbol")
+                        .subtracting(["Background item added", "Background item removed"]),
+                       "Background items added and removed draw no symbol")
         XCTAssertTrue(Indicator.defaults.allSatisfy { $0.tableMarks.contains(.dot) })
         XCTAssertEqual(Set(Indicator.defaults.filter { $0.tableMarks.contains(.label) }.map(\.name)), labels)
     }
@@ -355,7 +356,7 @@ final class IndicatorTests: XCTestCase {
             XCTAssertNotNil(indicator.tactic, indicator.name)
             XCTAssertTrue(indicator.technique?.hasPrefix("T1") == true, indicator.name)
         }
-        XCTAssertEqual(Indicator.defaults.filter { $0.tactic == .persistence }.count, 9)
+        XCTAssertEqual(Indicator.defaults.filter { $0.tactic == .persistence }.count, 10)
         XCTAssertTrue(Indicator.defaults.filter { $0.matches(search: "TA0006") }
             .allSatisfy { $0.tactic == .credentialAccess })
         XCTAssertEqual(Indicator.defaults.filter { $0.matches(search: "T1543.001") }.map(\.name),

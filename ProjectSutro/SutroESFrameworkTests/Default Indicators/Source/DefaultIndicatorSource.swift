@@ -45,9 +45,9 @@ enum DefaultIndicatorSource {
 extension Indicator {
     /// The numbers earlier builds dropped: the defaults Not quarantined (2), osascript (12) and Non-Apple as root
     /// (14), and the built-in marks that 3.1.0's defaults replaced (34, 36 to 39). They're never given to another
-    /// indicator. The marks Elevated to root (16), Background item removed (25), HID device opened (26), Remote thread
-    /// created (27), Code signature invalidated (28), Process traced (29) and Task port retrieved (30) became the
-    /// defaults with their numbers.
+    /// indicator. The marks Elevated to root (16), BTM database modified (24), Background item removed (25), HID
+    /// device opened (26), Remote thread created (27), Code signature invalidated (28), Process traced (29) and Task
+    /// port retrieved (30) became the defaults with their numbers.
     static let retiredNumbers = [2, 12, 14, 34, 36, 37, 38, 39]
 
     /// The indicators Mac Monitor ships, each with an identity of its own, so Restore Defaults puts back the same ones:
@@ -314,8 +314,18 @@ extension Indicator {
         Indicator(id: uuid(25), name: "Background item removed",
                   description: "Removed a background item, so it no longer runs at login.",
                   symbol: "gearshape.2", color: .orange, predicate: type("BTM_LAUNCH_ITEM_REMOVE"),
-                  tables: [.dot, .symbol, .label],
+                  tables: [.dot, .label],
                   tactic: .defenseEvasion, technique: "T1070",
+                  severity: .low),
+        // backgroundtaskmanagementd replaces the database whenever a background item changes, so this is context.
+        Indicator(id: uuid(24), name: "BTM database modified",
+                  description: "Replaced Background Task Management's database, which records login items, launch "
+                    + "agents and launch daemons.",
+                  symbol: "exclamationmark.triangle.fill", color: .orange,
+                  predicate: type("RENAME")
+                    + #" AND target_path BEGINSWITH "/private/var/db/com.apple.backgroundtaskmanagement/""#,
+                  tables: [.dot, .symbol, .label],
+                  tactic: .persistence, technique: "T1547.015",
                   severity: .low),
     ]
 }

@@ -110,9 +110,8 @@ enum RecordSchema {
                 through.append(name)
             }
             var scalars = Set<String>(), isObject = false
-            let alternatives = (node["anyOf"] as? [[String: Any]] ?? []) + (node["oneOf"] as? [[String: Any]] ?? [])
-                + (node["allOf"] as? [[String: Any]] ?? [])
-            for alternative in alternatives {
+            /// The only combinator the schema may use: ``JSONSchemaCompiler`` refuses `oneOf` and `allOf`.
+            for alternative in node["anyOf"] as? [[String: Any]] ?? [] {
                 var resolved = alternative, inner = through
                 if let reference = alternative["$ref"] as? String {
                     let name = String(reference.split(separator: "/").last ?? "")

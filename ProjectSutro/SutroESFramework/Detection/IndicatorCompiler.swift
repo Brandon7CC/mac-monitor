@@ -23,6 +23,10 @@ import EndpointSecurity
 /// type check anywhere else stays, as a comparison of the event's type number: Plist modified's `CLOSE` and `RENAME`
 /// checks inside its `OR` still tell a close from a rename.
 ///
+/// However a predicate orders its comparisons, each `AND`'s and `OR`'s children run cheapest to read first
+/// (``IndicatorDraft/readingCheapestFirst``), so how a rule is written can't make an event's large fields be read
+/// before a cheap field rules it out.
+///
 /// What it refuses, each with its own ``SensorProblem``: `MATCHES`, `SUBQUERY`, `ALL`, `BETWEEN`, functions,
 /// aggregates and variables; a key path it doesn't read (``IndicatorField``) or one filled after capture; a string
 /// compared with a number, ordered, or an array compared without `ANY`; `?`, `\` or other than ASCII in a `LIKE`
@@ -67,7 +71,7 @@ public enum IndicatorCompiler {
         do {
             var drafting = IndicatorDraft.Builder()
             let draft = try drafting.draft(parsed).flattened.removingTypeChecks(passedBy: Set(types))
-                .readingRecordsLast
+                .readingCheapestFirst
             return .success(Rule(types: types.sorted(), program: IndicatorProgram(draft)))
         } catch let problem as SensorProblem {
             return .failure(problem)

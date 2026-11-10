@@ -15,7 +15,7 @@ import XCTest
 /// limits an indicator decodes within.
 final class IndicatorSeverityTests: XCTestCase {
     /// Every shipped indicator has the severity its evidence earns: only an XProtect detection is high, 17 are medium
-    /// and 21 low. The table names every shipped indicator, so a new one has to be given its severity here.
+    /// and 22 low. The table names every shipped indicator, so a new one has to be given its severity here.
     func testDefaultsHaveSeverities() throws {
         let expected: [IndicatorSeverity: Set<String>] = [
             .high: ["XProtect detection"],
@@ -28,9 +28,10 @@ final class IndicatorSeverityTests: XCTestCase {
                    "Download tool", "Non-Apple driver opened", "Plist modified", "Quarantine removed",
                    "Keychain opened", "Shell startup file modified", "Archive written", "AppleScript written",
                    "Unsigned code resolved a name", "Elevated to root", "Task port retrieved", "Process traced",
-                   "Code signature invalidated", "HID device opened", "Background item removed"],
+                   "Code signature invalidated", "HID device opened", "Background item removed",
+                   "BTM database modified"],
         ]
-        XCTAssertEqual(expected.mapValues(\.count), [.high: 1, .medium: 17, .low: 21])
+        XCTAssertEqual(expected.mapValues(\.count), [.high: 1, .medium: 17, .low: 22])
         let shipped = Dictionary(grouping: Indicator.defaults, by: \.severity).mapValues { Set($0.map(\.name)) }
         XCTAssertEqual(shipped, expected)
         XCTAssertLessThan(IndicatorSeverity.low, .medium)

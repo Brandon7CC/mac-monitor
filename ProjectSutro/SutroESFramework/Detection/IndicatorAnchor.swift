@@ -20,7 +20,7 @@ import Foundation
 /// field.
 ///
 /// Its bytes are its constant's, where the programs it's taken from keep them (``IndicatorProgram/View/bytes``), so
-/// indicator a set's anchors copies none.
+/// indexing a set's anchors copies none of them: the programs' byte pool must outlive the index's building.
 struct IndicatorAnchor: Hashable, Sendable {
     /// Where in the value the anchor's bytes have to be.
     enum Shape: UInt8, Sendable {
@@ -46,12 +46,6 @@ struct IndicatorAnchor: Hashable, Sendable {
     let folding: Bool
     /// Where its bytes start among its programs' bytes, and how many there are.
     let offset: Int32, length: Int32
-
-    /// - Parameter view: The programs it's taken from.
-    /// - Returns: Its bytes.
-    func bytes(in view: IndicatorProgram.View) -> UnsafeBufferPointer<UInt8> {
-        UnsafeBufferPointer(rebasing: view.bytes[Int(offset)..<Int(offset + length)])
-    }
 }
 
 

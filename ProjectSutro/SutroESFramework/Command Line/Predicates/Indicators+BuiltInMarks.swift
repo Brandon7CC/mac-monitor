@@ -64,7 +64,8 @@ private extension Indicator {
 
 // MARK: - Files
 private extension Indicator {
-    /// The marks a file event's label draws.
+    /// The marks a file event's label draws. The one for a rename onto Background Task Management's database (24)
+    /// became the BTM database modified default in 3.1.0, which colors the rename's label as the label did.
     static let fileMarks: [Indicator] = [
         warning(35, "Unquarantined file created", "Unquarantined file created",
                 type("CREATE") + " AND NOT " + reflective + #" AND (process.file_quarantine_type != "DISABLED" "#
@@ -77,10 +78,6 @@ private extension Indicator {
              predicate: type("RENAME") + " AND event.rename.is_quarantined == 1"),
         mark(21, "Unquarantined app bundle", "Unquarantined application bundle", symbol: "hand.raised.app",
              color: .red, predicate: type("RENAME") + " AND " + unquarantinedApp),
-        mark(24, "BTM database modified", "Service management database modified.",
-             symbol: "exclamationmark.triangle.fill", color: .yellow,
-             predicate: type("RENAME") + #" AND target_path CONTAINS "com.apple.backgroundtaskmanagement" "#
-                + "AND NOT event.rename.is_quarantined == 1 AND NOT (" + unquarantinedApp + ")"),
         warning(23, "Login Item written", "A Login Item was potentially added",
                 type("WRITE") + #" AND target_path CONTAINS "backgroundtaskmanagementd""#),
     ]

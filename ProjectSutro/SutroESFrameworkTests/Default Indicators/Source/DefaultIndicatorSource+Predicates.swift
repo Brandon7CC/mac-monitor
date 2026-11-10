@@ -74,8 +74,9 @@ extension Indicator {
     /// The predicate a sideloaded Chromium extension matches: a `.json` in an External Extensions folder, or the folder
     /// itself, written, linked or renamed into place, or an app's executable started with `-load-extension=`, in either
     /// of the switch's spellings, by anything but a test harness. The whole command line is read, not the first 200
-    /// characters an exec's context has. The switch comes before the app's path: few execs have it and most apps'
-    /// have the path, and the index looks an exec's rule up by the first of the two.
+    /// characters an exec's context has. However the two are written, the compiler checks the app's path before it
+    /// searches the command line, and the index looks an exec's rule up by the path (`readingCheapestFirst`), so a
+    /// padded command line spends neither pool on an exec outside an app.
     static let browserExtensionPredicate = "(" + written(or: "RENAME", "LINK")
         + #" AND target_path CONTAINS[c] "/External Extensions" AND (target_path ENDSWITH[c] ".json" "#
         + #"OR target_path ENDSWITH[c] "/External Extensions")) OR ("# + type("EXEC")

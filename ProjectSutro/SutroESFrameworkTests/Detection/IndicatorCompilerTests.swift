@@ -220,6 +220,25 @@ extension IndicatorCompilerTests {
                        + #"NOT process.session_id == 2))"#)
     }
 
+    /// An `AND`'s or an `OR`'s comparisons of `command_line`, `env` and `script_content`, which an event can make
+    /// large, run after those of small fields and before those of record fields, at every depth, so a target's path
+    /// rules an exec out before its command line is searched. On the same cost, the index anchors the `AND` on the
+    /// small field's literal, not the command line's, however the predicate orders them.
+    func testLargeFieldsAreComparedAfterSmallOnes() throws {
+        let source = Self.exec + #" AND event.exec.command_line CONTAINS "-x" AND process.ppid == 1 AND "#
+            + #"(ANY event.exec.env BEGINSWITH "A=" OR event.exec.cwd.path == "b" OR context == "c") AND "#
+            + #"event.exec.target.executable.path CONTAINS ".app/" AND NOT event.exec.script_content == "s""#
+        let compiled = try rule(source)
+        XCTAssertEqual(compiled.program.description, #"(event.exec.target.executable.path CONTAINS ".app/" AND "#
+                       + #"event.exec.command_line CONTAINS "-x" AND NOT event.exec.script_content == "s" AND "#
+                       + #"process.ppid == 1 AND (context == "c" OR ANY event.exec.env BEGINSWITH "A=" OR "#
+                       + #"event.exec.cwd.path == "b"))"#)
+        guard case .anyOf(let anchors) = compiled.program.necessity(eventType: compiled.types[0]) else {
+            return XCTFail("Not anchored")
+        }
+        XCTAssertEqual(anchors.map(\.field), [.execTargetExecutablePath])
+    }
+
     /// Each shipped rule's program reads back as a predicate that compiles to the same program, and the same source
     /// compiles to an equal program.
     func testProgramsDescribeThemselves() throws {

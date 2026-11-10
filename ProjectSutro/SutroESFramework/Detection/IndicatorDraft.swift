@@ -53,17 +53,20 @@ indirect enum IndicatorDraft: Equatable {
     /// The same, with an `AND` inside an `AND`, or an `OR` inside an `OR`, made one: `(a AND b) AND c` is
     /// `a AND b AND c`. An `OR`'s type checks are one too, where the first was: `event.create != nil OR
     /// event.rename != nil` is `es_event_type IN` both, which a top-level `AND` then drops (``removingTypeChecks``).
+    /// Each child is flattened once: twice doubled the work at every level of `AND`s and `OR`s nested in turn.
     var flattened: IndicatorDraft {
         switch self {
         case .and(let children):
             return .and(children.flatMap { child -> [IndicatorDraft] in
-                if case .and(let inner) = child.flattened { return inner }
-                return [child.flattened]
+                let flat = child.flattened
+                if case .and(let inner) = flat { return inner }
+                return [flat]
             })
         case .or(let children):
             return Self.joiningTypeChecks(children.flatMap { child -> [IndicatorDraft] in
-                if case .or(let inner) = child.flattened { return inner }
-                return [child.flattened]
+                let flat = child.flattened
+                if case .or(let inner) = flat { return inner }
+                return [flat]
             })
         case .not(let child):
             return .not(child.flattened)
@@ -93,30 +96,55 @@ indirect enum IndicatorDraft: Equatable {
         return rest.count == 1 ? rest[0] : .or(rest)
     }
 
-    /// Does it read a record field (``RecordPathTrie``), which walks the event's encoding the first time one is read?
-    var readsRecord: Bool {
-        switch self {
-        case .and(let children), .or(let children): children.contains(where: \.readsRecord)
-        case .not(let child): child.readsRecord
-        case .compare(let comparison): !comparison.field.isDirect
-        case .truth, .eventType: false
+    /// What reading a part's fields can cost an event, which orders an `AND`'s and an `OR`'s children
+    /// (``readingCheapestFirst``).
+    enum ReadCost: Int, CaseIterable, Comparable {
+        /// Only fields that stay small, or none.
+        case small
+        /// `command_line`, `env` or `script_content`, which an event can make up to 1 MiB (``ScanPool/isLarge``): a
+        /// search of one can spend its pool, and the index's, whole.
+        case large
+        /// A record field, which walks the event's encoding the first time one is read (``RecordPathTrie``).
+        case record
+
+        /// - Parameters:
+        ///   - lhs: A cost.
+        ///   - rhs: Another.
+        /// - Returns: Is `lhs` the cheaper?
+        static func < (lhs: ReadCost, rhs: ReadCost) -> Bool {
+            lhs.rawValue < rhs.rawValue
         }
     }
 
-    /// The same, with each `AND`'s and `OR`'s children that read a record field after those that don't, so a cheaper
-    /// child decides it first and most events are never walked. A verdict doesn't depend on its children's order
-    /// (``IndicatorProgram/View``), so no verdict changes, save which comparison a spent scan budget refuses.
-    var readingRecordsLast: IndicatorDraft {
+    /// What reading its fields can cost an event: the costliest of its comparisons'.
+    var readCost: ReadCost {
+        switch self {
+        case .and(let children), .or(let children): children.map(\.readCost).max() ?? .small
+        case .not(let child): child.readCost
+        case .compare(let comparison):
+            !comparison.field.isDirect ? .record : comparison.field.scanPool.isLarge ? .large : .small
+        case .truth, .eventType: .small
+        }
+    }
+
+    /// The same, with each `AND`'s and `OR`'s children ordered by what reading them can cost (``ReadCost``): those
+    /// that read only small fields first, then those that read a large one, then those that read a record field. So a
+    /// cheap child decides it first: a target's path rules out an exec before its 1 MiB command line is searched, and
+    /// most events are never walked. On a cost tie, the index anchors an `AND` on its first cheapest child
+    /// (``IndicatorProgram/View/necessity(root:eventType:)``), so a small field's literal is checked rather than a
+    /// large one's. A verdict doesn't depend on its children's order (``IndicatorProgram/View``), so no verdict
+    /// changes, save which comparison a spent scan budget refuses.
+    var readingCheapestFirst: IndicatorDraft {
         /// - Parameter children: An `AND`'s or an `OR`'s children.
-        /// - Returns: The same, each reordered within, those that read a record field last, in their order.
-        func recordsLast(_ children: [IndicatorDraft]) -> [IndicatorDraft] {
-            let ordered = children.map(\.readingRecordsLast)
-            return ordered.filter { !$0.readsRecord } + ordered.filter(\.readsRecord)
+        /// - Returns: The same, each reordered within, by their cost and, at the same cost, in their order.
+        func cheapestFirst(_ children: [IndicatorDraft]) -> [IndicatorDraft] {
+            let ordered = children.map(\.readingCheapestFirst)
+            return ReadCost.allCases.flatMap { cost in ordered.filter { $0.readCost == cost } }
         }
         return switch self {
-        case .and(let children): .and(recordsLast(children))
-        case .or(let children): .or(recordsLast(children))
-        case .not(let child): .not(child.readingRecordsLast)
+        case .and(let children): .and(cheapestFirst(children))
+        case .or(let children): .or(cheapestFirst(children))
+        case .not(let child): .not(child.readingCheapestFirst)
         default: self
         }
     }
@@ -273,11 +301,10 @@ extension IndicatorDraft {
             case .constantValue:
                 objects = [expression.constantValue]
             case .aggregate where isSet:
-                guard let members = expression.collection as? [NSExpression],
-                      members.allSatisfy({ $0.expressionType == .constantValue }) else {
+                guard let members = expression.constantMembers else {
                     throw SensorProblem.unsupported("a set of other than constants, in \(part)")
                 }
-                objects = members.map(\.constantValue)
+                objects = members
             default:
                 throw SensorProblem.unsupported("\(expression), in \(part): it compares a field with constants")
             }
