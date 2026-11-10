@@ -3013,27 +3013,75 @@
 			isa = PBXGroup;
 			children = (
 				4D4D00000000000000000F05 /* DefaultIndicators.json */,
-				4D4D00000000000000000019 /* IndicatorField.swift */,
-				4D4D0000000000000000001B /* MessageValues.swift */,
-				4D4D00000000000000000023 /* IndicatorProgram.swift */,
-				4D4D0000000000000000002B /* StringMatching.swift */,
-				4D4D0000000000000000002D /* StringMatching+Foundation.swift */,
+				4D4D0000000000000000D001 /* Compiler */,
+				4D4D0000000000000000D002 /* Program */,
+				4D4D0000000000000000D003 /* Set */,
+				4D4D0000000000000000D004 /* Fields */,
+				4D4D0000000000000000D005 /* Matching */,
+				4D4D0000000000000000D006 /* Budget */,
+			);
+			path = Detection;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D001 /* Compiler */ = {
+			isa = PBXGroup;
+			children = (
 				4D4D00000000000000000029 /* IndicatorCompiler.swift */,
-				4D4D0000000000000000002F /* CompiledIndicators.swift */,
-				4D4D00000000000000000084 /* CompiledIndicators+Source.swift */,
-				4D4D00000000000000000045 /* IndicatorIndex+Building.swift */,
-				4D4D00000000000000000043 /* IndicatorIndex.swift */,
-				4D4D0000000000000000007E /* ScanBudget.swift */,
-				4D4D00000000000000000082 /* ScanCost.swift */,
-				4D4D00000000000000000041 /* IndicatorAnchor.swift */,
-				4D4D00000000000000000F06 /* RecordFields.swift */,
-				4D4D00000000000000000031 /* FrozenPrograms.swift */,
 				4D4D00000000000000000027 /* IndicatorDraft.swift */,
+				4D4D00000000000000000041 /* IndicatorAnchor.swift */,
+			);
+			path = Compiler;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D002 /* Program */ = {
+			isa = PBXGroup;
+			children = (
+				4D4D00000000000000000023 /* IndicatorProgram.swift */,
 				4D4D00000000000000000033 /* IndicatorProgram+Layout.swift */,
 				4D4D00000000000000000025 /* IndicatorProgram+Evaluation.swift */,
 				4D4D00000000000000000080 /* IndicatorProgram+Comparison.swift */,
 			);
-			path = Detection;
+			path = Program;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D003 /* Set */ = {
+			isa = PBXGroup;
+			children = (
+				4D4D0000000000000000002F /* CompiledIndicators.swift */,
+				4D4D00000000000000000084 /* CompiledIndicators+Source.swift */,
+				4D4D00000000000000000043 /* IndicatorIndex.swift */,
+				4D4D00000000000000000045 /* IndicatorIndex+Building.swift */,
+				4D4D00000000000000000031 /* FrozenPrograms.swift */,
+			);
+			path = Set;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D004 /* Fields */ = {
+			isa = PBXGroup;
+			children = (
+				4D4D00000000000000000019 /* IndicatorField.swift */,
+				4D4D0000000000000000001B /* MessageValues.swift */,
+				4D4D00000000000000000F06 /* RecordFields.swift */,
+			);
+			path = Fields;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D005 /* Matching */ = {
+			isa = PBXGroup;
+			children = (
+				4D4D0000000000000000002B /* StringMatching.swift */,
+				4D4D0000000000000000002D /* StringMatching+Foundation.swift */,
+			);
+			path = Matching;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D006 /* Budget */ = {
+			isa = PBXGroup;
+			children = (
+				4D4D0000000000000000007E /* ScanBudget.swift */,
+				4D4D00000000000000000082 /* ScanCost.swift */,
+			);
+			path = Budget;
 			sourceTree = "<group>";
 		};
 		4D4D0000000000000000004F /* Saved Indicator Set */ = {
