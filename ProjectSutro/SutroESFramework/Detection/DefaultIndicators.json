@@ -240,6 +240,36 @@
       "technique" : "T1105"
     },
     {
+      "color" : "orange",
+      "description" : "Wrote a Mach-O executable, dylib or bundle whose name starts with a period, which Finder and ls don't list.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000003E",
+      "isEnabled" : true,
+      "name" : "Hidden Mach-O written",
+      "predicate" : "event.close != nil AND event.close.mach_o_type IN {\"MH_EXECUTE\", \"MH_DYLIB\", \"MH_BUNDLE\"} AND event.close.target.name BEGINSWITH \".\"",
+      "severity" : "low",
+      "symbol" : "eye.slash",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1564.001"
+    },
+    {
+      "color" : "orange",
+      "description" : "Ran an executable whose name starts with a period, which Finder and ls don't list.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000003F",
+      "isEnabled" : true,
+      "name" : "Hidden Mach-O executed",
+      "predicate" : "event.exec != nil AND event.exec.target.executable.name BEGINSWITH \".\"",
+      "severity" : "medium",
+      "symbol" : "eye.slash",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1564.001"
+    },
+    {
       "color" : "yellow",
       "description" : "Wrote a file a shell runs as it starts, such as ~/.zshrc or /etc/paths.d, so a command runs in every new shell.",
       "id" : "6D4D0F1D-0000-4000-8000-00000000002C",

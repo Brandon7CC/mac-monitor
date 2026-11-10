@@ -14,7 +14,7 @@ import Foundation
 /// `RecordFieldParityTests`).
 ///
 /// Two kinds:
-/// - **Direct** (``allCases``): the event's type, the 30 key paths Mac Monitor's shipped indicators compare, and the
+/// - **Direct** (``allCases``): the event's type, the 31 key paths Mac Monitor's shipped indicators compare, and the
 ///   rest of the signing identity: the exec target's team ID and platform binary, and the process's team ID. Each
 ///   is read with one `switch` to its leaf (``MessageValues``), the cheapest read there is.
 /// - **Record**: any other key path of the telemetry schema whose value is a string, a number, a Boolean or an array of
@@ -69,6 +69,7 @@ public struct IndicatorField: Hashable, Sendable {
     public static let execTargetEUID = Self(rawValue: 29), execTargetRUID = Self(rawValue: 30)
     public static let iokitOpenUserClientClass = Self(rawValue: 31)
     public static let processFileQuarantineType = Self(rawValue: 32), createIsQuarantined = Self(rawValue: 33)
+    public static let closeTargetName = Self(rawValue: 34)
 
     /// Each direct field's key path and kind, by its raw value.
     private static let direct: [(path: String, kind: Kind)] = [
@@ -88,6 +89,7 @@ public struct IndicatorField: Hashable, Sendable {
         ("event.exec.target.euid", .number), ("event.exec.target.ruid", .number),
         ("event.iokit_open.user_client_class", .string),
         ("process.file_quarantine_type", .string), ("event.create.is_quarantined", .number),
+        ("event.close.target.name", .string),
     ]
 
     /// Each direct field's name, as its static property has it, by its raw value.
@@ -99,7 +101,7 @@ public struct IndicatorField: Hashable, Sendable {
         "execTargetExecutablePath", "execTargetExecutableName", "closeModified", "closeFileType", "closeMachOType",
         "deleteextattrExtattr", "iokitOpenDriverBundleID", "uipcConnectFileStatUID", "xpcConnectServiceName",
         "xpcConnectServiceDomainTypeString", "execTargetEUID", "execTargetRUID", "iokitOpenUserClientClass",
-        "processFileQuarantineType", "createIsQuarantined",
+        "processFileQuarantineType", "createIsQuarantined", "closeTargetName",
     ]
 
     /// The direct fields, in order.

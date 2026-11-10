@@ -168,6 +168,18 @@ extension Indicator {
                   symbol: "arrow.down.doc", color: .orange, predicate: machOWrittenPredicate,
                   tactic: .commandAndControl, technique: "T1105",
                   severity: .medium),
+        // ditto and rsync write each copy under a temporary name that starts with a period, so this is context.
+        Indicator(id: uuid(62), name: "Hidden Mach-O written",
+                  description: "Wrote a Mach-O executable, dylib or bundle whose name starts with a period, which "
+                    + "Finder and ls don't list.",
+                  symbol: "eye.slash", color: .orange, predicate: hiddenMachOWrittenPredicate,
+                  tactic: .defenseEvasion, technique: "T1564.001",
+                  severity: .low),
+        Indicator(id: uuid(63), name: "Hidden Mach-O executed",
+                  description: "Ran an executable whose name starts with a period, which Finder and ls don't list.",
+                  symbol: "eye.slash", color: .orange, predicate: hiddenMachOExecutedPredicate,
+                  tactic: .defenseEvasion, technique: "T1564.001",
+                  severity: .medium),
         // T1574.007 too, for a PATH entry.
         Indicator(id: uuid(44), name: "Shell startup file modified",
                   description: "Wrote a file a shell runs as it starts, such as ~/.zshrc or /etc/paths.d, so a "

@@ -61,6 +61,15 @@ extension IndicatorTests {
             ["es_event_type": "ES_EVENT_TYPE_NOTIFY_CLOSE", "target_path": "/tmp/update",
              "event": ["close": ["modified": true, "mach_o_type": type]]]
         }
+        /// - Parameters:
+        ///   - path: The file written.
+        ///   - type: The Mach-O type written.
+        /// - Returns: A close's record of the file, named as its path ends, as the store names it.
+        func machO(at path: String, _ type: String = "MH_EXECUTE") -> NSDictionary {
+            ["es_event_type": "ES_EVENT_TYPE_NOTIFY_CLOSE", "target_path": path,
+             "event": ["close": ["modified": true, "mach_o_type": type,
+                                 "target": ["path": path, "name": (path as NSString).lastPathComponent]]]]
+        }
         let agent = "/Users/a/Library/LaunchAgents/com.example.agent.plist"
         let mmap = "ES_EVENT_TYPE_NOTIFY_MMAP"
         let login = "/Users/a/Library/Keychains/login.keychain-db"
@@ -100,6 +109,11 @@ extension IndicatorTests {
             ("Plist modified", rename(to: agent), rename(to: "/Users/a/Library/LaunchAgents/notes.txt")),
             ("Plist modified", close("/Users/a/Library/Preferences/com.example.app.PLIST", modified: true),
              close("/Users/a/Library/Preferences/com.example.plist.bak", modified: true)),
+            ("Hidden Mach-O written", machO(at: "/tmp/.update"), machO(at: "/tmp/update")),
+            ("Hidden Mach-O written", machO(at: "/Users/a/.cache/.lib", "MH_DYLIB"), machO(at: "/Users/a/.cache/lib")),
+            ("Hidden Mach-O written", machO(at: "/tmp/.BC.T_djbmra", "MH_BUNDLE"), machO(at: "/tmp/.o", "MH_OBJECT")),
+            ("Hidden Mach-O executed", tool("/tmp/.payload"), tool("/tmp/.hidden/payload")),
+            ("Hidden Mach-O executed", tool("/Users/a/Library/.agent"), tool("/Users/a/Library/agent.app")),
             ("Mach-O written", machO("MH_EXECUTE"), machO("MH_OBJECT")),
             ("Mach-O written", machO("MH_DYLIB"), machO(NSNull())),
             ("Mach-O written", machO("MH_BUNDLE"),

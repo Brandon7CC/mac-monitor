@@ -72,6 +72,7 @@ public enum MessageValues {
         case .close(let close) where field == .closeModified: IndicatorValue(close.modified)
         case .close(let close) where field == .closeFileType: IndicatorValue(close.file_type)
         case .close(let close) where field == .closeMachOType: IndicatorValue(close.mach_o_type)
+        case .close(let close) where field == .closeTargetName: name(ofPath: close.target.path)
         case .create(let create) where field == .createIsQuarantined: IndicatorValue(Int(create.is_quarantined))
         case .deleteextattr(let xattr) where field == .deleteextattrExtattr: IndicatorValue(xattr.extattr)
         case .iokit_open(let open) where field == .iokitOpenDriverBundleID && version >= 10:

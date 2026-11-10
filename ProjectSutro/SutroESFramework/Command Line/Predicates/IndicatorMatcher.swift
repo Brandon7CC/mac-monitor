@@ -102,7 +102,7 @@ final class StoredEventValues: NSObject {
         "event.exec.dyld_exec_path", "event.exec.command_line", "event.create.is_quarantined",
         "event.rename.is_quarantined", "event.deleteextattr.extattr", "event.setextattr.extattr",
         "event.iokit_open.user_client_class", "event.iokit_open.driver_bundle_id", "event.close.modified",
-        "event.close.file_type",
+        "event.close.file_type", "event.close.target.name",
         "event.close.mach_o_type", "event.mmap.file_type", "event.mmap.mach_o_type", "event.rename.file_type",
         "event.rename.mach_o_type", "event.exit.stat",
         "process.executable.name", "process.executable.path", "process.signing_id", "process.is_platform_binary",

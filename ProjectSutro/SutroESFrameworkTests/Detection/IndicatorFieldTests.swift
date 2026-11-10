@@ -35,7 +35,7 @@ final class IndicatorFieldTests: XCTestCase {
         }
     }
 
-    /// The fields are the 30 key paths the shipped indicators compare, besides the payloads they test for their
+    /// The fields are the 31 key paths the shipped indicators compare, besides the payloads they test for their
     /// types, the event's type, which those tests are, and the rest of the signing identity: the exec target's team
     /// ID and platform binary, and the process's team ID.
     func testFieldsAreTheDefaultsPaths() throws {
@@ -49,11 +49,11 @@ final class IndicatorFieldTests: XCTestCase {
                 return false
             }
         }
-        XCTAssertEqual(read.subtracting(["es_event_type"]).count, 30)
+        XCTAssertEqual(read.subtracting(["es_event_type"]).count, 31)
         let identity: Set = ["es_event_type", "event.exec.target.team_id", "event.exec.target.is_platform_binary",
                              "process.team_id"]
         XCTAssertEqual(Set(IndicatorField.allCases.map(\.path)), read.union(identity))
-        XCTAssertEqual(IndicatorField.allCases.count, 34)
+        XCTAssertEqual(IndicatorField.allCases.count, 35)
     }
 }
 

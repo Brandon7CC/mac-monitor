@@ -284,6 +284,14 @@ extension Indicator {
     static let machOWrittenPredicate = type("CLOSE")
         + #" AND event.close.mach_o_type IN {"MH_EXECUTE", "MH_DYLIB", "MH_BUNDLE"}"#
 
+    /// The predicate a write of a hidden Mach-O matches: what ``machOWrittenPredicate`` matches, of a file whose name
+    /// starts with a period. A file in a hidden folder isn't one, unless its own name starts with a period too.
+    static let hiddenMachOWrittenPredicate = machOWrittenPredicate + #" AND event.close.target.name BEGINSWITH ".""#
+
+    /// The predicate an exec of a hidden executable matches: one whose file name starts with a period. Every exec's
+    /// target is a Mach-O, since a script's is its interpreter.
+    static let hiddenMachOExecutedPredicate = type("EXEC") + #" AND event.exec.target.executable.name BEGINSWITH ".""#
+
     /// The predicate a write of an archive or disk image matches: a modified close of a file whose content is one of
     /// ``archiveTypes``, whatever its name, by anything but one of macOS's own ``contentKeepers`` (Time Machine's
     /// backupd, fseventsd, which gzips each volume's file system event log, and Spotlight's index daemons), each its
