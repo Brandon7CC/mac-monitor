@@ -51,10 +51,11 @@ final class BuiltInIndicatorTests: XCTestCase {
             ("New executable", exec([:], ["executable_age_ms": 250]), exec([:], ["executable_age_ms": -5])),
             ("Ran a script", exec([:], ["script_content": "echo"]), exec([:], ["script_content": ""])),
             ("Reflective loading", file("CREATE", "create", 0, image), file("CREATE", "create", 0, "/tmp/x")),
-            ("Unquarantined file created", file("CREATE", "create", 0, "/Users/a/Downloads/a.app", archiver),
+            ("Unquarantined file from a File Quarantine-aware app",
+             file("CREATE", "create", 0, "/Users/a/Downloads/a.app", archiver),
              file("CREATE", "create", 0, "/private/var/folders/T/a.app", archiver)),
-            ("Unquarantined file created", file("CREATE", "create", 0, "/Users/a/x", optIn),
-             file("CREATE", "create", 0, image, optIn)),
+            ("Unquarantined file from a File Quarantine-aware app", file("CREATE", "create", 0, "/Users/a/x", optIn),
+             file("CREATE", "create", 0, "/Users/a/x", ["file_quarantine_type": "DISABLED"])),
             ("Quarantined file", file("CREATE", "create", 1, "/Users/a/x"), file("CREATE", "create", 1, image)),
             ("AppleScript / JXA", event("MMAP", ["target_path": "/System/Library/ScriptingAdditions/a.osax/a"]),
              event("MMAP", ["target_path": "/usr/lib/libSystem.B.dylib"])),
@@ -123,8 +124,9 @@ final class BuiltInIndicatorTests: XCTestCase {
         create.process.file_quarantine_type = .disabled
         create.process.executable?.path = "/System/Library/CoreServices/ArchiveService"
         create.target_path = "/Users/a/Downloads/x"
-        let names = ["Dylib inserted", "Root user", "Unquarantined file created"]
+        let names = ["Dylib inserted", "Root user", "Unquarantined file from a File Quarantine-aware app"]
         let indicators = Indicator.builtInMarks.filter { names.contains($0.name) }
+            + Indicator.defaults.filter { $0.id == Indicator.unquarantinedFileID }
         for indicator in indicators {
             let predicate = try StreamFilter.Predicate(indicator.predicate, for: .indicator)
             XCTAssertTrue(StoredEventValues.canEvaluate(predicate.parsed), indicator.name)
@@ -140,14 +142,14 @@ final class BuiltInIndicatorTests: XCTestCase {
     func testBuiltInMarksKeepTheirNumbers() throws {
         let twins = Indicator.builtInMarks.filter { mark in Indicator.defaults.contains { $0.id == mark.id } }
         XCTAssertEqual(Set(Indicator.builtInMarks.map(\.id)).count, Indicator.builtInMarks.count)
-        XCTAssertEqual(Indicator.builtInMarks.count, 12)
+        XCTAssertEqual(Indicator.builtInMarks.count, 11)
         XCTAssertEqual(Set(twins.map(\.name)), ["New executable", "Ran a script", "Dylib inserted"])
         /// 18, 32 and 33 were the dyld exec path mismatch and the adhoc and unsigned warnings, now removed. 17 was the
-        /// dyld injection mark, now the Dylib inserted indicator's twin (50). The marks with the numbers 16 and 24 to
-        /// 30 became the defaults with those numbers in 3.1.0, and those 34 and 36 to 39 replaced were retired.
+        /// dyld injection mark, now the Dylib inserted indicator's twin (50). The marks with the numbers 16, 24 to 30
+        /// and 35 became the defaults with those numbers in 3.1.0, and those 34 and 36 to 39 replaced were retired.
         XCTAssertEqual(Set(Indicator.builtInMarks.map(\.id)),
-                       Set([9, 11, 15, 19, 20, 21, 22, 23, 31, 35, 40, 50].map(Indicator.uuid)))
-        XCTAssertTrue(Set([16, 24, 25, 26, 27, 28, 29, 30].map(Indicator.uuid))
+                       Set([9, 11, 15, 19, 20, 21, 22, 23, 31, 40, 50].map(Indicator.uuid)))
+        XCTAssertTrue(Set([16, 24, 25, 26, 27, 28, 29, 30, 35].map(Indicator.uuid))
             .isSubset(of: Indicator.defaults.map(\.id)))
         for twin in twins {
             let indicator = try XCTUnwrap(Indicator.defaults.first { $0.id == twin.id })

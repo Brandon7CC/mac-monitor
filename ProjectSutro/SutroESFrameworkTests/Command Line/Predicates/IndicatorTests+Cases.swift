@@ -356,6 +356,8 @@ extension IndicatorTests {
             record("RENAME", ["is_quarantined": quarantined], path: path)
         }
         let reflective = "/private/var/folders/T/NSCreateObjectFileImageFromMemory-cgAR"
+        /// A user's folder in `/private/var/folders`.
+        let folders = "/private/var/folders/by/997_b3mj46j5hy98rnfc28w00000gn"
         let btm = "/private/var/db/com.apple.backgroundtaskmanagement/BackgroundItems-v9.btm"
         let typeOnly: [(String, String, String)] = [
             ("Background item added", "BTM_LAUNCH_ITEM_ADD", "BTM_LAUNCH_ITEM_REMOVE"),
@@ -377,10 +379,14 @@ extension IndicatorTests {
             ("Reflective loading", create(reflective, quarantined: 0),
              create("/tmp/NSCreateObjectFileImageFromMemory.txt", quarantined: 0)),
             ("Reflective loading", record("MMAP", path: reflective), record("MMAP", path: "/tmp/x.dylib")),
-            ("Unquarantined file created", create("/Users/a/x", quarantined: 0, aware: true),
+            ("Unquarantined file from a File Quarantine-aware app", create("/Users/a/x", quarantined: 0, aware: true),
              create("/Users/a/x", quarantined: 1, aware: true)),
-            ("Unquarantined file created", create("/Users/a/x", quarantined: 0, aware: true),
-             create(reflective, quarantined: 0, aware: true)),
+            ("Unquarantined file from a File Quarantine-aware app", create("/Users/a/x", quarantined: 0, aware: true),
+             create("/Users/a/x", quarantined: 0)),
+            ("Unquarantined file from a File Quarantine-aware app",
+             create(folders + "/T/X-files/x", quarantined: 0, aware: true),
+             create(folders + "/X/com.google.Chrome.code_sign_clone/code_sign_clone.lAVKBe", quarantined: 0,
+                    aware: true)),
             ("Quarantined file", create("/Users/a/x", quarantined: 1), create("/Users/a/x", quarantined: 0)),
             ("AppleScript / JXA",
              record("MMAP", path: "/System/Library/Components/AppleScript.component/Contents/MacOS/AppleScript"),

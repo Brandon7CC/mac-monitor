@@ -32,7 +32,7 @@ final class PredicateLayoutTests: XCTestCase {
     /// Every shipped indicator's predicate is on one line, its lines join back to it exactly, and its laid-out text,
     /// pasted back and put on one line, is it again. Laying out the laid-out text gives the same layout.
     func testShippedPredicatesRoundTrip() {
-        XCTAssertEqual(Indicator.defaults.count, 40)
+        XCTAssertEqual(Indicator.defaults.count, 41)
         for indicator in Indicator.defaults {
             let predicate = indicator.predicate
             let layout = PredicateLayout(predicate)

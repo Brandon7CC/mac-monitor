@@ -14,11 +14,12 @@ import XCTest
 /// with a shipped indicator only when someone changed it, and it never makes an edit of the rule. Then the field
 /// limits an indicator decodes within.
 final class IndicatorSeverityTests: XCTestCase {
-    /// Every shipped indicator has the severity its evidence earns: only an XProtect detection is high, 17 are medium
-    /// and 22 low. The table names every shipped indicator, so a new one has to be given its severity here.
+    /// Every shipped indicator has the severity its evidence earns: an XProtect detection and a file a File
+    /// Quarantine-aware app leaves unquarantined are high, 17 are medium and 22 low. The table names every shipped
+    /// indicator, so a new one has to be given its severity here.
     func testDefaultsHaveSeverities() throws {
         let expected: [IndicatorSeverity: Set<String>] = [
-            .high: ["XProtect detection"],
+            .high: ["XProtect detection", "Unquarantined file from a File Quarantine-aware app"],
             .medium: ["New executable", "Mach-O written", "Scheduled job added", "SSH access modified",
                       "Launch job loaded", "Plug-in installed", "Terminal startup command",
                       "Configuration profile installed", "Login hook set", "Dylib inserted", "Authentication modified",
@@ -31,7 +32,7 @@ final class IndicatorSeverityTests: XCTestCase {
                    "Code signature invalidated", "HID device opened", "Background item removed",
                    "BTM database modified"],
         ]
-        XCTAssertEqual(expected.mapValues(\.count), [.high: 1, .medium: 17, .low: 22])
+        XCTAssertEqual(expected.mapValues(\.count), [.high: 2, .medium: 17, .low: 22])
         let shipped = Dictionary(grouping: Indicator.defaults, by: \.severity).mapValues { Set($0.map(\.name)) }
         XCTAssertEqual(shipped, expected)
         XCTAssertLessThan(IndicatorSeverity.low, .medium)

@@ -116,6 +116,34 @@ final class MessageValuesParityTests: XCTestCase {
         }
     }
 
+    /// A create's quarantine state and its process's File Quarantine type, which 3.1.0's Unquarantined file from a
+    /// File Quarantine-aware app reads, are the record's, and the Security Extension's compiled set matches on them as
+    /// Mac Monitor's own matching does: a file an aware process leaves unquarantined, but not one in an `X` folder of
+    /// `/private/var/folders`, a quarantined one, or one a process that isn't aware creates.
+    func testQuarantineStateAndFileQuarantineType() throws {
+        let folders = "/private/var/folders/by/997_b3mj46j5hy98rnfc28w00000gn"
+        let cases: [(path: String, quarantined: Int16, type: FileQuarantineType, matches: Bool)] = [
+            ("/Users/a/Downloads/x", 0, .optIn, true), ("/Users/a/Downloads/x", 0, .forced, true),
+            ("/Users/a/Downloads/x", 1, .optIn, false), ("/Users/a/Downloads/x", 2, .optIn, false),
+            ("/Users/a/Downloads/x", 0, .disabled, false),
+            (folders + "/X/com.google.Chrome.code_sign_clone/code_sign_clone.lAVKBe", 0, .optIn, false),
+            (folders + "/T/x", 0, .optIn, true),
+        ]
+        var create = try corpusMessage("ES_EVENT_TYPE_NOTIFY_CREATE")
+        guard case .create(var event) = create.event else { return XCTFail("Not a create") }
+        for (path, quarantined, type, matches) in cases {
+            event.is_quarantined = quarantined
+            create.event = .create(event)
+            create.process.file_quarantine_type = type
+            create.target_path = path
+            try assertValue(.createIsQuarantined, of: create, is: IndicatorValue(Int(quarantined)))
+            try assertValue(.processFileQuarantineType, of: create, is: IndicatorValue(type.rawValue))
+            try assertShippedMatch(create, matches,
+                                   id: shippedID("Unquarantined file from a File Quarantine-aware app"),
+                                   "\(path), \(quarantined), \(type.rawValue)")
+        }
+    }
+
     /// A driver's bundle ID is read only from message version 10, as the store keeps it.
     func testDriverBundleIDNeedsVersion10() throws {
         var message = try corpusMessage("ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN")

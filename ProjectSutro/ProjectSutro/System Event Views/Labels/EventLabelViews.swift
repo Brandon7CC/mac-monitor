@@ -74,7 +74,9 @@ extension EventLabelLook {
         case "FORK":
             self.init(symbol: "point.topleft.down.curvedto.point.bottomright.up")
         case "CREATE":
-            self = event.create.map { Self(create: $0, by: message.process) } ?? .plain(tint)
+            /// The Reflective loading and Unquarantined file from a File Quarantine-aware app indicators color a create
+            /// (``Indicator/TableMarks/label``).
+            self.init(symbol: "doc.plaintext")
         case "MMAP":
             self = event.mmap?.source.path.map(Self.init(mappedPath:)) ?? .plain(tint)
         case "RENAME":
@@ -144,25 +146,6 @@ extension EventLabelLook {
             self.init(symbol: process.seal.symbol, palette: true)
         case .signed:
             self.init(symbol: process.seal.symbol)
-        }
-    }
-
-    /// A created file. One left unquarantined is red, as a palette, but an image for reflective loading, which the
-    /// Reflective loading indicator colors (``Indicator/TableMarks/label``).
-    ///
-    /// - Parameters:
-    ///   - create: The create.
-    ///   - process: The process that created the file.
-    private init(create: ESFileCreateEvent, by process: ESProcess) {
-        let path = create.targetPath
-        let quarantines = process.file_quarantine_type != "DISABLED"
-            || (process.executable?.name == "ArchiveService" && !path.hasPrefix("/private/var/folders/"))
-        if path.lastPathComponent.hasPrefix("NSCreateObjectFileImageFromMemory-") {
-            self.init(symbol: "doc.plaintext")
-        } else if quarantines && create.is_quarantined == 0 {
-            self.init(symbol: "doc.plaintext", tint: .red, palette: true)
-        } else {
-            self.init(symbol: "doc.plaintext")
         }
     }
 

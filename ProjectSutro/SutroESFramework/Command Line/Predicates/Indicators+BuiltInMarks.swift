@@ -63,15 +63,18 @@ private extension Indicator {
 
 
 // MARK: - Files
+public extension Indicator {
+    /// The identity of the Unquarantined file from a File Quarantine-aware app default, which Event Facts reads to
+    /// explain an unquarantined file.
+    static let unquarantinedFileID = uuid(35)
+}
+
 private extension Indicator {
-    /// The marks a file event's label draws. The one for a rename onto Background Task Management's database (24)
-    /// became the BTM database modified default in 3.1.0, which colors the rename's label as the label did.
+    /// The marks a file event's label draws. Those for a rename onto Background Task Management's database (24) and
+    /// for a file a File Quarantine-aware app creates without the quarantine attribute (35) became the BTM database
+    /// modified and Unquarantined file from a File Quarantine-aware app defaults in 3.1.0, which color the event's
+    /// label as the label did.
     static let fileMarks: [Indicator] = [
-        warning(35, "Unquarantined file created", "Unquarantined file created",
-                type("CREATE") + " AND NOT " + reflective + #" AND (process.file_quarantine_type != "DISABLED" "#
-                    + #"OR (process.executable.name == "ArchiveService" "#
-                    + #"AND NOT target_path BEGINSWITH "/private/var/folders/")) "#
-                    + "AND event.create.is_quarantined == 0"),
         mark(20, "Quarantined file", "File is quarantined", symbol: "lock.shield",
              predicate: type("CREATE") + " AND NOT " + reflective + " AND event.create.is_quarantined == 1"),
         mark(22, "Quarantined file renamed", "File is quarantined", symbol: "lock.shield",

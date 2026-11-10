@@ -11,6 +11,16 @@ import Foundation
 
 // MARK: - Default predicates
 extension Indicator {
+    /// The predicate a file left unquarantined matches: a create, by a File Quarantine-aware process or by
+    /// ArchiveService outside `/private/var/folders`, of a file without the quarantine attribute. Left out is an `X`
+    /// folder in `/private/var/folders`, where an app clones itself to keep its code signature while it updates and
+    /// macOS quarantines nothing. The Security Extension matches a `LIKE` pattern of `*` alone, which also crosses a
+    /// `/`, so a folder named `X` anywhere below `/private/var/folders` is left out, not only a user's own.
+    static let unquarantinedFilePredicate = type("CREATE") + " AND event.create.is_quarantined == 0"
+        + #" AND (process.file_quarantine_type != "DISABLED" OR (process.executable.name == "ArchiveService" "#
+        + #"AND NOT target_path BEGINSWITH "/private/var/folders/"))"#
+        + #" AND NOT target_path LIKE "/private/var/folders/*/X/*""#
+
     /// The predicate a write of a shell's startup file matches: a modified close, a create, a hard link or a rename
     /// into place of a file zsh, bash, csh or fish runs as it starts, in a home folder or in `/private/etc`, or of a
     /// compiled `.zwc` zsh runs instead, or of a `PATH` entry. Names are compared ignoring case, as APFS opens them.

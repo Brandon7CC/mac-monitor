@@ -628,6 +628,23 @@
       ],
       "tactic" : "persistence",
       "technique" : "T1547.015"
+    },
+    {
+      "color" : "orange",
+      "description" : "A File Quarantine-aware app created a file that has no quarantine attribute. macOS adds it to what such an app creates, so it was removed or never applied, and Gatekeeper won't check the file when it's opened.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000023",
+      "isEnabled" : true,
+      "name" : "Unquarantined file from a File Quarantine-aware app",
+      "predicate" : "event.create != nil AND event.create.is_quarantined == 0 AND (process.file_quarantine_type != \"DISABLED\" OR (process.executable.name == \"ArchiveService\" AND NOT target_path BEGINSWITH \"/private/var/folders/\")) AND NOT target_path LIKE \"/private/var/folders/*/X/*\"",
+      "severity" : "high",
+      "symbol" : "exclamationmark.triangle.fill",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1553.001"
     }
   ],
   "version" : 1

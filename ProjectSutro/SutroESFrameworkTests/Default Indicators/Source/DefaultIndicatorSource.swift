@@ -46,16 +46,18 @@ extension Indicator {
     /// The numbers earlier builds dropped: the defaults Not quarantined (2), osascript (12) and Non-Apple as root
     /// (14), and the built-in marks that 3.1.0's defaults replaced (34, 36 to 39). They're never given to another
     /// indicator. The marks Elevated to root (16), BTM database modified (24), Background item removed (25), HID
-    /// device opened (26), Remote thread created (27), Code signature invalidated (28), Process traced (29) and Task
-    /// port retrieved (30) became the defaults with their numbers.
+    /// device opened (26), Remote thread created (27), Code signature invalidated (28), Process traced (29), Task
+    /// port retrieved (30) and Unquarantined file from a File Quarantine-aware app (35) became the defaults with
+    /// their numbers.
     static let retiredNumbers = [2, 12, 14, 34, 36, 37, 38, 39]
 
     /// The indicators Mac Monitor ships, each with an identity of its own, so Restore Defaults puts back the same ones:
     /// what ``defaults`` reads from the file.
     ///
-    /// Each has the severity its evidence earns: high only for an XProtect detection, which is malware macOS itself
-    /// found; medium for persistence, injection, payloads, password checks and privacy permissions written around
-    /// tccd, which are suspicious but have benign uses (a new executable, an inserted dylib, a login hook, a change to
+    /// Each has the severity its evidence earns: high for an XProtect detection, which is malware macOS itself
+    /// found, and for a file a File Quarantine-aware app leaves unquarantined, which Gatekeeper never checks; medium
+    /// for persistence, injection, payloads, password checks and privacy permissions written around tccd, which are
+    /// suspicious but have benign uses (a new executable, an inserted dylib, a login hook, a change to
     /// authentication, a password checked with dscl, a TCC database written); and low for context and what's often
     /// benign (a login, a download tool, a plist, an archive or a compiled script written, quarantine removed, a
     /// keychain opened, a name resolved by unsigned code).
@@ -327,5 +329,14 @@ extension Indicator {
                   tables: [.dot, .symbol, .label],
                   tactic: .persistence, technique: "T1547.015",
                   severity: .low),
+        Indicator(id: uuid(35), name: "Unquarantined file from a File Quarantine-aware app",
+                  description: "A File Quarantine-aware app created a file that has no quarantine attribute. macOS "
+                    + "adds it to what such an app creates, so it was removed or never applied, and Gatekeeper "
+                    + "won't check the file when it's opened.",
+                  symbol: "exclamationmark.triangle.fill", color: .orange,
+                  predicate: unquarantinedFilePredicate,
+                  tables: [.dot, .symbol, .label],
+                  tactic: .defenseEvasion, technique: "T1553.001",
+                  severity: .high),
     ]
 }

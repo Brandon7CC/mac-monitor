@@ -40,10 +40,12 @@ struct FileQuarantineStatusLabelView: View {
 /// What a `create` event says: the file created, whether it's quarantined, and its ACL and mode.
 struct SystemFileCreateMetadataView: View {
     var esSystemEvent: ESMessage
+    @ObservedObject private var store = IndicatorStore.shared
 
-    /// Whether the process that made the file is File Quarantine-aware.
-    private var fileQuarantineEnabled: Bool {
-        esSystemEvent.process.file_quarantine_type != "DISABLED"
+    /// Did the event match the Unquarantined file from a File Quarantine-aware app indicator? It's the one rule for a
+    /// file such an app leaves unquarantined, so turning it off or editing it changes the warning too.
+    private var isLeftUnquarantined: Bool {
+        store.marks(for: esSystemEvent).indicators.contains { $0.id == Indicator.unquarantinedFileID }
     }
 
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
@@ -52,7 +54,7 @@ struct SystemFileCreateMetadataView: View {
             let fileQuarantineType = Int(event.is_quarantined)
             EventFactsCard(message: esSystemEvent) {
                 FactsBox {
-                    if fileQuarantineEnabled && fileQuarantineType == 0 {
+                    if isLeftUnquarantined {
                         GroupBox {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")

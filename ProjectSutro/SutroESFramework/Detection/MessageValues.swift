@@ -17,7 +17,8 @@ import Foundation
 ///
 /// - `context` and `target_path` are "Not supported" where the event has none, as the store writes them.
 /// - An exec's `command_line` is "" where it has none.
-/// - A process's `codesigning_type` is "" when it has no executable: the store keeps the type only beside one.
+/// - A process's `codesigning_type` and `file_quarantine_type` are "" when it has no executable: the store keeps
+///   them only beside one.
 /// - An executable's `name` is its path's last component, as `File/name` is.
 /// - `iokit_open.driver_bundle_id` is `nil` before message version 10, which the store doesn't keep it for.
 /// - A field of another event type than the event's is `nil`, as the record has no such object.
@@ -53,6 +54,7 @@ public enum MessageValues {
         case .processIsPlatformBinary: process(.isPlatformBinary, of: message.process)
         case .processCodesigningType: process(.codesigningType, of: message.process)
         case .processIsAdhocSigned: process(.isAdhocSigned, of: message.process)
+        case .processFileQuarantineType: process(.fileQuarantineType, of: message.process)
         default: event(field, of: message.event, version: message.version)
         }
     }
@@ -70,6 +72,7 @@ public enum MessageValues {
         case .close(let close) where field == .closeModified: IndicatorValue(close.modified)
         case .close(let close) where field == .closeFileType: IndicatorValue(close.file_type)
         case .close(let close) where field == .closeMachOType: IndicatorValue(close.mach_o_type)
+        case .create(let create) where field == .createIsQuarantined: IndicatorValue(Int(create.is_quarantined))
         case .deleteextattr(let xattr) where field == .deleteextattrExtattr: IndicatorValue(xattr.extattr)
         case .iokit_open(let open) where field == .iokitOpenDriverBundleID && version >= 10:
             IndicatorValue(open.driver_bundle_id)
@@ -111,6 +114,7 @@ public enum MessageValues {
     /// A process's value that a field reads: the initiating process's, or an exec target's.
     private enum ProcessLeaf {
         case signingID, teamID, isPlatformBinary, isAdhocSigned, codesigningType, executablePath, executableName
+        case fileQuarantineType
     }
 
     /// One of a process's values.
@@ -125,21 +129,25 @@ public enum MessageValues {
         case .teamID: IndicatorValue(process.team_id)
         case .isPlatformBinary: IndicatorValue(process.is_platform_binary)
         case .isAdhocSigned: IndicatorValue(process.is_adhoc_signed)
-        case .codesigningType: codesigningType(of: process)
+        case .codesigningType: besideExecutable(process.codesigning_type.rawValue, of: process)
         case .executablePath: IndicatorValue(process.executable?.path)
         case .executableName: name(ofPath: process.executable?.path)
+        case .fileQuarantineType: besideExecutable(process.file_quarantine_type.rawValue, of: process)
         }
     }
 
-    /// A process's `codesigning_type`, which the store keeps only beside an executable: "" without one.
+    /// A process's `codesigning_type` or `file_quarantine_type`, which the store keeps only beside an executable: ""
+    /// without one.
     ///
     /// The executable is tested with a pattern, not `== nil`, which would compare a copy of it by `File`'s `==`.
     ///
-    /// - Parameter process: The process.
-    /// - Returns: The type's raw value, or "" without an executable.
-    private static func codesigningType(of process: borrowing Process) -> IndicatorValue {
+    /// - Parameters:
+    ///   - type: The type's raw value.
+    ///   - process: The process.
+    /// - Returns: The raw value, or "" without an executable.
+    private static func besideExecutable(_ type: String, of process: borrowing Process) -> IndicatorValue {
         if case .none = process.executable { return IndicatorValue("") }
-        return IndicatorValue(process.codesigning_type.rawValue)
+        return IndicatorValue(type)
     }
 
     /// A file's `name`: its path's last component, as `NSString` gives it (`File/name`), sliced from the path where

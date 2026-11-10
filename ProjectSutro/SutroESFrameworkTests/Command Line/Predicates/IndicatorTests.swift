@@ -23,7 +23,7 @@ final class IndicatorTests: XCTestCase {
             let predicate = try? StreamFilter.Predicate(indicator.predicate, for: .indicator)
             XCTAssertNotNil(predicate?.storePredicate, "\(indicator.name) reads every event's record")
         }
-        XCTAssertEqual(Indicator.defaults.count, 40)
+        XCTAssertEqual(Indicator.defaults.count, 41)
         XCTAssertFalse(Indicator.defaults.contains { ["Not quarantined", "osascript"].contains($0.name) })
         XCTAssertEqual(Indicator.defaults.first?.id, UUID(uuidString: "6D4D0F1D-0000-4000-8000-000000000001"))
     }
@@ -64,6 +64,7 @@ final class IndicatorTests: XCTestCase {
         "Reflective loading", "Quarantine removed", "Background item added", "XProtect detection", "AppleScript / JXA",
         "Adhoc signed", "Unsigned", "Remote thread created", "Task port retrieved", "Process traced",
         "Code signature invalidated", "HID device opened", "Background item removed", "BTM database modified",
+        "Unquarantined file from a File Quarantine-aware app",
     ]
 
     func testTableMarks() {
