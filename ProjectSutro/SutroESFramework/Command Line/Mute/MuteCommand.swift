@@ -99,7 +99,8 @@ public final class MuteCommand {
     ///
     /// - Parameter path: The file, or `-` for standard input.
     /// - Returns: The mutes, merged by path and type.
-    /// - Throws: ``CommandLineFailure``: 66 for a file that can't be read, 65 for one with no usable mutes.
+    /// - Throws: ``CommandLineFailure``: 66 for a file that can't be read, 65 for one that's larger than
+    ///   ``MuteLimits/maxFileBytes`` or has no usable mutes.
     private func importList(from path: String) throws -> MuteList {
         let name = path == "-" ? "Standard input" : TerminalSafeText.quoted(path)
         let data: Data
@@ -107,6 +108,12 @@ public final class MuteCommand {
             data = try readFile(path)
         } catch {
             throw CommandLineFailure.unreadable(name, because: error)
+        }
+        /// Said here: the reader would give the size it read, which stops a byte past the limit.
+        guard data.count <= MuteLimits.maxFileBytes else {
+            throw CommandLineFailure(.dataError, """
+                \(name) is larger than \(MuteLimits.maxFileBytes >> 20) MiB, so it wasn't imported.
+                """)
         }
         let imported: MuteImport
         do {

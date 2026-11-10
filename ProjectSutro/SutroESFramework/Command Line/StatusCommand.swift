@@ -45,7 +45,8 @@ public struct StatusReport: Encodable, Equatable {
         public var system_extension: String?
         /// Is it activated and enabled?
         public var activated: Bool
-        /// Does it have Full Disk Access? `nil` when it couldn't be asked.
+        /// Does it have Full Disk Access? `nil` when it couldn't be asked, or Endpoint Security refused it for another
+        /// reason.
         public var full_disk_access: Bool?
         /// What Endpoint Security answers it (``SensorReport/EndpointSecurity-swift.enum``), or `nil` when it
         /// couldn't be asked.
@@ -83,7 +84,7 @@ public struct StatusReport: Encodable, Equatable {
                             security_extension: reply.map(\.sensorVersion).flatMap { $0.isEmpty ? nil : $0 })
         security_extension = Requirements(
             system_extension: systemExtension, activated: systemExtension == SystemExtensionList.activated,
-            full_disk_access: report.map { $0.endpointSecurity != .notPermitted },
+            full_disk_access: Self.fullDiskAccess(report?.endpointSecurity),
             endpoint_security: report?.endpointSecurity.rawValue, problem: Self.problem(answer))
         capturing = Capturing(mac_monitor_connected: report?.app.connected,
                               mac_monitor_recording: report?.app.recording, streams: report?.streams,
@@ -129,6 +130,17 @@ public struct StatusReport: Encodable, Equatable {
 
         init?(intValue: Int) {
             nil
+        }
+    }
+
+    /// - Parameter answer: What Endpoint Security answers the Security Extension, or `nil` when it couldn't be asked.
+    /// - Returns: Whether it has Full Disk Access: `true` when Endpoint Security allows it a client, `false` when it's
+    ///   refused for Full Disk Access, and `nil` when it's refused for another reason or couldn't be asked.
+    private static func fullDiskAccess(_ answer: SensorReport.EndpointSecurity?) -> Bool? {
+        switch answer {
+        case .ok?: return true
+        case .notPermitted?: return false
+        case .notEntitled?, .tooManyClients?, .failed?, nil: return nil
         }
     }
 

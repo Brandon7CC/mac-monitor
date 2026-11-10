@@ -27,11 +27,11 @@ public enum StreamOutputFormat: String, CaseIterable, Sendable {
 ///
 /// Every event is observed by the ``StreamDropMeter``, in order, before ``PipelineScope`` or the ``StreamFilter`` can
 /// leave it out, so leaving one out never looks like a drop. Text output decodes only each event's header. JSONL, and
-/// text with a filter that reads records, decode the whole `Message` once and take the header from it. Encoding a
-/// record, at about 190 µs an event, is the slow part of a stream, so a batch of at least ``parallelThreshold`` events
-/// is split across the formatter's encoders and encoded in parallel (measured on 21,768 real events: 5,100 events a
-/// second with one encoder, 10,800 with four), then joined in order. With a limit (`--count`), the join stops at the
-/// last event it allows, and later batches write nothing. Not thread-safe: one batch at a time.
+/// text with a filter that reads records, decode the whole `Message` once and take the header from it. Making a
+/// record (decoding the event, building its row and encoding it) is the slow part of a stream, about 180 µs an event
+/// with a `--predicate` that reads it (`filter.stream.predicate`), so a batch of at least ``parallelThreshold`` events
+/// is split across the formatter's encoders and made in parallel, then joined in order. With a limit (`--count`), the
+/// join stops at the last event it allows, and later batches write nothing. Not thread-safe: one batch at a time.
 public final class StreamPipeline {
     /// How events become output.
     public enum Formatter {

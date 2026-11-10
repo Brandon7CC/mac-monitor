@@ -114,8 +114,8 @@ extension MuteCommand {
 
 
 // MARK: - What a change does
-/// What a change does to the saved mute set, mute by mute (a path and its type), for the question `mute import` and
-/// `mute reset` ask.
+/// What a change does to the saved mute set, mute by mute (a path and its type), for the question `mute import`,
+/// `mute reset` and `mute update` ask.
 struct MuteListChange: Equatable, CustomStringConvertible {
     /// Mutes for paths and types the set doesn't mute yet.
     let added: Int

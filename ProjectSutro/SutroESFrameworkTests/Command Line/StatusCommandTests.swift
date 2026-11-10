@@ -164,4 +164,26 @@ final class StatusCommandTests: XCTestCase {
         XCTAssertTrue(unknown["capturing"]?["streams"] is NSNull)
         XCTAssertEqual(unknown["security_extension"]?["problem"] as? String, "No answer.")
     }
+
+    /// `--json` says Full Disk Access is unknown, as the text does, when Endpoint Security refuses a client for
+    /// another reason, and says it's missing only when it's refused for Full Disk Access.
+    func testJSONFullDiskAccessWhenEndpointSecurityRefuses() throws {
+        let unknowns: [SensorReport.EndpointSecurity] = [.tooManyClients, .notEntitled, .failed]
+        for endpointSecurity in unknowns {
+            let report = StatusReport(tool: "3.1.0 (97)", app: "3.1.0 (97)", systemExtension: "activated enabled",
+                                      answer: .success(reply(endpointSecurity)))
+            XCTAssertNil(report.security_extension.full_disk_access, endpointSecurity.rawValue)
+            let object = try XCTUnwrap(JSONSerialization.jsonObject(
+                with: Data(StatusCommand.output(report, json: true).utf8)) as? [String: [String: Any]])
+            XCTAssertTrue(object["security_extension"]?["full_disk_access"] is NSNull, endpointSecurity.rawValue)
+            XCTAssertEqual(object["security_extension"]?["endpoint_security"] as? String, endpointSecurity.rawValue)
+            XCTAssertTrue(StatusCommand.output(report, json: false).contains("Full Disk Access     unknown: "),
+                          endpointSecurity.rawValue)
+        }
+        let missing = StatusReport(tool: "3.1.0 (97)", app: "3.1.0 (97)", systemExtension: "activated enabled",
+                                   answer: .success(reply(.notPermitted)))
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: Data(StatusCommand.output(missing, json: true).utf8)) as? [String: [String: Any]])
+        XCTAssertEqual(object["security_extension"]?["full_disk_access"] as? Bool, false)
+    }
 }

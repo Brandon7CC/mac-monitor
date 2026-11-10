@@ -243,6 +243,19 @@ final class MuteCommandTests: XCTestCase {
         }
     }
 
+    /// A file larger than ``MuteLimits/maxFileBytes`` is refused (65) without misstating its size, as
+    /// `indicators import` refuses one, and the saved set is unchanged.
+    func testImportingAFileTooLarge() throws {
+        let file = try temporaryFile(containing: String(repeating: " ", count: 2 * MuteLimits.maxFileBytes),
+                                     named: "big.json")
+        let large = run(.importFile(path: file.path, merge: false))
+        XCTAssertEqual(large.result?.failure, CommandLineFailure(.dataError, """
+            “\(file.path)” is larger than 1 MiB, so it wasn't imported.
+            """))
+        XCTAssertEqual(large.errors, [])
+        XCTAssertEqual(run(.list()).output.split(separator: "\n").count, MuteList.testDefault.count + 1)
+    }
+
     /// The table: types and events by the names `mute add` takes, every path escaped.
     func testTheTable() {
         XCTAssertEqual(MuteTable.text([]), "The saved mute set is empty.\n")

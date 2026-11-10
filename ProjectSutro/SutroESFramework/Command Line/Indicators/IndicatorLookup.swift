@@ -8,7 +8,7 @@
 import Foundation
 
 
-// MARK: - Indicator indicators by what's typed
+// MARK: - Finding indicators by what's typed
 /// The Mac's indicators, found by what's typed on the command line: an identity, as `macmonitor indicators list`
 /// shows it, or a name, ignoring case. `remove`, `enable` and `disable` act on exactly one indicator per name, so a
 /// name two indicators share is refused. `stream --indicator` matches by name, so there it means them all.

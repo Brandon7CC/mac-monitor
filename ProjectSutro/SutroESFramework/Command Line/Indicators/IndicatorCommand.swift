@@ -281,7 +281,7 @@ extension IndicatorCommand {
     ///
     /// - Parameters:
     ///   - references: Each indicator's ID or name.
-    ///   - completion: Called once, on any thread, if listing or indicator them fails.
+    ///   - completion: Called once, on any thread, if listing the set or finding them fails.
     ///   - body: Acts on the indicators, each once, in the order named.
     func acting(on references: [String], _ completion: @escaping (Result<Void, CommandLineFailure>) -> Void,
                 then body: @escaping ([Indicator]) throws -> Void) {

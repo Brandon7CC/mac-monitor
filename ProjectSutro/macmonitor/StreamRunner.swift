@@ -21,12 +21,12 @@ enum StreamRunner {
     /// Exits when a stop takes longer than its deadline.
     static let watchdog = StopWatchdog()
     
-    /// Start streaming to standard output. Runs on the main queue until it exits.
+    /// Start streaming to standard output, over the live connection to the Security Extension. Runs on the main
+    /// queue until it exits.
     ///
-    /// - Parameters:
-    ///   - invocation: The stream asked for.
-    ///   - client: The connection to the Security Extension: the live one, unless a probe brings its own.
-    static func start(_ invocation: StreamInvocation, client: StreamClient = .live()) {
+    /// - Parameter invocation: The stream asked for.
+    static func start(_ invocation: StreamInvocation) {
+        let client = StreamClient.live()
         let isTerminal = isatty(STDOUT_FILENO) == 1
         let format = invocation.resolvedFormat(isTerminal: isTerminal)
         let formatter: StreamPipeline.Formatter

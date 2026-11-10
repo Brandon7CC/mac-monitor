@@ -21,6 +21,8 @@ final class SignalTrap {
     let stoppingSignal = OSAllocatedUnfairLock<Int32?>(initialState: nil)
     /// Keeps the sources alive.
     private var sources: [DispatchSourceSignal] = []
+    /// How long ``finish(_:status:)`` waits for the signal it sent to end the process, in microseconds.
+    private static let signalWait: useconds_t = 2_000_000
     
     /// Ignore the signals' default actions, and stop on the first one instead.
     ///
@@ -53,9 +55,14 @@ final class SignalTrap {
         stop(number)
     }
     
-    /// Exit the way a command ended: by the signal that stopped it (restoring its default action and raising it), else
-    /// with the failure's status, else `status`. A reader that went away after the signal (Ctrl-C stops `| jq` too)
-    /// still exits by the signal.
+    /// Exit the way a command ended: by the signal that stopped it (restoring its default action and sending it to
+    /// this process), else with the failure's status, else `status`. A reader that went away after the signal (Ctrl-C
+    /// stops `| jq` too) still exits by the signal.
+    ///
+    /// The signal is sent to the process, not raised on the calling thread: a command finishes on whichever thread
+    /// serves the main queue, and a Dispatch worker thread blocks these signals, so one raised there stays pending
+    /// and the process would exit with a status instead. Sent to the process, the thread waiting for signals takes
+    /// it. This thread waits for that, and exits with 128 plus the signal only if it never comes.
     ///
     /// - Parameters:
     ///   - failure: Why the command failed, if it did.
@@ -64,7 +71,8 @@ final class SignalTrap {
     func finish(_ failure: CommandLineFailure? = nil, status: CommandLineExit = .success) -> Never {
         if let number = stoppingSignal.withLock({ $0 }) {
             signal(number, SIG_DFL)
-            raise(number)
+            kill(getpid(), number)
+            usleep(Self.signalWait)
             exit(128 + number)
         }
         if let failure { CommandLineTool.fail(failure) }

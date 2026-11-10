@@ -91,7 +91,8 @@ public struct StreamInvocation: Equatable {
     public var duration: TimeInterval?
     /// Stop after writing this many events. `--count`.
     public var limit: Int?
-    /// Which events are written: `--pid`, `--process`, `--signing-id`, `--target`, `--grep` and `--predicate`.
+    /// Which events are written: `--pid`, `--process`, `--signing-id`, `--target`, `--grep`, `--predicate` and
+    /// `--indicator`.
     public var filter = StreamFilter()
     
     /// The request's options for the Security Extension. The field filters are always sent, even none, so a

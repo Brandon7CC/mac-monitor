@@ -74,7 +74,7 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                 anywhere in the value unless anchored with ^ or $, and is case-sensitive unless it starts with (?i). \
                 The record is what --format jsonl writes ('macmonitor schema' describes it). Its indicators key lists \
                 the indicators in this Mac's set ('macmonitor indicators') that the Security Extension matched as it \
-                captured the event. A Security Extension older than macmonitor matches none and leaves the key out, \
+                captured the event. A Security Extension older than 3.1 matches none and leaves the key out, \
                 and --indicator then stops the stream. --signing-id, --grep, --predicate and --indicator read the \
                 record, so they make text output as slow as JSONL. Filtered events are never counted as \
                 lost, and --count counts only events written. Closes left out as unmodified are never counted as lost \
