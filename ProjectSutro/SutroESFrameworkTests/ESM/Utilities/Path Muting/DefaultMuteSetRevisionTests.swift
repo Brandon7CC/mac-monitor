@@ -23,7 +23,8 @@ final class DefaultMuteSetRevisionTests: XCTestCase {
     private var store = MuteStore(directory: URL(fileURLWithPath: "/nonexistent"))
 
     /// The default set's digest at each revision, for `/Users/alice` without Xcode's mutes on macOS 14 and later.
-    private let digests = [2: "51c99f84bd57fd33ea774dd42c6791b53103c8dff8558216fcc27633417aa72c"]
+    private let digests = [2: "51c99f84bd57fd33ea774dd42c6791b53103c8dff8558216fcc27633417aa72c",
+                           3: "7b8d618ed0e247eeadb4f1e8ed90e9b013aad496f55b821214a2ae7c68e8e77f"]
 
     /// A fresh directory for the saved set.
     ///
@@ -95,6 +96,29 @@ final class DefaultMuteSetRevisionTests: XCTestCase {
         let plan = try XCTUnwrap(MuteSetUpgrade.plan(for: atLoginWindow, revision: 1, mutesXcode: false))
         XCTAssertTrue(plan.wasDefault)
         XCTAssertEqual(plan.merged, MuteList(MuteSet.default(home: nil, mutesXcode: false).pathMutes))
+    }
+
+    /// Revision 3 adds closes to the mute of a home folder's caches, a per-user mute, so it's walked back for that
+    /// home folder: revision 2's set mutes creates and renames there, an unchanged one becomes the current default
+    /// set, and a changed one gets the closes and keeps its change.
+    func testRevisionThreeMutesClosesInTheCaches() throws {
+        let caches = MuteList.Key(path: alice + "/Library/Caches/", type: ES_MUTE_PATH_TYPE_TARGET_PREFIX)
+        let two = MuteList.shippedDefault(home: alice, mutesXcode: false, revision: 2)
+        XCTAssertEqual(two.scopes[caches], .events([ES_EVENT_TYPE_NOTIFY_CREATE, ES_EVENT_TYPE_NOTIFY_RENAME]))
+        XCTAssertEqual(current(xcode: false).scopes[caches],
+                       .events([ES_EVENT_TYPE_NOTIFY_CREATE, ES_EVENT_TYPE_NOTIFY_RENAME, ES_EVENT_TYPE_NOTIFY_CLOSE]))
+        XCTAssertNil(MuteList.shippedDefault(home: nil, mutesXcode: false, revision: 2).scopes[caches])
+
+        let unchanged = try XCTUnwrap(MuteSetUpgrade.plan(for: two, revision: 2, mutesXcode: false))
+        XCTAssertTrue(unchanged.wasDefault)
+        XCTAssertEqual(unchanged.merged, current(xcode: false))
+
+        var changed = two
+        try changed.remove(PathMute(path: "/usr/libexec/logd", type: ES_MUTE_PATH_TYPE_LITERAL))
+        let merged = try XCTUnwrap(MuteSetUpgrade.plan(for: changed, revision: 2, mutesXcode: false))
+        XCTAssertFalse(merged.wasDefault)
+        XCTAssertEqual(merged.merged.scopes[caches], current(xcode: false).scopes[caches])
+        XCTAssertFalse(merged.merged.keys.contains { $0.path == "/usr/libexec/logd" })
     }
 
     /// A set at the current revision, or a newer one, has nothing to upgrade.

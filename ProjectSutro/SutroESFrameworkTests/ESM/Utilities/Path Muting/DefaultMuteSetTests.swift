@@ -29,14 +29,15 @@ final class DefaultMuteSetTests: XCTestCase {
         consoleUser = alice
     }
     
-    /// The per-user mutes for a home folder: files created and renamed in its caches, and extended attributes read
-    /// from files in its Biome streams. Each folder ends in `/`, so no sibling that starts with its name is muted.
+    /// The per-user mutes for a home folder: files created, closed and renamed in its caches, and extended
+    /// attributes read from files in its Biome streams. Each folder ends in `/`, so no sibling that starts with its
+    /// name is muted.
     ///
     /// - Parameter home: The home folder.
     /// - Returns: Each mute's key and events.
     private func homeMutes(in home: String) -> [MuteList.Key: MuteScope] {
         [MuteList.Key(path: home + "/Library/Caches/", type: ES_MUTE_PATH_TYPE_TARGET_PREFIX):
-            .events([ES_EVENT_TYPE_NOTIFY_CREATE, ES_EVENT_TYPE_NOTIFY_RENAME]),
+            .events([ES_EVENT_TYPE_NOTIFY_CREATE, ES_EVENT_TYPE_NOTIFY_RENAME, ES_EVENT_TYPE_NOTIFY_CLOSE]),
          MuteList.Key(path: home + "/Library/Biome/streams/", type: ES_MUTE_PATH_TYPE_TARGET_PREFIX):
             .events([ES_EVENT_TYPE_NOTIFY_GETEXTATTR])]
     }

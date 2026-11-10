@@ -18,8 +18,9 @@ import EndpointSecurity
 /// current default set is walked back: each later revision's additions are taken out and its removals put back.
 ///
 /// **Changing the default set:** add a revision here with exactly what changed. `DefaultMuteSetRevisionTests` fails
-/// until the newest revision describes ``MuteSet/default(home:mutesXcode:mutesXPCConnects:)``. Revisions so far
-/// change neither the per-user mutes nor Xcode's. One that does needs the home folder and Xcode's mutes passed in.
+/// until the newest revision describes ``MuteSet/default(home:mutesXcode:mutesXPCConnects:)``. Revision 3 changes a
+/// per-user mute, so the revisions are made for a home folder (``revisions(home:)``). None so far changes Xcode's
+/// mutes. One that does needs Xcode's mutes passed in too.
 extension MuteSet {
     /// One release's changes to the default set.
     struct Revision {
@@ -33,8 +34,14 @@ extension MuteSet {
         let removed: [PathMute]
     }
 
-    /// Every revision after the 3.0 set, oldest first.
-    static let revisions: [Revision] = [
+    /// Every revision after the 3.0 set, oldest first, without the per-user mutes: their numbers and releases.
+    static let revisions = revisions(home: nil)
+
+    /// Every revision after the 3.0 set, oldest first, for one home folder.
+    ///
+    /// - Parameter home: The home folder the per-user mutes cover, or `nil` to leave them out.
+    /// - Returns: The revisions.
+    static func revisions(home: String?) -> [Revision] { [
         Revision(number: 2, release: "3.1", added: [
             mute("/usr/libexec/spotlightknowledged.updater", ES_MUTE_PATH_TYPE_LITERAL,
                  ES_EVENT_TYPE_NOTIFY_MMAP, ES_EVENT_TYPE_NOTIFY_MPROTECT),
@@ -60,8 +67,12 @@ extension MuteSet {
                  ES_MUTE_PATH_TYPE_TARGET_PREFIX, ES_EVENT_TYPE_NOTIFY_MMAP)
         ], removed: [
             mute("/usr/sbin/cfprefsd", ES_MUTE_PATH_TYPE_LITERAL, ES_EVENT_TYPE_NOTIFY_RENAME)
-        ])
-    ]
+        ]),
+        /// Closes in the user's caches, where creates and renames were muted already.
+        Revision(number: 3, release: "3.1", added: homePaths("Library/Caches", in: home).map {
+            mute($0, ES_MUTE_PATH_TYPE_TARGET_PREFIX, ES_EVENT_TYPE_NOTIFY_CLOSE)
+        }, removed: [])
+    ] }
 
     /// The default set's revision: what Reset, a first run and an update save.
     public static var currentRevision: Int { revisions.last?.number ?? 1 }
@@ -102,7 +113,7 @@ extension MuteList {
                                revision: Int) -> MuteList {
         let set = MuteSet.default(home: home, mutesXcode: mutesXcode, mutesXPCConnects: mutesXPCConnects)
         var list = MuteList(set.pathMutes)
-        for change in MuteSet.revisions.reversed() where change.number > revision {
+        for change in MuteSet.revisions(home: home).reversed() where change.number > revision {
             /// Only events are named, and no revision touches a mute of every event, so a removal never throws.
             change.added.forEach { _ = try? list.remove($0) }
             change.removed.forEach { list.add($0) }

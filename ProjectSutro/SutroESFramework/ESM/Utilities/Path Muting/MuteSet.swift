@@ -18,9 +18,9 @@ public struct MuteSet {
     
     /// Mac Monitor's default mute set, for one home folder.
     ///
-    /// Two rules are per user: files created and renamed in `~/Library/Caches/`, and extended attributes read from
-    /// files in `~/Library/Biome/streams/`. The Security Extension runs as root, so it passes the console user's home
-    /// (``ConsoleUser``), never its own.
+    /// Two rules are per user: files created, closed and renamed in `~/Library/Caches/`, and extended attributes
+    /// read from files in `~/Library/Biome/streams/`. The Security Extension runs as root, so it passes the console
+    /// user's home (``ConsoleUser``), never its own.
     ///
     /// Xcode's tools are muted only when root owns Xcode (``ownsXcode(_:at:)``). An Xcode expanded from a `.xip`
     /// belongs to whoever expanded it, so a program they put inside would run unseen.
@@ -87,6 +87,9 @@ public struct MuteSet {
                 "/usr/libexec/mobileassetd"
             ] + stateWriters),
             (eventType: ES_EVENT_TYPE_NOTIFY_RENAME, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: caches),
+            /// Closes there too, which 3.1 subscribes to: an updater stages a whole app in the caches, a modified
+            /// close for each of its files. What runs from there still shows as an exec.
+            (eventType: ES_EVENT_TYPE_NOTIFY_CLOSE, muteType: ES_MUTE_PATH_TYPE_TARGET_PREFIX, paths: caches),
             (eventType: ES_EVENT_TYPE_NOTIFY_OPEN, muteType: ES_MUTE_PATH_TYPE_PREFIX, paths: [
                 "/usr/libexec/xpcproxy",
                 "/usr/sbin/cfprefsd",
