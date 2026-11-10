@@ -133,9 +133,14 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// Hands the live events this user's notifications are for to them, once the store keeps them.
     public let indicatorAlertTap = IndicatorAlertTap()
     
-    /// Should we drop platform binaries?
-    ///
-    /// Thread-safe. It's read from the XPC queue and toggled from the main thread.
+    /// Drop the events Apple's platform binaries make, apart from the critical ones (``EventType/isCritical``)?
+    /// Set on the main thread, by any window's Filters sheet: every window shows this one answer. Each used to
+    /// keep its own, so a second window showed Off while events were dropped, and switching it on there switched
+    /// dropping off.
+    @Published public var dropsPlatformBinaries = false {
+        didSet { dropPlatformBinaries.withLock { $0 = dropsPlatformBinaries } }
+    }
+    /// ``dropsPlatformBinaries`` as the XPC queue reads it.
     private let dropPlatformBinaries = OSAllocatedUnfairLock(initialState: false)
     
     // MARK: - Batching Properties
@@ -155,13 +160,6 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     public override init() {
         super.init()
         setupFlushTimer()
-    }
-    
-    /// Should we be dropping platform binaries?
-    ///
-    /// Utilizing the concept of "critical" eventing events see: ``EventType/isCritical``.
-    public func togglePlatformBinaries() {
-        dropPlatformBinaries.withLock { $0.toggle() }
     }
     
     // MARK: - Incoming events

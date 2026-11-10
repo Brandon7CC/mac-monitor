@@ -259,7 +259,7 @@ extension EventQueryModel {
             /// A predicate that names `indicators` or `indicators_undetermined` sees each event's as its record lists
             /// them: its stored verdicts, else those of the Mac's indicators, as the Security Extension last sent
             /// them, that match it now. Only one that names `indicators` reads those.
-            let indicators = recordPredicate.readsIndicatorHits ? IndicatorStore.savedIndicators() : []
+            let indicators = recordPredicate.readsIndicatorHits ? IndicatorEngine.cachedIndicators() : []
             return try recordPredicate.searching(indicators: indicators) {
                 var found = Found()
                 if recordPredicate.relatesEvents {

@@ -8,97 +8,42 @@
 import SwiftUI
 import SutroESFramework
 
+/// What an `mmap` event says: the file mapped, its type, and the protection, flags and offset asked for.
 struct SystemMMAPMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESMMapEvent {
-        esSystemEvent.event.mmap!
-    }
-    
-    private var sourcePath: String {
-        event.source.path ?? "Unknown"
-    }
-    
-    /// Stored by bit pattern, shown unsigned as Endpoint Security reports it
-    private var filePos: UInt64 {
-        UInt64(bitPattern: event.file_pos)
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.mmap != nil {
-            eventContent
-        }
-    }
+        if let event = esSystemEvent.event.mmap {
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
+                    FactRow(name: "File path mapped", value: event.source.path)
 
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("\u{2022} **File path mapped:**")
-                        GroupBox {
-                            Text("`\(sourcePath)`")
-                                .lineLimit(10)
-                        }
-                    }
-                    
                     /// Read from the file's first bytes when the event was recorded: none when it wasn't read.
                     if let fileType = event.file_type {
                         FileTypeFact(identifier: fileType, machOType: event.mach_o_type)
                     }
-                    
+
                     HStack {
                         Text("\u{2022} **Protection:**")
                         MemoryProtectionFact(protection: event.protection)
                         if let callout = MemoryMappingCallout(protection: event.protection) {
                             MemoryMappingCalloutBadge(callout: callout)
                         }
-                        
+
                         Text("\u{2022} **Max protection:**")
                         MemoryProtectionFact(protection: event.max_protection)
                     }
-                    
+
                     HStack(alignment: .firstTextBaseline) {
                         Text("\u{2022} **Flags:**")
                         MemoryMappingFlagChips(flags: event.flags)
                     }
-                    
-                    HStack {
-                        Text("\u{2022} **File offset/position:**")
-                        GroupBox {
-                            Text("`\(filePos)`")
-                                .lineLimit(10)
-                        }
-                    }
-                }.frame(maxWidth: .infinity, alignment: .leading)
+
+                    /// Stored by bit pattern, shown unsigned as Endpoint Security reports it.
+                    FactRow(name: "File offset/position", value: "\(UInt64(bitPattern: event.file_pos))")
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }

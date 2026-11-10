@@ -9,50 +9,19 @@ import SwiftUI
 import SutroESFramework
 
 
+/// What an `xp_malware_remediated` event says: the malware XProtect remediated, how and where, whether it worked, and
+/// the XProtect version that did it.
 struct SystemXProtectRemediateMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESXProtectRemediate {
-        esSystemEvent.event.xp_malware_remediated!
-    }
     
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.xp_malware_remediated != nil {
-            eventContent
-        }
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("\u{2022} **Malware Identifier:**")
-                        GroupBox {
-                            Text("`\(event.malware_identifier)`")
-                        }
-                    }
-                    
-                    HStack {
-                        Text("\u{2022} **Incident ID:**")
-                        GroupBox {
-                            Text("`\(event.incident_identifier)`")
-                        }
-                    }
-                    
-                    HStack {
-                        Text("\u{2022} **Action type:**")
-                        GroupBox {
-                            Text("`\(event.action_type)`")
-                        }
-                    }
+        if let event = esSystemEvent.event.xp_malware_remediated {
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
+                    FactRow(name: "Malware Identifier", value: event.malware_identifier)
+                    FactRow(name: "Incident ID", value: event.incident_identifier)
+                    FactRow(name: "Action type", value: event.action_type)
                     
                     HStack {
                         Text("\u{2022} **Was successful?**")
@@ -61,55 +30,11 @@ struct SystemXProtectRemediateMetadataView: View {
                         }
                     }
                     
-                    HStack {
-                        Text("\u{2022} **Description:**")
-                        GroupBox {
-                            Text("`\(event.result_description)`")
-                                .lineLimit(15)
-                        }
-                    }
-                    
-                    HStack {
-                        Text("\u{2022} **Remediated path:**")
-                        GroupBox {
-                            Text("`\(event.remediated_path ?? "")`")
-                                .lineLimit(10)
-                        }
-                    }
-                    
-                    HStack {
-                        Text("\u{2022} **XProtect version:**")
-                        VStack(alignment: .leading) {
-                            GroupBox {
-                                Text("`\(event.signature_version)`")
-                            }
-                        }
-                        
-                    }
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                    FactRow(name: "Description", value: event.result_description)
+                    FactRow(name: "Remediated path", value: event.remediated_path ?? "")
+                    FactRow(name: "XProtect version", value: event.signature_version)
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus")
-                .font(.title2)
-                .padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }

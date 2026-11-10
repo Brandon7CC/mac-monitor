@@ -13,6 +13,8 @@
 		0D0D0D000000000000000018 /* OpenDirectoryFactsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000017 /* OpenDirectoryFactsViews.swift */; };
 		0D0D0D00000000000000001A /* ESODGroupMemberEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000019 /* ESODGroupMemberEvent+CoreDataClass.swift */; };
 		0D0D0D00000000000000001E /* FactRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D00000000000000001D /* FactRow.swift */; };
+		0D0D0D0000000000000000A4 /* UserFact.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D0000000000000000A3 /* UserFact.swift */; };
+		0D0D0D0000000000000000A2 /* EventFactsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D0000000000000000A1 /* EventFactsCard.swift */; };
 		280C78CF2E8DE21E00B172E5 /* UIPCBindEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 280C78CE2E8DE21800B172E5 /* UIPCBindEvent.swift */; };
 		280C78D22E8DE33700B172E5 /* ESUIPCBindEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 280C78D02E8DE33700B172E5 /* ESUIPCBindEvent+CoreDataClass.swift */; };
 		280C78DC2E8DE89200B172E5 /* SystemUIPCBindMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 280C78DB2E8DE88500B172E5 /* SystemUIPCBindMetadataView.swift */; };
@@ -90,7 +92,7 @@
 		285932562A379C2000B9C7A6 /* EventSubscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 285932552A379C2000B9C7A6 /* EventSubscriptions.swift */; };
 		2881CE17294AFFC700F97F99 /* ESOpenSSHLoginEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2881CE13294AFFC700F97F99 /* ESOpenSSHLoginEvent+CoreDataClass.swift */; };
 		2881CE19294AFFC700F97F99 /* ESLaunchItemRemoveEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2881CE15294AFFC700F97F99 /* ESLaunchItemRemoveEvent+CoreDataClass.swift */; };
-		2881CE1C294D0B2300F97F99 /* TableContextMenus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2881CE1B294D0B2300F97F99 /* TableContextMenus.swift */; };
+		0D0D0D0000000000000000A6 /* EventMenuModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D0000000000000000A5 /* EventMenuModel.swift */; };
 		28823F312EC82CAE000B7F5C /* MProtectEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F302EC82CA7000B7F5C /* MProtectEvent.swift */; };
 		28823F342EC82F28000B7F5C /* ESMProtectEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F322EC82F28000B7F5C /* ESMProtectEvent+CoreDataClass.swift */; };
 		28823F3B2EC839B8000B7F5C /* SystemMProtectMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28823F3A2EC839B8000B7F5C /* SystemMProtectMetadataView.swift */; };
@@ -158,7 +160,6 @@
 		28B9A94129DC9578006619FF /* SystemCodeSigningInvalidatedMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B9A94029DC9578006619FF /* SystemCodeSigningInvalidatedMetadataView.swift */; };
 		28B9A94329DC9A74006619FF /* SystemProcessSocketMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B9A94229DC9A74006619FF /* SystemProcessSocketMetadataView.swift */; };
 		28B9A94529DC9DE0006619FF /* SystemProcessTraceMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B9A94429DC9DE0006619FF /* SystemProcessTraceMetadataView.swift */; };
-		28C5039A2A1BE1D80066DC0D /* TableExecEventContextMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C503992A1BE1D80066DC0D /* TableExecEventContextMenu.swift */; };
 		28C6DF1B2A4676FA00E97922 /* XPCConnectEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C6DF1A2A4676FA00E97922 /* XPCConnectEvent.swift */; };
 		28C6DF1E2A46CDA200E97922 /* ESXPCConnectEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28C6DF1C2A46CDA200E97922 /* ESXPCConnectEvent+CoreDataClass.swift */; };
 		28C8E27029197C4B00449AE0 /* ESBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 28C8E26E29197C4B00449AE0 /* ESBridge.h */; };
@@ -181,8 +182,6 @@
 		28CEF0FD29776D31003057D2 /* SystemProcExitMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0FC29776D31003057D2 /* SystemProcExitMetadataView.swift */; };
 		28CEF0FF29776D64003057D2 /* SystemForkProcMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF0FE29776D64003057D2 /* SystemForkProcMetadataView.swift */; };
 		28CEF10129776D79003057D2 /* XPCMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF10029776D79003057D2 /* XPCMetadataView.swift */; };
-		28CEF10329776D8A003057D2 /* TargetUserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF10229776D8A003057D2 /* TargetUserView.swift */; };
-		28CEF10529776D9A003057D2 /* InitiatingUserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF10429776D9A003057D2 /* InitiatingUserView.swift */; };
 		28CEF10729776E46003057D2 /* SystemTargetProcessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF10629776E46003057D2 /* SystemTargetProcessView.swift */; };
 		28CEF10929776E86003057D2 /* SystemMountMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF10829776E86003057D2 /* SystemMountMetadataView.swift */; };
 		28CEF10C297774C3003057D2 /* ESLoginLoginEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CEF10A297774C3003057D2 /* ESLoginLoginEvent+CoreDataClass.swift */; };
@@ -754,6 +753,8 @@
 		0D0D0D000000000000000017 /* OpenDirectoryFactsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryFactsViews.swift; sourceTree = "<group>"; };
 		0D0D0D000000000000000019 /* ESODGroupMemberEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESODGroupMemberEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		0D0D0D00000000000000001D /* FactRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactRow.swift; sourceTree = "<group>"; };
+		0D0D0D0000000000000000A3 /* UserFact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserFact.swift; sourceTree = "<group>"; };
+		0D0D0D0000000000000000A1 /* EventFactsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventFactsCard.swift; sourceTree = "<group>"; };
 		280C78CE2E8DE21800B172E5 /* UIPCBindEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIPCBindEvent.swift; sourceTree = "<group>"; };
 		280C78D02E8DE33700B172E5 /* ESUIPCBindEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESUIPCBindEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		280C78DB2E8DE88500B172E5 /* SystemUIPCBindMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemUIPCBindMetadataView.swift; sourceTree = "<group>"; };
@@ -833,7 +834,7 @@
 		285932552A379C2000B9C7A6 /* EventSubscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSubscriptions.swift; sourceTree = "<group>"; };
 		2881CE13294AFFC700F97F99 /* ESOpenSSHLoginEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESOpenSSHLoginEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		2881CE15294AFFC700F97F99 /* ESLaunchItemRemoveEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLaunchItemRemoveEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
-		2881CE1B294D0B2300F97F99 /* TableContextMenus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableContextMenus.swift; sourceTree = "<group>"; };
+		0D0D0D0000000000000000A5 /* EventMenuModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventMenuModel.swift; sourceTree = "<group>"; };
 		28823F302EC82CA7000B7F5C /* MProtectEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MProtectEvent.swift; sourceTree = "<group>"; };
 		28823F322EC82F28000B7F5C /* ESMProtectEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESMProtectEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28823F3A2EC839B8000B7F5C /* SystemMProtectMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMProtectMetadataView.swift; sourceTree = "<group>"; };
@@ -902,7 +903,6 @@
 		28B9A94029DC9578006619FF /* SystemCodeSigningInvalidatedMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCodeSigningInvalidatedMetadataView.swift; sourceTree = "<group>"; };
 		28B9A94229DC9A74006619FF /* SystemProcessSocketMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemProcessSocketMetadataView.swift; sourceTree = "<group>"; };
 		28B9A94429DC9DE0006619FF /* SystemProcessTraceMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemProcessTraceMetadataView.swift; sourceTree = "<group>"; };
-		28C503992A1BE1D80066DC0D /* TableExecEventContextMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableExecEventContextMenu.swift; sourceTree = "<group>"; };
 		28C6DF1A2A4676FA00E97922 /* XPCConnectEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCConnectEvent.swift; sourceTree = "<group>"; };
 		28C6DF1C2A46CDA200E97922 /* ESXPCConnectEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESXPCConnectEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		28C8E26E29197C4B00449AE0 /* ESBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESBridge.h; sourceTree = "<group>"; };
@@ -925,8 +925,6 @@
 		28CEF0FC29776D31003057D2 /* SystemProcExitMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemProcExitMetadataView.swift; sourceTree = "<group>"; };
 		28CEF0FE29776D64003057D2 /* SystemForkProcMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemForkProcMetadataView.swift; sourceTree = "<group>"; };
 		28CEF10029776D79003057D2 /* XPCMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCMetadataView.swift; sourceTree = "<group>"; };
-		28CEF10229776D8A003057D2 /* TargetUserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetUserView.swift; sourceTree = "<group>"; };
-		28CEF10429776D9A003057D2 /* InitiatingUserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InitiatingUserView.swift; sourceTree = "<group>"; };
 		28CEF10629776E46003057D2 /* SystemTargetProcessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemTargetProcessView.swift; sourceTree = "<group>"; };
 		28CEF10829776E86003057D2 /* SystemMountMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMountMetadataView.swift; sourceTree = "<group>"; };
 		28CEF10A297774C3003057D2 /* ESLoginLoginEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESLoginLoginEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -2891,8 +2889,7 @@
 		28EBAA8A2A1C3B1500AE80F9 /* Context Menus */ = {
 			isa = PBXGroup;
 			children = (
-				2881CE1B294D0B2300F97F99 /* TableContextMenus.swift */,
-				28C503992A1BE1D80066DC0D /* TableExecEventContextMenu.swift */,
+				0D0D0D0000000000000000A5 /* EventMenuModel.swift */,
 				28EBAA8B2A1C3B6F00AE80F9 /* ContextTargetResolver.swift */,
 			);
 			path = "Context Menus";
@@ -3556,7 +3553,6 @@
 				280C78E02E8DEB3800B172E5 /* fork */,
 				280C78DF2E8DEB3200B172E5 /* exec */,
 				CAC48AF32E24720700260C5F /* ProcessView.swift */,
-				28CEF10229776D8A003057D2 /* TargetUserView.swift */,
 			);
 			path = Process;
 			sourceTree = "<group>";
@@ -4011,6 +4007,8 @@
 				4D4D00000000000000000072 /* IndicatorPredicateSection.swift */,
 				4D4D00000000000000000074 /* IndicatorsButton.swift */,
 				0D0D0D00000000000000001D /* FactRow.swift */,
+				0D0D0D0000000000000000A3 /* UserFact.swift */,
+				0D0D0D0000000000000000A1 /* EventFactsCard.swift */,
 				CA11B0E00000000000000001 /* CalloutBadge.swift */,
 				F17E7E000000000000000013 /* FileTypeFact.swift */,
 				F17E00000000000000000023 /* FactsDashboard.swift */,
@@ -4034,7 +4032,6 @@
 			isa = PBXGroup;
 			children = (
 				28CEF0E629776C05003057D2 /* SystemInitatingProcessView.swift */,
-				28CEF10429776D9A003057D2 /* InitiatingUserView.swift */,
 				7E5A1C30000000000000000B /* ParentsView.swift */,
 				7E5A1C300000000000000009 /* LaunchedByParentView.swift */,
 			);
@@ -4879,6 +4876,8 @@
 				7E571500000000000000001A /* ThreadStateFactsView.swift in Sources */,
 				0D0D0D000000000000000018 /* OpenDirectoryFactsViews.swift in Sources */,
 				0D0D0D00000000000000001E /* FactRow.swift in Sources */,
+				0D0D0D0000000000000000A4 /* UserFact.swift in Sources */,
+				0D0D0D0000000000000000A2 /* EventFactsCard.swift in Sources */,
 				CA11B0E00000000000000002 /* CalloutBadge.swift in Sources */,
 				F17E7E000000000000000014 /* FileTypeFact.swift in Sources */,
 				7E5A1C30000000000000000E /* ProcessLineageSidebar.swift in Sources */,
@@ -4926,7 +4925,6 @@
 				28CEF0F929776D00003057D2 /* SystemFileCreateMetadataView.swift in Sources */,
 				28CEF0F729776CEF003057D2 /* SystemBTMAddMetadataView.swift in Sources */,
 				B7D0BB000000000000000010 /* LaunchItemBundleView.swift in Sources */,
-				28C5039A2A1BE1D80066DC0D /* TableExecEventContextMenu.swift in Sources */,
 				28B865CF2A3107D900F06441 /* AppIconView.swift in Sources */,
 				28A2501F29A35D5F007B0753 /* SystemFDDuplicateMetadataView.swift in Sources */,
 				28B865C72A2FF5EF00F06441 /* SystemProfileAddMetadataView.swift in Sources */,
@@ -4944,7 +4942,6 @@
 				D15C00000000000000000127 /* EventTableCells.swift in Sources */,
 				D15C00000000000000000125 /* AppKitEventTablesView.swift in Sources */,
 				D15C00000000000000000078 /* EventRowMenu.swift in Sources */,
-				28CEF10529776D9A003057D2 /* InitiatingUserView.swift in Sources */,
 				28B9A94329DC9A74006619FF /* SystemProcessSocketMetadataView.swift in Sources */,
 				28B9A93D29DC8EC4006619FF /* SystemRemoteThreadCreateMetadataView.swift in Sources */,
 				28CEF0F129776CAF003057D2 /* SystemOpenSSHLoginMetadataView.swift in Sources */,
@@ -4985,7 +4982,6 @@
 				28B9A92D29DBE836006619FF /* SystemUnlinkEventMetadataView.swift in Sources */,
 				28B9A93129DBE9E1006619FF /* SystemFileWriteMetadataView.swift in Sources */,
 				28A6EE982A4A2EB600A4E0BD /* SystemXPCConnectMetadataView.swift in Sources */,
-				28CEF10329776D8A003057D2 /* TargetUserView.swift in Sources */,
 				28CEF0EF29776C98003057D2 /* SystemOpenSSHLogoutMetadataView.swift in Sources */,
 				28B9A94129DC9578006619FF /* SystemCodeSigningInvalidatedMetadataView.swift in Sources */,
 				CA4CE59B2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift in Sources */,
@@ -4996,7 +4992,7 @@
 				F17E0000000000000000001C /* ReleaseNotesSheet.swift in Sources */,
 				F17E0000000000000000001A /* TelemetrySchemaSettingsView.swift in Sources */,
 				28CEF0FF29776D64003057D2 /* SystemForkProcMetadataView.swift in Sources */,
-				2881CE1C294D0B2300F97F99 /* TableContextMenus.swift in Sources */,
+				0D0D0D0000000000000000A6 /* EventMenuModel.swift in Sources */,
 				CADD9D842E8DC73C009EC919 /* SystemUIPCConnectMetadataView.swift in Sources */,
 				28CEF0ED29776C73003057D2 /* SystemXProtectDetectMetadataView.swift in Sources */,
 				CA59365C2E8B1920008A115D /* SystemPTYGrantMetadataView.swift in Sources */,

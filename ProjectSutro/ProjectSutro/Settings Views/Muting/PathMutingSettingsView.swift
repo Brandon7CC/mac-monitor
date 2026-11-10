@@ -18,7 +18,7 @@ import SutroESFramework
 struct PathMutingSettingsView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @StateObject private var files = MuteFileActions()
-    /// The Add sheet's path: "Mute Another Way..." starts it with the mute's.
+    /// The Add sheet's path: + starts it empty, and "Mute Another Way..." with the mute's.
     @State private var pathToMute = ""
 
     @State private var searchScope: SearchScope = .path
@@ -218,7 +218,10 @@ struct PathMutingSettingsView: View {
     /// + to add, − to unmute the selected mute, and ⋯ for the rest, as macOS tables have them.
     private var bottomBar: some View {
         HStack(spacing: 0) {
-            Button { adding = AddRequest(kind: .literal) } label: {
+            Button {
+                pathToMute = ""
+                adding = AddRequest(kind: .literal)
+            } label: {
                 Image(systemName: "plus").frame(width: 24, height: 20)
             }
                 .help("Add a path mute")

@@ -73,10 +73,6 @@ struct EventView: View {
     /// Should we ask the user to confirm before clearing System Events?
     @State private var confirmClear: Bool = false
     
-    /// Should we filter out *most* events initiated by a platform binary?
-    @State private var filterPlatform: Bool = false
-
-    
     /// Shows, right away, what the Security Extension refused or left out of a mute asked for from an event's menu.
     private var showsEventMuteProblems: Binding<Bool> {
         Binding(get: { !systemExtensionManager.eventMuteProblems.isEmpty },
@@ -95,7 +91,8 @@ struct EventView: View {
     /// The filters on, as the Filters button counts them. An indicator filter counts once, Any indicator too. One
     /// that's dropped doesn't count.
     private var filterCount: Int {
-        allFilters.totalFilters + (filterPlatform ? 1 : 0) + (search.indicator.filtering == nil ? 0 : 1)
+        allFilters.totalFilters + (systemExtensionManager.dropsPlatformBinaries ? 1 : 0)
+            + (search.indicator.filtering == nil ? 0 : 1)
     }
     
     /// The string displaying the number of System Events collected over the course of the trace, grouped the way the
@@ -241,7 +238,7 @@ struct EventView: View {
                         allFilters: $allFilters,
                         filteredTelemetryShown: $filteredTelemetryShown,
                         eventMaskEnabled: $eventMaskEnabled,
-                        filterPlatform: $filterPlatform,
+                        filterPlatform: $systemExtensionManager.dropsPlatformBinaries,
                         search: search
                     ) {
                         filteredTelemetryShown = false

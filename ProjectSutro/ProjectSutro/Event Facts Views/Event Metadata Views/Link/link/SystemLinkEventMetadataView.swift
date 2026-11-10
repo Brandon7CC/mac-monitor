@@ -8,103 +8,49 @@
 import SwiftUI
 import SutroESFramework
 
+/// What a `link` event says: the file linked, and the new link to it.
 struct SystemLinkEventMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESLinkEvent {
-        esSystemEvent.event.link!
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.link != nil {
-            eventContent
-        }
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
+        if let event = esSystemEvent.event.link {
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
                     if let srcPath = event.source.path {
-                        VStack(alignment: .leading) {
-                            Text("\u{2022} Source file path:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(srcPath)
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        FactRow(name: "Source file path", value: srcPath, stacked: true, style: .monospaced)
                     }
-                    
                     if let tgtPath = esSystemEvent.target_path {
+                        FactRow(name: "Destination file path", value: tgtPath, stacked: true, style: .monospaced)
+                    }
+
+                    Divider()
+
+                    HStack {
                         VStack(alignment: .leading) {
-                            Text("\u{2022} Destination file path:")
+                            Text("\u{2022} Source file name:")
                                 .bold()
                                 .padding([.leading], 5.0)
                             GroupBox {
-                                Text(tgtPath)
+                                Text(event.source.name)
                                     .monospaced()
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }.frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }.frame(maxWidth: .infinity, alignment: .leading)
-                
-                Divider()
-                
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text("\u{2022} Source file name:")
-                            .bold()
-                            .padding([.leading], 5.0)
-                        GroupBox {
-                            Text(event.source.name)
-                                .monospaced()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
+                        Image(systemName: "arrow.right")
+                        VStack(alignment: .leading) {
+                            Text("\u{2022} Destination file name:")
+                                .bold()
+                                .padding([.leading], 5.0)
+                            GroupBox {
+                                Text(event.target_filename)
+                                    .monospaced()
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }.frame(maxWidth: .infinity, alignment: .leading)
                     }.frame(maxWidth: .infinity, alignment: .leading)
-                    Image(systemName: "arrow.right")
-                    VStack(alignment: .leading) {
-                        Text("\u{2022} Destination file name:")
-                            .bold()
-                            .padding([.leading], 5.0)
-                        GroupBox {
-                            Text(event.target_filename)
-                                .monospaced()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }

@@ -55,9 +55,15 @@ if [ "$uninstall_success" = true ]; then
     /usr/bin/security authorizationdb remove com.swiftlydetecting.agent.command-line-tool >/dev/null 2>&1 \
         && echo "Command line tool authorization right successfully deleted"
 
-    # The saved mute set the Security Extension kept. Only this exact directory, and never through a symbolic link.
-    saved_mutes="/Library/Application Support/com.swiftlydetecting.agent.securityextension"
-    if [[ -d "$saved_mutes" && ! -L "$saved_mutes" ]]; then
-        /bin/rm -rf "$saved_mutes" && echo "Saved mute set successfully deleted"
+    # The saved mute and indicator sets the Security Extension kept. Only this exact directory, and never through a
+    # symbolic link.
+    saved_sets="/Library/Application Support/com.swiftlydetecting.agent.securityextension"
+    if [[ -d "$saved_sets" && ! -L "$saved_sets" ]]; then
+        /bin/rm -rf "$saved_sets" && echo "Saved mute and indicator sets successfully deleted"
     fi
+
+    # Settings > Command Line's "without sudo" choice, which the Security Extension kept in root's preferences. Left
+    # behind, a later install would let every user stream without sudo again, with nobody having chosen it.
+    /usr/bin/defaults delete /var/root/Library/Preferences/com.swiftlydetecting.agent.securityextension \
+        CommandLineAccess >/dev/null 2>&1 && echo "Command line access setting successfully deleted"
 fi

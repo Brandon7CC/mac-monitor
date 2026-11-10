@@ -59,7 +59,7 @@ struct SystemEventGroupTableViews: View {
         /// Made again when the event, the group, or its number of execs changes.
         .task(id: "\(selectedMessage.objectID)|\(scope)|\(execs(scope).count)|\(indicatorStore.revision)") {
             summary = GroupSummary(scope: scope, execs: execs(scope), current: selectedMessage,
-                                   matcher: indicatorStore.matcher(for: .groups))
+                                   matcher: indicatorStore.matcher)
             (query, signing, indicator, selection) = ("", nil, nil, nil)
         }
     }

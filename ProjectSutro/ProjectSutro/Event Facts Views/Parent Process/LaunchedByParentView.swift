@@ -127,32 +127,29 @@ struct LaunchedByParentFacts: View {
     let message: ESMessage
     
     var body: some View {
-        GroupBox {
+        FactsBox {
             /// The launched-by parent and the event that created it, or `nil` when the store doesn't have the
             /// process's creator.
             let step = CoreDataController.shared.lineage.launchedByParents(of: message, limit: 1).first
-            VStack(alignment: .leading) {
-                HStack {
-                    Text("**Launched by parent**").font(.title3)
-                    if let step { LaunchedByParentBadge(launchedByParent: step.launchedByParent, showsSource: true) }
-                }
-                .help(details(step) ?? "")
-                if let step {
-                    let answer = step.launchedByParent
-                    if let pid = answer.pid {
-                        FactRow(name: "PID", value: String(pid))
-                        FactRow(name: "Path", value: step.path, stacked: true)
-                    } else {
-                        Text("Launch Services recorded no launcher, as for `open` run from a shell.")
-                    }
-                    if let label = answer.launchd_job?.label {
-                        FactRow(name: "launchd job", value: label, stacked: true)
-                    }
-                } else {
-                    Text("Not in this trace").foregroundStyle(.secondary)
-                }
+            HStack {
+                Text("**Launched by parent**").font(.title3)
+                if let step { LaunchedByParentBadge(launchedByParent: step.launchedByParent, showsSource: true) }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .help(details(step) ?? "")
+            if let step {
+                let answer = step.launchedByParent
+                if let pid = answer.pid {
+                    FactRow(name: "PID", value: String(pid))
+                    FactRow(name: "Path", value: step.path, stacked: true)
+                } else {
+                    Text("Launch Services recorded no launcher, as for `open` run from a shell.")
+                }
+                if let label = answer.launchd_job?.label {
+                    FactRow(name: "launchd job", value: label, stacked: true)
+                }
+            } else {
+                Text("Not in this trace").foregroundStyle(.secondary)
+            }
         }
     }
     

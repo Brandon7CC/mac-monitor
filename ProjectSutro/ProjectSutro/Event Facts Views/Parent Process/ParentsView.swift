@@ -60,11 +60,7 @@ struct ParentsView: View {
         )
 
         if let label = answer.launchd_job?.label {
-            HStack {
-                Text("\u{2022} **launchd job:**")
-                GroupBox { Text("`\(label)`").lineLimit(30) }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            FactRow(name: "launchd job", value: label)
         }
     }
 }

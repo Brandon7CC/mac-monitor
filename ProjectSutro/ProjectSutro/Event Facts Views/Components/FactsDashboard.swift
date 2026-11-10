@@ -179,16 +179,13 @@ struct FilterChips: View {
 
     /// Chips for the values of some events, most events first.
     ///
-    /// - Parameters:
-    ///   - values: Each event's value and its symbol.
-    ///   - limit: The most chips.
+    /// - Parameter values: Each event's value and its symbol.
     /// - Returns: The chips.
-    static func chips(_ values: [(key: String, symbol: String?)], limit: Int = .max) -> [FilterChip] {
+    static func chips(_ values: [(key: String, symbol: String?)]) -> [FilterChip] {
         var counts: [String: (symbol: String?, count: Int)] = [:]
         values.forEach { counts[$0.key, default: ($0.symbol, 0)].count += 1 }
         return counts
             .sorted { $0.value.count > $1.value.count || ($0.value.count == $1.value.count && $0.key < $1.key) }
-            .prefix(limit)
             .map { FilterChip(key: $0.key, symbol: $0.value.symbol, count: $0.value.count) }
     }
 }
@@ -316,15 +313,7 @@ struct FactsRowMenu: View {
     let prefs: UserPrefs
 
     var body: some View {
-        if message.event.exec != nil {
-            TableExecEventContextMenu(allFilters: $allFilters, message: message)
-                .environmentObject(manager)
-                .environmentObject(prefs)
-        } else {
-            TableNonExecContextMenus(allFilters: $allFilters, message: message)
-                .environmentObject(manager)
-                .environmentObject(prefs)
-        }
+        EventMenuView(message: message, filters: $allFilters, manager: manager, prefs: prefs)
     }
 }
 

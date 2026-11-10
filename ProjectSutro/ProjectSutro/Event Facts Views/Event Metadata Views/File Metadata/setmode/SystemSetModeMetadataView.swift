@@ -8,43 +8,20 @@
 import SwiftUI
 import SutroESFramework
 
+/// What a `setmode` event says: the mode a file was given, what it added worth pointing out, and the mode it had.
 struct SystemSetModeMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-
-    private var event: ESSetModeEvent {
-        esSystemEvent.event.setmode!
-    }
-
-    /// The mode the file was given.
-    private var mode: FileMode {
-        event.fileMode
-    }
-
-    /// The mode the file had: Endpoint Security's stat of the target is from before the change.
-    private var previousMode: FileMode? {
-        event.previousFileMode
-    }
 
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.setmode != nil {
-            eventContent
-        }
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-
-            GroupBox {
-                VStack(alignment: .leading) {
+        if let event = esSystemEvent.event.setmode {
+            /// The mode the file had: Endpoint Security's stat of the target is from before the change.
+            let previousMode = event.previousFileMode
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
                     HStack {
                         Text("\u{2022} **Mode:**")
-                        FileModeFact(mode: mode)
+                        FileModeFact(mode: event.fileMode)
                         ForEach(event.addedCallouts, id: \.self) { callout in
                             FileModeCalloutBadge(callout: callout, previousIsKnown: previousMode != nil)
                         }
@@ -67,29 +44,8 @@ struct SystemSetModeMetadataView: View {
                             ShowInFinderButton(path: path)
                         }
                     }
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-
-            Divider()
-
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }

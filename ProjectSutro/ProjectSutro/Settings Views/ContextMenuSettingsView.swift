@@ -45,7 +45,7 @@ struct ContextMenuSettingsView: View {
                 Text(kind == .exec ? "Process execution menu" : "Other events menu")
             } footer: {
                 if kind == .other {
-                    Text("For some events, muting or filtering a target path uses its folder: ~/Downloads for "
+                    Text("For some events, muting or filtering a target path uses its folder: ~/Downloads/ for "
                          + "~/Downloads/example.txt.").foregroundStyle(.secondary)
                 }
             }
@@ -134,21 +134,17 @@ enum ContextMenuOption: String, CaseIterable, Identifiable {
 
 
 // MARK: - Preview
-/// One menu as `EventRowMenu` builds it, for a sample event, drawn as a macOS menu.
+/// One menu as ``EventMenuEntry/entries(_:isOn:)`` builds it for every event, for a sample event, drawn as a macOS
+/// menu.
 private struct ContextMenuPreview: View {
     @EnvironmentObject var userPrefs: UserPrefs
     let kind: ContextMenuKind
-
-    /// A menu line: an item, a section's header, or a separator.
-    private enum Line: Hashable {
-        case item(String), header(String), separator
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                 switch line {
-                case .item(let title):
+                case .item(let title, _):
                     Text(title).lineLimit(1).truncationMode(.middle).padding(.horizontal, 10).padding(.vertical, 3)
                 case .header(let title):
                     Text(title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
@@ -168,31 +164,9 @@ private struct ContextMenuPreview: View {
         .accessibilityLabel("Preview of the \(kind.title.lowercased()) menu")
     }
 
-    /// The menu's lines, in `EventRowMenu`'s order.
-    private var lines: [Line] {
-        let on = { (option: ContextMenuOption) in option.binding(userPrefs, for: kind).wrappedValue }
-        let exec = kind == .exec
-        let event = exec ? "ES_EVENT_TYPE_NOTIFY_EXEC" : "ES_EVENT_TYPE_NOTIFY_OPEN"
-        let process = exec ? "/bin/zsh" : "/usr/bin/curl", target = exec ? "/usr/bin/curl" : "/private/tmp/report.txt"
-        var lines: [Line] = [.item("Event metadata"), .separator]
-        if exec, on(.filterTargetPath) { lines.append(.item("Filter target path: \"\(target)\"")) }
-        if on(.filterUser) && exec { lines.append(.item("Filter euid: \"root\"")) }
-        if on(.filterProcessPath) { lines.append(.item("Filter initiating path: \"\(process)\"")) }
-        if on(.filterUser) && !exec { lines.append(.item("Filter euid: \"root\"")) }
-        lines.append(.item("Filter event: \"\(event)\""))
-        lines += [.separator, .header("Select"), .item("→ Only: \"curl\" events"),
-                  .item("↕ Full tree: \"curl\" events")]
-        var advanced: [Line] = []
-        if !exec, on(.filterTargetPath) { advanced.append(.item("Filter target path: \"/private/tmp/\"")) }
-        if exec {
-            if on(.muteTargetPath) { advanced.append(.item("Mute target path: \"curl\"")) }
-            if on(.muteProcessPath) { advanced.append(.item("Mute initiating path: \"zsh\"")) }
-        } else {
-            if on(.muteProcessPath) { advanced.append(.item("Mute initiating path: \"\(process)\"")) }
-            if on(.muteTargetPath) { advanced.append(.item("Mute target path event: \"/private/tmp/\"")) }
-        }
-        if on(.unsubscribe) { advanced.append(.item("Unsubscribe: \"\(event)\"")) }
-        return lines + [.separator, .header("Advanced")] + advanced
+    /// The menu's lines for the sample event, as the switches are now: the real menu's items, titles and order.
+    private var lines: [EventMenuEntry] {
+        EventMenuEntry.entries(.sample(kind)) { $0.binding(userPrefs, for: kind).wrappedValue }
     }
 }
 
@@ -210,7 +184,7 @@ private struct FolderTargetEventsSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Events that use the folder").font(.title3.bold())
             Text("Muting or filtering one of these events' target path from a context menu uses its folder. A file "
-                 + "created at ~/Downloads/example.txt mutes or filters ~/Downloads.")
+                 + "created at ~/Downloads/example.txt mutes or filters ~/Downloads/.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             List(events, id: \.self) { event in

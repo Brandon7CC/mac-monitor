@@ -1,5 +1,5 @@
 //
-//  SystemIOKitOpenEvent.swift
+//  SystemIOKitOpenMetadataView.swift
 //  ProjectSutro
 //
 //  Created by Brandon Dalton on 4/4/23.
@@ -8,40 +8,18 @@
 import SwiftUI
 import SutroESFramework
 
+/// What an `iokit_open` event says: the user client opened, and the service and driver behind it.
 struct SystemIOKitOpenMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESIOKitOpenEvent {
-        esSystemEvent.event.iokit_open!
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.iokit_open != nil {
-            eventContent
-        }
-    }
+        if let event = esSystemEvent.event.iokit_open {
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
+                    FactRow(name: "Client type", value: "\(event.user_client_type)")
 
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
                     HStack {
-                        Text("\u{2022} **Client type:**")
-                            .padding([.leading], 5.0)
-                        GroupBox {
-                            Text("`\(event.user_client_type)`")
-                                .frame(alignment: .leading)
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    HStack{
                         Text("\u{2022} **Client class:**")
                             .padding([.leading], 5.0)
                         GroupBox {
@@ -56,75 +34,23 @@ struct SystemIOKitOpenMetadataView: View {
 
                     /// The service's class, read from the registry at capture, else its path's last component.
                     if let service = event.serviceName {
-                        HStack{
-                            Text("\u{2022} **Service:**")
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(service)
-                                    .monospaced()
-                                    .frame(alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        FactRow(name: "Service", value: service, style: .monospaced)
                     }
 
                     if let driver = event.driver_bundle_id {
-                        HStack{
-                            Text("\u{2022} **Driver:**")
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(driver)
-                                    .monospaced()
-                                    .frame(alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        FactRow(name: "Driver", value: driver, style: .monospaced)
                     }
 
                     if let parent_path = event.parent_path {
-                        HStack{
-                            Text("\u{2022} **Parent path:**")
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(parent_path)
-                                    .monospaced()
-                                    .frame(alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        FactRow(name: "Parent path", value: parent_path, style: .monospaced)
                     }
-                    
+
                     /// Whenever the record has one, also beside a NULL parent path.
                     if let parentRegistryID = event.parentRegistryID {
-                        HStack{
-                            Text("\u{2022} **Parent registry ID:**")
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(String(parentRegistryID))
-                                    .monospaced()
-                                    .frame(alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        FactRow(name: "Parent registry ID", value: String(parentRegistryID), style: .monospaced)
                     }
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.buttonStyle(.borderedProminent).tint(.pink).opacity(0.8).padding(.trailing).padding(.bottom)
         }
     }
 }

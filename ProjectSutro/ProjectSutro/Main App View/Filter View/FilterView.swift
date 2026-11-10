@@ -52,7 +52,6 @@ struct FilterView: View {
                         let subscribed = systemExtensionManager.monitoredEventStrings
                         return supportedEvents.map { eventTypeToString(from: $0) }.filter(subscribed.contains)
                     },
-                    togglePlatformBinaries: { systemExtensionManager.togglePlatformBinaries() },
                     openPredicateEditor: openPredicateEditor,
                     done: { filteredTelemetryShown = false })
             .onAppear { systemExtensionManager.requestEventSubscriptions() }
@@ -71,7 +70,6 @@ struct FilterSheet: View {
     @ObservedObject var search: EventSearchController
     /// The event types subscribed to, which the event mask hides.
     let subscribedEvents: () -> [String]
-    let togglePlatformBinaries: () -> Void
     let openPredicateEditor: () -> Void
     let done: () -> Void
 
@@ -218,10 +216,7 @@ struct FilterSheet: View {
                                  detail: "Drops most events Apple-signed processes initiate, unless they exec or fork "
                                     + "a non-platform process",
                                  tile: ("apple.logo", .gray),
-                                 control: .toggle(Binding { filterPlatform } set: { _ in
-                                     filterPlatform.toggle()
-                                     togglePlatformBinaries()
-                                 }),
+                                 control: .toggle($filterPlatform),
                                  isDisabled: !isLive, help: isLive ? nil : "Applies while recording")
         return FilterCard(kind: .recording, title: "Recording",
                           about: "Drop events before they're recorded, while recording", symbol: "record.circle",

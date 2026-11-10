@@ -8,80 +8,34 @@
 import SwiftUI
 import SutroESFramework
 
+/// What a `login_login` event says: the user, whether the login succeeded, and why it failed when it did.
 struct SystemLoginLoginMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESLoginLoginEvent {
-        esSystemEvent.event.login_login!
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.login_login != nil {
-            eventContent
-        }
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
+        if let event = esSystemEvent.event.login_login {
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
                     HStack {
                         Label("**Username:**", systemImage: "person.fill")
                             .padding([.leading], 5.0)
                         GroupBox {
+                            let username = event.username ?? "Unknown"
                             if let uid = event.uid {
-                                Text("`\(event.username!) (\(uid))`")
+                                Text("`\(username) (\(uid))`")
                             } else {
-                                Text("`\(event.username!)`")
+                                Text("`\(username)`")
                             }
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    HStack {
-                        Text("\u{2022} **Success:**")
-                        GroupBox {
-                            Text("`\(event.success ? "Yes" : "No")`")
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    if event.failure_message != nil && !event.failure_message!.isEmpty {
-                        HStack {
-                            Text("\u{2022} **Failure message:**")
-                            GroupBox {
-                                Text("`\(event.failure_message!)`")
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
+
+                    FactRow(name: "Success", value: event.success ? "Yes" : "No")
+                    if let failureMessage = event.failure_message, !failureMessage.isEmpty {
+                        FactRow(name: "Failure message", value: failureMessage)
                     }
-                    
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }

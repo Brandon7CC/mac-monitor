@@ -81,6 +81,10 @@ final class MuteFileActions: ObservableObject {
     /// - Parameter manager: The Security Extension's manager.
     func exportAppleSet(from manager: EndpointSecurityManager) {
         manager.requestAppleMuteSet { [weak self] snapshot in
+            guard let snapshot else {
+                self?.fileError = "The Security Extension didn't send Endpoint Security's default mutes."
+                return
+            }
             guard let url = showMuteSavePanel(title: "Export Apple mute set", name: "apple-mutes.json") else { return }
             self?.write(Data(snapshot.sorted().joined(separator: "\n").utf8), to: url)
         }

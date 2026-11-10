@@ -236,11 +236,6 @@ final class EventSearchController: ObservableObject {
         UserDefaults.standard.set(try? JSONEncoder().encode(saved), forKey: Key.saved)
     }
 
-    func clearRecents() {
-        recents = []
-        UserDefaults.standard.removeObject(forKey: Key.recents)
-    }
-
     /// - Parameter source: A predicate just applied, to put first in Recent.
     private func remember(_ source: String) {
         recents.removeAll { $0 == source }

@@ -8,69 +8,19 @@
 import SwiftUI
 import SutroESFramework
 
+/// What an `open` event says: the file opened.
 struct SystemFileOpenMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESFileOpenEvent {
-        esSystemEvent.event.open!
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.open != nil {
-            eventContent
-        }
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("\u{2022} **File name:**")
-                            .padding([.leading], 5.0)
-                        GroupBox {
-                            Text("`\(event.file.name)`")
-                                .frame(alignment: .leading)
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    VStack(alignment: .leading) {
-                        Text("\u{2022} **File path:**")
-                            .padding([.leading], 5.0)
-                        GroupBox {
-                            Text("`\(event.file.path ?? "")`")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                }.frame(maxWidth: .infinity, alignment: .leading)
+        if let event = esSystemEvent.event.open {
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
+                    FactRow(name: "File name", value: event.file.name)
+                    FactRow(name: "File path", value: event.file.path ?? "", stacked: true)
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }

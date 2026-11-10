@@ -33,8 +33,6 @@ final class TelemetrySchemaModel: ObservableObject {
         
         /// The trace.
         let url: URL
-        /// Which of its keys are checked.
-        let mode: TelemetryValidator.Mode
         /// Where checking has got.
         var state: State
     }
@@ -103,7 +101,7 @@ final class TelemetrySchemaModel: ObservableObject {
         let cancelled = OSAllocatedUnfairLock(initialState: false)
         let run = runs
         self.cancelled = cancelled
-        check = TraceCheck(url: url, mode: mode, state: .running(read: 0, total: 0))
+        check = TraceCheck(url: url, state: .running(read: 0, total: 0))
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             /// How far reading has got, after each batch of records.
             let progress = { (read: Int64, total: Int64) in

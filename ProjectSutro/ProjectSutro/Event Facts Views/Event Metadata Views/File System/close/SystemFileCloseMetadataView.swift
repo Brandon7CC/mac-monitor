@@ -8,62 +8,17 @@
 import SwiftUI
 import SutroESFramework
 
+/// What a `close` event says: the file closed, its type, and whether it was written.
 struct SystemFileCloseMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESFileCloseEvent {
-        esSystemEvent.event.close!
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.close != nil {
-            eventContent
-        }
-    }
+        if let event = esSystemEvent.event.close {
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
+                    FactRow(name: "File name", value: event.target.name, style: .monospaced)
 
-    /// Whether the file was written through the descriptor, and whether it was mapped writable: Mac Monitor keeps only
-    /// modified closes by default, and a file changed only through a writable mapping closes unmodified. Endpoint
-    /// Security reports `was_mapped_writable` from message version 6.
-    private var writeFacts: some View {
-        HStack {
-            Text("\u{2022} **Modified:**")
-                .padding([.leading], 5.0)
-            GroupBox {
-                Text("`\(String(event.modified))`")
-            }.help("Whether the file was written through this descriptor before it closed.")
-
-            if esSystemEvent.version >= 6 {
-                Text("\u{2022} **Mapped writable:**")
-                GroupBox {
-                    Text("`\(String(event.was_mapped_writable))`")
-                }.help("Whether the file was mapped writable. A file changed only through a writable mapping closes unmodified.")
-            }
-        }.frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("\u{2022} File name:")
-                            .bold()
-                            .padding([.leading], 5.0)
-                        GroupBox {
-                            Text(event.target.name)
-                                .monospaced()
-                                .frame(alignment: .leading)
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    
                     /// As create and rename show theirs: whether the file is still there, and Show in Finder while
                     /// it is.
                     if let path = event.target.path {
@@ -86,29 +41,33 @@ struct SystemFileCloseMetadataView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
-                    writeFacts
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                    writeFacts(event)
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
+    }
+
+    /// Whether the file was written through the descriptor, and whether it was mapped writable: Mac Monitor keeps only
+    /// modified closes by default, and a file changed only through a writable mapping closes unmodified. Endpoint
+    /// Security reports `was_mapped_writable` from message version 6.
+    ///
+    /// - Parameter event: The close.
+    /// - Returns: Both facts on one line.
+    private func writeFacts(_ event: ESFileCloseEvent) -> some View {
+        HStack {
+            Text("\u{2022} **Modified:**")
+                .padding([.leading], 5.0)
+            GroupBox {
+                Text("`\(String(event.modified))`")
+            }.help("Whether the file was written through this descriptor before it closed.")
+
+            if esSystemEvent.version >= 6 {
+                Text("\u{2022} **Mapped writable:**")
+                GroupBox {
+                    Text("`\(String(event.was_mapped_writable))`")
+                }.help("Whether the file was mapped writable. A file changed only through a writable mapping closes "
+                       + "unmodified.")
+            }
+        }.frame(maxWidth: .infinity, alignment: .leading)
     }
 }

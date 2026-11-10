@@ -174,18 +174,13 @@ extension EventLabelLook {
         self.init(symbol: "memorychip")
     }
 
-    /// A rename. An unquarantined app bundle is red. The service management database is orange.
+    /// A rename. An unquarantined app bundle is red. The BTM database modified indicator colors a rename onto
+    /// Background Task Management's database (``Indicator/TableMarks/label``).
     ///
     /// - Parameter rename: The rename.
     private init(rename: ESFileRenameEvent) {
-        let path = rename.destination_path
-        if rename.is_quarantined == 0 && path.hasSuffix(".app") {
-            self.init(symbol: "filemenu.and.cursorarrow", tint: .red)
-        } else if rename.is_quarantined != 1 && path.contains("com.apple.backgroundtaskmanagement") {
-            self.init(symbol: "lock.doc", tint: .orange)
-        } else {
-            self.init(symbol: "filemenu.and.cursorarrow")
-        }
+        let isUnquarantinedApp = rename.is_quarantined == 0 && rename.destination_path.hasSuffix(".app")
+        self.init(symbol: "filemenu.and.cursorarrow", tint: isUnquarantinedApp ? .red : nil)
     }
 }
 

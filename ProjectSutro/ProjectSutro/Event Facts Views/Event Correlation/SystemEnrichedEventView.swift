@@ -44,7 +44,7 @@ struct SystemEnrichedEventView: View {
         }
         /// One fetch per exec: `correlated_array` queries the store each time it's read.
         .task(id: "\(selectedMessage.objectID)|\(indicatorStore.revision)") {
-            summary = CorrelationSummary(exec: selectedMessage, matcher: indicatorStore.matcher(for: .correlation))
+            summary = CorrelationSummary(exec: selectedMessage, matcher: indicatorStore.matcher)
             (query, kind, indicator, types, selection) = ("", nil, nil, [], nil)
         }
     }

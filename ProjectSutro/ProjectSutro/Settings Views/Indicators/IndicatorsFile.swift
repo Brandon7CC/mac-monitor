@@ -46,7 +46,8 @@ struct IndicatorsFile: FileDocument {
 
 extension IndicatorStore {
     /// Add a file's indicators to the Mac's set: one with an identity already there replaces it, in its place, and
-    /// the rest go at the end, in one request.
+    /// the rest go at the end, in one request. A refusal is the import's to report: the reply also sets
+    /// ``IndicatorEngine/failure``, which is cleared, so Settings shows one alert for it.
     ///
     /// - Parameters:
     ///   - imported: The file's indicators.
@@ -54,9 +55,10 @@ extension IndicatorStore {
     func importIndicators(_ imported: [Indicator], completion: @escaping (Result<(added: Int, replaced: Int), Error>)
                             -> Void) {
         let merged = IndicatorExchange.merge(imported, into: engine.indicators)
-        engine.add(imported) { reply in
+        engine.add(imported) { [engine = self.engine] reply in
             guard let reply, reply.status == .ok else {
                 let reason = reply?.failure ?? IndicatorEngine.updateNotice
+                engine.failure = nil
                 return completion(.failure(IndicatorExchange.ImportError(message: reason)))
             }
             completion(.success((merged.added, merged.replaced)))

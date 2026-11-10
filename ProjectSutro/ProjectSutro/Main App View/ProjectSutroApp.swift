@@ -16,13 +16,14 @@ import OSLog
 ///
 @main
 struct ProjectSutroApp: App {
-    /// ``TerminationDelegate`` handles responding to ``applicationShouldTerminate``.
+    /// ``AppDelegate`` handles responding to ``AppDelegate/applicationShouldTerminate(_:)``.
     ///
     /// This way we can give users the option to confirm before quitting
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
-    /// Open a new "Event metadata" window, or a main window
-    @Environment(\.openWindow) private var openEventJSON
+    /// Opens any of the app's windows, by its identifier or the value it shows: a main window, Settings, the
+    /// Telemetry Schema window, the predicate editor, or an event's Event Facts.
+    @Environment(\.openWindow) private var openWindow
     
     /// The main window's identifier, to open one for a trace when none is open.
     static let mainWindow = "main"
@@ -74,6 +75,8 @@ struct ProjectSutroApp: App {
     
     /// Was Mac Monitor launched only to deactivate the Security Extension? Then it never checks or activates it.
     static let deactivating = CommandLine.arguments.contains("--deactivate-security-extension")
+    /// Has the launch update check run? Once per process: every main window appears, a new one or a trace's too.
+    private static var checkedForUpdatesAtLaunch = false
     
     private static let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "ProjectSutroApp")
     
@@ -108,10 +111,11 @@ struct ProjectSutroApp: App {
                 IndicatorStore.shared.connect(systemExtensionManager)
                 /// Notifications for this user's indicator matches, and their clicks.
                 IndicatorAlertCenter.shared.attach(systemExtensionManager, search: predicateSearch,
-                                                   openWindow: openEventJSON)
+                                                   openWindow: openWindow)
                 UserDefaults.standard.set(false, forKey: "lifecycleQuitInternal")
-                /// If auto-updates are enabled then check at app launch
-                if userPrefs.autoUpdates && EndpointSecurityManager.supportsUpdates {
+                /// If auto-updates are enabled then check at app launch, in the first main window only.
+                if userPrefs.autoUpdates && EndpointSecurityManager.supportsUpdates && !Self.checkedForUpdatesAtLaunch {
+                    Self.checkedForUpdatesAtLaunch = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                         /// Quiet unless there's an update that wasn't skipped. A failed check says nothing.
                         let skipped = UserDefaults.standard.string(forKey: UpdateAvailableSheet.skippedVersionKey)
@@ -154,7 +158,7 @@ struct ProjectSutroApp: App {
             }
             
             CommandGroup(replacing: .appSettings) {
-                Button("Settings…") { openEventJSON(id: Self.settingsWindow) }
+                Button("Settings…") { openWindow(id: Self.settingsWindow) }
                     .keyboardShortcut(",", modifiers: .command)
             }
 
@@ -189,7 +193,7 @@ struct ProjectSutroApp: App {
             
             CommandGroup(replacing: .help) {
                 Section("Telemetry") {
-                    Button("Telemetry Schema…") { openEventJSON(id: Self.schemaWindow) }
+                    Button("Telemetry Schema…") { openWindow(id: Self.schemaWindow) }
                 }
                 
                 Section("GitHub") {
@@ -226,7 +230,7 @@ struct ProjectSutroApp: App {
             
             /// The main window's search field and predicate editor (``EventSearchField``, ``PredicateEditorPane``).
             CommandGroup(after: .sidebar) {
-                Button("Predicate Editor") { predicateSearch.toggleEditor(openEventJSON) }
+                Button("Predicate Editor") { predicateSearch.toggleEditor(openWindow) }
                     .keyboardShortcut("f", modifiers: [.command, .option])
             }
             CommandGroup(after: .textEditing) {
@@ -335,7 +339,7 @@ struct ProjectSutroApp: App {
     
     /// Open a main window, for a trace opened from the File menu while none is open (the app stays open without one).
     private func showMainWindow() {
-        openEventJSON(id: Self.mainWindow)
+        openWindow(id: Self.mainWindow)
     }
 
     /// Export telemetry: stop recording, then choose a file and save the events to it in the background. The main

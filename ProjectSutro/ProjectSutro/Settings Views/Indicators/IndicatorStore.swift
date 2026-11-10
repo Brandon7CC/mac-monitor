@@ -40,13 +40,6 @@ final class IndicatorStore: ObservableObject {
     /// The indicator Event Facts' Indicators popover asked to show, until Settings > Indicators scrolls to it.
     @Published var revealRequest: UUID?
 
-    /// Where indicators show.
-    enum Tab {
-        /// Every indicator that's on. Correlation and Groups show them all, as do the tables' dots and Event Facts'
-        /// Indicators popover. An indicator's own Correlation and Groups switches are kept, but not read.
-        case correlation, groups, tables, all
-    }
-
     /// The Mac's indicator set.
     let engine: IndicatorEngine
     /// The connection the engine asks over, once there is one.
@@ -131,15 +124,6 @@ final class IndicatorStore: ObservableObject {
         }
     }
 
-    /// The indicators as the Security Extension last sent them, read on any thread: for a search's worker, which
-    /// doesn't wait on the main queue. View switches don't change what a search finds.
-    ///
-    /// - Parameter defaults: Where the last set is kept.
-    /// - Returns: The last set, or the defaults when none was kept or it can't be read.
-    nonisolated static func savedIndicators(in defaults: UserDefaults = .standard) -> [Indicator] {
-        IndicatorEngine.cachedIndicators(in: defaults)
-    }
-
     /// The indicators the Filters sheet offers (``IndicatorSelection/offered(_:)``). Their predicates are parsed once
     /// until the indicators change.
     var offered: [Indicator] {
@@ -166,11 +150,10 @@ final class IndicatorStore: ObservableObject {
         }
     }
 
-    /// The indicators for a tab, parsed once until they change: every one, whatever the tab.
-    ///
-    /// - Parameter tab: Correlation, Groups, or the event tables.
-    /// - Returns: Its matcher, which reads each event's stored verdicts first.
-    func matcher(for tab: Tab) -> EventIndicatorMatcher {
+    /// The matcher for every indicator that's on, parsed once until they change. Correlation, Groups, the tables'
+    /// dots and Event Facts' Indicators popover all show every one: an indicator's own Correlation and Groups switches
+    /// are kept, but not read. It reads each event's stored verdicts first.
+    var matcher: EventIndicatorMatcher {
         if let eventMatcher { return eventMatcher }
         let matcher = EventIndicatorMatcher(indicators)
         eventMatcher = matcher
@@ -186,7 +169,7 @@ final class IndicatorStore: ObservableObject {
     func marks(for message: ESMessage) -> EventMarks {
         guard !message.isDeleted, message.es_event_type != nil else { return EventMarks(builtIn: [], indicators: []) }
         if let found = marks.object(forKey: message.objectID) { return found }
-        let matched = matcher(for: .all).matches(message)
+        let matched = matcher.matches(message)
         let twins = Set(matched.filter(\.isEnabled).map(\.id)).intersection(Self.twins).subtracting(silencedTwins)
         let found = EventMarks(builtIn: Set(builtInMarks.matches(message).map(\.id)).union(twins),
                                indicators: matched)

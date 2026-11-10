@@ -8,30 +8,15 @@
 import SwiftUI
 import SutroESFramework
 
+/// What an `openssh_login` event says: the user, whether and how the login succeeded, and where it came from.
 struct SystemOpenSSHLoginMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESOpenSSHLoginEvent {
-        esSystemEvent.event.openssh_login!
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.openssh_login != nil {
-            eventContent
-        }
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
+        if let event = esSystemEvent.event.openssh_login {
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
                     HStack {
                         Label("Username:", systemImage: "person.fill")
                             .bold()
@@ -40,25 +25,11 @@ struct SystemOpenSSHLoginMetadataView: View {
                                 .monospaced()
                         }
                     }
-                    
-                    HStack {
-                        Text("\u{2022} Success:")
-                            .bold()
-                        GroupBox {
-                            Text("\(event.success ? "Yes" : "No")")
-                                .monospaced()
-                        }
-                    }
-                    
-                    HStack {
-                        Text("\u{2022} Result type:")
-                            .bold()
-                        GroupBox {
-                            Text("\(event.result_type_string) (\(event.result_type))")
-                                .monospaced()
-                        }
-                    }
-                    
+
+                    FactRow(name: "Success", value: event.success ? "Yes" : "No", style: .monospaced)
+                    FactRow(name: "Result type", value: "\(event.result_type_string) (\(event.result_type))",
+                            style: .monospaced)
+
                     HStack {
                         Text("\u{2022} Source Address:")
                             .bold()
@@ -67,38 +38,15 @@ struct SystemOpenSSHLoginMetadataView: View {
                                 Text("\(event.source_address_type_string) (\(event.source_address_type))")
                                     .monospaced()
                             }
-                            
+
                             GroupBox {
                                 Text(event.source_address)
                                     .monospaced()
                             }
                         }
-                        
                     }
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus")
-                .font(.title2)
-                .padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }

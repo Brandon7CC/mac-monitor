@@ -10,31 +10,15 @@ import SwiftUI
 import SutroESFramework
 
 
+/// What a `uipc_connect` event says: the socket's type, protocol and domain, and the socket file connected to.
 struct SystemUIPCConnectMetadataView: View {
     var message: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESUIPCConnectEvent {
-        message.event.uipc_connect!
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if message.event.uipc_connect != nil {
-            eventContent
-        }
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: message)
-                .font(.title2)
-                
-            
-            GroupBox {
-                VStack(alignment: .leading) {
+        if let event = message.event.uipc_connect {
+            EventFactsCard(message: message) {
+                FactsBox {
                     HStack {
                         Text("\u{2022} Type:")
                             .bold()
@@ -42,14 +26,14 @@ struct SystemUIPCConnectMetadataView: View {
                             Text("\(event.type_string) (\(event.type))")
                                 .monospaced()
                         }
-                        
+
                         Text("\u{2022} Protocol:")
                             .bold()
                         GroupBox {
                             Text("\(event.protocol_string) (\(event.protocol))")
                                 .monospaced()
                         }
-                        
+
                         Text("\u{2022} Domain:")
                             .bold()
                         GroupBox {
@@ -57,43 +41,12 @@ struct SystemUIPCConnectMetadataView: View {
                                 .monospaced()
                         }
                     }
-                    
+
                     if let path = event.file.path {
-                        HStack {
-                            Text("\u{2022} File path:")
-                                .bold()
-                            GroupBox {
-                                Text(path)
-                                    .monospaced()
-                            }
-                        }
+                        FactRow(name: "File path", value: path, style: .monospaced)
                     }
-                    
-                    
-                }.frame(maxWidth: .infinity, alignment: .leading)
-                
-                
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: message.process.audit_token_string,
-                responsible_audit_token: message.process.responsible_audit_token_string,
-                parent_audit_token: message.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }

@@ -23,95 +23,78 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     /// The pane's name.
-    var title: String {
-        switch self {
-        case .securityExtension: return "Security Extension"
-        case .subscriptions: return "Subscriptions"
-        case .pathMuting: return "Path Muting"
-        case .indicators: return "Indicators"
-        case .commandLine: return "Command Line"
-        case .telemetrySchema: return "Telemetry Schema"
-        case .general: return "General"
-        case .eventTables: return "Context Menus"
-        case .systemDetails: return "System Details"
-        }
-    }
-
+    var title: String { facts.title }
     /// What the pane is for, in a sentence, under its header.
-    var summary: String {
-        switch self {
-        case .securityExtension:
-            return "The part of Mac Monitor that runs as root and talks to Endpoint Security. It needs to be allowed, "
-                + "and it needs Full Disk Access."
-        case .subscriptions: return "The Endpoint Security events Mac Monitor records."
-        case .pathMuting:
-            return "Paths whose events Mac Monitor never captures. Mac Monitor and macmonitor share one saved set."
-        case .indicators:
-            return "What Event Facts points out among an exec's correlated events and a group's execs, and what "
-                + "marks events in the tables: a predicate each."
-        case .commandLine:
-            return "Stream events to a terminal or a pipe with sudo macmonitor, while Mac Monitor keeps recording."
-        case .telemetrySchema:
-            return "eslogger's JSON plus Mac Monitor's enrichments, in every export and stream."
-        case .general: return "Updates, warnings, and how Event Facts draws the process tree."
-        case .eventTables:
-            return "What right-clicking an event offers: filter by it, mute it, or unsubscribe from its type."
-        case .systemDetails:
-            return "This Mac, System Integrity Protection, and the Sensor ID Mac Monitor records with every event."
-        }
-    }
-
+    var summary: String { facts.summary }
     /// The pane's SF Symbol.
-    var symbol: String {
-        switch self {
-        case .securityExtension: return "checkmark.shield.fill"
-        case .subscriptions: return "bolt.fill"
-        case .pathMuting: return "speaker.slash.fill"
-        case .indicators: return "sparkle.magnifyingglass"
-        case .commandLine: return "terminal.fill"
-        case .telemetrySchema: return "curlybraces"
-        case .general: return "gearshape.fill"
-        case .eventTables: return "tablecells.fill"
-        case .systemDetails: return "cpu"
-        }
-    }
-
+    var symbol: String { facts.symbol }
     /// The pane's tile color.
-    var tint: Color {
-        switch self {
-        case .securityExtension: return Color(red: 0.2, green: 0.29, blue: 0.37)
-        case .subscriptions: return .blue
-        case .pathMuting, .general: return .gray
-        case .commandLine: return Color(white: 0.22)
-        case .telemetrySchema: return .purple
-        case .indicators: return .orange
-        case .eventTables: return .green
-        case .systemDetails: return Color(white: 0.4)
-        }
+    var tint: Color { facts.tint }
+    /// Words the sidebar's search finds the pane by, beside its name.
+    private var keywords: [String] { facts.keywords }
+
+    /// What the sidebar and a pane's header show of a pane, kept together.
+    private struct Facts {
+        let title: String
+        let summary: String
+        let symbol: String
+        let tint: Color
+        let keywords: [String]
     }
 
-    /// Words the sidebar's search finds the pane by, beside its name.
-    private var keywords: [String] {
+    /// The pane's name, summary, symbol, tile color and search words.
+    private var facts: Facts {
         switch self {
         case .securityExtension:
-            return ["full disk access", "fda", "install", "uninstall", "requirements"]
+            return Facts(title: "Security Extension",
+                         summary: "The part of Mac Monitor that runs as root and talks to Endpoint Security. It "
+                            + "needs to be allowed, and it needs Full Disk Access.",
+                         symbol: "checkmark.shield.fill", tint: Color(red: 0.2, green: 0.29, blue: 0.37),
+                         keywords: ["full disk access", "fda", "install", "uninstall", "requirements"])
         case .subscriptions:
-            return ["events", "exec", "fork", "subscribe", "close", "modified", "filter"]
+            return Facts(title: "Subscriptions", summary: "The Endpoint Security events Mac Monitor records.",
+                         symbol: "bolt.fill", tint: .blue,
+                         keywords: ["events", "exec", "fork", "subscribe", "close", "modified", "filter"])
         case .pathMuting:
-            return ["mute", "unmute", "path", "import", "export"]
+            return Facts(title: "Path Muting",
+                         summary: "Paths whose events Mac Monitor never captures. Mac Monitor and macmonitor share "
+                            + "one saved set.",
+                         symbol: "speaker.slash.fill", tint: .gray,
+                         keywords: ["mute", "unmute", "path", "import", "export"])
         case .indicators:
-            return ["findings", "detections", "correlation", "groups", "predicate", "reflective", "applescript",
-                    "script", "marks"]
+            return Facts(title: "Indicators",
+                         summary: "What Event Facts points out among an exec's correlated events and a group's "
+                            + "execs, and what marks events in the tables: a predicate each.",
+                         symbol: "sparkle.magnifyingglass", tint: .orange,
+                         keywords: ["findings", "detections", "correlation", "groups", "predicate", "reflective",
+                                    "applescript", "script", "marks"])
         case .commandLine:
-            return ["macmonitor", "terminal", "cli", "sudo"]
+            return Facts(title: "Command Line",
+                         summary: "Stream events to a terminal or a pipe with sudo macmonitor, while Mac Monitor "
+                            + "keeps recording.",
+                         symbol: "terminal.fill", tint: Color(white: 0.22),
+                         keywords: ["macmonitor", "terminal", "cli", "sudo"])
         case .telemetrySchema:
-            return ["schema", "json", "validate", "trace", "export"]
+            return Facts(title: "Telemetry Schema",
+                         summary: "eslogger's JSON plus Mac Monitor's enrichments, in every export and stream.",
+                         symbol: "curlybraces", tint: .purple,
+                         keywords: ["schema", "json", "validate", "trace", "export"])
         case .general:
-            return ["update", "release notes", "version", "quit", "clear", "dark", "process tree"]
+            return Facts(title: "General", summary: "Updates, warnings, and how Event Facts draws the process tree.",
+                         symbol: "gearshape.fill", tint: .gray,
+                         keywords: ["update", "release notes", "version", "quit", "clear", "dark", "process tree"])
         case .eventTables:
-            return ["event tables", "right click", "filter", "mute"]
+            return Facts(title: "Context Menus",
+                         summary: "What right-clicking an event offers: filter by it, mute it, or unsubscribe from "
+                            + "its type.",
+                         symbol: "tablecells.fill", tint: .green,
+                         keywords: ["event tables", "right click", "filter", "mute"])
         case .systemDetails:
-            return ["sip", "csr", "macos", "sensor id", "processor", "memory"]
+            return Facts(title: "System Details",
+                         summary: "This Mac, System Integrity Protection, and the Sensor ID Mac Monitor records "
+                            + "with every event.",
+                         symbol: "cpu", tint: Color(white: 0.4),
+                         keywords: ["sip", "csr", "macos", "sensor id", "processor", "memory"])
         }
     }
 

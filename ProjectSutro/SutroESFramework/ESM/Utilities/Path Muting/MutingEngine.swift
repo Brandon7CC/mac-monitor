@@ -40,12 +40,15 @@ extension EndpointSecurityManager {
     /// (`.tooManyClients`) leaves no owner, so the change is allowed. The Security Extension decides each change
     /// either way.
     public var canChangeSavedMutes: Bool { connectionResult != .streamOwned }
-    
-    public func requestAppleMuteSet(_ completion: ((Set<String>) -> Void)? = nil) {
+
+    /// Ask the Security Extension for Endpoint Security's own default mutes and publish them (``appleMuteSet``).
+    ///
+    /// - Parameter completion: Called on the main queue with the mutes, or `nil` if the request failed (it's
+    ///   logged), so whoever asked can say so.
+    public func requestAppleMuteSet(_ completion: ((Set<String>?) -> Void)? = nil) {
         sensor.call { $0.appleMuteSet(reply: $1) } completion: { response in
-            guard let response else { return }
-            self.appleMuteSet = Set(response)
-            completion?(self.appleMuteSet)
+            if let response { self.appleMuteSet = Set(response) }
+            completion?(response.map(Set.init))
         }
     }
     

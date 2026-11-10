@@ -102,26 +102,23 @@ struct LaunchItemBundleSigningView: View {
     let bundle: LaunchItemBundle
 
     var body: some View {
-        GroupBox {
-            VStack(alignment: .leading) {
-                Label("**Code signing details**", systemImage: "signature")
-                    .font(.title3)
-                    .padding([.top, .leading], 5.0)
-                switch bundle.codesigning_type {
-                case nil:
-                    note("The signature wasn't read")
-                case .unsigned?:
-                    FactRow(name: "Code signing type", value: CodeSigningType.unsigned.rawValue)
-                    note("Code object is not signed at all")
-                case let type?:
-                    FactRow(name: "Code signing type", value: type.rawValue)
-                    FactRow(name: "Signing ID", value: bundle.signing_id)
-                    if let teamID = bundle.team_id {
-                        FactRow(name: "Team ID", value: teamID)
-                    }
+        FactsBox {
+            Label("**Code signing details**", systemImage: "signature")
+                .font(.title3)
+                .padding([.top, .leading], 5.0)
+            switch bundle.codesigning_type {
+            case nil:
+                note("The signature wasn't read")
+            case .unsigned?:
+                FactRow(name: "Code signing type", value: CodeSigningType.unsigned.rawValue)
+                note("Code object is not signed at all")
+            case let type?:
+                FactRow(name: "Code signing type", value: type.rawValue)
+                FactRow(name: "Signing ID", value: bundle.signing_id)
+                if let teamID = bundle.team_id {
+                    FactRow(name: "Team ID", value: teamID)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -147,12 +144,7 @@ struct LaunchItemInstigatorAgeRow: View {
 
     var body: some View {
         if let age = instigator?.processAgeText {
-            HStack {
-                Text("\u{2022} **Instigator age:**")
-                GroupBox {
-                    Text("`\(age)`")
-                }
-            }
+            FactRow(name: "Instigator age", value: age)
         }
     }
 }

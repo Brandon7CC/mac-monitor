@@ -28,27 +28,38 @@ struct SystemOpenDirectoryMetadataView: View {
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
         if let event = message.event.openDirectoryEvent {
-            OpenDirectoryFactsView(message: message, event: event, role: Self.role(of: event)) {
-                SystemEventTypeLabel(message: message, tint: .orange)
-            } facts: {
-                switch event {
-                case let event as ESODCreateUserEvent:
-                    FactRow(name: "User name", value: event.user_name)
-                case let event as ESODModifyPasswordEvent:
-                    FactRow(name: "Account type", value: event.account_type_string)
-                    FactRow(name: "Account name", value: event.account_name)
-                case let event as ESODGroupMemberEvent:
-                    OpenDirectoryGroupMemberFacts(event: event)
-                case let event as ESODCreateGroupEvent:
-                    FactRow(name: "Group name", value: event.group_name)
-                case let event as ESODAttributeValueAddEvent:
-                    FactRow(name: "Attribute name", value: event.attribute_name)
-                    FactRow(name: "Attribute value", value: event.attribute_value)
-                    FactRow(name: "\(event.record_type_string ?? "Record") record name", value: event.record_name)
-                default:
-                    EmptyView()
+            EventFactsCard(message: message, labelTint: .orange) {
+                FactsBox {
+                    OpenDirectoryInstigatorView(event: event, role: Self.role(of: event))
+                    Self.facts(of: event)
+                    OpenDirectoryNodeView(event: event)
                 }
             }
+        }
+    }
+
+    /// An Open Directory event's own facts, between its instigator and its node.
+    ///
+    /// - Parameter event: The event.
+    /// - Returns: The facts.
+    @ViewBuilder
+    private static func facts(of event: ESODEvent) -> some View {
+        switch event {
+        case let event as ESODCreateUserEvent:
+            FactRow(name: "User name", value: event.user_name)
+        case let event as ESODModifyPasswordEvent:
+            FactRow(name: "Account type", value: event.account_type_string)
+            FactRow(name: "Account name", value: event.account_name)
+        case let event as ESODGroupMemberEvent:
+            OpenDirectoryGroupMemberFacts(event: event)
+        case let event as ESODCreateGroupEvent:
+            FactRow(name: "Group name", value: event.group_name)
+        case let event as ESODAttributeValueAddEvent:
+            FactRow(name: "Attribute name", value: event.attribute_name)
+            FactRow(name: "Attribute value", value: event.attribute_value)
+            FactRow(name: "\(event.record_type_string ?? "Record") record name", value: event.record_name)
+        default:
+            EmptyView()
         }
     }
 
@@ -70,58 +81,6 @@ struct SystemOpenDirectoryMetadataView: View {
 
 
 // MARK: - Open Directory facts
-/// The facts every Open Directory event shows: its label, the process that instigated it, the event's own facts, and
-/// its node and result, with the initiating process's audit tokens as a context item.
-struct OpenDirectoryFactsView<EventLabel: View, Facts: View>: View {
-    /// The event's message.
-    let message: ESMessage
-    /// The event.
-    let event: ESODEvent
-    /// What the instigator did, such as "creating a new user".
-    let role: String
-    /// The event's label.
-    @ViewBuilder let label: EventLabel
-    /// The event's own facts, between the instigator and the node.
-    @ViewBuilder let facts: Facts
-    
-    @State private var showAuditTokens = false
-    
-    var body: some View {
-        VStack(alignment: .leading) {
-            label.font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
-                    OpenDirectoryInstigatorView(event: event, role: role)
-                    facts
-                    OpenDirectoryNodeView(event: event)
-                }.frame(maxWidth: .infinity, alignment: .leading)
-            }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: message.process.audit_token_string,
-                responsible_audit_token: message.process.responsible_audit_token_string,
-                parent_audit_token: message.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
-        }
-    }
-}
-
-
 /// The process that instigated an Open Directory event (the XPC caller, which can differ from the process that sent
 /// the event): its name, signing ID, path and audit token.
 struct OpenDirectoryInstigatorView: View {
