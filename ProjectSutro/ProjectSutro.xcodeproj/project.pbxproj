@@ -2032,22 +2032,45 @@
 				4D4D00000000000000000011 /* Saved Sets */,
 				4D4D0000000000000000004F /* Saved Indicator Set */,
 				4D4D00000000000000000067 /* Indicators */,
-				FA4E067D8D5C5BADF8AC2F4B /* QuitReason.swift */,
-				0BE084741F7325B96F4E8AF5 /* ToolRunner.swift */,
+				4D4D0000000000000000D101 /* Updates */,
+				4D4D0000000000000000D102 /* Engines */,
+				4D4D0000000000000000D103 /* Support */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D101 /* Updates */ = {
+			isa = PBXGroup;
+			children = (
 				CA7D0EE52E427E770024243F /* UpdateEngine.swift */,
 				4D4D000000000000000000C2 /* UpdateError.swift */,
 				4D4D000000000000000000C4 /* UpdateVerdict.swift */,
 				4D4D000000000000000000C6 /* ReleaseChoice.swift */,
-				7E5A1C0000000000000F0003 /* CommandLineToolEngine.swift */,
+			);
+			path = Updates;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D102 /* Engines */ = {
+			isa = PBXGroup;
+			children = (
 				283C4D4729E0E16F009FF6D3 /* SubscriptionEngine.swift */,
-				4D4D0000000000000000005F /* IndicatorEngine.swift */,
-				4D4D0000000000000000006C /* SensorSupport.swift */,
-				CB980000000000000000001D /* RandomUUIDBuffer.swift */,
-				283C4D4229E0B633009FF6D3 /* Helpers.swift */,
+				7E5A1C0000000000000F0003 /* CommandLineToolEngine.swift */,
+			);
+			path = Engines;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D103 /* Support */ = {
+			isa = PBXGroup;
+			children = (
 				DA2200000000000000000005 /* ConsoleUser.swift */,
 				CD0F00000000000000000003 /* Data+WriteAll.swift */,
+				283C4D4229E0B633009FF6D3 /* Helpers.swift */,
+				FA4E067D8D5C5BADF8AC2F4B /* QuitReason.swift */,
+				CB980000000000000000001D /* RandomUUIDBuffer.swift */,
+				4D4D0000000000000000006C /* SensorSupport.swift */,
+				0BE084741F7325B96F4E8AF5 /* ToolRunner.swift */,
 			);
-			path = Utilities;
+			path = Support;
 			sourceTree = "<group>";
 		};
 		283C4D4429E0B749009FF6D3 /* Extensions */ = {
@@ -3160,6 +3183,7 @@
 				4D4D00000000000000000065 /* IndicatorImportOffer.swift */,
 				4D4D000000000000000000B8 /* IndicatorEditing.swift */,
 				4D4D00000000000000000063 /* IndicatorViews.swift */,
+				4D4D0000000000000000005F /* IndicatorEngine.swift */,
 			);
 			path = Indicators;
 			sourceTree = "<group>";
@@ -3167,22 +3191,38 @@
 		4D4D00000000000000000088 /* Indicator Alerts */ = {
 			isa = PBXGroup;
 			children = (
-				4D4D000000000000000000A3 /* AlertTokenBucket.swift */,
-				4D4D000000000000000000A1 /* IndicatorAlert.swift */,
-				4D4D0000000000000000009F /* IndicatorAlertCoalescer+Overflow.swift */,
-				4D4D0000000000000000009D /* IndicatorAlertCoalescer.swift */,
-				4D4D0000000000000000009B /* IndicatorAlertContent.swift */,
-				4D4D00000000000000000099 /* IndicatorAlertEvent.swift */,
-				4D4D00000000000000000097 /* IndicatorAlertInfo.swift */,
-				4D4D00000000000000000095 /* IndicatorAlertLimits.swift */,
-				4D4D00000000000000000093 /* IndicatorAlertPolicy.swift */,
-				4D4D00000000000000000091 /* IndicatorAlertScheduler.swift */,
 				4D4D0000000000000000008F /* IndicatorAlertSettings.swift */,
 				4D4D0000000000000000008D /* IndicatorAlertStatus.swift */,
 				4D4D0000000000000000008B /* IndicatorAlertTap.swift */,
-				4D4D00000000000000000089 /* NotificationSafeText.swift */,
+				4D4D0000000000000000D401 /* Coalescing */,
+				4D4D0000000000000000D402 /* Content */,
 			);
 			path = "Indicator Alerts";
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D401 /* Coalescing */ = {
+			isa = PBXGroup;
+			children = (
+				4D4D0000000000000000009D /* IndicatorAlertCoalescer.swift */,
+				4D4D0000000000000000009F /* IndicatorAlertCoalescer+Overflow.swift */,
+				4D4D00000000000000000091 /* IndicatorAlertScheduler.swift */,
+				4D4D00000000000000000093 /* IndicatorAlertPolicy.swift */,
+				4D4D00000000000000000095 /* IndicatorAlertLimits.swift */,
+				4D4D000000000000000000A3 /* AlertTokenBucket.swift */,
+			);
+			path = Coalescing;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D402 /* Content */ = {
+			isa = PBXGroup;
+			children = (
+				4D4D000000000000000000A1 /* IndicatorAlert.swift */,
+				4D4D0000000000000000009B /* IndicatorAlertContent.swift */,
+				4D4D00000000000000000099 /* IndicatorAlertEvent.swift */,
+				4D4D00000000000000000097 /* IndicatorAlertInfo.swift */,
+				4D4D00000000000000000089 /* NotificationSafeText.swift */,
+			);
+			path = Content;
 			sourceTree = "<group>";
 		};
 		4D4D000000000000000000A5 /* Indicator Alerts */ = {
@@ -4021,20 +4061,44 @@
 			isa = PBXGroup;
 			children = (
 				D15C00000000000000000004 /* SensorClient.swift */,
-				D15C00000000000000000002 /* SensorXPC.swift */,
-				CA970000000000000000004C /* MuteRequest.swift */,
-				4D4D00000000000000000047 /* IndicatorRequest.swift */,
-				CD0F00000000000000000001 /* XPCMessage.swift */,
-				CB1C0000000000000000000C /* StreamProtocol.swift */,
-				CB1C0000000000000000000E /* StreamReply.swift */,
-				4D4D00000000000000000F01 /* SensorReport.swift */,
-				CB1C00000000000000000010 /* StreamPlan.swift */,
-				CB1C0000000000000000001C /* SensorListenerRouter.swift */,
-				5FE251EA98108555E2281F03 /* PeerSignature.swift */,
-				F5EF4B691118ED697B056210 /* CommandLineAccessStore.swift */,
-				977CFB6E60CA9EE1E08789F9 /* CommandLineAccess.swift */,
+				4D4D0000000000000000D301 /* Contract */,
+				4D4D0000000000000000D302 /* Requests */,
+				4D4D0000000000000000D303 /* Access */,
 			);
 			path = XPC;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D301 /* Contract */ = {
+			isa = PBXGroup;
+			children = (
+				D15C00000000000000000002 /* SensorXPC.swift */,
+				CB1C0000000000000000000C /* StreamProtocol.swift */,
+				CD0F00000000000000000001 /* XPCMessage.swift */,
+			);
+			path = Contract;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D302 /* Requests */ = {
+			isa = PBXGroup;
+			children = (
+				4D4D00000000000000000047 /* IndicatorRequest.swift */,
+				CA970000000000000000004C /* MuteRequest.swift */,
+				CB1C00000000000000000010 /* StreamPlan.swift */,
+				CB1C0000000000000000000E /* StreamReply.swift */,
+				4D4D00000000000000000F01 /* SensorReport.swift */,
+			);
+			path = Requests;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D303 /* Access */ = {
+			isa = PBXGroup;
+			children = (
+				977CFB6E60CA9EE1E08789F9 /* CommandLineAccess.swift */,
+				F5EF4B691118ED697B056210 /* CommandLineAccessStore.swift */,
+				5FE251EA98108555E2281F03 /* PeerSignature.swift */,
+				CB1C0000000000000000001C /* SensorListenerRouter.swift */,
+			);
+			path = Access;
 			sourceTree = "<group>";
 		};
 		D15C00000000000000000008 /* Updates */ = {
@@ -4262,37 +4326,77 @@
 		D15C0000000000000000015E /* Predicates */ = {
 			isa = PBXGroup;
 			children = (
-				F17E00000000000000000045 /* RecordIndicators.swift */,
-				4D4D0000000000000000003B /* IndicatorVerdicts.swift */,
+				D15C0000000000000000015F /* Related Events */,
+				4D4D0000000000000000D201 /* Indicators */,
+				4D4D0000000000000000D202 /* Defaults */,
+				4D4D0000000000000000D203 /* Matching */,
+				4D4D0000000000000000D204 /* Stream Filter */,
+				4D4D0000000000000000D205 /* Text */,
+			);
+			path = Predicates;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D201 /* Indicators */ = {
+			isa = PBXGroup;
+			children = (
+				F17E00000000000000000031 /* Indicator.swift */,
+				4D4D000000000000000000B0 /* Indicator+Editing.swift */,
+				4D4D0000000000000000001F /* Indicator+Validation.swift */,
+				4D4D0000000000000000001D /* IndicatorSeverity.swift */,
+				4D4D0000000000000000007A /* IndicatorScope.swift */,
+				4D4D00000000000000000070 /* IndicatorFilter.swift */,
+				4D4D00000000000000000009 /* SavedIndicators.swift */,
 				F17E00000000000000000047 /* IndicatorExchange.swift */,
 				4D4D000000000000000000B2 /* IndicatorExchange+Entries.swift */,
-				D15C0000000000000000015F /* Related Events */,
+			);
+			path = Indicators;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D202 /* Defaults */ = {
+			isa = PBXGroup;
+			children = (
+				4D4D00000000000000000039 /* DefaultIndicators.swift */,
+				4D4D00000000000000000035 /* Indicators+Building.swift */,
+				4D4D00000000000000000037 /* Indicators+BuiltInMarks.swift */,
+				F17E00000000000000000039 /* Indicators+Defaults.swift */,
+			);
+			path = Defaults;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D203 /* Matching */ = {
+			isa = PBXGroup;
+			children = (
+				4D4D0000000000000000000B /* IndicatorMatcher.swift */,
+				4D4D00000000000000000061 /* EventIndicatorMatcher.swift */,
+				4D4D0000000000000000003B /* IndicatorVerdicts.swift */,
+				F17E00000000000000000045 /* RecordIndicators.swift */,
+			);
+			path = Matching;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D204 /* Stream Filter */ = {
+			isa = PBXGroup;
+			children = (
 				F17E00000000000000000005 /* StreamFilter.swift */,
+				4D4D0000000000000000006E /* StreamFilter+Indicators.swift */,
 				F17E0000000000000000000B /* StreamFilter+Predicates.swift */,
-				D15C00000000000000000161 /* BoundedMatches.swift */,
 				D15C00000000000000000163 /* StreamFilter+Records.swift */,
 				F17E0000000000000000002F /* StreamFilter+Store.swift */,
-				4D4D0000000000000000006E /* StreamFilter+Indicators.swift */,
+				D15C00000000000000000161 /* BoundedMatches.swift */,
+				4D4D00000000000000000021 /* PredicateEventTypes.swift */,
+				F17E00000000000000000037 /* NSExpression+Walking.swift */,
+			);
+			path = "Stream Filter";
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D205 /* Text */ = {
+			isa = PBXGroup;
+			children = (
 				F17E0000000000000000002B /* PredicateText.swift */,
 				4D4D00000000000000000086 /* PredicateLayout.swift */,
 				F17E0000000000000000003F /* CompletionPlacement.swift */,
-				F17E00000000000000000037 /* NSExpression+Walking.swift */,
-				F17E00000000000000000031 /* Indicator.swift */,
-				4D4D00000000000000000070 /* IndicatorFilter.swift */,
-				4D4D0000000000000000007A /* IndicatorScope.swift */,
-				4D4D0000000000000000001F /* Indicator+Validation.swift */,
-				4D4D000000000000000000B0 /* Indicator+Editing.swift */,
-				4D4D0000000000000000001D /* IndicatorSeverity.swift */,
-				4D4D00000000000000000009 /* SavedIndicators.swift */,
-				4D4D0000000000000000000B /* IndicatorMatcher.swift */,
-				4D4D00000000000000000061 /* EventIndicatorMatcher.swift */,
-				4D4D00000000000000000021 /* PredicateEventTypes.swift */,
-				F17E00000000000000000039 /* Indicators+Defaults.swift */,
-				4D4D00000000000000000039 /* DefaultIndicators.swift */,
-				4D4D00000000000000000037 /* Indicators+BuiltInMarks.swift */,
-				4D4D00000000000000000035 /* Indicators+Building.swift */,
 			);
-			path = Predicates;
+			path = Text;
 			sourceTree = "<group>";
 		};
 		D15C0000000000000000015F /* Related Events */ = {
