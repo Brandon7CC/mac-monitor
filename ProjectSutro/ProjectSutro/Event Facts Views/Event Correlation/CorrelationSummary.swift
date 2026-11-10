@@ -31,6 +31,10 @@ struct CorrelationSummary {
         let indicator: Indicator?
         /// Every indicator it's part of, by identity.
         let indicators: Set<UUID>
+        /// The most severe of them, which colors its file type's badge.
+        let severity: IndicatorSeverity?
+        /// The type of its file, where the event has one (``FileTypeBadge/type(of:)``).
+        let fileType: (identifier: String, machOType: String?)?
 
         var id: NSManagedObjectID { message.objectID }
 
@@ -77,7 +81,8 @@ struct CorrelationSummary {
                        symbol: eventStringToImage(from: name), kind: Self.kind(of: name),
                        context: Self.stored(message.context), target: Self.stored(message.target_path),
                        indicator: matched.first,
-                       indicators: Set(matched.map(\.id)))
+                       indicators: Set(matched.map(\.id)), severity: matched.map(\.severity).max(),
+                       fileType: FileTypeBadge.type(of: message))
         }
         var counts: [Kind: Int] = [:]
         rows.forEach { counts[$0.kind, default: 0] += 1 }

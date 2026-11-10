@@ -133,8 +133,9 @@ struct SystemEnrichedEventView: View {
                 Text(Self.seconds(row.seconds)).monospacedDigit().foregroundStyle(.secondary)
             }
             .width(min: 64, ideal: 72, max: 90)
-            /// The type's symbol in its kind's color, as the Groups table colors a process's by its signing, and a
-            /// indicator's dot after the type: the card above says what it found.
+            /// The type's symbol in its kind's color, as the Groups table colors a process's by its signing, an
+            /// indicator's dot after the type (the card above says what it found), and then the type of the event's
+            /// file, where it was read, in the color of the most severe indicator the event matched.
             TableColumn("Event") { row in
                 HStack(spacing: 5) {
                     Image(systemName: row.symbol).foregroundStyle(row.kind.color).help(row.kind.title)
@@ -142,9 +143,12 @@ struct SystemEnrichedEventView: View {
                     if let indicator = row.indicator {
                         Circle().fill(indicator.tint).frame(width: 7, height: 7).help(indicator.title(1))
                     }
+                    if let type = row.fileType {
+                        FileTypeBadge(identifier: type.identifier, machOType: type.machOType, severity: row.severity)
+                    }
                 }
             }
-            .width(min: 100, ideal: 130, max: 180)
+            .width(min: 100, ideal: 220, max: 320)
             /// The rest of the width. Cut in the middle, which keeps both who it's about (an XPC connection's
             /// service) and where (a path's file name).
             TableColumn("Context") { row in
