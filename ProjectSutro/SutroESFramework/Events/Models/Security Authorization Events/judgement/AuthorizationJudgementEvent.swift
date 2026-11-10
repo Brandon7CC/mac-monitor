@@ -30,8 +30,9 @@ public struct ESAuthorizationResult: Identifiable, Codable, Hashable {
     
     public var ruleClassShortName: String { rule_class_string.droppingPrefix("ES_AUTHORIZATION_RULE_CLASS_") }
     
+    /// The right's name, how it was judged, and whether it was granted, as the event's context shows it.
     public var description: String {
-        return "Right name: \(self.ruleClassShortName), Rule class: \(rule_class), Granted: \(granted)"
+        return "Right name: \(right_name), Rule class: \(ruleClassShortName), Granted: \(granted)"
     }
 
     /// `es_authorization_rule_class_t`: how the right is judged (on user properties, by a tree of sub-rules or by

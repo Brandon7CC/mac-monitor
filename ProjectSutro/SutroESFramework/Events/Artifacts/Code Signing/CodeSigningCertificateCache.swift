@@ -18,10 +18,12 @@ import os
 /// Google Chrome. A validly signed third-party process's code signing type comes from its certificates, so every event
 /// of every such process paid it, and every exec read the new image's chain.
 ///
-/// **Freshness:** the key is the path plus a `stat(2)` of it taken on every lookup (device, inode, size, and change and
-/// modification times), so a file that was rewritten or replaced is read again, as it was before. An entry is used for
-/// ``lifetime`` after it was read, which bounds how long a change of trust (a revoked or expired certificate) goes
-/// unseen. A path that can't be `stat`ed, or a signature that can't be read, isn't remembered.
+/// **Freshness:** the key is the path plus the file's stat (device, inode, size, and change and modification times),
+/// so a file that was rewritten or replaced is read again, as it was before. A capture lane gives the stat Endpoint
+/// Security took of the executable with the event (``certificates(at:stat:)``), which costs nothing; without one, a
+/// `stat(2)` of the path is taken on every lookup, about 2 µs. An entry is used for ``lifetime`` after it was read,
+/// which bounds how long a change of trust (a revoked or expired certificate) goes unseen. A path that can't be
+/// `stat`ed, or a signature that can't be read, isn't remembered.
 ///
 /// **Threading:** safe on any thread. Every capture lane of every session shares ``shared``. Certificates are read
 /// outside the lock, so a lane never waits for another's read. Two lanes missing the same file at once both read it.
@@ -51,6 +53,22 @@ final class CodeSigningCertificateCache {
             modifiedSeconds = info.st_mtimespec.tv_sec
             modifiedNanoseconds = info.st_mtimespec.tv_nsec
         }
+
+        /// The identity of a file as an event's stat describes it, with no system call.
+        ///
+        /// - Parameters:
+        ///   - path: The file's path.
+        ///   - stat: Endpoint Security's stat of it.
+        init(path: String, stat: Stat) {
+            self.path = path
+            device = Int32(truncatingIfNeeded: stat.st_dev)
+            inode = UInt64(bitPattern: stat.st_ino)
+            size = stat.st_size
+            changedSeconds = stat.st_ctimespec.tv_sec
+            changedNanoseconds = stat.st_ctimespec.tv_nsec
+            modifiedSeconds = stat.st_mtimespec.tv_sec
+            modifiedNanoseconds = stat.st_mtimespec.tv_nsec
+        }
     }
     
     /// A file's certificates, and when they were read.
@@ -61,7 +79,7 @@ final class CodeSigningCertificateCache {
     }
     
     /// The cache the Security Extension's capture lanes share, reading with
-    /// ``ProcessHelpers/readCodeSigningCerts(forBinaryAt:)``.
+    /// ``ProcessHelpers/readGuardedCodeSigningCerts(forBinaryAt:)``, which never keeps a lane waiting.
     static let shared = CodeSigningCertificateCache()
     
     /// How long an entry is used after its file was read, in nanoseconds.
@@ -83,7 +101,7 @@ final class CodeSigningCertificateCache {
     ///   - read: Reads a file's certificates, returning `nil` if its signature can't be read.
     ///   - clock: The time now in nanoseconds. Uptime by default.
     init(lifetime: TimeInterval = 600, capacity: Int = 1_024,
-         read: @escaping (String) -> [X509Cert]? = ProcessHelpers.readCodeSigningCerts(forBinaryAt:),
+         read: @escaping (String) -> [X509Cert]? = ProcessHelpers.readGuardedCodeSigningCerts(forBinaryAt:),
          clock: @escaping () -> UInt64 = { clock_gettime_nsec_np(CLOCK_UPTIME_RAW) }) {
         self.lifetime = UInt64(lifetime * 1e9)
         self.capacity = capacity
@@ -94,10 +112,14 @@ final class CodeSigningCertificateCache {
     /// The certificates of the executable at a path, leaf first: the ones remembered if this file's were read within
     /// ``lifetime``, otherwise read now.
     ///
-    /// - Parameter path: The executable's path.
+    /// - Parameters:
+    ///   - path: The executable's path.
+    ///   - stat: Endpoint Security's stat of it, when the event gives one: the file's identity without a `stat(2)`.
+    ///     One that names no file (inode 0) is ignored.
     /// - Returns: The certificates, or none if they can't be read.
-    func certificates(at path: String) -> [X509Cert] {
-        guard let file = FileIdentity(path: path) else { return read(path) ?? [] }
+    func certificates(at path: String, stat: Stat? = nil) -> [X509Cert] {
+        let known = stat.flatMap { $0.st_ino != 0 ? FileIdentity(path: path, stat: $0) : nil }
+        guard let file = known ?? FileIdentity(path: path) else { return read(path) ?? [] }
         let now = clock()
         if let entry = entries.withLockUnchecked({ $0[file] }), now &- entry.readAt < lifetime {
             return entry.certificates

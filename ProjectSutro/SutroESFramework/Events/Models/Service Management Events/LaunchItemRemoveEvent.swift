@@ -7,10 +7,6 @@
 
 import Foundation
 import EndpointSecurity
-import OSLog
-import Compression
-import Security
-import CryptoKit
 
 
 // MARK: - Background Task Management (BTM) Launch Item Remove event model https://developer.apple.com/documentation/endpointsecurity/3228936-es_events_t/4042929-btm_launch_item_remove

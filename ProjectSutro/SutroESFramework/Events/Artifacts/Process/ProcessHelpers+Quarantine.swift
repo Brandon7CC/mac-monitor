@@ -77,16 +77,22 @@ extension ProcessHelpers {
         return cache
     }()
     
-    /// Given the path to an executable on-disk return if it's "File Quarantine-aware".
+    /// Is the app an executable belongs to "File Quarantine-aware"?
     ///
-    /// This method checks if an executable application has the `LSFileQuarantineEnabled` key
-    /// set to `true` in its Info.plist file. Applications with this flag enabled respect in file quarantine.
+    /// An app opts in with `LSFileQuarantineEnabled` set to `true` in its bundle's Info.plist, and Apple forces some
+    /// in by their signing IDs. What a path's Info.plist says is remembered, for up to 1,000 paths, so it's read
+    /// once.
     ///
-    /// - Parameter path: The file path to the executable to check
-    /// - Returns: `true` if the executable has quarantine enabled, `false` otherwise
+    /// The Info.plist is anything a local user puts beside an executable, and this runs on a capture lane for every
+    /// process of every event. So it's read as any file a lane reads is (``readRegularFile(at:for:expecting:)``):
+    /// only a regular file, opened without waiting, up to ``fileContentsLimit``. A FIFO there once made the lane
+    /// wait for good.
     ///
-    /// The method uses an internal cache to avoid repeated disk access and plist parsing
-    /// for paths that have already been checked. The cache has a limit of 1000 entries.
+    /// - Parameters:
+    ///   - path: The executable's path.
+    ///   - signingId: The process's signing ID, if it has one.
+    /// - Returns: ``FileQuarantineType/forced`` for one of Apple's, ``FileQuarantineType/optIn`` for an app whose
+    ///   Info.plist opts in, otherwise ``FileQuarantineType/disabled``.
     public static func isQuarantineEnabled(forExecutableAt path: String, signingId: String?) -> FileQuarantineType {
         /// We're only going to check for File Quarantine with app bundles. A path without the bytes of ".app" is
         /// turned away before Foundation's `contains` (~2 µs), which can only find ".app" where they are.
@@ -111,7 +117,8 @@ extension ProcessHelpers {
         let plist = components.firstIndex(of: "Contents").map {
             NSString.path(withComponents: Array(components.prefix(through: $0)) + ["Info.plist"])
         }
-        let enabled = plist.flatMap { NSDictionary(contentsOfFile: $0)?["LSFileQuarantineEnabled"] as? Bool } ?? false
+        let enabled = plist.flatMap { readRegularFile(at: $0) }.flatMap(propertyListDictionary(of:))
+            .flatMap { $0["LSFileQuarantineEnabled"] as? Bool } ?? false
         quarantineCheckCache.setObject(NSNumber(value: enabled), forKey: nsPath)
         return enabled ? .optIn : .disabled
     }

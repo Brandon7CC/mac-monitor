@@ -48,6 +48,7 @@ public final class CommandLineAccessStore: @unchecked Sendable {
 // MARK: - Change outcome
 /// What a request to change ``CommandLineAccess`` did, as it travels back to Mac Monitor.
 public enum CommandLineAccessChange: Int, Error, CaseIterable, Sendable {
+    /// The level was changed.
     case done = 0
     /// Another Mac Monitor owns the event stream.
     case streamOwned = 1

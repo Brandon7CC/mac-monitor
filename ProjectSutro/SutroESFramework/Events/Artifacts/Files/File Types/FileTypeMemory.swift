@@ -28,7 +28,7 @@ import Foundation
 /// version its close read, so a rename of anything else, or of a file changed since, misses and is read where it now
 /// is.
 ///
-/// Bounded like ``ProcessPathMemory``: two generations of up to ``capacity`` files each. When the newer one fills up
+/// Bounded like ``ProcessPathMemory``: two generations of up to `capacity` files each. When the newer one fills up
 /// the older one is dropped, and a file found in the older one moves to the newer one, so the libraries mapped most
 /// stay. Closes keep ``closeCapacity`` each, since a rename follows its close at once, and never push a mapped
 /// library out.
@@ -96,8 +96,6 @@ final class FileTypeMemory {
 
     /// The mapped files' types, and the closed files'.
     private var mapped: Generations, closed: Generations
-    /// The mapped files each generation holds.
-    var capacity: Int { mapped.capacity }
     /// The lane's local volumes.
     let volumes: LocalVolumes
 

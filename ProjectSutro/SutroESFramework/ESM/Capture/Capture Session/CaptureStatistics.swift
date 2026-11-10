@@ -14,7 +14,7 @@ import EndpointSecurity
 ///
 /// Each client has its own `global_seq_num` and `seq_num` streams, so drops are counted per client: a consumer
 /// checking a live trace for gaps groups its events by ``EventClassTable/eventClass(of:)``.
-public struct CaptureLaneStatistics: Codable, Equatable, Sendable {
+public struct CaptureLaneStatistics: Equatable, Sendable {
     /// The client.
     public let eventClass: EventClass
     /// How many events it's subscribed to.

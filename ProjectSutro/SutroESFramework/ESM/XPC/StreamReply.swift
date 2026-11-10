@@ -23,7 +23,7 @@ public struct StreamReply: XPCReply, Equatable, Sendable {
         case invalid
         /// A newer request than this Security Extension understands.
         case unsupported
-        /// The caller isn't root.
+        /// The caller may not do this: it isn't root, and ``CommandLineAccess`` doesn't allow it.
         case refused
         /// The connection has already streamed: one stream a connection.
         case alreadyStreaming

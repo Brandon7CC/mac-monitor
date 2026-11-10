@@ -41,6 +41,8 @@ final class StreamSession: NSObject {
     private let label: String
     private var capture: CaptureSession?
     private var batcher: EventBatcher?
+    /// Takes the lanes' events onto ``queue`` in runs (``EventHandoff``). Flushed before a stop is answered.
+    private var handoff: EventHandoff?
     /// Applies saved mute set changes to `capture` while held.
     private var muteSubscription: AnyCancellable?
     /// Applies indicator set changes to `capture` while held.
@@ -80,9 +82,11 @@ extension StreamSession: StreamProtocol {
     func perform(_ request: Data, reply: @escaping (Data) -> Void) {
         /// Decided on the thread delivering the message, by the caller's effective user and `CommandLineAccess`.
         let grant = service.grant(NSXPCConnection.current())
-        /// A status request only reads, so anyone `macmonitor` runs as may send it.
-        let isStatus = (try? StreamRequest.decode(request))?.kind == .status
-        guard isStatus || grant.mayStream else {
+        /// A status request only reads, so anyone `macmonitor` runs as may send it. A stop only ends this
+        /// connection's own stream: one that began while streaming was allowed still drains and reports what it
+        /// lost when it's stopped after Settings narrowed access, rather than being refused and cut off.
+        let kind = (try? StreamRequest.decode(request))?.kind
+        guard kind == .status || kind == .stop || grant.mayStream else {
             StreamService.logger.error("\(self.label, privacy: .public): refused a stream request.")
             return reply(answer(.refused, problem: grant.refusal).encoded())
         }
@@ -125,6 +129,9 @@ extension StreamSession {
     ///   - data: A JSON encoded ``StreamRequest``.
     ///   - reply: Receives the answer, on ``queue``: right away, or once a stop has drained.
     private func respond(to data: Data, reply: @escaping (StreamReply) -> Void) {
+        /// A request follows every event submitted before it, as it did when each event came on its own block: the
+        /// batcher has them, and has paused capture if they overflowed it, before the request is answered.
+        handoff?.flush()
         do {
             let request = try StreamRequest.decode(data)
             switch request.kind {
@@ -185,10 +192,14 @@ extension StreamSession {
                                    overflow: .pause { [weak self] paused in self?.setPaused(paused) },
                                    delivery: EventBatcher.xpcDelivery(over: connection, label: label),
                                    willSend: { [weak self] in self?.capture?.reportDrops() }, label: label)
+        /// One wake of `queue` for each run of events, not one for each event (``EventHandoff``).
+        let handoff = EventHandoff(queue: queue) { [weak self] events in
+            guard let batcher = self?.batcher else { return }
+            for event in events { batcher.enqueue(event) }
+        }
         do {
-            let capture = try service.makeCapture(configuration) { [weak self] event in
-                self?.queue.async { self?.batcher?.enqueue(event.json) }
-            }
+            let capture = try service.makeCapture(configuration) { event in handoff.submit(event.json) }
+            self.handoff = handoff
             self.batcher = batcher
             self.capture = capture
             capture.isRecording = true
@@ -216,6 +227,8 @@ extension StreamSession {
     private func stop(reply: @escaping (StreamReply) -> Void) {
         guard let capture, let batcher, !isClosed else { return reply(answer(.ok)) }
         capture.drain(on: queue) { [self] in
+            /// The lanes have emitted every event by now: give the last of them to the batcher before it drains.
+            handoff?.flush()
             batcher.drain { [self] in
                 reply(answer(.ok, summary: summary()))
                 finish()

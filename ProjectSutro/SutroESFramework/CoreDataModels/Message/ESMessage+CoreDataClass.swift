@@ -106,7 +106,7 @@ public class ESMessage: NSManagedObject, Identifiable {
     @NSManaged public var thread: ESThread?
     
     /// Event
-    /// A process execution event. Corresponds to `ES_EVENT_TYPE_NOTIFY_EXEC`
+    /// The message's payload: an ``ESEventType`` with exactly one relationship set, the one for its event type.
     @NSManaged public var event: ESEventType
     @NSManaged public var event_type: Int32
     /// @note Mac Monitor enrichment

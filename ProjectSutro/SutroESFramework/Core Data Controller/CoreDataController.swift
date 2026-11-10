@@ -20,10 +20,9 @@ public class CoreDataController {
     public static let shared = CoreDataController()
     static let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "CoreDataController")
     
-    /// Main context
+    /// The persistent container that holds the event store.
     ///
-    /// On the main thread: `container.viewContext`. This main context is designed to be used
-    /// to update the UI.
+    /// Its `viewContext` is the main context, for the main thread only, which updates the UI.
     public var container: NSPersistentContainer
     
     /// Background context
@@ -225,7 +224,7 @@ public class CoreDataController {
             guard message.message_darwin_time >= self.discardBefore else { return false }
             if !watching.isEmpty, watching.contains(message.id) { kept.insert(message.id) }
             return true
-        }) { _ in completion(kept) }
+        }) { saved in completion(saved ? kept : []) }
     }
     
     /// Inserts a batch of events read from a trace file (see ``TraceImporter``), however long ago they happened.

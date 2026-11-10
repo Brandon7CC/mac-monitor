@@ -17,7 +17,9 @@ import Foundation
 public enum ToolRunner {
     /// Which output stream to capture. The other goes to `/dev/null`, as standard input comes from it.
     public enum Stream: Sendable {
+        /// The tool's standard output.
         case standardOutput
+        /// The tool's standard error.
         case standardError
     }
 

@@ -34,9 +34,9 @@ public protocol SensorUpdating: AnyObject {
 // MARK: - Sensor service
 /// The Security Extension's (sensor) side of Mac Monitor's XPC connections.
 ///
-/// The Security Extension's listener hands it every connection that isn't root's. It runs capture with a
-/// ``CaptureSession`` (one Endpoint Security client per event class), and streams batched events to the Mac Monitor
-/// connection that owns the event stream.
+/// The Security Extension's listener hands it every connection that isn't root's or signed as `macmonitor`. It runs
+/// capture with a ``CaptureSession`` (one Endpoint Security client per event class), and streams batched events to the
+/// Mac Monitor connection that owns the event stream.
 ///
 /// **Ownership:** the first connection to call `start(recording:reply:)` and get capture running owns the event stream
 /// (the *sink*) until it goes away. A second Mac Monitor (`open -n`, another user's session) gets `.streamOwned` and

@@ -39,6 +39,12 @@ public enum CommandLineAccess: String, Codable, CaseIterable, Comparable, Sendab
     /// Anyone may also change the saved mute set and the indicators without `sudo`.
     case streamingAndChanges
 
+    /// Orders the levels from narrowest to widest, as they're declared.
+    ///
+    /// - Parameters:
+    ///   - lhs: A level.
+    ///   - rhs: Another level.
+    /// - Returns: Whether `lhs` allows less than `rhs`.
     public static func < (lhs: Self, rhs: Self) -> Bool {
         allCases.firstIndex(of: lhs)! < allCases.firstIndex(of: rhs)!
     }

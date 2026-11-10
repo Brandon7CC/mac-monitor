@@ -116,7 +116,7 @@ extension ScriptInterpreter {
 }
 
 
-// MARK: - Indicator the script argument
+// MARK: - Finding the script argument
 extension ScriptInterpreter {
     /// What a cluster of short options (`-lc`, `-pi.bak`) means for the script.
     private enum ClusterMeaning {

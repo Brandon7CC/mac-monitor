@@ -14,10 +14,12 @@ extension ProcessHelpers {
     /// The code signing certificates of the executable at a path, leaf first, read once per file
     /// (``CodeSigningCertificateCache``).
     ///
-    /// - Parameter path: The executable's path.
+    /// - Parameters:
+    ///   - path: The executable's path.
+    ///   - stat: Endpoint Security's stat of it, when the event gives one, which saves the cache a `stat(2)`.
     /// - Returns: Each certificate's subject summary and SHA-1 thumbprint. None if they can't be read.
-    public static func getCodeSigningCerts(forBinaryAt path: String) -> [X509Cert] {
-        CodeSigningCertificateCache.shared.certificates(at: path)
+    public static func getCodeSigningCerts(forBinaryAt path: String, stat: Stat? = nil) -> [X509Cert] {
+        CodeSigningCertificateCache.shared.certificates(at: path, stat: stat)
     }
     
     /// Read the code signing certificates of the executable at a path from its signature, uncached.
@@ -45,15 +47,54 @@ extension ProcessHelpers {
         }
     }
     
+    /// Where a capture lane's certificate reads run (``readGuardedCodeSigningCerts(forBinaryAt:)``), each waited for
+    /// up to half a second: about 1.5 ms is usual.
+    private static let certificateDeadline = DeadlineQueue(
+        label: "com.swiftlydetecting.sutro.code-signing-certificates", timeout: .milliseconds(500))
+
+    /// Read an executable's code signing certificates for a capture lane: off the lane's thread and waited for only
+    /// so long (``DeadlineQueue``), and not at all from a bundle Security could wait in for good.
+    ///
+    /// For an executable in a bundle's `Contents/MacOS`, Security reads the bundle as well, and on macOS 13 it opens
+    /// the bundle's Info.plist with a blocking `open(2)`. A FIFO there, which any local user can put beside a copy
+    /// of any binary and then run it, made the read wait for good, and the lane with it (macOS 27 doesn't open it).
+    /// So such a bundle is checked first (``LaunchItemBundle/isSafeToReadSignature(at:)``), which only `stat`s. A
+    /// file swapped in after the check costs the lane the deadline once: reads are then refused until the stuck one
+    /// returns.
+    ///
+    /// - Parameter path: The executable's path.
+    /// - Returns: The certificates (``readCodeSigningCerts(forBinaryAt:)``), or `nil` when the bundle isn't safe to
+    ///   read, the read missed its deadline, or an earlier one that did is still running.
+    static func readGuardedCodeSigningCerts(forBinaryAt path: String) -> [X509Cert]? {
+        if let bundle = enclosingBundle(ofExecutableAt: path), !LaunchItemBundle.isSafeToReadSignature(at: bundle) {
+            return nil
+        }
+        return certificateDeadline.run { readCodeSigningCerts(forBinaryAt: path) }
+    }
+
+    /// The bundle an executable is the main code of, going by where it is.
+    ///
+    /// - Parameter path: The executable's path.
+    /// - Returns: `X` for `X/Contents/MacOS/name`, otherwise `nil`.
+    static func enclosingBundle(ofExecutableAt path: String) -> String? {
+        let folder = (path as NSString).deletingLastPathComponent as NSString
+        let contents = folder.deletingLastPathComponent as NSString
+        guard folder.lastPathComponent == "MacOS", contents.lastPathComponent == "Contents" else { return nil }
+        return contents.deletingLastPathComponent
+    }
+
     // MARK: - Code signing type
     /// The code signing type a validly signed executable's certificates tell (``CodeSigningCertificateCache``), for
     /// a process whose flags don't: not a platform binary, nor adhoc signed.
     ///
-    /// - Parameter path: The executable's path.
+    /// - Parameters:
+    ///   - path: The executable's path.
+    ///   - stat: Endpoint Security's stat of it, when the event gives one, which saves the cache a `stat(2)`.
     /// - Returns: ``CodeSigningType/appStore`` or ``CodeSigningType/developerId`` by the first certificate whose
     ///   subject names one, otherwise ``CodeSigningType/unknown``.
-    static func certificateType(at path: String) -> CodeSigningType {
-        certificateType(summaries: CodeSigningCertificateCache.shared.certificates(at: path).map(\.summary))
+    static func certificateType(at path: String, stat: Stat? = nil) -> CodeSigningType {
+        let certificates = CodeSigningCertificateCache.shared.certificates(at: path, stat: stat)
+        return certificateType(summaries: certificates.map(\.summary))
     }
 
     /// The code signing type a validly signed executable's or bundle's certificates tell.

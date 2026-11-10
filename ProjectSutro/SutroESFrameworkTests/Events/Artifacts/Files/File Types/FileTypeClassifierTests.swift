@@ -372,4 +372,36 @@ final class FileTypeClassifierTests: XCTestCase {
         assertType(Samples.text("text\0more"), "public.data")
         assertType([], "empty")
     }
+
+    /// Text is checked in place, eight bytes at a time, and the answer is always the decoder's: for bytes of every
+    /// kind (ASCII, NUL, each length of character, lone continuation bytes, overlong and surrogate encodings), in
+    /// runs of every length across a word's end, whole and as a slice that doesn't start at zero.
+    func testTextCheckedInPlaceIsTheDecoders() {
+        let pieces: [[UInt8]] = [
+            Array("a".utf8), Array("plain text, ".utf8), [0x00], Array("\u{E9}".utf8), Array("\u{20AC}".utf8),
+            Array("\u{1F600}".utf8), [0x80], [0xC3], [0xC0, 0x80], [0xED, 0xA0, 0x80], [0xF4, 0x90, 0x80, 0x80],
+            [0xFF], [0x7F], [0x0A],
+        ]
+        var samples: [[UInt8]] = [[], [0x00], Array("12345678".utf8), Array("1234567".utf8) + [0x00]]
+        for length in 0...40 {
+            samples.append(Array(repeating: UInt8(ascii: "x"), count: length))
+            for piece in pieces {
+                samples.append(Array(repeating: UInt8(ascii: "x"), count: length) + piece)
+                samples.append(Array(repeating: UInt8(ascii: "x"), count: length) + piece + Array("tail".utf8))
+            }
+        }
+        samples += (0..<3_000).map { _ in
+            (0..<Int.random(in: 0...12)).flatMap { _ in pieces.randomElement()! }
+        }
+        for sample in samples {
+            let expected = FileTypeClassifier.decodesAsText(sample)
+            XCTAssertEqual(FileTypeClassifier.isText(sample), expected, "\(sample)")
+            let padded = [0xFF, 0x00, 0x41] + sample
+            XCTAssertEqual(FileTypeClassifier.isText(padded[3...]), expected, "As a slice: \(sample)")
+        }
+        /// A header cut at its length mid-character is text up to the cut, whichever way it's checked.
+        let cut = Array((Samples.text(String(repeating: "a", count: 4_094)) + Samples.text("\u{1F600}")).prefix(4_096))
+        XCTAssertTrue(FileTypeClassifier.isText(cut))
+        XCTAssertFalse(FileTypeClassifier.decodesAsText(cut), "The cut character alone doesn't decode")
+    }
 }

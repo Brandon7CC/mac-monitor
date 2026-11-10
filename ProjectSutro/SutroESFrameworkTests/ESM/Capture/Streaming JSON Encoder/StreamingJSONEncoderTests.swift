@@ -42,6 +42,32 @@ final class StreamingJSONEncoderTests: XCTestCase {
         try assertSameBytes([String?.none, "set", nil])
     }
     
+    /// Long strings, which are written eight bytes at a time: every character that's escaped, and ones that aren't
+    /// ASCII, at every place in a word and across a word's end, in strings of every length up to four words, with
+    /// slashes escaped and left alone.
+    func testLongStringsMatchByteForByte() throws {
+        let escaped = (0..<0x20).map { String(UnicodeScalar(UInt8($0))) } + ["\"", "\\", "/"]
+        let marks = escaped + ["\u{7F}", "é", "\u{2028}", "😀", "~", " "]
+        var strings: [String] = []
+        for mark in marks {
+            for length in [7, 8, 9, 15, 16, 17, 23, 24, 31, 32] {
+                for place in 0...length {
+                    strings.append(String(repeating: "a", count: place) + mark
+                                   + String(repeating: "b", count: length - place))
+                }
+            }
+        }
+        strings += (0..<500).map { _ in
+            (0..<Int.random(in: 8...40)).map { _ in Bool.random() ? "p" : marks.randomElement()! }.joined()
+        }
+        try assertSameBytes(strings)
+        let plain = JSONEncoder()
+        plain.outputFormatting = .withoutEscapingSlashes
+        let expected = String(decoding: try plain.encode(strings), as: UTF8.self)
+        let written = try StreamingJSONEncoder(escapesSlashes: false).encode(strings)
+        XCTAssertEqual(String(decoding: written, as: UTF8.self), expected)
+    }
+
     /// Integers of every width at their ends and in between, and booleans.
     func testIntegersAndBooleansMatchByteForByte() throws {
         try assertSameBytes([Int.min, -1, 0, 1, Int.max] + (0..<200).map { _ in Int.random(in: .min ... .max) })

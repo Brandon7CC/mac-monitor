@@ -35,8 +35,10 @@ import OSLog
 /// keep Endpoint Security's order, including while an app's exec is held (``LaunchServicesHold``). Classes interleave
 /// in the order their events are handled. Nothing re-sorts them by `mach_time`.
 ///
-/// **Threading:** not thread-safe. Create the session and call it on one serial queue. Only the clients' handlers run
-/// elsewhere, and they call `emit`, which must not block or call back into the session.
+/// **Threading:** not thread-safe. Create the session and call it on one serial queue. Only the clients' handlers and
+/// the exec lane's ``LaunchServicesHold`` run elsewhere, and they call `emit`, which must not block or call back into
+/// the session. The hold calls it from the upgrader's queue or a utility queue, when it releases a held exec and the
+/// events behind it. Either way a class's events are emitted one at a time.
 public final class CaptureSession {
     /// The Endpoint Security clients each session holds, which count against the system's limit.
     public static let clientsPerSession: Int = EventClass.allCases.count

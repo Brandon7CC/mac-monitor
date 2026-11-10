@@ -12,14 +12,22 @@ import OSLog
 /// A structure to hold details about an available application update.
 /// This is sent from the System Extension to the main app via XPC.
 public struct UpdateDetails: Codable, Identifiable {
+    /// Identifies the release by its tag (``version``).
     public var id: String { version }
+    /// The release's tag, such as "v2.1.0".
     public let version: String
+    /// Where the release's installer package is downloaded from.
     public let downloadURL: URL
     /// The release's notes in Markdown. `nil` when the release has none.
     public let releaseNotes: String?
     /// When the release was published, as GitHub gives it. `nil` when GitHub leaves it out.
     public let releaseDate: String?
 
+    /// - Parameters:
+    ///   - version: The release's tag, such as "v2.1.0".
+    ///   - downloadURL: Where the release's installer package is downloaded from.
+    ///   - releaseNotes: The release's notes in Markdown, or `nil` for none.
+    ///   - releaseDate: When the release was published, as GitHub gives it, or `nil`.
     public init(version: String, downloadURL: URL, releaseNotes: String?, releaseDate: String?) {
         self.version = version
         self.downloadURL = downloadURL

@@ -18,8 +18,8 @@ import EndpointSecurity
 /// current default set is walked back: each later revision's additions are taken out and its removals put back.
 ///
 /// **Changing the default set:** add a revision here with exactly what changed. `DefaultMuteSetRevisionTests` fails
-/// until the newest revision describes ``MuteSet/default(home:mutesXcode:)``. Revisions so far change neither the
-/// per-user mutes nor Xcode's. One that does needs the home folder and Xcode's mutes passed in.
+/// until the newest revision describes ``MuteSet/default(home:mutesXcode:mutesXPCConnects:)``. Revisions so far
+/// change neither the per-user mutes nor Xcode's. One that does needs the home folder and Xcode's mutes passed in.
 extension MuteSet {
     /// One release's changes to the default set.
     struct Revision {

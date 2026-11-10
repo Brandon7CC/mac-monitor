@@ -468,6 +468,7 @@
 		CAE9E44D2E4FE2DD001143C2 /* TCCModifyEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE9E44C2E4FE2D7001143C2 /* TCCModifyEvent.swift */; };
 		CAE9E4532E4FF87C001143C2 /* ESTCCModifyEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE9E44E2E4FF103001143C2 /* ESTCCModifyEvent+CoreDataClass.swift */; };
 		CB1C00000000000000000003 /* EventBatching.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000002 /* EventBatching.swift */; };
+		4D4D000000000000000000CD /* EventHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000CC /* EventHandoff.swift */; };
 		CB1C00000000000000000005 /* EventBatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000004 /* EventBatcher.swift */; };
 		CB1C0000000000000000000D /* StreamProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000000C /* StreamProtocol.swift */; };
 		CB1C0000000000000000000F /* StreamReply.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000000E /* StreamReply.swift */; };
@@ -511,6 +512,7 @@
 		CB9800000000000000000012 /* StreamingJSONEncoder+Containers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000011 /* StreamingJSONEncoder+Containers.swift */; };
 		CB9800000000000000000014 /* StreamingJSONEncoder+Artifacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000013 /* StreamingJSONEncoder+Artifacts.swift */; };
 		CB9800000000000000000016 /* StreamingJSONEncoder+SortedKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9800000000000000000015 /* StreamingJSONEncoder+SortedKeys.swift */; };
+		4D4D000000000000000000CF /* StreamingJSONEncoder+KeyRanks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000CE /* StreamingJSONEncoder+KeyRanks.swift */; };
 		CB980000000000000000001E /* RandomUUIDBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB980000000000000000001D /* RandomUUIDBuffer.swift */; };
 		CBA100000000000000000004 /* CoreDataController+Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBA100000000000000000003 /* CoreDataController+Store.swift */; };
 		CBA100000000000000000006 /* CoreDataController+OpenTrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBA100000000000000000005 /* CoreDataController+OpenTrace.swift */; };
@@ -1210,6 +1212,7 @@
 		CAE9E44C2E4FE2D7001143C2 /* TCCModifyEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TCCModifyEvent.swift; sourceTree = "<group>"; };
 		CAE9E44E2E4FF103001143C2 /* ESTCCModifyEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESTCCModifyEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CB1C00000000000000000002 /* EventBatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventBatching.swift; sourceTree = "<group>"; };
+		4D4D000000000000000000CC /* EventHandoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventHandoff.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000004 /* EventBatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventBatcher.swift; sourceTree = "<group>"; };
 		CB1C0000000000000000000C /* StreamProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamProtocol.swift; sourceTree = "<group>"; };
 		CB1C0000000000000000000E /* StreamReply.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamReply.swift; sourceTree = "<group>"; };
@@ -1252,6 +1255,7 @@
 		CB9800000000000000000011 /* StreamingJSONEncoder+Containers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+Containers.swift"; sourceTree = "<group>"; };
 		CB9800000000000000000013 /* StreamingJSONEncoder+Artifacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+Artifacts.swift"; sourceTree = "<group>"; };
 		CB9800000000000000000015 /* StreamingJSONEncoder+SortedKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+SortedKeys.swift"; sourceTree = "<group>"; };
+		4D4D000000000000000000CE /* StreamingJSONEncoder+KeyRanks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamingJSONEncoder+KeyRanks.swift"; sourceTree = "<group>"; };
 		CB980000000000000000001D /* RandomUUIDBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomUUIDBuffer.swift; sourceTree = "<group>"; };
 		CBA100000000000000000003 /* CoreDataController+Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoreDataController+Store.swift"; sourceTree = "<group>"; };
 		CBA100000000000000000005 /* CoreDataController+OpenTrace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoreDataController+OpenTrace.swift"; sourceTree = "<group>"; };
@@ -3425,6 +3429,7 @@
 				CB980000000000000000000D /* StreamingJSONEncoder.swift */,
 				CB9800000000000000000013 /* StreamingJSONEncoder+Artifacts.swift */,
 				CB9800000000000000000015 /* StreamingJSONEncoder+SortedKeys.swift */,
+				4D4D000000000000000000CE /* StreamingJSONEncoder+KeyRanks.swift */,
 				CB980000000000000000000F /* StreamingJSONEncoder+Scalars.swift */,
 				CB9800000000000000000011 /* StreamingJSONEncoder+Containers.swift */,
 				CC9900000000000000000003 /* StreamingJSONEncoder+ObjectWriter.swift */,
@@ -3829,6 +3834,7 @@
 			isa = PBXGroup;
 			children = (
 				CB1C00000000000000000002 /* EventBatching.swift */,
+				4D4D000000000000000000CC /* EventHandoff.swift */,
 				CB1C00000000000000000004 /* EventBatcher.swift */,
 				D15C00000000000000000065 /* EventSpool.swift */,
 				CB1C0000000000000000001E /* StreamSlots.swift */,
@@ -4517,6 +4523,7 @@
 				CB1C0000000000000000000D /* StreamProtocol.swift in Sources */,
 				CB1C00000000000000000005 /* EventBatcher.swift in Sources */,
 				CB1C00000000000000000003 /* EventBatching.swift in Sources */,
+				4D4D000000000000000000CD /* EventHandoff.swift in Sources */,
 				D15C00000000000000000066 /* EventSpool.swift in Sources */,
 				CA9700000000000000000057 /* CaptureSession+Mutes.swift in Sources */,
 				4D4D00000000000000000040 /* CaptureSession+Indicators.swift in Sources */,
@@ -4549,6 +4556,7 @@
 				CB980000000000000000000E /* StreamingJSONEncoder.swift in Sources */,
 				CB9800000000000000000014 /* StreamingJSONEncoder+Artifacts.swift in Sources */,
 				CB9800000000000000000016 /* StreamingJSONEncoder+SortedKeys.swift in Sources */,
+				4D4D000000000000000000CF /* StreamingJSONEncoder+KeyRanks.swift in Sources */,
 				CB9800000000000000000010 /* StreamingJSONEncoder+Scalars.swift in Sources */,
 				CB9800000000000000000012 /* StreamingJSONEncoder+Containers.swift in Sources */,
 				CC9900000000000000000004 /* StreamingJSONEncoder+ObjectWriter.swift in Sources */,

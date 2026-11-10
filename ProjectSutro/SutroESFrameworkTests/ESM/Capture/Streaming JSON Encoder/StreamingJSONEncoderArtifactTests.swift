@@ -40,7 +40,7 @@ final class StreamingJSONEncoderArtifactTests: XCTestCase {
     /// artifacts and all, are byte for byte what `JSONEncoder` writes with those options.
     func testSortedMessagesMatchJSONEncoder() throws {
         try XCTSkipUnless(StreamingJSONEncoder.sortsKeysAsJSONEncoderDoes,
-                          "JSONEncoder here sorts as NSString compares")
+                          "JSONEncoder here sorts keys in an order the encoder does not know")
         let streaming = StreamingJSONEncoder(sortsKeys: true, escapesSlashes: false)
         let reference = JSONEncoder()
         reference.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]

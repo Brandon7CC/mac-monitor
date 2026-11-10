@@ -13,10 +13,11 @@ import OSLog
 /// Models an [`es_message_t`](https://developer.apple.com/documentation/endpointsecurity/es_message_t)  which describes an
 /// emitted security event from Endpoint Security.
 ///
-/// Events are emitted by Endpoint Security based on **event subscriptions**. Each event is represented as an optional field in our `ESMessage` structure.
-/// For example:
-/// * `exec_event` corresponds to an ``ProcessExecEvent`` which notifies us of processes being executed
-/// * `iokit_open_event` similarly corresponds to an ``IOKitOpenEvent``. This event notifies us when an IOKit device has been opened.
+/// Events are emitted by Endpoint Security based on **event subscriptions**. Each message holds exactly one event, as
+/// its ``event``: an ``EventType`` case carrying that event's payload. For example:
+/// * ``EventType/exec(_:)`` carries a ``ProcessExecEvent``, which notifies us of processes being executed
+/// * ``EventType/iokit_open(_:)`` carries an ``IOKitOpenEvent``, which notifies us when an IOKit device has been
+///   opened
 ///
 public struct Message: Codable, IdentityHashable {
     public var id = UUID.buffered()
@@ -44,7 +45,7 @@ public struct Message: Codable, IdentityHashable {
     public var thread: Thread?
     
     /// Event
-    /// A process execution event. Corresponds to `ES_EVENT_TYPE_NOTIFY_EXEC`
+    /// The message's payload: the ``EventType`` case for its event type, or ``EventType/unknown``.
     public var event: EventType
     public var event_type: Int
     /// @note Mac Monitor enrichment
@@ -212,12 +213,29 @@ extension Message: ESEnrichable {
 
     /// Fill in what an older Security Extension leaves out of an event Mac Monitor receives over XPC: an exec's or a
     /// fork's launched-by parent (``resolveLaunchedByParent(by:path:)``), and every process's age, which a 3.0.0
-    /// Security Extension doesn't send (``deriveProcessAges()``). What the event carries is kept.
+    /// Security Extension doesn't send (``deriveProcessAges()``). What the event carries is kept, but for a create's
+    /// or a rename's target path in the spelling 3.0 gave it (``respellDestination()``).
     ///
     /// - Parameter path: Names a process's executable from its pid and, when known, its token: ``ProcessPath/live``.
     mutating func completeReceived(path: (Int32, AuditToken?) -> String?) {
         resolveLaunchedByParent(by: .app, path: path)
         deriveProcessAges()
+        respellDestination()
+    }
+
+    /// Write a create's or a rename's target path, and its context, again from its destination when the path holds
+    /// "\/". From 1.9 until 3.1 a new path's directory and file name were joined that way (`/tmp\/a.txt`), and a
+    /// 3.0 Security Extension and an export made before 3.1 still say so: left alone, an indicator or a filter on
+    /// `target_path` reads a path no file has, so `CONTAINS "/__pycache__/"` misses `__pycache__\/x.pyc`. A path
+    /// that really holds the two characters is written the same again.
+    mutating func respellDestination() {
+        switch event {
+        case .create, .rename:
+            guard target_path?.contains("\\/") == true else { return }
+            (context, target_path) = event.summary(initiatingPath: process.executable?.path ?? "")
+        default:
+            return
+        }
     }
 
     /// Derive a process's ``Process/process_age_ms``, unless it has one or its start time is unknown.

@@ -78,7 +78,8 @@ public struct ProcessExecEvent: Codable, IdentityHashable {
         
         // MARK: - Code Signing certificate chain
         if target.codesigning_flags & Int64(CS_VALID) != 0, let executable = target.executable {
-            certificate_chain = ProcessHelpers.getCodeSigningCerts(forBinaryAt: executable.path)
+            certificate_chain = ProcessHelpers.getCodeSigningCerts(forBinaryAt: executable.path,
+                                                                    stat: executable.stat)
         }
         
         enrich()

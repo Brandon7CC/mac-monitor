@@ -31,9 +31,12 @@ extension SensorService {
             configuration.mutes = mutes
             configuration.fieldFilters = fieldFilters
             configuration.indicators = indicators
-            let session = try makeCapture(configuration) { [weak self] event in
-                self?.queue.async { self?.sink?.batcher.enqueue(event.json) }
+            /// One wake of `queue` for each run of events, not one for each event (``EventHandoff``).
+            let handoff = EventHandoff(queue: queue) { [weak self] events in
+                guard let batcher = self?.sink?.batcher else { return }
+                for event in events { batcher.enqueue(event) }
             }
+            let session = try makeCapture(configuration) { event in handoff.submit(event.json) }
             if appleDefaultMutes.isEmpty { appleDefaultMutes = session.appleMuteSet }
             capture = session
             muteSubscription = subscription

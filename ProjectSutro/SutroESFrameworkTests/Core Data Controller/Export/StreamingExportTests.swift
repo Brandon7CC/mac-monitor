@@ -58,7 +58,7 @@ final class StreamingExportTests: XCTestCase {
     /// Sorted keys at every depth, slashes left alone, and a key twice left to `JSONEncoder`.
     func testSortsKeysAsJSONEncoderDoes() throws {
         try XCTSkipUnless(StreamingJSONEncoder.sortsKeysAsJSONEncoderDoes,
-                          "JSONEncoder here sorts as NSString compares")
+                          "JSONEncoder here sorts keys in an order the encoder does not know")
         let encoder = StreamingJSONEncoder(sortsKeys: true, escapesSlashes: false)
         for (name, value) in [("unsorted", Unsorted() as Encodable), ("twice", Twice())] {
             XCTAssertEqual(String(decoding: try encoder.encode(value), as: UTF8.self),
@@ -73,7 +73,7 @@ final class StreamingExportTests: XCTestCase {
     /// events, stored, encode byte for byte as `eventToJSON` encodes them.
     func testEveryEventEncodesAsEventToJSON() throws {
         try XCTSkipUnless(StreamingJSONEncoder.sortsKeysAsJSONEncoderDoes,
-                          "JSONEncoder here sorts as NSString compares")
+                          "JSONEncoder here sorts keys in an order the encoder does not know")
         let encoder = StreamingJSONEncoder(sortsKeys: true, escapesSlashes: false)
         let events = try SyntheticCorpus.records().map { ($0.label, $0.message) }
             + allFixtureMessages().enumerated().map { ("fixture[\($0)]", $1) }
@@ -82,6 +82,30 @@ final class StreamingExportTests: XCTestCase {
             try withStoredEvent(message) { stored in
                 let streamed = String(decoding: try encoder.encode(stored), as: UTF8.self)
                 if streamed != ProcessHelpers.eventToJSON(value: stored) { different.append(label) }
+            }
+        }
+        XCTAssertGreaterThan(events.count, TelemetrySchemaSource.events.count * 2)
+        XCTAssertEqual(different, [], "Encoded differently from eventToJSON")
+    }
+
+    /// `macmonitor`'s JSONL records take the same quick encoder (``ExportEncoder``): each line is byte for byte what
+    /// `eventToJSON` writes for the event's row, for every synthetic record and every fixture's events.
+    func testStreamRecordsEncodeAsEventToJSON() throws {
+        try XCTSkipUnless(StreamingJSONEncoder.sortsKeysAsJSONEncoderDoes,
+                          "JSONEncoder here sorts keys in an order the encoder does not know")
+        let model = try XCTUnwrap(ExportEncoder.model)
+        let encoder = ExportEncoder(model: model)
+        let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+        context.persistentStoreCoordinator = NSPersistentStoreCoordinator(managedObjectModel: model)
+        let events = try SyntheticCorpus.records().map { ($0.label, $0.message) }
+            + allFixtureMessages().enumerated().map { ("fixture[\($0)]", $1) }
+        var different: [String] = []
+        for (label, message) in events {
+            let expected = context.performAndWait {
+                ProcessHelpers.eventToJSON(value: ESMessage(from: message, insertIntoManagedObjectContext: context))
+            }
+            if String(decoding: encoder.line(for: message), as: UTF8.self) != expected + "\n" {
+                different.append(label)
             }
         }
         XCTAssertGreaterThan(events.count, TelemetrySchemaSource.events.count * 2)

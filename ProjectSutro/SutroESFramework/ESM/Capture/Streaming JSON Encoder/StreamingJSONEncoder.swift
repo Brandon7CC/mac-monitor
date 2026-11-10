@@ -27,9 +27,10 @@ import Foundation
 ///
 /// Exports write their records as `JSONEncoder` does with `.sortedKeys` and `.withoutEscapingSlashes`
 /// (``ProcessHelpers/eventToJSON(value:pretty:)``), which this does too when asked
-/// (``init(sortsKeys:escapesSlashes:)``): each object's members are put in key order as the object closes, by the keys'
-/// UTF-8 bytes, as `.sortedKeys` orders them. An object with a key twice, which `JSONEncoder` writes once, is left to
-/// `JSONEncoder`. A ~3.6 KB event from the store took 34 µs this way, and 115 µs through `JSONEncoder`.
+/// (``init(sortsKeys:escapesSlashes:keyOrder:)``): each object's members are put in key order as the object closes,
+/// in the order this Mac's `.sortedKeys` puts them (``KeyOrder``). An object with a key twice, which `JSONEncoder`
+/// writes once, is left to `JSONEncoder`. A ~3.6 KB event from the store took 34 µs this way, and 115 µs through
+/// `JSONEncoder`.
 ///
 /// **Threading:** not thread-safe. Each capture lane owns one and uses it under its lock.
 final class StreamingJSONEncoder {
@@ -52,6 +53,13 @@ final class StreamingJSONEncoder {
         var isUnstreamable = false
         /// Put each object's members in key order, as `.sortedKeys` does.
         let sortsKeys: Bool
+        /// The order that is.
+        let keyOrder: KeyOrder
+        /// Leave a value with a floating-point number to `JSONEncoder`: sorted as macOS 13 sorts, whose `JSONEncoder`
+        /// writes the number with other digits (``KeyOrder/localized``).
+        let leavesFloatsToJSONEncoder: Bool
+        /// The ranks of the keys sorted so far, in ``KeyOrder/localized`` order.
+        var keyRanks = KeyRanks()
         /// Escape `/` as `\/`, as `JSONEncoder` does without `.withoutEscapingSlashes`.
         let escapesSlashes: Bool
         /// The open objects' members so far, innermost object's last, while keys are sorted.
@@ -101,10 +109,14 @@ final class StreamingJSONEncoder {
     /// - Parameters:
     ///   - sortsKeys: Write each object's members in key order, as `JSONEncoder`'s `.sortedKeys` does.
     ///   - escapesSlashes: Escape `/`, as `JSONEncoder` does unless told `.withoutEscapingSlashes`.
-    init(sortsKeys: Bool = false, escapesSlashes: Bool = true) {
+    ///   - keyOrder: The order sorted keys are in: this Mac's `JSONEncoder`'s, unless a test says otherwise.
+    init(sortsKeys: Bool = false, escapesSlashes: Bool = true,
+         keyOrder: KeyOrder = StreamingJSONEncoder.jsonEncoderKeyOrder ?? .bytes) {
         state = .allocate(capacity: 1)
         state.initialize(to: State(base: .allocate(capacity: Self.initialCapacity), count: 0,
-                                   capacity: Self.initialCapacity, sortsKeys: sortsKeys, escapesSlashes: escapesSlashes,
+                                   capacity: Self.initialCapacity, sortsKeys: sortsKeys, keyOrder: keyOrder,
+                                   leavesFloatsToJSONEncoder: sortsKeys && keyOrder == .localized,
+                                   escapesSlashes: escapesSlashes,
                                    scratch: .allocate(capacity: sortsKeys ? Self.initialCapacity : 0),
                                    scratchCapacity: sortsKeys ? Self.initialCapacity : 0))
         state.pointee.frames.reserveCapacity(16)

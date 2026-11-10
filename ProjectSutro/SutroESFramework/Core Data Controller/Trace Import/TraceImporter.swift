@@ -289,6 +289,8 @@ public final class TraceImporter {
         }
         /// Every key is optional to the decoder: a record that's an event in name only isn't shown.
         if case .unknown = message.event { throw TraceImportError.incomplete("no event type") }
+        /// An export made before 3.1 spells a new path's target path with "\/".
+        message.respellDestination()
         /// The Security Extension's own `Message` carries its time as seconds since 2001. One that isn't a time (more
         /// than about 3,000 years away) is read from `time` instead.
         let darwinTime = (object["message_darwin_time"] as? NSNumber)?.doubleValue

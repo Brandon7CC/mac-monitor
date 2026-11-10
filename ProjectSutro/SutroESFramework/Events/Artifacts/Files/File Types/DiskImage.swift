@@ -132,7 +132,7 @@ enum DiskImage {
 }
 
 
-// MARK: - Indicator bytes
+// MARK: - Finding bytes
 extension ByteSample {
     /// Do the bytes hold these anywhere? One `memmem` over contiguous bytes, which an array and its slices are.
     ///

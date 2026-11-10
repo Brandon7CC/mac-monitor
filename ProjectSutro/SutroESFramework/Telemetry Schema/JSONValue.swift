@@ -150,7 +150,7 @@ enum JSONText {
     /// more of a report than a short one. Counts no further than the limit.
     ///
     /// - Parameter text: The text.
-    /// - Returns: The text, or its first ``maxQuoted`` characters and `...`.
+    /// - Returns: The text, or its first ``maxQuoted`` characters and a single ellipsis character (U+2026).
     static func cut(_ text: String) -> String {
         text.dropFirst(maxQuoted).isEmpty ? text : String(text.prefix(maxQuoted)) + "…"
     }

@@ -8,7 +8,6 @@
 
 import Foundation
 import CoreData
-import OSLog
 
 @objc(ESFileRenameEvent)
 public class ESFileRenameEvent: NSManagedObject, Identifiable {

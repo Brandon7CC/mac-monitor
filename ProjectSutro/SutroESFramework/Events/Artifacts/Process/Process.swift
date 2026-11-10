@@ -102,7 +102,8 @@ public struct Process: Identifiable, Codable, Hashable {
         /// isn't a platform binary nor adhoc signed). One without a path is unsigned.
         if codesigning_type == .unknown {
             let path = executable?.path ?? ""
-            codesigning_type = path.isEmpty ? .unsigned : ProcessHelpers.certificateType(at: path)
+            codesigning_type = path.isEmpty ? .unsigned
+                : ProcessHelpers.certificateType(at: path, stat: executable?.stat)
         }
         
         // MARK: File Quarantine-aware

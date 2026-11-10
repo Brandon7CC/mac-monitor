@@ -52,8 +52,8 @@ public enum SensorXPC {
     /// waiting (see `EndpointSecurityManager.receive(events:reply:)`), however few events survive its filters.
     public static let maxBatchesInFlight: Int = 16
     
-    /// The code signing requirement for Mac Monitor: what the Security Extension enforces on every connection that
-    /// isn't root's.
+    /// The code signing requirement for Mac Monitor: what the Security Extension enforces on every connection the
+    /// listener's router doesn't take for `macmonitor` (not root's, and not signed as `macmonitor`).
     public static let agentRequirement: String = requirement(for: "com.swiftlydetecting.agent")
     
     /// The code signing requirement for `macmonitor`: what the Security Extension enforces on every connection from

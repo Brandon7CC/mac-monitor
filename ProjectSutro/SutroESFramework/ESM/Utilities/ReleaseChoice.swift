@@ -97,14 +97,18 @@ public enum ReleaseChoice {
 struct GitHubRelease: Decodable {
     /// A file attached to the release. Releases also attach the telemetry schema.
     struct Asset: Decodable {
+        /// The file's name.
         let name: String
+        /// Where the file is downloaded from.
         let browserDownloadUrl: URL
 
         /// Is this the installer package?
         var isPackage: Bool { name.lowercased().hasSuffix(".pkg") }
     }
 
+    /// The release's tag, such as "v2.1.0".
     let tagName: String
+    /// The files attached to the release.
     let assets: [Asset]
     /// The release notes. GitHub sends `null` for a release without any.
     let body: String?

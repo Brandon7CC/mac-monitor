@@ -171,6 +171,25 @@ final class StreamSessionTests: XCTestCase {
         XCTAssertEqual(connection.sendMutes(MuteRequest(.reset))?.status, .refused)
         XCTAssertTrue(harness.factories.isEmpty)
     }
+
+    /// A stream that began while its caller was allowed keeps its stop once the caller isn't: the stop is answered,
+    /// with what the stream captured, where a new stream is refused. Refusing it cut the stream off undrained.
+    func testAStopIsAnsweredAfterAccessIsNarrowed() {
+        let allowed = OSAllocatedUnfairLock(initialState: true)
+        let harness = StreamHarness(savedMutes: savedMutes, admitting: { _ in
+            allowed.withLock { $0 } ? .everything : .refused(CommandLineAccess.needsRoot)
+        })
+        let connection = harness.connect(reader: TestStreamReader())
+        defer { connection.invalidate() }
+        XCTAssertEqual(connection.send(stream())?.status, .ok)
+        allowed.withLock { $0 = false }
+        let stopped = connection.send(StreamRequest(.stop).encoded())
+        XCTAssertEqual(stopped?.status, .ok)
+        XCTAssertNotNil(stopped?.summary)
+        let other = harness.connect(reader: TestStreamReader())
+        defer { other.invalidate() }
+        XCTAssertEqual(other.send(stream())?.status, .refused)
+    }
     
     /// Without root, the live rule decides each request by the level as it stands: refused at the default, streaming
     /// and listing the saved mute set but not changing it once streaming is allowed, and changing it too once changes

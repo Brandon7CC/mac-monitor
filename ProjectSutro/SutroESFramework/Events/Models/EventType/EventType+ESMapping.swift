@@ -342,7 +342,8 @@ extension EventType {
     ///
     /// Read from the destination itself rather than its `destination_type`, which a trace file may contradict. A new
     /// path is ``NewPath/fullPath``: its directory and file name joined by one "/". From 1.9 until 3.1.0, `target_path`
-    /// joined them with "\/"; the trace import reads both.
+    /// joined them with "\/": an event received or imported in that spelling is written again
+    /// (``Message/respellDestination()``).
     ///
     /// - Parameter destination: The event's destination.
     /// - Returns: The existing file's path, the new path's directory and file name joined by one "/", or "" for a

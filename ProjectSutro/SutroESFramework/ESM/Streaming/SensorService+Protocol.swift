@@ -142,7 +142,7 @@ extension SensorService: SensorProtocol {
     /// - Parameters:
     ///   - action: ``CommandLineToolLinker``'s action.
     ///   - tool: The tool inside Mac Monitor.
-    ///   - expected: Where the link should point.
+    ///   - expected: The link's value Settings saw, or empty for none: the change happens only if it still matches.
     ///   - authorization: An external form of the caller's authorization.
     ///   - reply: A ``CommandLineToolLinker/Outcome`` raw value.
     public func changeCommandLineTool(action: String, tool: String, expected: String, authorization: Data,

@@ -7,7 +7,6 @@
 
 import Foundation
 import EndpointSecurity
-import OSLog
 
 
 // MARK: - OpenSSH Login event model: https://developer.apple.com/documentation/endpointsecurity/3228936-es_events_t/3930481-openssh_login

@@ -8,7 +8,8 @@
 import Foundation
 
 extension EventType {
-    /// The exec and fork payloads, for `ESManager.shouldInsert(_:)` and ``ESMessage/denormalize(from:)``.
+    /// The exec and fork payloads, for `ESManager.shouldInsert(_:droppingPlatformBinaries:)` and
+    /// ``ESMessage/denormalize(from:)``.
     var exec: ProcessExecEvent? { if case .exec(let e) = self { e } else { nil } }
     var fork: ProcessForkEvent? { if case .fork(let e) = self { e } else { nil } }
 

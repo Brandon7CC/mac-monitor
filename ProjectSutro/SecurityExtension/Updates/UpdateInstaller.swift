@@ -14,8 +14,8 @@ import SutroESFramework
 // MARK: - Update installer
 /// Checks GitHub for Mac Monitor releases and installs them as root (Security Extension context).
 ///
-/// Nothing about the package comes from Mac Monitor. ``install(reply:)`` resolves the latest release itself, refuses
-/// anything that isn't newer than the running version, and only installs a package that:
+/// Nothing about the package comes from Mac Monitor. ``install(progress:reply:)`` resolves the latest release itself,
+/// refuses anything that isn't newer than the running version, and only installs a package that:
 /// 1. Was downloaded over HTTPS
 /// 2. Gatekeeper accepts with assessments enforced (`spctl --enforce-assessment` exits `0` with `assessment:verdict` =
 ///    `true` and no `assessment:authority:override`), which implies notarization even if Gatekeeper is turned off

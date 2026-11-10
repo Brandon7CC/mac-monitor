@@ -12,13 +12,21 @@ import Foundation
 /// Why the Security Extension didn't offer or install a release (Security Extension context). Logged in full, and
 /// told to Mac Monitor as an ``UpdateFailure``.
 public enum UpdateError: LocalizedError, Equatable {
+    /// GitHub's latest release couldn't be fetched or read, it has no package, or the running version is unknown.
     case releaseLookupFailed
+    /// The latest release isn't newer than the running version.
     case noNewerRelease
+    /// The package's URL isn't HTTPS.
     case insecureDownload(URL)
+    /// The package's download failed or didn't answer 200.
     case downloadFailed
+    /// Gatekeeper's assessment of the package couldn't be read.
     case unreadableAssessment
+    /// Gatekeeper rejected the package, for `reason`.
     case rejectedByGatekeeper(reason: String)
+    /// The package isn't signed by ``SensorXPC/teamID``: `found` is the Team ID it has, if any.
     case invalidTeamID(found: String?)
+    /// The installer exited with `exitCode`, having written `errorLog`.
     case installFailed(exitCode: Int32, errorLog: String)
 
     /// What the log says.
