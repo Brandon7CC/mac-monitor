@@ -84,11 +84,31 @@ enum ForcedDarkMode {
                                                           queue: .main) { _ in apply() }
     }
 
-    /// Dark when the preference is on, and otherwise whatever the system is.
+    /// Dark when the preference is on, and otherwise whatever the system is. A window opened later takes the app's
+    /// appearance as it opens.
     private static func apply() {
         let name: NSAppearance.Name? = UserDefaults.standard.bool(forKey: key) ? .darkAqua : nil
         guard NSApp.appearance?.name != name else { return }
         NSApp.appearance = name.flatMap { NSAppearance(named: $0) }
+        NSApp.windows.forEach(refreshTitleBar)
+    }
+
+    /// Have a window's title bar follow the window again. AppKit gives a title bar an appearance of its own, and on
+    /// macOS 27.0 that one outlives a change of the app's appearance, so a window open already went dark under a
+    /// title bar and toolbar that stayed light. With none of its own, the title bar takes the window's.
+    ///
+    /// - Parameter window: The window. One with no title bar, or whose title bar agrees with it, is left alone.
+    private static func refreshTitleBar(of window: NSWindow) {
+        guard let titleBar = window.standardWindowButton(.closeButton)?.superview, titleBar.appearance != nil,
+              isDark(titleBar.effectiveAppearance) != isDark(window.effectiveAppearance) else { return }
+        titleBar.appearance = nil
+    }
+
+    /// - Parameter appearance: An appearance, vibrant or not.
+    /// - Returns: Is it a dark one?
+    private static func isDark(_ appearance: NSAppearance) -> Bool {
+        let dark: [NSAppearance.Name] = [.darkAqua, .vibrantDark]
+        return appearance.bestMatch(from: dark + [.aqua, .vibrantLight]).map(dark.contains) ?? false
     }
 }
 
