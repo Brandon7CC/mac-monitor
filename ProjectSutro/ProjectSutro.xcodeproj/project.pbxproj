@@ -4053,21 +4053,53 @@
 		D15C00000000000000000146 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				0D0D0D00000000000000E001 /* Facts */,
+				0D0D0D00000000000000E002 /* Indicators */,
+				0D0D0D00000000000000E003 /* Sheets */,
+				0D0D0D00000000000000E004 /* Dashboard */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		0D0D0D00000000000000E001 /* Facts */ = {
+			isa = PBXGroup;
+			children = (
+				0D0D0D0000000000000000A1 /* EventFactsCard.swift */,
+				0D0D0D00000000000000001D /* FactRow.swift */,
+				D15C0000000000000000012C /* EventFactsLabels.swift */,
+				CA11B0E00000000000000001 /* CalloutBadge.swift */,
+				0D0D0D0000000000000000A3 /* UserFact.swift */,
+				F17E7E000000000000000013 /* FileTypeFact.swift */,
+			);
+			path = Facts;
+			sourceTree = "<group>";
+		};
+		0D0D0D00000000000000E002 /* Indicators */ = {
+			isa = PBXGroup;
+			children = (
+				4D4D00000000000000000074 /* IndicatorsButton.swift */,
 				4D4D00000000000000000076 /* IndicatorsPopover.swift */,
 				4D4D00000000000000000072 /* IndicatorPredicateSection.swift */,
-				4D4D00000000000000000074 /* IndicatorsButton.swift */,
-				0D0D0D00000000000000001D /* FactRow.swift */,
-				0D0D0D0000000000000000A3 /* UserFact.swift */,
 				0D0D0D0000000000000000A7 /* RelatedIndicators.swift */,
-				0D0D0D0000000000000000A1 /* EventFactsCard.swift */,
-				CA11B0E00000000000000001 /* CalloutBadge.swift */,
-				F17E7E000000000000000013 /* FileTypeFact.swift */,
-				F17E00000000000000000023 /* FactsDashboard.swift */,
-				D15C0000000000000000012C /* EventFactsLabels.swift */,
+			);
+			path = Indicators;
+			sourceTree = "<group>";
+		};
+		0D0D0D00000000000000E003 /* Sheets */ = {
+			isa = PBXGroup;
+			children = (
 				28CEF0E829776C40003057D2 /* AuditTokenView.swift */,
 				28CEF0E229776BC7003057D2 /* FileContentView.swift */,
 			);
-			path = Components;
+			path = Sheets;
+			sourceTree = "<group>";
+		};
+		0D0D0D00000000000000E004 /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				F17E00000000000000000023 /* FactsDashboard.swift */,
+			);
+			path = Dashboard;
 			sourceTree = "<group>";
 		};
 		D15C00000000000000000147 /* Event Correlation */ = {
