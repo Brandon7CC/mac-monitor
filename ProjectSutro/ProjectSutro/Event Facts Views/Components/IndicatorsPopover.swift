@@ -14,8 +14,14 @@ import SutroESFramework
 /// an indicator's symbol, name, tactic and severity, its description, its predicate behind a disclosure, with Copy
 /// (``IndicatorPredicateSection``), and Show in Settings. Many scroll, and the popover is never taller than
 /// ``maxHeight``.
+///
+/// When the events around the event matched indicators too (``RelatedIndicators``), the event's own are under
+/// Target Indicators, and the others under Correlated Indicators and Group Indicators, each closed to start and
+/// saying how many it holds.
 struct IndicatorsPopover: View {
     let indicators: [Indicator]
+    /// The indicators the events around the event matched.
+    var related = RelatedIndicators()
     /// Closes the popover.
     let close: () -> Void
     @ObservedObject private var store = IndicatorStore.shared
@@ -33,10 +39,23 @@ struct IndicatorsPopover: View {
         let listed = Set(store.indicators.map(\.id))
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                if !related.isEmpty {
+                    IndicatorSectionTitle(title: "Target Indicators", count: nil)
+                        .help("The indicators this event matched.")
+                    if indicators.isEmpty {
+                        Text("This event matched none.").font(.system(size: 12)).foregroundStyle(.secondary)
+                    }
+                }
                 ForEach(indicators) { indicator in
-                    IndicatorPopoverCard(indicator: indicator, isCard: indicators.count > 1,
+                    IndicatorPopoverCard(indicator: indicator, isCard: indicators.count > 1 || !related.isEmpty,
                                          isListed: listed.contains(indicator.id), close: close)
                 }
+                RelatedIndicatorsSection(title: "Correlated Indicators", entries: related.correlated, listed: listed,
+                                         help: "The indicators the events this process made matched. The "
+                                            + "Correlation tab lists the events.", close: close)
+                RelatedIndicatorsSection(title: "Group Indicators", entries: related.group, listed: listed,
+                                         help: "The indicators other processes in this one's process group and "
+                                            + "session matched. The Groups tab lists them.", close: close)
             }
             .padding(16)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
@@ -46,11 +65,70 @@ struct IndicatorsPopover: View {
 }
 
 
+// MARK: - Sections
+/// A section's title in the Indicators popover: small, with how many indicators it holds when it's told.
+private struct IndicatorSectionTitle: View {
+    let title: String
+    /// How many indicators the section holds, or `nil` to leave the number out.
+    let count: Int?
+
+    var body: some View {
+        Text(count.map { "\(title) (\($0))" } ?? title)
+            .font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+    }
+}
+
+
+/// The indicators some of the events around the event matched, behind their title: closed to start, a card each
+/// when open, with how many events matched each. Nothing for a section with none.
+private struct RelatedIndicatorsSection: View {
+    let title: String
+    let entries: [RelatedIndicators.Entry]
+    /// The indicators Settings > Indicators lists, by identity.
+    let listed: Set<UUID>
+    /// What the section holds, as its title's help.
+    let help: String
+    /// Closes the popover.
+    let close: () -> Void
+    @State private var isOpen = false
+
+    var body: some View {
+        if !entries.isEmpty {
+            Button {
+                withAnimation(.easeOut(duration: 0.15)) { isOpen.toggle() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .bold)).foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isOpen ? 90 : 0))
+                    IndicatorSectionTitle(title: title, count: entries.count)
+                    Spacer(minLength: 0)
+                }
+                .frame(minHeight: 20)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(help)
+            .accessibilityLabel("\(title), \(entries.count)")
+            .accessibilityValue(isOpen ? "Shown" : "Hidden")
+            if isOpen {
+                ForEach(entries) { entry in
+                    IndicatorPopoverCard(indicator: entry.indicator, events: entry.events, isCard: true,
+                                         isListed: listed.contains(entry.indicator.id), close: close)
+                }
+            }
+        }
+    }
+}
+
+
 // MARK: - Card
 /// One indicator the event matched: its symbol tile, name, tactic and severity, its description, its predicate, and
 /// Show in Settings, or, for one Settings no longer lists, that it was removed. Among several, each is a card.
 private struct IndicatorPopoverCard: View {
     let indicator: Indicator
+    /// How many events matched it, shown after its name when it's more than one: "Reflective loading ×6".
+    var events = 1
     /// Is it a card among several?
     let isCard: Bool
     /// Does Settings > Indicators still list it? One it doesn't has no predicate or place in Settings to show.
@@ -98,7 +176,7 @@ private struct IndicatorPopoverCard: View {
     private var header: some View {
         HStack(alignment: .center, spacing: 8) {
             SettingsRowIcon(indicator.symbol, indicator.tint, size: 24)
-            Text(indicator.name).font(.system(size: 13, weight: .semibold)).lineLimit(2)
+            Text(indicator.title(events)).font(.system(size: 13, weight: .semibold)).lineLimit(2)
             if let tactic = indicator.tactic {
                 Text(tactic.name)
                     .font(.system(size: 11, weight: .medium)).foregroundStyle(IndicatorChip.text)

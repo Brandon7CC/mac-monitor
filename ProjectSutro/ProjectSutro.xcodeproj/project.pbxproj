@@ -14,6 +14,7 @@
 		0D0D0D00000000000000001A /* ESODGroupMemberEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000019 /* ESODGroupMemberEvent+CoreDataClass.swift */; };
 		0D0D0D00000000000000001E /* FactRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D00000000000000001D /* FactRow.swift */; };
 		0D0D0D0000000000000000A4 /* UserFact.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D0000000000000000A3 /* UserFact.swift */; };
+		0D0D0D0000000000000000A8 /* RelatedIndicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D0000000000000000A7 /* RelatedIndicators.swift */; };
 		0D0D0D0000000000000000A2 /* EventFactsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D0000000000000000A1 /* EventFactsCard.swift */; };
 		280C78CF2E8DE21E00B172E5 /* UIPCBindEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 280C78CE2E8DE21800B172E5 /* UIPCBindEvent.swift */; };
 		280C78D22E8DE33700B172E5 /* ESUIPCBindEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 280C78D02E8DE33700B172E5 /* ESUIPCBindEvent+CoreDataClass.swift */; };
@@ -754,6 +755,7 @@
 		0D0D0D000000000000000019 /* ESODGroupMemberEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESODGroupMemberEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		0D0D0D00000000000000001D /* FactRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactRow.swift; sourceTree = "<group>"; };
 		0D0D0D0000000000000000A3 /* UserFact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserFact.swift; sourceTree = "<group>"; };
+		0D0D0D0000000000000000A7 /* RelatedIndicators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelatedIndicators.swift; sourceTree = "<group>"; };
 		0D0D0D0000000000000000A1 /* EventFactsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventFactsCard.swift; sourceTree = "<group>"; };
 		280C78CE2E8DE21800B172E5 /* UIPCBindEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIPCBindEvent.swift; sourceTree = "<group>"; };
 		280C78D02E8DE33700B172E5 /* ESUIPCBindEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESUIPCBindEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -4008,6 +4010,7 @@
 				4D4D00000000000000000074 /* IndicatorsButton.swift */,
 				0D0D0D00000000000000001D /* FactRow.swift */,
 				0D0D0D0000000000000000A3 /* UserFact.swift */,
+				0D0D0D0000000000000000A7 /* RelatedIndicators.swift */,
 				0D0D0D0000000000000000A1 /* EventFactsCard.swift */,
 				CA11B0E00000000000000001 /* CalloutBadge.swift */,
 				F17E7E000000000000000013 /* FileTypeFact.swift */,
@@ -4877,6 +4880,7 @@
 				0D0D0D000000000000000018 /* OpenDirectoryFactsViews.swift in Sources */,
 				0D0D0D00000000000000001E /* FactRow.swift in Sources */,
 				0D0D0D0000000000000000A4 /* UserFact.swift in Sources */,
+				0D0D0D0000000000000000A8 /* RelatedIndicators.swift in Sources */,
 				0D0D0D0000000000000000A2 /* EventFactsCard.swift in Sources */,
 				CA11B0E00000000000000002 /* CalloutBadge.swift in Sources */,
 				F17E7E000000000000000014 /* FileTypeFact.swift in Sources */,
