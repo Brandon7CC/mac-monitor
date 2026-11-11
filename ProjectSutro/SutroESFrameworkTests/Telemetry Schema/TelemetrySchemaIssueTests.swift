@@ -211,7 +211,7 @@ final class TelemetrySchemaIssueTests: XCTestCase {
         }
     }
     
-    /// The fixtures' exports (``fixtureExports()``), parsed.
+    /// The fixtures' exports (``fixtureExports(file:line:)``), parsed.
     ///
     /// - Returns: Each export's object, in the fixtures' order.
     /// - Throws: The error reading a fixture, or an `XCTest` failure if an export isn't a JSON object.

@@ -1,5 +1,5 @@
 //
-//  RCProcessHelpers.swift
+//  ProcessHelpers.swift
 //  SutroESFramework
 //
 //  Created by Brandon Dalton on 6/7/23.
@@ -11,28 +11,12 @@ import OSLog
 
 public class ProcessHelpers {
     // MARK: Supported scripting interpreters
-    static let supportedInterpreters: Set<String> = [
-        "bash",
-        "osascript",
-        "ruby",
-        "perl",
-        "python",
-        "node",
-        "bun",
-        "swift"
-    ]
-    
-    /// Is `executableName` a supported scripting interpreter: one of ``supportedInterpreters``, alone or followed by a
-    /// version (`python3`, `python3.12`, `ruby3.3`)? Names that only start with one (`bundle`, `bunzip2`,
-    /// `swift-frontend`) aren't.
+    /// Is `executableName` a supported scripting interpreter (``ScriptInterpreter/named(_:)``)?
     ///
     /// - Parameter executableName: The executable's file name.
     /// - Returns: Whether to look for the script among the exec's arguments.
     static func isScriptingInterpreter(_ executableName: String) -> Bool {
-        supportedInterpreters.contains { interpreter in
-            guard executableName.hasPrefix(interpreter) else { return false }
-            return executableName.dropFirst(interpreter.count).allSatisfy { $0.isNumber || $0 == "." }
-        }
+        ScriptInterpreter.named(executableName) != nil
     }
     
     
@@ -43,20 +27,6 @@ public class ProcessHelpers {
     /// - Returns: Each argument, or "" for one that isn't UTF-8.
     static func parseExecArgs(execEvent: inout es_event_exec_t) -> [String] {
         (0..<es_exec_arg_count(&execEvent)).map { es_exec_arg(&execEvent, $0).string ?? "" }
-    }
-    
-    static func parseScriptFromArgs(args: [String], workingDirectory: String) -> String? {
-        guard args.count > 1 else { return nil }
-        
-        for arg in args.dropFirst() {
-            guard !arg.hasPrefix("-") else { continue }
-            let pathToCheck = arg.hasPrefix("/") ? arg : workingDirectory.appendingPathComponent(arg)
-            if fileIsNonBinary(at: pathToCheck) {
-                return pathToCheck
-            }
-        }
-        
-        return nil
     }
     
     // MARK: - Parsing the environment variables of exec events
@@ -155,25 +125,34 @@ public class ProcessHelpers {
     /// The most bytes ``getFileContents(at:)`` reads: a longer script or plist is cut there.
     static let fileContentsLimit = 1 << 20
     
-    /// Does a path name a regular file whose first 512 bytes are UTF-8 text, such as a script?
-    ///
-    /// - Parameter path: The file's path, or a `file://` URL's.
-    /// - Returns: `false` for a binary, or anything that isn't a regular file (``openRegularFile(at:)``).
-    static func fileIsNonBinary(at path: String) -> Bool {
-        guard let file = openRegularFile(at: path), let data = try? file.read(upToCount: 512) else {
-            return false
-        }
-        return String(data: data, encoding: .utf8) != nil
-    }
-    
-    /// The UTF-8 text of a regular file, such as a script or a launch item's plist, up to ``fileContentsLimit``.
+    /// The UTF-8 text of a regular file, such as a launch item's plist, up to ``fileContentsLimit``.
     ///
     /// - Parameter path: The file's path, or a `file://` URL's.
     /// - Returns: The text, cut at the limit back to the end of a whole character, or `nil` if the file isn't UTF-8
-    ///   text or isn't a regular file (``openRegularFile(at:)``).
+    ///   text or isn't a regular file (``openRegularFile(at:for:expecting:)``).
     public static func getFileContents(at path: String) -> String? {
-        guard let file = openRegularFile(at: path),
-              let data = try? file.read(upToCount: fileContentsLimit + 1) ?? Data() else { return nil }
+        readRegularFile(at: path).flatMap(limitedText(of:))
+    }
+
+    /// The bytes of a regular file, up to one more than ``fileContentsLimit``, so a caller can tell a file that's cut.
+    ///
+    /// - Parameters:
+    ///   - path: The file's path, or a `file://` URL's.
+    ///   - reader: Who the file is read for, or `nil` for Mac Monitor itself.
+    ///   - identity: The file the path must still name, or `nil` for any.
+    /// - Returns: The bytes, or `nil` if ``openRegularFile(at:for:expecting:)`` doesn't open the file, or it can't be
+    ///   read.
+    static func readRegularFile(at path: String, for reader: FileReader? = nil,
+                                expecting identity: FileIdentity? = nil) -> Data? {
+        guard let file = openRegularFile(at: path, for: reader, expecting: identity) else { return nil }
+        return try? file.read(upToCount: fileContentsLimit + 1) ?? Data()
+    }
+
+    /// Bytes as UTF-8 text, up to ``fileContentsLimit``.
+    ///
+    /// - Parameter data: The bytes.
+    /// - Returns: The text, cut at the limit back to the end of a whole character, or `nil` if it isn't UTF-8.
+    static func limitedText(of data: Data) -> String? {
         guard data.count > fileContentsLimit else { return String(data: data, encoding: .utf8) }
         /// A UTF-8 character is at most 4 bytes, so one of the last 4 cuts ends on a whole one.
         for end in stride(from: fileContentsLimit, to: fileContentsLimit - 4, by: -1) {
@@ -187,19 +166,26 @@ public class ProcessHelpers {
     /// An exec's arguments can name anything. Opening a FIFO that has no writer waits until something opens it for
     /// writing, and the capture lane building the event waited with it. Opening a device can have side effects. So the
     /// path is `stat`ed first, opened with `O_NONBLOCK`, and checked again with `fstat` in case it was replaced in
-    /// between.
+    /// between. A reader and an identity are checked on that `fstat` of the open file too, so a file swapped in after
+    /// the checks is never the one read.
     ///
-    /// - Parameter path: The file's path, or a `file://` URL's. A symbolic link is followed.
-    /// - Returns: The open file, closed when it's released, or `nil` if the path doesn't name a regular file or it
-    ///   can't be opened.
-    static func openRegularFile(at path: String) -> FileHandle? {
+    /// - Parameters:
+    ///   - path: The file's path, or a `file://` URL's. A symbolic link is followed.
+    ///   - reader: Who the file is read for: it's refused unless they could read it themselves
+    ///     (``FileReader/canRead(_:of:)``). `nil` reads it as Mac Monitor.
+    ///   - identity: The file the path must still name (``FileIdentity``), or `nil` for any.
+    /// - Returns: The open file, closed when it's released, or `nil` if the path doesn't name a regular file, it can't
+    ///   be opened, or the reader or identity refuses it.
+    static func openRegularFile(at path: String, for reader: FileReader? = nil,
+                                expecting identity: FileIdentity? = nil) -> FileHandle? {
         let path = path.droppingPrefix("file://")
         var info = stat()
         guard stat(path, &info) == 0, info.st_mode & S_IFMT == S_IFREG else { return nil }
         let descriptor = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC)
         guard descriptor >= 0 else { return nil }
         let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
-        guard fstat(descriptor, &info) == 0, info.st_mode & S_IFMT == S_IFREG else { return nil }
+        guard fstat(descriptor, &info) == 0, info.st_mode & S_IFMT == S_IFREG, identity?.matches(info) ?? true,
+              reader?.canRead(info, of: descriptor) ?? true else { return nil }
         return file
     }
 }

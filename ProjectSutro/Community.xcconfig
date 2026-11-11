@@ -54,3 +54,11 @@ COMMUNITY_EXCLUDED_ARCHS_x86_64 = arm64 arm64e
 // build has no use for, and Scripts/community-sign.sh doesn't sign them. Only the linker's adhoc signature, which it
 // writes for arm64 and arm64e alone, kept them valid, so an Intel Mac's x86_64 build failed the script's verify step.
 ENABLE_DEBUG_DYLIB = NO
+
+// Optimized as Release is, so a Community build costs what the shipped app does: unoptimized, the Security Extension
+// used about three times the CPU under load (90% of a core against 29% at the same storm of events). The tests build
+// in this configuration too, so they test the optimized framework. Their own bundle stays unoptimized, set on its
+// target, so it compiles quickly. Scripts/test-performance.sh optimizes the benchmarks' bundle as well.
+SWIFT_OPTIMIZATION_LEVEL = -O
+SWIFT_COMPILATION_MODE = wholemodule
+GCC_OPTIMIZATION_LEVEL = s

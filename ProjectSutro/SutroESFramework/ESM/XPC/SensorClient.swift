@@ -32,6 +32,8 @@ public final class SensorClient {
     private let lock = NSLock()
     private var connection: NSXPCConnection?
     private let agent: AppAgentProtocol
+    /// Makes each connection, not yet activated, with its peer pinned.
+    private let connect: () -> NSXPCConnection
     private let onSignal: (Signal) -> Void
     /// Our Darwin notification registrations.
     private var notifyTokens: [Int32] = []
@@ -50,8 +52,19 @@ public final class SensorClient {
     /// - Parameters:
     ///   - agent: The object exported to the Security Extension (receives events and an update's progress).
     ///   - onSignal: Called on the main queue when the owner should consider a new handshake.
-    public init(agent: AppAgentProtocol, onSignal: @escaping (Signal) -> Void) {
+    public convenience init(agent: AppAgentProtocol, onSignal: @escaping (Signal) -> Void) {
+        self.init(agent: agent, connect: SensorClient.securityExtension, onSignal: onSignal)
+    }
+
+    /// Create a client whose connections go where `connect` says. Tests pass one to a listener in the test process.
+    ///
+    /// - Parameters:
+    ///   - agent: The object exported to the Security Extension (receives events and an update's progress).
+    ///   - connect: Makes a connection that isn't activated yet.
+    ///   - onSignal: Called on the main queue when the owner should consider a new handshake.
+    init(agent: AppAgentProtocol, connect: @escaping () -> NSXPCConnection, onSignal: @escaping (Signal) -> Void) {
         self.agent = agent
+        self.connect = connect
         self.onSignal = onSignal
         observe(SensorXPC.sensorReadyNotification, as: .restarted)
         observe(SensorXPC.sensorReleasedNotification, as: .released)
@@ -117,13 +130,75 @@ public final class SensorClient {
         
         request(sensor) { deliver($0) }
     }
-    
+
+    /// Send one request on a connection of its own, closed once it's answered: for a request the Security Extension
+    /// may not know.
+    ///
+    /// NSXPC closes the connection that sends a message its peer's interface doesn't have. On the connection
+    /// ``call(caller:_:completion:)`` uses, that would end Mac Monitor's event stream. Here it closes only this one,
+    /// and `completion` gets `nil`. The Security Extension doesn't know this connection as the one that owns the
+    /// event stream, so only requests any caller may make belong here. A change only the owner may make goes on
+    /// ``call(caller:_:completion:)`` once a probe has answered (``SensorSupport``).
+    ///
+    /// - Parameters:
+    ///   - caller: Names the request in the log when it fails. Defaults to the calling function.
+    ///   - request: Sends the message to the proxy, passing the reply block through.
+    ///   - completion: Called on the main queue with the reply, or `nil` if the request failed.
+    public func probe<Reply>(
+        caller: String = #function,
+        _ request: (SensorProtocol, @escaping (Reply) -> Void) -> Void,
+        completion: @escaping (Reply?) -> Void
+    ) {
+        send(caller: caller, request, once: connect(), completion: completion)
+    }
+
+    /// A connection to our own Security Extension's Mach service, not yet activated. A mismatched peer invalidates it.
+    ///
+    /// - Returns: The connection.
+    private static func securityExtension() -> NSXPCConnection {
+        let connection = NSXPCConnection(machServiceName: SensorXPC.machServiceName, options: [])
+        connection.setCodeSigningRequirement(SensorXPC.sensorRequirement)
+        return connection
+    }
+
+    /// Send one request on `connection`, then invalidate it.
+    ///
+    /// - Parameters:
+    ///   - caller: Names the request in the log when it fails.
+    ///   - request: Sends the message to the proxy, passing the reply block through.
+    ///   - connection: A connection that isn't activated yet. Tests pass one to a listener in the test process.
+    ///   - completion: Called on the main queue with the reply, or `nil` if the request failed.
+    func send<Reply>(
+        caller: String,
+        _ request: (SensorProtocol, @escaping (Reply) -> Void) -> Void,
+        once connection: NSXPCConnection,
+        completion: @escaping (Reply?) -> Void
+    ) {
+        connection.remoteObjectInterface = SensorXPC.sensorInterface
+        connection.activate()
+        let deliver: (Reply?) -> Void = { reply in
+            connection.invalidate()
+            DispatchQueue.main.async { completion(reply) }
+        }
+        let proxy = connection.remoteObjectProxyWithErrorHandler { [logger] error in
+            logger.log("""
+                The probe \(caller, privacy: .public) got no answer: \(error.localizedDescription, privacy: .public)
+                """)
+            deliver(nil)
+        }
+        guard let sensor = proxy as? SensorProtocol else {
+            deliver(nil)
+            return
+        }
+        request(sensor) { deliver($0) }
+    }
+
     /// The current connection, created on demand.
     private var liveConnection: NSXPCConnection {
         lock.withLock {
             if let connection { return connection }
             
-            let newConnection = NSXPCConnection(machServiceName: SensorXPC.machServiceName, options: [])
+            let newConnection = connect()
             configure(newConnection)
             newConnection.activate()
             connection = newConnection
@@ -141,8 +216,6 @@ public final class SensorClient {
         newConnection.remoteObjectInterface = SensorXPC.sensorInterface
         newConnection.exportedInterface = SensorXPC.agentInterface
         newConnection.exportedObject = agent
-        /// Only talk to our own Security Extension. A mismatched peer invalidates the connection.
-        newConnection.setCodeSigningRequirement(SensorXPC.sensorRequirement)
         
         newConnection.interruptionHandler = { [weak self] in
             self?.logger.error("The Security Extension exited or crashed.")

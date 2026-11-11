@@ -17,6 +17,8 @@ final class PredicateTextTests: XCTestCase {
     func testKeyPaths() {
         let keyPaths = RecordKeyPaths.shared
         XCTAssertEqual(keyPaths.nodes["event.exec.target.is_adhoc_signed"]?.type, "boolean")
+        XCTAssertEqual(keyPaths.nodes["process.process_age_ms"]?.type, "integer")
+        XCTAssertEqual(keyPaths.nodes["event.signal.target.process_age_ms"]?.type, "integer")
         XCTAssertTrue(keyPaths.nodes["es_event_type"]?.values.contains("ES_EVENT_TYPE_NOTIFY_EXEC") == true)
         XCTAssertTrue(keyPaths.nodes[""]?.children.contains("event") == true)
         XCTAssertEqual(keyPaths.validCount(of: ["process", "@count"]), 2)
@@ -31,7 +33,7 @@ final class PredicateTextTests: XCTestCase {
         let refused = [
             ("SUBQUERY(correlated, $e, $e.create.destination.existing_file.name ENDSWITH 'x').@count > 0",
              "The predicate can't use '$e.create.destination.existing_file.name': 'create' isn't a key at the top of "
-             + "a record. Did you mean '$e.event.create.destination.existing_file.name'? Settings ▸ Telemetry Schema "
+             + "a record. Did you mean '$e.event.create.destination.existing_file.name'? Settings > Telemetry Schema "
              + "describes them."),
             ("process.signing_id.signing_id == nil",
              "The predicate can't use 'process.signing_id.signing_id': 'process.signing_id' has no key 'signing_id'."),
@@ -94,5 +96,22 @@ final class PredicateTextTests: XCTestCase {
         XCTAssertNil(completions("process.pid == "))
         XCTAssertNil(completions(#"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC""#))
         XCTAssertNil(completions("nothing.like.this"))
+    }
+
+    /// Strings between `"`, `'` and backticks are skipped, a backslash escaping the character after it, and a
+    /// predicate that ends inside one is refused before `NSPredicate`'s scanner, which ends the process on some, reads
+    /// it.
+    func testUnclosedStringsAreRefused() {
+        var outside = ""
+        let open = PredicateText.forEachUnquotedByte(in: #"a == "x\")" AND (b == 'y') OR `z`"#) {
+            outside.unicodeScalars.append(Unicode.Scalar($0))
+        }
+        XCTAssertNil(open)
+        XCTAssertEqual(outside, "a ==  AND (b == ) OR ")
+        for text in [#"a == "x\"#, #"a == "x\""#, "a == 'x", "`a", #"es_event_type == "x"#] {
+            XCTAssertTrue(PredicateText.endsInsideQuote(text), text)
+            XCTAssertThrowsError(try StreamFilter.Predicate(text, for: .indicator), text)
+        }
+        XCTAssertFalse(PredicateText.endsInsideQuote(#"a == "x\\""#))
     }
 }

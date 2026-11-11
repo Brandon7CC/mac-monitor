@@ -11,11 +11,11 @@ import SutroESFramework
 
 struct FileQuarantineStatusLabelView: View {
     var isQuarantined: Int
-    
+
     var quarantinedColor: Color = Color(cgColor: .init(red: 58/255.0, green: 194/255.0, blue: 72/255.0, alpha: 1.0))
     var notQuarantinedColor: Color = Color(cgColor: .init(red: 242/255.0, green: 100/255.0, blue: 90/255.0, alpha: 1.0))
-    
-    
+
+
     var body: some View {
         if isQuarantined != 2 {
             Group {
@@ -37,125 +37,68 @@ struct FileQuarantineStatusLabelView: View {
     }
 }
 
+/// What a `create` event says: the file created, whether it's quarantined, and its ACL and mode.
 struct SystemFileCreateMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    var create: ESFileCreateEvent? {
-        esSystemEvent.event.create
-    }
-    
-    var destinationTypeString: String {
-        create?.destination_type_string ?? ""
-    }
-    
-    var createdFileName: String {
-        create?.fileName ?? ""
-    }
-    
-    var destinationPath: String {
-        create?.targetPath ?? ""
-    }
-    
-    var fileQuarantineEnabled: Bool {
-        esSystemEvent.process.file_quarantine_type != "DISABLED"
-    }
-    
-    var fileQuarantineType: Int {
-        Int(create?.is_quarantined ?? 0)
-    }
-    
-    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
-    var body: some View {
-        if create != nil {
-            eventContent
-        }
+    @ObservedObject private var store = IndicatorStore.shared
+
+    /// Did the event match the Unquarantined file from a File Quarantine-aware app indicator? It's the one rule for a
+    /// file such an app leaves unquarantined, so turning it off or editing it changes the warning too.
+    private var isLeftUnquarantined: Bool {
+        store.marks(for: esSystemEvent).indicators.contains { $0.id == Indicator.unquarantinedFileID }
     }
 
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
-                    if fileQuarantineEnabled && fileQuarantineType == 0 {
+    /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
+    var body: some View {
+        if let event = esSystemEvent.event.create {
+            let fileQuarantineType = Int(event.is_quarantined)
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
+                    if isLeftUnquarantined {
                         GroupBox {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .symbolRenderingMode(.palette)
                                     .foregroundStyle(.black, .yellow)
-                                Text("This file is potentially *not* quarantined by a \"File Quarantine-aware\" application. False positives exist (e.g. if the attribute is quickly deleted) and the existance of the `com.apple.quarantine` extended attribute should be investigated.")
+                                Text("""
+                                    This file is potentially *not* quarantined by a "File Quarantine-aware" \
+                                    application. False positives exist (e.g. if the attribute is quickly deleted) and \
+                                    the existance of the `com.apple.quarantine` extended attribute should be \
+                                    investigated.
+                                    """)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
                     }
-                    
-                    HStack {
-                        Text("\u{2022} **Type:**")
-                        GroupBox {
-                            Text("`\(destinationTypeString)`")
-                        }
-                    }
-                    
+
+                    FactRow(name: "Type", value: event.destination_type_string)
+
                     HStack {
                         Text("\u{2022} **File name:**")
                         GroupBox {
-                            Text("`\(createdFileName)`")
+                            Text("`\(event.fileName)`")
                         }
                         FileQuarantineStatusLabelView(isQuarantined: fileQuarantineType)
                     }
-                    
+
                     HStack {
-                        FileExistsLabel(title: "**File path:**", path: destinationPath)
+                        FileExistsLabel(title: "**File path:**", path: event.targetPath)
                         GroupBox {
-                            Text("`\(destinationPath)`")
+                            Text("`\(event.targetPath)`")
                                 .lineLimit(10)
                         }
-                        ShowInFinderButton(path: destinationPath)
+                        ShowInFinderButton(path: event.targetPath)
                     }
-                    
-                    if let acl = create?.acl {
-                        HStack {
-                            Text("\u{2022} **ACL:**")
-                            GroupBox {
-                                Text("`\(acl.trimmingCharacters(in: .whitespacesAndNewlines))`")
-                            }
-                        }
+
+                    if let acl = event.acl {
+                        FactRow(name: "ACL", value: acl.trimmingCharacters(in: .whitespacesAndNewlines))
                     }
-                    
-                    if let mode = create?.destination.new_path?.mode {
-                        HStack {
-                            Text("\u{2022} **Mode:**")
-                            GroupBox {
-                                Text("`\(mode.int32Value)`")
-                            }
-                        }
+
+                    if let mode = event.destination.new_path?.mode {
+                        FactRow(name: "Mode", value: "\(mode.int32Value)")
                     }
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }

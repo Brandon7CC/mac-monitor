@@ -13,7 +13,7 @@ import SwiftUI
 /// heading, after the table views, "Unix Parent" (Option-Command-U) and "Launched by Parent" (Option-Command-L) are
 /// checked like a pair of radio buttons: choosing one checks it and unchecks the other.
 ///
-/// Settings ▸ General makes the same choice (``ProcessTreePrefsView``): both are kept under
+/// Settings > General makes the same choice (``ProcessTreePrefsView``): both are kept under
 /// ``ProcessLineageMode/storageKey``.
 struct ProcessTreeCommands: Commands {
     /// The choice: the app's `@AppStorage` under ``ProcessLineageMode/storageKey``.
@@ -32,7 +32,7 @@ struct ProcessTreeCommands: Commands {
         }
     }
     
-    /// Whether a choice is the one made, as a menu item's check mark. Checking it makes it the choice; unchecking the
+    /// Whether a choice is the one made, as a menu item's check mark. Checking it makes it the choice. Unchecking the
     /// choice made does nothing, so one item is always checked.
     ///
     /// - Parameter choice: The item's choice.

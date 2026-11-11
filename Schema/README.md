@@ -23,6 +23,9 @@ enrichment.
 Two of eslogger's integers that Mac Monitor can't reproduce keep eslogger's keys: `seq_num` and `global_seq_num` count
 the messages of the ES client that received them, so Mac Monitor's numbers never match eslogger's.
 
+A close of an unmodified file is left out by default (Settings > Subscriptions, or `macmonitor stream --every close`,
+brings it back). Its message still advances `seq_num` and `global_seq_num`, so gaps there are expected, not losses.
+
 ## Versions
 
 Every record carries `telemetry_version`, the version of this schema it follows. eslogger's own `schema_version` (an
@@ -32,14 +35,41 @@ integer) is untouched. The telemetry version is independent of the app's and fol
 - **MINOR** when a key, an event type, or a value of an enum is added.
 - **PATCH** when only the schema's text changes.
 
-Telemetry 1.0.0 is the version Mac Monitor 3.0.0 ships. `released-versions.txt` lists each released version with the
-SHA-256 of the file released with it, and a test fails if a released version's file changes. To validate an older
-trace, use the schema attached to the release that wrote it. A trace exported before Mac Monitor 3.0.0 names no
-telemetry version, and no schema describes it: open it with File > Open Trace... and export it again to check it.
+| Telemetry | Mac Monitor | Change |
+|---|---|---|
+| 1.0.0 | 3.0.0 | The first schema. |
+| 1.1.0 | 3.1.0 | Adds the keys below, and removes none. |
+
+### Added in 1.1.0
+
+| Where | Keys | What they hold |
+|---|---|---|
+| Every process | `process_age_ms` | How old the process was at the event. |
+| `mmap` | `protection_names`, `max_protection_names`, `flag_names` | The `PROT_*` and `MAP_*` names of the bits set. |
+| `setmode` | `mode_symbolic`, `previous_mode`, `mode_added` | The new mode as `ls -l` shows it, the mode before, and what the change added. |
+| Launch items | `bundle`, `app_bundle` | The bundle an item names and its app's: Info.plist essentials, signing, quarantine, where-froms and age. |
+| `iokit_open` | `parent_class`, `driver_bundle_id` | The service being opened and its driver. |
+| `mmap`, modified `close`, `rename` | `file_type`, `mach_o_type` | What the file is by its content: a Launch Services type and a Mach-O's `MH_*` type. |
+| Every record | `indicators`, `indicators_undetermined` | The indicators the event matched, and those the Security Extension couldn't rule out. |
+
+Each key's `description` in the schema says how it's derived and when it's `null`. Three things hold across them:
+
+- **Derived from the record** (`process_age_ms`, the `mmap` and `setmode` names): filled in when an older trace is
+  opened and exported again.
+- **Read from the recording Mac** (bundles, the IOKit registry, file types): read when the event is recorded, never when
+  a trace is opened, so a trace without them exports `null`.
+- **`indicators`** is `[]` when none matched and absent when nothing was evaluated. `evaluated_by` says who matched:
+  `security_extension` at capture, or `export` when Mac Monitor matched as it wrote the record.
+  `indicators_undetermined` lists at most 32 that the Security Extension couldn't decide: each may or may not match.
+
+`released-versions.txt` lists each released version with the SHA-256 of its file, and a test fails if a released
+version's file changes. To validate an older trace, use the schema attached to the release that wrote it. A trace
+exported before Mac Monitor 3.0.0 names no telemetry version: open it with File > Open Trace... and export it again to
+check it.
 
 ## Checking a trace
 
-In Mac Monitor, **Help ▸ Telemetry Schema...** shows the schema it ships with (⌘F searches it), copies or saves it,
+In Mac Monitor, **Help > Telemetry Schema...** shows the schema it ships with (⌘F searches it), copies or saves it,
 and checks a trace with **Validate Trace...**. The report gives the number of valid, invalid and malformed records, how
 many issues of each kind there are, and the first 100 issues with the line their record starts on and the path of the
 value: `line 812: event.exec.target.cdhash: "0df5..." doesn't match ^[0-9A-F]{40}$`. For eslogger's own JSON, **Check

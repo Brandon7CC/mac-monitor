@@ -24,7 +24,7 @@
 #error "Build the test host for arm64e: clang -arch arm64e"
 #endif
 
-/// Whether this process signs pointers. macOS 26 and later run arm64e code with pointer authentication on; earlier
+/// Whether this process signs pointers. macOS 26 and later run arm64e code with pointer authentication on. Earlier
 /// versions run it with the keys off, where signing leaves a pointer as it was.
 ///
 /// - Returns: `YES` when signing a pointer changes it.

@@ -8,7 +8,6 @@
 
 import Foundation
 import CoreData
-import OSLog
 
 @objc(ESProcessExitEvent)
 public class ESProcessExitEvent: NSManagedObject, Identifiable {

@@ -9,78 +9,21 @@ import SwiftUI
 import SutroESFramework
 
 
+/// What a `uipc_bind` event says: the socket file bound, and its mode.
 struct SystemUIPCBindMetadataView: View {
     var message: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESUIPCBindEvent {
-        message.event.uipc_bind!
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if message.event.uipc_bind != nil {
-            eventContent
-        }
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: message)
-                .font(.title2)
-                
-            
-            GroupBox {
-                VStack(alignment: .leading) {
+        if let event = message.event.uipc_bind {
+            EventFactsCard(message: message) {
+                FactsBox {
                     if let path = message.target_path {
-                        HStack {
-                            Text("\u{2022} File path:")
-                                .bold()
-                            GroupBox {
-                                Text(path)
-                                    .monospaced()
-                            }
-                        }
+                        FactRow(name: "File path", value: path, style: .monospaced)
                     }
-                    
-                    HStack {
-                        Text("\u{2022} Mode:")
-                            .bold()
-                        GroupBox {
-                            Text(String(event.mode))
-                                .monospaced()
-                        }
-                    }
-                    
-                    
-                    
-                    
-                }.frame(maxWidth: .infinity, alignment: .leading)
-                
-                
+                    FactRow(name: "Mode", value: String(event.mode), style: .monospaced)
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: message.process.audit_token_string,
-                responsible_audit_token: message.process.responsible_audit_token_string,
-                parent_audit_token: message.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }

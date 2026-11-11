@@ -9,82 +9,38 @@ import SwiftUI
 import SutroESFramework
 
 
+/// What a `setextattr` event says: the extended attribute set, and the file it's on.
 struct SystemSetXattrMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESXattrSetEvent {
-        esSystemEvent.event.setextattr!
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.setextattr != nil {
-            eventContent
-        }
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("\u{2022} Extended attribute:")
-                            .bold()
-                        GroupBox {
-                            Text(event.extattr)
-                                .monospaced()
-                        }
-                    }
-                    
-                    HStack {
-                        Text("\u{2022} File name:")
-                            .bold()
-                        GroupBox {
-                            Text(event.target.name)
-                                .monospaced()
-                        }
-                    }
-                    
-                    if let path = event.target.path {
-                        VStack(alignment: .leading) {
-                            Text("\u{2022} File path:")
-                            GroupBox {
-                                Text(path)
-                                    .monospaced()
-                                    .lineLimit(30)
-                            }
-                        }
-                    }
-                }.frame(maxWidth: .infinity, alignment: .leading)
+        if let event = esSystemEvent.event.setextattr {
+            EventFactsCard(message: esSystemEvent) {
+                ExtendedAttributeFacts(attribute: event.extattr, file: event.target)
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-            
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }
 
+
+// MARK: - Extended attribute facts
+/// The facts the extended attribute events share: the attribute, when the event names one, and the file it's on.
+struct ExtendedAttributeFacts: View {
+    /// The extended attribute, or `nil` for an event that names none, as `listextattr` does.
+    var attribute: String? = nil
+    /// The file.
+    let file: ESFile
+
+    var body: some View {
+        FactsBox {
+            if let attribute {
+                FactRow(name: "Extended attribute", value: attribute, style: .monospaced)
+            }
+            FactRow(name: "File name", value: file.name, style: .monospaced)
+            if let path = file.path {
+                FactRow(name: "File path", value: path, stacked: true, style: .monospaced)
+            }
+        }
+    }
+}

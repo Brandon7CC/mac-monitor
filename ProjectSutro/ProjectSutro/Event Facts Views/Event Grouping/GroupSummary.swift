@@ -12,7 +12,7 @@ import SutroESFramework
 
 // MARK: - Summary
 /// The execs in an event's process group or session, as the Groups tab shows them: a row each, how they're signed,
-/// and the findings worth a look. Made on the main thread, the view context's queue.
+/// and the indicators worth a look. Made on the main thread, the view context's queue.
 struct GroupSummary {
     /// Which group.
     enum Scope: String, CaseIterable, Identifiable {
@@ -82,10 +82,10 @@ struct GroupSummary {
         let time: String
         /// Is it the event Event Facts shows?
         let isCurrent: Bool
-        /// The first finding it's part of.
-        let finding: Finding?
-        /// Every finding it's part of, by identity.
-        let findings: Set<UUID>
+        /// The first indicator it's part of.
+        let indicator: Indicator?
+        /// Every indicator it's part of, by identity.
+        let indicators: Set<UUID>
 
         var id: NSManagedObjectID { message.objectID }
 
@@ -105,8 +105,8 @@ struct GroupSummary {
     let rows: [Row]
     /// Each way of signing with its number of execs, most first.
     let signings: [(signing: Signing, count: Int)]
-    /// Each finding with its execs, in Settings ▸ Indicators' order.
-    let findings: [(finding: Finding, rows: [Row])]
+    /// Each indicator with its execs, in Settings > Indicators' order.
+    let indicators: [(indicator: Indicator, rows: [Row])]
     /// Seconds from the first exec to the last.
     let span: Double
 
@@ -114,8 +114,8 @@ struct GroupSummary {
     ///   - scope: Which group.
     ///   - execs: Its exec events, newest first.
     ///   - current: The event Event Facts shows.
-    ///   - matcher: The findings to look for (``FindingStore``).
-    init(scope: Scope, execs: [ESMessage], current: ESMessage, matcher: FindingMatcher) {
+    ///   - matcher: The indicators to look for, read from each event's stored verdicts first (``IndicatorStore``).
+    init(scope: Scope, execs: [ESMessage], current: ESMessage, matcher: EventIndicatorMatcher) {
         self.scope = scope
         let process = current.event.exec?.target ?? current.process
         identifier = Int(scope == .process ? process.group_id : process.session_id)
@@ -127,16 +127,16 @@ struct GroupSummary {
                        commandLine: exec.command_line ?? "", signer: target.signing_id ?? target.team_id ?? "",
                        signing: Signing(target.codesigning_type), user: target.euid_human ?? "\(target.euid)",
                        time: eventTimeStamp(for: message), isCurrent: message.objectID == current.objectID,
-                       finding: matched.first, findings: Set(matched.map(\.id)))
+                       indicator: matched.first, indicators: Set(matched.map(\.id)))
         }
         var counts: [Signing: Int] = [:]
         rows.forEach { counts[$0.signing, default: 0] += 1 }
         signings = Signing.allCases.compactMap { signing in counts[signing].map { (signing, $0) } }
             .sorted { $0.count > $1.count }
         let rows = rows
-        findings = matcher.order.compactMap { finding in
-            let matching = rows.filter { $0.findings.contains(finding.id) }
-            return matching.isEmpty ? nil : (finding, matching)
+        indicators = matcher.order.compactMap { indicator in
+            let matching = rows.filter { $0.indicators.contains(indicator.id) }
+            return matching.isEmpty ? nil : (indicator, matching)
         }
         let times = rows.compactMap { $0.message.message_darwin_time }
         span = times.max().map { last in times.min().map { last.timeIntervalSince($0) } ?? 0 } ?? 0

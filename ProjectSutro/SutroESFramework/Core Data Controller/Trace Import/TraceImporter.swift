@@ -16,12 +16,12 @@ import os
 /// Takes what `/usr/bin/eslogger` writes and what Mac Monitor writes or receives from its Security Extension, told
 /// apart by their content rather than the file's extension:
 /// - eslogger's JSON Lines, and its `--oslog` events read back with `log show` (`--style json` or `ndjson`, whose
-///   entries carry the event as their `eventMessage`, or a text style, whose lines end with it);
+///   entries carry the event as their `eventMessage`, or a text style, whose lines end with it).
 /// - Mac Monitor's exports: JSONL (one compact event per line) and pretty JSON (pretty-printed events joined by "\n",
 ///   not an array). Since 3.0.0 an export is eslogger's JSON plus Mac Monitor's own fields, among them its telemetry
 ///   version (``TelemetrySchema/versionKey``), which is ignored: a re-export carries the version it's written in. 2.0
-///   and 2.1 wrote their own shape;
-/// - the Security Extension's own `Message` JSON (the XPC wire format), one per line;
+///   and 2.1 wrote their own shape.
+/// - the Security Extension's own `Message` JSON (the XPC wire format), one per line.
 /// - a JSON array of any of these, compact or pretty.
 ///
 /// Every event is read with ``TraceDecoder``, which bridges these shapes for all event types at once instead of with a
@@ -189,23 +189,24 @@ public final class TraceImporter {
                 return !failed
             }
             let span = earliest...latest
-            let done = { [count = messages.count] (saved: Bool) in
+            /// Only stored batches count toward the summary: one dropped for a closed trace isn't a failure either.
+            let done = { [count = messages.count] (outcome: CoreDataController.TraceSave) in
                 saves.withLock { state in
-                    guard saved else {
-                        state.failed = true
-                        return
+                    switch outcome {
+                    case .saved:
+                        state.events += count
+                        state.range = state.range?.including(span) ?? span
+                    case .dropped: break
+                    case .failed: state.failed = true
                     }
-                    state.events += count
-                    state.range = state.range?.including(span) ?? span
                 }
                 saving.signal()
             }
             switch built {
             case nil: store.insertTraceEvents(messages, clear: clear, completion: done)
             case .built(let batch)?: store.saveTraceEvents(batch, clear: clear, completion: done)
-            /// As ``CoreDataController/insertTraceEvents(_:clear:completion:)`` reports a batch of a closed trace.
-            case .closed?: done(true)
-            case .failed?: done(false)
+            case .closed?: done(.dropped)
+            case .failed?: done(.failed)
             }
             handed += messages.count
             return true
@@ -265,7 +266,12 @@ public final class TraceImporter {
     /// (``ESLogger/time(_:darwinTime:)``). A new path's directory, which exports from 2.0.0 to 2.1.0 leave out, is read
     /// back from the event's destination path, and a rename's `mode`, which 2.0.0 to 2.1.0 wrote as 0, is dropped (see
     /// ``Message/repairNewPath()``). An event without Mac Monitor's own fields (one of eslogger's) gets them derived
-    /// from its Endpoint Security fields (``Message/enrich()``).
+    /// from its Endpoint Security fields (``Message/enrich()``). Once the time is read, an exec's executable age, the
+    /// age of every process the record gives none, and the age of a launch item's bundles, are derived from it
+    /// (``Message/deriveExecutableAge()``, ``Message/deriveProcessAges()``, ``Message/deriveBundleAges()``): a
+    /// record's own ages are kept, and a bundle is never read from this Mac's disk. A time read as 2.1.0's local time
+    /// (``ESLogger/isLocalTime(_:legacy:)``) derives no age: start and birth times are UTC, so the ages would be off
+    /// by the time zones' difference whenever the trace is opened in another zone than it was recorded in.
     ///
     /// - Parameter json: The event's JSON object, or a unified log entry whose `eventMessage` is one.
     /// - Returns: The event.
@@ -283,17 +289,25 @@ public final class TraceImporter {
         }
         /// Every key is optional to the decoder: a record that's an event in name only isn't shown.
         if case .unknown = message.event { throw TraceImportError.incomplete("no event type") }
+        /// An export made before 3.1 spells a new path's target path with "\/".
+        message.respellDestination()
         /// The Security Extension's own `Message` carries its time as seconds since 2001. One that isn't a time (more
         /// than about 3,000 years away) is read from `time` instead.
         let darwinTime = (object["message_darwin_time"] as? NSNumber)?.doubleValue
+        var isExactTime = true
         if !(darwinTime.map { abs($0) < Self.maxDarwinTime } ?? false) {
             guard let date = ESLogger.date(fromTime: message.time, legacy: !enriching) else {
                 throw TraceImportError.incomplete("no time")
             }
             message.message_darwin_time = date
+            isExactTime = !ESLogger.isLocalTime(message.time, legacy: !enriching)
         }
         message.time = ESLogger.time(message.time, darwinTime: message.message_darwin_time)
-        message.deriveExecutableAge()
+        if isExactTime {
+            message.deriveExecutableAge()
+            message.deriveProcessAges()
+            message.deriveBundleAges()
+        }
         message.repairNewPath()
         return message
     }

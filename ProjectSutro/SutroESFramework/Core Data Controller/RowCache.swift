@@ -120,8 +120,8 @@ final class EventRowCaches {
     }
 }
 
-/// What an `ESProcess` row stores: the process without its random IDs, and the message version (it decides whether
-/// `cs_validation_category` is stored).
+/// What an `ESProcess` row stores: the process without its random IDs or its age at the event, and the message version
+/// (it decides whether `cs_validation_category` is stored).
 struct ProcessRowKey: Hashable {
     let version: Int
     let process: Process
@@ -219,10 +219,12 @@ extension File {
 }
 
 extension Process {
-    /// This process with its random IDs (and its tokens', executable's, and tty's) zeroed.
+    /// This process with its random IDs (and its tokens', executable's, and tty's) zeroed, and without its age, which
+    /// every event has its own of (``Process/process_age_ms``).
     var rowKey: Process {
         var process = self
         process.id = zeroID
+        process.process_age_ms = nil
         process.start_time.id = zeroID
         process.audit_token = process.audit_token?.rowKey
         process.parent_audit_token = process.parent_audit_token?.rowKey

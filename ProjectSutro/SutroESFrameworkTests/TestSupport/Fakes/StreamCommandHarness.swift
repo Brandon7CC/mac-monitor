@@ -70,7 +70,8 @@ final class StreamCommandRun {
     private let outcomes = Recorded<StreamCommand.Outcome>()
     
     /// - Parameters:
-    ///   - harness: The in-process Security Extension.
+    ///   - harness: The in-process Security Extension, or `nil` to connect only to `endpoint`.
+    ///   - endpoint: Where to connect instead of `harness`, such as a ``LegacyStreamHarness`` relaying to it.
     ///   - formatter: How events become output.
     ///   - scope: Which events are the pipeline's own.
     ///   - toolVersion: `macmonitor`'s version.
@@ -78,18 +79,20 @@ final class StreamCommandRun {
     ///   - requirement: The code signing requirement `macmonitor` pins on the Security Extension, if any.
     ///   - filter: Which events are written.
     ///   - limit: The most events to write (`--count`), if any.
-    init(harness: StreamHarness, formatter: StreamPipeline.Formatter, scope: PipelineScope,
-         toolVersion: String = "3.0.0 (1)", isChatty: Bool = true, requirement: String? = nil,
-         filter: StreamFilter = StreamFilter(), limit: Int? = nil) {
-        let client = StreamClient(connection: NSXPCConnection(listenerEndpoint: harness.endpoint),
-                                  requirement: requirement)
+    ///   - indicatorTimeout: How long `--indicator`'s check waits for the Mac's indicators.
+    init(harness: StreamHarness?, endpoint: NSXPCListenerEndpoint? = nil, formatter: StreamPipeline.Formatter,
+         scope: PipelineScope, toolVersion: String = "3.0.0 (1)", isChatty: Bool = true, requirement: String? = nil,
+         filter: StreamFilter = StreamFilter(), limit: Int? = nil,
+         indicatorTimeout: DispatchTimeInterval = .seconds(10)) {
+        guard let endpoint = endpoint ?? harness?.endpoint else { preconditionFailure("Nowhere to connect.") }
+        let client = StreamClient(connection: NSXPCConnection(listenerEndpoint: endpoint), requirement: requirement)
         let pipeline = StreamPipeline(formatter: formatter, scope: scope, forTerminal: false, filter: filter,
                                       limit: limit)
         let (output, diagnostics) = (BufferOutput(), DiagnosticLines())
         self.output = output
         self.diagnostics = diagnostics
         command = StreamCommand(client: client, pipeline: pipeline, output: output, toolVersion: toolVersion,
-                                isChatty: isChatty, diagnose: diagnostics.append)
+                                isChatty: isChatty, diagnose: diagnostics.append, indicatorTimeout: indicatorTimeout)
     }
     
     /// Every outcome reported, which should only ever be one.

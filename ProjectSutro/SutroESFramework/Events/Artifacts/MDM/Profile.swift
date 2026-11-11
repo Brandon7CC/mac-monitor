@@ -1,6 +1,6 @@
 //
 //  Profile.swift
-//  ProjectSutro
+//  SutroESFramework
 //
 //  Created by Brandon Dalton on 10/2/25.
 //

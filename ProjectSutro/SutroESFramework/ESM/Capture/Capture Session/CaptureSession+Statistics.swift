@@ -28,6 +28,20 @@ extension CaptureSession {
         lanes.reduce(0) { $0 + $1.skippedMessages }
     }
     
+    /// Messages the session's field filters left out, over its lifetime. Never skipped, never dropped.
+    public var fieldFilteredMessages: UInt64 {
+        lanes.reduce(0) { $0 + $1.fieldFilteredMessages }
+    }
+    
+    /// Messages the session's field filters left out, over its lifetime, by event type.
+    ///
+    /// - Returns: Counts by `ES_EVENT_TYPE_*` name, for the types with any.
+    public func fieldFilteredByType() -> [String: UInt64] {
+        lanes.reduce(into: [String: UInt64]()) { counts, lane in
+            counts.merge(lane.fieldFilteredByType().byEventTypeName(), uniquingKeysWith: +)
+        }
+    }
+    
     /// The messages Endpoint Security dropped since the last call, for each client that lost any.
     ///
     /// - Returns: One report per client with new drops.
@@ -61,8 +75,19 @@ extension CaptureSession {
             Self.logger.log("""
                 \(self.label, privacy: .public): the \(lane.eventClass.rawValue, privacy: .public) client was handed \
                 \(lane.messages) messages for \(lane.subscribedEvents) events. Endpoint Security dropped \
-                \(lane.dropped) (in \(lane.gaps) gaps), and \(lane.serializationFailures) couldn't be serialized.
+                \(lane.dropped) (in \(lane.gaps) gaps), field filters left out \(lane.fieldFiltered), and \
+                \(lane.serializationFailures) couldn't be serialized.
                 """)
+            if lane.hitCappedEvents > 0 || lane.truncatedEvaluations > 0 || lane.scanExhaustedEvents > 0
+                || lane.undeterminedEvents > 0 {
+                Self.logger.log("""
+                    \(self.label, privacy: .public): on the \(lane.eventClass.rawValue, privacy: .public) client, \
+                    \(lane.hitCappedEvents) events matched more than \(CompiledIndicators.hitLimit) indicators, \
+                    indicators compared only part of \(lane.truncatedEvaluations) values, \
+                    \(lane.scanExhaustedEvents) events ran out of their indicator scan budget, and \
+                    \(lane.undeterminedEvents) records list undetermined indicators.
+                    """)
+            }
             guard lane.regressions > 0 else { continue }
             Self.logger.fault("""
                 \(self.label, privacy: .public): Endpoint Security's global_seq_num repeated or went backwards \

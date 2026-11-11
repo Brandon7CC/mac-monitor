@@ -29,8 +29,8 @@ public struct Filters: Equatable {
 
 
 // MARK: - Filters sheet
-/// The toolbar's Filters sheet: what's hidden from the tables, which finding and predicate they show only, and what
-/// isn't recorded at all. It reads the Security Extension's subscriptions; ``FilterSheet`` lays it out.
+/// The toolbar's Filters sheet: what's hidden from the tables, which indicator and predicate they show only, and what
+/// isn't recorded at all. It reads the Security Extension's subscriptions. ``FilterSheet`` lays it out.
 struct FilterView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     /// "Drop platform binaries" only applies while recording, not to an open trace.
@@ -40,7 +40,7 @@ struct FilterView: View {
     @Binding var filteredTelemetryShown: Bool
     @Binding var eventMaskEnabled: Bool
     @Binding var filterPlatform: Bool
-    /// The tables' finding filter and predicate.
+    /// The tables' indicator filter and predicate.
     @ObservedObject var search: EventSearchController
     /// Opens the predicate editor.
     let openPredicateEditor: () -> Void
@@ -52,7 +52,6 @@ struct FilterView: View {
                         let subscribed = systemExtensionManager.monitoredEventStrings
                         return supportedEvents.map { eventTypeToString(from: $0) }.filter(subscribed.contains)
                     },
-                    togglePlatformBinaries: { systemExtensionManager.togglePlatformBinaries() },
                     openPredicateEditor: openPredicateEditor,
                     done: { filteredTelemetryShown = false })
             .onAppear { systemExtensionManager.requestEventSubscriptions() }
@@ -61,7 +60,7 @@ struct FilterView: View {
 
 
 /// The Filters sheet's layout: a search over every filter, then a card each for artifact filtering (open to start),
-/// findings, the predicate, and recording, collapsed to its summary until it's opened.
+/// indicators, the predicate, and recording, collapsed to its summary until it's opened.
 struct FilterSheet: View {
     @Binding var allFilters: Filters
     @Binding var eventMaskEnabled: Bool
@@ -71,11 +70,10 @@ struct FilterSheet: View {
     @ObservedObject var search: EventSearchController
     /// The event types subscribed to, which the event mask hides.
     let subscribedEvents: () -> [String]
-    let togglePlatformBinaries: () -> Void
     let openPredicateEditor: () -> Void
     let done: () -> Void
 
-    @ObservedObject private var findings = FindingStore.shared
+    @ObservedObject private var indicators = IndicatorStore.shared
     @State private var query = ""
     /// The cards open without a search.
     @State private var open: Set<FilterCard.Kind> = [.artifacts]
@@ -135,9 +133,9 @@ struct FilterSheet: View {
     }
 
     // MARK: Cards
-    /// Artifact filtering, findings, the predicate, then recording.
+    /// Artifact filtering, indicators, the predicate, then recording.
     private var cards: [FilterCard] {
-        [artifactCard, findingsCard, predicateCard, recordingCard]
+        [artifactCard, indicatorsCard, predicateCard, recordingCard]
     }
 
     private var artifactCard: FilterCard {
@@ -183,31 +181,19 @@ struct FilterSheet: View {
                             : nil)
     }
 
-    private var findingsCard: FilterCard {
-        /// The findings on that mark the tables, parsed once until they change (``FindingStore/offered``).
-        let on = findings.offered
-        var rows: [FilterCard.Row] = []
-        if on.count > 1 || (search.findingSelection == .any && !on.isEmpty) {
-            rows.append(findingRow(.any, "Any indicator", detail: "The events of every indicator that's on",
-                                   symbol: "sparkle.magnifyingglass", tint: .orange))
-        }
-        rows += on.map { findingRow(.finding($0.id), $0.name, detail: $0.explanation, symbol: $0.symbol,
-                                    tint: $0.tint) }
-        /// A finding filter that's dropped keeps its row, which says why, so it can be switched off.
-        if let selection = search.findingSelection, search.findingPredicate == nil {
-            let detail = "\(droppedReason(selection)), so its events aren't filtered. Switch it off"
-            rows.insert(findingRow(selection, search.findingName ?? "Indicator", detail: detail,
-                                   symbol: "sparkle.magnifyingglass", tint: .gray), at: 0)
-        }
-        /// A dropped finding filter isn't on.
-        let shown = search.filteringFinding
-        return FilterCard(kind: .findings, title: "Indicators",
-                          about: "Show only an indicator's events. Settings ▸ Indicators sets what each finds",
+    /// One filter, so one switch, which shows only the events of the indicators that are on and mark the tables. It
+    /// stays on when it's dropped, and says why, so it can be switched off. It can't be switched on when none would
+    /// be filtered by, for the reason it would be dropped.
+    private var indicatorsCard: FilterCard {
+        let indicator = search.indicator
+        /// The indicators on, parsed once until they change (``IndicatorStore/offered``).
+        let offered = indicators.offered
+        return FilterCard(kind: .indicators, title: IndicatorFilter.name, about: indicator.about(offered: offered),
                           symbol: "sparkle.magnifyingglass", tint: .orange,
-                          summary: shown ?? (search.findingSelection == nil ? "Off" : "Dropped"),
-                          isOn: shown != nil, rows: rows,
-                          empty: rows.isEmpty
-                            ? "Turn on Event tables and Filters for an indicator in Settings ▸ Indicators." : nil)
+                          summary: indicator.filtering ?? "Off", isOn: indicator.filtering != nil, rows: [], empty: nil,
+                          headerSwitch: Binding { search.indicator.isOn } set: { search.filterByIndicators($0) },
+                          headerSwitchDisabledReason: IndicatorFilter.unavailableReason(offered: offered)
+                            .map { "\($0). Settings > Indicators turns them on and sets how they mark the tables." })
     }
 
     private var predicateCard: FilterCard {
@@ -230,10 +216,7 @@ struct FilterSheet: View {
                                  detail: "Drops most events Apple-signed processes initiate, unless they exec or fork "
                                     + "a non-platform process",
                                  tile: ("apple.logo", .gray),
-                                 control: .toggle(Binding { filterPlatform } set: { _ in
-                                     filterPlatform.toggle()
-                                     togglePlatformBinaries()
-                                 }),
+                                 control: .toggle($filterPlatform),
                                  isDisabled: !isLive, help: isLive ? nil : "Applies while recording")
         return FilterCard(kind: .recording, title: "Recording",
                           about: "Drop events before they're recorded, while recording", symbol: "record.circle",
@@ -245,41 +228,10 @@ struct FilterSheet: View {
     private var status: String {
         let count = allFilters.totalFilters
         let parts = [count > 0 ? "\(count) artifact \(count == 1 ? "filter" : "filters") on" : nil,
-                     search.filteringFinding.map { "showing only \($0)" },
+                     search.indicator.filtering.map { "showing only \($0)" },
                      search.applied == nil ? nil : "a predicate applied",
                      filterPlatform ? "dropping platform binaries" : nil].compactMap { $0 }
         return parts.isEmpty ? "Every event shows." : parts.joined(separator: " · ").capitalizedFirst
-    }
-
-    // MARK: Findings
-    /// - Parameters:
-    ///   - selection: The finding filter it sets.
-    ///   - name: The finding's name.
-    ///   - detail: Why it's worth a look.
-    ///   - symbol: Its SF Symbol.
-    ///   - tint: Its color.
-    /// - Returns: Its row, whose switch is on while it's the finding filter, and sets the finding filter or removes
-    ///   it. The predicate editor and its predicate stay.
-    private func findingRow(_ selection: FindingSelection, _ name: String, detail: String, symbol: String,
-                            tint: Color) -> FilterCard.Row {
-        let id = switch selection {
-        case .any: "any"
-        case .finding(let id): id.uuidString
-        }
-        return FilterCard.Row(id: "finding:\(id)", name: name, detail: detail, tile: (symbol, tint),
-                              control: .toggle(Binding { search.findingSelection == selection } set: { on in
-                                  search.filter(by: on ? selection : nil)
-                              }))
-    }
-
-    /// - Parameter selection: A finding filter that's dropped.
-    /// - Returns: Why, from Settings ▸ Indicators.
-    private func droppedReason(_ selection: FindingSelection) -> String {
-        guard case .finding(let id) = selection else { return "No indicator is offered anymore" }
-        guard let finding = findings.findings.first(where: { $0.id == id }) else { return "It was deleted" }
-        if !finding.isEnabled { return "It's switched off in Settings ▸ Indicators" }
-        if !finding.showsInTables { return "Event tables and Filters is off for it in Settings ▸ Indicators" }
-        return "Its predicate can't be used"
     }
 
     /// Stop showing only one process's events.

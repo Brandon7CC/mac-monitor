@@ -8,47 +8,17 @@
 import SwiftUI
 import SutroESFramework
 
+/// What a `mount` event says: what was mounted, where, and how.
 struct SystemMountMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESMountEvent {
-        esSystemEvent.event.mount!
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.mount != nil {
-            eventContent
-        }
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            
-            GroupBox {
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("\u{2022} **Source path:**")
-                        GroupBox {
-                            Text(event.statfs.f_mntfromname)
-                                .monospaced()
-                                .lineLimit(10)
-                        }
-                    }
-                    HStack {
-                        Text("\u{2022} **Mount directory:**")
-                        GroupBox {
-                            Text(event.statfs.f_mntonname)
-                                .monospaced()
-                                .lineLimit(10)
-                        }
-                    }
+        if let event = esSystemEvent.event.mount {
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
+                    FactRow(name: "Source path", value: event.statfs.f_mntfromname, style: .monospaced)
+                    FactRow(name: "Mount directory", value: event.statfs.f_mntonname, style: .monospaced)
                     HStack {
                         Text("\u{2022} **Type:**")
                         GroupBox {
@@ -61,31 +31,9 @@ struct SystemMountMetadataView: View {
                                 .monospaced()
                         }
                     }
-                    
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }
-
 

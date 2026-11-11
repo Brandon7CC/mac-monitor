@@ -25,6 +25,10 @@ public enum CommandLineInvocation: Equatable {
     case stream(StreamInvocation)
     /// Read or change the saved mute set.
     case mute(MuteInvocation)
+    /// Read or change the Mac's indicator set.
+    case indicators(IndicatorInvocation)
+    /// Show what's installed, what it needs, and who is capturing.
+    case status(StatusInvocation)
     /// Write the telemetry schema.
     case schema
     /// Check a trace against the telemetry schema.
@@ -43,6 +47,8 @@ public enum CommandLineInvocation: Equatable {
         case .events: return .events
         case .stream: return .stream
         case .mute: return .mute
+        case .indicators: return .indicators
+        case .status: return .status
         case .schema: return .schema
         case .validate: return .validate
         case .completion: return .completion
@@ -51,12 +57,24 @@ public enum CommandLineInvocation: Equatable {
     
     /// The command's name, for messages.
     public var command: String { id.rawValue }
+
+    /// Why `macmonitor` won't run it in this process: a command that talks to the Security Extension, run
+    /// set-user-ID so that its real and effective users differ. The Security Extension decides by the caller's user,
+    /// so `macmonitor` only runs such a command as the user who started it.
+    ///
+    /// - Parameters:
+    ///   - realUser: The process's real user, as `getuid()` gives it.
+    ///   - effectiveUser: Its effective user, as `geteuid()` gives it.
+    /// - Returns: ``CommandLineFailure/setUserID(_:)`` (exit 77), or `nil` to run it.
+    public func refusal(realUser: uid_t, effectiveUser: uid_t) -> CommandLineFailure? {
+        requiresRoot && realUser != effectiveUser ? .setUserID(command) : nil
+    }
 }
 
 
 // MARK: - Stream
 /// `macmonitor stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes]
-/// [--include-self] [--for DURATION] [--count N] [FILTER...]`.
+/// [--include-self] [--every EVENT] [--for DURATION] [--count N] [FILTER...]`.
 public struct StreamInvocation: Equatable {
     /// The events, each once, in the order named. None means Mac Monitor's defaults.
     public var events: [es_event_type_t] = []
@@ -66,16 +84,22 @@ public struct StreamInvocation: Equatable {
     public var appliesSavedMutes: Bool = true
     /// Show the pipeline's own events? `--include-self`.
     public var includeSelf: Bool = false
+    /// The field filters to ask for: Mac Monitor's defaults. `--every EVENT` turns off EVENT's. `--every all` turns
+    /// off every one.
+    public var fieldFilters: Set<FieldFilter> = Set(defaultFieldFilters)
     /// Stop after this many seconds. `--for`.
     public var duration: TimeInterval?
     /// Stop after writing this many events. `--count`.
     public var limit: Int?
-    /// Which events are written: `--pid`, `--process`, `--signing-id`, `--target`, `--grep` and `--predicate`.
+    /// Which events are written: `--pid`, `--process`, `--signing-id`, `--target`, `--grep`, `--predicate` and
+    /// `--indicator`.
     public var filter = StreamFilter()
     
-    /// The request's options for the Security Extension.
+    /// The request's options for the Security Extension. The field filters are always sent, even none, so a
+    /// Security Extension 3.1.0 or later never reads it as a 3.0.0 request.
     public var options: StreamOptions {
-        StreamOptions(events: events.map { eventTypeToString(from: $0) }, appliesSavedMutes: appliesSavedMutes)
+        StreamOptions(events: events.map { eventTypeToString(from: $0) }, appliesSavedMutes: appliesSavedMutes,
+                      fieldFilters: fieldFilters.map(\.rawValue).sorted())
     }
     
     /// The format to write in.
@@ -100,7 +124,8 @@ public struct ValidateInvocation: Equatable {
 
 // MARK: - Usage errors
 /// A command line `macmonitor` can't act on: exit 64 (`EX_USAGE`) for one it can't read, such as an unknown option or
-/// a missing argument, or 65 (`EX_DATAERR`) for one that names a mute that can't be used, such as a relative path.
+/// a missing argument, or 65 (`EX_DATAERR`) for one that names a mute or an indicator that can't be used, such as a
+/// relative path or a predicate the Security Extension can't run.
 public struct CommandLineUsageError: Error, Equatable, CustomStringConvertible {
     /// What's wrong, as a sentence.
     public let message: String
@@ -108,8 +133,8 @@ public struct CommandLineUsageError: Error, Equatable, CustomStringConvertible {
     public let command: String?
     /// Where to read more instead of the command's help, such as "Run 'macmonitor events' to list them."
     public let hint: String?
-    /// How `macmonitor` exits: ``CommandLineExit/usage``, or ``CommandLineExit/dataError`` for a mute that can't be
-    /// used.
+    /// How `macmonitor` exits: ``CommandLineExit/usage``, or ``CommandLineExit/dataError`` for a mute or an
+    /// indicator that can't be used.
     public let exit: CommandLineExit
     
     /// - Parameters:

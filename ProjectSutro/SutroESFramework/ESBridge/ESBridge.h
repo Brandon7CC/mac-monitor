@@ -10,7 +10,8 @@
 
 #import <EndpointSecurity/EndpointSecurity.h>
 
-/* The SIP flag the Security Extension checks, from XNU's `csr.h`. */
+/* The SIP flag Mac Monitor checks to decide whether Endpoint Security needs Full Disk Access
+   (`SetupRequirements`), from XNU's `csr.h`. */
 #define CSR_ALLOW_UNRESTRICTED_FS               (1 << 1)
 
 typedef uint32_t csr_config_t;

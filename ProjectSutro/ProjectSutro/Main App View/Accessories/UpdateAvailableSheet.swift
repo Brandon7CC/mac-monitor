@@ -185,7 +185,7 @@ struct UpdateAvailableSheet: View {
 
 // MARK: - Check results
 extension View {
-    /// Shows how a check for updates went, the same from Mac Monitor ▸ Check for Updates and from Settings ▸ General ▸
+    /// Shows how a check for updates went, the same from Mac Monitor > Check for Updates and from Settings > General >
     /// Check Now: a newer release opens ``UpdateAvailableSheet``, and otherwise an alert says Mac Monitor is up to date
     /// or GitHub couldn't be reached.
     ///
@@ -200,6 +200,8 @@ extension View {
 /// ``SwiftUI/View/updateCheckResult(_:)``'s sheet and alert.
 private struct UpdateCheckResult: ViewModifier {
     @Binding var check: UpdateCheck?
+    /// Is ``showNoUpdate(failed:)``'s alert open? Every main window shows the same check, and only one says so.
+    private static var isShowingNoUpdate = false
 
     func body(content: Content) -> some View {
         content
@@ -229,12 +231,15 @@ private struct UpdateCheckResult: ViewModifier {
     ///
     /// - Parameter failed: Did the check fail?
     private func showNoUpdate(failed: Bool) {
+        guard !Self.isShowingNoUpdate, check != nil else { return }
+        Self.isShowingNoUpdate = true
         let alert = NSAlert()
         alert.messageText = failed ? "No internet connection" : "Mac Monitor is up to date"
         alert.informativeText = failed ? "Mac Monitor couldn't reach GitHub to check for updates."
             : "\(ReleaseNotes.version) is the newest version."
         alert.addButton(withTitle: "OK")
         alert.runModal()
+        Self.isShowingNoUpdate = false
         check = nil
     }
 }

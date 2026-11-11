@@ -123,17 +123,19 @@ public enum CommandLineParser {
     /// Read a command line.
     ///
     /// `-h` or `--help` anywhere before `--` asks for the command's help instead. No arguments ask for `macmonitor`'s.
+    /// `-v` or `--version` in the command's place asks for the version.
     ///
     /// - Parameter arguments: The arguments, without the program's name.
     /// - Returns: What they ask for.
     /// - Throws: ``CommandLineUsageError``.
     public static func parse(_ arguments: [String]) throws -> CommandLineInvocation {
         guard let name = arguments.first else { return .help(command: nil) }
-        if name == "--version" { return .version }
+        if isVersion(name) { return .version }
         if isHelp(name) { return .help(command: nil) }
         guard let command = CommandLineCommand(rawValue: name) else {
             let kind = name.hasPrefix("-") ? "option" : "command"
-            let names = kind == "option" ? ["--help", "--version"] : CommandLineCommand.allCases.map(\.rawValue)
+            let names = kind == "option" ? ["--help", "--version", "-h", "-v"]
+                : CommandLineCommand.allCases.map(\.rawValue)
             let suggestion = CommandLineSuggestion.didYouMean(name, among: names)
             throw CommandLineUsageError("Unknown \(kind) '\(name)'.\(suggestion)")
         }
@@ -146,7 +148,9 @@ public enum CommandLineParser {
         switch command {
         case .stream: return .stream(try stream(&cursor))
         case .mute: return .mute(try mute(&cursor))
+        case .indicators: return .indicators(try indicators(&cursor))
         case .validate: return .validate(try validate(&cursor))
+        case .status: return .status(try status(&cursor))
         case .help: return .help(command: try help(&cursor))
         case .completion: return .completion(try completion(&cursor))
         case .events: return try takingNothing(&cursor, .events)
@@ -155,6 +159,14 @@ public enum CommandLineParser {
         }
     }
     
+    /// Is an argument, in a command's place, a request for the version?
+    ///
+    /// - Parameter argument: The argument.
+    /// - Returns: `true` for `-v` and `--version`.
+    static func isVersion(_ argument: String) -> Bool {
+        argument == "-v" || argument == "--version"
+    }
+
     /// Is an argument a request for help?
     ///
     /// - Parameter argument: The argument.
@@ -164,16 +176,17 @@ public enum CommandLineParser {
     }
     
     /// `stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes] [--include-self]
-    /// [--for DURATION] [--count N] [--pid PID] [--process|--signing-id|--target|--grep REGEX]
-    /// [--predicate PREDICATE]`.
+    /// [--every EVENT] [--for DURATION] [--count N] [--pid PID] [--process|--signing-id|--target|--grep REGEX]
+    /// [--predicate PREDICATE] [--indicator NAME|ID]`.
     ///
     /// `--json`, `--pretty` and `--text` are short for `--format jsonl|pretty|text`. Each filter option may be given
-    /// more than once (``StreamFilter``).
+    /// more than once (``StreamFilter``), and so may `--every`.
     ///
     /// - Parameter cursor: The arguments.
     /// - Returns: The stream asked for.
     /// - Throws: ``CommandLineUsageError`` for an event that can't be streamed, a bad format, two formats, a bad
-    ///   duration, count, process ID, regular expression or predicate, or an unknown option.
+    ///   duration, count, process ID, regular expression or predicate, an `--every` event with no field filter, or an
+    ///   unknown option.
     static func stream(_ cursor: inout ArgumentCursor) throws -> StreamInvocation {
         var invocation = StreamInvocation(), seen = Set<UInt32>()
         while let argument = cursor.next() {
@@ -195,6 +208,8 @@ public enum CommandLineParser {
                 invocation.appliesSavedMutes = false
             case .option("--include-self", nil):
                 invocation.includeSelf = true
+            case .option("--every", let attached):
+                try every(cursor.value(of: "--every", attached: attached, command: "stream"), in: &invocation)
             case .option("--for", let attached):
                 invocation.duration = try duration(cursor.value(of: "--for", attached: attached, command: "stream"))
             case .option("--count", let attached):
@@ -217,6 +232,13 @@ public enum CommandLineParser {
             case .option("--predicate", let attached):
                 let value = try cursor.value(of: "--predicate", attached: attached, command: "stream")
                 invocation.filter.predicates.append(try StreamFilter.Predicate(value))
+            case .option("--indicator", let attached):
+                let value = try cursor.value(of: "--indicator", attached: attached, command: "stream")
+                    .trimmingCharacters(in: .whitespaces)
+                guard !value.isEmpty else {
+                    throw CommandLineUsageError("--indicator needs an indicator's name.", command: "stream")
+                }
+                invocation.filter.indicators.append(value)
             case .option(let option, .some) where flags.contains(option):
                 throw CommandLineUsageError("\(option) takes no value.", command: "stream")
             case .option(let option, _):
@@ -300,6 +322,17 @@ public enum CommandLineParser {
         return ValidateInvocation(path: path, mode: flags.contains("--eslogger") ? .eslogger : .macMonitor)
     }
     
+    /// `status [--json]`.
+    ///
+    /// - Parameter cursor: The arguments.
+    /// - Returns: The status asked for.
+    /// - Throws: ``CommandLineUsageError`` for an argument, or an unknown option.
+    static func status(_ cursor: inout ArgumentCursor) throws -> StatusInvocation {
+        let (_, flags) = try cursor.flags(of: "status", among: CommandLineOption.status, positional: nil,
+                                          command: "status")
+        return StatusInvocation(json: flags.contains("--json"))
+    }
+
     /// `help [COMMAND]`. `-h` or `--help` asks for help's own help, as it does for every other command.
     ///
     /// - Parameter cursor: The arguments.

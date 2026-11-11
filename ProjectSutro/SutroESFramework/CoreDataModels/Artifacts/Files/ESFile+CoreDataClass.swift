@@ -1,5 +1,5 @@
 //
-//  Executable+CoreDataClass.swift
+//  ESFile+CoreDataClass.swift
 //  SutroESFramework
 //
 //  Created by Brandon Dalton on 3/9/25.

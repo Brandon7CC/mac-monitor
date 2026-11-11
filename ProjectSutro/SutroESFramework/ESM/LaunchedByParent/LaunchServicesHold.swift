@@ -14,7 +14,9 @@ import os
 /// Holds an app's exec until Launch Services says who launched it, usually within 250 ms.
 ///
 /// Events behind a held exec wait so the lane stays in Endpoint Security's order. A lookup that takes longer than
-/// ``maxWait`` is given up, so a stuck Launch Services read never stops the lane.
+/// ``maxWait`` is given up, so a stuck Launch Services read never stops the lane. An exec whose launched-by parent
+/// Launch Services changes is stamped again with the indicators it was admitted with, when a rule reads that parent
+/// (``CompiledIndicators/readsLaunchedByParent``), so its verdicts are the ones its record would give.
 final class LaunchServicesHold {
     /// The most execs held at a time
     static let defaultMaxHeld = 64
@@ -26,10 +28,13 @@ final class LaunchServicesHold {
     /// An exec waiting on its lookup
     private final class Held {
         var message: Message
+        /// The set the exec was stamped with.
+        let indicators: CompiledIndicators?
         var isSettled = false
 
-        init(_ message: Message) {
+        init(_ message: Message, indicators: CompiledIndicators?) {
             self.message = message
+            self.indicators = indicators
         }
     }
 
@@ -56,6 +61,8 @@ final class LaunchServicesHold {
     private let state = OSAllocatedUnfairLock(uncheckedState: State())
     /// Only used under ``state``'s lock
     private let encoder = StreamingJSONEncoder()
+    /// The values a settled exec is stamped again with. Only used under ``state``'s lock.
+    private var values = MessageValueCache()
 
     /// - Parameters:
     ///   - eventClass: The lane's event class.
@@ -93,11 +100,13 @@ final class LaunchServicesHold {
 
     /// Hold an exec until its lookup finishes.
     ///
-    /// - Parameter message: An exec ``holds(_:)`` accepted.
-    func hold(_ message: Message) {
+    /// - Parameters:
+    ///   - message: An exec ``holds(_:)`` accepted.
+    ///   - indicators: The set it was stamped with, to stamp it again when Launch Services changes its parent.
+    func hold(_ message: Message, stampedWith indicators: CompiledIndicators? = nil) {
         guard case .exec(let exec) = message.event, let answer = exec.launched_by_parent,
               let target = exec.target.audit_token else { return submitEncoded(message) }
-        let held = Held(message)
+        let held = Held(message, indicators: indicators)
         let accepted = state.withLockUnchecked { state -> Bool in
             guard !state.isClosed, state.held < maxHeld else { return false }
             state.held += 1
@@ -133,10 +142,22 @@ final class LaunchServicesHold {
     private func settle(_ held: Held, with better: LaunchedByParent?) {
         state.withLockUnchecked { state in
             guard !state.isClosed, !held.isSettled else { return }
-            if let better { held.message.setLaunchedByParent(better) }
+            if let better { upgrade(held, to: better) }
             held.isSettled = true
             release(&state)
         }
+    }
+
+    /// Give an exec Launch Services' answer, and stamp it again when a rule reads its launched-by parent. Call under
+    /// the lock.
+    ///
+    /// - Parameters:
+    ///   - held: The exec.
+    ///   - better: Launch Services' answer.
+    private func upgrade(_ held: Held, to better: LaunchedByParent) {
+        held.message.setLaunchedByParent(better)
+        guard let indicators = held.indicators, indicators.readsLaunchedByParent else { return }
+        indicators.stamp(&held.message, values: &values)
     }
 
     /// Send from the front of the line up to the first exec still held. Call under the lock.

@@ -1,5 +1,5 @@
 //
-//  OpenDirectoryAddGroupEvent.swift
+//  OpenDirectoryGroupAddEvent.swift
 //  SutroESFramework
 //
 //  Created by Brandon Dalton on 6/13/23.

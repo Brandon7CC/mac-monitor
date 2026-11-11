@@ -39,6 +39,14 @@ extension XCTestCase {
         FileManager.default.contents(atPath: store.fileURL.path)
     }
     
+    /// The bytes the Security Extension saves for a set: its mute file, at the current default set revision.
+    ///
+    /// - Parameter list: The set.
+    /// - Returns: The file's bytes.
+    func savedBytes(_ list: MuteList) -> Data {
+        MuteFile(list, defaultsRevision: MuteSet.currentRevision).encoded()
+    }
+    
     /// The names in a store's directory.
     ///
     /// - Parameter store: The store.
@@ -74,28 +82,39 @@ extension SavedMuteSet {
 
 // MARK: - Requests to a saved set
 extension SavedMuteSet {
-    /// Send a request as a caller with `access`, and wait for the reply.
+    /// Send a request as a caller with `access`, and wait for the reply, failing the test if none comes.
     ///
     /// - Parameters:
     ///   - request: The request.
     ///   - access: What the caller may do.
-    /// - Returns: The reply, or an `unsupported` one if none came.
+    ///   - file: The caller's file.
+    ///   - line: The caller's line.
+    /// - Returns: The reply, as sending its bytes returns it.
     @discardableResult
-    func send(_ request: MuteRequest, access: MuteAccess = .write) -> MuteReply {
-        send(request.encoded(), access: access)
+    func send(_ request: MuteRequest, access: MuteAccess = .write, file: StaticString = #filePath,
+              line: UInt = #line) -> MuteReply {
+        send(request.encoded(), access: access, file: file, line: line)
     }
     
-    /// Send raw request bytes as a caller with `access`, and wait for the reply.
+    /// Send raw request bytes as a caller with `access`, and wait for the reply, failing the test if none comes or it
+    /// doesn't read.
     ///
     /// - Parameters:
     ///   - data: The bytes.
     ///   - access: What the caller may do.
-    /// - Returns: The reply, or an `unsupported` one if none came.
+    ///   - file: The caller's file.
+    ///   - line: The caller's line.
+    /// - Returns: The reply. When none came the test has already failed, and this is only a placeholder.
     @discardableResult
-    func send(_ data: Data, access: MuteAccess = .write) -> MuteReply {
+    func send(_ data: Data, access: MuteAccess = .write, file: StaticString = #filePath,
+              line: UInt = #line) -> MuteReply {
         var reply: MuteReply?
         handle(data, access: access, caller: "Test") { reply = MuteReply.decode($0) }
         waitUntilIdle()
-        return reply ?? MuteReply(status: .unsupported, mutes: [], problems: ["No reply."])
+        guard let reply else {
+            XCTFail("No reply, or one that doesn't read", file: file, line: line)
+            return MuteReply(status: .unsupported, mutes: [], problems: ["No reply."])
+        }
+        return reply
     }
 }

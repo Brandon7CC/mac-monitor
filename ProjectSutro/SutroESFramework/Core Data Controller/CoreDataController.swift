@@ -20,10 +20,9 @@ public class CoreDataController {
     public static let shared = CoreDataController()
     static let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "CoreDataController")
     
-    /// Main context
+    /// The persistent container that holds the event store.
     ///
-    /// On the main thread: `container.viewContext`. This main context is designed to be used
-    /// to update the UI.
+    /// Its `viewContext` is the main context, for the main thread only, which updates the UI.
     public var container: NSPersistentContainer
     
     /// Background context
@@ -206,7 +205,26 @@ public class CoreDataController {
     ///      back-pressure when inserts fall behind.
     ///
     public func insertSystemEvents(messages: [Message], completion: @escaping () -> Void = {}) {
-        insert(messages, keeping: { $0.message_darwin_time >= self.discardBefore }) { _ in completion() }
+        insertSystemEvents(messages: messages, watching: []) { _ in completion() }
+    }
+
+    /// Inserts a batch of system events, as ``insertSystemEvents(messages:completion:)`` does, and says which of some
+    /// of them it kept: notifications are only for events the store holds.
+    ///
+    /// - Parameters:
+    ///   - messages: An array of system events (`Message`) to insert.
+    ///   - watching: The identities of the events to report on.
+    ///   - completion: Called on the private context's queue once the batch has been saved (or failed to save), with
+    ///     those of `watching` that were inserted: none when the store can't save, or the events happened before the
+    ///     last Clear or while a trace is open.
+    public func insertSystemEvents(messages: [Message], watching: Set<UUID>,
+                                   completion: @escaping (_ kept: Set<UUID>) -> Void) {
+        var kept: Set<UUID> = []
+        insert(messages, keeping: { message in
+            guard message.message_darwin_time >= self.discardBefore else { return false }
+            if !watching.isEmpty, watching.contains(message.id) { kept.insert(message.id) }
+            return true
+        }) { saved in completion(saved ? kept : []) }
     }
     
     /// Inserts a batch of events read from a trace file (see ``TraceImporter``), however long ago they happened.
@@ -218,11 +236,13 @@ public class CoreDataController {
     ///   - messages: The events, in file order.
     ///   - clear: The Clear that opened the trace (``clearSystemEvents(source:)``). Once another Clear has run the
     ///     trace is gone, and the batch is dropped.
-    ///   - completion: Called on the private context's queue with whether the batch was saved.
-    func insertTraceEvents(_ messages: [Message], clear: Int, completion: @escaping (Bool) -> Void) {
+    ///   - completion: Called on the private context's queue with what the save did.
+    func insertTraceEvents(_ messages: [Message], clear: Int, completion: @escaping (TraceSave) -> Void) {
+        guard !messages.isEmpty else { return completion(.saved) }
         insert(messages, keeping: { _ in clear == self.currentClear }) { saved in
             if !saved { self.discardUnsavedEvents() }
-            completion(saved)
+            /// On the queue the keep check ran on, so a Clear can't come between them.
+            completion(!saved ? .failed : clear == self.currentClear ? .saved : .dropped)
         }
     }
     

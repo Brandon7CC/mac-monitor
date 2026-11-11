@@ -10,14 +10,15 @@ import EndpointSecurity
 
 
 // MARK: - Mute invocations
-/// `macmonitor mute list|add|remove|import|export|reset`: the saved mute set Mac Monitor and `macmonitor` share.
+/// `macmonitor mute list|add|remove|import|export|reset|update`: the saved mute set Mac Monitor and `macmonitor`
+/// share.
 public enum MuteInvocation: Equatable {
     /// The mute commands, by what's typed, in the order help lists them. The parser switches over every case with
     /// no default, so a command added here doesn't build until it's parsed.
     public enum Name: String, CaseIterable, Sendable {
-        case list, add, remove, `import`, export, reset
+        case list, add, remove, `import`, export, reset, update
         
-        /// Every name, as help and usage errors list them: "list, add, remove, import, export or reset".
+        /// Every name, as help and usage errors list them: "list, add, remove, import, export, reset or update".
         static var listed: String {
             let names = allCases.map(\.rawValue)
             return names.dropLast().joined(separator: ", ") + " or " + (names.last ?? "")
@@ -37,6 +38,9 @@ public enum MuteInvocation: Equatable {
     case export
     /// Restore Mac Monitor's default set. Asks first unless `confirmed` (`--yes`).
     case reset(confirmed: Bool = false)
+    /// Merge a newer default set into the saved set, keeping its own changes (``MuteSetUpdate``). Asks first unless
+    /// `confirmed` (`--yes`).
+    case update(confirmed: Bool = false)
 }
 
 
@@ -81,6 +85,10 @@ extension CommandLineParser {
             let given = try cursor.flags(of: "mute reset", among: CommandLineOption.mute(.reset), positional: nil,
                                          command: "mute")
             return .reset(confirmed: given.flags.contains("--yes"))
+        case .update:
+            let given = try cursor.flags(of: "mute update", among: CommandLineOption.mute(.update), positional: nil,
+                                         command: "mute")
+            return .update(confirmed: given.flags.contains("--yes"))
         case .add: return .add(try muteEntry(&cursor, subcommand: "add"))
         case .remove: return .remove(try muteEntry(&cursor, subcommand: "remove"))
         case .import: return try muteImport(&cursor)

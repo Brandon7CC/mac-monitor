@@ -94,6 +94,15 @@ struct ClientSequenceTracker {
         }
         return drops
     }
+    
+    /// Dropped messages of every event type but some, from `seq_num` gaps alone: for a client whose `global_seq_num`
+    /// also skips the messages a field filter left out.
+    ///
+    /// - Parameter excluded: The `es_event_type_t` raw values not to count.
+    /// - Returns: The other types' drops.
+    func dropped(uncounting excluded: Set<Int>) -> UInt64 {
+        droppedByType().reduce(0) { total, entry in excluded.contains(entry.key) ? total : total &+ entry.value }
+    }
 }
 
 
@@ -108,22 +117,31 @@ struct DropReportMark {
     
     /// The drops a tracker counted since the last report, which this then marks as reported.
     ///
+    /// With types to leave uncounted, the drops are the other types' `seq_num` gaps alone
+    /// (``ClientSequenceTracker/dropped(uncounting:)``). That basis can change between reports, so a count that went
+    /// down reports nothing new rather than trapping.
+    ///
     /// - Parameters:
     ///   - eventClass: The tracker's client.
     ///   - sequences: The tracker.
+    ///   - excluded: The `es_event_type_t` raw values a field filter leaves gaps in, or none to count every
+    ///     `global_seq_num` gap.
     /// - Returns: The new drops, or `nil` if there were none.
-    mutating func takeReport(of eventClass: EventClass, from sequences: ClientSequenceTracker) -> CaptureDropReport? {
-        let dropped = sequences.global.dropped
-        let byType = sequences.droppedByType()
+    mutating func takeReport(of eventClass: EventClass, from sequences: ClientSequenceTracker,
+                             uncounting excluded: Set<Int> = []) -> CaptureDropReport? {
+        let byType = excluded.isEmpty ? sequences.droppedByType()
+            : sequences.droppedByType().filter { !excluded.contains($0.key) }
+        let dropped = excluded.isEmpty ? sequences.global.dropped : byType.values.reduce(0, &+)
         guard dropped != self.dropped || byType != self.byType else { return nil }
         let newByType = byType.reduce(into: [Int: UInt64]()) { new, entry in
             let reported = self.byType[entry.key, default: 0]
             if entry.value > reported { new[entry.key] = entry.value - reported }
         }
-        let report = CaptureDropReport(eventClass: eventClass, dropped: dropped - self.dropped,
-                                       droppedByType: newByType.byEventTypeName())
+        let newDropped = dropped > self.dropped ? dropped - self.dropped : 0
         self.dropped = dropped
         self.byType = byType
-        return report
+        guard newDropped > 0 || !newByType.isEmpty else { return nil }
+        return CaptureDropReport(eventClass: eventClass, dropped: newDropped,
+                                 droppedByType: newByType.byEventTypeName())
     }
 }

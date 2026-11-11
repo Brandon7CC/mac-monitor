@@ -8,69 +8,60 @@
 import SwiftUI
 import SutroESFramework
 
+/// What an `exit` event says: how the process ended. An exit carries only its status (`es_event_exit_t.stat`), and
+/// the process that exited is the one that made the event, which Message details already shows.
 struct SystemProcExitMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    var event: ESProcessExitEvent {
-        esSystemEvent.event.exit!
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.exit != nil {
-            eventContent
+        if let event = esSystemEvent.event.exit {
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox { ExitStatusFacts(status: event.stat) }
+            }
         }
     }
+}
 
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-                .padding([.top, .leading], 5.0)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
-                    GroupBox {
-                        HStack {
-                            // MARK: Exit code
-                            Text("\u{2022} **Exit code:**")
-                            GroupBox {
-                                Text("`\(event.stat)`")
-                            }.frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                    
-                    // MARK: Process
-                    ProcessView(message: esSystemEvent, process: esSystemEvent.process)
-                    
-                }.frame(maxWidth: .infinity, alignment: .leading)
-                
+
+// MARK: - Exit status
+/// How a process ended, read from its `wait(2)` status: the code it exited with, or the signal that ended or stopped
+/// it. The status itself is in the tooltip.
+struct ExitStatusFacts: View {
+    /// Signal names by number, from `<sys/signal.h>`: 1 (`SIGHUP`) to 31 (`SIGUSR2`).
+    private static let signalNames = [
+        "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT", "SIGEMT", "SIGFPE", "SIGKILL", "SIGBUS",
+        "SIGSEGV", "SIGSYS", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGURG", "SIGSTOP", "SIGTSTP", "SIGCONT", "SIGCHLD",
+        "SIGTTIN", "SIGTTOU", "SIGIO", "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGINFO", "SIGUSR1",
+        "SIGUSR2",
+    ]
+
+    /// The `wait(2)` status.
+    let status: Int32
+
+    /// The low seven bits: 0 for an exit, `0x7f` for a stop, else the signal that ended the process (`WTERMSIG`).
+    private var low: Int32 { status & 0x7f }
+    /// The second byte: the exit code (`WEXITSTATUS`), or the signal that stopped the process (`WSTOPSIG`).
+    private var high: Int32 { (status >> 8) & 0xff }
+
+    var body: some View {
+        Group {
+            switch low {
+            case 0:
+                FactRow(name: "Exit code", value: String(high))
+            case 0x7f:
+                FactRow(name: "Stopped by signal", value: Self.signal(high))
+            default:
+                FactRow(name: "Terminated by signal",
+                        value: Self.signal(low) + ((status & 0x80) != 0 ? ", core dumped" : ""))
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus")
-                .font(.title2)
-                .padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
-        }
+        }.help("wait(2) status: \(status)")
+    }
+
+    /// - Parameter number: A signal's number.
+    /// - Returns: Its name and number, `SIGKILL (9)`, or its number alone when it has no name.
+    private static func signal(_ number: Int32) -> String {
+        let index = Int(number) - 1
+        return signalNames.indices.contains(index) ? "\(signalNames[index]) (\(number))" : String(number)
     }
 }

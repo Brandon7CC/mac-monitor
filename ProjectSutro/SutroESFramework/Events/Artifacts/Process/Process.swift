@@ -64,7 +64,11 @@ public struct Process: Identifiable, Codable, Hashable {
     public var cs_validation_category_string: String?
     /// The names of the flags set in ``codesigning_flags`` (``ProcessHelpers/codeSigningFlagNames(_:)``).
     public var codesigning_flag_names: [String] = []
-    
+    /// Milliseconds from ``start_time`` to the message's time: how old the process was at the event. `nil` when
+    /// ``start_time`` is unknown, and negative when the clock stepped back. Set with the message's time
+    /// (``Message/deriveProcessAges()``), never by ``enrich()``, which doesn't know it.
+    public var process_age_ms: Int?
+
     public init(from process: es_process_t, version: Int) {
         self.start_time = TimeVal(from: process.start_time)
 
@@ -98,7 +102,8 @@ public struct Process: Identifiable, Codable, Hashable {
         /// isn't a platform binary nor adhoc signed). One without a path is unsigned.
         if codesigning_type == .unknown {
             let path = executable?.path ?? ""
-            codesigning_type = path.isEmpty ? .unsigned : ProcessHelpers.certificateType(at: path)
+            codesigning_type = path.isEmpty ? .unsigned
+                : ProcessHelpers.certificateType(at: path, stat: executable?.stat)
         }
         
         // MARK: File Quarantine-aware
@@ -189,7 +194,7 @@ extension Process: ESEnrichable {
 /// up, for the whole process, so with more users running (this Mac had 42) most lookups went to opendirectoryd and
 /// back: 45 to 61 µs on an Endpoint Security thread, and about 200 µs, every time, for an ID with no user. Names are
 /// kept for five minutes, and forgotten at once when Directory Services posts the notifications libinfo itself
-/// forgets on (a user changed on this Mac); a change made on a directory server posts nothing, so the five minutes
+/// forgets on (a user changed on this Mac). A change made on a directory server posts nothing, so the five minutes
 /// bound how long an old name lasts. IDs with no user are kept for a few seconds. If the notifications can't be had,
 /// nothing is kept.
 ///

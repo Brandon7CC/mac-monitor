@@ -8,7 +8,7 @@
 import AppKit
 
 
-// MARK: - Finding the language
+// MARK: - Detecting the language
 extension ReadOnlyTextView.Language {
     /// The language of a file Mac Monitor read. Its extension decides, then its `#!` line, then the program that ran
     /// it.

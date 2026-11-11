@@ -52,7 +52,8 @@ final class CommandLineParserTests: XCTestCase {
         XCTAssertNil(invocation.format)
         XCTAssertTrue(invocation.appliesSavedMutes)
         XCTAssertFalse(invocation.includeSelf)
-        XCTAssertEqual(invocation.options, StreamOptions())
+        XCTAssertEqual(invocation.fieldFilters, [.modifiedCloses])
+        XCTAssertEqual(invocation.options, StreamOptions(fieldFilters: ["ES_EVENT_TYPE_NOTIFY_CLOSE.modified"]))
         XCTAssertEqual(invocation.resolvedFormat(isTerminal: true), .text)
         XCTAssertEqual(invocation.resolvedFormat(isTerminal: false), .jsonl)
         XCTAssertTrue(try parse("stream").requiresRoot)
@@ -65,6 +66,30 @@ final class CommandLineParserTests: XCTestCase {
         XCTAssertEqual(try stream("all").events, supportedEvents)
         XCTAssertEqual(try stream("exec all").events.count, supportedEvents.count)
         XCTAssertEqual(try stream("open").options.events, ["ES_EVENT_TYPE_NOTIFY_OPEN"])
+    }
+    
+    /// `--every close` and `--every all` turn the close filter off, in either option syntax, with or without events.
+    /// The request still names the filters, none, so the Security Extension never reads it as a 3.0.0 one.
+    func testEvery() throws {
+        for line in ["--every close", "--every=close", "--every CLOSE", "--every ES_EVENT_TYPE_NOTIFY_CLOSE",
+                     "--every all", "exec close --every close"] {
+            let invocation = try stream(line)
+            XCTAssertEqual(invocation.fieldFilters, [], line)
+            XCTAssertEqual(invocation.options.fieldFilters, [], line)
+        }
+        XCTAssertEqual(try stream("exec close --every all").events, [ES_EVENT_TYPE_NOTIFY_EXEC,
+                                                                      ES_EVENT_TYPE_NOTIFY_CLOSE])
+        XCTAssertEqual(try stream("close").options.fieldFilters, ["ES_EVENT_TYPE_NOTIFY_CLOSE.modified"])
+    }
+    
+    /// `--every` takes an event that has a field filter, or all, and needs a value.
+    func testEveryRefusals() {
+        XCTAssertEqual(usageError("stream --every exec"),
+                       "--every takes close or all, not 'exec'. Run 'macmonitor help stream'.")
+        XCTAssertEqual(usageError("stream --every nonsense"),
+                       "--every takes close or all, not 'nonsense'. Run 'macmonitor help stream'.")
+        XCTAssertEqual(usageError("stream --every"), "--every needs a value. Run 'macmonitor help stream'.")
+        XCTAssertEqual(CommandLineParser.everyChoices, ["close", "all"])
     }
     
     /// AUTH, unmodeled, and unknown names are refused, pointing at `macmonitor events` only.
@@ -259,11 +284,14 @@ final class CommandLineParserTests: XCTestCase {
     }
     
     /// Every command parses as itself, and the overview lists it and names the commands that need root. The help for
-    /// stream, validate and mute names every option they take.
+    /// stream, validate, mute and indicators names every option they take.
     func testTheHelpMatchesTheCommands() throws {
-        XCTAssertTrue(CommandLineHelp.text(for: nil).contains(" stream and mute need root: run them with sudo."))
-        let lines: [CommandLineCommand: String] = [.mute: "mute list", .validate: "validate trace.jsonl",
-                                                   .completion: "completion zsh"]
+        XCTAssertTrue(CommandLineHelp.text(for: nil).contains(" stream, mute and indicators need root: run them with "
+                                                               + "sudo, or "
+                                                               + "allow them without sudo in Mac Monitor > Settings "
+                                                               + "> Command Line."))
+        let lines: [CommandLineCommand: String] = [.mute: "mute list", .indicators: "indicators list",
+                                                   .validate: "validate trace.jsonl", .completion: "completion zsh"]
         for command in CommandLineCommand.allCases {
             let invocation = try parse(lines[command] ?? command.rawValue)
             XCTAssertEqual(invocation.id, command)
@@ -272,7 +300,8 @@ final class CommandLineParserTests: XCTestCase {
         }
         let options: [CommandLineCommand: [CommandLineOption]] = [
             .stream: CommandLineOption.stream, .validate: CommandLineOption.validate,
-            .mute: MuteInvocation.Name.allCases.flatMap(CommandLineOption.mute)
+            .mute: MuteInvocation.Name.allCases.flatMap(CommandLineOption.mute),
+            .indicators: IndicatorInvocation.Name.allCases.flatMap(CommandLineOption.indicators)
         ]
         for (command, options) in options {
             let help = CommandLineHelp.text(for: command.rawValue)

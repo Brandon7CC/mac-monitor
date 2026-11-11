@@ -60,7 +60,9 @@ extension XCTestCase {
     }
     
     /// The places where `actual` differs from `expected` on `expected`'s key paths: every value `expected` has must be
-    /// at the same key path in `actual`, with the same JSON type and value. `actual` may have more keys.
+    /// at the same key path in `actual`, with the same JSON type and value. `actual` may have more keys, unless
+    /// `exact`, when each key `actual` has at any depth that `expected` doesn't is a difference too, so the two are
+    /// compared both ways. Only a key `allowing` names may then be there in `actual` alone, with the value it gives.
     ///
     /// Booleans and numbers are different types (eslogger writes `true`, never `1`), and numbers compare exactly.
     ///
@@ -68,25 +70,35 @@ extension XCTestCase {
     ///   - expected: A `JSONSerialization` value, such as an eslogger record.
     ///   - actual: The value to check, such as Mac Monitor's export of the record's event.
     ///   - ignoring: Keys not compared, at any depth.
+    ///   - exact: Whether a key only `actual` has is a difference.
+    ///   - allowing: Keys `actual` may have alone when `exact`, at any depth, each with the scalar it must be.
     ///   - path: The key path of `expected`.
     /// - Returns: One line per difference: its key path, and both values.
-    func differences(_ expected: Any, _ actual: Any?, ignoring: Set<String> = [], path: String = "") -> [String] {
+    func differences(_ expected: Any, _ actual: Any?, ignoring: Set<String> = [], exact: Bool = false,
+                     allowing: [String: Any] = [:], path: String = "") -> [String] {
+        let childPath = { (key: String) in path.isEmpty ? key : "\(path).\(key)" }
         switch expected {
         case let object as [String: Any]:
             guard let other = actual as? [String: Any] else {
                 return ["\(path): expected an object, found \(String(describing: actual))"]
             }
-            return object.keys.sorted().filter { !ignoring.contains($0) }.flatMap { key -> [String] in
-                let child = path.isEmpty ? key : "\(path).\(key)"
-                guard let value = other[key] else { return ["\(child): missing"] }
-                return differences(object[key]!, value, ignoring: ignoring, path: child)
+            let found = object.keys.sorted().filter { !ignoring.contains($0) }.flatMap { key -> [String] in
+                guard let value = other[key] else { return ["\(childPath(key)): missing"] }
+                return differences(object[key]!, value, ignoring: ignoring, exact: exact, allowing: allowing,
+                                   path: childPath(key))
             }
+            guard exact else { return found }
+            return found + other.keys.sorted().filter { key in
+                object[key] == nil && !ignoring.contains(key)
+                    && !(allowing[key].map { Self.sameScalar($0, other[key]) } ?? false)
+            }.map { key in "\(childPath(key)): not expected, found \(other[key]!)" }
         case let array as [Any]:
             guard let other = actual as? [Any], other.count == array.count else {
                 return ["\(path): expected \(array.count) elements, found \(String(describing: actual))"]
             }
             return zip(array, other).enumerated().flatMap { index, pair in
-                differences(pair.0, pair.1, ignoring: ignoring, path: "\(path)[\(index)]")
+                differences(pair.0, pair.1, ignoring: ignoring, exact: exact, allowing: allowing,
+                            path: "\(path)[\(index)]")
             }
         default:
             guard Self.sameScalar(expected, actual) else {
@@ -97,7 +109,7 @@ extension XCTestCase {
     }
     
     /// Assert that `actual` has every value `expected` has, at the same key path
-    /// (see ``differences(_:_:ignoring:path:)``).
+    /// (see ``differences(_:_:ignoring:exact:allowing:path:)``).
     ///
     /// - Parameters:
     ///   - expected: A `JSONSerialization` value, such as an eslogger record.

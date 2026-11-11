@@ -13,12 +13,14 @@ import OSLog
 // MARK: - Stream session
 /// One `macmonitor` connection (Security Extension context): at most one stream, on its own capture session.
 ///
-/// **Stream:** a stream request reserves a slot, follows the saved mute set (unless `--no-mutes`), and starts a
+/// **Stream:** a stream request reserves a slot, follows the saved mute set (unless `--no-mutes`) and the Mac's
+/// indicator set (always: each event carries its verdicts, so `macmonitor` has nothing to be told), and starts a
 /// capture session whose events go through an ``EventBatcher`` with the
 /// ``EventBatcher/Limits-swift.struct/commandLine`` limits. When `macmonitor` falls behind, the batcher pauses capture
 /// rather than buffering without bound. `macmonitor` sees what it missed as `global_seq_num` gaps, and the summary
 /// counts it. Each change to the saved set is applied, then told to `macmonitor`
-/// (``StreamReaderProtocol/savedMutesChanged(_:)``), since muted events never show as gaps.
+/// (``StreamReaderProtocol/savedMutesChanged(_:)``), since muted events never show as gaps. The field filters a request
+/// names are echoed when it starts, and what they left out is counted in the summary: their gaps aren't losses.
 ///
 /// **Stop:** a stop request drains the capture session and the batcher, so everything captured up to that moment is
 /// delivered, then answers with a ``StreamSummary`` and closes. Closing (also when the connection goes away) deletes
@@ -39,8 +41,12 @@ final class StreamSession: NSObject {
     private let label: String
     private var capture: CaptureSession?
     private var batcher: EventBatcher?
+    /// Takes the lanes' events onto ``queue`` in runs (``EventHandoff``). Flushed before a stop is answered.
+    private var handoff: EventHandoff?
     /// Applies saved mute set changes to `capture` while held.
     private var muteSubscription: AnyCancellable?
+    /// Applies indicator set changes to `capture` while held.
+    private var indicatorSubscription: AnyCancellable?
     /// Has the connection asked to stream? One stream a connection.
     private var hasStreamed: Bool = false
     private var isClosed: Bool = false
@@ -48,6 +54,8 @@ final class StreamSession: NSObject {
     private var skippedAtPause: UInt64?
     /// Messages capture skipped during earlier pauses.
     private var skippedWhilePaused: UInt64 = 0
+    /// Did the request name field filters? Only then are they echoed and counted: a 3.0.0 `macmonitor` reads neither.
+    private var requestsFieldFilters = false
     
     /// - Parameters:
     ///   - connection: The `macmonitor` connection.
@@ -72,10 +80,15 @@ final class StreamSession: NSObject {
 // MARK: - StreamProtocol
 extension StreamSession: StreamProtocol {
     func perform(_ request: Data, reply: @escaping (Data) -> Void) {
-        /// The router only hands root's connections here. Check again on the thread delivering the message.
-        guard service.admits(NSXPCConnection.current()) else {
-            StreamService.logger.error("\(self.label, privacy: .public): refused a stream request from non-root.")
-            return reply(answer(.refused, problem: "Only root can use macmonitor.").encoded())
+        /// Decided on the thread delivering the message, by the caller's effective user and `CommandLineAccess`.
+        let grant = service.grant(NSXPCConnection.current())
+        /// A status request only reads, so anyone `macmonitor` runs as may send it. A stop only ends this
+        /// connection's own stream: one that began while streaming was allowed still drains and reports what it
+        /// lost when it's stopped after Settings narrowed access, rather than being refused and cut off.
+        let kind = (try? StreamRequest.decode(request))?.kind
+        guard kind == .status || kind == .stop || grant.mayStream else {
+            StreamService.logger.error("\(self.label, privacy: .public): refused a stream request.")
+            return reply(answer(.refused, problem: grant.refusal).encoded())
         }
         queue.async { [self] in
             respond(to: request) { reply($0.encoded()) }
@@ -83,11 +96,27 @@ extension StreamSession: StreamProtocol {
     }
     
     func mutes(_ request: Data, reply: @escaping (Data) -> Void) {
-        guard service.admits(NSXPCConnection.current()) else {
-            StreamService.logger.error("\(self.label, privacy: .public): refused a mute request from non-root.")
-            return reply(MuteReply(status: .refused, mutes: [], problems: ["Only root can use macmonitor."]).encoded())
+        let grant = service.grant(NSXPCConnection.current())
+        guard let access = grant.savedSetAccess else {
+            StreamService.logger.error("\(self.label, privacy: .public): refused a mute request.")
+            return reply(MuteReply(status: .refused, mutes: [], problems: [grant.refusal ?? ""]).encoded())
         }
-        service.savedMutes.handle(request, access: .write, caller: label, reply: reply)
+        /// Without `sudo`, it may only list it, unless Settings lets it change it.
+        service.savedMutes.handle(request, access: access, caller: label, reply: reply)
+    }
+    
+    func indicators(_ request: Data, reply: @escaping (Data) -> Void) {
+        let grant = service.grant(NSXPCConnection.current())
+        guard let access = grant.savedSetAccess else {
+            StreamService.logger.error("\(self.label, privacy: .public): refused an indicator request.")
+            return reply(IndicatorReply(status: .refused, indicators: [], failure: grant.refusal).encoded())
+        }
+        guard let savedIndicators = service.savedIndicators else {
+            return reply(IndicatorReply(status: .storageFailed, indicators: [],
+                                        failure: "This Security Extension keeps no indicators.").encoded())
+        }
+        /// The same rule as the saved mute set: without `sudo`, only a list, unless Settings allows changes.
+        savedIndicators.handle(request, access: access, caller: label, reply: reply)
     }
 }
 
@@ -100,6 +129,9 @@ extension StreamSession {
     ///   - data: A JSON encoded ``StreamRequest``.
     ///   - reply: Receives the answer, on ``queue``: right away, or once a stop has drained.
     private func respond(to data: Data, reply: @escaping (StreamReply) -> Void) {
+        /// A request follows every event submitted before it, as it did when each event came on its own block: the
+        /// batcher has them, and has paused capture if they overflowed it, before the request is answered.
+        handoff?.flush()
         do {
             let request = try StreamRequest.decode(data)
             switch request.kind {
@@ -109,15 +141,21 @@ extension StreamSession {
                 reply(start(try StreamPlan(request.options ?? StreamOptions())))
             case .stop:
                 stop(reply: reply)
+            case .status:
+                service.report { [self] report in
+                    queue.async { reply(self.answer(.ok, report: report)) }
+                }
             }
         } catch {
             reply(answer(error.status(), problem: error.description))
         }
     }
     
-    /// Start the connection's stream: reserve a slot, follow the saved mute set if asked, and start capture.
+    /// Start the connection's stream: reserve a slot, follow the saved mute set if asked and the indicator set always,
+    /// and start capture.
     ///
-    /// The mutes and subscriptions are in place before capture starts recording, so no message arrives unmuted.
+    /// The mutes, indicators and subscriptions are in place before capture starts recording, so no message arrives
+    /// unmuted or unjudged.
     ///
     /// - Parameter plan: The validated request.
     /// - Returns: The answer: what the stream subscribed to, or why it couldn't start.
@@ -132,6 +170,16 @@ extension StreamSession {
         }
         hasStreamed = true
         var configuration = CaptureConfiguration(events: plan.events, label: label)
+        configuration.fieldFilters = plan.fieldFilters ?? []
+        /// Every stream is evaluated, `--no-mutes` too: its records carry the verdicts. Changes hop onto `queue`.
+        if let savedIndicators = service.savedIndicators {
+            let (indicators, subscription) = savedIndicators.follow { [weak self] compiled in
+                self?.queue.async { self?.applyIndicators(compiled) }
+            }
+            configuration.indicators = indicators
+            indicatorSubscription = subscription
+        }
+        requestsFieldFilters = plan.fieldFilters != nil
         if plan.appliesSavedMutes {
             /// Follow the saved set from the moment it's read, so no change is missed. Changes hop onto `queue`.
             let (mutes, subscription) = service.savedMutes.follow { [weak self] list, change in
@@ -144,22 +192,30 @@ extension StreamSession {
                                    overflow: .pause { [weak self] paused in self?.setPaused(paused) },
                                    delivery: EventBatcher.xpcDelivery(over: connection, label: label),
                                    willSend: { [weak self] in self?.capture?.reportDrops() }, label: label)
+        /// One wake of `queue` for each run of events, not one for each event (``EventHandoff``).
+        let handoff = EventHandoff(queue: queue) { [weak self] events in
+            guard let batcher = self?.batcher else { return }
+            for event in events { batcher.enqueue(event) }
+        }
         do {
-            let capture = try service.makeCapture(configuration) { [weak self] event in
-                self?.queue.async { self?.batcher?.enqueue(event.json) }
-            }
+            let capture = try service.makeCapture(configuration) { event in handoff.submit(event.json) }
+            self.handoff = handoff
             self.batcher = batcher
             self.capture = capture
             capture.isRecording = true
             let savedMutes = plan.appliesSavedMutes ? configuration.mutes.count : nil
+            let filters = capture.fieldFilters.map(\.rawValue).sorted()
             StreamService.logger.log("""
                 \(self.label, privacy: .public) started a stream of \(capture.subscribedEvents.count) events \
-                \(savedMutes.map { "with \($0) saved mutes" } ?? "without the saved mutes", privacy: .public).
+                \(savedMutes.map { "with \($0) saved mutes" } ?? "without the saved mutes", privacy: .public) \
+                and field filters: \(filters.isEmpty ? "none" : filters.joined(separator: ", "), privacy: .public).
                 """)
             let events = capture.subscribedEvents.map { eventTypeToString(from: $0) }
-            return answer(.ok, stream: StreamStarted(events: events, savedMutes: savedMutes))
+            return answer(.ok, stream: StreamStarted(events: events, savedMutes: savedMutes,
+                                                     fieldFilters: requestsFieldFilters ? filters : nil))
         } catch {
             muteSubscription = nil
+            indicatorSubscription = nil
             service.slots.release(number)
             return startFailure(error)
         }
@@ -171,6 +227,8 @@ extension StreamSession {
     private func stop(reply: @escaping (StreamReply) -> Void) {
         guard let capture, let batcher, !isClosed else { return reply(answer(.ok)) }
         capture.drain(on: queue) { [self] in
+            /// The lanes have emitted every event by now: give the last of them to the batcher before it drains.
+            handoff?.flush()
             batcher.drain { [self] in
                 reply(answer(.ok, summary: summary()))
                 finish()
@@ -190,10 +248,12 @@ extension StreamSession {
                 \(summary.captured) events, \(summary.pauses) pauses, \
                 \(summary.droppedWhileBehind + summary.skippedWhilePaused) lost while behind \
                 (\(summary.droppedWhileBehind) dropped with the buffer full, \(summary.skippedWhilePaused) skipped \
-                while paused), \(summary.droppedByEndpointSecurity) dropped by Endpoint Security.
+                while paused), \(summary.droppedByEndpointSecurity) dropped by Endpoint Security, \
+                \(self.capture?.fieldFilteredMessages ?? 0) left out by field filters.
                 """)
         }
         muteSubscription = nil
+        indicatorSubscription = nil
         capture?.stop()
         batcher?.close()
         /// Releasing the batcher releases its delivery, the only strong reference to the connection.
@@ -213,6 +273,14 @@ extension StreamSession {
         capture.applyMutes(list)
         let proxy = connection?.remoteObjectProxyWithErrorHandler { _ in }
         (proxy as? StreamReaderProtocol)?.savedMutesChanged(change.encoded())
+    }
+    
+    /// Apply a change to the indicator set. Call on ``queue``.
+    ///
+    /// - Parameter compiled: The set now, compiled.
+    private func applyIndicators(_ compiled: CompiledIndicators) {
+        guard let capture, !isClosed else { return }
+        capture.applyIndicators(compiled)
     }
     
     /// Pause or resume capture for the batcher, counting what capture skips while paused. Call on ``queue``.
@@ -244,11 +312,12 @@ extension StreamSession {
     ///   - problem: What went wrong.
     ///   - stream: The stream that started.
     ///   - summary: What the stream delivered and lost.
+    ///   - report: What the Security Extension says of itself.
     /// - Returns: The answer.
     private func answer(_ status: StreamReply.Status, problem: String? = nil, stream: StreamStarted? = nil,
-                        summary: StreamSummary? = nil) -> StreamReply {
+                        summary: StreamSummary? = nil, report: SensorReport? = nil) -> StreamReply {
         StreamReply(status: status, problem: problem, sensorVersion: service.sensorVersion, stream: stream,
-                    summary: summary)
+                    summary: summary, report: report)
     }
     
     /// What the stream has delivered and lost so far. Call on ``queue``.
@@ -260,10 +329,12 @@ extension StreamSession {
         var skipped = skippedWhilePaused
         /// A pause still going counts up to now.
         if let skippedAtPause, let capture { skipped += capture.skippedMessages - skippedAtPause }
+        let fieldFiltered = (capture?.fieldFilteredByType() ?? [:]).mapValues { Int(clamping: $0) }
         return StreamSummary(captured: counters.enqueued, delivered: counters.delivered,
                              droppedByEndpointSecurity: droppedByEndpointSecurity,
                              droppedWhileBehind: counters.dropped,
-                             skippedWhilePaused: Int(skipped), pauses: counters.pauses)
+                             skippedWhilePaused: Int(skipped), pauses: counters.pauses,
+                             fieldFiltered: requestsFieldFilters ? fieldFiltered : nil)
     }
     
     /// The answer for a capture session that couldn't start.

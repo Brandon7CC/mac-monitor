@@ -81,6 +81,19 @@ enum SyntheticCorpus {
             /// A parent at message version 10 that Mac Monitor before 3.0.0 left out, registry ID and all.
             all.append(variant("parent unrecorded", absent: [unflagged, "IOKitOpenEvent.parent_path",
                                                              "IOKitOpenEvent.parent_registry_id"]))
+            /// A service the registry no longer had, or a record without Mac Monitor 3.1.0's registry values.
+            all.append(variant("service unread", absent: [unflagged, "IOKitOpenEvent.parent_class",
+                                                          "IOKitOpenEvent.driver_bundle_id"]))
+        case ES_EVENT_TYPE_NOTIFY_MMAP, ES_EVENT_TYPE_NOTIFY_CLOSE:
+            /// A file that isn't Mach-O, and one that wasn't read (or a record without Mac Monitor 3.1.0's file types).
+            let type = event.type == ES_EVENT_TYPE_NOTIFY_MMAP ? "MMapEvent" : "FileCloseEvent"
+            all.append(variant("not Mach-O", absent: [unflagged, "\(type).mach_o_type"]))
+            all.append(variant("file unread", absent: [unflagged, "\(type).file_type", "\(type).mach_o_type"]))
+        case ES_EVENT_TYPE_NOTIFY_SETMODE:
+            /// A regular file, rw-r--r--, given rwsr-xr-x: `mode_added` lists what that added.
+            all.append(variant("execute and setuid added", ["mode": 0o4755, "st_mode": 0o100644]))
+            /// A target with no stat, as a trace that didn't carry one has: `previous_mode` is null.
+            all.append(variant("target without stat", ["mode": 0o755, "st_mode": 0]))
         case ES_EVENT_TYPE_NOTIFY_CREATE, ES_EVENT_TYPE_NOTIFY_RENAME:
             /// A rename's new path has no mode.
             let mode: Set<String> = event.type == ES_EVENT_TYPE_NOTIFY_RENAME
@@ -101,6 +114,14 @@ enum SyntheticCorpus {
             all.append(variant("user UUID", ["member_type": Int(ES_OD_MEMBER_TYPE_USER_UUID.rawValue)]))
             all.append(variant("group UUID", ["member_type": Int(ES_OD_MEMBER_TYPE_GROUP_UUID.rawValue)]))
             all.append(variant("member without value", absent: [unflagged, "OpenDirectoryMember.member_value"]))
+        case ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD, ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_REMOVE:
+            /// Bundles whose Info.plist and signature couldn't be read, and that have no where-froms or birth time,
+            /// from a record that doesn't name the Info.plist.
+            let keys = ["info_plist_path", "identifier", "name", "version", "short_version", "executable_path",
+                        "is_ui_element", "is_background_only", "signing_id", "team_id", "codesigning_type",
+                        "where_froms", "birth_time", "age_ms"]
+            all.append(variant("bundle without values",
+                               absent: Set(keys.map { "LaunchItemBundle.\($0)" }).union([unflagged])))
         default:
             break
         }
@@ -133,7 +154,7 @@ enum SyntheticCorpus {
             guard let wrapped = mirror.children.first?.value else {
                 let qualified = "\(field.owner).\(field.key)"
                 let allowed = absent.contains(qualified) || absent.contains("*.\(field.key)")
-                    || derivedNils.contains(qualified)
+                    || derivedNils.contains(qualified) || SyntheticValues.unfilled.contains(qualified)
                 return allowed ? [] : [path]
             }
             return gaps(in: wrapped, at: path, field: field, absent: absent)

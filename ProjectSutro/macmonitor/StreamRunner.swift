@@ -10,23 +10,23 @@ import SutroESFramework
 
 
 // MARK: - Stream runner
-/// `sudo macmonitor stream`, as a process: standard output and error, signals, and the exit status. The stream itself
+/// `macmonitor stream`, as a process: standard output and error, signals, and the exit status. The stream itself
 /// is ``StreamCommand``'s.
 ///
 /// **Stopping:** the first `SIGINT`, `SIGTERM` or `SIGHUP` asks the Security Extension to stop, and batches keep being
-/// written until it answers; then `macmonitor` exits by that signal. If the answer doesn't come within the stop timeout
-/// (standard output is stalled, say), a watchdog exits anyway, and so does a second signal. A stream that stops itself
-/// at its `--count` or `--for` exits 0.
+/// written until it answers, then `macmonitor` exits by that signal. If the answer doesn't come within 3 seconds
+/// (standard output is stalled, say), a ``StopWatchdog`` exits anyway, and so does a second signal. A stream that
+/// stops itself at its `--count` or `--for` exits 0.
 enum StreamRunner {
-    /// How long a stop may take before the watchdog exits.
-    static let stopDeadline: DispatchTimeInterval = .seconds(3)
+    /// Exits when a stop takes longer than its deadline.
+    static let watchdog = StopWatchdog()
     
-    /// Start streaming to standard output. Runs on the main queue until it exits.
+    /// Start streaming to standard output, over the live connection to the Security Extension. Runs on the main
+    /// queue until it exits.
     ///
-    /// - Parameters:
-    ///   - invocation: The stream asked for.
-    ///   - client: The connection to the Security Extension: the live one, unless a probe brings its own.
-    static func start(_ invocation: StreamInvocation, client: StreamClient = .live()) {
+    /// - Parameter invocation: The stream asked for.
+    static func start(_ invocation: StreamInvocation) {
+        let client = StreamClient.live()
         let isTerminal = isatty(STDOUT_FILENO) == 1
         let format = invocation.resolvedFormat(isTerminal: isTerminal)
         let formatter: StreamPipeline.Formatter
@@ -37,6 +37,7 @@ enum StreamRunner {
             guard let model = ExportEncoder.model else {
                 CommandLineTool.fail(CommandLineFailure(.software, "Mac Monitor's event model is missing."))
             }
+            /// Each record lists the indicators the Security Extension matched as it captured the event.
             let encoders = StreamPipeline.Formatter.encoders(model: model, pretty: format == .pretty)
             formatter = format == .text ? .text(TextEventFormatter(), records: encoders) : .jsonl(encoders)
         }
@@ -47,7 +48,7 @@ enum StreamRunner {
                                     diagnose: FileOutput.writeError)
         let trap = SignalTrap.start { number in
             command.stop()
-            DispatchQueue.global().asyncAfter(deadline: .now() + Self.stopDeadline) { _exit(128 + number) }
+            watchdog.arm(for: number)
         }
         /// 0 for a stream that stopped itself or lost its reader, else the failure's status.
         command.run(invocation) { outcome in

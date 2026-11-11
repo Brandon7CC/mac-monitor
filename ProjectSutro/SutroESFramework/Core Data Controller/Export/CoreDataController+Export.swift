@@ -29,15 +29,19 @@ extension CoreDataController {
     ///     when it's empty, a selection only when the store has some of its events.
     ///   - url: The destination, from ``showSavePanel(numberOfEvents:jsonl:)``.
     ///   - jsonl: Should we export the events line-by-line (one JSON object per line)?
+    ///   - indicators: The indicators each record lists under `indicators`, as Settings > Indicators has them, or `nil`
+    ///     to leave the key out.
     ///   - progress: Called on the main thread with how far the export has got, once it knows its events.
     ///   - completion: Called on the main thread with the number of events written, or why none were
     ///     (`CancellationError` after ``TelemetryExporter/cancel()``).
     /// - Returns: The export, to cancel.
     @discardableResult
     public func exportEvents(_ eventIDs: [UUID]? = nil, to url: URL, jsonl: Bool = false,
+                             indicators: [Indicator]? = nil,
                              progress: @escaping (TelemetryExporter.Progress) -> Void = { _ in },
                              completion: @escaping (Result<Int, Error>) -> Void = { _ in }) -> TelemetryExporter {
-        let exporter = TelemetryExporter(container: container, pretty: !jsonl), source = self.source
+        let exporter = TelemetryExporter(container: container, pretty: !jsonl, indicators: indicators)
+        let source = self.source
         let key = ObjectIdentifier(exporter)
         exports.withLock { $0[key] = (exporter, url) }
         privateMOC.perform {

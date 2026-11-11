@@ -8,195 +8,144 @@
 import SwiftUI
 import SutroESFramework
 
+/// What a `btm_launch_item_add` event says: the launch item registered, its bundle, the app that registered it, and
+/// the process that instigated it.
 struct SystemBTMAddMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-
-    var event: ESLaunchItemAddEvent {
-        esSystemEvent.event.btm_launch_item_add!
-    }
 
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.btm_launch_item_add != nil {
-            eventContent
+        if let event = esSystemEvent.event.btm_launch_item_add {
+            EventFactsCard(message: esSystemEvent) {
+                LaunchItemFacts(event: event)
+            }
+        }
+    }
+}
+
+
+// MARK: - Launch item events
+/// What a launch item event (`btm_launch_item_add` or `btm_launch_item_remove`) says, for ``LaunchItemFacts``.
+protocol LaunchItemEventFacts {
+    /// The launch item.
+    var item: ESLaunchItem { get }
+    /// The app that registered the item, or `nil`.
+    var app: ESProcess? { get }
+    /// The process that instigated the event, or `nil`.
+    var instigator: ESProcess? { get }
+    /// The item's name: the last component of its URL, or `nil`.
+    var itemName: String? { get }
+    /// The path of the item's executable, or `nil` for an event that doesn't give one.
+    var executablePath: String? { get }
+}
+
+extension ESLaunchItemAddEvent: LaunchItemEventFacts {
+    /// The path of the item's executable, as the event gives it.
+    var executablePath: String? { executable_path }
+}
+
+
+// MARK: - Launch item facts
+/// A launch item event's facts: the item's type, flags, name and path, its bundle, the app that registered it, and
+/// the process that instigated the event.
+struct LaunchItemFacts<Event: LaunchItemEventFacts>: View {
+    /// The event.
+    let event: Event
+
+    var body: some View {
+        FactsBox {
+            FactRow(name: "Type", value: event.item.item_type_string, style: .monospaced)
+
+            if let executablePath = event.executablePath {
+                FactRow(name: "Executable path", value: executablePath, style: .monospaced)
+            }
+
+            HStack {
+                Text("\u{2022} **Is legacy:**")
+                GroupBox {
+                    Text("`\(String(event.item.legacy))`")
+                }
+
+                Text("\u{2022} **Is managed:**")
+                GroupBox {
+                    Text(String(event.item.managed))
+                        .monospaced()
+                }
+            }
+
+            if let itemName = event.itemName {
+                FactRow(name: "Item name", value: itemName, style: .monospaced)
+            }
+
+            FactRow(name: "Item path", value: event.item.item_path)
+
+            // MARK: Bundle
+            LaunchItemBundleSection(item: event.item)
+
+            if let appPath = event.item.app_path, !appPath.isEmpty {
+                registeringApplication(appPath)
+            }
+
+            if let instigator = event.instigator,
+               let instigatingPath = instigator.executable?.path,
+               !instigatingPath.isEmpty {
+                instigatorFacts(instigator, path: instigatingPath)
+            }
         }
     }
 
+    /// The app that registered the item: its path, team and signing IDs, and its bundle.
+    ///
+    /// - Parameter appPath: The app's path.
+    /// - Returns: The Registering application section.
     @ViewBuilder
-    private var eventContent: some View {
-        ScrollView {
-            VStack(alignment: .leading) {
-                // MARK: Event label
-                SystemEventTypeLabel(message: esSystemEvent)
-                    .font(.title2)
+    private func registeringApplication(_ appPath: String) -> some View {
+        Divider()
 
-                GroupBox {
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text("\u{2022} **Type:**")
-                            GroupBox {
-                                Text(event.item.item_type_string)
-                                    .monospaced()
-                            }
-                        }
-                        
-                        if let executablePath = event.executable_path {
-                            HStack {
-                                Text("\u{2022} **Executable path:**")
-                                GroupBox {
-                                    Text(executablePath)
-                                        .monospaced()
-                                }
-                            }
-                        }
+        Label("Registering application", systemImage: "plus.app")
+            .bold()
+            .font(.title3)
+            .padding([.top, .leading], 5.0)
 
-                        HStack {
-                            Text("\u{2022} **Is legacy:**")
-                            GroupBox {
-                                Text("`\(String(event.item.legacy))`")
-                            }
+        FactRow(name: "App path", value: appPath)
 
-                            Text("\u{2022} **Is managed:**")
-                            GroupBox {
-                                Text(String(event.item.managed))
-                                    .monospaced()
-                            }
-                        }
-
-                        if let itemName = event.itemName {
-                            HStack {
-                                Text("\u{2022} **Item name:**")
-                                GroupBox {
-                                    Text(itemName)
-                                        .monospaced()
-                                }
-                            }
-                        }
-
-                        HStack {
-                            Text("\u{2022} **Item path:**")
-                            GroupBox {
-                                Text("`\(event.item.item_path)`")
-                                    .lineLimit(5)
-                            }
-                        }
-
-                        if let appPath = event.item.app_path, !appPath.isEmpty {
-                            Divider()
-                            
-                            Label("Registering application", systemImage: "plus.app")
-                                .bold()
-                                .font(.title3)
-                                .padding([.top, .leading], 5.0)
-
-                            HStack {
-                                Text("\u{2022} **App path:**")
-                                GroupBox {
-                                    Text("`\(appPath)`")
-                                        .lineLimit(20)
-                                }
-                            }
-
-                            if let app = event.app, let teamId = app.team_id.nonEmpty {
-                                HStack {
-                                    Text("\u{2022} **App Team ID:**")
-                                    GroupBox {
-                                        Text(teamId)
-                                            .monospaced()
-                                            .lineLimit(20)
-                                    }
-                                }
-                            }
-
-                            if let app = event.app, let signingId = app.signing_id.nonEmpty {
-                                HStack {
-                                    Text("\u{2022} **App Signing ID:**")
-                                    GroupBox {
-                                        Text(signingId)
-                                            .monospaced()
-                                            .lineLimit(20)
-                                    }
-                                }
-                            }
-                        }
-
-                        if let instigator = event.instigator,
-                           let instigatingPath = instigator.executable?.path,
-                           !instigatingPath.isEmpty {
-
-                            Divider()
-                            
-                            Label("Instigator", systemImage: "app.connected.to.app.below.fill")
-                                .bold()
-                                .font(.title3)
-                                .padding([.top, .leading], 5.0)
-
-                            HStack {
-                                Text("\u{2022} **Instigator path:**")
-                                GroupBox {
-                                    Text("`\(instigatingPath)`")
-                                        .lineLimit(20)
-                                }
-                            }
-
-                            if let teamId = instigator.team_id.nonEmpty {
-                                HStack {
-                                    Text("\u{2022} **Instigator Team ID:**")
-                                    GroupBox {
-                                        Text(teamId)
-                                            .monospaced()
-                                            .lineLimit(20)
-                                    }
-                                }
-                            }
-
-                            if let signingId = instigator.signing_id.nonEmpty {
-                                HStack {
-                                    Text("\u{2022} **Instigator Signing ID:**")
-                                    GroupBox {
-                                        Text(signingId)
-                                            .monospaced()
-                                            .lineLimit(20)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Divider()
-
-                Label("**Context items**", systemImage: "folder.badge.plus")
-                    .font(.title2)
-                    .padding(.leading, 5)
-
-                GroupBox {
-                    HStack {
-                        Button("**Audit tokens**") {
-                            showAuditTokens.toggle()
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding()
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        if let teamID = event.app?.team_id.nonEmpty {
+            FactRow(name: "App Team ID", value: teamID, style: .monospaced)
         }
-        .sheet(isPresented: $showAuditTokens) {
-            VStack {
-                AuditTokenView(
-                    audit_token: esSystemEvent.process.audit_token_string,
-                    responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                    parent_audit_token: esSystemEvent.process.parent_audit_token_string
-                )
-                Button("**Dismiss**") {
-                    showAuditTokens.toggle()
-                }
-                .padding(.bottom)
-            }
-            .padding()
+
+        if let signingID = event.app?.signing_id.nonEmpty {
+            FactRow(name: "App Signing ID", value: signingID, style: .monospaced)
+        }
+
+        // MARK: App bundle
+        LaunchItemAppBundleSection(item: event.item)
+    }
+
+    /// The process that instigated the event: its path, age, and team and signing IDs.
+    ///
+    /// - Parameters:
+    ///   - instigator: The instigator.
+    ///   - path: The instigator's path.
+    /// - Returns: The Instigator section.
+    @ViewBuilder
+    private func instigatorFacts(_ instigator: ESProcess, path: String) -> some View {
+        Divider()
+
+        Label("Instigator", systemImage: "app.connected.to.app.below.fill")
+            .bold()
+            .font(.title3)
+            .padding([.top, .leading], 5.0)
+
+        FactRow(name: "Instigator path", value: path)
+
+        LaunchItemInstigatorAgeRow(instigator: instigator)
+
+        if let teamID = instigator.team_id.nonEmpty {
+            FactRow(name: "Instigator Team ID", value: teamID, style: .monospaced)
+        }
+
+        if let signingID = instigator.signing_id.nonEmpty {
+            FactRow(name: "Instigator Signing ID", value: signingID, style: .monospaced)
         }
     }
 }

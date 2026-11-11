@@ -9,11 +9,11 @@ import Foundation
 
 
 // MARK: - Asking first
-/// `macmonitor mute import` and `mute reset` replace or grow the saved mute set that Mac Monitor and every stream
-/// follow, so before they do, they read the set, say what the change would do to it, and ask. A change that would
-/// change nothing isn't asked about, unless the Security Extension has a notice about the set (it was written by a
-/// newer Mac Monitor, say), which is said first. `--yes` skips the question. Without a terminal to ask at, it's
-/// required.
+/// `macmonitor mute import`, `mute reset` and `mute update` replace or grow the saved mute set that Mac Monitor and
+/// every stream follow, so before they do, they read the set, say what the change would do to it, and ask. A change
+/// that would change nothing isn't asked about, unless the Security Extension has a notice about the set (it was
+/// written by a newer Mac Monitor, say), which is said first. `--yes` skips the question. Without a terminal to ask
+/// at, it's required.
 extension MuteCommand {
     /// A change asked about first.
     struct PendingChange {
@@ -21,8 +21,8 @@ extension MuteCommand {
         let command: String
         /// The question, such as "Reset the saved mute set to Mac Monitor's default set?"
         let question: String
-        /// What the saved set becomes, from what it is now.
-        let result: (MuteList) -> MuteList
+        /// What the saved set becomes, from what it is now and the Security Extension's answer about it.
+        let result: (MuteList, MuteReply) -> MuteList
         
         /// `mute reset`: the saved set becomes Mac Monitor's default set, which the Security Extension makes for
         /// whoever is logged in at the console. The question names them and their home folder, or says no one is:
@@ -40,8 +40,14 @@ extension MuteCommand {
                 question += "No one is logged in at the console, so it leaves out the mutes for a home folder's "
                     + "caches and Biome streams."
             }
-            return PendingChange(command: "mute reset", question: question) { _ in .shippedDefault(for: user) }
+            return PendingChange(command: "mute reset", question: question) { _, _ in .shippedDefault(for: user) }
         }
+        
+        /// `mute update`: the saved set gains the newer default set's changes the Security Extension offers, keeping
+        /// its own.
+        static let update = PendingChange(command: "mute update", question: """
+            Merge Mac Monitor's latest default mute set into the saved mute set? Your own changes are kept.
+            """) { current, reply in reply.update.map { current.applying($0) } ?? current }
         
         /// `mute import`: the saved set becomes a file's mutes, or (`--merge`) gains them.
         ///
@@ -53,10 +59,10 @@ extension MuteCommand {
         static func importing(_ list: MuteList, from source: String, merging: Bool) -> PendingChange {
             guard merging else {
                 let question = "Replace the saved mute set with the mutes from \(source)?"
-                return PendingChange(command: "mute import", question: question) { _ in list }
+                return PendingChange(command: "mute import", question: question) { _, _ in list }
             }
             let question = "Add the mutes from \(source) to the saved mute set?"
-            return PendingChange(command: "mute import", question: question) { current in
+            return PendingChange(command: "mute import", question: question) { current, _ in
                 var merged = current
                 merged.add(contentsOf: list)
                 return merged
@@ -87,7 +93,7 @@ extension MuteCommand {
             say(reply.notice)
             /// The Security Extension's own entries always read. If they somehow don't, ask without the numbers.
             let effect = (try? MuteFile.list(from: reply.mutes, .saved).list).map { current in
-                MuteListChange(from: current, to: change.result(current))
+                MuteListChange(from: current, to: change.result(current, reply))
             }
             if effect?.isEmpty == true && reply.notice == nil { return send() }
             let numbers = effect?.isEmpty == false ? effect?.description : nil
@@ -108,8 +114,8 @@ extension MuteCommand {
 
 
 // MARK: - What a change does
-/// What a change does to the saved mute set, mute by mute (a path and its type), for the question `mute import` and
-/// `mute reset` ask.
+/// What a change does to the saved mute set, mute by mute (a path and its type), for the question `mute import`,
+/// `mute reset` and `mute update` ask.
 struct MuteListChange: Equatable, CustomStringConvertible {
     /// Mutes for paths and types the set doesn't mute yet.
     let added: Int
@@ -143,5 +149,23 @@ struct MuteListChange: Equatable, CustomStringConvertible {
     var description: String {
         "It adds \(String.counted(added, "mute")), removes \(removed) and changes \(changed): "
             + "\(String.counted(before, "mute")) now, \(after) after."
+    }
+}
+
+
+// MARK: - Applying an update
+extension MuteList {
+    /// This set with an update's mutes added, changed and removed, as the Security Extension would merge it.
+    ///
+    /// - Parameter update: The update.
+    /// - Returns: The set after.
+    func applying(_ update: MuteSetUpdate) -> MuteList {
+        let mutes = { (entries: [MuteFile.Entry]) in (try? MuteFile.list(from: entries, .saved).list.mutes) ?? [] }
+        var next = self
+        for mute in mutes(update.removed) + mutes(update.changed) {
+            _ = try? next.remove(PathMute(path: mute.path, type: mute.type))
+        }
+        mutes(update.changed + update.added).forEach { next.add($0) }
+        return next
     }
 }

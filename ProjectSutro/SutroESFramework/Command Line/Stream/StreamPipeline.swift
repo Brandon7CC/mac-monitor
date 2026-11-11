@@ -16,7 +16,7 @@ public enum StreamOutputFormat: String, CaseIterable, Sendable {
     case text
     /// One export record per line (``ExportEncoder``), an eslogger superset: the default anywhere else.
     case jsonl
-    /// Pretty-printed records, like Export telemetry ▸ JSON (pretty)
+    /// Pretty-printed records, like Export telemetry > JSON (pretty)
     case pretty
 }
 
@@ -27,11 +27,11 @@ public enum StreamOutputFormat: String, CaseIterable, Sendable {
 ///
 /// Every event is observed by the ``StreamDropMeter``, in order, before ``PipelineScope`` or the ``StreamFilter`` can
 /// leave it out, so leaving one out never looks like a drop. Text output decodes only each event's header. JSONL, and
-/// text with a filter that reads records, decode the whole `Message` once and take the header from it. Encoding a
-/// record, at about 190 µs an event, is the slow part of a stream, so a batch of at least ``parallelThreshold`` events
-/// is split across the formatter's encoders and encoded in parallel (measured on 21,768 real events: 5,100 events a
-/// second with one encoder, 10,800 with four), then joined in order. With a limit (`--count`), the join stops at the
-/// last event it allows, and later batches write nothing. Not thread-safe: one batch at a time.
+/// text with a filter that reads records, decode the whole `Message` once and take the header from it. Making a
+/// record (decoding the event, building its row and encoding it) is the slow part of a stream, about 180 µs an event
+/// with a `--predicate` that reads it (`filter.stream.predicate`), so a batch of at least ``parallelThreshold`` events
+/// is split across the formatter's encoders and made in parallel, then joined in order. With a limit (`--count`), the
+/// join stops at the last event it allows, and later batches write nothing. Not thread-safe: one batch at a time.
 public final class StreamPipeline {
     /// How events become output.
     public enum Formatter {
@@ -40,7 +40,9 @@ public final class StreamPipeline {
         /// Export records, one per line or pretty-printed, from one or more encoders.
         case jsonl([ExportEncoder])
         
-        /// As many encoders as pay off on this Mac: half its active cores, from 1 to 4.
+        /// As many encoders as pay off on this Mac: half its active cores, from 1 to 4. Each record lists the
+        /// verdicts the Security Extension stamped its event with, and has no `indicators` key without them
+        /// (``RecordIndicators/stored``).
         ///
         /// - Parameters:
         ///   - model: The event model, such as ``ExportEncoder/model``.
@@ -152,7 +154,10 @@ public final class StreamPipeline {
         let (scope, filters) = (scope, filters)
         let encoded = parts.indices.concurrentMap { index in
             Chunk(parts[index], scope: scope, filter: filters[index]) { event, decoder in
-                let message = try decoder.decode(Message.self, from: event)
+                var received = try decoder.decode(Message.self, from: event)
+                /// A 3.0.0 Security Extension sends no process ages.
+                received.deriveProcessAges()
+                let message = received
                 let header = EventHeader(message)
                 let record = { encoders[index].line(for: message) }
                 return Decoded(header: header, record: record) { made in format(header, made ?? record()) }

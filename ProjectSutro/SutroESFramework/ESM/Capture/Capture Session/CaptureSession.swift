@@ -23,12 +23,22 @@ import OSLog
 /// or none), then each list ``applyMutes(_:)`` is given. They're in place before the first subscription, so no message
 /// arrives unmuted.
 ///
+/// **Field filters:** every lane checks the configuration's ``FieldFilter``s, then those ``setFieldFilter(_:enabled:)``
+/// turns on, before it builds an event. They're in place before any client is created, so no message arrives
+/// unfiltered.
+///
+/// **Indicators:** every lane stamps each event it builds with the indicators it matches: the configuration's set,
+/// then each set ``applyIndicators(_:)`` is given. The first is in place before any client is created, so no event
+/// goes out unevaluated.
+///
 /// **Order:** each class's events are emitted in the order its client delivers them, so `fork`, `exec`, and `exit`
 /// keep Endpoint Security's order, including while an app's exec is held (``LaunchServicesHold``). Classes interleave
 /// in the order their events are handled. Nothing re-sorts them by `mach_time`.
 ///
-/// **Threading:** not thread-safe. Create the session and call it on one serial queue. Only the clients' handlers run
-/// elsewhere, and they call `emit`, which must not block or call back into the session.
+/// **Threading:** not thread-safe. Create the session and call it on one serial queue. Only the clients' handlers and
+/// the exec lane's ``LaunchServicesHold`` run elsewhere, and they call `emit`, which must not block or call back into
+/// the session. The hold calls it from the upgrader's queue or a utility queue, when it releases a held exec and the
+/// events behind it. Either way a class's events are emitted one at a time.
 public final class CaptureSession {
     /// The Endpoint Security clients each session holds, which count against the system's limit.
     public static let clientsPerSession: Int = EventClass.allCases.count
@@ -36,10 +46,14 @@ public final class CaptureSession {
     public let label: String
     /// The subscribed events, in the order they were subscribed.
     public private(set) var subscribedEvents: [es_event_type_t]
+    /// The field filters every lane checks, at most one per event (``setFieldFilter(_:enabled:)``).
+    public private(set) var fieldFilters: Set<FieldFilter>
     /// Endpoint Security's own default mutes (``ESMutedPath`` JSON), read before any of Mac Monitor's were applied.
     public let appleMuteSet: Set<String>
     /// The path mutes every client was last given (``applyMutes(_:)``), on top of Endpoint Security's own.
     public internal(set) var appliedMutes: MuteList
+    /// The indicators every lane was last given (``applyIndicators(_:)``), or `nil` for none.
+    public internal(set) var indicators: CompiledIndicators?
     /// Serialize and emit events? A new session isn't recording. Setting it never waits for an event being built.
     public var isRecording: Bool = false {
         didSet { lanes.forEach { $0.setRecording(isRecording) } }
@@ -79,7 +93,7 @@ public final class CaptureSession {
     /// 3. Mute this process and the configuration's paths on each client, then subscribe each to its class's events.
     ///
     /// - Parameters:
-    ///   - configuration: The events to subscribe to, and the mutes.
+    ///   - configuration: The events to subscribe to, the mutes, the field filters, and the indicators.
     ///   - factory: Makes the clients.
     ///   - serializer: Builds each event's JSON.
     ///   - makeSensorID: Computes the Sensor ID stamped on events, now and on ``refreshSensorID()``.
@@ -92,9 +106,10 @@ public final class CaptureSession {
         let label = configuration.label
         let events = Self.capturable(configuration.events, label: label)
         let sensorID = makeSensorID()
+        let table = FieldFilter.table(configuration.fieldFilters)
         let lanes = EventClass.allCases.map {
-            CaptureLane($0, label: label, sensorID: sensorID, serializer: serializer, launchServices: launchServices,
-                        emit: emit)
+            CaptureLane($0, label: label, sensorID: sensorID, serializer: serializer, fieldFilters: table,
+                        indicators: configuration.indicators, launchServices: launchServices, emit: emit)
         }
         try Self.createClients(for: lanes, with: factory, label: label)
         appleMuteSet = Set((lanes.first?.client?.mutedPaths() ?? []).map { ProcessHelpers.eventToJSON(value: $0) })
@@ -108,10 +123,15 @@ public final class CaptureSession {
         self.makeSensorID = makeSensorID
         appliedMutes = configuration.mutes
         subscribedEvents = events
+        fieldFilters = configuration.fieldFilters
+        indicators = configuration.indicators
         let shares = lanes.map { lane in "\(lane.eventClass.rawValue) \(events.filter(lane.serves).count)" }
+        let filters = configuration.fieldFilters.map(\.rawValue).sorted().joined(separator: ", ")
         Self.logger.log("""
             \(label, privacy: .public): capturing with \(lanes.count) Endpoint Security clients \
-            (events: \(shares.joined(separator: ", "), privacy: .public)).
+            (events: \(shares.joined(separator: ", "), privacy: .public); \
+            field filters: \(filters.isEmpty ? "none" : filters, privacy: .public); \
+            \(Self.describe(configuration.indicators), privacy: .public)).
             """)
     }
     
@@ -150,6 +170,27 @@ public final class CaptureSession {
         } else if !subscribedEvents.contains(event) {
             subscribedEvents.append(event)
         }
+        return true
+    }
+    
+    /// Turn a field filter on, replacing any other on its event, or off, on every lane from the next message. An
+    /// event already being built still goes out.
+    ///
+    /// - Parameters:
+    ///   - filter: The filter.
+    ///   - enabled: `true` to turn it on, `false` to turn it off.
+    /// - Returns: `false` after ``stop()``.
+    @discardableResult
+    public func setFieldFilter(_ filter: FieldFilter, enabled: Bool) -> Bool {
+        guard !isStopped else { return false }
+        fieldFilters = fieldFilters.filter { $0.event != filter.event }
+        if enabled { fieldFilters.insert(filter) }
+        let table = FieldFilter.table(fieldFilters)
+        lanes.forEach { $0.setFieldFilters(table) }
+        Self.logger.log("""
+            \(self.label, privacy: .public): field filter \(filter.rawValue, privacy: .public) \
+            \(enabled ? "on" : "off", privacy: .public).
+            """)
         return true
     }
     

@@ -160,7 +160,7 @@ final class StreamFilterTests: XCTestCase {
         }
         XCTAssertThrowsError(try StreamFilter.Predicate("process.signing_di == 'x'", for: .search)) { error in
             XCTAssertEqual((error as? CommandLineUsageError)?.message, "The predicate can't use 'process.signing_di': "
-                           + "'signing_di' isn't a key in Mac Monitor's records. Did you mean 'signing_id'? Settings ▸ "
+                           + "'signing_di' isn't a key in Mac Monitor's records. Did you mean 'signing_id'? Settings > "
                            + "Telemetry Schema describes them.")
         }
         XCTAssertThrowsError(try StreamFilter.Predicate("))", for: .search)) { error in
@@ -252,7 +252,7 @@ final class StreamFilterTests: XCTestCase {
 
     /// A `SUBQUERY` without conditions on both events leaves out exactly the events that are the searched event
     /// (``PredicateRecord/isSame(as:)``): itself, every copy of it, and one whose type is `null` as the searched
-    /// event's is; a searched event without a type is left out only as itself.
+    /// event's is. A searched event without a type is left out only as itself.
     func testSubqueriesLeaveOutTheSearchedEvent() throws {
         func event(_ time: Int, _ type: Any) -> NSDictionary {
             ["mach_time": time, "global_seq_num": time, "es_event_type": type]

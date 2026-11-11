@@ -98,12 +98,15 @@ public class ESMessage: NSManagedObject, Identifiable {
     /// The `id` this event's initiating process had (and exports): ``process`` may be shared, and keeps the `id` of the
     /// first event that stored it.
     @NSManaged public var process_id: UUID?
+    /// How old this event's initiating process was at the event, in milliseconds (``Process/process_age_ms``), or
+    /// `nil` when its start time is unknown: ``process`` may be shared by events of other ages, so it has none.
+    @NSManaged public var process_age_ms: NSNumber?
     
     /// Thread
     @NSManaged public var thread: ESThread?
     
     /// Event
-    /// A process execution event. Corresponds to `ES_EVENT_TYPE_NOTIFY_EXEC`
+    /// The message's payload: an ``ESEventType`` with exactly one relationship set, the one for its event type.
     @NSManaged public var event: ESEventType
     @NSManaged public var event_type: Int32
     /// @note Mac Monitor enrichment
@@ -136,6 +139,12 @@ public class ESMessage: NSManagedObject, Identifiable {
         /// Mac Monitor's enrichment beside eslogger's `schema_version`: the telemetry schema the record follows
         /// (``TelemetrySchema/version``).
         case telemetry_version
+        /// Mac Monitor's enrichment: the indicators the event matched, when the writer lists them: its stored
+        /// verdicts, else those it matches now (``RecordIndicators``).
+        case indicators
+        /// Mac Monitor's enrichment beside `indicators`: those the Security Extension couldn't rule out, written only
+        /// with its stored verdicts (``ESMessage/recordedUndetermined``).
+        case indicators_undetermined
         case seq_num
         case global_seq_num
         
@@ -211,6 +220,7 @@ public class ESMessage: NSManagedObject, Identifiable {
         attach(ESProcess.row(for: message.process, version: message.version, in: context),
                to: #keyPath(ESMessage.process))
         self.process_id = message.process.id
+        self.process_age_ms = message.process.process_age_ms.map { NSNumber(value: $0) }
         self.thread = message.thread.map { ESThread(from: $0, insertIntoManagedObjectContext: context) }
         
         // MARK: Event
@@ -229,6 +239,10 @@ public class ESMessage: NSManagedObject, Identifiable {
         // MARK: Context and target path
         self.context = message.context ?? "Not supported"
         self.target_path = message.target_path ?? "Not supported"
+
+        // MARK: Indicators
+        self.indicatorsData = ESMessage.indicatorsData(of: message.indicators)
+        self.indicatorsUndeterminedData = ESMessage.undeterminedData(of: message.indicators_undetermined)
     }
     
     /// Store an event as the event store does: inserted with its instigator's token, its columns
@@ -317,6 +331,10 @@ extension ESMessage: Encodable {
         try container.encode(version, forKey: .version)
         try container.encode(schema_version, forKey: .schema_version)
         try container.encode(TelemetrySchema.version, forKey: .telemetry_version)
+        if let indicators = RecordIndicators.current, let hits = recordedIndicators(with: indicators) {
+            try container.encode(hits, forKey: .indicators)
+            try container.encodeIfPresent(recordedUndetermined, forKey: .indicators_undetermined)
+        }
         if version >= 2 {
             try container.encode(seq_num, forKey: .seq_num)
         }
@@ -334,7 +352,8 @@ extension ESMessage: Encodable {
         try container.encode(sensor_id, forKey: .sensor_id)
         
         // MARK: Process and thread
-        try container.encode(ESProcessRecord(process: process, id: process_id ?? process.id), forKey: .process)
+        try container.encode(ESProcessRecord(process: process, id: process_id ?? process.id, ageMs: process_age_ms),
+                             forKey: .process)
         /// `null` when Endpoint Security named no thread, as eslogger writes it.
         try container.encode(thread, forKey: .thread)
         

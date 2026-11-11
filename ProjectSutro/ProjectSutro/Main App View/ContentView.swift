@@ -49,8 +49,8 @@ struct EventView: View {
     
     /// The search field's text: a context to find.
     @Binding var filterText: String
-    /// The finding filter and the user's predicate the tables are filtered by, and the predicate editor's, shared with
-    /// the editor's own window.
+    /// The indicator filter and the user's predicate the tables are filtered by, and the predicate editor's, shared
+    /// with the editor's own window.
     @ObservedObject var search: EventSearchController
 
 
@@ -73,10 +73,6 @@ struct EventView: View {
     /// Should we ask the user to confirm before clearing System Events?
     @State private var confirmClear: Bool = false
     
-    /// Should we filter out *most* events initiated by a platform binary?
-    @State private var filterPlatform: Bool = false
-
-    
     /// Shows, right away, what the Security Extension refused or left out of a mute asked for from an event's menu.
     private var showsEventMuteProblems: Binding<Bool> {
         Binding(get: { !systemExtensionManager.eventMuteProblems.isEmpty },
@@ -92,10 +88,11 @@ struct EventView: View {
     /// The number of System Events in the store.
     private var totalEventCount: Int { eventQueries.totalCount }
 
-    /// The filters on, as the Filters button counts them. A finding filter counts once, Any indicator too. One that's
-    /// dropped doesn't count.
+    /// The filters on, as the Filters button counts them. An indicator filter counts once, Any indicator too. One
+    /// that's dropped doesn't count.
     private var filterCount: Int {
-        allFilters.totalFilters + (filterPlatform ? 1 : 0) + (search.filteringFinding == nil ? 0 : 1)
+        allFilters.totalFilters + (systemExtensionManager.dropsPlatformBinaries ? 1 : 0)
+            + (search.indicator.filtering == nil ? 0 : 1)
     }
     
     /// The string displaying the number of System Events collected over the course of the trace, grouped the way the
@@ -241,7 +238,7 @@ struct EventView: View {
                         allFilters: $allFilters,
                         filteredTelemetryShown: $filteredTelemetryShown,
                         eventMaskEnabled: $eventMaskEnabled,
-                        filterPlatform: $filterPlatform,
+                        filterPlatform: $systemExtensionManager.dropsPlatformBinaries,
                         search: search
                     ) {
                         filteredTelemetryShown = false
@@ -298,7 +295,7 @@ struct EventView: View {
             /// principal and status items together, a status group's own spacer with them, and lays what follows
             /// right after them.
             ToolbarItemGroup(placement: .primaryAction) { Spacer() }
-            /// The context search field, which narrows a finding filter's or predicate's matches.
+            /// The context search field, which narrows an indicator filter's or predicate's matches.
             ToolbarItem(placement: .primaryAction) {
                 EventSearchField(text: $filterText, narrowsPredicate: search.recordPredicate != nil)
                     .frame(width: 300)
@@ -355,6 +352,7 @@ struct EventView: View {
         .alert("Saved mute set", isPresented: showsEventMuteProblems,
                actions: { Button("OK", role: .cancel, action: {}) },
                message: { Text(systemExtensionManager.eventMuteProblems.joined(separator: "\n\n")) })
+        .modifier(MuteSetUpdatePrompt())
     }
 }
 

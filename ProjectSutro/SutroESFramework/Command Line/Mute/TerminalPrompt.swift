@@ -9,8 +9,9 @@ import Foundation
 
 
 // MARK: - Terminal prompt
-/// Asks the person at the terminal a yes-or-no question (command line context), as `macmonitor mute import` and
-/// `mute reset` do before they change the saved mute set.
+/// Asks the person at the terminal a yes-or-no question (command line context), as a change that asks first does:
+/// `macmonitor mute import`, `mute reset` and `mute update` before they change the saved mute set, and
+/// `indicators import` and `indicators edit --file` before they change the Mac's indicators.
 ///
 /// The question and the answer go through the controlling terminal (`/dev/tty`), never standard input or output, so
 /// `mute import -` can read its file from a pipe and still ask. Only when standard error is a terminal: a command

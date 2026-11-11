@@ -30,7 +30,7 @@ public struct CommandLineToolLinker {
         return (try? link.validate(tool).get()) == tool
     }
 
-    /// Settings ▸ Command Line's request, as the Security Extension handles it. The action is checked first, then the
+    /// Settings > Command Line's request, as the Security Extension handles it. The action is checked first, then the
     /// approval, and only then is anything changed. The link always goes in `binDirectory`, never a directory the
     /// request names, and a removal ignores any tool the request names.
     ///

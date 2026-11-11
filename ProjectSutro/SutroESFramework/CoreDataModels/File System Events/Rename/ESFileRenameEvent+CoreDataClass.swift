@@ -8,7 +8,6 @@
 
 import Foundation
 import CoreData
-import OSLog
 
 @objc(ESFileRenameEvent)
 public class ESFileRenameEvent: NSManagedObject, Identifiable {
@@ -20,12 +19,17 @@ public class ESFileRenameEvent: NSManagedObject, Identifiable {
     /// @note Mac Monitor enrichment
     @NSManaged public var destination_path: String
     @NSManaged public var is_quarantined: Int16
+    /// What the renamed file is by its content, read at capture (``FileRenameEvent/file_type``).
+    @NSManaged public var file_type: String?
+    /// A renamed Mach-O's `MH_*` file type (``FileRenameEvent/mach_o_type``).
+    @NSManaged public var mach_o_type: String?
 
     enum CodingKeys: CodingKey {
         case source
         case destination_type, destination_type_string
         case destination, destination_path
         case is_quarantined
+        case file_type, mach_o_type
     }
     
     // MARK: - Custom Core Data initilizer for ESFileRenameEvent
@@ -40,6 +44,8 @@ public class ESFileRenameEvent: NSManagedObject, Identifiable {
         self.destination_path = event.destination_path
         
         self.is_quarantined = event.is_quarantined
+        self.file_type = event.file_type
+        self.mach_o_type = event.mach_o_type
     }
 }
 
@@ -54,7 +60,8 @@ extension ESFileRenameEvent: Encodable {
         
         try container.encode(destination_path, forKey: .destination_path)
         try container.encode(is_quarantined, forKey: .is_quarantined)
-        
+        try container.encode(file_type, forKey: .file_type)
+        try container.encode(mach_o_type, forKey: .mach_o_type)
     }
     
     public var destination_file_name: String {

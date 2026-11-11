@@ -13,10 +13,11 @@ import OSLog
 /// Models an [`es_message_t`](https://developer.apple.com/documentation/endpointsecurity/es_message_t)  which describes an
 /// emitted security event from Endpoint Security.
 ///
-/// Events are emitted by Endpoint Security based on **event subscriptions**. Each event is represented as an optional field in our `ESMessage` structure.
-/// For example:
-/// * `exec_event` corresponds to an ``ProcessExecEvent`` which notifies us of processes being executed
-/// * `iokit_open_event` similarly corresponds to an ``IOKitOpenEvent``. This event notifies us when an IOKit device has been opened.
+/// Events are emitted by Endpoint Security based on **event subscriptions**. Each message holds exactly one event, as
+/// its ``event``: an ``EventType`` case carrying that event's payload. For example:
+/// * ``EventType/exec(_:)`` carries a ``ProcessExecEvent``, which notifies us of processes being executed
+/// * ``EventType/iokit_open(_:)`` carries an ``IOKitOpenEvent``, which notifies us when an IOKit device has been
+///   opened
 ///
 public struct Message: Codable, IdentityHashable {
     public var id = UUID.buffered()
@@ -44,7 +45,7 @@ public struct Message: Codable, IdentityHashable {
     public var thread: Thread?
     
     /// Event
-    /// A process execution event. Corresponds to `ES_EVENT_TYPE_NOTIFY_EXEC`
+    /// The message's payload: the ``EventType`` case for its event type, or ``EventType/unknown``.
     public var event: EventType
     public var event_type: Int
     /// @note Mac Monitor enrichment
@@ -67,8 +68,18 @@ public struct Message: Codable, IdentityHashable {
     /// > Not all events will have this populated. For example, it doesn't make sense for ``IOKitOpenEvent`` events to have a target path.
     /// /// @note Mac Monitor enrichment
     public var target_path: String?
-    
-    
+
+    /// The indicators the Security Extension found the event matches as it captured it, or `nil` when nothing
+    /// evaluated it: an older Security Extension, or a trace that doesn't carry verdicts. A list that can't be read
+    /// decodes as `nil` (``IndicatorVerdicts``). It and ``indicators_undetermined`` are declared last, so these two
+    /// are the last keys on the wire.
+    public var indicators: IndicatorVerdicts?
+    /// The indicators the Security Extension couldn't rule out for the event, beside ``indicators``: `nil` when it
+    /// decided every one, or nothing evaluated the event. A list that can't be read decodes as `nil`
+    /// (``UndeterminedIndicators``), and a decoder from before 3.1 ignores the key.
+    public var indicators_undetermined: UndeterminedIndicators?
+
+
     // MARK: - Message init
     /// This Mac's macOS version as events carry it: `ProcessInfo`'s version string without "Version ", for example
     /// `27.0.1 (Build 26A434)`.
@@ -128,6 +139,8 @@ public struct Message: Codable, IdentityHashable {
         /// Mac Monitor enrichment: `es_event_type`, `action_type_string`, `context` and `target_path`.
         enrich()
         deriveExecutableAge()
+        deriveProcessAges()
+        deriveBundleAges()
     }
 }
 
@@ -168,8 +181,83 @@ extension Message: ESEnrichable {
         guard case .exec(var exec) = event, exec.executable_age_ms == nil,
               let birth = exec.target.executable?.stat.st_birthtimespec, birth.tv_sec > 0 else { return }
         let born = Date(timeIntervalSince1970: TimeInterval(birth.tv_sec) + TimeInterval(birth.tv_nsec) / 1e9)
-        exec.executable_age_ms = Int((message_darwin_time.timeIntervalSince(born) * 1000).rounded())
+        exec.executable_age_ms = Self.milliseconds(from: born, to: message_darwin_time)
         event = .exec(exec)
+    }
+
+    /// Derive a launch item's bundle ages (``LaunchItemBundle/age_ms``) from the message's time: its own bundle's and
+    /// its app's, for `btm_launch_item_add` and `btm_launch_item_remove`. A bundle that has an age keeps it, and one
+    /// whose birth time is unknown gets none. Not part of ``enrich()``, like ``deriveExecutableAge()``.
+    mutating func deriveBundleAges() {
+        switch event {
+        case .btm_launch_item_add(var add):
+            add.item.deriveBundleAges(at: message_darwin_time)
+            event = .btm_launch_item_add(add)
+        case .btm_launch_item_remove(var remove):
+            remove.item.deriveBundleAges(at: message_darwin_time)
+            event = .btm_launch_item_remove(remove)
+        default:
+            return
+        }
+    }
+
+    /// Derive every process's ``Process/process_age_ms`` from the message's time: the initiating process's, and every
+    /// one the event carries (``EventType/forEachProcess(_:)``). A process that has an age keeps it, and one whose
+    /// start time is unknown (`tv_sec` 0 or less) gets none. Not part of ``enrich()``, like
+    /// ``deriveExecutableAge()``.
+    mutating func deriveProcessAges() {
+        let time = message_darwin_time
+        Self.deriveAge(of: &process, at: time)
+        event.forEachProcess { Self.deriveAge(of: &$0, at: time) }
+    }
+
+    /// Fill in what an older Security Extension leaves out of an event Mac Monitor receives over XPC: an exec's or a
+    /// fork's launched-by parent (``resolveLaunchedByParent(by:path:)``), and every process's age, which a 3.0.0
+    /// Security Extension doesn't send (``deriveProcessAges()``). What the event carries is kept, but for a create's
+    /// or a rename's target path in the spelling 3.0 gave it (``respellDestination()``).
+    ///
+    /// - Parameter path: Names a process's executable from its pid and, when known, its token: ``ProcessPath/live``.
+    mutating func completeReceived(path: (Int32, AuditToken?) -> String?) {
+        resolveLaunchedByParent(by: .app, path: path)
+        deriveProcessAges()
+        respellDestination()
+    }
+
+    /// Write a create's or a rename's target path, and its context, again from its destination when the path holds
+    /// "\/". From 1.9 until 3.1 a new path's directory and file name were joined that way (`/tmp\/a.txt`), and a
+    /// 3.0 Security Extension and an export made before 3.1 still say so: left alone, an indicator or a filter on
+    /// `target_path` reads a path no file has, so `CONTAINS "/__pycache__/"` misses `__pycache__\/x.pyc`. A path
+    /// that really holds the two characters is written the same again.
+    mutating func respellDestination() {
+        switch event {
+        case .create, .rename:
+            guard target_path?.contains("\\/") == true else { return }
+            (context, target_path) = event.summary(initiatingPath: process.executable?.path ?? "")
+        default:
+            return
+        }
+    }
+
+    /// Derive a process's ``Process/process_age_ms``, unless it has one or its start time is unknown.
+    ///
+    /// - Parameters:
+    ///   - process: The process.
+    ///   - time: The message's time.
+    private static func deriveAge(of process: inout Process, at time: Date) {
+        let start = process.start_time
+        guard process.process_age_ms == nil, start.tv_sec > 0 else { return }
+        let started = Date(timeIntervalSince1970: TimeInterval(start.tv_sec) + TimeInterval(start.tv_usec) / 1e6)
+        process.process_age_ms = milliseconds(from: started, to: time)
+    }
+
+    /// Whole milliseconds between two times, rounded: negative when `end` is before `start`.
+    ///
+    /// - Parameters:
+    ///   - start: The earlier time: a birth or a start.
+    ///   - end: The later time: the message's.
+    /// - Returns: The milliseconds.
+    static func milliseconds(from start: Date, to end: Date) -> Int {
+        Int((end.timeIntervalSince(start) * 1000).rounded())
     }
 }
 

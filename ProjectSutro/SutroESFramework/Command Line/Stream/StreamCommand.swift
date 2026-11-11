@@ -57,8 +57,9 @@ public enum StreamOutputError: Error, Equatable {
 /// event captured before the stop has been written. A stream stops itself the same way once it has written its
 /// `--count` of events or run for its `--for` time.
 ///
-/// Diagnostics go to standard error: a drop notice at most once a second, a version mismatch, each change to the
-/// saved mute set the stream follows, and (when standard error is a terminal) a banner and a summary.
+/// Diagnostics go to standard error: a drop notice at most once a second, a version mismatch, field filters the
+/// Security Extension can't apply, each change to the saved mute set the stream follows, and (when standard error is
+/// a terminal) a banner and a summary. Gaps a field filter leaves are never reported as losses.
 public final class StreamCommand: NSObject {
     /// How a stream ended.
     public enum Outcome: Equatable {
@@ -72,7 +73,7 @@ public final class StreamCommand: NSObject {
     
     /// The shortest time between two drop notices, in nanoseconds.
     static let noticeInterval: UInt64 = 1_000_000_000
-    private let client: StreamClient
+    let client: StreamClient
     private let pipeline: StreamPipeline
     private let output: StreamOutput
     /// Writes one line to standard error.
@@ -81,6 +82,8 @@ public final class StreamCommand: NSObject {
     private let isChatty: Bool
     /// `macmonitor`'s own version, such as "3.0.0 (1)".
     private let toolVersion: String
+    /// How long to wait for the list `--indicator` is checked against (``checkIndicators(_:timeout:completion:)``).
+    private let indicatorTimeout: DispatchTimeInterval
     /// Writes batches and handles answers, in order.
     private let queue = DispatchQueue(label: "com.swiftlydetecting.agent.cli.stream")
     /// Called once, on ``queue``, with how the stream ended.
@@ -93,6 +96,8 @@ public final class StreamCommand: NSObject {
     private var isStopping = false
     /// Has the first `--predicate` that couldn't be evaluated been reported?
     private var saidUnchecked = false
+    /// The field filters the stream asked for.
+    private var askedFieldFilters: Set<FieldFilter> = []
     
     /// - Parameters:
     ///   - client: The connection to the Security Extension, not yet activated.
@@ -101,9 +106,12 @@ public final class StreamCommand: NSObject {
     ///   - toolVersion: `macmonitor`'s own version.
     ///   - isChatty: Write the banner and the summary (standard error is a terminal).
     ///   - diagnose: Writes one line to standard error.
+    ///   - indicatorTimeout: How long to wait for the Mac's indicators, for `--indicator`: 10 seconds unless given.
     public init(client: StreamClient, pipeline: StreamPipeline, output: StreamOutput, toolVersion: String,
-                isChatty: Bool, diagnose: @escaping (String) -> Void) {
+                isChatty: Bool, diagnose: @escaping (String) -> Void,
+                indicatorTimeout: DispatchTimeInterval = .seconds(10)) {
         self.client = client
+        self.indicatorTimeout = indicatorTimeout
         self.pipeline = pipeline
         self.output = output
         self.toolVersion = toolVersion
@@ -111,7 +119,8 @@ public final class StreamCommand: NSObject {
         self.diagnose = diagnose
     }
     
-    /// Start streaming.
+    /// Start streaming. With `--indicator`, each is checked against the Mac's indicators first, and the stream doesn't
+    /// start if one can't match (`StreamCommand+Indicators.swift`).
     ///
     /// - Parameters:
     ///   - invocation: The stream asked for.
@@ -120,20 +129,30 @@ public final class StreamCommand: NSObject {
         queue.sync {
             self.completion = completion
             duration = invocation.duration
+            askedFieldFilters = invocation.fieldFilters
+            /// Until the answer says which apply: a batch can arrive before it's handled.
+            pipeline.meter.fieldFilteredTypes = Set(invocation.fieldFilters.map { Int($0.event.rawValue) })
         }
         client.activate(receiving: self) { [weak self] failure in
             self?.queue.async { self?.end(.failed(failure)) }
         }
-        client.send(StreamRequest(.stream, options: invocation.options), timeout: .seconds(10)) { [self] result in
-            queue.async { [self] in
-                switch result {
-                case .failure(let failure):
-                    end(.failed(failure))
-                case .success(let reply):
-                    if let failure = CommandLineFailure.reply(reply) { return end(.failed(failure)) }
-                    started(reply)
+        let start = { [self] in
+            client.send(StreamRequest(.stream, options: invocation.options), timeout: .seconds(10)) { [self] result in
+                queue.async { [self] in
+                    switch result {
+                    case .failure(let failure):
+                        end(.failed(failure))
+                    case .success(let reply):
+                        if let failure = CommandLineFailure.reply(reply) { return end(.failed(failure)) }
+                        started(reply)
+                    }
                 }
             }
+        }
+        guard !invocation.filter.indicators.isEmpty else { return start() }
+        checkIndicators(invocation.filter.indicators, timeout: indicatorTimeout) { [self] failure in
+            guard let failure else { return start() }
+            queue.async { [self] in end(.failed(failure)) }
         }
     }
     
@@ -206,7 +225,8 @@ extension StreamCommand: StreamReaderProtocol {
 
 // MARK: - Diagnostics
 extension StreamCommand {
-    /// The stream started: say so, and warn if the Security Extension is another version. Call on ``queue``.
+    /// The stream started: say so, and warn if the Security Extension is another version or can't apply the field
+    /// filters asked for. Call on ``queue``.
     ///
     /// - Parameter reply: The stream request's answer.
     private func started(_ reply: StreamReply) {
@@ -219,12 +239,17 @@ extension StreamCommand {
                 Mac Monitor to finish updating.
                 """)
         }
+        let echoed = reply.stream?.fieldFilters
+        pipeline.meter.fieldFilteredTypes = Self.fieldFilteredTypes(echoed: echoed)
+        if echoed == nil, let stream = reply.stream {
+            Self.unappliedFieldFilters(asked: askedFieldFilters, events: stream.events).forEach(diagnose)
+        }
         guard isChatty, let stream = reply.stream else { return }
         /// Say how to see what the saved set hides: a stream applies it unless asked not to.
         let mutes = stream.savedMutes.map { "with \($0) saved mutes (--no-mutes shows everything)" }
             ?? "without the saved mutes"
         let events = String.counted(stream.events.count, "event")
-        diagnose("macmonitor: streaming \(events) \(mutes). \(ending)")
+        diagnose("macmonitor: streaming \(events) \(mutes)\(Self.keeping(echoed: echoed)). \(ending)")
     }
     
     /// How the stream ends, for the banner.
@@ -277,7 +302,7 @@ extension StreamCommand {
     ///
     /// - Parameter change: The change, or `nil` if it didn't read.
     /// - Returns: Such as "Mac Monitor (pid 501) changed the saved mute set: 1 added, 0 removed, 0 changed, 79 mutes
-    ///   now. This stream applies it; --no-mutes shows everything."
+    ///   now. This stream applies it. --no-mutes shows everything."
     static func describe(_ change: MuteSetChange?) -> String {
         let consequence = "This stream applies it; --no-mutes shows everything."
         guard let change else { return "The saved mute set changed. \(consequence)" }
@@ -315,7 +340,8 @@ extension StreamCommand {
             let lost = Self.losses(seen: pipeline.meter.dropped, summary: summary)
             let filtered = pipeline.filtered > 0 ? " (\(pipeline.filtered) filtered out)" : ""
             diagnose("""
-                macmonitor: wrote \(pipeline.written) events\(filtered), lost \(lost.total) \
+                macmonitor: wrote \(pipeline.written) events\(filtered)\(Self.leftOut(summary.fieldFiltered)), \
+                lost \(lost.total) \
                 (\(lost.byEndpointSecurity) by Endpoint Security, \(lost.total - lost.byEndpointSecurity) while \
                 macmonitor was behind).
                 """)

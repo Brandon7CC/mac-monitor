@@ -70,14 +70,16 @@ public final class TelemetryExporter {
     ///   - reportInterval: The shortest time between progress reports while writing: a tenth of a second, as opening a
     ///     trace reports, or none, so tests see a report per batch.
     ///   - workers: Batches fetched and encoded at once.
+    ///   - indicators: The indicators each record lists under `indicators`, or `nil` to leave the key out.
     init(container: NSPersistentContainer, pretty: Bool, reportInterval: UInt64 = 100_000_000,
-         workers: Int = TelemetryExporter.defaultWorkers) {
+         workers: Int = TelemetryExporter.defaultWorkers, indicators: [Indicator]? = nil) {
         context = container.newBackgroundContext()
         self.pretty = pretty
         self.reportInterval = reportInterval
         prefetch = ESMessage.recordPrefetchKeyPaths(in: container.managedObjectModel)
         self.workers = (0..<max(1, workers)).map { _ in
-            Worker(context: container.newBackgroundContext(), pretty: pretty)
+            Worker(context: container.newBackgroundContext(), pretty: pretty,
+                   indicators: indicators.map(RecordIndicators.init))
         }
     }
     
@@ -287,6 +289,8 @@ extension TelemetryExporter {
         /// Writes JSONL records where it sorts keys as `JSONEncoder` does
         /// (``ProcessHelpers/eventToJSON(value:pretty:)`` otherwise).
         private let encoder: StreamingJSONEncoder?
+        /// The indicators each record lists, its own.
+        private let indicators: RecordIndicators?
         /// Events this worker couldn't encode in the current export.
         var unencodable = 0
         /// How many unencodable events each worker names in the log. Past that it only counts them.
@@ -296,9 +300,11 @@ extension TelemetryExporter {
         /// - Parameters:
         ///   - context: Its own context.
         ///   - pretty: Pretty-printed JSON (`true`) or JSONL (`false`).
-        init(context: NSManagedObjectContext, pretty: Bool) {
+        ///   - indicators: The indicators each record lists, if any.
+        init(context: NSManagedObjectContext, pretty: Bool, indicators: RecordIndicators?) {
             self.context = context
             self.pretty = pretty
+            self.indicators = indicators
             encoder = !pretty && StreamingJSONEncoder.sortsKeysAsJSONEncoderDoes
                 ? StreamingJSONEncoder(sortsKeys: true, escapesSlashes: false) : nil
         }
@@ -343,7 +349,9 @@ extension TelemetryExporter {
         /// - Returns: Its JSON, or `{}`.
         private func record(_ message: ESMessage) -> Data {
             do {
-                return try encoder?.encode(message) ?? ProcessHelpers.eventJSON(message, pretty: pretty)
+                return try RecordIndicators.encoding(with: indicators) {
+                    try encoder?.encode(message) ?? ProcessHelpers.eventJSON(message, pretty: pretty)
+                }
             } catch {
                 unencodable += 1
                 if unencodable <= Self.namedLimit {

@@ -64,7 +64,8 @@ func errnoText(_ code: Int32 = errno) -> String {
 /// * A field eslogger writes is always written: `null` when the value is absent (encode the optional with `encode`,
 ///   never `encodeIfPresent`). Mac Monitor's own fields may be left out.
 /// * `seq_num` and `global_seq_num` count the messages one Endpoint Security client received, so they're Mac
-///   Monitor's own and never equal eslogger's.
+///   Monitor's own and never equal eslogger's. Messages a field filter left out (``FieldFilter``) still count, so
+///   they leave gaps.
 /// * `remote_thread_create`'s `thread_state.state` is always `null`: eslogger writes no thread state bytes. Mac Monitor
 ///   keeps them in its own `state_base64` (``ThreadState``).
 enum ESLogger {
@@ -207,7 +208,7 @@ enum ESLogger {
     /// - Parameters:
     ///   - time: The message's `time`.
     ///   - darwinTime: The message's `message_darwin_time`.
-    /// - Returns: `time` if it's already in eslogger's format (``isESLoggerTime(_:)``), otherwise `darwinTime` in it;
+    /// - Returns: `time` if it's already in eslogger's format (``isESLoggerTime(_:)``), otherwise `darwinTime` in it.
     ///   `time` as it is if `darwinTime` is too far from 1970 to be a time.
     static func time(_ time: String, darwinTime: Date) -> String {
         guard !isESLoggerTime(time) else { return time }
@@ -240,8 +241,19 @@ enum ESLogger {
     ///     is a `time` of that shape local time. Anywhere else it's UTC.
     /// - Returns: The time, or `nil` if `time` isn't one.
     static func date(fromTime time: String, legacy: Bool) -> Date? {
-        if legacy, matches(time, legacyTimeTemplate) { return legacyFormatter.date(from: time) }
+        if isLocalTime(time, legacy: legacy) { return legacyFormatter.date(from: time) }
         return utcTimespec(from: time).map { ProcessHelpers.timespecToTimestamp(timespec: $0) }
+    }
+    
+    /// Is `time` the recording Mac's local time, as Mac Monitor wrote it up to 2.1.0? ``date(fromTime:legacy:)`` reads
+    /// such a time in this Mac's time zone, so it's only right when both Macs share one.
+    ///
+    /// - Parameters:
+    ///   - time: An event's `time`.
+    ///   - legacy: Could the event come from Mac Monitor 2.1.0 or older (it's Mac Monitor's, not eslogger's)?
+    /// - Returns: `true` if `legacy` and `time` has the shape 2.1.0 wrote, such as `2026-10-03T17:01:59.285Z`.
+    static func isLocalTime(_ time: String, legacy: Bool) -> Bool {
+        legacy && matches(time, legacyTimeTemplate)
     }
     
     /// A UTC time as eslogger writes `time`, or as ``TimeSpec/humanFormat()`` and ``TimeVal/humanFormat()`` write

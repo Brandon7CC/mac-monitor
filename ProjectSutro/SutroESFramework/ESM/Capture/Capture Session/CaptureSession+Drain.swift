@@ -19,8 +19,9 @@ extension CaptureSession {
     ///    before it has been handled, and so emitted.
     /// 3. Once every client's marker has, any held app execs go out with the answer they have, along with the events
     ///    waiting behind them. A lookup still running is ignored.
-    /// 4. Then `completion` runs on `queue`. Every event emitted so far hopped onto `queue` first, so `completion`
-    ///    runs after all of them.
+    /// 4. Then `completion` runs on `queue`. Every event has been emitted by then, but an `emit` that hands events
+    ///    to `queue` in runs (`EventHandoff`) may still hold some, so `completion` must flush it before it drains
+    ///    the batcher, as `StreamSession` does.
     ///
     /// Before macOS 27 there's no `es_sync_client`: the clients only stop queueing messages, and those still queued
     /// are dropped by ``stop()``.

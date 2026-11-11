@@ -19,9 +19,9 @@ public enum CommandLineShell: String, CaseIterable, Sendable {
 /// `macmonitor completion zsh|bash`: a script that completes `macmonitor`'s commands, options, their values and the
 /// events this Mac can stream, made from the same lists the parser and its suggestions use (``CommandLineOption``).
 public enum CommandLineCompletion {
-    /// What one command, or one mute command, takes.
+    /// What one command, or one mute or indicator command, takes.
     struct Command {
-        /// What's typed, such as "stream" or "mute add".
+        /// What's typed, such as "stream", "mute add" or "indicators import".
         let key: String
         /// Its options.
         let options: [CommandLineOption]
@@ -39,25 +39,34 @@ public enum CommandLineCompletion {
         }
     }
 
-    /// Every command and mute command. A command added later doesn't build until it's described here.
+    /// Every command, mute command and indicator command. A command added later doesn't build until it's described
+    /// here.
     static var commands: [Command] {
         let described = CommandLineCommand.allCases.map { name -> Command in
             switch name {
             case .stream: return Command("stream", CommandLineOption.stream, [.choice(["all"]), .event])
             case .mute: return Command("mute", [], [.choice(MuteInvocation.Name.allCases.map(\.rawValue))])
+            case .indicators:
+                return Command("indicators", [], [.choice(IndicatorInvocation.Name.allCases.map(\.rawValue))])
             case .validate: return Command("validate", CommandLineOption.validate, [.file])
             case .help: return Command("help", [], [.choice(CommandLineCommand.allCases.map(\.rawValue))])
             case .completion: return Command("completion", [], [.choice(CommandLineShell.allCases.map(\.rawValue))])
+            case .status: return Command("status", CommandLineOption.status)
             case .events, .schema, .version: return Command(name.rawValue)
             }
         }
-        return described + MuteInvocation.Name.allCases.map { name in
+        let mutes = MuteInvocation.Name.allCases.map { name in
             let takesPath = [.add, .remove, .import].contains(name)
             return Command("mute \(name.rawValue)", CommandLineOption.mute(name), takesPath ? [.file] : [])
         }
+        /// Only import's argument is a file, and edit's --file takes one. An indicator's ID or name isn't completed.
+        let indicators = IndicatorInvocation.Name.allCases.map { name in
+            Command("indicators \(name.rawValue)", CommandLineOption.indicators(name), name == .import ? [.file] : [])
+        }
+        return described + mutes + indicators
     }
 
-    /// The commands whose second word is a command of their own: `mute`.
+    /// The commands whose second word is a command of their own: `indicators` and `mute`.
     static var parents: [String] {
         Set(commands.map(\.key).filter { $0.contains(" ") }.map { String($0.prefix { $0 != " " }) }).sorted()
     }

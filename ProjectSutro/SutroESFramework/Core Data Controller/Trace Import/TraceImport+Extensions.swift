@@ -18,7 +18,7 @@ extension Message {
     /// - Exports from 2.0.0 to 2.1.0 wrote a rename's new path with `mode` 0, which a rename doesn't have (only a
     ///   create's new path does): it's dropped, as eslogger has none.
     mutating func repairNewPath() {
-        /// `full` less `file`, and the "/" (or "\/", as `target_path` writes it) before it.
+        /// `full` less `file`, and the "/" (or "\/", as `target_path` was written before 3.1.0) before it.
         func directory(of full: String?, file: String) -> String? {
             guard let full, !file.isEmpty, full.hasSuffix(file) else { return nil }
             var directory = full.dropLast(file.count)

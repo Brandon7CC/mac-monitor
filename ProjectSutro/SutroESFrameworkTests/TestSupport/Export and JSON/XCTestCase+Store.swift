@@ -88,23 +88,26 @@ extension XCTestCase {
         }
     }
     
-    /// Export every event of a store, and wait until the export has finished.
+    /// Export the events of a store, every one by default, and wait until the export has finished.
     ///
     /// - Parameters:
     ///   - exporter: The export, pinned or not.
     ///   - url: The destination.
     ///   - source: Where the store's events come from.
+    ///   - writeIfEmpty: Write the file when no events are chosen, as the full trace does.
+    ///   - choose: Chooses the events, in file order: every event saved by batch 1 unless given.
     ///   - timeout: How long the export may take.
     ///   - progress: Called with each report the export makes.
     /// - Returns: The number of events written.
     /// - Throws: The export's error, or an `XCTest` failure if it didn't finish in time.
     func run(_ exporter: TelemetryExporter, to url: URL, from source: CoreDataController.EventSource = .live,
+             writeIfEmpty: Bool = true, choose: ((TelemetryExporter) throws -> [NSManagedObjectID])? = nil,
              timeout: TimeInterval = 120,
              progress: @escaping (TelemetryExporter.Progress) -> Void = { _ in }) throws -> Int {
         let exported = expectation(description: "exported")
         var result: Result<Int, Error>?
-        exporter.run(to: url, writeIfEmpty: true, choose: { try $0.allEvents(through: 1, from: source) },
-                     progress: progress) {
+        let choose = choose ?? { try $0.allEvents(through: 1, from: source) }
+        exporter.run(to: url, writeIfEmpty: writeIfEmpty, choose: choose, progress: progress) {
             result = $0
             exported.fulfill()
         }

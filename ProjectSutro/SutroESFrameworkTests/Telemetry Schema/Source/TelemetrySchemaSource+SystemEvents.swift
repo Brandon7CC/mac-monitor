@@ -26,6 +26,24 @@ extension TelemetrySchemaSource {
                          "Unsigned. null in a record from Mac Monitor before 3.0.0, which left it out with an empty "
                          + "`parent_path`.",
                          absent: Absence("the message's version is before 10 (macOS 26)")),
+                enrichment("parent_class", .nullable(.string),
+                           "The class of the service being opened, read from the IOKit registry of the Mac that "
+                           + "recorded the event, when it recorded it (IOObjectGetClass): IOSurfaceRoot. The service "
+                           + "is found by `parent_path` when the entry it finds has the `parent_registry_id`, else by "
+                           + "`parent_registry_id`, as siblings can share a path. null "
+                           + "before message version 10 (macOS 26), when the service is no longer in the registry, and "
+                           + "when the event wasn't recorded by Mac Monitor 3.1.0 or later (an eslogger trace, or one "
+                           + "exported before 3.1.0, opened and exported again): the registry is read only at "
+                           + "capture, never when a trace is opened. Since telemetry 1.1.0."),
+                enrichment("driver_bundle_id", .nullable(.string),
+                           "The bundle ID of the service's driver, read from the IOKit registry with `parent_class`: "
+                           + "the service's CFBundleIdentifier property, from the personality it matched (a kext's, or "
+                           + "a DriverKit extension's own), else that of the nearest provider that has one, the driver "
+                           + "that published it: com.apple.iokit.IOSurface. When that names an Apple bundle, or none, "
+                           + "and a third-party kext defines the service's class "
+                           + "(IOObjectCopyBundleIdentifierForClass), "
+                           + "it's that kext, so a kext can't pass as Apple by setting the property. null as "
+                           + "`parent_class` is, and when neither source names one. Since telemetry 1.1.0."),
             ]),
             event(ES_EVENT_TYPE_NOTIFY_XPC_CONNECT, "An XPC connection: es_event_xpc_connect_t.", [
                 eslogger("service_name", .string),

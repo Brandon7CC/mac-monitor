@@ -77,4 +77,58 @@ final class StreamDropMeterTests: XCTestCase {
         }
         XCTAssertEqual(meter.regressions, 2, "All three land on the process client with global 1.")
     }
+    
+    /// What a stream that left out closes 2, 3 and 5 sees: gaps in close's `seq_num` and the file client's
+    /// `global_seq_num`, around contiguous opens.
+    ///
+    /// - Parameter meter: The meter.
+    private func observeLeftOutCloses(_ meter: StreamDropMeter) {
+        meter.observe(header(ES_EVENT_TYPE_NOTIFY_CLOSE, seq: 1, global: 1))
+        meter.observe(header(ES_EVENT_TYPE_NOTIFY_OPEN, seq: 1, global: 2))
+        meter.observe(header(ES_EVENT_TYPE_NOTIFY_CLOSE, seq: 4, global: 5))
+        meter.observe(header(ES_EVENT_TYPE_NOTIFY_OPEN, seq: 2, global: 6))
+        meter.observe(header(ES_EVENT_TYPE_NOTIFY_CLOSE, seq: 6, global: 8))
+    }
+    
+    /// The gaps a field filter leaves in its type's `seq_num` and its client's `global_seq_num` are no loss.
+    func testFieldFilteredGapsAreNotLosses() {
+        let meter = StreamDropMeter()
+        meter.fieldFilteredTypes = [Int(ES_EVENT_TYPE_NOTIFY_CLOSE.rawValue)]
+        observeLeftOutCloses(meter)
+        XCTAssertEqual(meter.dropped, 0)
+        XCTAssertEqual(meter.takeReport(), [])
+    }
+    
+    /// Another type of the filtered class still reports its losses, from its own `seq_num`.
+    func testOtherTypesOfAFilteredClassStillReportLosses() {
+        let meter = StreamDropMeter()
+        meter.fieldFilteredTypes = [Int(ES_EVENT_TYPE_NOTIFY_CLOSE.rawValue)]
+        observeLeftOutCloses(meter)
+        meter.observe(header(ES_EVENT_TYPE_NOTIFY_OPEN, seq: 4, global: 10))
+        XCTAssertEqual(meter.dropped, 1)
+        XCTAssertEqual(meter.takeReport(), [CaptureDropReport(eventClass: .file, dropped: 1,
+                                                              droppedByType: ["ES_EVENT_TYPE_NOTIFY_OPEN": 1])])
+    }
+    
+    /// Classes without a filtered type keep counting every `global_seq_num` gap, typed or not.
+    func testOtherClassesKeepGlobalAccounting() {
+        let meter = StreamDropMeter()
+        meter.fieldFilteredTypes = [Int(ES_EVENT_TYPE_NOTIFY_CLOSE.rawValue)]
+        meter.observe(header(ES_EVENT_TYPE_NOTIFY_EXEC, global: 1))
+        meter.observe(header(ES_EVENT_TYPE_NOTIFY_EXEC, global: 3))
+        meter.observe(header(ES_EVENT_TYPE_NOTIFY_MMAP, seq: 1, global: 1))
+        meter.observe(header(ES_EVENT_TYPE_NOTIFY_MMAP, seq: 2, global: 4))
+        XCTAssertEqual(meter.dropped, 3)
+        XCTAssertEqual(meter.takeReport().map(\.eventClass), [.process, .memory])
+    }
+    
+    /// With no filtered types, as from a Security Extension older than 3.1.0, every gap is a loss again.
+    func testClearingTheFilteredTypesCountsEveryGap() {
+        let meter = StreamDropMeter()
+        meter.fieldFilteredTypes = [Int(ES_EVENT_TYPE_NOTIFY_CLOSE.rawValue)]
+        observeLeftOutCloses(meter)
+        meter.fieldFilteredTypes = []
+        XCTAssertEqual(meter.dropped, 3)
+        XCTAssertEqual(meter.takeReport().map(\.dropped), [3])
+    }
 }

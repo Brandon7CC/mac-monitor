@@ -58,7 +58,7 @@ extension NewClientResult {
 
 extension EventType {
     /// Is the event kept from a platform binary while platform binaries are dropped
-    /// (``EndpointSecurityManager/togglePlatformBinaries()``)? The high-volume process, file and XPC events aren't.
+    /// (``EndpointSecurityManager/dropsPlatformBinaries``)? The high-volume process, file and XPC events aren't.
     public var isCritical: Bool {
         switch self {
         case .exec, .fork, .exit, .mmap, .create, .open, .close, .write, .unlink, .rename, .proc_suspend_resume,

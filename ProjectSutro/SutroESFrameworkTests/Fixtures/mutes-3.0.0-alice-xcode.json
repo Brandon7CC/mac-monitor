@@ -1,0 +1,599 @@
+{
+  "mutes" : [
+    {
+      "events" : [
+
+      ],
+      "path" : "/System/Library/CoreServices/Diagnostics Reporter.app/Contents/MacOS/Diagnostics Reporter",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_GETEXTATTR"
+      ],
+      "path" : "/System/Library/CoreServices/TimeMachine/backupd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CREATE"
+      ],
+      "path" : "/System/Library/Frameworks/AddressBook.framework/Versions/A/Helpers/AddressBookManager.app/Contents/MacOS/AddressBookManager",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+
+      ],
+      "path" : "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_MMAP",
+        "ES_EVENT_TYPE_NOTIFY_MPROTECT"
+      ],
+      "path" : "/System/Library/Frameworks/CoreSpotlight.framework/spotlightknowledged",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_MMAP",
+        "ES_EVENT_TYPE_NOTIFY_MPROTECT"
+      ],
+      "path" : "/System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+
+      ],
+      "path" : "/System/Library/PrivateFrameworks/BiomeStreams.framework/Support/BiomeAgent",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/CloudKitDaemon.framework/support/cloudd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+
+      ],
+      "path" : "/System/Library/PrivateFrameworks/HelpData.framework/Versions/A/Resources/helpd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CREATE"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/PackageKit.framework/Versions/A/Resources/system_installd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_MMAP",
+        "ES_EVENT_TYPE_NOTIFY_MPROTECT"
+      ],
+      "path" : "/private/var/db/KernelExtensionManagement/KernelCollections/BootKernelCollection.kc",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_MMAP",
+        "ES_EVENT_TYPE_NOTIFY_MPROTECT"
+      ],
+      "path" : "/usr/bin/tailspin",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN"
+      ],
+      "path" : "/usr/libexec/PerfPowerServices",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+
+      ],
+      "path" : "/usr/libexec/ReportMemoryException",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK",
+        "ES_EVENT_TYPE_NOTIFY_XPC_CONNECT"
+      ],
+      "path" : "/usr/libexec/airportd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_CREATE"
+      ],
+      "path" : "/usr/libexec/biomesyncd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_GETEXTATTR",
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/usr/libexec/containermanagerd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+
+      ],
+      "path" : "/usr/libexec/duetexpertd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_MMAP",
+        "ES_EVENT_TYPE_NOTIFY_MPROTECT"
+      ],
+      "path" : "/usr/libexec/knowledge-agent",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_MMAP",
+        "ES_EVENT_TYPE_NOTIFY_MPROTECT"
+      ],
+      "path" : "/usr/libexec/locationd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+
+      ],
+      "path" : "/usr/libexec/logd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CREATE",
+        "ES_EVENT_TYPE_NOTIFY_MMAP",
+        "ES_EVENT_TYPE_NOTIFY_MPROTECT",
+        "ES_EVENT_TYPE_NOTIFY_RENAME",
+        "ES_EVENT_TYPE_NOTIFY_SETMODE"
+      ],
+      "path" : "/usr/libexec/mobileassetd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_MMAP",
+        "ES_EVENT_TYPE_NOTIFY_MPROTECT"
+      ],
+      "path" : "/usr/libexec/opendirectoryd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/usr/libexec/rosetta/oahd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_GETEXTATTR"
+      ],
+      "path" : "/usr/libexec/runningboardd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_MMAP",
+        "ES_EVENT_TYPE_NOTIFY_MPROTECT"
+      ],
+      "path" : "/usr/libexec/spindump",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/usr/libexec/usermanagerd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_DUP",
+        "ES_EVENT_TYPE_NOTIFY_MMAP",
+        "ES_EVENT_TYPE_NOTIFY_MPROTECT"
+      ],
+      "path" : "/usr/libexec/xpcproxy",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_XPC_CONNECT"
+      ],
+      "path" : "/usr/sbin/bluetoothd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CREATE",
+        "ES_EVENT_TYPE_NOTIFY_DUP",
+        "ES_EVENT_TYPE_NOTIFY_RENAME",
+        "ES_EVENT_TYPE_NOTIFY_SETMODE"
+      ],
+      "path" : "/usr/sbin/cfprefsd",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+
+      ],
+      "path" : "/usr/sbin/spindump",
+      "type" : "ES_MUTE_PATH_TYPE_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/Applications/Xcode.app/",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+
+      ],
+      "path" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_MMAP"
+      ],
+      "path" : "/Applications/Xcode.app/Contents/SharedFrameworks/",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_GETEXTATTR",
+        "ES_EVENT_TYPE_NOTIFY_OPEN",
+        "ES_EVENT_TYPE_NOTIFY_WRITE"
+      ],
+      "path" : "/Library/SystemExtensions/",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE"
+      ],
+      "path" : "/System/Library/CoreServices/ManagedClient.app",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE"
+      ],
+      "path" : "/System/Library/CoreServices/NotificationCenter.app",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_OPEN",
+        "ES_EVENT_TYPE_NOTIFY_WRITE"
+      ],
+      "path" : "/System/Library/CoreServices/Spotlight.app",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE"
+      ],
+      "path" : "/System/Library/CoreServices/diagnostics_agent",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/System/Library/Frameworks/Accounts.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_OPEN"
+      ],
+      "path" : "/System/Library/Frameworks/AudioToolbox.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/System/Library/Frameworks/Contacts.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+
+      ],
+      "path" : "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE"
+      ],
+      "path" : "/System/Library/Frameworks/VideoToolbox.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_GETEXTATTR"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_OPEN"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/AXAssetLoader.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_DUP"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/BiomeStreams.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/CalendarDaemon.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/CoreAnalytics.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/CoreDuetContext.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/DataAccess.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_OPEN",
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/SiriTTSService.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_OPEN"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/SkyLight.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CREATE",
+        "ES_EVENT_TYPE_NOTIFY_SETMODE"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/StreamingExtractor.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_OPEN"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/TCC.framework",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_WRITE"
+      ],
+      "path" : "/usr/libexec/lsd",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/usr/libexec/mobileassetd",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/usr/libexec/sysmond",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/usr/libexec/trustd",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_OPEN",
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/usr/libexec/xpcproxy",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_OPEN",
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK",
+        "ES_EVENT_TYPE_NOTIFY_WRITE"
+      ],
+      "path" : "/usr/sbin/cfprefsd",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/usr/sbin/distnoted",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK"
+      ],
+      "path" : "/usr/sbin/mDNSResponder",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CLOSE",
+        "ES_EVENT_TYPE_NOTIFY_PROC_CHECK",
+        "ES_EVENT_TYPE_NOTIFY_WRITE"
+      ],
+      "path" : "/usr/sbin/systemstats",
+      "type" : "ES_MUTE_PATH_TYPE_PREFIX"
+    },
+    {
+      "events" : [
+
+      ],
+      "path" : "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared",
+      "type" : "ES_MUTE_PATH_TYPE_TARGET_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_DUP"
+      ],
+      "path" : "/dev/console",
+      "type" : "ES_MUTE_PATH_TYPE_TARGET_LITERAL"
+    },
+    {
+      "events" : [
+
+      ],
+      "path" : "/dev/null",
+      "type" : "ES_MUTE_PATH_TYPE_TARGET_LITERAL"
+    },
+    {
+      "events" : [
+
+      ],
+      "path" : "/usr/libexec/tailspind",
+      "type" : "ES_MUTE_PATH_TYPE_TARGET_LITERAL"
+    },
+    {
+      "events" : [
+
+      ],
+      "path" : "/usr/sbin/spindump",
+      "type" : "ES_MUTE_PATH_TYPE_TARGET_LITERAL"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_MMAP"
+      ],
+      "path" : "/Library/Caches/",
+      "type" : "ES_MUTE_PATH_TYPE_TARGET_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_MMAP"
+      ],
+      "path" : "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework",
+      "type" : "ES_MUTE_PATH_TYPE_TARGET_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CREATE"
+      ],
+      "path" : "/System/Library/PrivateFrameworks/BiomeStreams.framework",
+      "type" : "ES_MUTE_PATH_TYPE_TARGET_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_MMAP"
+      ],
+      "path" : "/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/",
+      "type" : "ES_MUTE_PATH_TYPE_TARGET_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_GETEXTATTR"
+      ],
+      "path" : "/Users/alice/Library/Biome/streams/",
+      "type" : "ES_MUTE_PATH_TYPE_TARGET_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_CREATE",
+        "ES_EVENT_TYPE_NOTIFY_RENAME"
+      ],
+      "path" : "/Users/alice/Library/Caches/",
+      "type" : "ES_MUTE_PATH_TYPE_TARGET_PREFIX"
+    },
+    {
+      "events" : [
+        "ES_EVENT_TYPE_NOTIFY_MMAP"
+      ],
+      "path" : "/private/var/db/",
+      "type" : "ES_MUTE_PATH_TYPE_TARGET_PREFIX"
+    }
+  ],
+  "version" : 1
+}

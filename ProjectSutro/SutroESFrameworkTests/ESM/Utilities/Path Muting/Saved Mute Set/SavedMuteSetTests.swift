@@ -58,7 +58,7 @@ final class SavedMuteSetTests: XCTestCase {
     /// The first run starts from Mac Monitor's default set and saves it.
     func testFirstRunSavesTheDefaultSet() {
         saved.load()
-        XCTAssertEqual(savedFile(in: store), MuteFile(.testDefault).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(.testDefault))
         let reply = saved.send(MuteRequest(.list))
         XCTAssertEqual(reply.status, .ok)
         XCTAssertEqual(reply.mutes, MuteFile(.testDefault).mutes)
@@ -77,13 +77,13 @@ final class SavedMuteSetTests: XCTestCase {
         XCTAssertEqual(followed, [expected])
         XCTAssertEqual(changes, [MuteSetChange(caller: "Test", added: 1, removed: 0, changed: 0,
                                                mutes: expected.count)])
-        XCTAssertEqual(savedFile(in: store), MuteFile(expected).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(expected))
         
         subscription = nil
         _ = saved.send(MuteRequest(.remove, [entry("/usr/bin/yes")]))
         saved.waitUntilIdle()
         XCTAssertEqual(followed, [expected])
-        XCTAssertEqual(savedFile(in: store), MuteFile(.testDefault).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(.testDefault))
     }
     
     /// Remove, replace and reset each save and hand on the set they make.
@@ -97,7 +97,7 @@ final class SavedMuteSetTests: XCTestCase {
         XCTAssertEqual(saved.send(MuteRequest(.remove, [entry("/a")])).mutes, [])
         XCTAssertEqual(saved.send(MuteRequest(.reset)).mutes, MuteFile(.testDefault).mutes)
         XCTAssertEqual(followed.map(\.count), [1, 1, 0, MuteList.testDefault.count])
-        XCTAssertEqual(savedFile(in: store), MuteFile(.testDefault).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(.testDefault))
     }
     
     /// A caller that may only read gets the set, and every change is refused without touching the file or followers.
@@ -175,7 +175,7 @@ final class SavedMuteSetTests: XCTestCase {
         XCTAssertEqual(reset.status, .ok)
         XCTAssertTrue(reset.changed)
         XCTAssertNil(reset.notice)
-        XCTAssertEqual(savedFile(in: store), MuteFile(.testDefault).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(.testDefault))
         XCTAssertEqual(saved.send(MuteRequest(.add, [entry("/x")])).status, .ok)
     }
     
@@ -183,7 +183,7 @@ final class SavedMuteSetTests: XCTestCase {
     func testADamagedFileIsRecoveredWithANotice() throws {
         try writeSavedFile("nope", in: store)
         XCTAssertEqual(follow(), .testDefault)
-        XCTAssertEqual(savedFile(in: store), MuteFile(.testDefault).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(.testDefault))
         let notice = saved.send(MuteRequest(.list)).notice ?? ""
         XCTAssertTrue(notice.contains("couldn't be read"), notice)
         XCTAssertTrue(notice.contains(MuteStore.unreadableFileName), notice)
@@ -204,14 +204,21 @@ final class SavedMuteSetTests: XCTestCase {
     }
     
     /// A request too large, from a newer Mac Monitor, or not a request at all is answered with the set as it stands.
+    /// Too large is one byte past 1 MiB of a request that's otherwise sound.
     func testRequestsThatCantBeRead() {
         follow()
-        XCTAssertEqual(saved.send(Data(count: MuteLimits.maxFileBytes + 1)).status, .invalid)
+        let add = MuteRequest(.add, [entry("/x")])
+        let large = saved.send(add.padded(to: MuteRequest.maximumSize + 1))
+        XCTAssertEqual(large.status, .invalid)
+        XCTAssertEqual(large.problems, ["The request is larger than 1 MiB."])
+        XCTAssertEqual(large.mutes, MuteFile(.testDefault).mutes)
         XCTAssertEqual(saved.send(Data("nope".utf8)).status, .invalid)
         XCTAssertEqual(saved.send(Data(#"{"version": 1, "operation": "frobnicate"}"#.utf8)).status, .unsupported)
         let newer = saved.send(Data(#"{"version": 2, "operation": "list"}"#.utf8))
         XCTAssertEqual(newer.status, .unsupported)
         XCTAssertEqual(newer.mutes, MuteFile(.testDefault).mutes)
         XCTAssertEqual(followed, [])
+        XCTAssertEqual(saved.send(add.padded(to: MuteRequest.maximumSize)).status, .ok, "At 1 MiB it's read")
+        XCTAssertEqual(followed.count, 1)
     }
 }

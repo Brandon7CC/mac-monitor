@@ -1,5 +1,5 @@
 //
-//  RCESProcessExecEvent+CoreDataClass.swift
+//  ESProcessExecEvent+CoreDataClass.swift
 //  SutroESFramework
 //
 //  Created by Brandon Dalton on 11/15/22.
@@ -21,6 +21,9 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
     /// The `id` ``target`` had in this event (and exports). A shared row keeps the `id` of the first event that
     /// stored it.
     @NSManaged public var target_id: UUID?
+    /// How old ``target`` was at the exec, in milliseconds (``Process/process_age_ms``), or `nil`. A shared row keeps
+    /// no age.
+    @NSManaged public var target_age_ms: NSNumber?
     @NSManaged public var dyld_exec_path: String?
     /// Milliseconds from the executable's birth to the exec (``ProcessExecEvent/executable_age_ms``), or `nil`.
     @NSManaged public var executable_age_ms: NSNumber?
@@ -121,6 +124,7 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
             to: #keyPath(ESProcessExecEvent.target)
         )
         self.target_id = event.target.id
+        self.target_age_ms = event.target.process_age_ms.map { NSNumber(value: $0) }
         
         self.fds = event.fds
         self.args = event.args
@@ -153,7 +157,8 @@ extension ESProcessExecEvent: Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         
         // MARK: - Conform to ESLogger
-        try container.encode(ESProcessRecord(process: target, id: target_id ?? target.id), forKey: .target)
+        try container.encode(ESProcessRecord(process: target, id: target_id ?? target.id, ageMs: target_age_ms),
+                             forKey: .target)
         try container.encode(fds, forKey: .fds)
         try container.encode(script, forKey: .script)
         try container
@@ -188,14 +193,13 @@ extension ESProcessExecEvent: Encodable {
 
 // MARK: - Executable age
 extension ESProcessExecEvent {
-    /// An executable created less than this many seconds before it ran is new, as a dropper's payload is.
-    public static let newExecutableAge: TimeInterval = 300
+    /// An executable created less than this many seconds before it ran is new, as a dropper's payload is. The New
+    /// executable indicator and its mark use it too (``Indicator/newExecutablePredicate``).
+    public static let newExecutableAge: TimeInterval = 1
 
     /// Seconds from the executable's birth to the exec (``executable_age_ms``), or `nil` when it's unknown or the
     /// birth time is after the exec.
-    public var executableAge: TimeInterval? {
-        executable_age_ms.map { $0.doubleValue / 1000 }.flatMap { $0 >= 0 ? $0 : nil }
-    }
+    public var executableAge: TimeInterval? { EventAge.seconds(fromMilliseconds: executable_age_ms) }
 
     /// Was the executable created just before it ran (``newExecutableAge``)?
     public var isNewExecutable: Bool {

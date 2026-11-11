@@ -8,76 +8,21 @@
 import SwiftUI
 import SutroESFramework
 
+/// What a `write` event says: the file written.
 struct SystemFileWriteMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESFileWriteEvent {
-        esSystemEvent.event.write!
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.write != nil {
-            eventContent
-        }
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("\u{2022} File name:")
-                            .bold()
-                            .padding([.leading], 5.0)
-                        GroupBox {
-                            Text(event.target.name)
-                                .monospaced()
-                                .frame(alignment: .leading)
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                    
+        if let event = esSystemEvent.event.write {
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
+                    FactRow(name: "File name", value: event.target.name, style: .monospaced)
                     if let path = event.target.path {
-                        VStack(alignment: .leading) {
-                            Text("\u{2022} File path:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(path)
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        FactRow(name: "File path", value: path, stacked: true, style: .monospaced)
                     }
-                    
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }

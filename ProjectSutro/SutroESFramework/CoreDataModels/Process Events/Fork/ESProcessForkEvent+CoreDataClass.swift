@@ -16,6 +16,9 @@ public class ESProcessForkEvent: NSManagedObject, Identifiable, LaunchedByParent
     /// The `id` ``child`` had in this event (and exports). A shared row keeps the `id` of the first event that
     /// stored it.
     @NSManaged public var child_id: UUID?
+    /// How old ``child`` was at the fork, in milliseconds (``Process/process_age_ms``), or `nil`. A shared row keeps
+    /// no age.
+    @NSManaged public var child_age_ms: NSNumber?
     /// ``launched_by_parent``, in plain columns (``LaunchedByParentColumns``).
     @NSManaged public var launched_by_parent_source, launched_by_parent_resolved_by: String?
     @NSManaged public var launched_by_parent_path, launched_by_parent_job: String?
@@ -43,6 +46,7 @@ public class ESProcessForkEvent: NSManagedObject, Identifiable, LaunchedByParent
             to: #keyPath(ESProcessForkEvent.child)
         )
         self.child_id = event.child.id
+        self.child_age_ms = event.child.process_age_ms.map { NSNumber(value: $0) }
         self.launched_by_parent = event.launched_by_parent
     }
 }
@@ -51,7 +55,8 @@ public class ESProcessForkEvent: NSManagedObject, Identifiable, LaunchedByParent
 extension ESProcessForkEvent: Encodable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(ESProcessRecord(process: child, id: child_id ?? child.id), forKey: .child)
+        try container.encode(ESProcessRecord(process: child, id: child_id ?? child.id, ageMs: child_age_ms),
+                             forKey: .child)
         /// Mac Monitor's enrichment beside eslogger's fields: `null` when there's none, so the key is always there.
         try container.encode(launched_by_parent, forKey: .launched_by_parent)
     }

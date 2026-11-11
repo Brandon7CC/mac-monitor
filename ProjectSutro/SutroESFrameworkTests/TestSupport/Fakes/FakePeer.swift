@@ -13,12 +13,16 @@ import Foundation
 /// A connection from one effective user, as the Security Extension reads it, that records what was done to it.
 final class FakePeer: PeerConnection {
     let effectiveUserIdentifier: uid_t
+    let processIdentifier: pid_t
     /// What happened, in order: "requirement <...>", then anything a test appends, such as the endpoint that took it.
     var log: [String] = []
     
-    /// - Parameter euid: The peer's effective user ID.
-    init(euid: uid_t) {
+    /// - Parameters:
+    ///   - euid: The peer's effective user ID.
+    ///   - pid: The peer's process ID.
+    init(euid: uid_t, pid: pid_t = 4242) {
         effectiveUserIdentifier = euid
+        processIdentifier = pid
     }
     
     /// Record the requirement.

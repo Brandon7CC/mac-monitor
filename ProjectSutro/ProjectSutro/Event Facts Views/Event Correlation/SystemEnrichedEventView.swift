@@ -12,8 +12,8 @@ import SutroESFramework
 
 // MARK: - Correlation tab
 /// Event Facts' Correlation tab: the events the exec's process instigated, as a dashboard. A summary and a bar of
-/// their kinds sit above cards for the findings worth a look, then a search, a chip for each event type, and the
-/// events as a list, with the selected one's details beside them. A kind, a finding or a chip keeps only its events.
+/// their kinds sit above cards for the indicators worth a look, then a search, a chip for each event type, and the
+/// events as a list, with the selected one's details beside them. A kind, an indicator or a chip keeps only its events.
 struct SystemEnrichedEventView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @EnvironmentObject var userPrefs: UserPrefs
@@ -27,9 +27,9 @@ struct SystemEnrichedEventView: View {
     @State private var query = ""
     /// The kind kept, by title.
     @State private var kind: String?
-    @State private var finding: Finding?
-    /// Settings ▸ Indicators: the summary is made again when they change.
-    @ObservedObject private var findingStore = FindingStore.shared
+    @State private var indicator: Indicator?
+    /// Settings > Indicators: the summary is made again when they change.
+    @ObservedObject private var indicatorStore = IndicatorStore.shared
     /// The event types whose chips are on, by short name.
     @State private var types: Set<String> = []
     @State private var selection: NSManagedObjectID?
@@ -43,9 +43,9 @@ struct SystemEnrichedEventView: View {
             }
         }
         /// One fetch per exec: `correlated_array` queries the store each time it's read.
-        .task(id: "\(selectedMessage.objectID)|\(findingStore.revision)") {
-            summary = CorrelationSummary(exec: selectedMessage, matcher: findingStore.matcher(for: .correlation))
-            (query, kind, finding, types, selection) = ("", nil, nil, [], nil)
+        .task(id: "\(selectedMessage.objectID)|\(indicatorStore.revision)") {
+            summary = CorrelationSummary(exec: selectedMessage, matcher: indicatorStore.matcher)
+            (query, kind, indicator, types, selection) = ("", nil, nil, [], nil)
         }
     }
 
@@ -58,13 +58,13 @@ struct SystemEnrichedEventView: View {
             BreakdownBar(segments: summary.kinds.map { BreakdownSegment(title: $0.kind.title, color: $0.kind.color,
                                                                         count: $0.count) },
                          selection: $kind)
-            if !summary.findings.isEmpty {
+            if !summary.indicators.isEmpty {
                 InsightGrid {
-                    ForEach(summary.findings, id: \.finding) { item in
-                        InsightCard(symbol: item.finding.symbol, tint: item.finding.tint,
-                                    title: item.finding.title(item.rows.count),
-                                    explanation: item.finding.explanation, isOn: finding == item.finding) {
-                            finding = finding == item.finding ? nil : item.finding
+                    ForEach(summary.indicators, id: \.indicator) { item in
+                        InsightCard(symbol: item.indicator.symbol, tint: item.indicator.tint,
+                                    title: item.indicator.title(item.rows.count),
+                                    explanation: item.indicator.description, isOn: indicator == item.indicator) {
+                            indicator = indicator == item.indicator ? nil : item.indicator
                         }
                     }
                 }
@@ -75,9 +75,9 @@ struct SystemEnrichedEventView: View {
                     let color = summary.kinds.first { $0.kind.title == kind }?.kind.color ?? .gray
                     FilterToken(title: kind, color: color) { self.kind = nil }
                 }
-                if let finding {
-                    FilterToken(title: finding.title(summary.findings.first { $0.finding == finding }?.rows.count ?? 0),
-                                color: finding.tint) { self.finding = nil }
+                if let indicator {
+                    let count = summary.indicators.first { $0.indicator == indicator }?.rows.count ?? 0
+                    FilterToken(title: indicator.title(count), color: indicator.tint) { self.indicator = nil }
                 }
             }
             FilterChips(chips: FilterChips.chips(summary.rows.map { ($0.type, $0.symbol) }), selection: $types)
@@ -94,14 +94,14 @@ struct SystemEnrichedEventView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    /// The events that pass the kind, the finding, the chips and the search.
+    /// The events that pass the kind, the indicator, the chips and the search.
     ///
     /// - Parameter summary: The process's events.
     /// - Returns: The rows to show, oldest first.
     private func shown(_ summary: CorrelationSummary) -> [CorrelationSummary.Row] {
         let query = query.trimmingCharacters(in: .whitespaces).lowercased()
         return summary.rows.filter { row in
-            (kind == nil || row.kind.title == kind) && (finding.map { row.findings.contains($0.id) } ?? true)
+            (kind == nil || row.kind.title == kind) && (indicator.map { row.indicators.contains($0.id) } ?? true)
                 && (types.isEmpty || types.contains(row.type)) && (query.isEmpty || row.mentions(query))
         }
     }
@@ -133,16 +133,23 @@ struct SystemEnrichedEventView: View {
                 Text(Self.seconds(row.seconds)).monospacedDigit().foregroundStyle(.secondary)
             }
             .width(min: 64, ideal: 72, max: 90)
-            /// A finding's dot after the type: the card above says what it found.
+            /// The type's symbol in its kind's color, as the Groups table colors a process's by its signing, an
+            /// indicator's dot after the type (the card above says what it found), and then the type of the event's
+            /// file, where it was read, in the color of the most severe indicator the event matched.
             TableColumn("Event") { row in
-                HStack(spacing: 6) {
-                    Label(row.type, systemImage: row.symbol).font(.body.monospaced())
-                    if let finding = row.finding {
-                        Circle().fill(finding.tint).frame(width: 7, height: 7).help(finding.title(1))
+                HStack(spacing: 5) {
+                    Image(systemName: row.symbol).foregroundStyle(row.kind.color).help(row.kind.title)
+                    Text(row.type).font(.body.monospaced()).lineLimit(1)
+                    if let indicator = row.indicator {
+                        Circle().fill(indicator.tint).frame(width: 7, height: 7).help(indicator.title(1))
+                    }
+                    if let type = row.fileType {
+                        FileTypeBadge(identifier: type.identifier, machOType: type.machOType, severity: row.severity)
                     }
                 }
             }
-            .width(min: 100, ideal: 130, max: 180)
+            /// Wide enough at its narrowest for a type, its dot and the longest badge, `MH_EXECUTE`.
+            .width(min: 170, ideal: 220, max: 320)
             /// The rest of the width. Cut in the middle, which keeps both who it's about (an XPC connection's
             /// service) and where (a path's file name).
             TableColumn("Context") { row in

@@ -44,11 +44,15 @@ public struct CommandLineOption: Equatable {
         CommandLineOption("--format", .choice(StreamOutputFormat.allCases.map(\.rawValue))),
         CommandLineOption("--json"), CommandLineOption("--pretty"), CommandLineOption("--text"),
         CommandLineOption("--no-mutes"), CommandLineOption("--include-self"),
+        CommandLineOption("--every", .choice(CommandLineParser.everyChoices)),
         CommandLineOption("--for", .text), CommandLineOption("--count", .text), CommandLineOption("--pid", .text)
-    ] + ["--process", "--signing-id", "--target", "--grep", "--predicate"].map { CommandLineOption($0, .text) }
+    ] + ["--process", "--signing-id", "--target", "--grep", "--predicate", "--indicator"]
+        .map { CommandLineOption($0, .text) }
 
     /// `validate`'s options.
     static let validate = [CommandLineOption("--eslogger")]
+    /// `status`'s options.
+    static let status = [CommandLineOption("--json")]
 
     /// A mute command's options.
     ///
@@ -62,7 +66,33 @@ public struct CommandLineOption: Equatable {
                     CommandLineOption("--event", .event)]
         case .import: return [CommandLineOption("--merge"), CommandLineOption("--yes")]
         case .export: return []
-        case .reset: return [CommandLineOption("--yes")]
+        case .reset, .update: return [CommandLineOption("--yes")]
+        }
+    }
+
+    /// An indicator command's options.
+    ///
+    /// - Parameter command: The indicator command.
+    /// - Returns: Its options.
+    static func indicators(_ command: IndicatorInvocation.Name) -> [CommandLineOption] {
+        switch command {
+        case .list:
+            return [CommandLineOption("--format", .choice(IndicatorListFormat.allCases.map(\.rawValue))),
+                    CommandLineOption("--json")]
+        case .add:
+            return [CommandLineOption("--name", .text), CommandLineOption("--predicate", .text),
+                    CommandLineOption("--severity", .choice(IndicatorSeverity.allCases.map(\.rawValue)))]
+        case .edit:
+            return IndicatorEdit.fieldOptions.map { option, field in
+                switch field {
+                case .severity: return CommandLineOption(option, .choice(IndicatorSeverity.allCases.map(\.rawValue)))
+                case .tactic:
+                    return CommandLineOption(option, .choice(Indicator.Tactic.allCases.map(\.rawValue) + ["none"]))
+                default: return CommandLineOption(option, .text)
+                }
+            } + [CommandLineOption("--file", .file), CommandLineOption("--yes"), CommandLineOption("--restore")]
+        case .import: return [CommandLineOption("--replace"), CommandLineOption("--yes")]
+        case .show, .remove, .enable, .disable, .export: return []
         }
     }
 }

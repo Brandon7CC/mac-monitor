@@ -12,7 +12,7 @@ import SwiftUI
 /// One kind of filter: its tile, name and what it does, a summary of what's on, and its rows.
 struct FilterCard: Identifiable {
     enum Kind: Hashable {
-        case artifacts, findings, predicate, recording
+        case artifacts, indicators, predicate, recording
     }
 
     /// One filter: its name and what it is, and its switch or buttons.
@@ -32,7 +32,7 @@ struct FilterCard: Identifiable {
         let id: String
         let name: String
         var detail: String?
-        /// A finding's tile, or the recording card's.
+        /// An indicator's tile, or the recording card's.
         var tile: (symbol: String, tint: Color)?
         /// An event type's symbol.
         var glyph: String?
@@ -53,6 +53,11 @@ struct FilterCard: Identifiable {
     let rows: [Row]
     /// What an empty card says.
     let empty: String?
+    /// The card's own switch, for a card that is one filter: drawn in its header in place of the summary, and the
+    /// card has no rows to open.
+    var headerSwitch: Binding<Bool>? = nil
+    /// Why the card's switch can't be turned on, or `nil` when it can.
+    var headerSwitchDisabledReason: String? = nil
 
     var id: Kind { kind }
 
@@ -60,6 +65,7 @@ struct FilterCard: Identifiable {
     /// - Returns: The card with only its rows that match, all of them when its name does, or `nil` when none match.
     func matching(_ query: String) -> FilterCard? {
         guard !query.isEmpty, !title.lowercased().contains(query) else { return self }
+        if headerSwitch != nil { return about.lowercased().contains(query) ? self : nil }
         let rows = rows.filter { "\($0.name) \($0.detail ?? "")".lowercased().contains(query) }
         guard !rows.isEmpty else { return nil }
         return FilterCard(kind: kind, title: title, about: about, symbol: symbol, tint: tint, summary: summary,
@@ -68,13 +74,45 @@ struct FilterCard: Identifiable {
 }
 
 
-/// A card: its header, which opens and closes it, then its rows.
+/// A card: its header, which opens and closes it, then its rows. A card that is one filter has its switch in its
+/// header instead, and nothing to open.
 struct FilterCardView: View {
     let card: FilterCard
     let isOpen: Bool
     let toggle: () -> Void
 
     var body: some View {
+        if let isOn = card.headerSwitch {
+            switchCard(isOn)
+        } else {
+            openingCard
+        }
+    }
+
+    /// A card that is one filter: its symbol, title and what it does, then its switch.
+    ///
+    /// - Parameter isOn: The filter's switch.
+    /// - Returns: The card.
+    private func switchCard(_ isOn: Binding<Bool>) -> some View {
+        HStack(spacing: 12) {
+            SettingsRowIcon(card.symbol, card.tint)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(card.title).font(.headline)
+                Text(card.about).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            Toggle(card.title, isOn: isOn)
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .disabled(card.headerSwitchDisabledReason != nil && !isOn.wrappedValue)
+                .help(card.headerSwitchDisabledReason ?? card.about)
+        }
+        .padding(12)
+        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    /// A card with rows: its header opens and closes it.
+    private var openingCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button(action: toggle) {
                 HStack(spacing: 12) {

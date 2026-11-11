@@ -58,4 +58,26 @@ final class QuarantineEnabledTests: XCTestCase {
         let tool = ProcessHelpers.isQuarantineEnabled(forExecutableAt: "/usr/bin/true", signingId: "com.apple.true")
         XCTAssertEqual(tool, .disabled)
     }
+
+    /// An Info.plist that isn't a regular file is never opened: a FIFO with no writer, which made the capture lane
+    /// wait for good, and a link to a device that never ends both read as not opted in, at once.
+    func testAnInfoPlistThatIsNotAFileIsNotRead() throws {
+        let directory = try makeTemporaryDirectory()
+        for name in ["Fifo", "Device"] {
+            try FileManager.default.createDirectory(
+                at: directory.appendingPathComponent("\(name).app/Contents/MacOS", isDirectory: true),
+                withIntermediateDirectories: true)
+        }
+        XCTAssertEqual(mkfifo(directory.appendingPathComponent("Fifo.app/Contents/Info.plist").path, 0o644), 0)
+        XCTAssertEqual(symlink("/dev/zero", directory.appendingPathComponent("Device.app/Contents/Info.plist").path), 0)
+        let answered = expectation(description: "Both answered")
+        DispatchQueue.global().async {
+            for name in ["Fifo", "Device"] {
+                let path = directory.appendingPathComponent("\(name).app/Contents/MacOS/\(name)").path
+                XCTAssertEqual(ProcessHelpers.isQuarantineEnabled(forExecutableAt: path, signingId: nil), .disabled)
+            }
+            answered.fulfill()
+        }
+        wait(for: [answered], timeout: 5)
+    }
 }

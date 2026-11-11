@@ -27,7 +27,7 @@ struct TelemetrySchemaView: View {
         _model = StateObject(wrappedValue: model())
     }
     
-    /// The header, then the schema; a trace's check shows in a sheet.
+    /// The header, then the schema. A trace's check shows in a sheet.
     var body: some View {
         VStack(spacing: 0) {
             header

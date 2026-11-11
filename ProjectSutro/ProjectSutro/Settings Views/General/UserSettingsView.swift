@@ -9,8 +9,8 @@ import SwiftUI
 import SutroESFramework
 
 
-// MARK: - Settings ▸ General
-/// Settings ▸ General: updates, the warnings before quitting and clearing, dark mode, and which parents Event Facts'
+// MARK: - Settings > General
+/// Settings > General: updates, the warnings before quitting and clearing, dark mode, and which parents Event Facts'
 /// process tree follows.
 struct GeneralSettingsView: View {
     @EnvironmentObject var userPrefs: UserPrefs
@@ -21,7 +21,7 @@ struct GeneralSettingsView: View {
     /// The last Check Now's state, for the version row.
     @State private var isChecking = false
     @State private var lastCheck: UpdateCheck?
-    /// The check to show over Settings, as Mac Monitor ▸ Check for Updates shows it.
+    /// The check to show over Settings, as Mac Monitor > Check for Updates shows it.
     @State private var shownCheck: UpdateCheck?
 
     var body: some View {

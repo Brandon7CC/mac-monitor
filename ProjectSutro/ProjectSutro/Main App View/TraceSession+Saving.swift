@@ -39,6 +39,7 @@ extension TraceSession {
     ///   - eventIDs: The selected events, or `nil` for the full trace.
     ///   - jsonl: JSON Lines (`true`) or pretty-printed JSON (`false`).
     ///   - showWindow: Opens a main window for the sheet. It's called only when none is open.
+    @MainActor
     func save(eventIDs: [UUID]? = nil, jsonl: Bool, showWindow: () -> Void = {}) {
         guard saving == nil,
               let url = store.showSavePanel(numberOfEvents: eventIDs?.count ?? 0, jsonl: jsonl) else { return }
@@ -54,7 +55,8 @@ extension TraceSession {
         }
         /// Checked first: a short save can rename over the file before the next line runs.
         let replacing = FileManager.default.fileExists(atPath: url.path)
-        let started = store.exportEvents(eventIDs, to: url, jsonl: jsonl, progress: progress, completion: completion)
+        let started = store.exportEvents(eventIDs, to: url, jsonl: jsonl, indicators: IndicatorStore.shared.indicators,
+                                         progress: progress, completion: completion)
         exporter = started
         saving = Saving(url: url, replacing: replacing, exporter: started, window: windows.first)
         showsSaving = false

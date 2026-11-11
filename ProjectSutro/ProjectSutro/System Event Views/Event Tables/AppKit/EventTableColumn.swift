@@ -20,18 +20,27 @@ struct EventTableColumn {
                   selectable: Bool = false)
         /// One of the SwiftUI label views (event type, process name), hosted as is.
         case view((ESMessage) -> AnyView)
+        /// The event's indicator dot (``EventDotCell``).
+        case dot
     }
     
     let title: String
+    /// What its layout is saved by, when not its title.
+    var id: String? = nil
     let width: (min: CGFloat, ideal: CGFloat, max: CGFloat)
-    /// The `ESMessage` attribute the column sorts by.
-    let sortKey: String
+    /// The `ESMessage` attribute the column sorts by, or `nil` when it doesn't sort.
+    let sortKey: String?
     /// Compare with `localizedStandardCompare:` (strings), like `TableColumn(_:value:)` does by default.
     var sortsAsText = true
     /// Can the column be hidden from the header's menu?
     var hideable = true
     var hiddenByDefault = false
+    /// Does it stay first? It can't be moved, and no column can be moved before it.
+    var pinned = false
     let content: Content
+
+    /// Its table column's identifier.
+    var identifier: String { id ?? title }
 }
 
 extension EventTableColumn {
@@ -40,16 +49,22 @@ extension EventTableColumn {
         if #available(macOS 14, *) { return true } else { return false }
     }
     
-    /// The "System Security Unified" table's columns: six on macOS 13 (where a missing user reads "Unknown"), nine from
-    /// macOS 14.
+    /// The first column of both tables: a dot on each event that matches an indicator, wherever the indicator shows.
+    static let indicators = EventTableColumn(title: "", id: "Indicators", width: (8, 8, 8), sortKey: nil,
+                                             hideable: false, pinned: true, content: .dot)
+
+    /// The "System Security Unified" table's columns: the indicator dots, then six on macOS 13 (where a missing user
+    /// reads "Unknown"), nine from macOS 14.
     static var unified: [EventTableColumn] {
         var columns = [
+            indicators,
             EventTableColumn(title: "Timestamp", width: (100, 100, 100), sortKey: "message_darwin_time",
                              sortsAsText: false, content: .text(eventTimeStamp(for:))),
             EventTableColumn(title: "Event type", width: (150, 200, 400), sortKey: "es_event_type", hideable: false,
                              content: .view { message in
                                  AnyView(HStack(spacing: 4) {
-                                     FindingMarks(message: message, besides: Finding.labelMarks)
+                                     IndicatorMarks(message: message, besides: Indicator.labelMarks,
+                                                    labelSymbol: SystemEventTypeLabel.symbol(of: message))
                                      SystemEventTypeLabel(message: message).truncationMode(.middle)
                                  })
                              }),
@@ -78,10 +93,11 @@ extension EventTableColumn {
         return columns
     }
     
-    /// The "Process Execution" table's columns. The timestamp starts hidden on macOS 14 and later, as it did in the
-    /// SwiftUI table of v2.1 and earlier.
+    /// The "Process Execution" table's columns, after the indicator dots. The timestamp starts hidden on macOS 14 and
+    /// later, as it did in the SwiftUI table of v2.1 and earlier.
     static var exec: [EventTableColumn] {
         [
+            indicators,
             EventTableColumn(title: "Timestamp", width: (100, 100, 100), sortKey: "message_darwin_time",
                              sortsAsText: false, hiddenByDefault: customizable, content: .text(eventTimeStamp(for:))),
             EventTableColumn(title: "Process name", width: (80, 100, 400), sortKey: "created_name", hideable: false,

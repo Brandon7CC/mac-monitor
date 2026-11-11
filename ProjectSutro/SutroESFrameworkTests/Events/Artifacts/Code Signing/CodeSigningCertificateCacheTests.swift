@@ -103,6 +103,28 @@ final class CodeSigningCertificateCacheTests: XCTestCase {
         XCTAssertEqual(cache.certificates(at: path).map(\.thumbprint), ["read 2"])
     }
     
+    /// An event's stat is the file's identity, with no `stat(2)`: the same entry as the path's own stat finds, another
+    /// for a stat that differs, and a path that doesn't exist is still remembered. A stat naming no file is ignored.
+    func testAnEventsStatIsTheIdentity() throws {
+        let path = try write("tool", in: try makeTemporaryDirectory(), "binary")
+        var info = stat()
+        XCTAssertEqual(stat(path, &info), 0)
+        let cache = makeCache()
+        XCTAssertEqual(cache.certificates(at: path, stat: Stat(from: info)).map(\.thumbprint), ["read 1"])
+        XCTAssertEqual(cache.certificates(at: path).map(\.thumbprint), ["read 1"], "The same file")
+        XCTAssertEqual(CodeSigningCertificateCache.FileIdentity(path: path, stat: Stat(from: info)),
+                       CodeSigningCertificateCache.FileIdentity(path: path))
+        var rewritten = info
+        rewritten.st_size += 1
+        XCTAssertEqual(cache.certificates(at: path, stat: Stat(from: rewritten)).map(\.thumbprint), ["read 2"])
+        XCTAssertEqual(cache.certificates(at: "/no/such/tool", stat: Stat(from: info)).map(\.thumbprint), ["read 3"])
+        XCTAssertEqual(cache.certificates(at: "/no/such/tool", stat: Stat(from: info)).map(\.thumbprint), ["read 3"])
+        var unnamed = info
+        unnamed.st_ino = 0
+        XCTAssertEqual(cache.certificates(at: path, stat: Stat(from: unnamed)).map(\.thumbprint), ["read 1"],
+                       "Falls back to the path's own stat")
+    }
+
     /// An entry is used for its lifetime, then the file is read again.
     func testEntriesExpire() throws {
         let path = try write("tool", in: try makeTemporaryDirectory(), "binary")
@@ -177,5 +199,28 @@ final class CodeSigningCertificateCacheTests: XCTestCase {
         }
         XCTAssertEqual(first.map(\.id), second.map(\.id))
         XCTAssertNil(ProcessHelpers.readCodeSigningCerts(forBinaryAt: "/nonexistent/\(UUID().uuidString)"))
+    }
+
+    /// A capture lane's read is the plain read for an ordinary executable and for an app's, and nothing at all, at
+    /// once, for an executable in a bundle whose Info.plist is a FIFO: Security opened it and waited for good on
+    /// macOS 13, and the lane with it.
+    func testALanesReadNeverWaitsInABundle() throws {
+        let helpers = ProcessHelpers.self
+        XCTAssertEqual(helpers.enclosingBundle(ofExecutableAt: "/A/B.app/Contents/MacOS/b"), "/A/B.app")
+        XCTAssertNil(helpers.enclosingBundle(ofExecutableAt: "/usr/bin/true"))
+        XCTAssertNil(helpers.enclosingBundle(ofExecutableAt: "/A/B.app/Contents/Helpers/b"))
+        for path in ["/usr/bin/true", "/System/Applications/Calculator.app/Contents/MacOS/Calculator"] {
+            XCTAssertEqual(helpers.readGuardedCodeSigningCerts(forBinaryAt: path)?.map(\.id),
+                           helpers.readCodeSigningCerts(forBinaryAt: path)?.map(\.id), path)
+        }
+        let bundle = try makeTemporaryDirectory().appendingPathComponent("Fifo.app/Contents", isDirectory: true)
+        let executable = bundle.appendingPathComponent("MacOS/Fifo")
+        try FileManager.default.createDirectory(at: executable.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try FileManager.default.copyItem(atPath: "/usr/bin/true", toPath: executable.path)
+        XCTAssertEqual(mkfifo(bundle.appendingPathComponent("Info.plist").path, 0o644), 0)
+        let started = Date()
+        XCTAssertNil(helpers.readGuardedCodeSigningCerts(forBinaryAt: executable.path))
+        XCTAssertLessThan(Date().timeIntervalSince(started), 0.4, "It waited for its deadline")
     }
 }

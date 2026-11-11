@@ -7,7 +7,6 @@
 
 import Foundation
 import EndpointSecurity
-import OSLog
 
 
 // https://developer.apple.com/documentation/endpointsecurity/es_event_login_login_t

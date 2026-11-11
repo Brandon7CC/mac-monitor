@@ -50,12 +50,15 @@ final class MuteCommandLineTests: XCTestCase {
         XCTAssertEqual(usageError("reset now"), "mute reset takes no arguments, not 'now'.")
         XCTAssertEqual(usageError("reset --yes=no"), "--yes takes no value.")
         XCTAssertEqual(usageError("reset --merge"), "Unknown option '--merge' for mute reset.")
+        XCTAssertEqual(try parse("update"), .mute(.update(confirmed: false)))
+        XCTAssertEqual(try parse("update --yes"), .mute(.update(confirmed: true)))
+        XCTAssertEqual(usageError("update now"), "mute update takes no arguments, not 'now'.")
         XCTAssertTrue(try parse("list").requiresRoot)
         XCTAssertEqual(usageError("list all"), "mute list takes no arguments, not 'all'.")
         XCTAssertEqual(usageError("list --format jsonl"), "--format must be text or json, not 'jsonl'.")
         XCTAssertEqual(usageError("list --merge"), "Unknown option '--merge' for mute list.")
         XCTAssertEqual(usageError("export --format json"), "mute export takes no arguments, not '--format'.")
-        XCTAssertEqual(usageError(""), "mute needs one of list, add, remove, import, export or reset.")
+        XCTAssertEqual(usageError(""), "mute needs one of list, add, remove, import, export, reset or update.")
         XCTAssertEqual(usageError("clear"), "Unknown mute command 'clear'.")
     }
     

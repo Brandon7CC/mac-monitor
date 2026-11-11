@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:mac-monitor:telemetry:1.0.0",
-  "title": "Mac Monitor telemetry 1.0.0",
+  "$id": "urn:mac-monitor:telemetry:1.1.0",
+  "title": "Mac Monitor telemetry 1.1.0",
   "description": "The records Mac Monitor writes: its JSONL and pretty exports, and the macmonitor command line's output. Each record is eslogger's JSON for an Endpoint Security event plus Mac Monitor's enrichments; every key is marked x-mac-monitor-origin: eslogger or mac-monitor, and everything under a Mac Monitor key is Mac Monitor's. Each GitHub release attaches the schema as Mac-Monitor.telemetry.schema.json, and the latest is at https://github.com/Brandon7CC/mac-monitor/releases/latest/download/Mac-Monitor.telemetry.schema.json.",
   "type": "object",
   "properties": {
@@ -147,6 +147,22 @@
       "x-mac-monitor-origin": "eslogger",
       "type": "integer"
     },
+    "indicators": {
+      "description": "The indicators in this Mac's saved set (Settings > Indicators, `macmonitor indicators`) that this event matched, evaluated by the Security Extension as it captured the event (`evaluated_by: security_extension`). When the Security Extension did not evaluate the event, these are the indicators Mac Monitor matched as it wrote the record (`evaluated_by: export`). Empty when none matched. The indicators the Security Extension could not rule out are in `indicators_undetermined`. Absent when nothing was evaluated: the writer had no indicators to match, or the record is from Mac Monitor before 3.1.0.",
+      "x-mac-monitor-origin": "mac-monitor",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/indicator"
+      }
+    },
+    "indicators_undetermined": {
+      "description": "The indicators in this Mac's saved set that the Security Extension could not rule out for this event, in the set's order, at most 32. `reason` says why: `scan_budget` when evaluating the event's values exceeded the Security Extension's per-event scan budget, and `value_limit` when a value that isn't ASCII was longer than the 64 KiB the Security Extension compares. Each may or may not match. While `indicators` has fewer than 32 entries and `indicators_undetermined` fewer than 32, an indicator in neither did not match. A list at its limit may have been cut short, and then an indicator in neither may match. A consumer that must not miss a match should treat both lists as possible matches; one that wants only certain matches reads `indicators`. Absent when every indicator was decided, or the record wasn't evaluated by the Security Extension (`evaluated_by: export` never writes it).",
+      "x-mac-monitor-origin": "mac-monitor",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/indicator_undetermined"
+      }
+    },
     "macOS": {
       "description": "The macOS version of the Mac that recorded the event: 27.0 (Build 26A1).",
       "x-mac-monitor-origin": "mac-monitor",
@@ -197,7 +213,7 @@
       "description": "The version of Mac Monitor's telemetry schema the record follows.",
       "x-mac-monitor-origin": "mac-monitor",
       "type": "string",
-      "const": "1.0.0"
+      "const": "1.1.0"
     },
     "thread": {
       "x-mac-monitor-origin": "eslogger",
@@ -658,6 +674,16 @@
       "description": "A file closed: es_event_close_t.",
       "type": "object",
       "properties": {
+        "file_type": {
+          "description": "What `target` is by its content, never its name: the Launch Services type identifier of its first 4 KB, sniffed by the Mac that recorded the event when it recorded it, only when `modified` is true (an unmodified close's file isn't read). A Mach-O is com.apple.mach-o-executable, -dylib, -bundle, -object or -core by its filetype, else com.apple.mach-o-binary (a universal binary by the slice the recording Mac runs, else its first; one whose slice is a static library is public.archive). A script is named by its #! interpreter, through /usr/bin/env too: public.zsh-script, public.python-script, com.apple.applescript.text for osascript (com.netscape.javascript-source with -l JavaScript), else public.script. Compiled AppleScript and JXA (FasdUAS, JsOsaDAS) are com.apple.applescript.script, and Java class files com.sun.java-class. Archives (an Apple Archive raw or compressed, as aa archive writes it), disk images (a UDIF trailer), ELF and PE binaries, property lists and PDFs have their own; other UTF-8 text without a NUL is public.plain-text, and anything else public.data. Or `empty` for a file of 0 bytes by the event's stat, `dyld_shared_cache` for a dyld shared cache (its first bytes are dyld_v1), and `replaced` when the path no longer names `target`: its device or inode differ, or a symbolic link is on the path now. null when the file isn't read: not a regular file, dataless, on a volume that isn't local, gone, a path Endpoint Security cut short, or not readable by the process's effective user and group. Also null when the event wasn't recorded by Mac Monitor 3.1.0 or later (an eslogger trace, or one exported before 3.1.0): the file is read only at capture, never when a trace is opened. Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "mach_o_type": {
+          "description": "The mach-o/loader.h name of a Mach-O's filetype, read with `file_type`: MH_EXECUTE, MH_DYLIB, MH_BUNDLE, MH_OBJECT, MH_CORE, MH_DYLINKER, MH_KEXT_BUNDLE, MH_FILESET, MH_DSYM and the others, or its value in hex (0x1f) for one without a name. A universal binary's is that of the slice `file_type` names it by. null when `target` isn't Mach-O, or as `file_type` is. Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
         "modified": {
           "x-mac-monitor-origin": "eslogger",
           "type": "boolean"
@@ -671,7 +697,7 @@
           "type": "boolean"
         }
       },
-      "required": ["modified", "target", "was_mapped_writable"],
+      "required": ["file_type", "mach_o_type", "modified", "target", "was_mapped_writable"],
       "additionalProperties": false
     },
     "create_event": {
@@ -1157,7 +1183,7 @@
           ]
         },
         "resolved_script_path": {
-          "description": "The script run: `script`'s path, or the script an interpreter's arguments name.",
+          "description": "The script run: `script`'s path, or, when Endpoint Security reports none, the script an interpreter's arguments name, if the exec's user could read it.",
           "x-mac-monitor-origin": "mac-monitor",
           "type": ["string", "null"]
         },
@@ -1173,7 +1199,7 @@
           ]
         },
         "script_content": {
-          "description": "The script's text, read when the event was recorded.",
+          "description": "The script's text, read when the event was recorded: only if the exec's user could read it and, for `script`, only while it's still the file Endpoint Security reported. It stops at the first NUL byte and at 1 MiB, and invalid UTF-8 reads as U+FFFD.",
           "x-mac-monitor-origin": "mac-monitor",
           "type": ["string", "null"]
         },
@@ -1354,10 +1380,251 @@
       "required": ["extattr", "target"],
       "additionalProperties": false
     },
+    "indicator": {
+      "description": "An indicator from this Mac's saved set that the event matched.",
+      "type": "object",
+      "properties": {
+        "default": {
+          "description": "Whether it is one of Mac Monitor's default indicators, which Mac Monitor ships. edited says whether this Mac changed it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "boolean"
+        },
+        "edited": {
+          "description": "Whether this Mac changed one Mac Monitor ships: its name, description, symbol, color, predicate, tactic, technique or severity. Always false when default is false.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "boolean"
+        },
+        "evaluated_by": {
+          "description": "Who matched it: security_extension, the Security Extension as it captured the event, or export, Mac Monitor as it wrote the record of an event the Security Extension did not evaluate.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["export", "security_extension"]
+        },
+        "id": {
+          "description": "The indicator's identity, the same on every Mac for one Mac Monitor ships.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
+        },
+        "name": {
+          "description": "What Settings > Indicators calls it, such as Background item added.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "severity": {
+          "description": "How strong a sign of malicious activity a match is: high for a strong one, medium for suspicious behavior that has benign uses, low for context and noisy signals. It never changes what matches.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["high", "low", "medium"]
+        },
+        "tactic": {
+          "description": "The MITRE ATT&CK tactic it's for, by name, or null for none.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "Collection",
+                "Command and Control",
+                "Credential Access",
+                "Defense Evasion",
+                "Discovery",
+                "Execution",
+                "Exfiltration",
+                "Impact",
+                "Initial Access",
+                "Lateral Movement",
+                "Persistence",
+                "Privilege Escalation",
+                "Reconnaissance",
+                "Resource Development"
+              ]
+            }
+          ]
+        },
+        "tactic_id": {
+          "description": "The tactic's ATT&CK identity, such as TA0003, or null for none.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "TA0001",
+                "TA0002",
+                "TA0003",
+                "TA0004",
+                "TA0005",
+                "TA0006",
+                "TA0007",
+                "TA0008",
+                "TA0009",
+                "TA0010",
+                "TA0011",
+                "TA0040",
+                "TA0042",
+                "TA0043"
+              ]
+            }
+          ]
+        },
+        "technique": {
+          "description": "The ATT&CK technique it finds, such as T1543.001, or null for none.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        }
+      },
+      "required": [
+        "default",
+        "edited",
+        "evaluated_by",
+        "id",
+        "name",
+        "severity",
+        "tactic",
+        "tactic_id",
+        "technique"
+      ],
+      "additionalProperties": false
+    },
+    "indicator_undetermined": {
+      "description": "An indicator from this Mac's saved set that the Security Extension could not rule out for the event: it may or may not match.",
+      "type": "object",
+      "properties": {
+        "default": {
+          "description": "Whether it is one of Mac Monitor's default indicators, which Mac Monitor ships. edited says whether this Mac changed it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "boolean"
+        },
+        "edited": {
+          "description": "Whether this Mac changed one Mac Monitor ships: its name, description, symbol, color, predicate, tactic, technique or severity. Always false when default is false.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "boolean"
+        },
+        "evaluated_by": {
+          "description": "Who matched it: security_extension, the Security Extension as it captured the event, or export, Mac Monitor as it wrote the record of an event the Security Extension did not evaluate.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["export", "security_extension"]
+        },
+        "id": {
+          "description": "The indicator's identity, the same on every Mac for one Mac Monitor ships.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
+        },
+        "name": {
+          "description": "What Settings > Indicators calls it, such as Background item added.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Why it wasn't decided: scan_budget when evaluating the event's values exceeded the Security Extension's per-event scan budget, or value_limit when a value that isn't ASCII was longer than the 64 KiB the Security Extension compares.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["scan_budget", "value_limit"]
+        },
+        "severity": {
+          "description": "How strong a sign of malicious activity a match is: high for a strong one, medium for suspicious behavior that has benign uses, low for context and noisy signals. It never changes what matches.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["high", "low", "medium"]
+        },
+        "tactic": {
+          "description": "The MITRE ATT&CK tactic it's for, by name, or null for none.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "Collection",
+                "Command and Control",
+                "Credential Access",
+                "Defense Evasion",
+                "Discovery",
+                "Execution",
+                "Exfiltration",
+                "Impact",
+                "Initial Access",
+                "Lateral Movement",
+                "Persistence",
+                "Privilege Escalation",
+                "Reconnaissance",
+                "Resource Development"
+              ]
+            }
+          ]
+        },
+        "tactic_id": {
+          "description": "The tactic's ATT&CK identity, such as TA0003, or null for none.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "TA0001",
+                "TA0002",
+                "TA0003",
+                "TA0004",
+                "TA0005",
+                "TA0006",
+                "TA0007",
+                "TA0008",
+                "TA0009",
+                "TA0010",
+                "TA0011",
+                "TA0040",
+                "TA0042",
+                "TA0043"
+              ]
+            }
+          ]
+        },
+        "technique": {
+          "description": "The ATT&CK technique it finds, such as T1543.001, or null for none.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        }
+      },
+      "required": [
+        "default",
+        "edited",
+        "evaluated_by",
+        "id",
+        "name",
+        "reason",
+        "severity",
+        "tactic",
+        "tactic_id",
+        "technique"
+      ],
+      "additionalProperties": false
+    },
     "iokit_open_event": {
       "description": "An IOKit device opened: es_event_iokit_open_t.",
       "type": "object",
       "properties": {
+        "driver_bundle_id": {
+          "description": "The bundle ID of the service's driver, read from the IOKit registry with `parent_class`: the service's CFBundleIdentifier property, from the personality it matched (a kext's, or a DriverKit extension's own), else that of the nearest provider that has one, the driver that published it: com.apple.iokit.IOSurface. When that names an Apple bundle, or none, and a third-party kext defines the service's class (IOObjectCopyBundleIdentifierForClass), it's that kext, so a kext can't pass as Apple by setting the property. null as `parent_class` is, and when neither source names one. Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "parent_class": {
+          "description": "The class of the service being opened, read from the IOKit registry of the Mac that recorded the event, when it recorded it (IOObjectGetClass): IOSurfaceRoot. The service is found by `parent_path` when the entry it finds has the `parent_registry_id`, else by `parent_registry_id`, as siblings can share a path. null before message version 10 (macOS 26), when the service is no longer in the registry, and when the event wasn't recorded by Mac Monitor 3.1.0 or later (an eslogger trace, or one exported before 3.1.0, opened and exported again): the registry is read only at capture, never when a trace is opened. Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
         "parent_path": {
           "description": "null when Endpoint Security gives none, or in a record from Mac Monitor before 3.0.0, which left out an empty one. Absent when the message's version is before 10 (macOS 26).",
           "x-mac-monitor-origin": "eslogger",
@@ -1377,13 +1644,25 @@
           "type": "integer"
         }
       },
-      "required": ["user_client_class", "user_client_type"],
+      "required": ["driver_bundle_id", "parent_class", "user_client_class", "user_client_type"],
       "additionalProperties": false
     },
     "launch_item": {
       "description": "A launch item: es_btm_launch_item_t.",
       "type": "object",
       "properties": {
+        "app_bundle": {
+          "description": "The bundle at `app_path`, the app a helper, agent or daemon belongs to, of any item type. null when the item has no app, its app isn't a bundle, or, on a remove, it's already gone. Also null when the event wasn't recorded by Mac Monitor 3.1.0 or later (an eslogger trace, or one exported before 3.1.0, opened and exported again): bundles are read only at capture, never when a trace is opened. Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/launch_item_bundle"
+            }
+          ]
+        },
         "app_path": {
           "description": "`app_url` as a path.",
           "x-mac-monitor-origin": "mac-monitor",
@@ -1392,6 +1671,18 @@
         "app_url": {
           "x-mac-monitor-origin": "eslogger",
           "type": ["string", "null"]
+        },
+        "bundle": {
+          "description": "The bundle the item names, for an ES_BTM_ITEM_TYPE_APP, ES_BTM_ITEM_TYPE_LOGIN_ITEM or ES_BTM_ITEM_TYPE_USER_ITEM item whose path (absolute, or relative to `app_path`) is a bundle directory. null for other items, for a path that isn't a bundle, and on a remove when the bundle is already gone. Also null when the event wasn't recorded by Mac Monitor 3.1.0 or later (an eslogger trace, or one exported before 3.1.0, opened and exported again): bundles are read only at capture, never when a trace is opened. Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/launch_item_bundle"
+            }
+          ]
         },
         "item_path": {
           "description": "`item_url` as a path.",
@@ -1421,7 +1712,7 @@
           "type": "boolean"
         },
         "plist_contents": {
-          "description": "The item's property list, read when the event was recorded. Absent when the property list couldn't be read.",
+          "description": "The item's property list as text, read from the Mac that recorded the event, when it recorded it: an agent's or daemon's launchd plist, or the Info.plist of the bundle an app, login item or user item names (`bundle`). A property list stored in binary is converted to XML. Cut at 1 MiB. Not read through a symbolic link below the item's folder, app or bundle. Absent when the item has no property list, or it couldn't be read.",
           "x-mac-monitor-origin": "mac-monitor",
           "type": "string"
         },
@@ -1436,8 +1727,10 @@
         }
       },
       "required": [
+        "app_bundle",
         "app_path",
         "app_url",
+        "bundle",
         "item_path",
         "item_type",
         "item_type_string",
@@ -1446,6 +1739,130 @@
         "managed",
         "uid",
         "uid_human"
+      ],
+      "additionalProperties": false
+    },
+    "launch_item_bundle": {
+      "description": "An app or helper bundle a launch item names, read by the Security Extension from the Mac that recorded the event, when it recorded it: never when a trace is opened. Each value is null when the bundle doesn't have it or it couldn't be read. Since telemetry 1.1.0.",
+      "type": "object",
+      "properties": {
+        "age_ms": {
+          "description": "How old the bundle was at the event: milliseconds from `birth_time` to the message's time, rounded. Negative when the clock stepped back between the two. null when `birth_time` is unknown.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["integer", "null"]
+        },
+        "birth_time": {
+          "description": "When the bundle directory was created: its st_birthtimespec.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"],
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{9}Z$"
+        },
+        "codesigning_type": {
+          "description": "How the bundle as a whole is signed: PLATFORM when its signature has a platform identifier, ADHOC or UNSIGNED, otherwise APP_STORE or DEVELOPER_ID by its certificates (UNKNOWN for others). null when the signature couldn't be read: also when the Info.plist couldn't be, or a FIFO or other special file is where Security would open it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "enum": ["PLATFORM", "DEVELOPER_ID", "APP_STORE", "ADHOC", "UNSIGNED", "UNKNOWN"]
+            }
+          ]
+        },
+        "executable_path": {
+          "description": "The bundle's executable, as CFBundle finds it: Contents/MacOS/ and CFBundleExecutable, or CFBundleExecutable beside a shallow bundle's Info.plist, named whether or not the file exists. NSExecutable without CFBundleExecutable, and without either, the file named as the bundle without its extension, when there's one.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "identifier": {
+          "description": "CFBundleIdentifier, from the bundle's Info.plist.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "info_plist_path": {
+          "description": "The bundle's Info.plist: Contents/Info.plist, or Info.plist at the top of a shallow bundle. Named whether or not it could be read (it isn't through a symbolic link below the bundle); null only in a record that doesn't name it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "is_background_only": {
+          "description": "LSBackgroundOnly, from the Info.plist, read as `is_ui_element` is: the app runs with no user interface at all.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["boolean", "null"]
+        },
+        "is_quarantined": {
+          "description": "1 if the bundle directory has a com.apple.quarantine attribute, 0 if not, and 2 if it couldn't be found.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "is_ui_element": {
+          "description": "LSUIElement, from the Info.plist, as a Boolean (also when it's written as a number or as \"1\", \"YES\" or \"true\"): the app runs as an agent, without a Dock icon or menu bar.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["boolean", "null"]
+        },
+        "name": {
+          "description": "CFBundleDisplayName, else CFBundleName, from the Info.plist.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "path": {
+          "description": "The bundle directory read.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "short_version": {
+          "description": "CFBundleShortVersionString, from the Info.plist.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "signing_id": {
+          "description": "The bundle's signing identifier, from a static read of its signature (SecStaticCodeCreateWithPath and SecCodeCopySigningInformation, without validating it). null for an unsigned bundle.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "team_id": {
+          "description": "The bundle's team identifier, from its signature. null for Apple platform, adhoc and unsigned bundles.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "version": {
+          "description": "CFBundleVersion, from the Info.plist.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "where_froms": {
+          "description": "Where the bundle was downloaded from: the strings of the binary property list array in the bundle directory's com.apple.metadata:kMDItemWhereFroms attribute, the download URL and then the page it was found on. null without the attribute.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "age_ms",
+        "birth_time",
+        "codesigning_type",
+        "executable_path",
+        "identifier",
+        "info_plist_path",
+        "is_background_only",
+        "is_quarantined",
+        "is_ui_element",
+        "name",
+        "path",
+        "short_version",
+        "signing_id",
+        "team_id",
+        "version",
+        "where_froms"
       ],
       "additionalProperties": false
     },
@@ -1621,24 +2038,69 @@
           "x-mac-monitor-origin": "eslogger",
           "type": "integer"
         },
+        "file_type": {
+          "description": "What `source` is by its content, never its name: the Launch Services type identifier of its first 4 KB, sniffed by the Mac that recorded the event when it recorded it. A Mach-O is com.apple.mach-o-executable, -dylib, -bundle, -object or -core by its filetype, else com.apple.mach-o-binary (a universal binary by the slice the recording Mac runs, else its first; one whose slice is a static library is public.archive). A script is named by its #! interpreter, through /usr/bin/env too: public.zsh-script, public.python-script, com.apple.applescript.text for osascript (com.netscape.javascript-source with -l JavaScript), else public.script. Compiled AppleScript and JXA (FasdUAS, JsOsaDAS) are com.apple.applescript.script, and Java class files com.sun.java-class. Archives (an Apple Archive raw or compressed, as aa archive writes it), disk images (a UDIF trailer), ELF and PE binaries, property lists and PDFs have their own; other UTF-8 text without a NUL is public.plain-text, and anything else public.data. Or `empty` for a file of 0 bytes by the event's stat, `dyld_shared_cache` for a dyld shared cache (its first bytes are dyld_v1), and `replaced` when the path no longer names `source`: its device or inode differ, or a symbolic link is on the path now. null when the file isn't read: not a regular file, dataless, on a volume that isn't local, gone, a path Endpoint Security cut short, or not readable by the process's effective user and group. Also null when the event wasn't recorded by Mac Monitor 3.1.0 or later (an eslogger trace, or one exported before 3.1.0): the file is read only at capture, never when a trace is opened. Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
+        "flag_names": {
+          "description": "The names of the bits `flags` has, from sys/mman.h, in bit order, one name per bit: MAP_SHARED, MAP_PRIVATE (not MAP_COPY), MAP_FIXED, MAP_RENAME, MAP_NORESERVE, MAP_RESERVED0080, MAP_NOEXTEND, MAP_HASSEMAPHORE, MAP_NOCACHE, MAP_JIT, MAP_ANON (not MAP_ANONYMOUS), MAP_RESILIENT_CODESIGN, MAP_RESILIENT_MEDIA, MAP_32BIT, MAP_TRANSLATED_ALLOW_EXECUTE, MAP_UNIX03, MAP_TPRO. Empty for flags of 0: MAP_FILE is 0, so it's never named. Bits sys/mman.h doesn't name are left out; `flags` keeps them.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "flags": {
           "x-mac-monitor-origin": "eslogger",
           "type": "integer"
+        },
+        "mach_o_type": {
+          "description": "The mach-o/loader.h name of a Mach-O's filetype, read with `file_type`: MH_EXECUTE, MH_DYLIB, MH_BUNDLE, MH_OBJECT, MH_CORE, MH_DYLINKER, MH_KEXT_BUNDLE, MH_FILESET, MH_DSYM and the others, or its value in hex (0x1f) for one without a name. A universal binary's is that of the slice `file_type` names it by. null when `source` isn't Mach-O, or as `file_type` is. Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
         },
         "max_protection": {
           "x-mac-monitor-origin": "eslogger",
           "type": "integer"
         },
+        "max_protection_names": {
+          "description": "The names of the bits `max_protection` has, from sys/mman.h, in bit order: PROT_READ, PROT_WRITE, PROT_EXEC. It's a vm_prot_t, named with PROT_* too: its low three bits are VM_PROT_READ, VM_PROT_WRITE and VM_PROT_EXECUTE, the same bits. PROT_NONE alone for 0. Other bits are left out; `max_protection` keeps them.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "protection": {
           "x-mac-monitor-origin": "eslogger",
           "type": "integer"
+        },
+        "protection_names": {
+          "description": "The names of the bits `protection` has, from sys/mman.h, in bit order: PROT_READ, PROT_WRITE, PROT_EXEC. PROT_NONE alone for 0. Other bits are left out; `protection` keeps them.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "source": {
           "x-mac-monitor-origin": "eslogger",
           "$ref": "#/$defs/file"
         }
       },
-      "required": ["file_pos", "flags", "max_protection", "protection", "source"],
+      "required": [
+        "file_pos",
+        "file_type",
+        "flag_names",
+        "flags",
+        "mach_o_type",
+        "max_protection",
+        "max_protection_names",
+        "protection",
+        "protection_names",
+        "source"
+      ],
       "additionalProperties": false
     },
     "mount_event": {
@@ -1762,7 +2224,7 @@
           "type": "integer"
         },
         "flags": {
-          "description": "The names of the flags `protection` has: PROT_READ.",
+          "description": "The names of the flags `protection` has, from mach/vm_prot.h, in bit order: VM_PROT_READ, VM_PROT_WRITE, VM_PROT_EXECUTE. VM_PROT_NONE alone for 0. Other bits are left out; `protection` keeps them.",
           "x-mac-monitor-origin": "mac-monitor",
           "type": "array",
           "items": {
@@ -2672,6 +3134,11 @@
           "x-mac-monitor-origin": "eslogger",
           "type": "integer"
         },
+        "process_age_ms": {
+          "description": "How old the process was at the event: milliseconds from `start_time` to the message's time, rounded. Every process in a record has its own. Negative when the clock stepped back between the two. null when `start_time` is unknown (0). Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["integer", "null"]
+        },
         "responsible_audit_token": {
           "x-mac-monitor-origin": "eslogger",
           "$ref": "#/$defs/audit_token"
@@ -2741,6 +3208,7 @@
         "parent_audit_token_string",
         "pid",
         "ppid",
+        "process_age_ms",
         "responsible_audit_token",
         "responsible_audit_token_string",
         "ruid",
@@ -2924,10 +3392,20 @@
           "x-mac-monitor-origin": "mac-monitor",
           "type": "string"
         },
+        "file_type": {
+          "description": "What `source` is by its content, never its name: the Launch Services type identifier of its first 4 KB, sniffed by the Mac that recorded the event when it recorded it, where it was renamed to, or from the bytes the modified close that wrote that version of it read, as a file written under one name and renamed into place is. A Mach-O is com.apple.mach-o-executable, -dylib, -bundle, -object or -core by its filetype, else com.apple.mach-o-binary (a universal binary by the slice the recording Mac runs, else its first; one whose slice is a static library is public.archive). A script is named by its #! interpreter, through /usr/bin/env too: public.zsh-script, public.python-script, com.apple.applescript.text for osascript (com.netscape.javascript-source with -l JavaScript), else public.script. Compiled AppleScript and JXA (FasdUAS, JsOsaDAS) are com.apple.applescript.script, and Java class files com.sun.java-class. Archives (an Apple Archive raw or compressed, as aa archive writes it), disk images (a UDIF trailer), ELF and PE binaries, property lists and PDFs have their own; other UTF-8 text without a NUL is public.plain-text, and anything else public.data. Or `empty` for a file of 0 bytes by the event's stat, `dyld_shared_cache` for a dyld shared cache (its first bytes are dyld_v1), and `replaced` when the path no longer names `source`: its device or inode differ, or a symbolic link is on the path now. null when the file isn't read: not a regular file, dataless, on a volume that isn't local, gone, a path Endpoint Security cut short, or not readable by the process's effective user and group. Also null when the event wasn't recorded by Mac Monitor 3.1.0 or later (an eslogger trace, or one exported before 3.1.0): the file is read only at capture, never when a trace is opened. Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        },
         "is_quarantined": {
           "description": "Whether the file was quarantined when the event was recorded: 1 if it had a com.apple.quarantine attribute, 0 if not, 2 if it wasn't found.",
           "x-mac-monitor-origin": "mac-monitor",
           "type": "integer"
+        },
+        "mach_o_type": {
+          "description": "The mach-o/loader.h name of a Mach-O's filetype, read with `file_type`: MH_EXECUTE, MH_DYLIB, MH_BUNDLE, MH_OBJECT, MH_CORE, MH_DYLINKER, MH_KEXT_BUNDLE, MH_FILESET, MH_DSYM and the others, or its value in hex (0x1f) for one without a name. A universal binary's is that of the slice `file_type` names it by. null when `source` isn't Mach-O, or as `file_type` is. Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
         },
         "source": {
           "x-mac-monitor-origin": "eslogger",
@@ -2939,7 +3417,9 @@
         "destination_path",
         "destination_type",
         "destination_type_string",
+        "file_type",
         "is_quarantined",
+        "mach_o_type",
         "source"
       ],
       "additionalProperties": false
@@ -2968,12 +3448,31 @@
           "x-mac-monitor-origin": "eslogger",
           "type": "integer"
         },
+        "mode_added": {
+          "description": "What the change added that's worth a look, in this order: executable (an execute bit, as chmod +x gives), setuid, setgid and world_writable (S_IWOTH). A directory gets none of the first three, and a sticky directory (1777, as /tmp is) not world_writable either. Without `previous_mode`, every bit `mode` sets counts as added. Derived when the record is written. Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["executable", "setuid", "setgid", "world_writable"]
+          }
+        },
+        "mode_symbolic": {
+          "description": "`mode`'s permission bits as `ls -l` shows them, without the file type: rw-r--r--. Setuid and setgid show in the owner's and group's execute place as s, or S without execute, and the sticky bit in others' as t or T. Derived from `mode` when the record is written. Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "previous_mode": {
+          "description": "The file's permission bits before the change (st_mode & 07777): Endpoint Security's stat of `target` is from before it. null when `target` has no stat. Derived when the record is written. Since telemetry 1.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["integer", "null"]
+        },
         "target": {
           "x-mac-monitor-origin": "eslogger",
           "$ref": "#/$defs/file"
         }
       },
-      "required": ["mode", "target"],
+      "required": ["mode", "mode_added", "mode_symbolic", "previous_mode", "target"],
       "additionalProperties": false
     },
     "signal_event": {

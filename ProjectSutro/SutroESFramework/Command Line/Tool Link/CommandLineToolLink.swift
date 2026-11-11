@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - Command line tool link
 /// `/usr/local/bin/macmonitor` (app context): what's there, whether this copy of Mac Monitor can link its command line
-/// tool there, and the plan Settings ▸ Command Line sends to the Security Extension.
+/// tool there, and the plan Settings > Command Line sends to the Security Extension.
 ///
 /// It only looks, with `lstat`, `readlink`, `realpath` and a static code signature check. The Security Extension
 /// makes the change as root with ``CommandLineToolLinker``, which checks everything again first.

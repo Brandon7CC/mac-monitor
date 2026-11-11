@@ -34,39 +34,82 @@ struct SystemChartEventView: View {
         }
     }
 
-    /// macOS 27's Swift Charts draws each event type's label on its band's top edge, over the bar above it, so there
-    /// each bar carries its own label. macOS 13 ignores a bar's height on this axis, so it keeps the axis labels.
-    private static let barsCarryLabels = ProcessInfo.processInfo.isOperatingSystemAtLeast(
-        OperatingSystemVersion(majorVersion: 27, minorVersion: 0, patchVersion: 0))
+    /// Whether the axis is logarithmic, with 0 at the origin: from macOS 13.3. Before it the axis stays linear.
+    private static var isLogarithmic: Bool {
+        if #available(macOS 13.3, *) { return true }
+        return false
+    }
 
+    /// The axis's scale: ``isLogarithmic``'s.
+    private static var scale: ScaleType {
+        if #available(macOS 13.3, *) { return .symmetricLog }
+        return .linear
+    }
+
+    /// The share of the plot the largest bar takes, leaving the rest for its label and count.
+    private static let largestBarShare = 0.6
+
+    /// The axis's upper bound, past the largest count, so the largest bar's label and count fit beside it. On a log
+    /// scale a bar's length grows with the count's logarithm, so the bound is the count raised to `1 / share`. On a
+    /// linear one it's the count divided by the share.
+    ///
+    /// - Parameter largest: The largest count.
+    /// - Returns: The bound.
+    private static func upperBound(for largest: Int) -> Double {
+        isLogarithmic ? max(10, pow(Double(largest) + 1, 1 / largestBarShare)) : Double(largest) / largestBarShare
+    }
+
+    /// A logarithmic axis's ticks: 0, then each power of ten up to the largest count. A linear axis uses Charts' own.
+    ///
+    /// - Parameter largest: The largest count.
+    /// - Returns: The ticks.
+    private static func ticks(upTo largest: Int) -> [Double] {
+        [0] + sequence(first: 1) { $0 <= largest / 10 ? $0 * 10 : nil }.map(Double.init)
+    }
+
+    /// One type's label: its name, then its count, shortened as 30.1K.
+    ///
+    /// - Parameter event: The type and its count.
+    /// - Returns: The label.
+    private static func label(_ event: (eventType: String, frequency: Int)) -> Text {
+        Text(event.eventType + " ")
+            + Text(event.frequency.formatted(.number.notation(.compactName))).foregroundColor(.secondary)
+    }
+
+    /// One bar per type, on a log scale, so a type with thousands of events (mmap, close) doesn't flatten the rest.
+    /// Each bar's name and count follow it, so no label sits over another bar and every count reads exactly.
     var body: some View {
         let eventFrequency = esEventFrequency(for: counts)
         VStack {
-            if !counts.isEmpty {
-                let chart = Chart {
+            if let largest = eventFrequency.map(\.frequency).max() {
+                Chart {
                     ForEach(eventFrequency, id: \.eventType) { esEvent in
-                        if Self.barsCarryLabels {
-                            BarMark(
-                                x: .value("Frequency", esEvent.frequency),
-                                y: .value("Event Type", esEvent.eventType),
-                                height: .fixed(10)
-                            )
-                            .foregroundStyle(by: .value("Event type", esEvent.eventType))
-                            .annotation(position: .top, alignment: .leading, spacing: 2) {
-                                Text(esEvent.eventType).font(.caption).foregroundStyle(.secondary)
-                            }
-                        } else {
-                            BarMark(
-                                x: .value("Frequency", esEvent.frequency),
-                                y: .value("Event Type", esEvent.eventType)
-                            ).foregroundStyle(by: .value("Event type", esEvent.eventType))
+                        BarMark(
+                            x: .value("Events", Double(esEvent.frequency)),
+                            y: .value("Event type", esEvent.eventType)
+                        )
+                        .foregroundStyle(by: .value("Event type", esEvent.eventType))
+                        .annotation(position: .trailing, alignment: .leading, spacing: 4) {
+                            Self.label(esEvent).font(.caption).lineLimit(1)
                         }
                     }
-                }.chartLegend(.hidden)
-                if Self.barsCarryLabels {
-                    chart.chartYAxis { AxisMarks { AxisGridLine() } }
-                } else {
-                    chart
+                }
+                .chartLegend(.hidden)
+                .chartYAxis(.hidden)
+                .chartXScale(domain: 0...Self.upperBound(for: largest), type: Self.scale)
+                .chartXAxis {
+                    if Self.isLogarithmic {
+                        AxisMarks(values: Self.ticks(upTo: largest)) { value in
+                            AxisGridLine()
+                            AxisValueLabel {
+                                if let count = value.as(Double.self) {
+                                    Text(Int(count).formatted(.number.notation(.compactName)))
+                                }
+                            }
+                        }
+                    } else {
+                        AxisMarks()
+                    }
                 }
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity)

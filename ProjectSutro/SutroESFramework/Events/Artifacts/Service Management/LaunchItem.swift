@@ -1,6 +1,6 @@
 //
 //  LaunchItem.swift
-//  ProjectSutro
+//  SutroESFramework
 //
 //  Created by Brandon Dalton on 9/27/25.
 //
@@ -31,7 +31,14 @@ public struct LaunchItem: Codable, IdentityHashable {
     public var uid_human: String?
     
     // @note Mac Monitor enrichment
+    /// The item's property list, read from this Mac at capture: an agent's or daemon's launchd plist, or a bundle
+    /// item's Info.plist, as text (binary plists converted to XML).
     public var plist_contents: String?
+    /// The bundle the item names (an app, login item or user item), read from this Mac at capture
+    /// (``readFromDisk()``). `nil` when the item isn't a bundle, or it was gone.
+    public var bundle: LaunchItemBundle?
+    /// The bundle at ``app_path``: the app a helper, agent or daemon belongs to, read from this Mac at capture.
+    public var app_bundle: LaunchItemBundle?
     
     init(from launchItem: es_btm_launch_item_t) {
         // MARK: - Legacy / Managed
@@ -52,11 +59,8 @@ public struct LaunchItem: Codable, IdentityHashable {
         enrich()
         uid_human = Process.userName(Int(launchItem.uid), systemAccountsOnly: false) ?? uid_human
         
-        // MARK: Plist
-        guard [ES_BTM_ITEM_TYPE_AGENT, ES_BTM_ITEM_TYPE_DAEMON].contains(launchItem.item_type) else { return }
-        /// A legacy item's path is its plist's. Another's is relative to its app.
-        let plistPath = legacy ? item_path : app_path?.appendingPathComponent(item_path)
-        plist_contents = plistPath.flatMap(ProcessHelpers.getFileContents(at:))
+        // MARK: Plist and bundles
+        readFromDisk()
     }
 }
 
@@ -75,7 +79,9 @@ extension LaunchItem: ESEnrichable {
     /// Derive the item type's name, the item's and the app's paths from their URLs, and the user's name if it's a
     /// system account.
     ///
-    /// Not derived: the names of other users, and the plist's contents (read from this Mac).
+    /// Not derived: the names of other users, the plist's contents, and the item's and app's bundles (``bundle`` and
+    /// ``app_bundle``): they're read from the Mac that recorded the event, at capture only, so opening a trace never
+    /// reads the opening Mac's disk.
     public mutating func enrich() {
         app_path = app_url.flatMap(URL.init(string:))?.path
         item_path = URL(string: item_url)?.path ?? ""

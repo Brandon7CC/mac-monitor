@@ -54,8 +54,8 @@ public struct MuteList: Equatable, Sendable {
         mutes.forEach { add($0) }
     }
     
-    /// Mac Monitor's default mute set (``MuteSet/default(home:mutesXcode:)``) for a console user: what Reset restores
-    /// and a new saved set starts from.
+    /// Mac Monitor's default mute set (``MuteSet/default(home:mutesXcode:mutesXPCConnects:)``) for a console user:
+    /// what Reset restores and a new saved set starts from.
     ///
     /// - Parameter user: Whose home folder's caches and Biome streams are muted. Without one, those mutes are left out.
     /// - Returns: The list.

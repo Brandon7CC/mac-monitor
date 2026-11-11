@@ -14,8 +14,8 @@ import SutroESFramework
 // MARK: - Update installer
 /// Checks GitHub for Mac Monitor releases and installs them as root (Security Extension context).
 ///
-/// Nothing about the package comes from Mac Monitor. ``install(reply:)`` resolves the latest release itself, refuses
-/// anything that isn't newer than the running version, and only installs a package that:
+/// Nothing about the package comes from Mac Monitor. ``install(progress:reply:)`` resolves the latest release itself,
+/// refuses anything that isn't newer than the running version, and only installs a package that:
 /// 1. Was downloaded over HTTPS
 /// 2. Gatekeeper accepts with assessments enforced (`spctl --enforce-assessment` exits `0` with `assessment:verdict` =
 ///    `true` and no `assessment:authority:override`), which implies notarization even if Gatekeeper is turned off
@@ -23,10 +23,7 @@ import SutroESFramework
 ///
 /// Updates are disabled in Community builds: they're adhoc signed for SIP-off development VMs, only enforce the
 /// signing identifier on XPC peers, and shouldn't be replaced by a release build.
-final class UpdateInstaller {
-    private static let latestReleaseURL: URL =
-        URL(string: "https://api.github.com/repos/Brandon7CC/mac-monitor/releases/latest")!
-    
+final class UpdateInstaller: SensorUpdating {
     private let logger = Logger(subsystem: "com.swiftlydetecting.agent.securityextension", category: "UpdateInstaller")
     /// Only one install may run at a time.
     private let isInstalling = OSAllocatedUnfairLock(initialState: false)
@@ -94,10 +91,10 @@ final class UpdateInstaller {
     /// - Parameter progress: Called as each step starts, and as the download goes.
     private func installLatestRelease(progress: @escaping (UpdateProgress) -> Void) async throws {
         guard let release = try await newerRelease() else { throw UpdateError.noNewerRelease }
-        guard release.downloadURL.scheme == "https" else { throw UpdateError.insecureDownload(release.downloadURL) }
+        let downloadURL = try ReleaseChoice.download(of: release)
         
         /// 1. Download the update package into a fresh directory that's removed when we're done
-        logger.log("1. Downloading update from \(release.downloadURL.absoluteString, privacy: .public)")
+        logger.log("1. Downloading update from \(downloadURL.absoluteString, privacy: .public)")
         let fm = FileManager.default
         let workDirectory = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try fm.createDirectory(at: workDirectory, withIntermediateDirectories: true)
@@ -107,7 +104,7 @@ final class UpdateInstaller {
         }
         
         progress(.downloading(fraction: 0))
-        let (downloadedURL, response) = try await URLSession.shared.download(from: release.downloadURL,
+        let (downloadedURL, response) = try await URLSession.shared.download(from: downloadURL,
                                                                              delegate: DownloadProgress(progress))
         /// We don't trust the server's file name: the package always lands at a fixed name inside our directory.
         let package = workDirectory.appendingPathComponent("MacMonitorUpdate.pkg")
@@ -130,78 +127,26 @@ final class UpdateInstaller {
     }
     
     // MARK: - Release lookup
-    /// Fetch the latest GitHub release and keep it only if it's newer than this build.
+    /// Fetch the latest GitHub release and keep it only if it's newer than this build (``ReleaseChoice``).
     ///
     /// - Returns: What Mac Monitor shows in its update sheet about the newer release, or `nil` if we're up-to-date.
-    ///   The update package is the release's first asset whose name ends in `.pkg`.
     /// - Throws: ``UpdateError/releaseLookupFailed`` for a failed lookup or a release without a package, or why the
     ///   release couldn't be downloaded or read.
     private func newerRelease() async throws -> UpdateDetails? {
-        let (data, response) = try await URLSession.shared.data(from: Self.latestReleaseURL)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw UpdateError.releaseLookupFailed }
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let release = try decoder.decode(GitHubRelease.self, from: data)
-        
-        guard let package = release.assets.first(where: \.isPackage)?.browserDownloadUrl,
-              let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
-            throw UpdateError.releaseLookupFailed
-        }
-        logger.log("""
-            (Mac Monitor Update) Latest version found: \(release.version, privacy: .public). \
-            Current version: \(currentVersion, privacy: .public)
-            """)
-        guard release.version.compare(currentVersion, options: .numeric) == .orderedDescending else { return nil }
-        return UpdateDetails(version: release.tagName, downloadURL: package, releaseNotes: release.body,
-                             releaseDate: release.publishedAt)
+        let (data, response) = try await URLSession.shared.data(from: ReleaseChoice.latestReleaseURL)
+        return try ReleaseChoice.newer(in: data, status: (response as? HTTPURLResponse)?.statusCode,
+                                       than: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String)
     }
     
     // MARK: - Signature validation
-    /// Ask Gatekeeper to assess the package, then require our Team ID.
-    ///
-    /// Leverages `spctl --assess --type install --raw`, which prints the assessment as a property list on stdout and
-    /// exits non-zero when the package is rejected. `--enforce-assessment` keeps a disabled Gatekeeper from turning a
-    /// rejection into an acceptance; we also refuse any result that carries an `assessment:authority:override`.
+    /// Ask Gatekeeper to assess the package, then require our Team ID (``UpdateVerdict``).
     ///
     /// - Parameter package: The downloaded package.
     private func verifySignature(of package: URL) async throws {
-        let arguments = ["--assess", "--type", "install", "--enforce-assessment", "-v", "-v", "--raw", package.path]
-        let (status, output) = try await run("/usr/sbin/spctl", arguments, capturing: .standardOutput)
-        let assessment: [String: Any] = try Self.assessment(from: output)
-        let authority = assessment["assessment:authority"] as? [String: Any]
-        
-        guard status == 0, assessment["assessment:verdict"] as? Bool == true else {
-            let source = authority?["assessment:authority:source"] as? String
-            throw UpdateError.rejectedByGatekeeper(reason: source ?? "spctl exited with \(status)")
-        }
-        if let override = authority?["assessment:authority:override"] {
-            throw UpdateError.rejectedByGatekeeper(reason: "assessment was overridden (\(override))")
-        }
-        
-        /// Extract the Team Id from e.g. `Developer ID Installer: Brandon Dalton (4HMJQ7V3SX)`
-        guard let originator = assessment["assessment:originator"] as? String,
-              let match = originator.range(of: #"\(([A-Z0-9]{10})\)$"#, options: .regularExpression) else {
-            throw UpdateError.invalidTeamID(found: nil)
-        }
-        let teamID = String(originator[match]).trimmingCharacters(in: CharacterSet(charactersIn: "()"))
-        guard teamID == SensorXPC.teamID else { throw UpdateError.invalidTeamID(found: teamID) }
+        let (status, output) = try await run(UpdateVerdict.tool, UpdateVerdict.arguments(for: package),
+                                             capturing: .standardOutput)
+        let teamID = try UpdateVerdict(status: status, output: output).teamID
         logger.log("✅ Gatekeeper accepted the package and the Team ID matches: \(teamID, privacy: .public)")
-    }
-    
-    /// Pull the property list out of `spctl --raw` output.
-    ///
-    /// - Parameter output: `spctl`'s stdout.
-    /// - Returns: The assessment dictionary.
-    private static func assessment(from output: Data) throws -> [String: Any] {
-        let text = String(decoding: output, as: UTF8.self)
-        guard let start = text.range(of: "<?xml"),
-              let end = text.range(of: "</plist>", options: .backwards),
-              start.lowerBound < end.upperBound,
-              let plist = try PropertyListSerialization.propertyList(
-                from: Data(text[start.lowerBound..<end.upperBound].utf8), format: nil) as? [String: Any] else {
-            throw UpdateError.unreadableAssessment
-        }
-        return plist
     }
     
     // MARK: - Process helper
@@ -217,54 +162,6 @@ final class UpdateInstaller {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {
                 continuation.resume(with: Result { try ToolRunner.run(tool, arguments, capturing: stream) })
-            }
-        }
-    }
-}
-
-
-// MARK: - Errors
-extension UpdateInstaller {
-    enum UpdateError: LocalizedError {
-        case releaseLookupFailed
-        case noNewerRelease
-        case insecureDownload(URL)
-        case downloadFailed
-        case unreadableAssessment
-        case rejectedByGatekeeper(reason: String)
-        case invalidTeamID(found: String?)
-        case installFailed(exitCode: Int32, errorLog: String)
-        
-        var errorDescription: String? {
-            switch self {
-            case .releaseLookupFailed:
-                return "The latest release could not be fetched from GitHub."
-            case .noNewerRelease:
-                return "There is no release newer than the installed version."
-            case .insecureDownload(let url):
-                return "Refusing to download the update package over a non-HTTPS URL: \(url.absoluteString)"
-            case .downloadFailed:
-                return "The update package download failed or returned a non-200 status code."
-            case .unreadableAssessment:
-                return "The Gatekeeper assessment of the package could not be read."
-            case .rejectedByGatekeeper(let reason):
-                return "Gatekeeper rejected the package. Reason: \(reason)"
-            case .invalidTeamID(let found):
-                return "The Team ID of the package was invalid. "
-                    + "Found: \(found ?? "none"), expected: \(SensorXPC.teamID)"
-            case .installFailed(let exitCode, let errorLog):
-                return "The installer process failed with exit code \(exitCode). Log: \(errorLog)"
-            }
-        }
-        
-        /// What Mac Monitor is told.
-        var failure: UpdateFailure {
-            switch self {
-            case .releaseLookupFailed, .insecureDownload, .downloadFailed: return .download
-            case .noNewerRelease: return .noNewerRelease
-            case .unreadableAssessment, .rejectedByGatekeeper: return .gatekeeper
-            case .invalidTeamID: return .teamID
-            case .installFailed: return .installer
             }
         }
     }
@@ -302,26 +199,3 @@ private final class DownloadProgress: NSObject, URLSessionTaskDelegate {
     }
 }
 
-
-// MARK: - GitHub Release JSON Decoder
-/// The fields Mac Monitor reads from GitHub's latest release. The decoder converts GitHub's snake_case keys.
-private struct GitHubRelease: Decodable {
-    /// A file attached to the release. Releases also attach the telemetry schema.
-    struct Asset: Decodable {
-        let name: String
-        let browserDownloadUrl: URL
-        
-        /// Is this the installer package?
-        var isPackage: Bool { name.lowercased().hasSuffix(".pkg") }
-    }
-    
-    let tagName: String
-    let assets: [Asset]
-    /// The release notes. GitHub sends `null` for a release without any.
-    let body: String?
-    /// When the release was published. `null` for a draft.
-    let publishedAt: String?
-    
-    /// The release version without the tag's `v` prefix.
-    var version: String { String(tagName.trimmingPrefix("v")) }
-}

@@ -60,11 +60,13 @@ struct SystemEventFactsView : View {
         return (path, content)
     }
     
-    /// A launch item's property list, if Mac Monitor read it.
+    /// A launch item's property list, if Mac Monitor read it: an agent's or daemon's launchd plist, or a bundle item's
+    /// Info.plist.
     private var plist: (path: String, content: String)? {
-        guard let event = selectedMessage.event.btm_launch_item_add, let plist = event.item.plist_contents,
-              !plist.isEmpty else { return nil }
-        return (event.item.item_path, plist)
+        let event = selectedMessage.event
+        guard let item = event.btm_launch_item_add?.item ?? event.btm_launch_item_remove?.item,
+              let plist = item.plist_contents, !plist.isEmpty else { return nil }
+        return (item.plistPath, plist)
     }
     
     var body: some View {
@@ -85,7 +87,12 @@ struct SystemEventFactsView : View {
         let inTitleBar = width >= Self.titleBarWidth(tabs: tabs.count)
         VStack(alignment: .leading, spacing: 12) {
             if !inTitleBar {
-                picker(tabs, shown).frame(maxWidth: .infinity)
+                /// A menu when even the segments don't fit, so the tabs never set how narrow the facts can be.
+                ViewThatFits(in: .horizontal) {
+                    picker(tabs, shown)
+                    picker(tabs, shown, asMenu: true)
+                }
+                .frame(maxWidth: .infinity)
             }
             facts(shown, procGroup: procGroup, procSessionGroup: procSessionGroup)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -99,21 +106,26 @@ struct SystemEventFactsView : View {
                 ToolbarItem(placement: .principal) { picker(tabs, shown) }
             }
         }
+        .modifier(IndicatorsButton(message: selectedMessage))
     }
     
-    /// The tabs, as a segmented control at its full width.
+    /// The tabs, as a segmented control at its full width, or a menu.
     ///
     /// - Parameters:
     ///   - tabs: The event's tabs.
     ///   - shown: The tab showing.
+    ///   - asMenu: A menu rather than segments?
     /// - Returns: The control.
-    private func picker(_ tabs: [FactsTab], _ shown: FactsTab) -> some View {
-        Picker("Facts", selection: Binding { shown } set: { tab = $0 }) {
+    @ViewBuilder
+    private func picker(_ tabs: [FactsTab], _ shown: FactsTab, asMenu: Bool = false) -> some View {
+        let picker = Picker("Facts", selection: Binding { shown } set: { tab = $0 }) {
             ForEach(tabs) { Text($0.rawValue).tag($0) }
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .fixedSize()
+        if asMenu {
+            picker.pickerStyle(.menu).labelsHidden().fixedSize()
+        } else {
+            picker.pickerStyle(.segmented).labelsHidden().fixedSize()
+        }
     }
     
     /// The narrowest facts the title bar holds the tabs centered over. macOS 26 gives each tab about 90 points there,
@@ -141,7 +153,10 @@ struct SystemEventFactsView : View {
             if let script {
                 FileContentView(path: script.path, content: script.content,
                                 language: .of(path: script.path, content: script.content,
-                                              interpreter: selectedMessage.event.exec?.target.executable?.path))
+                                              interpreter: selectedMessage.event.exec?.target.executable?.path),
+                                source: selectedMessage.event.exec?.script?.path == script.path
+                                    ? "Endpoint Security reported this script."
+                                    : "Mac Monitor found this script in the command line's arguments.")
             }
         case .plist:
             if let plist {
@@ -181,6 +196,9 @@ struct AppWrapperForFacts: View {
         NavigationSplitView(columnVisibility: $visibility) {
             // MARK: Process tree
             ProcessLineageSidebar(selection: $selectedEventTree)
+                /// The minimum as well: SwiftUI otherwise squeezes the sidebar to make room for the facts.
+                .frame(minWidth: 180)
+                .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 320)
         } detail: {
             if let tree = selectedEventTree {
                 SystemEventFactsView(allFilters: $allFilters, selectedMessage: tree,
@@ -231,7 +249,7 @@ struct AppWrapperForFacts: View {
                 alert.runModal()
                 return []
             }
-            let json = events.map { ProcessHelpers.eventToJSON(value: $0, pretty: true) }.joined(separator: "\n")
+            let json = events.map(IndicatorStore.shared.json(of:)).joined(separator: "\n")
             return [NSItemProvider(object: json as NSString)]
         }
     }

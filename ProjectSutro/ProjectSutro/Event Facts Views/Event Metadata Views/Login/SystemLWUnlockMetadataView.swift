@@ -8,67 +8,26 @@
 import SwiftUI
 import SutroESFramework
 
+/// What an `lw_session_unlock` event says: the user who unlocked the screen, and the graphical session.
 struct SystemLWUnlockMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    private var event: ESLWUnlockEvent {
-        esSystemEvent.event.lw_session_unlock!
-    }
-    
+
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.lw_session_unlock != nil {
-            eventContent
-        }
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
+        if let event = esSystemEvent.event.lw_session_unlock {
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
                     HStack {
                         Label("**Username:**", systemImage: "person.fill")
                             .padding([.leading], 5.0)
                         GroupBox {
-                            Text("`\(event.username!)`")
+                            Text("`\(event.username ?? "Unknown")`")
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    HStack {
-                        Text("\u{2022} **Graphical session ID:**")
-                        GroupBox {
-                            Text("`\(UInt32(bitPattern: event.graphical_session_id))`")
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                    
-                }.frame(maxWidth: .infinity, alignment: .leading)
+
+                    FactRow(name: "Graphical session ID", value: "\(UInt32(bitPattern: event.graphical_session_id))")
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }

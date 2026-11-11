@@ -1,0 +1,681 @@
+{
+  "format" : "com.swiftlydetecting.indicators",
+  "indicators" : [
+    {
+      "color" : "red",
+      "description" : "Wrote or mapped the image NSCreateObjectFileImageFromMemory makes to load a Mach-O from memory.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000001",
+      "isEnabled" : true,
+      "name" : "Reflective loading",
+      "predicate" : "(event.create != nil OR event.write != nil OR event.mmap != nil) AND target_path CONTAINS \"/NSCreateObjectFileImageFromMemory-\"",
+      "severity" : "medium",
+      "symbol" : "memorychip",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1620"
+    },
+    {
+      "color" : "red",
+      "description" : "Deleted a file's quarantine attribute, so Gatekeeper won't check it when it's opened.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000003",
+      "isEnabled" : true,
+      "name" : "Quarantine removed",
+      "predicate" : "event.deleteextattr != nil AND event.deleteextattr.extattr ENDSWITH \"apple.quarantine\"",
+      "severity" : "low",
+      "symbol" : "xmark.shield",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1553.001"
+    },
+    {
+      "color" : "orange",
+      "description" : "Added a background item, which runs again at login.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000004",
+      "isEnabled" : true,
+      "name" : "Background item added",
+      "predicate" : "event.btm_launch_item_add != nil",
+      "severity" : "low",
+      "symbol" : "gearshape.2",
+      "tableMarks" : [
+        "dot",
+        "label"
+      ],
+      "tactic" : "persistence",
+      "technique" : "T1543.001"
+    },
+    {
+      "color" : "purple",
+      "description" : "XProtect detected or remediated malware.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000005",
+      "isEnabled" : true,
+      "name" : "XProtect detection",
+      "predicate" : "(event.xp_malware_detected != nil OR event.xp_malware_remediated != nil)",
+      "severity" : "high",
+      "symbol" : "xmark.octagon",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ]
+    },
+    {
+      "color" : "purple",
+      "description" : "Mapped a scripting component, as a process running AppleScript or JXA does.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000006",
+      "isEnabled" : true,
+      "name" : "AppleScript / JXA",
+      "predicate" : "event.mmap != nil AND (target_path CONTAINS \"AppleScript.component\" OR target_path CONTAINS \"JavaScript.component\" OR target_path CONTAINS \".osax\")",
+      "severity" : "low",
+      "symbol" : "applescript",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "execution",
+      "technique" : "T1059.002"
+    },
+    {
+      "color" : "blue",
+      "description" : "Opened a keychain file, which holds passwords and keys, as a stealer copying login.keychain-db does.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000007",
+      "isEnabled" : true,
+      "name" : "Keychain opened",
+      "predicate" : "event.open != nil AND target_path CONTAINS \"/Library/Keychains/\" AND NOT target_path BEGINSWITH \"/System/\" AND NOT process.executable.path IN {\"/usr/sbin/securityd\", \"/usr/libexec/securityd_system\", \"/usr/libexec/secd\", \"/usr/libexec/trustd\"}",
+      "severity" : "low",
+      "symbol" : "key",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "credentialAccess",
+      "technique" : "T1555.001"
+    },
+    {
+      "color" : "blue",
+      "description" : "Logged in, or failed to, at the login window, with login(1) or over SSH.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000008",
+      "isEnabled" : true,
+      "name" : "Login",
+      "predicate" : "(event.login_login != nil OR event.lw_session_login != nil OR event.openssh_login != nil)",
+      "severity" : "low",
+      "symbol" : "person.badge.key",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "initialAccess",
+      "technique" : "T1078"
+    },
+    {
+      "color" : "orange",
+      "description" : "Ran an executable created less than a second earlier, as a dropper's payload is.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000009",
+      "isEnabled" : true,
+      "name" : "New executable",
+      "predicate" : "event.exec != nil AND event.exec.executable_age_ms >= 0 AND event.exec.executable_age_ms < 1000",
+      "severity" : "medium",
+      "symbol" : "clock.badge.exclamationmark",
+      "tableMarks" : [
+        "dot",
+        "symbol"
+      ],
+      "tactic" : "execution",
+      "technique" : "T1204.002"
+    },
+    {
+      "color" : "orange",
+      "description" : "Ran adhoc signed code, as a freshly compiled or modified binary is.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000000A",
+      "isEnabled" : true,
+      "name" : "Adhoc signed",
+      "predicate" : "event.exec != nil AND (event.exec.target.is_adhoc_signed == YES OR event.exec.target.codesigning_type == \"ADHOC\")",
+      "severity" : "low",
+      "symbol" : "xmark.seal",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1553.002"
+    },
+    {
+      "color" : "red",
+      "description" : "Ran code with no signature, or one that's no longer valid.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000003D",
+      "isEnabled" : true,
+      "name" : "Unsigned",
+      "predicate" : "event.exec != nil AND (event.exec.target.codesigning_type == \"UNSIGNED\" OR event.exec.target.signing_id == nil OR event.exec.target.signing_id IN {\"\", \"Unknown\"}) AND NOT (event.exec.target.is_adhoc_signed == YES OR event.exec.target.codesigning_type == \"ADHOC\")",
+      "severity" : "low",
+      "symbol" : "xmark.seal",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1553.002"
+    },
+    {
+      "color" : "purple",
+      "description" : "An interpreter ran a script, which the exec's Script tab shows.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000000B",
+      "isEnabled" : true,
+      "name" : "Ran a script",
+      "predicate" : "event.exec != nil AND event.exec.script_content != nil AND event.exec.script_content != \"\"",
+      "severity" : "low",
+      "symbol" : "scroll.fill",
+      "tableMarks" : [
+        "dot",
+        "symbol"
+      ],
+      "tactic" : "execution",
+      "technique" : "T1059"
+    },
+    {
+      "color" : "blue",
+      "description" : "Ran a command line download tool, as a dropper does to fetch its payload.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000000D",
+      "isEnabled" : true,
+      "name" : "Download tool",
+      "predicate" : "event.exec != nil AND event.exec.target.executable.name IN {\"curl\", \"wget\", \"nscurl\", \"ftp\", \"tftp\", \"scp\", \"sftp\"}",
+      "severity" : "low",
+      "symbol" : "arrow.down.circle",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "commandAndControl",
+      "technique" : "T1105"
+    },
+    {
+      "color" : "orange",
+      "description" : "Opened a service whose driver is a third-party kext or DriverKit extension.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000029",
+      "isEnabled" : true,
+      "name" : "Non-Apple driver opened",
+      "predicate" : "event.iokit_open != nil AND event.iokit_open.driver_bundle_id != nil AND event.iokit_open.driver_bundle_id != \"\" AND NOT event.iokit_open.driver_bundle_id BEGINSWITH \"com.apple.\"",
+      "severity" : "low",
+      "symbol" : "puzzlepiece.extension",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "privilegeEscalation",
+      "technique" : "T1068"
+    },
+    {
+      "color" : "yellow",
+      "description" : "Wrote a property list, such as a launch agent's, an app's Info.plist or its preferences.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000002A",
+      "isEnabled" : true,
+      "name" : "Plist modified",
+      "predicate" : "((event.close != nil AND event.close.modified == YES) OR event.rename != nil) AND target_path ENDSWITH[c] \".plist\"",
+      "severity" : "low",
+      "symbol" : "doc.badge.gearshape",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1647"
+    },
+    {
+      "color" : "orange",
+      "description" : "Wrote a Mach-O executable, dylib or bundle, whatever its name, as a dropper writes its payload.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000002B",
+      "isEnabled" : true,
+      "name" : "Mach-O written",
+      "predicate" : "event.close != nil AND event.close.mach_o_type IN {\"MH_EXECUTE\", \"MH_DYLIB\", \"MH_BUNDLE\"}",
+      "severity" : "medium",
+      "symbol" : "arrow.down.doc",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "commandAndControl",
+      "technique" : "T1105"
+    },
+    {
+      "color" : "orange",
+      "description" : "Wrote a Mach-O executable, dylib or bundle whose name starts with a period, which Finder and ls don't list.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000003E",
+      "isEnabled" : true,
+      "name" : "Hidden Mach-O written",
+      "predicate" : "event.close != nil AND event.close.mach_o_type IN {\"MH_EXECUTE\", \"MH_DYLIB\", \"MH_BUNDLE\"} AND event.close.target.name BEGINSWITH \".\"",
+      "severity" : "low",
+      "symbol" : "eye.slash",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1564.001"
+    },
+    {
+      "color" : "orange",
+      "description" : "Ran an executable whose name starts with a period, which Finder and ls don't list.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000003F",
+      "isEnabled" : true,
+      "name" : "Hidden Mach-O executed",
+      "predicate" : "event.exec != nil AND event.exec.target.executable.name BEGINSWITH \".\"",
+      "severity" : "medium",
+      "symbol" : "eye.slash",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1564.001"
+    },
+    {
+      "color" : "yellow",
+      "description" : "Wrote a file a shell runs as it starts, such as ~/.zshrc or /etc/paths.d, so a command runs in every new shell.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000002C",
+      "isEnabled" : true,
+      "name" : "Shell startup file modified",
+      "predicate" : "((event.close != nil AND event.close.modified == YES) OR (event.create != nil OR event.rename != nil OR event.link != nil)) AND NOT target_path BEGINSWITH \"/private/var/folders\" AND (target_path ENDSWITH[c] \"/.zshenv\" OR target_path ENDSWITH[c] \"/.zshenv.zwc\" OR target_path ENDSWITH[c] \"/.zprofile\" OR target_path ENDSWITH[c] \"/.zprofile.zwc\" OR target_path ENDSWITH[c] \"/.zshrc\" OR target_path ENDSWITH[c] \"/.zshrc.zwc\" OR target_path ENDSWITH[c] \"/.zlogin\" OR target_path ENDSWITH[c] \"/.zlogin.zwc\" OR target_path ENDSWITH[c] \"/.zlogout\" OR target_path ENDSWITH[c] \"/.zlogout.zwc\" OR target_path ENDSWITH[c] \"/.bash_profile\" OR target_path ENDSWITH[c] \"/.bashrc\" OR target_path ENDSWITH[c] \"/.bash_login\" OR target_path ENDSWITH[c] \"/.bash_logout\" OR target_path ENDSWITH[c] \"/.profile\" OR target_path ENDSWITH[c] \"/.cshrc\" OR target_path ENDSWITH[c] \"/.tcshrc\" OR target_path ENDSWITH[c] \"/.login\" OR target_path ENDSWITH[c] \"/.logout\" OR target_path CONTAINS[c] \"/.zkbd\" OR (target_path CONTAINS[c] \"/.config/fish\" AND target_path ENDSWITH[c] \".fish\") OR (target_path BEGINSWITH \"/private/etc\" AND (target_path ENDSWITH[c] \"/zshenv\" OR target_path ENDSWITH[c] \"/zprofile\" OR target_path ENDSWITH[c] \"/zlogin\" OR target_path ENDSWITH[c] \"/zlogout\" OR target_path ENDSWITH[c] \"/profile\" OR target_path ENDSWITH[c] \".zwc\" OR target_path CONTAINS[c] \"/zshrc\" OR target_path CONTAINS[c] \"/bashrc\" OR target_path CONTAINS[c] \"/csh.\" OR target_path CONTAINS[c] \"/paths\")))",
+      "severity" : "low",
+      "symbol" : "terminal",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "persistence",
+      "technique" : "T1546.004"
+    },
+    {
+      "color" : "green",
+      "description" : "Added a cron table or at job, or turned on atrun, to run a command on a schedule.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000002D",
+      "isEnabled" : true,
+      "name" : "Scheduled job added",
+      "predicate" : "(((event.close != nil AND event.close.modified == YES) OR (event.create != nil OR event.rename != nil OR event.link != nil)) AND (target_path BEGINSWITH[c] \"/private/var/at/tabs\" OR (target_path BEGINSWITH[c] \"/private/etc\" AND target_path ENDSWITH[c] \"/crontab\"))) OR ((event.create != nil OR event.rename != nil OR event.link != nil) AND target_path BEGINSWITH[c] \"/private/var/at/jobs\" AND NOT (target_path ENDSWITH[c] \"/.SEQ\" OR target_path ENDSWITH[c] \"/.lockfile\") AND NOT (event.create != nil AND target_path ENDSWITH[c] \"/jobs\")) OR (event.exec != nil AND (event.exec.target.executable.name == \"launchctl\" OR event.exec.target.signing_id == \"com.apple.xpc.launchctl\") AND event.exec.command_line CONTAINS \"com.apple.atrun\" AND (event.exec.command_line CONTAINS \" enable \" OR event.exec.command_line CONTAINS \" load \" OR event.exec.command_line CONTAINS \" bootstrap \" OR event.exec.command_line CONTAINS \" kickstart \"))",
+      "severity" : "medium",
+      "symbol" : "calendar.badge.clock",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "persistence",
+      "technique" : "T1053.003"
+    },
+    {
+      "color" : "blue",
+      "description" : "Changed sudo, PAM, an authorization plugin or right, or an OpenDirectory module, as a backdoor that grants root or captures passwords does.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000002E",
+      "isEnabled" : true,
+      "name" : "Authentication modified",
+      "predicate" : "(((event.close != nil AND event.close.modified == YES) OR (event.create != nil OR event.rename != nil OR event.link != nil)) AND (target_path BEGINSWITH[c] \"/private/etc/sudo\" OR target_path BEGINSWITH[c] \"/private/etc/pam.d\" OR target_path BEGINSWITH[c] \"/usr/local/lib/pam\") AND NOT (target_path ENDSWITH \".tmp\" OR target_path ENDSWITH \".swp\" OR target_path ENDSWITH \"~\")) OR ((event.create != nil OR event.rename != nil) AND ((target_path BEGINSWITH \"/Library/Security/SecurityAgentPlugins\" AND target_path ENDSWITH[c] \".bundle\") OR (target_path BEGINSWITH \"/Library/OpenDirectory/Modules\" AND target_path ENDSWITH[c] \".xpc\"))) OR (event.rename != nil AND (target_path LIKE[c] \"/Library/Security*/SecurityAgentPlugins\" OR target_path LIKE[c] \"/Library/OpenDirectory*/Modules\")) OR (((event.close != nil AND event.close.modified == YES) OR event.rename != nil) AND (target_path BEGINSWITH \"/Library/Security/SecurityAgentPlugins\" OR target_path BEGINSWITH \"/Library/OpenDirectory/Modules\") AND target_path CONTAINS \"/Contents/MacOS\") OR (event.close != nil AND event.close.modified == YES AND target_path BEGINSWITH \"/private/var/db/auth.db\" AND NOT process.executable.path == \"/System/Library/Frameworks/Security.framework/Versions/A/XPCServices/authd.xpc/Contents/MacOS/authd\") OR (event.authorization_petition != nil AND (context BEGINSWITH \"[config.add.\" OR context BEGINSWITH \"[config.modify.\" OR context CONTAINS \",config.add.\" OR context CONTAINS \",config.modify.\"))",
+      "severity" : "medium",
+      "symbol" : "lock.open",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "credentialAccess",
+      "technique" : "T1556"
+    },
+    {
+      "color" : "blue",
+      "description" : "Wrote an authorized_keys file or sshd's configuration, which keeps remote access open.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000002F",
+      "isEnabled" : true,
+      "name" : "SSH access modified",
+      "predicate" : "((((event.close != nil AND event.close.modified == YES) OR (event.create != nil OR event.rename != nil OR event.link != nil)) AND ((target_path CONTAINS[c] \"/.ssh\" AND (target_path ENDSWITH[c] \"/authorized_keys\" OR target_path ENDSWITH[c] \"/authorized_keys2\" OR target_path ENDSWITH[c] \"/rc\")) OR (target_path CONTAINS[c] \"/private/etc/ssh\" AND (target_path ENDSWITH[c] \"/sshrc\" OR target_path CONTAINS[c] \"/sshd_config\" OR target_path CONTAINS[c] \"/crypto\")))) OR (event.rename != nil AND target_path ENDSWITH[c] \"/.ssh\")) AND NOT target_path BEGINSWITH \"/Volumes/\"",
+      "severity" : "medium",
+      "symbol" : "network.badge.shield.half.filled",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "persistence",
+      "technique" : "T1098.004"
+    },
+    {
+      "color" : "orange",
+      "description" : "Added a Chromium extension the Web Store didn't, as adware does.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000030",
+      "isEnabled" : true,
+      "name" : "Browser extension sideloaded",
+      "predicate" : "(((event.close != nil AND event.close.modified == YES) OR (event.rename != nil OR event.link != nil)) AND target_path CONTAINS[c] \"/External Extensions\" AND (target_path ENDSWITH[c] \".json\" OR target_path ENDSWITH[c] \"/External Extensions\")) OR (event.exec != nil AND event.exec.command_line CONTAINS \"-load-extension=\" AND event.exec.target.executable.path CONTAINS \".app/Contents/MacOS/\" AND NOT process.executable.name IN {\"node\", \"Cypress\", \"chromedriver\", \"msedgedriver\"})",
+      "severity" : "medium",
+      "symbol" : "globe",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "persistence",
+      "technique" : "T1176.001"
+    },
+    {
+      "color" : "orange",
+      "description" : "Loaded a launchd job with launchctl from outside the folders Background Task Management reports.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000031",
+      "isEnabled" : true,
+      "name" : "Launch job loaded",
+      "predicate" : "event.exec != nil AND (event.exec.target.executable.name == \"launchctl\" OR event.exec.target.signing_id == \"com.apple.xpc.launchctl\") AND (event.exec.command_line CONTAINS \" bootstrap \" OR event.exec.command_line CONTAINS \" load \" OR event.exec.command_line CONTAINS \" submit \") AND NOT (NOT event.exec.command_line CONTAINS \" submit \" AND ((event.exec.command_line CONTAINS[c] \" /Library/LaunchAgents/\" OR event.exec.command_line CONTAINS[c] \" /Library/LaunchDaemons/\" OR event.exec.command_line CONTAINS[c] \" //Library/LaunchAgents/\" OR event.exec.command_line CONTAINS[c] \" //Library/LaunchDaemons/\") OR (event.exec.command_line LIKE[c] \"* /Users/*/Library/LaunchAgents/*\" AND NOT event.exec.command_line LIKE[c] \"* /Users/*/*/Library/*\")) AND NOT event.exec.command_line CONTAINS \"/../\" AND NOT event.exec.command_line LIKE \"* /* /*\" AND NOT event.exec.command_line LIKE[c] \"*/Library/Launch*/*/*\" AND event.exec.command_line ENDSWITH[c] \".plist\" AND NOT event.exec.command_line LIKE[c] \"*.plist*.plist*\" AND NOT event.exec.command_line LIKE \"* * * * *\" AND (NOT event.exec.command_line LIKE \"* * * *\" OR (event.exec.command_line LIKE \"* * -* *\" OR event.exec.command_line LIKE \"* bootstrap system *\" OR event.exec.command_line LIKE \"* bootstrap gui/* *\" OR event.exec.command_line LIKE \"* bootstrap user/* *\")))",
+      "severity" : "medium",
+      "symbol" : "gearshape.arrow.triangle.2.circlepath",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "execution",
+      "technique" : "T1569.001"
+    },
+    {
+      "color" : "red",
+      "description" : "Ran a program with DYLD_INSERT_LIBRARIES set, so dyld loads another dylib into it.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000032",
+      "isEnabled" : true,
+      "name" : "Dylib inserted",
+      "predicate" : "event.exec != nil AND ((ANY event.exec.env BEGINSWITH \"DYLD_INSERT_LIBRARIES=\") OR ((event.exec.target.executable.name == \"launchctl\" OR event.exec.target.signing_id == \"com.apple.xpc.launchctl\") AND event.exec.command_line CONTAINS \" setenv \" AND event.exec.command_line CONTAINS \"DYLD_INSERT_LIBRARIES\")) AND NOT ((event.exec.target.executable.path CONTAINS \"/Build/Products/\" OR event.exec.target.executable.path BEGINSWITH \"/Applications/Xcode\") AND NOT ANY event.exec.env LIKE \"DYLD_INSERT_LIBRARIES=*/../*\" AND ((ANY event.exec.env LIKE \"DYLD_INSERT_LIBRARIES=/Applications/Xcode*.app/Contents/Developer/*\" AND NOT ANY event.exec.env LIKE \"DYLD_INSERT_LIBRARIES=*:*\" AND NOT ANY event.exec.env LIKE \"DYLD_INSERT_LIBRARIES=/Applications/Xcode*/*.app/Contents/Developer/*\") OR (ANY event.exec.env LIKE \"DYLD_INSERT_LIBRARIES=/Applications/Xcode*.app/Contents/Developer/*:/Applications/Xcode*.app/Contents/Developer/*\" AND NOT ANY event.exec.env LIKE \"DYLD_INSERT_LIBRARIES=*:*:*\" AND NOT ANY event.exec.env LIKE \"DYLD_INSERT_LIBRARIES=/Applications/Xcode*/*.app/Contents/Developer/*:*\" AND NOT ANY event.exec.env LIKE \"DYLD_INSERT_LIBRARIES=*:/Applications/Xcode*/*.app/Contents/Developer/*\") OR ANY event.exec.env == \"DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib\"))",
+      "severity" : "medium",
+      "symbol" : "bookmark.slash",
+      "tableMarks" : [
+        "dot",
+        "symbol"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1574.006"
+    },
+    {
+      "color" : "orange",
+      "description" : "Added a plug-in macOS loads on its own, such as a screen saver, Spotlight importer or input method.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000033",
+      "isEnabled" : true,
+      "name" : "Plug-in installed",
+      "predicate" : "(event.create != nil OR event.rename != nil) AND NOT target_path CONTAINS[c] \".app/Contents/\" AND NOT target_path LIKE[c] \"/Users/*/*/Library/*\" AND ((target_path ENDSWITH[c] \".saver\" AND (target_path BEGINSWITH[c] \"/Library/Screen Savers\" OR target_path LIKE[c] \"/Users/*/Library/Screen Savers*\")) OR (target_path ENDSWITH[c] \".mdimporter\" AND (target_path BEGINSWITH[c] \"/Library/Spotlight\" OR target_path LIKE[c] \"/Users/*/Library/Spotlight*\")) OR (target_path ENDSWITH[c] \".colorPicker\" AND (target_path BEGINSWITH[c] \"/Library/ColorPickers\" OR target_path LIKE[c] \"/Users/*/Library/ColorPickers*\")) OR (target_path ENDSWITH[c] \".prefPane\" AND (target_path BEGINSWITH[c] \"/Library/PreferencePanes\" OR target_path LIKE[c] \"/Users/*/Library/PreferencePanes*\")) OR (target_path ENDSWITH[c] \".app\" AND (target_path BEGINSWITH[c] \"/Library/Input Methods\" OR target_path LIKE[c] \"/Users/*/Library/Input Methods*\")) OR (target_path ENDSWITH[c] \".driver\" AND target_path BEGINSWITH[c] \"/Library/Audio/Plug-Ins/HAL\") OR ((target_path BEGINSWITH[c] \"/Library\" OR target_path LIKE[c] \"/Users/*/Library*\") AND (target_path ENDSWITH[c] \"/Screen Savers\" OR target_path ENDSWITH[c] \"/Spotlight\" OR target_path ENDSWITH[c] \"/ColorPickers\" OR target_path ENDSWITH[c] \"/PreferencePanes\" OR target_path ENDSWITH[c] \"/Input Methods\") AND NOT target_path LIKE[c] \"*/Library/*/*\"))",
+      "severity" : "medium",
+      "symbol" : "powerplug",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "persistence",
+      "technique" : "T1546"
+    },
+    {
+      "color" : "yellow",
+      "description" : "Set a command Terminal or iTerm2 runs as it starts or opens a window.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000034",
+      "isEnabled" : true,
+      "name" : "Terminal startup command",
+      "predicate" : "(((event.close != nil AND event.close.modified == YES) OR (event.create != nil OR event.rename != nil OR event.link != nil)) AND target_path LIKE[c] \"/Users/*/Library/Application Support/iTerm*\" AND NOT target_path LIKE[c] \"/Users/*/*/Library/*\" AND NOT target_path ENDSWITH[c] \"/.DS_Store\" AND (target_path CONTAINS[c] \"/iTerm2/Scripts/AutoLaunch\" OR target_path ENDSWITH[c] \"/AutoLaunch.scpt\") AND NOT (event.create != nil AND target_path ENDSWITH[c] \"/AutoLaunch\") AND NOT (target_path CONTAINS[c] \"/iterm2env/\" OR target_path CONTAINS[c] \"/__pycache__/\")) OR (event.exec != nil AND ((event.exec.command_line CONTAINS[c] \"com.apple.Terminal\" AND (event.exec.command_line CONTAINS \"CommandString\" OR event.exec.command_line CONTAINS \"defaults import\" OR event.exec.command_line CONTAINS \"-currentHost import\")) OR (event.exec.command_line CONTAINS[c] \"com.googlecode.iterm2\" AND (event.exec.command_line CONTAINS \"Command\" OR event.exec.command_line CONTAINS \"Initial Text\" OR event.exec.command_line CONTAINS \"defaults import\" OR event.exec.command_line CONTAINS \"-currentHost import\"))) AND NOT (event.exec.command_line CONTAINS \"defaults read\" OR event.exec.command_line CONTAINS \"defaults export\" OR event.exec.command_line CONTAINS \"defaults delete\" OR event.exec.command_line CONTAINS \"Print :\" OR event.exec.command_line CONTAINS \"Delete :\" OR event.exec.command_line CONTAINS \"-remove \" OR event.exec.command_line CONTAINS \"-extract \" OR event.exec.command_line CONTAINS \"plutil -p\"))",
+      "severity" : "medium",
+      "symbol" : "apple.terminal",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "persistence",
+      "technique" : "T1546"
+    },
+    {
+      "color" : "orange",
+      "description" : "Set a login or logout hook, a script loginwindow runs as root.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000035",
+      "isEnabled" : true,
+      "name" : "Login hook set",
+      "predicate" : "(event.exec != nil AND event.exec.command_line CONTAINS[c] \"com.apple.loginwindow\" AND (event.exec.command_line CONTAINS[c] \"LoginHook\" OR event.exec.command_line CONTAINS[c] \"LogoutHook\" OR event.exec.command_line CONTAINS \"defaults import\" OR event.exec.command_line CONTAINS \"-currentHost import\") AND NOT (event.exec.command_line CONTAINS \"defaults read\" OR event.exec.command_line CONTAINS \"defaults export\" OR event.exec.command_line CONTAINS \"defaults delete\" OR event.exec.command_line CONTAINS \"Print :\" OR event.exec.command_line CONTAINS \"Delete :\" OR event.exec.command_line CONTAINS \"-remove \" OR event.exec.command_line CONTAINS \"-extract \" OR event.exec.command_line CONTAINS \"plutil -p\")) OR (((event.close != nil AND event.close.modified == YES) OR (event.create != nil OR event.rename != nil OR event.link != nil)) AND target_path BEGINSWITH[c] \"/private/var/root/Library/Preferences\" AND target_path ENDSWITH[c] \"/com.apple.loginwindow.plist\" AND NOT process.executable.path == \"/usr/sbin/cfprefsd\")",
+      "severity" : "medium",
+      "symbol" : "person.badge.clock",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "persistence",
+      "technique" : "T1037.002"
+    },
+    {
+      "color" : "blue",
+      "description" : "Installed or staged a configuration profile, which can set a Mac's proxy, DNS and certificates.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000036",
+      "isEnabled" : true,
+      "name" : "Configuration profile installed",
+      "predicate" : "event.profile_add != nil OR ((event.create != nil OR event.rename != nil) AND target_path BEGINSWITH[c] \"/private/var/db/ConfigurationProfiles/Store/ProfilePurgatory\" AND NOT (event.create != nil AND target_path ENDSWITH[c] \"/ProfilePurgatory\"))",
+      "severity" : "medium",
+      "symbol" : "gear.badge.checkmark",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1553.004"
+    },
+    {
+      "color" : "purple",
+      "description" : "Attached a Folder Action, a script that runs when a folder changes.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000037",
+      "isEnabled" : true,
+      "name" : "Folder Action attached",
+      "predicate" : "(((event.close != nil AND event.close.modified == YES) OR (event.create != nil OR event.rename != nil OR event.link != nil)) AND target_path LIKE[c] \"/Users/*/Library/Scripts/Folder Action Scripts*\" AND NOT target_path LIKE[c] \"/Users/*/*/Library/*\" AND NOT target_path ENDSWITH[c] \"/.DS_Store\" AND NOT (event.create != nil AND target_path ENDSWITH[c] \"/Folder Action Scripts\")) OR (((event.close != nil AND event.close.modified == YES) OR event.rename != nil) AND target_path ENDSWITH[c] \"/com.apple.FolderActionsDispatcher.plist\" AND target_path LIKE[c] \"/Users/*/Library/Preferences*\" AND NOT target_path LIKE[c] \"/Users/*/*/Library/*\")",
+      "severity" : "medium",
+      "symbol" : "folder.badge.gearshape",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "persistence",
+      "technique" : "T1546"
+    },
+    {
+      "color" : "blue",
+      "description" : "Checked a password with dscl, as stealers do to confirm one a fake prompt captured.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000038",
+      "isEnabled" : true,
+      "name" : "Password checked with dscl",
+      "predicate" : "event.exec != nil AND event.exec.target.executable.name == \"dscl\" AND (event.exec.command_line CONTAINS \" -authonly \" OR event.exec.command_line CONTAINS \" authonly \" OR event.exec.command_line CONTAINS \" -auth \" OR event.exec.command_line CONTAINS \" auth \" OR event.exec.command_line CONTAINS \" -su \" OR event.exec.command_line CONTAINS \" su \" OR event.exec.command_line ENDSWITH \" -authonly\" OR event.exec.command_line ENDSWITH \" authonly\" OR event.exec.command_line ENDSWITH \" -auth\" OR event.exec.command_line ENDSWITH \" auth\" OR event.exec.command_line ENDSWITH \" -su\" OR event.exec.command_line ENDSWITH \" su\")",
+      "severity" : "medium",
+      "symbol" : "key.viewfinder",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "credentialAccess",
+      "technique" : "T1056.002"
+    },
+    {
+      "color" : "red",
+      "description" : "Wrote a TCC database without tccd, as malware does to grant itself privacy permissions.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000039",
+      "isEnabled" : true,
+      "name" : "TCC database modified",
+      "predicate" : "((((event.close != nil AND event.close.modified == YES) OR (event.rename != nil OR event.link != nil)) AND (target_path ENDSWITH[c] \"/Library/Application Support/com.apple.TCC/TCC.db\" OR target_path ENDSWITH[c] \"/Library/Application Support/com.apple.TCC/TCC.db-wal\" OR target_path ENDSWITH[c] \"/Library/Application Support/com.apple.TCC/TCC.db-shm\" OR target_path ENDSWITH[c] \"/Library/Application Support/com.apple.TCC/TCC.db-journal\")) OR (event.rename != nil AND target_path ENDSWITH[c] \"/Library/Application Support/com.apple.TCC\")) AND (target_path LIKE[c] \"/Library/Application Support/com.apple.TCC/TCC.db\" OR target_path LIKE[c] \"/Library/Application Support/com.apple.TCC/TCC.db-wal\" OR target_path LIKE[c] \"/Library/Application Support/com.apple.TCC/TCC.db-shm\" OR target_path LIKE[c] \"/Library/Application Support/com.apple.TCC/TCC.db-journal\" OR target_path LIKE[c] \"/Library/Application Support/com.apple.TCC\" OR target_path LIKE[c] \"/private/var/root/Library/Application Support/com.apple.TCC/TCC.db\" OR target_path LIKE[c] \"/private/var/root/Library/Application Support/com.apple.TCC/TCC.db-wal\" OR target_path LIKE[c] \"/private/var/root/Library/Application Support/com.apple.TCC/TCC.db-shm\" OR target_path LIKE[c] \"/private/var/root/Library/Application Support/com.apple.TCC/TCC.db-journal\" OR target_path LIKE[c] \"/private/var/root/Library/Application Support/com.apple.TCC\" OR (target_path LIKE[c] \"/Users/*/Library/Application Support/com.apple.TCC*\" AND NOT target_path LIKE[c] \"/Users/*/*/Library/*\")) AND NOT (process.executable.path == \"/System/Library/PrivateFrameworks/TCC.framework/Support/tccd\" AND process.signing_id == \"com.apple.tccd\" AND process.is_platform_binary == YES)",
+      "severity" : "medium",
+      "symbol" : "hand.raised.slash",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1548.006"
+    },
+    {
+      "color" : "teal",
+      "description" : "Wrote an archive or disk image, whatever its name, as malware does to stage what it collects.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000003A",
+      "isEnabled" : true,
+      "name" : "Archive written",
+      "predicate" : "event.close != nil AND event.close.modified == YES AND event.close.file_type IN {\"public.zip-archive\", \"com.apple.xar-archive\", \"org.gnu.gnu-zip-archive\", \"public.bzip2-archive\", \"org.tukaani.xz-archive\", \"org.7-zip.7-zip-archive\", \"public.tar-archive\", \"com.apple.archive\", \"com.apple.disk-image-udif\", \"com.apple.disk-image-raw\", \"com.apple.disk-image-sparse\", \"com.apple.disk-image-sparse-bundle\", \"com.apple.disk-image\"} AND NOT ((process.signing_id IN {\"com.apple.backupd\", \"com.apple.fseventsd\", \"com.apple.mds_stores\", \"com.apple.corespotlightd\", \"com.apple.managedcorespotlightd\"} OR (process.signing_id IN {\"com.apple.diskimagesiod\", \"com.apple.diskimages-helper\"} AND (target_path LIKE[c] \"*.sparsebundle/bands/*\" OR target_path LIKE[c] \"*.backupbundle/bands/*\")) OR (target_path LIKE[c] \"/private/var/log/*\" AND process.signing_id IN {\"com.apple.aslmanager\", \"com.apple.bzip2\", \"com.apple.bzcat\", \"com.apple.gzip\"})) AND process.is_platform_binary == YES AND process.is_adhoc_signed != YES)",
+      "severity" : "low",
+      "symbol" : "doc.zipper",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "collection",
+      "technique" : "T1560"
+    },
+    {
+      "color" : "purple",
+      "description" : "Wrote a compiled AppleScript or JXA script, or an osascript #! script, whatever its name.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000003B",
+      "isEnabled" : true,
+      "name" : "AppleScript written",
+      "predicate" : "event.close != nil AND event.close.modified == YES AND event.close.file_type IN {\"com.apple.applescript.script\", \"com.apple.applescript.text\"} AND NOT ((process.signing_id IN {\"com.apple.backupd\", \"com.apple.fseventsd\", \"com.apple.mds_stores\", \"com.apple.corespotlightd\", \"com.apple.managedcorespotlightd\"} OR (process.signing_id IN {\"com.apple.diskimagesiod\", \"com.apple.diskimages-helper\"} AND (target_path LIKE[c] \"*.sparsebundle/bands/*\" OR target_path LIKE[c] \"*.backupbundle/bands/*\"))) AND process.is_platform_binary == YES AND process.is_adhoc_signed != YES)",
+      "severity" : "low",
+      "symbol" : "applescript",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "execution",
+      "technique" : "T1059.002"
+    },
+    {
+      "color" : "blue",
+      "description" : "An adhoc signed or unsigned process looked up a name, as an implant does before it calls home.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000003C",
+      "isEnabled" : true,
+      "name" : "Unsigned code resolved a name",
+      "predicate" : "((event.uipc_connect != nil AND target_path == \"/private/var/run/mDNSResponder\" AND event.uipc_connect.file.stat.st_uid == 0) OR (event.xpc_connect != nil AND event.xpc_connect.service_name == \"com.apple.dnssd.service\" AND event.xpc_connect.service_domain_type_string == \"SYSTEM\")) AND (process.is_adhoc_signed == YES OR process.codesigning_type IN {\"ADHOC\", \"UNSIGNED\"})",
+      "severity" : "low",
+      "symbol" : "network",
+      "tableMarks" : [
+        "dot"
+      ],
+      "tactic" : "commandAndControl",
+      "technique" : "T1071.004"
+    },
+    {
+      "color" : "orange",
+      "description" : "Ran as root for a user who isn't, as sudo and setuid programs do.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000010",
+      "isEnabled" : true,
+      "name" : "Elevated to root",
+      "predicate" : "event.exec != nil AND event.exec.target.euid == 0 AND event.exec.target.ruid != 0",
+      "severity" : "low",
+      "symbol" : "key.radiowaves.forward.fill",
+      "tableMarks" : [
+        "dot",
+        "symbol"
+      ],
+      "tactic" : "privilegeEscalation",
+      "technique" : "T1548"
+    },
+    {
+      "color" : "red",
+      "description" : "Created a thread in another process, as code injection does.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000001B",
+      "isEnabled" : true,
+      "name" : "Remote thread created",
+      "predicate" : "event.remote_thread_create != nil",
+      "severity" : "medium",
+      "symbol" : "exclamationmark.triangle.fill",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1055"
+    },
+    {
+      "color" : "orange",
+      "description" : "Got another process's task port, which can read and write its memory.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000001E",
+      "isEnabled" : true,
+      "name" : "Task port retrieved",
+      "predicate" : "event.get_task != nil",
+      "severity" : "low",
+      "symbol" : "exclamationmark.triangle.fill",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1055"
+    },
+    {
+      "color" : "orange",
+      "description" : "Attached to another process with ptrace, as a debugger or an injector does.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000001D",
+      "isEnabled" : true,
+      "name" : "Process traced",
+      "predicate" : "event.trace != nil",
+      "severity" : "low",
+      "symbol" : "exclamationmark.triangle.fill",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1055.008"
+    },
+    {
+      "color" : "red",
+      "description" : "A process ran code that doesn't match its signature, so macOS invalidated it.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000001C",
+      "isEnabled" : true,
+      "name" : "Code signature invalidated",
+      "predicate" : "event.cs_invalidated != nil",
+      "severity" : "low",
+      "symbol" : "exclamationmark.triangle.fill",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1055"
+    },
+    {
+      "color" : "orange",
+      "description" : "Opened a keyboard or other input device's driver, as a keylogger does.",
+      "id" : "6D4D0F1D-0000-4000-8000-00000000001A",
+      "isEnabled" : true,
+      "name" : "HID device opened",
+      "predicate" : "event.iokit_open != nil AND event.iokit_open.user_client_class CONTAINS \"IOHIDLibUserClient\"",
+      "severity" : "low",
+      "symbol" : "keyboard",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "collection",
+      "technique" : "T1056.001"
+    },
+    {
+      "color" : "orange",
+      "description" : "Removed a background item, so it no longer runs at login.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000019",
+      "isEnabled" : true,
+      "name" : "Background item removed",
+      "predicate" : "event.btm_launch_item_remove != nil",
+      "severity" : "low",
+      "symbol" : "gearshape.2",
+      "tableMarks" : [
+        "dot",
+        "label"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1070"
+    },
+    {
+      "color" : "orange",
+      "description" : "Replaced Background Task Management's database, which records login items, launch agents and launch daemons.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000018",
+      "isEnabled" : true,
+      "name" : "BTM database modified",
+      "predicate" : "event.rename != nil AND target_path BEGINSWITH \"/private/var/db/com.apple.backgroundtaskmanagement/\"",
+      "severity" : "low",
+      "symbol" : "exclamationmark.triangle.fill",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "persistence",
+      "technique" : "T1547.015"
+    },
+    {
+      "color" : "orange",
+      "description" : "A File Quarantine-aware app created a file that has no quarantine attribute. macOS adds it to what such an app creates, so it was removed or never applied, and Gatekeeper won't check the file when it's opened.",
+      "id" : "6D4D0F1D-0000-4000-8000-000000000023",
+      "isEnabled" : true,
+      "name" : "Unquarantined file from a File Quarantine-aware app",
+      "predicate" : "event.create != nil AND event.create.is_quarantined == 0 AND (process.file_quarantine_type != \"DISABLED\" OR (process.executable.name == \"ArchiveService\" AND NOT target_path BEGINSWITH \"/private/var/folders/\")) AND NOT target_path LIKE \"/private/var/folders/*/X/*\"",
+      "severity" : "high",
+      "symbol" : "exclamationmark.triangle.fill",
+      "tableMarks" : [
+        "dot",
+        "symbol",
+        "label"
+      ],
+      "tactic" : "defenseEvasion",
+      "technique" : "T1553.001"
+    }
+  ],
+  "version" : 1
+}

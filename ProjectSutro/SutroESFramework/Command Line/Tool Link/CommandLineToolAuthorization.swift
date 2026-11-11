@@ -10,7 +10,7 @@ import Security
 
 
 // MARK: - Command line tool authorization
-/// Administrator approval for Settings ▸ Command Line.
+/// Administrator approval for Settings > Command Line.
 ///
 /// Mac Monitor asks for ``rightName`` (the password prompt) and sends the external form to the Security Extension,
 /// which checks the same right before making the change. We don't use `system.privilege.admin` since it allows root.

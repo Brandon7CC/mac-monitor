@@ -8,64 +8,22 @@
 import SwiftUI
 import SutroESFramework
 
+/// What a `profile_add` event says: the configuration profile installed, where it came from, and whether it was an
+/// update.
 struct SystemProfileAddMetadataView: View {
     var esSystemEvent: ESMessage
-    @State private var showAuditTokens: Bool = false
-    
-    var event: ESProfileAddEvent {
-        esSystemEvent.event.profile_add!
-    }
     
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
-        if esSystemEvent.event.profile_add != nil {
-            eventContent
-        }
-    }
-
-    @ViewBuilder
-    private var eventContent: some View {
-        VStack(alignment: .leading) {
-            // MARK: Event label
-            SystemEventTypeLabel(message: esSystemEvent)
-                .font(.title2)
-            
-            GroupBox {
-                VStack(alignment: .leading) {
-                    
+        if let event = esSystemEvent.event.profile_add {
+            EventFactsCard(message: esSystemEvent) {
+                FactsBox {
                     if let profile = event.profile {
-                        VStack(alignment: .leading) {
-                            Text("\u{2022} Profile display name:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(profile.display_name)
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        VStack(alignment: .leading) {
-                            Text("\u{2022} Profile identifer:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(profile.identifier)
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        VStack(alignment: .leading) {
-                            Text("\u{2022} Organization:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(profile.organization)
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        FactRow(name: "Profile display name", value: profile.display_name, stacked: true,
+                                style: .monospaced)
+                        FactRow(name: "Profile identifer", value: profile.identifier, stacked: true,
+                                style: .monospaced)
+                        FactRow(name: "Organization", value: profile.organization, stacked: true, style: .monospaced)
                         
                         HStack {
                             Text("\u{2022} Source type:")
@@ -86,29 +44,8 @@ struct SystemProfileAddMetadataView: View {
                             }
                         }.frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-            
-            Divider()
-            
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") {
-                        showAuditTokens.toggle()
-                    }
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(isPresented: $showAuditTokens) {
-            AuditTokenView(
-                audit_token: esSystemEvent.process.audit_token_string,
-                responsible_audit_token: esSystemEvent.process.responsible_audit_token_string,
-                parent_audit_token: esSystemEvent.process.parent_audit_token_string
-            )
-            Button("**Dismiss**") {
-                showAuditTokens.toggle()
-            }.padding(.bottom)
         }
     }
 }

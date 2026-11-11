@@ -96,7 +96,7 @@ extension RelatedEvents {
         func matches(for searched: PredicateRecord) throws -> NSArray {
             guard !overflowed else {
                 throw PredicateFailure(description: """
-                    SUBQUERY(\(relation.rawValue), $\(variable), …) picks more than \(RelatedEvents.limit) related \
+                    SUBQUERY(\(relation.rawValue), $\(variable), ...) picks more than \(RelatedEvents.limit) related \
                     events: narrow it with conditions on $\(variable) alone, joined by AND.
                     """)
             }
@@ -111,7 +111,7 @@ extension RelatedEvents {
             compared += related.count
             guard compared <= RelatedEvents.pairLimit else {
                 throw PredicateFailure(description: """
-                    SUBQUERY(\(relation.rawValue), $\(variable), …) compares more than \
+                    SUBQUERY(\(relation.rawValue), $\(variable), ...) compares more than \
                     \(RelatedEvents.pairLimit.formatted()) pairs of events: narrow it with conditions on $\(variable) \
                     alone, or join on an equality, such as $\(variable).process.pid == process.pid.
                     """)

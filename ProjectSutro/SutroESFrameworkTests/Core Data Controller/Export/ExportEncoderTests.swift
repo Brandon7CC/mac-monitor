@@ -11,7 +11,7 @@ import XCTest
 
 // MARK: - Export encoder
 /// Pins `macmonitor`'s JSONL to Mac Monitor's export: for real events, a record is byte for byte what Export
-/// telemetry ▸ JSONL (lines) writes from the event store, also after the trip over the wire, and many events through
+/// telemetry > JSONL (lines) writes from the event store, also after the trip over the wire, and many events through
 /// one encoder never leak into each other.
 final class ExportEncoderTests: XCTestCase {
     /// Every fixture's events, encoded one per line, are byte for byte the export of the same events saved in a store

@@ -19,8 +19,9 @@ let sequoia15_4 = OperatingSystemVersion(majorVersion: 15, minorVersion: 4, patc
 
 // MARK: - Modeled events
 /// An Endpoint Security event Mac Monitor models. ``all`` is the one place that says which events Mac Monitor offers
-/// (``supportedEvents``), which it subscribes to on first launch (``defaultEventSubscriptions``), from which macOS,
-/// and which icon each one shows (``eventStringToImage(from:)``).
+/// (``supportedEvents``), which it subscribes to on first launch (``defaultEventSubscriptions``), which field filters
+/// are on until changed (``defaultFieldFilters``), from which macOS, and which icon each one shows
+/// (``eventStringToImage(from:)``).
 struct ModeledEvent {
     /// The event type.
     let type: es_event_type_t
@@ -30,6 +31,8 @@ struct ModeledEvent {
     let since: OperatingSystemVersion?
     /// Whether Mac Monitor subscribes to it on first launch.
     let isDefault: Bool
+    /// The field filter on until changed, or `nil`. Applies whether or not the event is a default.
+    let defaultFilter: FieldFilter?
 
     /// Whether this Mac delivers it.
     var isAvailable: Bool { since.map(ProcessInfo.processInfo.isOperatingSystemAtLeast) ?? true }
@@ -41,8 +44,11 @@ struct ModeledEvent {
     ///   - symbol: Its SF Symbol.
     ///   - since: The first macOS that delivers it, or `nil` for every macOS Mac Monitor runs on.
     ///   - isDefault: Whether Mac Monitor subscribes to it on first launch.
-    init(_ type: es_event_type_t, _ symbol: String, since: OperatingSystemVersion? = nil, isDefault: Bool = false) {
+    ///   - defaultFilter: The field filter on until changed, or `nil`.
+    init(_ type: es_event_type_t, _ symbol: String, since: OperatingSystemVersion? = nil, isDefault: Bool = false,
+         defaultFilter: FieldFilter? = nil) {
         (self.type, self.symbol, self.since, self.isDefault) = (type, symbol, since, isDefault)
+        self.defaultFilter = defaultFilter
     }
 
     /// Every event Mac Monitor models, in the order it offers them: the events of every macOS it runs on, then those
@@ -70,7 +76,7 @@ struct ModeledEvent {
         .init(ES_EVENT_TYPE_NOTIFY_OPEN, "envelope.open.fill"),
         .init(ES_EVENT_TYPE_NOTIFY_WRITE, "square.and.pencil"),
         .init(ES_EVENT_TYPE_NOTIFY_LINK, "link.badge.plus", isDefault: true),
-        .init(ES_EVENT_TYPE_NOTIFY_CLOSE, "xmark.square"),
+        .init(ES_EVENT_TYPE_NOTIFY_CLOSE, "xmark.square", isDefault: true, defaultFilter: .modifiedCloses),
         .init(ES_EVENT_TYPE_NOTIFY_SIGNAL, "dot.radiowaves.forward"),
         .init(ES_EVENT_TYPE_NOTIFY_REMOTE_THREAD_CREATE, "bolt.horizontal.fill", isDefault: true),
         .init(ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN, "captions.bubble", isDefault: true),
@@ -118,7 +124,19 @@ public var supportedEvents: [es_event_type_t] { ModeledEvent.all.filter(\.isAvai
 /// The default event subscriptions for Mac Monitor
 ///
 /// The ``supportedEvents`` this Mac delivers that Mac Monitor subscribes to on first launch
-/// (``ModeledEvent/isDefault``), in ``ModeledEvent/all``'s order.
+/// (``ModeledEvent/isDefault``), in ``ModeledEvent/all``'s order. Close is one, with its field filter
+/// (``defaultFieldFilters``): only closes of modified files are recorded until that's changed.
 public var defaultEventSubscriptions: [es_event_type_t] {
     ModeledEvent.all.filter { $0.isAvailable && $0.isDefault }.map(\.type)
+}
+
+/// The field filters on until changed: those of ``ModeledEvent/all``'s events this Mac delivers, in its order.
+public var defaultFieldFilters: [FieldFilter] {
+    ModeledEvent.all.filter(\.isAvailable).compactMap(\.defaultFilter)
+}
+
+/// The defaults for a client that can't field-filter (`macmonitor` 3.0.0, or a 3.0.0 Security Extension): the
+/// defaults without those that are default only with a filter. Equals 3.0.0's list.
+public var defaultEventSubscriptionsWithoutFieldFilters: [es_event_type_t] {
+    ModeledEvent.all.filter { $0.isAvailable && $0.isDefault && $0.defaultFilter == nil }.map(\.type)
 }

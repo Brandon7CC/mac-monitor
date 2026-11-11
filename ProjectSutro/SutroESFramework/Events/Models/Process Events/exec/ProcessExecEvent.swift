@@ -59,24 +59,15 @@ public struct ProcessExecEvent: Codable, IdentityHashable {
         // Open file descriptors
         self.fds = ProcessHelpers.getFds(event: &execEvent)
         
-        /// Script being executed by interpreter (e.g. `./foo.sh` not `/bin/sh ./foo.sh`), and its content.
-        if version >= 2, let script = execEvent.script.map({ File(from: $0.pointee) }) {
-            self.script = script
-            script_content = ProcessHelpers.getFileContents(at: script.path)
-        }
+        /// Script being executed by interpreter (e.g. `./foo.sh` not `/bin/sh ./foo.sh`) (2), and the current working
+        /// directory at exec time (3).
+        if version >= 2 { script = execEvent.script.map { File(from: $0.pointee) } }
+        if version >= 3 { cwd = File(from: execEvent.cwd.pointee) }
         
-        // Current working directory at exec time.
-        if version >= 3 {
-            let cwd = File(from: execEvent.cwd.pointee)
-            self.cwd = cwd
-            /// @note Mac Monitor enrichment -- script content
-            /// If the process executed is a supported interpreter -- attempt to pull the script
-            if script_content == nil, let name = target.executable?.name, ProcessHelpers.isScriptingInterpreter(name),
-               let path = ProcessHelpers.parseScriptFromArgs(args: args, workingDirectory: cwd.path) {
-                resolved_script_path = path
-                script_content = ProcessHelpers.getFileContents(at: path)
-            }
-        }
+        /// @note Mac Monitor enrichment -- script content
+        (resolved_script_path, script_content) = Self.readScript(
+            reported: script, args: args, workingDirectory: cwd?.path, interpreterName: target.executable?.name,
+            reader: target.audit_token.map(FileReader.init(token:)))
         
         // Highest open file descriptor after the exec completed (4), the CPU type and subtype of the executable image
         // (6), and the exec path passed up to dyld, before symlink resolution (7, macOS 13.3+).
@@ -87,7 +78,8 @@ public struct ProcessExecEvent: Codable, IdentityHashable {
         
         // MARK: - Code Signing certificate chain
         if target.codesigning_flags & Int64(CS_VALID) != 0, let executable = target.executable {
-            certificate_chain = ProcessHelpers.getCodeSigningCerts(forBinaryAt: executable.path)
+            certificate_chain = ProcessHelpers.getCodeSigningCerts(forBinaryAt: executable.path,
+                                                                    stat: executable.stat)
         }
         
         enrich()
@@ -107,6 +99,46 @@ extension ProcessExecEvent: ESEnrichable {
         command_line = command_line ?? args.joined(separator: " ").trimmingCharacters(in: .whitespaces)
         /// Populate `resolved_script_path` if ES recognizes the scripting interpreter
         resolved_script_path = resolved_script_path ?? script?.path
+    }
+}
+
+
+// MARK: - Script content
+extension ProcessExecEvent {
+    /// The script an exec runs, and its text, read for the user the exec's target runs as: the Security Extension, as
+    /// root, never reads them a file they couldn't read themselves.
+    ///
+    /// The script ES reports is the script, even when it can't be read: Mac Monitor doesn't look among the arguments
+    /// then, or `./evil.sh decoy.txt`, with `evil.sh` unreadable, would show `decoy.txt`. It's read only while its path
+    /// still names the file ES saw. Without one, the script of a supported interpreter is the argument its options
+    /// leave (``ScriptInterpreter/scriptArgument(in:)``), opened once to check it and read its text. Either is read
+    /// without updating its access time or downloading it when it's dataless (``ReadingThreadPolicy``).
+    ///
+    /// - Parameters:
+    ///   - script: The script ES reported (message version 2), or `nil`.
+    ///   - args: The exec's arguments.
+    ///   - workingDirectory: The exec's working directory (message version 3), or `nil` to not look among the
+    ///     arguments.
+    ///   - interpreterName: The name of the target's executable.
+    ///   - reader: Who the script is read for, from the target's audit token, or `nil` to read nothing.
+    /// - Returns: The script Mac Monitor found among the arguments (`nil` for ES's, which ``enrich()`` names), and
+    ///   the script's text, `nil` when it wasn't read.
+    static func readScript(reported script: File?, args: [String], workingDirectory: String?,
+                           interpreterName: String?, reader: FileReader?) -> (path: String?, content: String?) {
+        guard let reader else { return (nil, nil) }
+        if let script {
+            return (nil, ReadingThreadPolicy.whileReading {
+                ProcessHelpers.getScriptContents(at: script.path, for: reader, expecting: FileIdentity(script.stat))
+            })
+        }
+        guard let workingDirectory, let interpreter = interpreterName.flatMap(ScriptInterpreter.named),
+              let found = ReadingThreadPolicy.whileReading({
+                  ProcessHelpers.scriptFromArgs(args: args, interpreter: interpreter,
+                                                workingDirectory: workingDirectory, reader: reader)
+              }) else {
+            return (nil, nil)
+        }
+        return (found.path, found.content)
     }
 }
 

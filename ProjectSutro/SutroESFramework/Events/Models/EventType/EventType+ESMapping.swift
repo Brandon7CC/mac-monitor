@@ -341,16 +341,17 @@ extension EventType {
     /// The full path of a create or rename event's destination, as the event's target path.
     ///
     /// Read from the destination itself rather than its `destination_type`, which a trace file may contradict. A new
-    /// path is joined with "\/", as `target_path` has been written since 1.9. The trace import and the quarantine
-    /// check read that form.
+    /// path is ``NewPath/fullPath``: its directory and file name joined by one "/". From 1.9 until 3.1.0, `target_path`
+    /// joined them with "\/": an event received or imported in that spelling is written again
+    /// (``Message/respellDestination()``).
     ///
     /// - Parameter destination: The event's destination.
-    /// - Returns: The existing file's path, the new path's directory and file name joined by "\/", or "" for a
+    /// - Returns: The existing file's path, the new path's directory and file name joined by one "/", or "" for a
     ///   destination that can't be read.
     private static func destinationPath(_ destination: FileDestination) -> String {
         switch destination {
         case .existing_file(let file): file.path
-        case .new_path(let path): "\(path.dir.path)\\/\(path.filename)"
+        case .new_path(let path): path.fullPath
         case .unknown: ""
         }
     }

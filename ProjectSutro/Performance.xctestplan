@@ -1,0 +1,29 @@
+{
+  "configurations" : [
+    {
+      "id" : "8C2E4F6A-1B3D-4C5E-8F70-9A1B2C3D4E5F",
+      "name" : "Benchmarks",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "environmentVariableEntries" : [
+      {
+        "key" : "SUTRO_PERFORMANCE",
+        "value" : "1"
+      }
+    ]
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:ProjectSutro.xcodeproj",
+        "identifier" : "7E5700000000000000000014",
+        "name" : "SutroESFrameworkTests"
+      }
+    }
+  ],
+  "version" : 1
+}

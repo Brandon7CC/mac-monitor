@@ -6,7 +6,7 @@
 //
 
 
-// https://developer.apple.com/documentation/endpointsecurity/es_event_uipc_connect_t
+// https://developer.apple.com/documentation/endpointsecurity/es_event_uipc_bind_t
 public struct UIPCBindEvent: Codable, IdentityHashable {
     public var id: UUID = UUID.buffered()
     

@@ -1,0 +1,29 @@
+{
+  "configurations" : [
+    {
+      "id" : "5A1F2C3E-7B4D-4E8A-9C61-2D3B4A5E6F70",
+      "name" : "Tests",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "environmentVariableEntries" : [
+      {
+        "key" : "SUTRO_REQUIRE_TOOL",
+        "value" : "1"
+      }
+    ]
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:ProjectSutro.xcodeproj",
+        "identifier" : "7E5700000000000000000014",
+        "name" : "SutroESFrameworkTests"
+      }
+    }
+  ],
+  "version" : 1
+}

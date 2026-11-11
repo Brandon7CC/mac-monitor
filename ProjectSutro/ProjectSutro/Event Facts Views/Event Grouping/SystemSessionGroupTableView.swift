@@ -31,9 +31,9 @@ struct SystemEventGroupTableViews: View {
     @State private var query = ""
     /// The way of signing kept, by title.
     @State private var signing: String?
-    @State private var finding: Finding?
-    /// Settings ▸ Indicators: the summary is made again when they change.
-    @ObservedObject private var findingStore = FindingStore.shared
+    @State private var indicator: Indicator?
+    /// Settings > Indicators: the summary is made again when they change.
+    @ObservedObject private var indicatorStore = IndicatorStore.shared
     @State private var selection: NSManagedObjectID?
 
     /// The groups the event has.
@@ -57,10 +57,10 @@ struct SystemEventGroupTableViews: View {
             }
         }
         /// Made again when the event, the group, or its number of execs changes.
-        .task(id: "\(selectedMessage.objectID)|\(scope)|\(execs(scope).count)|\(findingStore.revision)") {
+        .task(id: "\(selectedMessage.objectID)|\(scope)|\(execs(scope).count)|\(indicatorStore.revision)") {
             summary = GroupSummary(scope: scope, execs: execs(scope), current: selectedMessage,
-                                   matcher: findingStore.matcher(for: .groups))
-            (query, signing, finding, selection) = ("", nil, nil, nil)
+                                   matcher: indicatorStore.matcher)
+            (query, signing, indicator, selection) = ("", nil, nil, nil)
         }
     }
 
@@ -79,14 +79,14 @@ struct SystemEventGroupTableViews: View {
             BreakdownBar(segments: summary.signings.map { BreakdownSegment(title: $0.signing.rawValue,
                                                                            color: $0.signing.color, count: $0.count) },
                          selection: $signing)
-            if !summary.findings.isEmpty {
+            if !summary.indicators.isEmpty {
                 InsightGrid {
-                    ForEach(summary.findings, id: \.finding) { item in
-                        InsightCard(symbol: item.finding.symbol, tint: item.finding.tint,
-                                    title: item.finding.title(item.rows.count),
+                    ForEach(summary.indicators, id: \.indicator) { item in
+                        InsightCard(symbol: item.indicator.symbol, tint: item.indicator.tint,
+                                    title: item.indicator.title(item.rows.count),
                                     detail: InsightCard.detail(item.rows.map(\.name)),
-                                    explanation: item.finding.explanation, isOn: finding == item.finding) {
-                            finding = finding == item.finding ? nil : item.finding
+                                    explanation: item.indicator.description, isOn: indicator == item.indicator) {
+                            indicator = indicator == item.indicator ? nil : item.indicator
                         }
                     }
                 }
@@ -98,9 +98,9 @@ struct SystemEventGroupTableViews: View {
                         self.signing = nil
                     }
                 }
-                if let finding {
-                    FilterToken(title: finding.title(summary.findings.first { $0.finding == finding }?.rows.count ?? 0),
-                                color: finding.tint) { self.finding = nil }
+                if let indicator {
+                    let count = summary.indicators.first { $0.indicator == indicator }?.rows.count ?? 0
+                    FilterToken(title: indicator.title(count), color: indicator.tint) { self.indicator = nil }
                 }
             }
             HStack(spacing: 0) {
@@ -124,7 +124,7 @@ struct SystemEventGroupTableViews: View {
         let query = query.trimmingCharacters(in: .whitespaces).lowercased()
         return summary.rows.filter { row in
             (signing == nil || row.signing.rawValue == signing)
-                && (finding.map { row.findings.contains($0.id) } ?? true)
+                && (indicator.map { row.indicators.contains($0.id) } ?? true)
                 && (query.isEmpty || row.mentions(query))
         }
     }
@@ -180,8 +180,8 @@ struct SystemEventGroupTableViews: View {
                     Image(systemName: row.signing.symbol).foregroundStyle(row.signing.color)
                         .help(row.signing.rawValue)
                     Text(row.name).font(.body.monospaced()).lineLimit(1)
-                    if let finding = row.finding {
-                        Circle().fill(finding.tint).frame(width: 7, height: 7).help(finding.title(1))
+                    if let indicator = row.indicator {
+                        Circle().fill(indicator.tint).frame(width: 7, height: 7).help(indicator.title(1))
                     }
                 }
             }
@@ -227,10 +227,11 @@ struct SystemEventGroupTableViews: View {
         return EventInspector(
             symbol: eventStringToImage(from: row.message.es_event_type ?? ""), color: row.signing.color,
             title: row.name, subtitle: row.isCurrent ? row.time + " · this event" : row.time,
-            note: row.finding.map { ($0.explanation, $0.symbol, $0.tint) },
+            note: row.indicator.map { ($0.description, $0.symbol, $0.tint) },
             facts: [("Command line", row.commandLine), ("Path", row.path),
                     ("Script", exec?.resolved_script_path ?? ""),
                     ("Executable age", exec?.executableAgeText.map { "\($0) old at exec" } ?? ""),
+                    ("Process age", exec?.targetAgeText.map { "\($0) old at exec" } ?? ""),
                     ("Signing", row.signing.rawValue),
                     ("Signing flags", target?.codesigningFlagNames.joined(separator: ", ") ?? ""),
                     ("Signing ID", target?.signing_id ?? ""), ("Team ID", target?.team_id ?? ""),

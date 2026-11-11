@@ -237,42 +237,50 @@ extension EventQueryModel {
         }
         
         // MARK: Search
-        /// Check each event that passes the filters against the search's predicate, on its record. It's the finding
+        /// Check each event that passes the filters against the search's predicate, on its record. It's the indicator
         /// filter's and the user's predicate joined by `AND`.
         ///
         /// Core Data can't evaluate the predicate, so each event is loaded and encoded, a batch at a time: about as
         /// slow as exporting them. SQLite first narrows them by the columns the predicate's comparisons name
-        /// (``StreamFilter/Predicate/storePredicate``), so only events that might match are read. A predicate that
-        /// relates events first collects them from every event, filtered or not, which takes as long again.
+        /// (``StreamFilter/Predicate/storePredicate(listing:)``), so only events that might match are read: for the
+        /// indicator filter, events with a stored hit, and those without verdicts its indicators could match. A
+        /// predicate that relates events first collects them from every event, filtered or not, which takes as long
+        /// again.
         ///
         /// - Parameters:
         ///   - filter: The events that pass the filters.
-        ///   - recordPredicate: The finding filter's and the user's predicate, parsed for this thread.
+        ///   - recordPredicate: The indicator filter's and the user's predicate, parsed for this thread.
         ///   - covered: Every event its `SUBQUERY`s may relate.
         ///   - snapshot: Whether the job is still wanted.
         /// - Returns: The events whose records match, and their chart counts.
         /// - Throws: `CancellationError` once the job isn't wanted, or the fetch's error.
         private func search(_ filter: NSPredicate, for recordPredicate: StreamFilter.Predicate,
                             relatedAmong covered: NSPredicate, _ snapshot: Snapshot) throws -> Found {
-            var found = Found()
-            if recordPredicate.relatesEvents {
-                let related = recordPredicate.relatedStorePredicate.map { and(covered, $0) } ?? covered
-                try forEachEvent(matching: related, isCurrent: snapshot.isCurrent) { message in
-                    do { try recordPredicate.collect(message) } catch { found.unchecked.add(error) }
+            /// A predicate that names `indicators` or `indicators_undetermined` sees each event's as its record lists
+            /// them: its stored verdicts, else those of the Mac's indicators, as the Security Extension last sent
+            /// them, that match it now. Only one that names `indicators` reads those.
+            let indicators = recordPredicate.readsIndicatorHits ? IndicatorEngine.cachedIndicators() : []
+            return try recordPredicate.searching(indicators: indicators) {
+                var found = Found()
+                if recordPredicate.relatesEvents {
+                    let related = recordPredicate.relatedStorePredicate.map { and(covered, $0) } ?? covered
+                    try forEachEvent(matching: related, isCurrent: snapshot.isCurrent) { message in
+                        do { try recordPredicate.collect(message) } catch { found.unchecked.add(error) }
+                    }
                 }
-            }
-            let candidates = recordPredicate.storePredicate.map { and(filter, $0) } ?? filter
-            try forEachEvent(matching: candidates, isCurrent: snapshot.isCurrent) { message in
-                do {
-                    guard try recordPredicate.evaluate(on: message) else { return }
-                    found.ids.insert(message.objectID)
-                    guard let type = message.es_event_type else { return }
-                    found.chart[EventChartLabels.label(for: type), default: 0] += 1
-                } catch {
-                    found.unchecked.add(error)
+                let candidates = recordPredicate.storePredicate(listing: indicators).map { and(filter, $0) } ?? filter
+                try forEachEvent(matching: candidates, isCurrent: snapshot.isCurrent) { message in
+                    do {
+                        guard try recordPredicate.evaluate(on: message) else { return }
+                        found.ids.insert(message.objectID)
+                        guard let type = message.es_event_type else { return }
+                        found.chart[EventChartLabels.label(for: type), default: 0] += 1
+                    } catch {
+                        found.unchecked.add(error)
+                    }
                 }
+                return found
             }
-            return found
         }
         
         /// Load each event matching a predicate, with what its record encodes, a batch at a time.

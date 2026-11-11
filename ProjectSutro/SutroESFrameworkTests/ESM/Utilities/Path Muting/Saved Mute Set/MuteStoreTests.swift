@@ -41,10 +41,10 @@ final class MuteStoreTests: XCTestCase {
     func testSaveWritesTheCanonicalFile() throws {
         let store = try makeMuteStore()
         try store.save(list)
-        XCTAssertEqual(savedFile(in: store), MuteFile(list).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(list))
         XCTAssertEqual(mode(store.fileURL.path), 0o600)
         XCTAssertEqual(namesInDirectory(of: store), [MuteStore.fileName])
-        XCTAssertEqual(try store.load(), .saved(list, warnings: []))
+        XCTAssertEqual(try store.load(), .saved(list, warnings: [], defaultsRevision: MuteSet.currentRevision))
     }
     
     /// Saving creates a missing directory, 0700.
@@ -53,7 +53,7 @@ final class MuteStoreTests: XCTestCase {
         let store = MuteStore(directory: parent.appendingPathComponent("store"), owner: getuid())
         try store.save(list)
         XCTAssertEqual(mode(store.directory.path), 0o700)
-        XCTAssertEqual(try store.load(), .saved(list, warnings: []))
+        XCTAssertEqual(try store.load(), .saved(list, warnings: [], defaultsRevision: MuteSet.currentRevision))
     }
     
     /// A temporary file a crash left behind is removed on load.
@@ -73,7 +73,7 @@ final class MuteStoreTests: XCTestCase {
         XCTAssertThrowsError(try store.save(.testDefault)) { error in
             guard case .writeFailed? = error as? MuteStoreError else { return XCTFail("\(error)") }
         }
-        XCTAssertEqual(savedFile(in: store), MuteFile(list).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(list))
         XCTAssertEqual(namesInDirectory(of: store), [MuteStore.fileName])
     }
     
@@ -131,7 +131,7 @@ final class MuteStoreTests: XCTestCase {
                "events": ["ES_EVENT_TYPE_NOTIFY_OPEN", "ES_EVENT_TYPE_NOTIFY_FUTURE"]},
               {"path": "/b", "type": "ES_MUTE_PATH_TYPE_LITERAL", "events": ["ES_EVENT_TYPE_NOTIFY_FUTURE"]}]}
             """, in: store)
-        guard case .saved(let saved, let warnings) = try store.load() else { return XCTFail("not read") }
+        guard case .saved(let saved, let warnings, _, _) = try store.load() else { return XCTFail("not read") }
         XCTAssertEqual(saved.mutes, [PathMute(path: "/a", type: ES_MUTE_PATH_TYPE_LITERAL,
                                               events: [ES_EVENT_TYPE_NOTIFY_OPEN])])
         XCTAssertEqual(warnings.count, 2)
@@ -146,7 +146,7 @@ final class MuteStoreTests: XCTestCase {
             guard case .untrustedDirectory? = error as? MuteStoreError else { return XCTFail("\(error)") }
         }
         XCTAssertThrowsError(try store.save(.testDefault))
-        XCTAssertEqual(savedFile(in: store), MuteFile(list).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(list))
         
         chmod(store.directory.path, 0o700)
         guard getuid() != 0 else { return }
@@ -154,6 +154,6 @@ final class MuteStoreTests: XCTestCase {
         XCTAssertEqual(thrown(MuteStoreError.self) { try rootOwned.load() },
                        .untrustedDirectory("\(store.directory.path) isn't owned by root."))
         XCTAssertThrowsError(try rootOwned.save(.testDefault))
-        XCTAssertEqual(savedFile(in: store), MuteFile(list).encoded())
+        XCTAssertEqual(savedFile(in: store), savedBytes(list))
     }
 }

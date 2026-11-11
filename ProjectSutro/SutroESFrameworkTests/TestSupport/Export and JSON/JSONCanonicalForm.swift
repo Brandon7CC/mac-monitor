@@ -24,11 +24,13 @@ enum JSONCanonicalForm {
     
     /// The canonical form of one JSON text.
     ///
-    /// - Parameter json: The JSON.
+    /// - Parameters:
+    ///   - json: The JSON.
+    ///   - precedes: Does a key come before another? `nil` to sort by the keys' raw bytes.
     /// - Returns: The JSON with every object's members sorted, as text.
     /// - Throws: ``SyntaxError`` if the bytes aren't one JSON value.
-    static func canonical(_ json: Data) throws -> String {
-        var parser = Parser(bytes: Array(json))
+    static func canonical(_ json: Data, by precedes: ((String, String) -> Bool)? = nil) throws -> String {
+        var parser = Parser(bytes: Array(json), precedes: precedes)
         let value = try parser.value()
         parser.skipSpace()
         guard parser.index == parser.bytes.count else { throw SyntaxError(offset: parser.index) }
@@ -44,13 +46,21 @@ enum JSONCanonicalForm {
         var parser = Parser(bytes: Array(json))
         parser.skipSpace()
         guard try parser.current() == UInt8(ascii: "{") else { throw SyntaxError(offset: parser.index) }
-        return try parser.members().map { String(decoding: $0.key.dropFirst().dropLast(), as: UTF8.self) }
+        return try parser.members().map { Parser.text($0.key) }
     }
     
     /// Reads JSON, writing each value's canonical bytes.
     private struct Parser {
         let bytes: [UInt8]
+        /// Does a key come before another? `nil` to sort by the keys' raw bytes.
+        var precedes: ((String, String) -> Bool)?
         var index = 0
+        
+        /// - Parameter key: A key's raw bytes, quotes and all.
+        /// - Returns: The key between its quotes, escapes left as they are.
+        static func text(_ key: [UInt8]) -> String {
+            String(decoding: key.dropFirst().dropLast(), as: UTF8.self)
+        }
         
         /// Step over whitespace.
         mutating func skipSpace() {
@@ -79,14 +89,16 @@ enum JSONCanonicalForm {
             }
         }
         
-        /// Read an object, sorting its members by their raw key bytes.
+        /// Read an object, sorting its members by their raw key bytes, or as ``precedes`` says.
         ///
         /// - Returns: Its canonical bytes.
         /// - Throws: ``SyntaxError`` if it isn't an object.
         mutating func object() throws -> [UInt8] {
+            let precedes = precedes
             let sorted = try members().enumerated().sorted { lhs, rhs in
-                lhs.element.key == rhs.element.key ? lhs.offset < rhs.offset
-                    : lhs.element.key.lexicographicallyPrecedes(rhs.element.key)
+                if lhs.element.key == rhs.element.key { return lhs.offset < rhs.offset }
+                guard let precedes else { return lhs.element.key.lexicographicallyPrecedes(rhs.element.key) }
+                return precedes(Self.text(lhs.element.key), Self.text(rhs.element.key))
             }
             let body = sorted.map { $0.element.key + [UInt8(ascii: ":")] + $0.element.value }
             return [UInt8(ascii: "{")] + Array(body.joined(separator: [UInt8(ascii: ",")])) + [UInt8(ascii: "}")]

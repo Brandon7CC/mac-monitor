@@ -96,12 +96,17 @@ extension StreamingJSONEncoder {
     
     /// Write a number as `JSONEncoder` does: the shortest representation in its own type, without a trailing `.0`. A
     /// `Float` writes its own digits (`0.1`), not those of the `Double` it would widen to (`0.10000000149011612`).
+    /// Where `JSONEncoder` writes other digits (``State/leavesFloatsToJSONEncoder``), the value is left to it.
     ///
     /// - Parameter value: The number, such as a `Double` or a `Float`.
     /// - Throws: `EncodingError.invalidValue` for NaN or infinity.
     func write<Number: BinaryFloatingPoint & LosslessStringConvertible>(floating value: Number) throws {
         guard value.isFinite else {
             throw EncodingError.invalidValue(value, .init(codingPath: [], debugDescription: "Non-finite number"))
+        }
+        guard !state.pointee.leavesFloatsToJSONEncoder else {
+            state.pointee.isUnstreamable = true
+            return write(raw: "0" as StaticString)
         }
         var text = value.description
         if text.hasSuffix(".0") { text.removeLast(2) }
@@ -127,6 +132,10 @@ extension StreamingJSONEncoder {
     /// slashes alone) with a backslash, the usual control characters by name, other control characters as `\u00XX`,
     /// and everything else as its UTF-8.
     ///
+    /// Most of a record's strings need no escaping, so eight bytes at a time are tested together and, when none of
+    /// them needs escaping, copied together (``needsEscaping(_:slashes:)``). The rest go one byte at a time
+    /// (``escape(_:slashes:into:)``), which writes what this always wrote.
+    ///
     /// - Parameter string: The string.
     func write(string: String) {
         var string = string
@@ -136,29 +145,87 @@ extension StreamingJSONEncoder {
             var out = state.pointee.base + state.pointee.count
             let start = out
             out.pointee = UInt8(ascii: "\""); out += 1
-            for byte in utf8 {
-                switch byte {
-                case UInt8(ascii: "\""), UInt8(ascii: "\\"):
-                    out[0] = UInt8(ascii: "\\"); out[1] = byte; out += 2
-                case UInt8(ascii: "/") where escapesSlashes:
-                    out[0] = UInt8(ascii: "\\"); out[1] = byte; out += 2
-                case 0x08: out[0] = UInt8(ascii: "\\"); out[1] = UInt8(ascii: "b"); out += 2
-                case 0x0c: out[0] = UInt8(ascii: "\\"); out[1] = UInt8(ascii: "f"); out += 2
-                case 0x0a: out[0] = UInt8(ascii: "\\"); out[1] = UInt8(ascii: "n"); out += 2
-                case 0x0d: out[0] = UInt8(ascii: "\\"); out[1] = UInt8(ascii: "r"); out += 2
-                case 0x09: out[0] = UInt8(ascii: "\\"); out[1] = UInt8(ascii: "t"); out += 2
-                case 0x00..<0x20:
-                    out[0] = UInt8(ascii: "\\"); out[1] = UInt8(ascii: "u"); out[2] = UInt8(ascii: "0")
-                    out[3] = UInt8(ascii: "0")
-                    out[4] = Self.escapeDigits.utf8Start[Int(byte >> 4)]
-                    out[5] = Self.escapeDigits.utf8Start[Int(byte & 0x0f)]
-                    out += 6
-                default:
-                    out.pointee = byte; out += 1
+            var index = 0
+            if let bytes = UnsafeRawPointer(utf8.baseAddress) {
+                while index &+ 8 <= utf8.count {
+                    let word = bytes.loadUnaligned(fromByteOffset: index, as: UInt64.self)
+                    if Self.needsEscaping(word, slashes: escapesSlashes) {
+                        for offset in 0..<8 {
+                            out = Self.escape(utf8[index &+ offset], slashes: escapesSlashes, into: out)
+                        }
+                    } else {
+                        UnsafeMutableRawPointer(out).copyMemory(from: bytes + index, byteCount: 8)
+                        out += 8
+                    }
+                    index &+= 8
                 }
+            }
+            while index < utf8.count {
+                out = Self.escape(utf8[index], slashes: escapesSlashes, into: out)
+                index &+= 1
             }
             out.pointee = UInt8(ascii: "\""); out += 1
             state.pointee.count += out - start
+        }
+    }
+
+    /// Does any of eight bytes need escaping: a control character, a quote, a backslash, or a slash when slashes are
+    /// escaped? Each test is the usual one for a byte below a value, or equal to one, anywhere in a word, and is
+    /// exact: it's nonzero only when such a byte is there. A byte of a scalar that isn't ASCII has its high bit set,
+    /// and is none of them.
+    ///
+    /// - Parameters:
+    ///   - word: Eight of a string's UTF-8 bytes, in any order.
+    ///   - slashes: Are slashes escaped?
+    /// - Returns: Whether at least one needs escaping.
+    @inline(__always)
+    private static func needsEscaping(_ word: UInt64, slashes: Bool) -> Bool {
+        let ones: UInt64 = 0x0101_0101_0101_0101, highs: UInt64 = 0x8080_8080_8080_8080
+        /// - Parameter byte: A byte below 0x80.
+        /// - Returns: Nonzero when a byte of the word is `byte`.
+        func has(_ byte: UInt64) -> UInt64 {
+            let difference = word ^ (ones &* byte)
+            return (difference &- ones) & ~difference & highs
+        }
+        var found = (word &- ones &* 0x20) & ~word & highs
+        found |= has(0x22) | has(0x5C)
+        if slashes { found |= has(0x2F) }
+        return found != 0
+    }
+
+    /// Write one byte of a string, escaped if it has to be.
+    ///
+    /// - Parameters:
+    ///   - byte: The byte.
+    ///   - slashes: Are slashes escaped?
+    ///   - out: Where to write, with room for six bytes.
+    /// - Returns: Where the next byte goes.
+    @inline(__always)
+    private static func escape(_ byte: UInt8, slashes: Bool,
+                               into out: UnsafeMutablePointer<UInt8>) -> UnsafeMutablePointer<UInt8> {
+        /// - Parameter letter: An escape's letter.
+        /// - Returns: Where the next byte goes, after a backslash and the letter.
+        func short(_ letter: UInt8) -> UnsafeMutablePointer<UInt8> {
+            out[0] = UInt8(ascii: "\\"); out[1] = letter
+            return out + 2
+        }
+        switch byte {
+        case UInt8(ascii: "\""), UInt8(ascii: "\\"): return short(byte)
+        case UInt8(ascii: "/") where slashes: return short(byte)
+        case 0x08: return short(UInt8(ascii: "b"))
+        case 0x0c: return short(UInt8(ascii: "f"))
+        case 0x0a: return short(UInt8(ascii: "n"))
+        case 0x0d: return short(UInt8(ascii: "r"))
+        case 0x09: return short(UInt8(ascii: "t"))
+        case 0x00..<0x20:
+            out[0] = UInt8(ascii: "\\"); out[1] = UInt8(ascii: "u"); out[2] = UInt8(ascii: "0")
+            out[3] = UInt8(ascii: "0")
+            out[4] = escapeDigits.utf8Start[Int(byte >> 4)]
+            out[5] = escapeDigits.utf8Start[Int(byte & 0x0f)]
+            return out + 6
+        default:
+            out.pointee = byte
+            return out + 1
         }
     }
 }

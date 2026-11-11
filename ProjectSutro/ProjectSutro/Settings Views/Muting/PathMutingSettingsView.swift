@@ -10,14 +10,15 @@ import AppKit
 import SutroESFramework
 
 
-// MARK: - Settings ▸ Path Muting
-/// Settings ▸ Path Muting: the saved mute set the Security Extension keeps, as a table grouped by mute type or by
+// MARK: - Settings > Path Muting
+/// Settings > Path Muting: the saved mute set the Security Extension keeps, as a table grouped by mute type or by
 /// event. Selecting a mute opens an inspector beside the table with every event it covers. + adds a mute, − unmutes
 /// the selected one, and ⋯ imports, exports, resets, or unmutes everything. Right-clicking a mute offers the rest.
+/// A newer default set the saved set hasn't taken in is offered above the table (``MuteSetUpdate``).
 struct PathMutingSettingsView: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @StateObject private var files = MuteFileActions()
-    /// The Add sheet's path: "Mute Another Way..." starts it with the mute's.
+    /// The Add sheet's path: + starts it empty, and "Mute Another Way..." with the mute's.
     @State private var pathToMute = ""
 
     @State private var searchScope: SearchScope = .path
@@ -49,7 +50,7 @@ struct PathMutingSettingsView: View {
 
     /// A change that empties or replaces the saved set, waiting for the user to confirm it.
     enum Confirmation: String, Identifiable {
-        case unmuteAll, reset
+        case unmuteAll, reset, update
         var id: String { rawValue }
     }
 
@@ -112,6 +113,15 @@ struct PathMutingSettingsView: View {
                                  systemExtensionManager.requestMutes(MuteRequest(.reset))
                              },
                              secondaryButton: .cancel())
+            case .update:
+                return Alert(title: Text("Update your mute set?"),
+                             message: Text(systemExtensionManager.muteUpdate.map {
+                                 MuteSetUpdatePrompt.message(for: $0, inSettings: true)
+                             } ?? ""),
+                             primaryButton: .default(Text("Update")) {
+                                 systemExtensionManager.requestMutes(MuteRequest(.update))
+                             },
+                             secondaryButton: .cancel())
             }
         }
         .alert("Saved mute set", isPresented: showsProblems, actions: {
@@ -133,6 +143,23 @@ struct PathMutingSettingsView: View {
     @ViewBuilder private var notices: some View {
         if let notice = systemExtensionManager.muteNotice {
             Label(notice, systemImage: "exclamationmark.triangle.fill").symbolRenderingMode(.multicolor)
+        }
+        if let applied = systemExtensionManager.muteUpdateApplied {
+            Label("""
+                Your saved mute set was Mac Monitor's earlier default set, so it was updated to the \
+                \(applied.release) default set, which \(applied.summary).
+                """, systemImage: "info.circle")
+        }
+        if let update = systemExtensionManager.muteUpdate {
+            HStack(spacing: 12) {
+                Label("""
+                    Mac Monitor \(update.release)'s default mute set \(update.summary). Updating keeps your own \
+                    changes.
+                    """, systemImage: "arrow.triangle.2.circlepath")
+                Spacer(minLength: 0)
+                Button("Update Mute Set…") { confirmation = .update }
+                    .disabled(!canEdit)
+            }
         }
     }
 
@@ -191,7 +218,10 @@ struct PathMutingSettingsView: View {
     /// + to add, − to unmute the selected mute, and ⋯ for the rest, as macOS tables have them.
     private var bottomBar: some View {
         HStack(spacing: 0) {
-            Button { adding = AddRequest(kind: .literal) } label: {
+            Button {
+                pathToMute = ""
+                adding = AddRequest(kind: .literal)
+            } label: {
                 Image(systemName: "plus").frame(width: 24, height: 20)
             }
                 .help("Add a path mute")
@@ -216,6 +246,12 @@ struct PathMutingSettingsView: View {
                     Label("Export Apple Mute Set…", systemImage: "apple.logo")
                 }
                 Divider()
+                if systemExtensionManager.muteUpdate != nil {
+                    Button { confirmation = .update } label: {
+                        Label("Update to the Latest Default Set…", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    .disabled(!canEdit)
+                }
                 Button { confirmation = .reset } label: {
                     Label("Reset to Default…", systemImage: "arrow.counterclockwise")
                 }

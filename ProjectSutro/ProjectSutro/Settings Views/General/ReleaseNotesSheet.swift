@@ -79,7 +79,7 @@ final class ReleaseNotes: ObservableObject {
 }
 
 
-/// Settings ▸ General ▸ Release Notes...: a release's notes as GitHub shows them, with a link to its page.
+/// Settings > General > Release Notes...: a release's notes as GitHub shows them, with a link to its page.
 struct ReleaseNotesSheet: View {
     @ObservedObject var notes: ReleaseNotes
     @Environment(\.dismiss) private var dismiss

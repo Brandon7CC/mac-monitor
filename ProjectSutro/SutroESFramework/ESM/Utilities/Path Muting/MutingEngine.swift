@@ -12,7 +12,7 @@ import OSLog
 // MARK: - Where a request comes from
 /// Where a change to the saved mute set was asked for, which decides where its refusals and warnings show.
 public enum MuteRequestOrigin: Sendable {
-    /// Settings ▸ Path Muting, or the per-event list: shown there (``EndpointSecurityManager/muteProblems``).
+    /// Settings > Path Muting, or the per-event list: shown there (``EndpointSecurityManager/muteProblems``).
     case settings
     /// An event's menu in the main window: shown there (``EndpointSecurityManager/eventMuteProblems``).
     case eventMenu
@@ -40,12 +40,15 @@ extension EndpointSecurityManager {
     /// (`.tooManyClients`) leaves no owner, so the change is allowed. The Security Extension decides each change
     /// either way.
     public var canChangeSavedMutes: Bool { connectionResult != .streamOwned }
-    
-    public func requestAppleMuteSet(_ completion: ((Set<String>) -> Void)? = nil) {
+
+    /// Ask the Security Extension for Endpoint Security's own default mutes and publish them (``appleMuteSet``).
+    ///
+    /// - Parameter completion: Called on the main queue with the mutes, or `nil` if the request failed (it's
+    ///   logged), so whoever asked can say so.
+    public func requestAppleMuteSet(_ completion: ((Set<String>?) -> Void)? = nil) {
         sensor.call { $0.appleMuteSet(reply: $1) } completion: { response in
-            guard let response else { return }
-            self.appleMuteSet = Set(response)
-            completion?(self.appleMuteSet)
+            if let response { self.appleMuteSet = Set(response) }
+            completion?(response.map(Set.init))
         }
     }
     
@@ -66,6 +69,8 @@ extension EndpointSecurityManager {
             }
             self.savedMutes = reply.mutes.map(ESMutedPath.init)
             self.muteNotice = reply.notice
+            self.muteUpdate = reply.update
+            self.muteUpdateApplied = reply.applied
             /// Refusals and what was left out, shown where the request was made. Each change replaces what the last
             /// one left, so a refusal never shows up later, out of context. A list only adds to it.
             let problems = reply.status == .ok || !reply.problems.isEmpty

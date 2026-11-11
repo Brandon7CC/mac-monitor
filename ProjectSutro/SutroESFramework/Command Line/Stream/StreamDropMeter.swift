@@ -20,11 +20,28 @@ import EndpointSecurity
 /// A gap is a real loss: Endpoint Security dropped the message, or the stream was behind (its buffer was full or
 /// capture was paused). Muted messages are never sent, so they never count, and the pipeline's own events are
 /// observed before they're suppressed. Not thread-safe.
+///
+/// **Field filters:** a message a ``FieldFilter`` left out still took its `seq_num` and `global_seq_num`, so its gap
+/// is no loss. For a class with a filtered type (``fieldFilteredTypes``), losses come from the other types' `seq_num`
+/// gaps alone. Drops of the filtered type itself, and tail drops of a type that never comes again, show only in the
+/// closing line, from the Security Extension's exact count.
 public final class StreamDropMeter {
     /// Each client's sequence numbers so far.
     private var trackers: [EventClass: ClientSequenceTracker] = [:]
     /// What each client's last report held.
     private var marks: [EventClass: DropReportMark] = [:]
+    /// The classes of ``fieldFilteredTypes``.
+    private var affected: Set<EventClass> = []
+    
+    /// The event types, by `es_event_type_t` raw value, whose messages a field filter of the stream leaves out, so
+    /// their gaps aren't losses.
+    public var fieldFilteredTypes: Set<Int> = [] {
+        didSet {
+            affected = Set(fieldFilteredTypes.map {
+                EventClassTable.eventClass(of: es_event_type_t(rawValue: UInt32(truncatingIfNeeded: $0)))
+            })
+        }
+    }
     
     /// Account for one event's sequence numbers.
     ///
@@ -42,9 +59,13 @@ public final class StreamDropMeter {
     /// One past the largest `event_type` tracked per type: room for many more than Endpoint Security defines.
     static let eventTypeLimit = 1_024
     
-    /// Every event lost so far (`global_seq_num` gaps), over every client.
+    /// Every event lost so far (`global_seq_num` gaps), over every client. For a class with a field-filtered type,
+    /// its other types' `seq_num` gaps instead.
     public var dropped: UInt64 {
-        trackers.values.reduce(0) { $0 + $1.global.dropped }
+        trackers.reduce(0) { total, entry in
+            total + (affected.contains(entry.key) ? entry.value.dropped(uncounting: fieldFilteredTypes)
+                        : entry.value.global.dropped)
+        }
     }
     
     /// How many times a `global_seq_num` repeated or went backwards, which makes ``dropped`` untrustworthy.
@@ -58,7 +79,8 @@ public final class StreamDropMeter {
     public func takeReport() -> [CaptureDropReport] {
         EventClass.allCases.compactMap { eventClass in
             guard let tracker = trackers[eventClass] else { return nil }
-            return marks[eventClass, default: DropReportMark()].takeReport(of: eventClass, from: tracker)
+            return marks[eventClass, default: DropReportMark()].takeReport(
+                of: eventClass, from: tracker, uncounting: affected.contains(eventClass) ? fieldFilteredTypes : [])
         }
     }
 }
