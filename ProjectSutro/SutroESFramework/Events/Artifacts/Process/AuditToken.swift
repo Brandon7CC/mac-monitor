@@ -23,6 +23,13 @@ public struct AuditToken: Identifiable, Codable, Hashable {
         self.auid = Int64(audit_token_to_auid(token))
         self.pidversion = audit_token_to_pidversion(token)
     }
+
+    /// The token as the kernel takes one, such as `proc_pidpath_audittoken`, which checks its pid and pid version.
+    var raw: audit_token_t {
+        let ids = [auid, euid, egid, ruid, rgid].map { UInt32(truncatingIfNeeded: $0) }
+        return audit_token_t(val: (ids[0], ids[1], ids[2], ids[3], ids[4], UInt32(bitPattern: pid),
+                                   UInt32(bitPattern: asid), UInt32(bitPattern: pidversion)))
+    }
 }
 
 

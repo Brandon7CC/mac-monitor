@@ -67,10 +67,25 @@ final class CommandLineExitTests: XCTestCase {
     
     /// XPC errors before the first answer tell "not running" from "refused" from "wrong signature". After it, the
     /// Security Extension stopped. Every connection failure exits 69.
+    ///
+    /// NSXPC invalidates the connection itself when the other side sends something that isn't a reply and fails the
+    /// code signing requirement, such as a batch ahead of the answer. That is a wrong signature too, unless
+    /// `macmonitor` closed the connection.
     func testConnectionErrors() {
-        func failure(_ code: Int, started: Bool, domain: String = NSCocoaErrorDomain) -> CommandLineFailure {
-            CommandLineFailure.connection(NSError(domain: domain, code: code), started: started)
+        func failure(_ code: Int, started: Bool, domain: String = NSCocoaErrorDomain, closed: Bool = false,
+                     saying description: String? = nil) -> CommandLineFailure {
+            let info = description.map { [NSDebugDescriptionErrorKey: $0] }
+            let error = NSError(domain: domain, code: code, userInfo: info)
+            return CommandLineFailure.connection(error, started: started, closed: closed)
         }
+        let missing = "The connection to service named x was invalidated: Connection init failed at lookup with "
+            + "error 3 - No such process."
+        let here = "The connection to service named x was invalidated from this process."
+        XCTAssertTrue(failure(4099, started: false, saying: missing).message.hasPrefix("Mac Monitor's Security"))
+        XCTAssertEqual(failure(4099, started: false, saying: here), .signatureMismatch)
+        XCTAssertTrue(failure(4099, started: false, closed: true, saying: here).message.contains("isn't running"))
+        XCTAssertEqual(failure(4099, started: true, saying: here), .stopped)
+        XCTAssertEqual(failure(4102, started: false), .signatureMismatch)
         XCTAssertTrue(failure(4099, started: false).message.hasPrefix("Mac Monitor's Security Extension isn't running"))
         XCTAssertTrue(failure(4097, started: false).message.hasPrefix("The Security Extension refused macmonitor."))
         XCTAssertTrue(failure(4102, started: false).message.contains("code signature didn't match"))
@@ -117,7 +132,7 @@ final class CommandLineExitTests: XCTestCase {
         let lines: [CommandLineCommand: [String]] = [
             .stream: ["stream"], .mute: ["mute", "list"], .indicators: ["indicators", "list"], .events: ["events"],
             .schema: ["schema"], .validate: ["validate", "trace.jsonl"], .completion: ["completion", "zsh"],
-            .version: ["--version"], .help: ["help"], .status: ["status"]
+            .version: ["--version"], .help: ["help"], .status: ["status"], .update: ["update", "check"]
         ]
         XCTAssertEqual(Set(lines.keys), Set(CommandLineCommand.allCases), "Every command has a line")
         for (command, line) in lines {

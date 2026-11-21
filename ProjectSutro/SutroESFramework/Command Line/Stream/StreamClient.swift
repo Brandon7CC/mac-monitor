@@ -23,6 +23,8 @@ public final class StreamClient {
     public let connection: NSXPCConnection
     /// Has the Security Extension answered anything yet?
     private let answered = OSAllocatedUnfairLock(initialState: false)
+    /// Has `macmonitor` closed the connection (``invalidate()``)?
+    private let closed = OSAllocatedUnfairLock(initialState: false)
     
     /// The connection to the live Security Extension.
     ///
@@ -110,8 +112,9 @@ public final class StreamClient {
                              completion: @escaping (Result<Reply, CommandLineFailure>) -> Void,
                              invoke: (StreamProtocol, @escaping (Data) -> Void) -> Void) {
         let finish = Self.once(completion)
-        let proxy = connection.remoteObjectProxyWithErrorHandler { [answered] error in
-            finish(.failure(CommandLineFailure.connection(error, started: answered.withLock { $0 })))
+        let proxy = connection.remoteObjectProxyWithErrorHandler { [answered, closed] error in
+            finish(.failure(CommandLineFailure.connection(error, started: answered.withLock { $0 },
+                                                          closed: closed.withLock { $0 })))
         }
         if let timeout {
             DispatchQueue.global().asyncAfter(deadline: .now() + timeout) { finish(.failure(.noAnswer)) }
@@ -131,6 +134,7 @@ public final class StreamClient {
     
     /// Close the connection. The Security Extension closes the stream.
     public func invalidate() {
+        closed.withLock { $0 = true }
         connection.invalidate()
     }
     

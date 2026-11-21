@@ -36,14 +36,16 @@ final class ProcessPathMemoryPerformanceTests: PerformanceTestCase {
         }
     }
 
-    /// Parents the lane hasn't seen: this process's path is read live for each, then remembered.
+    /// Parents the lane hasn't seen: this process's path is read live for each, by its own token, as the kernel checks
+    /// the token it's read by, then remembered under the parent's.
     func testParentReadLive() throws {
         let lookups = 5_000
-        let pid = getpid()
+        let pid = getpid(), own = AuditToken(from: .currentProcess)
         try benchmark("enrich.process_paths.live", unit: "lookup", operations: lookups, setUp: {
             (ProcessPathMemory(capacity: ProcessPathMemory.laneCapacity), tokens(lookups))
         }) { memory, tokens in
-            for token in tokens where memory.path(of: pid, token, reading: ProcessPath.live) == nil {
+            for token in tokens where memory.path(of: pid, token, reading: { pid, _ in ProcessPath.live(pid, own) })
+                == nil {
                 throw BenchmarkFailure("No path for \(pid)")
             }
         }
