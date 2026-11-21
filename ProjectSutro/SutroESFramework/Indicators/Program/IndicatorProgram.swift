@@ -60,6 +60,8 @@ public struct IndicatorProgram: @unchecked Sendable {
             case anyCompare
             /// The event's type, by number, `==`, `!=` or `IN` the types its constants hold.
             case eventType
+            /// A field compared with another field of the same event, ``Node/other``, with no constants.
+            case fieldCompare
         }
 
         /// What it is.
@@ -68,8 +70,10 @@ public struct IndicatorProgram: @unchecked Sendable {
         var op: Operator = .equalTo
         /// A comparison's options.
         var options: Options = []
-        /// The field a comparison reads.
+        /// The field a comparison reads, the left side's for a ``Kind/fieldCompare``.
         var field: IndicatorField = .esEventType
+        /// The right side's field, for a ``Kind/fieldCompare``. It sits beside ``field``, so a node is still 16 bytes.
+        var other: IndicatorField = .esEventType
         /// The first child or constant.
         var first: Int32 = 0
         /// How many children or constants.
@@ -77,6 +81,15 @@ public struct IndicatorProgram: @unchecked Sendable {
 
         /// The children's or constants' indices.
         var range: Range<Int> { Int(first)..<Int(first) + Int(count) }
+
+        /// The fields it reads: a comparison's one, both of a field comparison's, and none for any other node.
+        var fields: [IndicatorField] {
+            switch kind {
+            case .compare, .anyCompare: [field]
+            case .fieldCompare: [field, other]
+            case .and, .or, .not, .truth, .eventType: []
+            }
+        }
     }
 
     /// A comparison's constant. Its fields are in the order that packs it into 32 bytes.
@@ -126,11 +139,10 @@ public struct IndicatorProgram: @unchecked Sendable {
         strings = []
     }
 
-    /// The fields it reads, in order, each once.
+    /// The fields it reads, in order, each once: both sides of a field comparison.
     public var fields: [IndicatorField] {
         var seen = Set<IndicatorField>()
-        return nodes.filter { [.compare, .anyCompare].contains($0.kind) }.map(\.field)
-            .filter { seen.insert($0).inserted }
+        return nodes.flatMap(\.fields).filter { seen.insert($0).inserted }
     }
 
     /// How many nodes it has.
@@ -182,11 +194,18 @@ extension IndicatorProgram: CustomStringConvertible {
                 : "es_event_type \(Self.symbol(of: node.op)) \(names[0])"
         case .compare, .anyCompare:
             let lead = node.kind == .anyCompare ? "ANY " : ""
-            let options = (node.options.contains(.caseInsensitive) ? "c" : "")
-                + (node.options.contains(.diacriticInsensitive) ? "d" : "")
-            let comparison = Self.symbol(of: node.op) + (options.isEmpty ? "" : "[\(options)]")
-            return lead + node.field.path + " " + comparison + " " + describeConstants(of: node)
+            return lead + node.field.path + " " + describeOperator(of: node) + " " + describeConstants(of: node)
+        case .fieldCompare:
+            return node.field.path + " " + describeOperator(of: node) + " " + node.other.path
         }
+    }
+
+    /// - Parameter node: A comparison.
+    /// - Returns: Its operator and options, as a predicate writes them: `BEGINSWITH[cd]`.
+    private func describeOperator(of node: Node) -> String {
+        let options = (node.options.contains(.caseInsensitive) ? "c" : "")
+            + (node.options.contains(.diacriticInsensitive) ? "d" : "")
+        return Self.symbol(of: node.op) + (options.isEmpty ? "" : "[\(options)]")
     }
 
     /// - Parameter node: A comparison.

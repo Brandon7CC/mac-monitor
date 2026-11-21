@@ -31,6 +31,8 @@ import EndpointSecurity
 /// - `MATCHES`, `SUBQUERY`, `ALL`, `BETWEEN`, functions, aggregates and variables.
 /// - A key path it doesn't read (``IndicatorField``) or one filled after capture.
 /// - A string compared with a number, ordered, or an array compared without `ANY`.
+/// - A key path compared with another by other than `==`, `!=`, `<`, `<=`, `>`, `>=`, `BEGINSWITH` and `ENDSWITH`,
+///   with `ANY` or `ALL`, or with one of another kind, or an array (``IndicatorDraft/FieldComparison``).
 /// - `?`, `\` or other than ASCII in a `LIKE` pattern.
 /// - A number that isn't whole within ±2^53 or finite.
 /// - More than ``maxNodes`` nodes, or a constant over ``maxConstantBytes``.
@@ -135,7 +137,7 @@ public enum SensorProblem: Error, Equatable, Sendable, CustomStringConvertible {
     /// It reads a key path whose value can't be compared on its own, and why: an object, or a value inside an array
     /// of objects.
     case unservedKind(String, String)
-    /// It compares a string with a number, or an array without `ANY`.
+    /// It compares a string with a number, or an array without `ANY`, or with another key path.
     case mismatchedTypes(String)
     /// Its `LIKE` pattern has `?`, `\` or other than ASCII.
     case unsupportedPattern(String)

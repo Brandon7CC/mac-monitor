@@ -54,6 +54,46 @@ final class IndicatorWeightTests: PerformanceTestCase {
             print(String(format: "[performance] indicators.weight %@: at most %.2f ns/unit", name, perUnit))
         }
     }
+
+    /// A field compared with another field (``ScanCost/pair(_:)``, ``ScanCost/anchoredPair(_:_:_:diacritics:)``,
+    /// ``ScanCost/endsWithPair(_:_:_:_:diacritics:)``): an exec's command line with its script, both the same hostile
+    /// text, or the script a prefix or suffix of it, so each comparison reads as far as it can, and both ASCII, which
+    /// the bytes compare. Up to 4 KiB each is run whatever it's charged, so a weight is checked where the event's
+    /// budget would refuse it too, and past that within the budget. Each unit has to take at most 3 ns.
+    func testEachFieldPairWeightTakesAtMost3nsAUnit() throws {
+        var worst: [String: Double] = [:]
+        let comparisons = ["==%@", "!=%@", "BEGINSWITH%@", "ENDSWITH%@"]
+        let ascii = { (size: Int) in String(repeating: "Ab-", count: size / 3) }
+        for size in [256, 1 << 10] + Self.sizes.dropFirst() {
+            let texts = HostileText.allCases.map { ($0.rawValue, $0.value(size)) } + [("ascii", ascii(size))]
+            for (name, value) in texts {
+                for (shape, script) in [("same", value), ("prefix", String(value.prefix(value.count * 3 / 4))),
+                                        ("suffix", String(value.suffix(value.count * 3 / 4)))] {
+                    let message = try corpusExec {
+                        $0.command_line = value
+                        $0.script_content = script
+                    }
+                    for comparison in comparisons {
+                        for option in Self.options {
+                            let operation = String(format: comparison, option)
+                            let program = try execProgram(
+                                "event.exec.command_line \(operation) event.exec.script_content")
+                            let limit = size <= 4 << 10 ? Int.max : ScanBudget.eventLimit
+                            let (units, perUnit) = measure(program, on: message, limit: limit)
+                            guard units >= 10_000 else { continue }
+                            let label = "fields \(operation)"
+                            worst[label] = max(worst[label] ?? 0, perUnit)
+                            XCTAssertLessThanOrEqual(perUnit, 3, "\(label) on \(name) \(shape) of \(size) B: \(units)")
+                        }
+                    }
+                }
+            }
+        }
+        XCTAssertFalse(worst.isEmpty)
+        for (name, perUnit) in worst.sorted(by: { $0.key < $1.key }) {
+            print(String(format: "[performance] indicators.weight %@: at most %.2f ns/unit", name, perUnit))
+        }
+    }
 }
 
 
@@ -102,14 +142,17 @@ extension IndicatorWeightTests {
         }
     }
 
-    /// Time a program on an exec, with the event's budget and a fresh cache each time.
+    /// Time a program on an exec, with an allowance and a fresh cache each time.
     ///
     /// - Parameters:
     ///   - program: The program.
     ///   - message: The exec.
+    ///   - limit: The event's allowance, its budget's by default.
     /// - Returns: The units an evaluation spends, and the fewest nanoseconds a unit took over three runs.
-    func measure(_ program: IndicatorProgram, on message: Message) -> (units: Int, perUnit: Double) {
+    func measure(_ program: IndicatorProgram, on message: Message,
+                 limit: Int = ScanBudget.eventLimit) -> (units: Int, perUnit: Double) {
         var values = MessageValueCache()
+        values.scan.limit = limit
         _ = program.verdict(message, eventType: Self.execTypeNumber, values: &values)
         let units = values.scan.spent
         values.reset()

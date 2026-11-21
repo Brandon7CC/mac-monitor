@@ -117,8 +117,8 @@ final class IndicatorFuzzTests: XCTestCase {
                 var indicator = Indicator(id: ids.randomElement(using: &generator)!, name: "Fuzz", description: "",
                                           symbol: "star", color: .red, predicate: fuzzer.rule(), isEnabled: Bool.random(using: &generator))
                 if Int.random(in: 0..<8, using: &generator) == 0 {
-                    indicator.predicate = [#"es_event_type == "ES_EVENT_TYPE_NOTIFY_NOPE""#, "target_path == 1e400",
-                                           #"target_path == "x""#, ""].randomElement(using: &generator)!
+                    indicator.rule = .event([#"es_event_type == "ES_EVENT_TYPE_NOTIFY_NOPE""#, "target_path == 1e400",
+                                             #"target_path == "x""#, ""].randomElement(using: &generator)!)
                 }
                 return indicator
             }
@@ -140,6 +140,7 @@ final class IndicatorFuzzTests: XCTestCase {
 // MARK: - Random predicates
 /// Makes random indicator predicates from a small grammar: a type check, then comparisons of served and unserved
 /// fields, joined by `AND`, `OR` and `NOT`, with constants taken from the events' own values as well as hostile ones.
+/// Given a share for them, some comparisons are of a field with another field (``fieldComparison()``).
 struct PredicateFuzzer {
     /// The random numbers.
     private var generator: SeededGenerator
@@ -147,6 +148,9 @@ struct PredicateFuzzer {
     private let types: [String]
     /// Each served field's string values on the events, and pieces of them.
     private let strings: [IndicatorField: [String]]
+    /// How many comparisons in four compare a field with another field: 0 keeps a seed's predicates as they were
+    /// before field comparisons, and 4 makes every one a field comparison.
+    private let fieldShare: Int
 
     /// Key paths besides the served ones, which the compiler refuses.
     static let unserved = ["process.pid", "event.exec.launched_by_parent.pid", "event.exec.env.@count",
@@ -160,12 +164,14 @@ struct PredicateFuzzer {
     /// - Parameters:
     ///   - seed: The seed.
     ///   - messages: The events whose values constants are taken from.
-    init(seed: UInt64, messages: [Message]) {
+    ///   - fieldShare: How many comparisons in four compare a field with another field.
+    init(seed: UInt64, messages: [Message], fieldShare: Int = 0) {
         generator = SeededGenerator(seed: seed)
+        self.fieldShare = fieldShare
         types = Array(Set(messages.map(\.es_event_type))).sorted()
         var strings: [IndicatorField: [String]] = [:]
         for message in messages {
-            for field in IndicatorField.allCases {
+            for field in IndicatorField.recordCases {
                 if case .string(let value) = MessageValues.value(of: field, in: message) {
                     strings[field, default: []] += [String(value), String(value.prefix(4)), String(value.suffix(5))]
                 }
@@ -193,9 +199,10 @@ struct PredicateFuzzer {
         }
     }
 
-    /// - Returns: A comparison of a field, served or not, with a constant of its kind or not.
+    /// - Returns: A comparison of a field, served or not, with a constant of its kind or not, or with another field.
     private mutating func comparison() -> String {
-        let field = IndicatorField.allCases.randomElement(using: &generator)!
+        if fieldShare > 0, Int.random(in: 0..<4, using: &generator) < fieldShare { return fieldComparison() }
+        let field = IndicatorField.recordCases.randomElement(using: &generator)!
         let path = Int.random(in: 0..<12, using: &generator) == 0
             ? Self.unserved.randomElement(using: &generator)! : field.path
         let options = ["", "", "[c]", "[d]", "[cd]"].randomElement(using: &generator)!
@@ -230,3 +237,53 @@ struct PredicateFuzzer {
     }
 }
 
+
+// MARK: - Random field comparisons
+extension PredicateFuzzer {
+    /// Record fields a field comparison's sides are drawn from besides the direct ones: numbers, strings, a Boolean,
+    /// an array, an object, a launched-by parent's and the fields Mac Monitor writes as it stores an event.
+    static let recordPaths = ["process.pid", "process.ppid", "process.euid", "process.audit_token.euid",
+                              "process.audit_token.ruid", "event.exec.target.pid", "event.exec.target.ppid",
+                              "event.exec.target.audit_token.pid", "process.cdhash", "event.exec.target.cdhash",
+                              "process.euid_human", "event.exec.target.euid_human", "process.is_es_client",
+                              "event.exec.launched_by_parent.pid", "event.exec.args", "process.executable",
+                              "seq_num", "telemetry_version", "event.gatekeeper_user_override.sha256",
+                              "event.gatekeeper_user_override.file.path", "mach_time", "version"]
+    /// Every key path a side is drawn from, grouped by what it holds: strings, numbers and Booleans, and the rest.
+    static let fieldPaths: (strings: [String], numbers: [String], others: [String]) = {
+        var groups: (strings: [String], numbers: [String], others: [String]) = ([], [], [])
+        for path in IndicatorField.recordCases.map(\.path) + recordPaths {
+            switch kind(of: path) {
+            case .string: groups.strings.append(path)
+            case .number, .boolean: groups.numbers.append(path)
+            case .strings, nil: groups.others.append(path)
+            }
+        }
+        return groups
+    }()
+
+    /// - Parameter path: A key path.
+    /// - Returns: What its value is, or `nil` for one the Security Extension doesn't read.
+    private static func kind(of path: String) -> IndicatorField.Kind? {
+        if let field = IndicatorField(path: path) { return field.kind }
+        guard case .kind(let kind) = RecordSchema.lookup(path) else { return nil }
+        return kind
+    }
+
+    /// - Returns: A comparison of a field with another field: mostly two of one kind with an operator they take, and
+    ///   otherwise anything, with `ANY` now and then.
+    mutating func fieldComparison() -> String {
+        let (strings, numbers, others) = Self.fieldPaths
+        let kind = Int.random(in: 0..<8, using: &generator)
+        let paths = kind < 4 ? strings : kind < 7 ? numbers : others
+        let left = paths.randomElement(using: &generator)!
+        let mismatched = Int.random(in: 0..<6, using: &generator) == 0
+        let right = (mismatched ? strings + numbers + others : paths).randomElement(using: &generator)!
+        let taken = paths == numbers ? ["==", "!=", "<", "<=", ">", ">="] : ["==", "!=", "BEGINSWITH", "ENDSWITH"]
+        let refused = ["CONTAINS", "LIKE", "IN", "MATCHES", "<", ">=", "BEGINSWITH"]
+        let op = (Int.random(in: 0..<8, using: &generator) == 0 ? refused : taken).randomElement(using: &generator)!
+        let options = ["", "", "", "[c]", "[d]", "[cd]"].randomElement(using: &generator)!
+        let any = Int.random(in: 0..<24, using: &generator) == 0 ? "ANY " : ""
+        return "\(any)\(left) \(op)\(paths == numbers && !mismatched ? "" : options) \(right)"
+    }
+}

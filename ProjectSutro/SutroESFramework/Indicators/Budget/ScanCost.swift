@@ -100,6 +100,52 @@ enum ScanCost {
         192 + 10 * bytes + 8 * shape.cappedRunSquares + (diacritics ? shape.runSquares >> 1 : 0)
     }
 
+    /// A comparison of two fields' values on their bytes (``StringMatching/equalPair(_:_:folding:)``): `memcmp`, or
+    /// both sides' letters folded for `[c]`, at most about 0.75 ns a byte compared.
+    ///
+    /// - Parameter bytes: The bytes of each side it compares: the right side's length.
+    /// - Returns: The comparison's cost.
+    @inline(__always)
+    static func pair(_ bytes: Int) -> Int { 1 + bytes >> 2 }
+
+    /// Foundation's `==` with options, or `BEGINSWITH`, of one field's value with another's: as
+    /// ``anchored(constant:_:)`` with the right side as the constant, and the right side's longest run of scalars
+    /// that aren't ASCII too, as it isn't a constant of at most 1 KiB. With `[d]`, the square of each side's runs,
+    /// as ``contains(_:_:diacritics:)`` charges a value's.
+    ///
+    /// - Parameters:
+    ///   - right: The right side's UTF-8 length.
+    ///   - leftShape: The part of the left side handed to Foundation.
+    ///   - rightShape: The right side's.
+    ///   - diacritics: Is the comparison diacritic-insensitive?
+    /// - Returns: The comparison's cost.
+    @inline(__always)
+    static func anchoredPair(_ right: Int, _ leftShape: ValueShape, _ rightShape: ValueShape,
+                             diacritics: Bool) -> Int {
+        anchored(constant: right, leftShape) + 4 * rightShape.longestRun
+            + (diacritics ? (leftShape.runSquares + rightShape.runSquares) >> 1 : 0)
+    }
+
+    /// Foundation's `ENDSWITH` of one field's value with another's: ``endsWith(_:_:diacritics:)`` of each side, and
+    /// the right side's again for every 64 bytes of the left. The backwards search tries the right side at each place
+    /// in the left, which a constant of at most 1 KiB keeps linear, but a right side as long as the left makes
+    /// quadratic: up to 1.2 ns a pair of bytes on runs of marks it reorders, and 0.1 to 0.4 ns on other text that
+    /// repeats.
+    ///
+    /// - Parameters:
+    ///   - left: The part of the left side handed to Foundation.
+    ///   - leftShape: Its shape.
+    ///   - right: The right side's UTF-8 length.
+    ///   - rightShape: Its shape.
+    ///   - diacritics: Is the search diacritic-insensitive?
+    /// - Returns: The search's cost.
+    @inline(__always)
+    static func endsWithPair(_ left: Int, _ leftShape: ValueShape, _ right: Int, _ rightShape: ValueShape,
+                             diacritics: Bool) -> Int {
+        let pattern = endsWith(right, rightShape, diacritics: diacritics)
+        return endsWith(left, leftShape, diacritics: diacritics) + pattern + (left &* pattern) >> 6
+    }
+
     /// A value's `LIKE` units, NFKC and folded: 4 to 35 ns a byte on most text. Up to 0.7 µs a scalar NFKC expands
     /// (U+FDFA is eighteen), 0.04 ns more per byte of the value for each scalar it changes, and 0.33 ns per square
     /// of a run of marks it reorders.

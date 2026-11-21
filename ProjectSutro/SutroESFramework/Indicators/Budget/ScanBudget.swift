@@ -131,6 +131,34 @@ struct ScanBudget {
         return true
     }
 
+    /// Spend the cost of a comparison of two fields before it runs, if it fits what both their pools have left. Its
+    /// work is done once, so its units are spent from the event once, and count against each pool's own ceiling, and
+    /// the large fields' together once.
+    ///
+    /// - Parameters:
+    ///   - units: Its cost (``ScanCost``).
+    ///   - first: One field's pool.
+    ///   - second: The other's, which may be the same.
+    /// - Returns: Whether it fits both: `false` spends nothing and notes a pool that had too little refused.
+    @inline(__always)
+    mutating func charge(_ units: Int, from first: ScanPool, and second: ScanPool) -> Bool {
+        let fitsFirst = units <= allowance(first), fitsSecond = units <= allowance(second)
+        guard fitsFirst, fitsSecond else {
+            noteRefused(fitsFirst ? second : first)
+            return false
+        }
+        spend(units, from: first)
+        guard second != first else { return true }
+        switch second {
+        case .index, .other: break
+        case .commandLine: commandLineRoom -= units
+        case .env: envRoom -= units
+        case .script: scriptRoom -= units
+        }
+        if second.isLarge, !first.isLarge { largeRoom -= units }
+        return true
+    }
+
     /// Spend a cost that's paid whatever is left: working out once per field whether its value is ASCII, which every
     /// comparison of it needs. Only a field past 4 MiB, which Endpoint Security never delivers, could take a pool past
     /// its ceiling this way.

@@ -177,7 +177,7 @@ extension FrozenPrograms {
                 switch node.kind {
                 case .and, .or, .not: node.first += nodeShift
                 case .compare, .anyCompare, .eventType: node.first += constantShift
-                case .truth: break
+                case .truth, .fieldCompare: break
                 }
                 return node
             })

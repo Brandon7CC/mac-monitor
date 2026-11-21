@@ -163,6 +163,66 @@ final class IndicatorIndexTests: XCTestCase {
 }
 
 
+// MARK: - Field comparisons
+extension IndicatorIndexTests {
+    /// A field compared with another field has no literal: it needs nothing the index checks, so an `OR` with one is
+    /// evaluated on every close, and an `AND` is anchored on a sibling's literal.
+    func testFieldComparisonsGiveNoAnchor() throws {
+        let path = IndicatorField.targetPath
+        for unanchored in ["target_path ENDSWITH event.close.target.name", "NOT target_path == process.executable.path",
+                           #"(target_path BEGINSWITH "/a" OR target_path == process.executable.path)"#] {
+            XCTAssertEqual(try need(unanchored), ["unconstrained"], unanchored)
+        }
+        XCTAssertEqual(try need(#"target_path ENDSWITH event.close.target.name AND target_path BEGINSWITH "/a""#),
+                       [anchor(path, .prefix, "/a")])
+        let compiled = CompiledIndicators([indicator(Self.close + "target_path ENDSWITH event.close.target.name")])
+        var values = MessageValueCache()
+        var message = try close("/x/y")
+        if case .close(var event) = message.event {
+            event.target.path = "/x/y"
+            message.event = .close(event)
+        }
+        XCTAssertEqual(compiled.candidates(for: message, values: &values), [0])
+        XCTAssertEqual(compiled.hits(for: message, values: &values).count, 1)
+        message.target_path = "/x/z"
+        XCTAssertEqual(compiled.candidates(for: message, values: &values), [0])
+        XCTAssertEqual(compiled.hits(for: message, values: &values), [])
+    }
+
+    /// On every event the tests have, rules that compare fields with fields, alone and beside constant comparisons,
+    /// leave out no rule an event matches, and a set's hits are those rules evaluated one by one.
+    func testNoRuleComparingFieldsIsLeftOut() throws {
+        let messages = try SyntheticCorpus.records().map(\.message) + allFixtureMessages() + lineageTrace()
+        var fuzzer = PredicateFuzzer(seed: 0x5EED_F1E1, messages: messages, fieldShare: 2)
+        var rules: [(indicator: Indicator, rule: IndicatorCompiler.Rule)] = []
+        while rules.count < 400 {
+            let source = fuzzer.rule()
+            if case .success(let rule) = IndicatorCompiler.compile(source) { rules.append((indicator(source), rule)) }
+        }
+        XCTAssertGreaterThan(rules.filter { $0.rule.program.nodes.contains { $0.kind == .fieldCompare } }.count, 150)
+        var values = MessageValueCache()
+        var matched = 0
+        for chunk in stride(from: 0, to: rules.count, by: 25).map({ rules[$0..<min($0 + 25, rules.count)] }) {
+            let compiled = CompiledIndicators(chunk.map(\.indicator))
+            for message in messages {
+                let candidates = Set(compiled.candidates(for: message, values: &values))
+                XCTAssertTrue(compiled.matchingPositions(for: message, values: &values).isSubset(of: candidates))
+                let type = CompiledIndicators.eventType(of: message)
+                let expected = chunk.filter { entry in
+                    defer { values.reset() }
+                    return entry.rule.types.contains(type)
+                        && entry.rule.program.matches(message, eventType: type, values: &values)
+                }.prefix(CompiledIndicators.hitLimit).map(\.indicator.id)
+                let hits = compiled.hits(for: message, values: &values).map(\.id)
+                XCTAssertEqual(hits, Array(expected), "\(message.es_event_type) \(message.target_path ?? "")")
+                matched += hits.count
+            }
+        }
+        XCTAssertGreaterThan(matched, 100)
+    }
+}
+
+
 // MARK: - Helpers
 extension IndicatorIndexTests {
     /// Check that every rule a set has an event match is among the event's candidates.

@@ -81,8 +81,9 @@ extension IndicatorProgram.View {
 
     /// What the program rooted at a node needs of an event of one type before it can match it: each comparison of the
     /// event's type is decided by the type, `AND` needs what its cheapest anchored child needs, `OR` needs one of
-    /// what its children need, and `NOT` needs nothing the index checks. What each node needs is costed first, and
-    /// only the anchors chosen are gathered.
+    /// what its children need, and `NOT` needs nothing the index checks. Nor does a field compared with another
+    /// field, which has no literal: an `OR` with one is evaluated on every event of the type. What each node needs is
+    /// costed first, and only the anchors chosen are gathered.
     ///
     /// - Parameters:
     ///   - root: The program's root node.
@@ -125,7 +126,7 @@ extension IndicatorProgram.View {
             return found == (node.op != .notEqualTo) ? .unconstrained : .never
         case .compare:
             return leaf(node).map { .anchored(cost: $0.shape.cost * $0.constants.count) } ?? .unconstrained
-        case .not, .anyCompare:
+        case .not, .anyCompare, .fieldCompare:
             return .unconstrained
         }
     }
@@ -172,7 +173,7 @@ extension IndicatorProgram.View {
                 anchors.append(IndicatorAnchor(field: node.field, shape: leaf.shape, folding: leaf.folding,
                                                offset: constants[index].offset, length: constants[index].length))
             }
-        case .not, .truth, .eventType, .anyCompare:
+        case .not, .truth, .eventType, .anyCompare, .fieldCompare:
             return
         }
     }

@@ -41,6 +41,9 @@ extension IndicatorProgram {
             return Node(kind: comparison.isAny ? .anyCompare : .compare, op: comparison.op,
                         options: comparison.options, field: comparison.field, first: first,
                         count: Int32(constants.count) - first)
+        case .compareFields(let comparison):
+            return Node(kind: .fieldCompare, op: comparison.op, options: comparison.options, field: comparison.left,
+                        other: comparison.right)
         }
     }
 

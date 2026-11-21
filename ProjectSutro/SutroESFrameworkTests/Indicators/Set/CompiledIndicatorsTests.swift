@@ -67,7 +67,7 @@ final class CompiledIndicatorsTests: XCTestCase {
     /// Each hit is the indicator's: its name, tactic, technique and severity, whether Mac Monitor ships it, and that
     /// the Security Extension evaluated it.
     func testHitsDescribeTheirIndicators() throws {
-        let shipped = try XCTUnwrap(Indicator.defaults.first { $0.name == "Adhoc signed" })
+        let shipped = try XCTUnwrap(Indicator.defaults.first { $0.name == "Ad-hoc signed" })
         var own = indicator(Self.everyExec)
         own.severity = .high
         var values = MessageValueCache()
@@ -78,9 +78,12 @@ final class CompiledIndicatorsTests: XCTestCase {
         }
         let hits = CompiledIndicators([shipped, own]).hits(for: message, values: &values)
         XCTAssertEqual(hits.count, 2)
-        XCTAssertEqual(hits.first, IndicatorHit(shipped, isDefault: true, evaluatedBy: .securityExtension))
-        XCTAssertEqual(hits.first?.tactic, "Defense Evasion")
-        XCTAssertEqual(hits.first?.tactic_id, "TA0005")
+        var expected = IndicatorHit(shipped, isDefault: true, pack: 0, evaluatedBy: .securityExtension)
+        expected.matched = hits.first?.matched
+        XCTAssertEqual(hits.first, expected)
+        XCTAssertEqual(hits.first?.matched?.map(\.field), ["event.exec.target.is_adhoc_signed"])
+        XCTAssertEqual(hits.first?.tactic, "Defense Impairment")
+        XCTAssertEqual(hits.first?.tactic_id, "TA0112")
         XCTAssertEqual(hits.first?.technique, "T1553.002")
         XCTAssertEqual(hits.first?.severity, shipped.severity)
         XCTAssertEqual(hits.last, IndicatorHit(own, isDefault: false, evaluatedBy: .securityExtension))
@@ -107,7 +110,8 @@ final class CompiledIndicatorsTests: XCTestCase {
     /// A set made from another compiles only the predicates that one didn't have, and the same programs result.
     func testCompiledPredicatesAreReused() throws {
         let first = CompiledIndicators(Indicator.defaults)
-        XCTAssertEqual(first.compiledCount, Indicator.defaults.count)
+        /// One for each rule on one event, and one for each step of a sequence.
+        XCTAssertEqual(first.compiledCount, Indicator.defaults.reduce(0) { $0 + ($1.sequence?.steps.count ?? 1) })
         let added = indicator(Self.everyExec + #" AND context == "new""#)
         let second = CompiledIndicators(Indicator.defaults + [added], reusing: first)
         XCTAssertEqual(second.compiledCount, 1)
@@ -121,10 +125,10 @@ final class CompiledIndicatorsTests: XCTestCase {
     /// Programs copied from one set's store into the next, in another order, with some gone and some new, and copied
     /// again into a third, give the same hits as the same rules compiled afresh.
     func testCopiedProgramsAreTheSameAsFreshOnes() throws {
-        let doubled = Indicator.defaults + Indicator.defaults.map { indicator -> Indicator in
+        let doubled = Indicator.eventDefaults + Indicator.eventDefaults.map { indicator -> Indicator in
             var copy = indicator
             copy.id = UUID()
-            copy.predicate = "(\(indicator.predicate)) AND NOT context == \"/nonexistent\""
+            copy.rule = .event("(\(indicator.predicate!)) AND NOT context == \"/nonexistent\"")
             return copy
         }
         let first = CompiledIndicators(doubled)
@@ -198,6 +202,56 @@ final class CompiledIndicatorsTests: XCTestCase {
             XCTAssertEqual(stamping, 0, "stamping \(message.es_event_type)")
             XCTAssertNil(stamped.indicators_undetermined)
         }
+    }
+}
+
+
+// MARK: - Fields compared with fields
+extension CompiledIndicatorsTests {
+    /// Rules that compare fields with fields, as an indicator would write them, guarded and not, of direct and record
+    /// fields, a launched-by parent's among them.
+    static let fieldRules = [
+        "event.exec != nil AND process.team_id != nil AND event.exec.target.team_id != nil "
+            + "AND event.exec.target.team_id != process.team_id",
+        "event.exec != nil AND event.exec.target.team_id == process.team_id",
+        "event.exec != nil AND process.executable.path ENDSWITH[c] process.executable.name",
+        "event.exec != nil AND event.exec.target.executable.path BEGINSWITH process.executable.path",
+        "event.exec != nil AND event.exec.target.euid != event.exec.target.ruid",
+        "event.exec != nil AND process.pid == event.exec.target.pid",
+        "event.exec != nil AND event.exec.launched_by_parent.pid <= process.ppid",
+        "event.exec != nil AND NOT process.signing_id ENDSWITH event.exec.target.signing_id",
+        "event.close != nil AND event.close.target.name ==[cd] process.executable.name",
+        "(event.open != nil OR event.close != nil) AND target_path BEGINSWITH process.executable.path",
+        "es_event_type IN {\"ES_EVENT_TYPE_NOTIFY_EXEC\", \"ES_EVENT_TYPE_NOTIFY_FORK\"} "
+            + "AND process.is_platform_binary >= event.exec.target.is_adhoc_signed",
+    ]
+
+    /// A set of rules that compare fields with fields hits as `NSPredicate` matches each on the event's record, and
+    /// as Mac Monitor's own matcher (``IndicatorMatcher``) does on the stored event, leaving none undetermined.
+    func testFieldComparisonsHitAsNSPredicateMatches() throws {
+        let indicators = Self.fieldRules.map(indicator)
+        let compiled = CompiledIndicators(indicators)
+        XCTAssertEqual(compiled.problems, [])
+        XCTAssertEqual(compiled.count, indicators.count)
+        let messages = try SyntheticCorpus.records().map(\.message) + allFixtureMessages() + lineageTrace()
+        var values = MessageValueCache()
+        var hits: [UUID: Int] = [:]
+        try withEventStore(messages) { _, stored in
+            let matcher = IndicatorMatcher(indicators)
+            let predicates = try indicators.map { try StreamFilter.Predicate($0.predicate!, for: .indicator) }
+            for (message, event) in zip(messages, stored) {
+                let record = try StreamFilter.Predicate.record(of: event)
+                let expected = zip(indicators, predicates).filter { (try? $0.1.evaluate(on: record)) == true }
+                    .map(\.0.id)
+                let evaluation = compiled.evaluate(message, values: &values)
+                let label = "\(message.es_event_type) \(message.target_path ?? "")"
+                XCTAssertEqual(evaluation.hits.map(\.id), expected, label)
+                XCTAssertEqual(evaluation.undetermined, [], label)
+                XCTAssertEqual(matcher.matches(event).map(\.id), expected, label)
+                evaluation.hits.forEach { hits[$0.id, default: 0] += 1 }
+            }
+        }
+        XCTAssertGreaterThanOrEqual(hits.count, indicators.count / 2, "Few field rules matched any event")
     }
 }
 
