@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>AllowUserOverrides</key>
+			<true/>
+			<key>AllowedSystemExtensionTypes</key>
+			<dict>
+				<key>4HMJQ7V3SX</key>
+				<array>
+					<string>EndpointSecurityExtension</string>
+				</array>
+			</dict>
+			<key>AllowedSystemExtensions</key>
+			<dict>
+				<key>4HMJQ7V3SX</key>
+				<array>
+					<string>com.swiftlydetecting.agent.securityextension</string>
+				</array>
+			</dict>
+			<key>PayloadDescription</key>
+			<string>Allows Mac Monitor's Security Extension without asking the user.</string>
+			<key>PayloadDisplayName</key>
+			<string>Mac Monitor Security Extension</string>
+			<key>PayloadIdentifier</key>
+			<string>com.swiftlydetecting.agent.profile.system-extension</string>
+			<key>PayloadType</key>
+			<string>com.apple.system-extension-policy</string>
+			<key>PayloadUUID</key>
+			<string>229397D2-7272-4700-AB64-F6050673169B</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>PayloadDescription</key>
+			<string>Gives Mac Monitor's Security Extension Full Disk Access, which Endpoint Security requires.</string>
+			<key>PayloadDisplayName</key>
+			<string>Mac Monitor Full Disk Access</string>
+			<key>PayloadIdentifier</key>
+			<string>com.swiftlydetecting.agent.profile.full-disk-access</string>
+			<key>PayloadType</key>
+			<string>com.apple.TCC.configuration-profile-policy</string>
+			<key>PayloadUUID</key>
+			<string>2CE37297-7CF0-4863-995C-4DF5CDF9D754</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+			<key>Services</key>
+			<dict>
+				<key>SystemPolicyAllFiles</key>
+				<array>
+					<dict>
+						<key>Authorization</key>
+						<string>Allow</string>
+						<key>CodeRequirement</key>
+						<string>anchor apple generic and identifier "com.swiftlydetecting.agent.securityextension" and (certificate leaf[field.1.2.840.113635.100.6.1.9] /* exists */ or certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "4HMJQ7V3SX")</string>
+						<key>Comment</key>
+						<string>Mac Monitor Security Extension</string>
+						<key>Identifier</key>
+						<string>com.swiftlydetecting.agent.securityextension</string>
+						<key>IdentifierType</key>
+						<string>bundleID</string>
+						<key>StaticCode</key>
+						<false/>
+					</dict>
+				</array>
+			</dict>
+		</dict>
+	</array>
+	<key>PayloadDescription</key>
+	<string>Allows Mac Monitor's Security Extension and gives it Full Disk Access. Both settings take effect only when a device management service installs the profile.</string>
+	<key>PayloadDisplayName</key>
+	<string>Mac Monitor</string>
+	<key>PayloadIdentifier</key>
+	<string>com.swiftlydetecting.agent.profile</string>
+	<key>PayloadOrganization</key>
+	<string>Swiftly Detecting</string>
+	<key>PayloadScope</key>
+	<string>System</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>B4396C9C-3ADD-4437-AF53-54ABCA7B0BFA</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>
