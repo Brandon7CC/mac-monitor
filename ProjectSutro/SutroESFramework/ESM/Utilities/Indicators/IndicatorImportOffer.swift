@@ -33,32 +33,40 @@ public struct IndicatorImportOffer: Equatable {
     public let added: [Indicator]
     /// The shipped indicators the user changed, each as it would replace the Mac's version, in their order.
     public let edited: [Indicator]
+    /// The user's indicators that aren't offered, as the Security Extension can't run them: their own first, then
+    /// the shipped ones they changed.
+    public let leftOut: [Indicator]
 
     /// - Parameters:
     ///   - data: The user's `findings` user default, or `nil`.
     ///   - mac: The Mac's indicators now.
     ///   - shipped: The indicators Mac Monitor ships.
-    /// - Returns: `nil` when there's nothing to offer.
+    /// - Returns: `nil` when there's nothing to offer or to say was left out.
     public init?(legacy data: Data?, mac: [Indicator], shipped: [Indicator] = Indicator.defaults) {
         guard let legacy = data.flatMap({ SavedIndicators(data: $0, defaults: shipped) })?.indicators else {
             return nil
         }
         let original = Dictionary(shipped.map { ($0.id, $0) }) { first, _ in first }
         let current = Dictionary(mac.map { ($0.id, $0) }) { first, _ in first }
-        added = legacy.filter { original[$0.id] == nil && current[$0.id] == nil }
-        edited = legacy.compactMap { indicator -> Indicator? in
-            if let shippedVersion = original[indicator.id], indicator.sameDetection(as: shippedVersion) {
+        let own = legacy.filter { original[$0.id] == nil && current[$0.id] == nil }
+        let changed = legacy.compactMap { indicator -> Indicator? in
+            if let shippedVersion = original[indicator.id], indicator.sameIndicator(as: shippedVersion) {
                 return nil
             }
             guard Indicator.isShippedIdentity(indicator.id),
                   let base = current[indicator.id] ?? original[indicator.id],
-                  !indicator.sameDetection(as: base) else { return nil }
+                  !indicator.sameIndicator(as: base) else { return nil }
             var replacement = indicator
             replacement.isEnabled = base.isEnabled
             replacement.copyViews(from: base)
             return replacement
         }
-        guard !added.isEmpty || !edited.isEmpty else { return nil }
+        /// Mac Monitor 3.0 matched indicators itself, so one of its rules can be one the Security Extension can't
+        /// run, such as one that names no event type.
+        added = own.filter { $0.sensorProblem == nil }
+        edited = changed.filter { $0.sensorProblem == nil }
+        leftOut = (own + changed).filter { $0.sensorProblem != nil }
+        guard !added.isEmpty || !edited.isEmpty || !leftOut.isEmpty else { return nil }
     }
 
     /// The offer to show a user, if one is due.
