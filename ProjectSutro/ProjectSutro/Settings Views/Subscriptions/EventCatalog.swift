@@ -75,7 +75,8 @@ enum EventCatalog {
         ]),
         ("Login and sessions", "person.crop.circle", .green, [
             ("login_login", "Login"), ("lw_session_login", "Login window login"),
-            ("lw_session_unlock", "Screen unlock"), ("openssh_login", "SSH login"), ("openssh_logout", "SSH logout")
+            ("lw_session_unlock", "Screen unlock"), ("authentication", "Authentication"),
+            ("openssh_login", "SSH login"), ("openssh_logout", "SSH logout")
         ]),
         ("Authorization and privacy", "hand.raised", .orange, [
             ("authorization_petition", "Authorization request"), ("authorization_judgement", "Authorization decision"),

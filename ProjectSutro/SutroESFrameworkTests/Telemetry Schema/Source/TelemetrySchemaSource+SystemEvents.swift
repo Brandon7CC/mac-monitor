@@ -96,6 +96,7 @@ extension TelemetrySchemaSource {
             ]),
             session(ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN, "A login window login: es_event_lw_session_login_t."),
             session(ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK, "A login window unlock: es_event_lw_session_unlock_t."),
+            authentication,
             event(ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGIN, "An OpenSSH login: es_event_openssh_login_t.", [
                 eslogger("success", .boolean),
             ] + named("result_type", "The es_openssh_login_result_type_t.")
@@ -185,6 +186,45 @@ extension TelemetrySchemaSource {
         ] + keys + [
             eslogger("instigator_token", .nullable(.ref("audit_token"))),
             eslogger("app_token", .nullable(.ref("audit_token"))),
+        ])
+    }
+    
+    /// An authentication: `es_event_authentication_t`, whose `data` holds the arm its `type` names.
+    private static var authentication: SchemaEvent {
+        let instigator = eslogger("instigator", .nullable(.ref("process")),
+                                  "The process that asked for the authentication: the XPC caller.")
+        let od = SchemaObject("Open Directory checked a record's password: es_event_authentication_od_t.", [
+            instigator,
+            eslogger("record_type", .string, "The record's type: typically Users."),
+            eslogger("record_name", .string, "The record's name: for Users, the user name."),
+            eslogger("node_name", .string, "Such as /Local/Default."),
+            eslogger("db_path", .nullable(.string), "The database of a /Local/Default node."),
+        ] + tokens("instigator"))
+        let touchID = SchemaObject("Touch ID verified or identified a user: es_event_authentication_touchid_t.",
+                                   [instigator] + named("touchid_mode", "The es_touchid_mode_t.") + [
+            eslogger("uid", .nullable(.integer),
+                     "The user authenticated, for a verification that succeeded. Unsigned."),
+            enrichment("uid_human", .nullable(.string),
+                       "The name of `uid`: null without one, or for a user this Mac doesn't know."),
+        ] + tokens("instigator"))
+        let token = SchemaObject("CryptoTokenKit authenticated with a token: es_event_authentication_token_t.", [
+            instigator,
+            eslogger("pubkey_hash", .string, "The hash of the public key."),
+            eslogger("token_id", .string),
+            eslogger("kerberos_principal", .nullable(.string), "Given when the token got a ticket-granting ticket."),
+        ] + tokens("instigator"))
+        let autoUnlock = SchemaObject("An Apple Watch unlocked the Mac or approved an authorization prompt: "
+                                        + "es_event_authentication_auto_unlock_t.",
+                                      [eslogger("username", .string)] + named("type", "The es_auto_unlock_type_t."))
+        let other = Absence("`type` names another kind of authentication")
+        return event(ES_EVENT_TYPE_NOTIFY_AUTHENTICATION, "An authentication was performed: es_event_authentication_t.",
+                     [eslogger("success", .boolean)] + named("type", "The es_authentication_type_t.") + [
+            eslogger("data", .object(SchemaObject("The arm `type` names. Empty for a type Mac Monitor doesn't know.", [
+                eslogger("od", .object(od), absent: other),
+                eslogger("touchid", .object(touchID), absent: other),
+                eslogger("token", .object(token), absent: other),
+                eslogger("auto_unlock", .object(autoUnlock), absent: other),
+            ], keyCount: 0...1))),
         ])
     }
     

@@ -47,6 +47,8 @@ public class ESEventType: NSManagedObject, Identifiable {
     @NSManaged public var lw_session_login: ESLWLoginEvent?
     @NSManaged public var lw_session_unlock: ESLWUnlockEvent?
     
+    @NSManaged public var authentication: ESAuthenticationEvent?
+    
     @NSManaged public var link: ESLinkEvent?
     
     @NSManaged public var signal: ESProcessSignalEvent?
@@ -131,6 +133,9 @@ public class ESEventType: NSManagedObject, Identifiable {
         case login_login
         case lw_session_login
         case lw_session_unlock
+        
+        /// Authentication events
+        case authentication
         
         /// OpenSSH events
         case openssh_login
@@ -257,6 +262,9 @@ public class ESEventType: NSManagedObject, Identifiable {
             self.lw_session_login = ESLWLoginEvent(from: e, message: message, in: context)
         case .lw_session_unlock(let e):
             self.lw_session_unlock = ESLWUnlockEvent(from: e, message: message, in: context)
+        // MARK: Authentication events
+        case .authentication(let e):
+            self.authentication = ESAuthenticationEvent(from: e, message: message, in: context)
         // MARK: OpenSSH events
         case .openssh_login(let e):
             self.openssh_login = ESOpenSSHLoginEvent(from: e, message: message, in: context)
@@ -372,6 +380,7 @@ extension ESEventType: Encodable {
         try container.encodeIfPresent(login_login, forKey: .login_login)
         try container.encodeIfPresent(lw_session_login, forKey: .lw_session_login)
         try container.encodeIfPresent(lw_session_unlock, forKey: .lw_session_unlock)
+        try container.encodeIfPresent(authentication, forKey: .authentication)
         
         // MARK: OpenSSH events
         try container.encodeIfPresent(openssh_login, forKey: .openssh_login)

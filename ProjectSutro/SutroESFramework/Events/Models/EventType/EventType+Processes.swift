@@ -43,6 +43,13 @@ extension EventType {
         case .tcc_modify(var e):
             Self.visit(&e.instigator, body); Self.visit(&e.responsible, body); self = .tcc_modify(e)
 
+        // MARK: Authentication events
+        case .authentication(var e):
+            var instigator = e.instigator
+            Self.visit(&instigator, body)
+            e.instigator = instigator
+            self = .authentication(e)
+
         // MARK: Directory events
         case .od_create_user(var e): Self.visit(&e.instigator, body); self = .od_create_user(e)
         case .od_modify_password(var e): Self.visit(&e.instigator, body); self = .od_modify_password(e)

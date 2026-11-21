@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C27B03B6567C4A7798EA5C32 /* SystemAuthenticationMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9A904370C6C4B22ADD79A0A /* SystemAuthenticationMetadataView.swift */; };
+		9BE13EBC72164960A8744422 /* ESAuthenticationEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E013B52AF614D02946A6A3E /* ESAuthenticationEvent+CoreDataClass.swift */; };
+		12631718AC8D477E85127139 /* AuthenticationEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B120B087E084F30B92D23FC /* AuthenticationEvent.swift */; };
 		0D0D0D000000000000000002 /* OpenDirectoryMember.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000001 /* OpenDirectoryMember.swift */; };
 		0D0D0D000000000000000004 /* OpenDirectoryEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000003 /* OpenDirectoryEvent.swift */; };
 		0D0D0D000000000000000006 /* ESODEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000005 /* ESODEvent+CoreDataClass.swift */; };
@@ -799,6 +802,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C9A904370C6C4B22ADD79A0A /* SystemAuthenticationMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAuthenticationMetadataView.swift; sourceTree = "<group>"; };
+		7E013B52AF614D02946A6A3E /* ESAuthenticationEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESAuthenticationEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
+		5B120B087E084F30B92D23FC /* AuthenticationEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationEvent.swift; sourceTree = "<group>"; };
 		3D4F00000000000000000042 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		0BE084741F7325B96F4E8AF5 /* ToolRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolRunner.swift; sourceTree = "<group>"; };
 		0D0D0D000000000000000001 /* OpenDirectoryMember.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryMember.swift; sourceTree = "<group>"; };
@@ -2461,6 +2467,7 @@
 				28B3437E2D8633C4004127E8 /* Directory Events */,
 				CADD9D812E8DBE62009EC919 /* Socket Events */,
 				CAE9E4522E4FF823001143C2 /* TCC Events */,
+				D9FFED512FF34BD08E227BB2 /* Authentication Events */,
 				CA4CE5B42E53F7DD00C057EB /* Gatekeeper Events */,
 			);
 			path = CoreDataModels;
@@ -3003,6 +3010,7 @@
 				28B3439A2D863CAD004127E8 /* Directory Events */,
 				CADD9D7A2E8DB6B5009EC919 /* Socket Events */,
 				CAE9E44B2E4FE28B001143C2 /* TCC Events */,
+				404395D29BCC4DA4A1AEEDFF /* Authentication Events */,
 				CA4CE59C2E53DB5F00C057EB /* Gatekeeper */,
 			);
 			path = Models;
@@ -3012,6 +3020,7 @@
 			isa = PBXGroup;
 			children = (
 				CADD9D822E8DC720009EC919 /* Socket */,
+				678B9E37A49F4BA59EECA233 /* Authentication */,
 				CA4CE6442E5903FE00C057EB /* Gatekeeper */,
 				CA4CE5992E53BBC600C057EB /* TCC */,
 				CAC48B032E28565F00260C5F /* Open Directory */,
@@ -3527,6 +3536,14 @@
 			path = TCC;
 			sourceTree = "<group>";
 		};
+		404395D29BCC4DA4A1AEEDFF /* Authentication Events */ = {
+			isa = PBXGroup;
+			children = (
+				5B120B087E084F30B92D23FC /* AuthenticationEvent.swift */,
+			);
+			path = "Authentication Events";
+			sourceTree = "<group>";
+		};
 		CA4CE59C2E53DB5F00C057EB /* Gatekeeper */ = {
 			isa = PBXGroup;
 			children = (
@@ -3554,6 +3571,14 @@
 				28A608A32D9B633000962337 /* X509Cert.swift */,
 			);
 			path = "Code Signing";
+			sourceTree = "<group>";
+		};
+		D9FFED512FF34BD08E227BB2 /* Authentication Events */ = {
+			isa = PBXGroup;
+			children = (
+				7E013B52AF614D02946A6A3E /* ESAuthenticationEvent+CoreDataClass.swift */,
+			);
+			path = "Authentication Events";
 			sourceTree = "<group>";
 		};
 		CA4CE5B42E53F7DD00C057EB /* Gatekeeper Events */ = {
@@ -3588,6 +3613,14 @@
 				D15C0000000000000000013A /* Query */,
 			);
 			path = "Event Tables";
+			sourceTree = "<group>";
+		};
+		678B9E37A49F4BA59EECA233 /* Authentication */ = {
+			isa = PBXGroup;
+			children = (
+				C9A904370C6C4B22ADD79A0A /* SystemAuthenticationMetadataView.swift */,
+			);
+			path = Authentication;
 			sourceTree = "<group>";
 		};
 		CA4CE6442E5903FE00C057EB /* Gatekeeper */ = {
@@ -5014,6 +5047,7 @@
 				2852BBBC29DB852500AA833C /* ESXattrSetEvent+CoreDataClass.swift in Sources */,
 				28B9A92A29DBDE2F006619FF /* ESProcessCheckEvent+CoreDataClass.swift in Sources */,
 				2820DD1A297228290053CB48 /* ESOpenSSHLogoutEvent+CoreDataClass.swift in Sources */,
+				9BE13EBC72164960A8744422 /* ESAuthenticationEvent+CoreDataClass.swift in Sources */,
 				CA4CE5BB2E53F80B00C057EB /* ESGatekeeperUserOverrideEvent+CoreDataClass.swift in Sources */,
 				28823F342EC82F28000B7F5C /* ESMProtectEvent+CoreDataClass.swift in Sources */,
 				CA4CE5BF2E53F80B00C057EB /* ESSignedFileInfo+CoreDataClass.swift in Sources */,
@@ -5203,6 +5237,7 @@
 				4D4D0000000000000000003E /* ESMessage+Indicators.swift in Sources */,
 				2852BB8929D89AEB00AA833C /* FileOpenEvent.swift in Sources */,
 				28B865DB2A312C7100F06441 /* ESODCreateUserEvent+CoreDataClass.swift in Sources */,
+				12631718AC8D477E85127139 /* AuthenticationEvent.swift in Sources */,
 				CA4CE59E2E53DB7900C057EB /* GatekeeperUserOverrideEvent.swift in Sources */,
 				2820DD11297225900053CB48 /* SSHLoginEvent.swift in Sources */,
 				2847138C2A2E9D4D00FA4E59 /* ProfileAddEvent.swift in Sources */,
@@ -5423,6 +5458,7 @@
 				28CEF0EF29776C98003057D2 /* SystemOpenSSHLogoutMetadataView.swift in Sources */,
 				28B9A94129DC9578006619FF /* SystemCodeSigningInvalidatedMetadataView.swift in Sources */,
 				CA4CE59B2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift in Sources */,
+				C27B03B6567C4A7798EA5C32 /* SystemAuthenticationMetadataView.swift in Sources */,
 				CA4CE6462E59041400C057EB /* SystemGatekeeperUserOverrideMetadataView.swift in Sources */,
 				284CFE172A16EE1900D0038B /* SystemDetailsSettingsView.swift in Sources */,
 				F17E00000000000000000018 /* EventCatalog.swift in Sources */,

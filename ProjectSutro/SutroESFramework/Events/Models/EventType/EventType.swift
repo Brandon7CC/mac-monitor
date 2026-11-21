@@ -70,6 +70,9 @@ public enum EventType: Hashable, Codable {
     case lw_session_login(LWSessionEvent)
     case lw_session_unlock(LWSessionEvent)
     
+    // MARK: Authentication events
+    case authentication(AuthenticationEvent)
+    
     // MARK: Kernel events
     case iokit_open(IOKitOpenEvent)
     

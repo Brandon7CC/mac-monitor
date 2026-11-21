@@ -78,6 +78,9 @@ extension SystemTargetProcessView {
         case ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN: SystemLWLoginMetadataView(esSystemEvent: message)
         case ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK: SystemLWUnlockMetadataView(esSystemEvent: message)
 
+        // MARK: Authentication events
+        case ES_EVENT_TYPE_NOTIFY_AUTHENTICATION: SystemAuthenticationMetadataView(message: message)
+
         // MARK: Kernel events
         case ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN: SystemIOKitOpenMetadataView(esSystemEvent: message)
 

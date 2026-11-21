@@ -98,6 +98,9 @@ extension EventType {
             .lw_session_login(LWSessionEvent(from: rawMessage.pointee.event.lw_session_login.pointee))
         case ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK:
             .lw_session_unlock(LWSessionEvent(from: rawMessage.pointee.event.lw_session_unlock.pointee))
+        // MARK: Authentication events
+        case ES_EVENT_TYPE_NOTIFY_AUTHENTICATION:
+            .authentication(AuthenticationEvent(from: rawMessage))
         // MARK: Kernel events
         case ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN:
             .iokit_open(IOKitOpenEvent(from: rawMessage))
@@ -245,6 +248,11 @@ extension EventType {
             return (event.username, nil)
         case .lw_session_login(let event), .lw_session_unlock(let event):
             return (event.username, nil)
+        // MARK: Authentication events
+        case .authentication(let event):
+            let kind = event.type_string.droppingPrefix("ES_AUTHENTICATION_TYPE_")
+            return (Self.tagged(event.success ? "Success" : "Fail", "\(kind) → \(event.account ?? "")"),
+                    event.instigator?.executable?.path)
         // MARK: Kernel events
         case .iokit_open(let event):
             return (event.user_client_class, nil)

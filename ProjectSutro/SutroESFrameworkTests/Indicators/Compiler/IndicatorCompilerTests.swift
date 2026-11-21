@@ -212,7 +212,7 @@ extension IndicatorCompilerTests {
         let stored = try StreamFilter.Predicate("event.btm_launch_item_add != nil", for: .indicator)
         XCTAssertTrue(StoredEventValues.canEvaluate(stored.parsed))
         XCTAssertEqual(PredicateEventTypes.payloads["event.lw_session_login"], "ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN")
-        XCTAssertEqual(PredicateEventTypes.payloads.count, 51)
+        XCTAssertEqual(PredicateEventTypes.payloads.count, 52)
     }
 
     /// An `AND`'s or an `OR`'s comparisons of record fields run after its others, at every depth, so a direct field

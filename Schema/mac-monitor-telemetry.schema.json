@@ -34,6 +34,7 @@
       "x-mac-monitor-origin": "mac-monitor",
       "type": "string",
       "enum": [
+        "ES_EVENT_TYPE_NOTIFY_AUTHENTICATION",
         "ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_JUDGEMENT",
         "ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_PETITION",
         "ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD",
@@ -125,6 +126,7 @@
         94,
         96,
         97,
+        111,
         112,
         113,
         114,
@@ -367,6 +369,228 @@
         }
       },
       "required": ["asid", "auid", "egid", "euid", "pid", "pidversion", "rgid", "ruid"],
+      "additionalProperties": false
+    },
+    "authentication_event": {
+      "description": "An authentication was performed: es_event_authentication_t.",
+      "type": "object",
+      "properties": {
+        "data": {
+          "description": "The arm `type` names. Empty for a type Mac Monitor doesn't know.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "object",
+          "minProperties": 0,
+          "maxProperties": 1,
+          "properties": {
+            "auto_unlock": {
+              "description": "An Apple Watch unlocked the Mac or approved an authorization prompt: es_event_authentication_auto_unlock_t.",
+              "x-mac-monitor-origin": "eslogger",
+              "type": "object",
+              "properties": {
+                "type": {
+                  "description": "The es_auto_unlock_type_t.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": "integer"
+                },
+                "type_string": {
+                  "description": "The name of `type`, from the SDK's constants.",
+                  "x-mac-monitor-origin": "mac-monitor",
+                  "type": "string"
+                },
+                "username": {
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": "string"
+                }
+              },
+              "required": ["type", "type_string", "username"],
+              "additionalProperties": false
+            },
+            "od": {
+              "description": "Open Directory checked a record's password: es_event_authentication_od_t.",
+              "x-mac-monitor-origin": "eslogger",
+              "type": "object",
+              "properties": {
+                "db_path": {
+                  "description": "The database of a /Local/Default node.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": ["string", "null"]
+                },
+                "instigator": {
+                  "description": "The process that asked for the authentication: the XPC caller.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/process"
+                    }
+                  ]
+                },
+                "instigator_token": {
+                  "description": "null before message version 8.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/audit_token"
+                    }
+                  ]
+                },
+                "node_name": {
+                  "description": "Such as /Local/Default.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": "string"
+                },
+                "record_name": {
+                  "description": "The record's name: for Users, the user name.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": "string"
+                },
+                "record_type": {
+                  "description": "The record's type: typically Users.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "db_path",
+                "instigator",
+                "instigator_token",
+                "node_name",
+                "record_name",
+                "record_type"
+              ],
+              "additionalProperties": false
+            },
+            "token": {
+              "description": "CryptoTokenKit authenticated with a token: es_event_authentication_token_t.",
+              "x-mac-monitor-origin": "eslogger",
+              "type": "object",
+              "properties": {
+                "instigator": {
+                  "description": "The process that asked for the authentication: the XPC caller.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/process"
+                    }
+                  ]
+                },
+                "instigator_token": {
+                  "description": "null before message version 8.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/audit_token"
+                    }
+                  ]
+                },
+                "kerberos_principal": {
+                  "description": "Given when the token got a ticket-granting ticket.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": ["string", "null"]
+                },
+                "pubkey_hash": {
+                  "description": "The hash of the public key.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": "string"
+                },
+                "token_id": {
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": "string"
+                }
+              },
+              "required": ["instigator", "instigator_token", "kerberos_principal", "pubkey_hash", "token_id"],
+              "additionalProperties": false
+            },
+            "touchid": {
+              "description": "Touch ID verified or identified a user: es_event_authentication_touchid_t.",
+              "x-mac-monitor-origin": "eslogger",
+              "type": "object",
+              "properties": {
+                "instigator": {
+                  "description": "The process that asked for the authentication: the XPC caller.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/process"
+                    }
+                  ]
+                },
+                "instigator_token": {
+                  "description": "null before message version 8.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/audit_token"
+                    }
+                  ]
+                },
+                "touchid_mode": {
+                  "description": "The es_touchid_mode_t.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": "integer"
+                },
+                "touchid_mode_string": {
+                  "description": "The name of `touchid_mode`, from the SDK's constants.",
+                  "x-mac-monitor-origin": "mac-monitor",
+                  "type": "string"
+                },
+                "uid": {
+                  "description": "The user authenticated, for a verification that succeeded. Unsigned.",
+                  "x-mac-monitor-origin": "eslogger",
+                  "type": ["integer", "null"]
+                },
+                "uid_human": {
+                  "description": "The name of `uid`: null without one, or for a user this Mac doesn't know.",
+                  "x-mac-monitor-origin": "mac-monitor",
+                  "type": ["string", "null"]
+                }
+              },
+              "required": [
+                "instigator",
+                "instigator_token",
+                "touchid_mode",
+                "touchid_mode_string",
+                "uid",
+                "uid_human"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "success": {
+          "x-mac-monitor-origin": "eslogger",
+          "type": "boolean"
+        },
+        "type": {
+          "description": "The es_authentication_type_t.",
+          "x-mac-monitor-origin": "eslogger",
+          "type": "integer"
+        },
+        "type_string": {
+          "description": "The name of `type`, from the SDK's constants.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        }
+      },
+      "required": ["data", "success", "type", "type_string"],
       "additionalProperties": false
     },
     "authorization_judgement_event": {
@@ -809,6 +1033,11 @@
       "minProperties": 1,
       "maxProperties": 1,
       "properties": {
+        "authentication": {
+          "description": "Absent when the record is another type's.",
+          "x-mac-monitor-origin": "eslogger",
+          "$ref": "#/$defs/authentication_event"
+        },
         "authorization_judgement": {
           "description": "Absent when the record is another type's.",
           "x-mac-monitor-origin": "eslogger",
