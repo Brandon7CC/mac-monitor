@@ -72,7 +72,7 @@ public enum IndicatorTable {
         return indicators.map { indicator -> String in
             let reason = reasons[indicator.id]
             let original = defaults[indicator.id]
-            let isDefault = original.map { indicator.sameDetection(as: $0) ? "yes" : "yes, edited on this Mac" }
+            let isDefault = original.map { indicator.sameIndicator(as: $0) ? "yes" : "yes, edited on this Mac" }
             let rows: [(String, String)] = [
                 ("ID", indicator.id.uuidString),
                 ("State", state(of: indicator, runs: reason == nil) + (reason.map { ": \($0)" } ?? "")),
@@ -82,8 +82,7 @@ public enum IndicatorTable {
                 ("Default", isDefault ?? "no"),
                 ("Event tables", indicator.tableMarks.title),
                 ("Description", indicator.description.isEmpty ? "none" : indicator.description),
-                ("Predicate", indicator.predicate),
-            ]
+            ] + ruleRows(of: indicator.rule)
             let width = rows.map(\.0.count).max() ?? 0
             return ([TerminalSafeText.text(indicator.name)] + rows.map { name, value in
                 "  \(name.padding(toLength: width, withPad: " ", startingAt: 0))   \(TerminalSafeText.text(value))"
@@ -118,5 +117,18 @@ public enum IndicatorTable {
     private static func state(of indicator: Indicator, runs: Bool) -> String {
         guard indicator.isEnabled else { return "off" }
         return runs ? "on" : "not run"
+    }
+
+    /// A rule's rows: a predicate's one, or a sequence's order and window, then a row for each step.
+    ///
+    /// - Parameter rule: The rule.
+    /// - Returns: Its rows, as names and values.
+    private static func ruleRows(of rule: Indicator.Rule) -> [(String, String)] {
+        guard case .sequence(let sequence) = rule else { return rule.predicates.map { ("Predicate", $0.predicate) } }
+        let head = rule.text.split(separator: "\n", maxSplits: 1).first.map(String.init) ?? ""
+        return [("Sequence", head)] + sequence.steps.map { step in
+            let joins = step.join.map { " [\($0.field) == \($0.step).\($0.stepField)]" }.joined()
+            return ("Step \(step.name)", step.predicate + joins)
+        }
     }
 }

@@ -80,7 +80,7 @@ extension IndicatorTests {
     ///   self-signed code with no team ID, a socket named mDNSResponder elsewhere, one at the path that root doesn't
     ///   own, the service in a user's domain, another service, a bind and an open of the socket aren't.
     func resolverCases() -> [Case] {
-        let name = "Unsigned code resolved a name"
+        let name = "DNS lookup by ad-hoc or unsigned code"
         let socket = "/private/var/run/mDNSResponder"
         /// - Parameters:
         ///   - path: The socket's path.

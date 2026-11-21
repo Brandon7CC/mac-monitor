@@ -11,20 +11,21 @@ import Foundation
 // MARK: - Defaults
 public extension Indicator {
     /// The indicators Mac Monitor ships, each with an identity of its own, so Restore Defaults puts back the same ones.
-    /// They're the `indicators` of `Detection/DefaultIndicators.json`, read from this binary (``DefaultIndicators``).
+    /// They're the indicators of the signed pack this build links in (``LinkedIndicatorPack``), which the indicators
+    /// repository builds and tests.
     ///
-    /// Each has the severity its evidence earns: high only for an XProtect detection, which is malware macOS itself
-    /// found. Medium for persistence, injection, payloads, password checks and privacy permissions written around
-    /// tccd, which are suspicious but have benign uses (a new executable, an inserted dylib, a login hook, a change to
-    /// authentication, a password checked with dscl, a TCC database written), and low for context and what's often
-    /// benign (a login, a download tool, a plist, an archive or a compiled script written, quarantine removed, a
-    /// keychain opened, a name resolved by unsigned code).
-    static let defaults: [Indicator] = DefaultIndicators.file.indicators
+    /// Each names its own severity, tactic and technique, which the pack's authors chose with its rule.
+    static let defaults: [Indicator] = LinkedIndicatorPack.pack.indicators
+
+    /// The identities never used again, as the linked pack's header lists them: the defaults Mac Monitor 3.1 stopped
+    /// shipping (Not quarantined, osascript and Non-Apple as root), and any retired since. A saved reference to one
+    /// is dropped, where one to an indicator that's only away is kept.
+    static let retiredDefaults = Set(LinkedIndicatorPack.pack.pack.retired)
 
     /// The New executable indicator's predicate: an exec of an executable created less than
     /// ``ESProcessExecEvent/newExecutableAge`` before it ran. The indicator, its mark, Event Facts' clock and Event
     /// Search's starter search all use it, so they select the same execs.
-    static let newExecutablePredicate = shipped(9).predicate
+    static let newExecutablePredicate = shippedPredicate(9)
 }
 
 
@@ -35,5 +36,12 @@ extension Indicator {
     ///   pins.
     static func shipped(_ number: Int) -> Indicator {
         defaults.first { $0.id == uuid(number) }!
+    }
+
+    /// - Parameter number: A default's number.
+    /// - Returns: The default's predicate. The defaults the built-in marks and the app name are rules on one event,
+    ///   which a test pins.
+    static func shippedPredicate(_ number: Int) -> String {
+        shipped(number).predicate!
     }
 }

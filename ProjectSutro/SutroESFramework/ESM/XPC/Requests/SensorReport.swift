@@ -72,16 +72,38 @@ public struct SensorReport: Codable, Equatable, Sendable {
     public var streams: Int
     /// The most `macmonitor` streams at once.
     public var streamCapacity: Int
+    /// Which release Mac Monitor's own indicators are, and whether a pack was installed since this build. `nil` from
+    /// a Security Extension older than 3.2, or one that keeps no indicators.
+    public var indicators: IndicatorPackStatus? = nil
 
     /// - Parameters:
     ///   - endpointSecurity: What Endpoint Security answers when the Security Extension asks for a client.
     ///   - app: Mac Monitor, the app.
     ///   - streams: How many `macmonitor` streams are running.
     ///   - streamCapacity: The most at once.
-    public init(endpointSecurity: EndpointSecurity, app: App, streams: Int, streamCapacity: Int) {
+    ///   - indicators: Which release Mac Monitor's own indicators are.
+    public init(endpointSecurity: EndpointSecurity, app: App, streams: Int, streamCapacity: Int,
+                indicators: IndicatorPackStatus? = nil) {
         self.endpointSecurity = endpointSecurity
         self.app = app
         self.streams = streams
         self.streamCapacity = streamCapacity
+        self.indicators = indicators
+    }
+}
+
+extension SensorReport {
+    /// What a newer Security Extension says of its indicators that this build can't read is left out, and the rest
+    /// of the report still reads.
+    ///
+    /// - Parameter decoder: The decoder.
+    /// - Throws: A `DecodingError` for a missing field other than the indicators.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        endpointSecurity = try container.decode(EndpointSecurity.self, forKey: .endpointSecurity)
+        app = try container.decode(App.self, forKey: .app)
+        streams = try container.decode(Int.self, forKey: .streams)
+        streamCapacity = try container.decode(Int.self, forKey: .streamCapacity)
+        indicators = try? container.decodeIfPresent(IndicatorPackStatus.self, forKey: .indicators)
     }
 }

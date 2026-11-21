@@ -14,6 +14,7 @@ public extension Indicator {
     /// `macmonitor indicators edit` and the Security Extension. Whether it's on isn't one: enable and disable change
     /// that, so an edit never undoes another writer's. Nor are the view switches, which are each user's.
     enum EditableField: String, Codable, CaseIterable, Sendable {
+        /// `predicate` is its rule: a predicate on one event, or a sequence's steps.
         case name, description, symbol, color, predicate, tactic, technique, severity
 
         /// Is it part of the rule? An edit to one stops a shipped indicator following Mac Monitor's updates, as
@@ -36,14 +37,16 @@ public extension Indicator {
         }
     }
 
-    /// Is it the same indicator as another, its predicate byte for byte? `String`'s `==`, which this type's is made
+    /// Is it the same indicator as another, its predicates byte for byte? `String`'s `==`, which this type's is made
     /// of, takes canonically equal spellings as one, where a predicate's `==`, `!=` and `IN` compare bytes: an edit
     /// that only re-spells a constant, NFC to NFD, changes what the indicator matches.
     ///
     /// - Parameter other: Another indicator.
-    /// - Returns: Whether they're equal and their predicates are the same UTF-8.
+    /// - Returns: Whether they're equal and each of their predicates, a sequence's steps' included, is the same UTF-8.
     func isIdentical(to other: Indicator) -> Bool {
-        self == other && predicate.utf8.elementsEqual(other.predicate.utf8)
+        self == other && zip(rule.predicates, other.rule.predicates).allSatisfy { mine, theirs in
+            mine.predicate.utf8.elementsEqual(theirs.predicate.utf8)
+        }
     }
 
     /// Take some editable fields from another indicator, and keep the rest: identity, switch and views included.
@@ -58,7 +61,7 @@ public extension Indicator {
             case .description: description = other.description
             case .symbol: symbol = other.symbol
             case .color: color = other.color
-            case .predicate: predicate = other.predicate
+            case .predicate: rule = other.rule
             case .tactic: tactic = other.tactic
             case .technique: technique = other.technique
             case .severity: severity = other.severity
@@ -66,12 +69,12 @@ public extension Indicator {
         }
     }
 
-    /// Does it detect as another indicator does: every editable field the same, whatever its identity, whether it's
+    /// Does it match as another indicator does: every editable field the same, whatever its identity, whether it's
     /// on and its view switches?
     ///
     /// - Parameter other: Another indicator, such as the one Mac Monitor ships with its identity.
     /// - Returns: `true` when ``changedFields(to:)`` is empty.
-    func sameDetection(as other: Indicator) -> Bool {
+    func sameIndicator(as other: Indicator) -> Bool {
         var mine = self
         mine.id = other.id
         mine.isEnabled = other.isEnabled
@@ -101,25 +104,3 @@ public extension Array where Element == Indicator {
     }
 }
 
-
-// MARK: - Tactics by name
-public extension Indicator.Tactic {
-    /// The tactic typed on a command line: its raw value (`defenseEvasion`), its ATT&CK identity (`TA0005`) or its
-    /// name (`Defense Evasion`), ignoring case, spaces, hyphens and underscores.
-    ///
-    /// - Parameter text: What was typed.
-    /// - Returns: The tactic, or `nil` for none of them.
-    static func named(_ text: String) -> Indicator.Tactic? {
-        let typed = folded(text)
-        guard !typed.isEmpty else { return nil }
-        return allCases.first { tactic in
-            [tactic.rawValue, tactic.identifier, tactic.name].contains { folded($0) == typed }
-        }
-    }
-
-    /// - Parameter text: A spelling of a tactic.
-    /// - Returns: It in lowercase, without spaces, hyphens or underscores.
-    private static func folded(_ text: String) -> String {
-        String(text.lowercased().filter { !" -_".contains($0) })
-    }
-}

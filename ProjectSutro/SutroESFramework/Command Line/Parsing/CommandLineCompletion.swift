@@ -52,6 +52,7 @@ public enum CommandLineCompletion {
             case .help: return Command("help", [], [.choice(CommandLineCommand.allCases.map(\.rawValue))])
             case .completion: return Command("completion", [], [.choice(CommandLineShell.allCases.map(\.rawValue))])
             case .status: return Command("status", CommandLineOption.status)
+            case .update: return Command("update", CommandLineOption.update, [.choice(["check"])])
             case .events, .schema, .version: return Command(name.rawValue)
             }
         }

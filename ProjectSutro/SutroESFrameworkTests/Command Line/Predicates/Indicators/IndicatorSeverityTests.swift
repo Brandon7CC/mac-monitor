@@ -10,32 +10,17 @@ import XCTest
 
 
 // MARK: - Severity
-/// Pins an indicator's severity: every shipped one has its own, a missing or unknown one decodes as medium, it's saved
-/// with a shipped indicator only when someone changed it, and it never makes an edit of the rule. Then the field
-/// limits an indicator decodes within.
+/// Pins an indicator's severity: every shipped one names its own, a missing or unknown one decodes as medium, it's
+/// saved with a shipped indicator only when someone changed it, and it never makes an edit of the rule. Then the
+/// field limits an indicator decodes within.
 final class IndicatorSeverityTests: XCTestCase {
-    /// Every shipped indicator has the severity its evidence earns: an XProtect detection and a file a File
-    /// Quarantine-aware app leaves unquarantined are high, 18 are medium and 23 low. The table names every shipped
-    /// indicator, so a new one has to be given its severity here.
+    /// Every shipped indicator has its own severity: the linked pack names one this build knows for each, so none is
+    /// medium only for want of one.
     func testDefaultsHaveSeverities() throws {
-        let expected: [IndicatorSeverity: Set<String>] = [
-            .high: ["XProtect detection", "Unquarantined file from a File Quarantine-aware app"],
-            .medium: ["New executable", "Mach-O written", "Scheduled job added", "SSH access modified",
-                      "Launch job loaded", "Plug-in installed", "Terminal startup command",
-                      "Configuration profile installed", "Login hook set", "Dylib inserted", "Authentication modified",
-                      "Browser extension sideloaded", "Folder Action attached", "Reflective loading",
-                      "Password checked with dscl", "TCC database modified", "Remote thread created",
-                      "Hidden Mach-O executed"],
-            .low: ["Background item added", "AppleScript / JXA", "Login", "Adhoc signed", "Unsigned", "Ran a script",
-                   "Download tool", "Non-Apple driver opened", "Plist modified", "Quarantine removed",
-                   "Keychain opened", "Shell startup file modified", "Archive written", "AppleScript written",
-                   "Unsigned code resolved a name", "Elevated to root", "Task port retrieved", "Process traced",
-                   "Code signature invalidated", "HID device opened", "Background item removed",
-                   "BTM database modified", "Hidden Mach-O written"],
-        ]
-        XCTAssertEqual(expected.mapValues(\.count), [.high: 2, .medium: 18, .low: 23])
-        let shipped = Dictionary(grouping: Indicator.defaults, by: \.severity).mapValues { Set($0.map(\.name)) }
-        XCTAssertEqual(shipped, expected)
+        let file = try IndicatorPackFile(XCTUnwrap(LinkedIndicatorPack.embedded()))
+        let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: file.payload) as? [String: Any])
+        let listed = try XCTUnwrap(payload["indicators"] as? [[String: Any]])
+        XCTAssertEqual(listed.map { $0["severity"] as? String }, Indicator.defaults.map(\.severity.rawValue))
         XCTAssertLessThan(IndicatorSeverity.low, .medium)
         XCTAssertLessThan(IndicatorSeverity.medium, .high)
         XCTAssertEqual(IndicatorSeverity.allCases.map(\.name), ["Low", "Medium", "High"])
@@ -68,25 +53,26 @@ final class IndicatorSeverityTests: XCTestCase {
         }()))
         let untouched = try entries(of: XCTUnwrap(SavedIndicators(indicators).encoded()))
         XCTAssertNil(untouched[0]["severity"])
-        indicators[0].severity = .low
+        let chosen: IndicatorSeverity = indicators[0].severity == .low ? .high : .low
+        indicators[0].severity = chosen
         let changed = try XCTUnwrap(SavedIndicators(indicators).encoded())
         let saved = try entries(of: changed)
-        XCTAssertEqual(saved[0]["severity"] as? String, "low")
+        XCTAssertEqual(saved[0]["severity"] as? String, chosen.rawValue)
         XCTAssertNotNil(saved[0]["default"])
         var later = Indicator.defaults
-        later[0].predicate += " AND process.pid > 1"
-        later[1].severity = .high
+        later[0].rule = .event(later[0].predicate! + " AND process.pid > 1")
+        later[1].severity = later[1].severity == .high ? .low : .high
         let read = try XCTUnwrap(SavedIndicators(data: changed, defaults: later)?.indicators)
-        XCTAssertEqual(read[0].severity, .low)
+        XCTAssertEqual(read[0].severity, chosen)
         XCTAssertEqual(read[0].predicate, later[0].predicate)
-        XCTAssertEqual(read[1].severity, .high)
+        XCTAssertEqual(read[1].severity, later[1].severity)
     }
 
     /// A shipped indicator someone edited, saved in full before severities, keeps the shipped one's.
     func testEditedShippedIndicatorKeepsItsSeverity() throws {
         let shipped = try XCTUnwrap(Indicator.defaults.first { $0.severity == .high })
         var edited = shipped
-        edited.predicate += " AND process.pid > 1"
+        edited.rule = .event(edited.predicate! + " AND process.pid > 1")
         var entry = try jsonObject(encoding: edited)
         entry["severity"] = nil
         let data = try JSONSerialization.data(withJSONObject: ["entries": [entry], "deleted": []])

@@ -30,10 +30,12 @@ public final class IndicatorMatcher {
     public var order: [Indicator] { indicators.map(\.indicator) }
 
     /// - Parameter indicators: The indicators, in the order their cards show. Those off, or whose predicate can't be
-    ///   used, are left out.
+    ///   used, are left out, and so are sequences: only the Security Extension, which sees events in order, matches
+    ///   one, and an event's record lists its verdict.
     public init(_ indicators: [Indicator]) {
         self.indicators = indicators.filter(\.isEnabled).compactMap { indicator in
-            guard let predicate = try? StreamFilter.Predicate(indicator.predicate, for: .indicator) else { return nil }
+            guard let source = indicator.eventPredicate,
+                  let predicate = try? StreamFilter.Predicate(source, for: .indicator) else { return nil }
             return (indicator, predicate, predicate.storePredicate, StoredEventValues.canEvaluate(predicate.parsed))
         }
         var byType: [String: [Int]] = [:], anyType: [Int] = []
@@ -106,7 +108,7 @@ final class StoredEventValues: NSObject {
         "event.close.mach_o_type", "event.mmap.file_type", "event.mmap.mach_o_type", "event.rename.file_type",
         "event.rename.mach_o_type", "event.exit.stat",
         "process.executable.name", "process.executable.path", "process.signing_id", "process.is_platform_binary",
-        "process.is_adhoc_signed", "process.team_id", "event.uipc_connect.file.stat.st_uid",
+        "process.is_adhoc_signed", "process.team_id", "process.process_age_ms", "event.uipc_connect.file.stat.st_uid",
         "event.xpc_connect.service_name", "event.xpc_connect.service_domain_type_string",
     ])
     /// Strings the store keeps as `nil` where the record writes "".
@@ -180,12 +182,14 @@ final class StoredEventValues: NSObject {
     }
     
     /// A key path's value on the stored event: "" for a string the record writes as "" and the store keeps as `nil`,
-    /// where the object holding it is there. An exec's environment is decoded from the store.
+    /// where the object holding it is there. An exec's environment is decoded from the store, and the initiating
+    /// process's age is the event's own (``ESMessage/process_age_ms``), since a shared process row has none.
     ///
     /// - Parameter keyPath: One of ``keyPaths``.
     /// - Returns: The value.
     override func value(forKeyPath keyPath: String) -> Any? {
         if keyPath == "event.exec.env" { return message.event.exec.map { $0.env as NSArray } }
+        if keyPath == "process.process_age_ms" { return message.process_age_ms }
         if let type = PredicateEventTypes.payloads[keyPath] {
             /// A payload test reads only whether the record has the payload, which is whether it's of that type.
             return message.es_event_type == type ? NSNumber(value: true) : nil

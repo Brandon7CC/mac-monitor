@@ -47,10 +47,14 @@ public extension Indicator {
         technique.range(of: Limits.technique, options: .regularExpression) != nil
     }
 
-    /// Why the Security Extension can't run its predicate, or `nil` when it can (``IndicatorCompiler``). It's set
-    /// whenever ``problem`` is, and also for a predicate Mac Monitor can match on a record but the Security Extension
-    /// can't on an event, such as one that names no event type.
+    /// Why the Security Extension can't run its rule, or `nil` when it can (``IndicatorCompiler``). It's set whenever
+    /// ``problem`` is, and also for a predicate Mac Monitor can match on a record but the Security Extension can't on
+    /// an event, such as one that names no event type.
     var sensorProblem: String? {
-        IndicatorCompiler.problem(with: predicate)?.description
+        if let minEngine, !isSupported { return "It needs Mac Monitor \(minEngine) or later." }
+        switch rule {
+        case .event(let predicate): return IndicatorCompiler.problem(with: predicate)?.description
+        case .sequence(let sequence): return sequence.sensorProblem
+        }
     }
 }

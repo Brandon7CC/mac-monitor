@@ -11,7 +11,7 @@ import OSLog
 // MARK: - Update Details Data Structure
 /// A structure to hold details about an available application update.
 /// This is sent from the System Extension to the main app via XPC.
-public struct UpdateDetails: Codable, Identifiable {
+public struct UpdateDetails: Codable, Identifiable, Equatable, Sendable {
     /// Identifies the release by its tag (``version``).
     public var id: String { version }
     /// The release's tag, such as "v2.1.0".
@@ -53,7 +53,7 @@ public struct UpdateDetails: Codable, Identifiable {
 
 // MARK: - Update check
 /// How an update check went. The Security Extension sends it to Mac Monitor as JSON.
-public enum UpdateCheck: Codable {
+public enum UpdateCheck: Codable, Equatable, Sendable {
     /// A newer release is out.
     case newer(UpdateDetails)
     /// This is the latest release.

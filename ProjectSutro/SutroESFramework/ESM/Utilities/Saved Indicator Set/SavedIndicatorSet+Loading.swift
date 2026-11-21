@@ -13,6 +13,8 @@ import OSLog
 extension SavedIndicatorSet {
     /// Read the saved set once. Call on ``queue``.
     ///
+    /// - The installed pack, if there is one, is read first, and its indicators are the shipped ones
+    ///   (``loadBaseline()``).
     /// - Self-test: compile the shipped indicators, and log a fault for each that doesn't compile.
     /// - A loading marker left by a crash: move the file aside, and start from the shipped indicators, saved.
     /// - Missing: start from the shipped indicators and save them (first run).
@@ -23,7 +25,14 @@ extension SavedIndicatorSet {
     func loadIfNeeded() {
         guard !isLoaded else { return }
         isLoaded = true
-        let shippedSet = selfTest()
+        loadUpdates()
+        let (shippedSet, packNotice) = loadBaseline()
+        /// A pack installed since, or a build that links in a later one, isn't news.
+        if let available = updates.available, available <= baseline.sequence { updates.available = nil }
+        /// Whatever the saved set's load has to say comes after what the pack's does.
+        defer {
+            if let packNotice { notice = [packNotice, notice].compactMap { $0 }.joined(separator: " ") }
+        }
         guard !recoverFromCrashedLoad(shippedSet) else { return }
         do {
             switch try store.read() {
@@ -52,8 +61,8 @@ extension SavedIndicatorSet {
     /// or a predicate check (``PredicateGuard``) that couldn't load what it checks against.
     ///
     /// - Returns: The shipped indicators, compiled: the set to fall back to, whose rules a saved set reuses.
-    private func selfTest() -> CompiledIndicators {
-        let shippedSet = CompiledIndicators(defaults, defaults: shipped)
+    func selfTest() -> CompiledIndicators {
+        let shippedSet = CompiledIndicators(defaults, defaults: shipped, pack: baseline.sequence)
         defaultProblems = shippedSet.problems
         for problem in shippedSet.problems {
             logger.fault("""
@@ -91,9 +100,10 @@ extension SavedIndicatorSet {
         defer { if marked { loadingMarker.remove() } }
         let file: IndicatorFile, loaded: CompiledIndicators
         do {
-            file = try IndicatorFile.decode(data, defaults: defaults)
+            file = try IndicatorFile.decode(data, defaults: defaults, retired: baseline.retired)
             try IndicatorFile.validate(file.saved.indicators)
-            loaded = CompiledIndicators(file.saved.indicators, defaults: shipped, reusing: shippedSet)
+            loaded = CompiledIndicators(file.saved.indicators, defaults: shipped, pack: baseline.sequence,
+                                        reusing: shippedSet)
             try IndicatorFile.validate(loaded)
         } catch IndicatorFileError.unsupportedVersion(let version) {
             saved = SavedIndicators(defaults, defaults: defaults)
@@ -189,7 +199,7 @@ extension SavedIndicatorSet {
                     \(caller, privacy: .public) \(verb, privacy: .public) “\(indicator.name, privacy: .public)” \
                     (\(indicator.id.uuidString, privacy: .public), \(indicator.severity.rawValue, privacy: .public), \
                     \(indicator.isEnabled ? "on" : "off", privacy: .public))\(listed, privacy: .public): \
-                    \(indicator.predicate, privacy: .public)
+                    \(indicator.rule.text, privacy: .public)
                     """)
             }
         }

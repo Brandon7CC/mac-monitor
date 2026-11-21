@@ -151,6 +151,7 @@ public enum CommandLineParser {
         case .indicators: return .indicators(try indicators(&cursor))
         case .validate: return .validate(try validate(&cursor))
         case .status: return .status(try status(&cursor))
+        case .update: return .update(try update(&cursor))
         case .help: return .help(command: try help(&cursor))
         case .completion: return .completion(try completion(&cursor))
         case .events: return try takingNothing(&cursor, .events)
@@ -331,6 +332,22 @@ public enum CommandLineParser {
         let (_, flags) = try cursor.flags(of: "status", among: CommandLineOption.status, positional: nil,
                                           command: "status")
         return StatusInvocation(json: flags.contains("--json"))
+    }
+
+    /// `update check [--json]`.
+    ///
+    /// - Parameter cursor: The arguments.
+    /// - Returns: The check asked for.
+    /// - Throws: ``CommandLineUsageError`` for anything but `check`, a second argument, or an unknown option.
+    static func update(_ cursor: inout ArgumentCursor) throws -> UpdateInvocation {
+        let (action, flags) = try cursor.flags(of: "update", among: CommandLineOption.update, positional: "command",
+                                               command: "update")
+        guard let action else { throw CommandLineUsageError("update needs check.", command: "update") }
+        guard action == "check" else {
+            let suggestion = CommandLineSuggestion.didYouMean(action, among: ["check"])
+            throw CommandLineUsageError("Unknown update command '\(action)'.\(suggestion)", command: "update")
+        }
+        return UpdateInvocation(json: flags.contains("--json"))
     }
 
     /// `help [COMMAND]`. `-h` or `--help` asks for help's own help, as it does for every other command.

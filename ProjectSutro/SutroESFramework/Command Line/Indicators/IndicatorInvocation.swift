@@ -10,15 +10,17 @@ import Foundation
 
 // MARK: - Indicator invocations
 /// `macmonitor indicators list|add|edit|import|remove|enable|disable|export`: the Mac's indicator set, which the
-/// Security Extension runs on every event it captures, for Mac Monitor and every stream.
+/// Security Extension runs on every event it captures, for Mac Monitor and every stream. And `indicators test`, which
+/// tests an indicator pack on recorded events without the Security Extension, and `indicators pack`, its signed
+/// releases.
 public enum IndicatorInvocation: Equatable {
     /// The indicator commands, by what's typed, in the order help lists them. The parser switches over every case
     /// with no default, so a command added here doesn't build until it's parsed.
     public enum Name: String, CaseIterable, Sendable {
-        case list, show, add, edit, `import`, remove, enable, disable, export
+        case list, show, add, edit, `import`, remove, enable, disable, export, test, pack
 
-        /// Every name, as help and usage errors list them: "list, show, add, edit, import, remove, enable, disable
-        /// or export".
+        /// Every name, as help and usage errors list them: "list, show, add, edit, import, remove, enable, disable,
+        /// export, test or pack".
         static var listed: String {
             let names = allCases.map(\.rawValue)
             return names.dropLast().joined(separator: ", ") + " or " + (names.last ?? "")
@@ -45,6 +47,49 @@ public enum IndicatorInvocation: Equatable {
     /// Write the set, or only the indicators named, each by its identity or its name, as an indicator file to
     /// standard output.
     case export(_ references: [String] = [])
+    /// Test an indicator pack's payload on the recorded events a plan names, with the Security Extension's code but
+    /// without it (``IndicatorTestRun``).
+    case test(pack: String, plan: String)
+    /// A signed indicator pack.
+    case pack(IndicatorPackInvocation)
+
+    /// Does it talk to the Security Extension? Every command does but `test` and `pack verify`.
+    public var needsSecurityExtension: Bool {
+        switch self {
+        case .test, .pack(.verify): return false
+        default: return true
+        }
+    }
+}
+
+
+/// `macmonitor indicators pack status|check|install|mode|verify`: a signed indicator pack, as the indicators
+/// repository releases one.
+public enum IndicatorPackInvocation: Equatable {
+    /// The pack commands, by what's typed, in the order help lists them.
+    public enum Name: String, CaseIterable, Sendable {
+        case status, check, install, mode, verify
+
+        /// The commands this build has: without those that ask GitHub while pack updates wait for a later release
+        /// (``IndicatorPackUpdates/isAvailable``).
+        public static var offered: [Name] {
+            IndicatorPackUpdates.isAvailable ? allCases : [.status, .install, .verify]
+        }
+    }
+
+    /// Show which pack Mac Monitor's own indicators are, the update mode, and what the last look for a newer pack
+    /// found. Nothing is asked of GitHub.
+    case status(json: Bool = false)
+    /// Have the Security Extension look on GitHub for a newer pack, and say what installing it would change.
+    case check(json: Bool = false)
+    /// Have the Security Extension install a signed pack as Mac Monitor's own indicators: a file's, `-` for standard
+    /// input, or with no path the newest on GitHub. Asks first unless `confirmed` (`--yes`).
+    case install(path: String?, confirmed: Bool = false)
+    /// Set what the Security Extension does about newer packs.
+    case mode(IndicatorPackMode)
+    /// Check a signed pack file as the Security Extension checks one before installing it, and say what it holds
+    /// (``IndicatorPackVerifyCommand``).
+    case verify(String)
 }
 
 
@@ -86,7 +131,99 @@ extension CommandLineParser {
         case .remove: return .remove(try indicatorReferences(&cursor, subcommand: name))
         case .enable: return .enable(try indicatorReferences(&cursor, subcommand: name))
         case .disable: return .disable(try indicatorReferences(&cursor, subcommand: name))
+        case .test: return try indicatorTest(&cursor)
+        case .pack: return .pack(try indicatorPack(&cursor))
         }
+    }
+
+    /// `pack status [--json]`, `pack check [--json]`, `pack install [FILE|-] [--yes]`, `pack mode off|notify|auto`
+    /// or `pack verify FILE`.
+    ///
+    /// - Parameter cursor: The arguments after `pack`.
+    /// - Returns: The pack command asked for.
+    /// - Throws: ``CommandLineUsageError`` (64) for a missing or unknown command, a missing or second file, or an
+    ///   option the command doesn't take.
+    static func indicatorPack(_ cursor: inout ArgumentCursor) throws -> IndicatorPackInvocation {
+        let names = IndicatorPackInvocation.Name.offered.map(\.rawValue)
+        guard case .positional(let subcommand)? = cursor.next() else {
+            let listed = names.dropLast().joined(separator: ", ") + " or " + (names.last ?? "")
+            throw CommandLineUsageError("indicators pack needs \(listed).", command: "indicators")
+        }
+        guard let name = IndicatorPackInvocation.Name(rawValue: subcommand),
+              IndicatorPackInvocation.Name.offered.contains(name) else {
+            let suggestion = CommandLineSuggestion.didYouMean(subcommand, among: names)
+            throw CommandLineUsageError("Unknown indicators pack command '\(subcommand)'.\(suggestion)",
+                                        command: "indicators")
+        }
+        switch name {
+        case .verify:
+            var file: String?
+            while let argument = cursor.next() {
+                switch argument {
+                case .option(let option, _):
+                    throw unknownOption(option, for: "indicators pack verify", among: [])
+                case .positional(let value):
+                    guard file == nil else {
+                        throw CommandLineUsageError("indicators pack verify takes one file, not '\(value)' too.",
+                                                    command: "indicators")
+                    }
+                    file = value
+                }
+            }
+            guard let file else {
+                throw CommandLineUsageError("indicators pack verify needs a pack file.", command: "indicators")
+            }
+            return .verify(file)
+        case .install:
+            let (path, flags) = try cursor.flags(of: "indicators pack install", among: [CommandLineOption("--yes")],
+                                                 positional: "file", command: "indicators")
+            guard path != nil || IndicatorPackUpdates.isAvailable else {
+                throw CommandLineUsageError("indicators pack install needs a pack file.", command: "indicators")
+            }
+            return .install(path: path, confirmed: flags.contains("--yes"))
+        case .status, .check:
+            let (_, flags) = try cursor.flags(of: "indicators pack \(subcommand)",
+                                              among: [CommandLineOption("--json")], positional: nil,
+                                              command: "indicators")
+            return name == .status ? .status(json: flags.contains("--json")) : .check(json: flags.contains("--json"))
+        case .mode:
+            let modes = IndicatorPackMode.allCases.map(\.rawValue)
+            let (typed, _) = try cursor.flags(of: "indicators pack mode", among: [], positional: "mode",
+                                              command: "indicators")
+            guard let typed, let mode = IndicatorPackMode(rawValue: typed) else {
+                throw CommandLineUsageError("indicators pack mode needs \(modes.joined(separator: ", ")).",
+                                            command: "indicators")
+            }
+            return .mode(mode)
+        }
+    }
+
+    /// `test PACK --plan PLAN`.
+    ///
+    /// - Parameter cursor: The arguments.
+    /// - Returns: The pack's payload and the plan, by path.
+    /// - Throws: ``CommandLineUsageError`` (64) for a missing or repeated pack or plan, or an unknown option.
+    static func indicatorTest(_ cursor: inout ArgumentCursor) throws -> IndicatorInvocation {
+        var pack: String?, plan: String?
+        while let argument = cursor.next() {
+            switch argument {
+            case .option("--plan", let attached):
+                guard plan == nil else { throw CommandLineUsageError("Give --plan once.", command: "indicators") }
+                plan = try cursor.value(of: "--plan", attached: attached, command: "indicators")
+            case .option(let option, _):
+                throw unknownOption(option, for: "indicators test", among: CommandLineOption.indicators(.test))
+            case .positional(let value):
+                guard pack == nil else {
+                    throw CommandLineUsageError("indicators test takes one pack, not '\(value)' too.",
+                                                command: "indicators")
+                }
+                pack = value
+            }
+        }
+        guard let pack, let plan else {
+            throw CommandLineUsageError("indicators test needs a pack and --plan PLAN.", command: "indicators")
+        }
+        return .test(pack: pack, plan: plan)
     }
 
     /// `list [--format text|json] [--json]`. `--json` is short for `--format json`.

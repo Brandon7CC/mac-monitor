@@ -96,6 +96,9 @@ public struct MuteReply: XPCReply, Equatable, Sendable {
         case storageFailed
         /// A newer request than this Security Extension understands.
         case unsupported
+        /// The request couldn't be served now, and may be later: what it needs from the network couldn't be reached,
+        /// such as GitHub for an indicator pack, or the Security Extension is busy with others like it.
+        case unreachable
     }
     
     /// The reply's version.

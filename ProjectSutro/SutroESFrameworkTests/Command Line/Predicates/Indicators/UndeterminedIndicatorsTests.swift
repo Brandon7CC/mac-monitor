@@ -72,7 +72,7 @@ final class UndeterminedIndicatorsTests: XCTestCase {
         /// - Returns: The entry with that value.
         func with(_ key: String, _ value: Any) -> [String: Any] { entry.merging([key: value]) { $1 } }
         let unreadable: [Any] = [
-            "Dylib inserted", [1], [without("reason")], [with("reason", NSNull())], [with("reason", "")],
+            "Dynamic library inserted", [1], [without("reason")], [with("reason", NSNull())], [with("reason", "")],
             [without("severity")], [without("id")], [entry, without("evaluated_by")], NSNull(),
         ]
         for decoded in [decoded(with:), imported(with:)] {

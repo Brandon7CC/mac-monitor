@@ -78,8 +78,11 @@ final class EventSearchController: ObservableObject {
     private static let laterStarters = ["Plist modified indicator"]
 
     /// Starter predicates as earlier builds had them, by name. 3.0.0's New executables read five minutes, where its
-    /// indicator read one second.
-    private static let earlierStarterSources = ["New executables": "event.exec.executable_age_ms < 300000"]
+    /// indicator read one second. 3.1.0's indicator search named Plist modified, which is Property list modified now.
+    private static let earlierStarterSources = [
+        "New executables": "event.exec.executable_age_ms < 300000",
+        "Plist modified indicator": #"ANY indicators.name ==[c] "Plist modified""#,
+    ]
 
     /// Saved predicates, with an earlier build's starter predicate that was never edited swapped for this build's.
     ///

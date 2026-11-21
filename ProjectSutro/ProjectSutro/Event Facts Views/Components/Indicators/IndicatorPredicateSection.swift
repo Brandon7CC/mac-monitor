@@ -13,7 +13,8 @@ import SutroESFramework
 // MARK: - Predicate section
 /// An indicator's predicate in the Indicators popover: a Predicate disclosure, closed to start, that shows it laid out
 /// a condition a line (``PredicateLayout``), colored and selectable, and beside it Copy, which puts it on the
-/// pasteboard exactly as stored, on one line, and tells VoiceOver it did.
+/// pasteboard exactly as stored, on one line, and tells VoiceOver it did. A sequence's is a Sequence disclosure with
+/// each step's predicate under its name, and Copy puts the whole sequence on the pasteboard, a step a line.
 struct IndicatorPredicateSection: View {
     let indicator: Indicator
     @State private var isOpen = false
@@ -26,16 +27,23 @@ struct IndicatorPredicateSection: View {
     private static let copiedDuration = 1.6
 
     var body: some View {
-        let layout = PredicateLayout(indicator.predicate)
+        let layouts = indicator.rule.predicates.map { (step: $0.step, layout: PredicateLayout($0.predicate)) }
         VStack(alignment: .leading, spacing: 8) {
             Divider()
             HStack(spacing: 8) {
                 disclosure
                 Spacer(minLength: 0)
-                copyButton(layout)
+                copyButton(layouts.count == 1 ? layouts[0].layout.oneLine : indicator.rule.text)
             }
             if isOpen {
-                LaidOutPredicateView(layout: layout, name: indicator.name)
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(layouts.indices, id: \.self) { index in
+                        if let step = layouts[index].step {
+                            Text(step).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+                        }
+                        LaidOutPredicateView(layout: layouts[index].layout, name: indicator.name)
+                    }
+                }
                     .padding(8)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Self.panel, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
@@ -56,22 +64,28 @@ struct IndicatorPredicateSection: View {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 9, weight: .bold)).foregroundStyle(.secondary)
                     .rotationEffect(.degrees(isOpen ? 90 : 0))
-                Text("Predicate").font(.system(size: 13, weight: .semibold))
+                Text(title).font(.system(size: 13, weight: .semibold))
             }
             .frame(minHeight: 24)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Predicate")
+        .accessibilityLabel(title)
         .accessibilityValue(isOpen ? "Shown" : "Hidden")
-        .accessibilityHint(isOpen ? "Hides the predicate" : "Shows the predicate")
+        .accessibilityHint(isOpen ? "Hides the \(noun)" : "Shows the \(noun)")
     }
 
-    /// - Parameter layout: The predicate, laid out.
+    /// The disclosure's title: Predicate, or Sequence for a sequence.
+    private var title: String { indicator.sequence == nil ? "Predicate" : "Sequence" }
+
+    /// What the disclosure shows, in a sentence: the predicate, or the sequence.
+    private var noun: String { title.lowercased() }
+
+    /// - Parameter text: The rule, as Copy puts it on the pasteboard.
     /// - Returns: Copy, in the accent color, or a green check and "Copied" for a moment after it's clicked.
-    private func copyButton(_ layout: PredicateLayout) -> some View {
+    private func copyButton(_ text: String) -> some View {
         Button {
-            Self.copy(layout.oneLine, announcing: "Copied the \(indicator.name) predicate")
+            Self.copy(text, announcing: "Copied the \(indicator.name) \(noun)")
             copies += 1
             showsCopied = true
             let copy = copies
@@ -91,8 +105,9 @@ struct IndicatorPredicateSection: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help("Copies the predicate exactly as stored, on one line")
-        .accessibilityLabel("Copy the \(indicator.name) predicate")
+        .help(indicator.sequence == nil ? "Copies the predicate exactly as stored, on one line"
+              : "Copies the sequence, a step a line")
+        .accessibilityLabel("Copy the \(indicator.name) \(noun)")
     }
 
     /// Put text on the pasteboard and have VoiceOver say so.
@@ -169,7 +184,7 @@ struct LaidOutPredicateView: NSViewRepresentable {
         textView.string = layout.text
         textView.setAccessibilityLabel("\(name) predicate")
         guard let storage = textView.textStorage else { return }
-        PredicateSyntax.highlight(storage, size: Self.fontSize)
+        PredicateSyntax.highlight(storage, size: Self.fontSize, for: .indicator)
         let font = PredicateSyntax.monospaced(size: Self.fontSize)
         let space = (" " as NSString).size(withAttributes: [.font: font]).width
         var location = 0

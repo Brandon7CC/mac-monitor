@@ -24,6 +24,8 @@ struct IndicatorEditorSheet: View {
     @State private var hasNoEvents = false
     /// Is the delete confirmation showing?
     @State private var confirmsDelete = false
+    /// Are the About facts unfolded? Folded when the sheet opens.
+    @State private var showsAbout = false
     /// The main window's queries, for the preview, or `nil` with no main window.
     let model: EventQueryModel?
     /// May the Mac's indicators be changed? How it marks the tables always may.
@@ -31,6 +33,10 @@ struct IndicatorEditorSheet: View {
     let save: (Indicator) -> Void
     /// Removes the indicator. `nil` for one that isn't saved yet.
     let delete: ((Indicator) -> Void)?
+    /// Where the indicator comes from and what it runs on, or `nil` for one that isn't saved yet.
+    let about: IndicatorAbout?
+    /// The rule the indicator had when the sheet opened.
+    private let openedRule: Indicator.Rule
 
     /// - Parameters:
     ///   - indicator: The indicator to start from.
@@ -38,24 +44,48 @@ struct IndicatorEditorSheet: View {
     ///   - canChange: May the Mac's indicators be changed?
     ///   - save: Keeps the indicator.
     ///   - delete: Removes it, or `nil` when it's new or can't be.
+    ///   - about: Where it comes from and what it runs on, or `nil` when it's new.
     init(indicator: Indicator, model: EventQueryModel?, canChange: Bool = true, save: @escaping (Indicator) -> Void,
-         delete: ((Indicator) -> Void)? = nil) {
+         delete: ((Indicator) -> Void)? = nil, about: IndicatorAbout? = nil) {
         _indicator = State(initialValue: indicator)
+        openedRule = indicator.rule
         self.model = model
         self.canChange = canChange
         self.save = save
         self.delete = delete
+        self.about = about
     }
 
     var body: some View {
         let problem = indicator.problem
         let sensorProblem = problem == nil ? indicator.sensorProblem : nil
+        /// Every indicator runs in the Security Extension, so a rule it can't run isn't saved. The rule the
+        /// indicator already had stays, as a set saved by Mac Monitor 3.1 may hold one.
+        let blocks = sensorProblem != nil && indicator.rule != openedRule
         VStack(spacing: 0) {
             Form {
                 if !canChange {
                     Text("This Mac's indicators can't be changed now, so only how the event tables mark this one "
                          + "can.")
                         .foregroundStyle(.secondary)
+                }
+                if let about {
+                    Section {
+                        DisclosureGroup(isExpanded: $showsAbout) {
+                            ForEach(about.rows) { row in
+                                LabeledContent(row.name) {
+                                    Text(row.value)
+                                        .font(row.name == "ID" ? .body.monospaced() : .body)
+                                        .foregroundStyle(.secondary)
+                                        .textSelection(.enabled)
+                                }
+                            }
+                        } label: {
+                            LabeledContent("About") {
+                                if !showsAbout { Text(about.summary).foregroundStyle(.secondary) }
+                            }
+                        }
+                    }
                 }
                 Section {
                     TextField("Name", text: $indicator.name, prompt: Text("Reflective loading"))
@@ -68,7 +98,7 @@ struct IndicatorEditorSheet: View {
                         ForEach(IndicatorSeverity.allCases.reversed(), id: \.self) { Text($0.name).tag($0) }
                     }
                     .pickerStyle(.segmented)
-                    .help("How strong a sign of something malicious a match is. Every record that lists it says so.")
+                    .help("How closely a match is worth looking at. Every record that lists it says so.")
                 }
                 .disabled(!canChange)
                 Section {
@@ -95,32 +125,43 @@ struct IndicatorEditorSheet: View {
                 }
                 .disabled(!canChange)
                 Section {
-                    PredicateTextView(text: $indicator.predicate, editor: editor)
-                        .frame(height: 140)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.separator))
-                        .allowsHitTesting(canChange)
+                    if let sequence = indicator.sequence {
+                        SequenceStepsView(sequence: sequence)
+                    } else {
+                        PredicateTextView(text: predicate, editor: editor, audience: .indicator)
+                            .frame(height: 140)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.separator))
+                            .allowsHitTesting(canChange)
+                    }
                     if let problem {
                         Label(problem, systemImage: "exclamationmark.triangle.fill").font(.caption)
                             .foregroundStyle(.red).textSelection(.enabled)
                     }
                     if let sensorProblem {
-                        Label("Not run by the Security Extension: \(sensorProblem)",
-                              systemImage: "exclamationmark.triangle.fill")
-                            .font(.caption).foregroundStyle(.orange).textSelection(.enabled)
+                        let lead = blocks ? "The Security Extension can't run it" : "Not run by the Security Extension"
+                        Label("\(lead): \(sensorProblem)", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption).foregroundStyle(blocks ? .red : .orange).textSelection(.enabled)
                     }
-                    Button("Choose Representative Event…") {
-                        if RepresentativeEvent.anyRecorded { choosesEvent = true } else { hasNoEvents = true }
+                    if indicator.sequence == nil {
+                        Button("Choose Representative Event…") {
+                            if RepresentativeEvent.anyRecorded { choosesEvent = true } else { hasNoEvents = true }
+                        }
+                        .disabled(!canChange)
                     }
-                    .disabled(!canChange)
                 } header: {
-                    Text("Predicate")
+                    Text(indicator.sequence == nil ? "Predicate" : "Sequence")
                 } footer: {
-                    Text("Matched on each event's record, one event at a time. Tab completes a key.")
+                    Text(indicator.sequence == nil
+                         ? "Matched on each event's record, one event at a time. Tab completes a key."
+                         : "Written in the indicators repository. The Security Extension tags only the event that "
+                            + "completes the sequence.")
                         .foregroundStyle(.secondary)
                 }
-                Section("Preview") {
-                    IndicatorPreview(predicate: indicator.predicate, isUsable: problem == nil, model: model)
+                if let predicate = indicator.predicate {
+                    Section("Preview") {
+                        IndicatorPreview(predicate: predicate, isUsable: problem == nil, model: model)
+                    }
                 }
             }
             .formStyle(.grouped)
@@ -136,7 +177,7 @@ struct IndicatorEditorSheet: View {
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(problem != nil || indicator.name.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(problem != nil || blocks || indicator.name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(.horizontal, 20).padding(.vertical, 12)
         }
@@ -151,14 +192,19 @@ struct IndicatorEditorSheet: View {
         .frame(width: 560)
         .frame(minHeight: 520, idealHeight: 760, maxHeight: 860)
         .sheet(isPresented: $choosesEvent) {
-            let written = !indicator.predicate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            RepresentativeEventSheet(replacesPredicate: written) { indicator.predicate = $0 }
+            let written = !(indicator.predicate ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            RepresentativeEventSheet(replacesPredicate: written) { indicator.rule = .event($0) }
         }
         .alert("No events are recorded", isPresented: $hasNoEvents) {
             Button("OK") {}
         } message: {
             Text("Record some events or open a trace, then choose one to start the predicate from.")
         }
+    }
+
+    /// The predicate of a rule on one event, as the editor writes it. Writing makes the rule that predicate.
+    private var predicate: Binding<String> {
+        Binding { indicator.predicate ?? "" } set: { indicator.rule = .event($0) }
     }
 
     /// - Parameter each: A table mark, its name and its title (``Indicator/TableMarks/each``).

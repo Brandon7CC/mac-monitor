@@ -75,6 +75,10 @@ public struct StreamRequest: XPCRequest, Equatable, Sendable {
         /// Reply with a ``SensorReport``, and change nothing. Any `macmonitor` may ask, root or not: it's what
         /// `macmonitor status` reads. A Security Extension older than 3.1.0 answers that it doesn't know the kind.
         case status
+        /// Have the Security Extension look up Mac Monitor's latest release, as Mac Monitor's Check for Updates does,
+        /// and reply with an ``UpdateCheck``. Any `macmonitor` may ask, root or not: nothing is installed. A Security
+        /// Extension older than 3.2.0 answers that it doesn't know the kind.
+        case updateCheck
     }
     
     /// The request's version.

@@ -291,7 +291,8 @@ final class CommandLineParserTests: XCTestCase {
                                                                + "allow them without sudo in Mac Monitor > Settings "
                                                                + "> Command Line."))
         let lines: [CommandLineCommand: String] = [.mute: "mute list", .indicators: "indicators list",
-                                                   .validate: "validate trace.jsonl", .completion: "completion zsh"]
+                                                   .validate: "validate trace.jsonl", .completion: "completion zsh",
+                                                   .update: "update check"]
         for command in CommandLineCommand.allCases {
             let invocation = try parse(lines[command] ?? command.rawValue)
             XCTAssertEqual(invocation.id, command)

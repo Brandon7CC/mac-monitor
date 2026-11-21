@@ -80,6 +80,6 @@ extension Indicator {
     static func twin(_ number: Int, _ description: String) -> Indicator {
         let indicator = shipped(number)
         return mark(number, indicator.name, description, symbol: indicator.symbol, color: indicator.color,
-                    predicate: indicator.predicate)
+                    predicate: shippedPredicate(number))
     }
 }

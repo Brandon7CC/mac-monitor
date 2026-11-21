@@ -12,17 +12,14 @@ import SutroESFramework
 // MARK: - Rows
 /// One indicator, as Subscriptions draws an event (``SettingsItemRow``): its symbol, in its color while it's on, its
 /// name and severity, its technique and how it marks the tables, why the Security Extension can't run it if it
-/// can't, a crossed-out bell when this user said not to notify for it, an Edit button, and its switch, which is
-/// off-limits while the Mac's indicators can't be changed. Clicking the row edits it too. Its description is its
-/// help.
+/// can't, an Edit button, and its switch, which is off-limits while the Mac's indicators can't be changed. Clicking
+/// the row edits it too. Its description is its help.
 struct IndicatorRow: View {
     let indicator: Indicator
     /// Why the Security Extension can't run it, or `nil`.
     let sensorProblem: String?
     /// May the Mac's indicators be changed?
     let canChange: Bool
-    /// Did this user say not to notify for it?
-    var silenced = false
     /// Keeps a change to its switch.
     let save: (Indicator) -> Void
     let edit: () -> Void
@@ -35,11 +32,6 @@ struct IndicatorRow: View {
             save(changed)
         }, canSwitch: canChange, open: edit) {
             SeverityBadge(severity: indicator.severity)
-            if silenced {
-                Image(systemName: "bell.slash").foregroundStyle(.secondary)
-                    .help("Doesn't notify you")
-                    .accessibilityLabel("Doesn't notify you")
-            }
             if sensorProblem != nil {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                     .accessibilityHidden(true)
@@ -152,7 +144,8 @@ extension Indicator.Tactic {
         case .execution: return "play.fill"
         case .persistence: return "pin.fill"
         case .privilegeEscalation: return "arrow.up.circle.fill"
-        case .defenseEvasion: return "eye.slash.fill"
+        case .stealth: return "eye.slash.fill"
+        case .defenseImpairment: return "shield.slash.fill"
         case .credentialAccess: return "key.fill"
         case .discovery: return "magnifyingglass"
         case .lateralMovement: return "arrow.left.arrow.right"
@@ -171,7 +164,8 @@ extension Indicator.Tactic {
         case .execution: return .purple
         case .persistence: return .green
         case .privilegeEscalation: return .red
-        case .defenseEvasion: return .indigo
+        case .stealth: return .indigo
+        case .defenseImpairment: return .yellow
         case .credentialAccess: return .blue
         case .discovery: return .cyan
         case .lateralMovement: return .mint

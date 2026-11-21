@@ -1,0 +1,13 @@
+{
+  "format": "com.swiftlydetecting.indicators",
+  "indicators": [],
+  "pack": {
+    "commit": "0000000000000000000000000000000000000000",
+    "core": [],
+    "min_engine": "3.2.0",
+    "published": "2026-11-15T00:00:00Z",
+    "retired": [],
+    "sequence": 1
+  },
+  "version": 2
+}

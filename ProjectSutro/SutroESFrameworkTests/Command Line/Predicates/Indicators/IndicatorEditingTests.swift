@@ -11,7 +11,7 @@ import XCTest
 
 // MARK: - What an edit changes
 /// Pins the editable fields Settings, `macmonitor indicators edit` and the Security Extension share: which differ,
-/// taking only those named, detecting the same whatever the switch and views, tactics typed any way, and a file's
+/// taking only those named, matching the same whatever the switch and views, tactics typed any way, and a file's
 /// entries read as written.
 final class IndicatorEditingTests: XCTestCase {
     /// A shipped indicator, and a copy with every editable field changed.
@@ -25,7 +25,7 @@ final class IndicatorEditingTests: XCTestCase {
         edited.description += " More."
         edited.symbol = "star"
         edited.color = original.color == .red ? .blue : .red
-        edited.predicate += " AND process.pid > 1"
+        edited.rule = .event(edited.predicate! + " AND process.pid > 1")
         edited.tactic = original.tactic == .impact ? .discovery : .impact
         edited.technique = "T1059.002"
         edited.severity = original.severity == .high ? .low : .high
@@ -44,7 +44,7 @@ final class IndicatorEditingTests: XCTestCase {
         switched.tableMarks = original.tableMarks.isEmpty ? [.dot, .symbol] : []
         XCTAssertEqual(original.changedFields(to: switched), [])
         switched.severity = edited.severity
-        switched.predicate = edited.predicate
+        switched.rule = edited.rule
         XCTAssertEqual(original.changedFields(to: switched), [.predicate, .severity])
         XCTAssertEqual(Indicator.EditableField.allCases.filter(\.isRule),
                        [.name, .description, .symbol, .color, .predicate])
@@ -71,29 +71,33 @@ final class IndicatorEditingTests: XCTestCase {
         XCTAssertEqual(all.isEnabled, original.isEnabled)
     }
 
-    /// The same detection whatever the identity, switch and views, and not after any editable field changes.
-    func testSameDetectionIgnoresTheSwitchAndViews() throws {
+    /// The same indicator whatever the identity, switch and views, and not after any editable field changes.
+    func testSameIndicatorIgnoresTheSwitchAndViews() throws {
         let (original, edited) = try everyFieldChanged()
         var copy = original
         copy.id = UUID()
         copy.isEnabled.toggle()
         copy.tableMarks = original.tableMarks.isEmpty ? .dot : []
-        XCTAssertTrue(copy.sameDetection(as: original))
+        XCTAssertTrue(copy.sameIndicator(as: original))
         for field in Indicator.EditableField.allCases {
             var changed = original
             changed.take([field], from: edited)
-            XCTAssertFalse(changed.sameDetection(as: original), field.rawValue)
-            XCTAssertEqual(changed.sameDetection(as: original), original.changedFields(to: changed).isEmpty)
+            XCTAssertFalse(changed.sameIndicator(as: original), field.rawValue)
+            XCTAssertEqual(changed.sameIndicator(as: original), original.changedFields(to: changed).isEmpty)
         }
     }
 
     /// A tactic is its raw value, ATT&CK identity or name, in any case, with or without spaces, hyphens and
-    /// underscores. Anything else is none of them.
+    /// underscores. A retired tactic's raw value or name is the tactic that replaced it: Defense Evasion is Stealth,
+    /// which kept its identity. Anything else is none of them.
     func testTacticsByAnyName() {
         let spellings: [(String, Indicator.Tactic)] = [
             ("persistence", .persistence), ("TA0003", .persistence), ("ta0003", .persistence),
-            ("defenseEvasion", .defenseEvasion), ("defense-evasion", .defenseEvasion),
-            ("Defense Evasion", .defenseEvasion), ("DEFENSE_EVASION", .defenseEvasion),
+            ("defenseImpairment", .defenseImpairment), ("defense-impairment", .defenseImpairment),
+            ("Defense Impairment", .defenseImpairment), ("TA0112", .defenseImpairment),
+            ("stealth", .stealth), ("TA0005", .stealth),
+            ("defenseEvasion", .stealth), ("defense-evasion", .stealth),
+            ("Defense Evasion", .stealth), ("DEFENSE_EVASION", .stealth),
             ("command and control", .commandAndControl), ("TA0011", .commandAndControl),
         ]
         for (typed, tactic) in spellings {
@@ -124,7 +128,7 @@ final class IndicatorEditingTests: XCTestCase {
         let refused: [(String, String)] = [
             ("nope", "The file isn't JSON."),
             (#"{"format": "mutes", "indicators": []}"#, "The file isn't Mac Monitor indicators."),
-            (#"{"format": "com.swiftlydetecting.indicators", "version": 2, "indicators": []}"#,
+            (#"{"format": "com.swiftlydetecting.indicators", "version": 3, "indicators": []}"#,
              "The file is from a newer Mac Monitor. Update to import it."),
             (#"{"format": "com.swiftlydetecting.indicators", "version": 1, "indicators": [7]}"#,
              "An indicator in the file isn't a JSON object."),

@@ -18,8 +18,8 @@ final class IndicatorEditCommandTests: XCTestCase {
     private var savedIndicators: SavedIndicatorSet?
     /// How many indicators Mac Monitor ships.
     private let shipped = Indicator.defaults.count
-    /// The shipped indicator most tests edit.
-    private let plist = Indicator.defaults.first { $0.name == "Plist modified" }!
+    /// The shipped indicator most tests edit: Property list modified, found by its identity, which every pack keeps.
+    private let plist = Indicator.defaults.first { $0.id == Indicator.uuid(0x2A) }!
 
     /// A mute set and an indicator set in fresh directories.
     ///
@@ -71,12 +71,13 @@ final class IndicatorEditCommandTests: XCTestCase {
     func testEditKeepsIdentityAndSaysWhatChanged() throws {
         let edited = edit(plist.name.uppercased(), [.predicate: IndicatorCommandLineTests.curl, .severity: "high"])
         XCTAssertEqual(edited.output, """
-            Changed “Plist modified” (\(plist.id.uuidString)): predicate, severity low to high. \(shipped) indicators \
-            now.
+            Changed “\(plist.name)” (\(plist.id.uuidString)): predicate, \
+            severity \(plist.severity.rawValue) to high. \
+            \(shipped) indicators now.
 
             """)
         XCTAssertEqual(edited.errors, ["""
-            macmonitor: “Plist modified” is one of Mac Monitor's own. Mac Monitor updates no longer change it: \
+            macmonitor: “\(plist.name)” is one of Mac Monitor's own. Mac Monitor updates no longer change it: \
             'macmonitor indicators edit \(plist.id.uuidString) --restore' brings back this build's version.
             """])
         let after = try current()
@@ -93,8 +94,9 @@ final class IndicatorEditCommandTests: XCTestCase {
     func testAClassificationEditHasNoWarning() throws {
         let edited = edit(plist.id.uuidString, [.tactic: "persistence", .technique: ""])
         XCTAssertEqual(edited.output, """
-            Changed “Plist modified” (\(plist.id.uuidString)): tactic Defense Evasion to Persistence, technique \
-            T1647 to none. \(shipped) indicators now.
+            Changed “\(plist.name)” (\(plist.id.uuidString)): tactic \
+            \(plist.tactic?.name ?? "none") to Persistence, \
+            technique \(plist.technique ?? "none") to none. \(shipped) indicators now.
 
             """)
         XCTAssertEqual(edited.errors, [])
@@ -110,13 +112,14 @@ final class IndicatorEditCommandTests: XCTestCase {
         XCTAssertNoThrow(try edit(plist.name, [.name: "Plist written", .severity: "high"]).result?.get())
         let restored = run(.edit(IndicatorEdit(plist.id.uuidString, .restore)))
         XCTAssertEqual(restored.output, """
-            Restored “Plist written” (\(plist.id.uuidString)): name, severity high to low. \(shipped) indicators now.
+            Restored “Plist written” (\(plist.id.uuidString)): name, severity high to \(plist.severity.rawValue). \
+            \(shipped) indicators now.
 
             """)
         XCTAssertEqual(restored.errors, [])
         XCTAssertEqual(try current(), Indicator.defaults)
         XCTAssertEqual(run(.edit(IndicatorEdit(plist.name, .restore))).output,
-                       "“Plist modified” is already Mac Monitor's own.\n")
+                       "“\(plist.name)” is already Mac Monitor's own.\n")
 
         XCTAssertNoThrow(try run(.add(name: "Curl", predicate: IndicatorCommandLineTests.curl)).result?.get())
         XCTAssertEqual(run(.edit(IndicatorEdit("curl", .restore))).failure, CommandLineFailure(.dataError, """
@@ -127,16 +130,16 @@ final class IndicatorEditCommandTests: XCTestCase {
     /// A rename onto another indicator's name, in any case, is refused (65) and changes nothing. A change of case
     /// to its own name is a rename like any other.
     func testEditRefusesATakenNameButAllowsItsOwnCase() throws {
-        let keychain = try XCTUnwrap(Indicator.defaults.first { $0.name == "Keychain opened" })
-        XCTAssertEqual(edit(plist.name, [.name: "KEYCHAIN OPENED"]).failure, CommandLineFailure(.dataError, """
-            An indicator is already named \(IndicatorTable.describe(keychain)). Choose another name.
+        let other = try XCTUnwrap(Indicator.defaults.first { $0.id != plist.id })
+        XCTAssertEqual(edit(plist.name, [.name: other.name.uppercased()]).failure, CommandLineFailure(.dataError, """
+            An indicator is already named \(IndicatorTable.describe(other)). Choose another name.
             """))
         XCTAssertEqual(try current(), Indicator.defaults)
-        XCTAssertEqual(edit(plist.name, [.name: "PLIST MODIFIED"]).output, """
-            Changed “Plist modified” (\(plist.id.uuidString)): name. \(shipped) indicators now.
+        XCTAssertEqual(edit(plist.name, [.name: plist.name.uppercased()]).output, """
+            Changed “\(plist.name)” (\(plist.id.uuidString)): name. \(shipped) indicators now.
 
             """)
-        XCTAssertTrue(try current().contains { $0.name == "PLIST MODIFIED" })
+        XCTAssertTrue(try current().contains { $0.name == plist.name.uppercased() })
     }
 
     /// The indicator is found as `remove` finds one: a name two share is refused with their IDs, and one no
@@ -150,18 +153,20 @@ final class IndicatorEditCommandTests: XCTestCase {
             2 indicators are named “twin”. Name the one you mean by its ID: \(twins[0].id.uuidString), \
             \(twins[1].id.uuidString).
             """))
-        XCTAssertEqual(edit("Plist modifed", [.severity: "high"]).failure, CommandLineFailure(.dataError, """
-            No indicator has the ID or name “Plist modifed”. Did you mean 'Plist modified'? Run 'macmonitor \
-            indicators list' to see them.
+        // Its name with the next to last letter left out.
+        let typo = String(plist.name.dropLast(2) + plist.name.suffix(1))
+        XCTAssertEqual(edit(typo, [.severity: "high"]).failure, CommandLineFailure(.dataError, """
+            No indicator has the ID or name “\(typo)”. Did you mean '\(plist.name)'? Run 'macmonitor indicators \
+            list' to see them.
             """))
         XCTAssertEqual(edit(twins[1].id.uuidString, [.severity: "high"]).failure, nil)
     }
 
     /// An edit to what the indicator already has says so, succeeds, and changes nothing.
     func testEditNoChangeSaysSo() throws {
-        let unchanged = edit(plist.name, [.severity: "low", .name: "Plist modified"])
+        let unchanged = edit(plist.name, [.severity: plist.severity.rawValue, .name: plist.name])
         XCTAssertNoThrow(try unchanged.result?.get())
-        XCTAssertEqual(unchanged.output, "“Plist modified” already has that.\n")
+        XCTAssertEqual(unchanged.output, "“\(plist.name)” already has that.\n")
         XCTAssertEqual(try current(), Indicator.defaults)
     }
 
@@ -172,7 +177,8 @@ final class IndicatorEditCommandTests: XCTestCase {
                                       "tableMark": "off", "tableMarks": [], "weight": 7]
         let edited = run(.edit(IndicatorEdit(plist.name, .file("one.json", confirmed: true))), file: partial)
         XCTAssertEqual(edited.output, """
-            Changed “Plist modified” (\(plist.id.uuidString)): severity low to high. \(shipped) indicators now.
+            Changed “\(plist.name)” (\(plist.id.uuidString)): severity \(plist.severity.rawValue) to high. \
+            \(shipped) indicators now.
 
             """)
         var expected = plist
@@ -188,10 +194,27 @@ final class IndicatorEditCommandTests: XCTestCase {
                     "indicators": [entry]] as [String: Any]
         XCTAssertEqual(run(.edit(IndicatorEdit(plist.id.uuidString, .file("-", confirmed: true))), file: file).output,
                        """
-                       Changed “Plist modified” (\(plist.id.uuidString)): symbol, tactic Defense Evasion to none. \
-                       \(shipped) indicators now.
+                       Changed “\(plist.name)” (\(plist.id.uuidString)): symbol, tactic \
+                       \(plist.tactic?.name ?? "none") to none. \(shipped) indicators now.
 
                        """)
+    }
+
+    /// A file with some of a sequence's keys edits it as it does a rule on one event: its severity and name change,
+    /// and its steps stay, though the file names no rule.
+    func testEditFileKeepsASequencesSteps() throws {
+        let entry = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(IndicatorSequenceTests.packEntry.utf8))
+                                  as? [String: Any])
+        let file = ["format": IndicatorExchange.format, "version": IndicatorExchange.version,
+                    "indicators": [entry]] as [String: Any]
+        XCTAssertNil(run(.importFile(path: "pack.json", replace: false, confirmed: true), file: file).failure)
+        let sequence = try XCTUnwrap(try current().first { $0.id.uuidString == entry["id"] as? String })
+        let edited = run(.edit(IndicatorEdit(sequence.name, .file("one.json", confirmed: true))),
+                         file: ["severity": "high", "name": "Renamed"])
+        XCTAssertNil(edited.failure, edited.failure?.message ?? "")
+        var expected = sequence
+        (expected.severity, expected.name) = (.high, "Renamed")
+        XCTAssertEqual(try current().first { $0.id == sequence.id }, expected)
     }
 
     /// What `--file` refuses (65), changing nothing: another indicator's identity, several indicators, a tactic or
@@ -203,7 +226,7 @@ final class IndicatorEditCommandTests: XCTestCase {
         let refusals: [(Any, String)] = [
             (["id": other, "severity": "high"], "edit keeps an indicator's ID; “one.json”'s is \(other)."),
             ([["severity": "high"], ["severity": "low"]], "An edit takes one indicator; “one.json” has 2."),
-            (["tactic": "stealth"], "“one.json” can't be used to edit an indicator. Its tactic 'stealth' isn't an "
+            (["tactic": "hiding"], "“one.json” can't be used to edit an indicator. Its tactic 'hiding' isn't an "
                 + "ATT&CK tactic."),
             (["severity": "critical"], "“one.json” can't be used to edit an indicator. Its severity must be low, "
                 + "medium or high, not 'critical'."),
@@ -219,9 +242,12 @@ final class IndicatorEditCommandTests: XCTestCase {
         for (file, message) in refusals {
             XCTAssertEqual(run(edit, file: file).failure, CommandLineFailure(.dataError, message), message)
         }
-        let kind = try XCTUnwrap(run(edit, file: ["kind": "sequence", "severity": "high"]).failure)
+        let kind = try XCTUnwrap(run(edit, file: ["kind": "chain", "severity": "high"]).failure)
         XCTAssertEqual(kind.exit, .dataError)
-        XCTAssertTrue(kind.message.contains("It's a rule of kind sequence"), kind.message)
+        XCTAssertTrue(kind.message.contains("It's a rule of kind chain"), kind.message)
+        let sequence = try XCTUnwrap(run(edit, file: ["kind": "sequence", "severity": "high"]).failure)
+        XCTAssertEqual(sequence.exit, .dataError)
+        XCTAssertTrue(sequence.message.contains("has no sequence"), sequence.message)
         let long = try XCTUnwrap(run(edit, file: ["name": String(repeating: "n", count: 200)]).failure)
         XCTAssertEqual(long.exit, .dataError)
         XCTAssertEqual(try current(), Indicator.defaults)
@@ -241,7 +267,7 @@ final class IndicatorEditCommandTests: XCTestCase {
     /// Names reach the terminal escaped, in an edit's answer and its warning.
     func testNamesAreEscaped() throws {
         let renamed = edit(plist.name, [.name: "Evil\u{1B}[31m"])
-        XCTAssertTrue(renamed.output.hasPrefix("Changed “Plist modified” ("), renamed.output)
+        XCTAssertTrue(renamed.output.hasPrefix("Changed “\(plist.name)” ("), renamed.output)
         let again = edit(plist.id.uuidString, [.symbol: "star"])
         XCTAssertTrue(again.output.hasPrefix(#"Changed “Evil\x1B[31m” ("#), again.output)
         XCTAssertTrue(again.errors.first?.contains(#"“Evil\x1B[31m” is one of"#) == true, "\(again.errors)")

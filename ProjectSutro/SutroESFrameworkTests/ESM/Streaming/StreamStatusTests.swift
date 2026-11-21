@@ -84,14 +84,68 @@ final class StreamStatusTests: XCTestCase {
         XCTAssertEqual(report?.endpointSecurity, .ok)
     }
 
+    /// The report says which indicator pack Mac Monitor's own indicators are: the build's, then a pack once one is
+    /// installed. A Security Extension that keeps no indicators says nothing of them.
+    func testTheIndicatorPackIsReported() throws {
+        let indicators = try makeSavedIndicatorSet(defaults: try linkedFixtures(), verifier: try packVerifier())
+        let harness = StreamHarness(savedMutes: savedMutes, admits: false, savedIndicators: indicators)
+        let connection = harness.connect(reader: TestStreamReader())
+        defer { connection.invalidate() }
+        XCTAssertEqual(connection.send(StreamRequest(.status).encoded())?.report?.indicators,
+                       IndicatorPackStatus(sequence: 0, source: .linked, mode: .notify))
+        XCTAssertEqual(indicators.send(IndicatorRequest(.installPack, pack: try releaseFixture(2).file)).status, .ok)
+        let installed = connection.send(StreamRequest(.status).encoded())?.report?.indicators
+        XCTAssertEqual(installed?.sequence, 2)
+        XCTAssertEqual(installed?.source, .installed)
+
+        let without = StreamHarness(savedMutes: savedMutes)
+        let none = without.connect(reader: TestStreamReader())
+        defer { none.invalidate() }
+        let report = try XCTUnwrap(none.send(StreamRequest(.status).encoded())?.report)
+        XCTAssertNil(report.indicators)
+    }
+
+    /// An update check has the Security Extension's updater look up the latest release, and replies with what it
+    /// found. Anyone `macmonitor` runs as may ask. A build that doesn't update itself answers nothing, and a service
+    /// with no updater says it can't.
+    func testAnUpdateCheckAsksTheUpdater() {
+        let release = UpdateDetails(version: "v9.0.0", downloadURL: URL(string: "https://example.com/a.pkg")!,
+                                    releaseNotes: "Notes.", releaseDate: "2026-11-21T10:00:00Z")
+        let answers: [UpdateCheck?] = [.newer(release), .upToDate, .failed, nil]
+        for answer in answers {
+            let updater = FakeUpdater(answering: answer)
+            let harness = StreamHarness(savedMutes: savedMutes, admits: false, updates: updater)
+            let connection = harness.connect(reader: TestStreamReader())
+            defer { connection.invalidate() }
+            let reply = connection.send(StreamRequest(.updateCheck).encoded())
+            XCTAssertEqual(reply?.status, .ok)
+            XCTAssertEqual(reply?.update, answer)
+            XCTAssertEqual(updater.asked.checks, 1)
+            XCTAssertEqual(updater.asked.installs, 0)
+        }
+        let without = StreamHarness(savedMutes: savedMutes)
+        let connection = without.connect(reader: TestStreamReader())
+        defer { connection.invalidate() }
+        let reply = connection.send(StreamRequest(.updateCheck).encoded())
+        XCTAssertEqual(reply?.status, .failed)
+        XCTAssertEqual(reply?.problem, "This Security Extension doesn't look up releases.")
+    }
+
     /// A report reads back as it was written, an Endpoint Security answer this build doesn't know reads as failed,
-    /// and every `es_new_client` result has a name.
+    /// what a newer Security Extension says of its indicators that this build can't read is left out, and every
+    /// `es_new_client` result has a name.
     func testTheReportsWireShape() throws {
         let report = SensorReport(endpointSecurity: .notPermitted, app: SensorReport.App(connected: true,
                                                                                          recording: false),
-                                  streams: 2, streamCapacity: 3)
+                                  streams: 2, streamCapacity: 3,
+                                  indicators: IndicatorPackStatus(sequence: 4, source: .installed, commit: "abc"))
         let data = try JSONEncoder().encode(report)
         XCTAssertEqual(try JSONDecoder().decode(SensorReport.self, from: data), report)
+        let later = Data(#"{"endpointSecurity":"ok","app":{"connected":false,"recording":false},"streams":0,"#.utf8)
+            + Data(#""streamCapacity":3,"indicators":{"sequence":4,"source":"mirrored"}}"#.utf8)
+        let read = try JSONDecoder().decode(SensorReport.self, from: later)
+        XCTAssertNil(read.indicators)
+        XCTAssertEqual(read.streamCapacity, 3)
         let newer = Data(#"{"endpointSecurity":"later","app":{"connected":false,"recording":false},"#.utf8)
             + Data(#""streams":0,"streamCapacity":3}"#.utf8)
         XCTAssertEqual(try JSONDecoder().decode(SensorReport.self, from: newer).endpointSecurity, .failed)

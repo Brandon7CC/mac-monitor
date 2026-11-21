@@ -19,18 +19,23 @@ let commandLineAccess = CommandLineAccessStore()
 
 /// The Mac's one indicator set, kept by root: Mac Monitor's capture and every `macmonitor` stream stamp each event
 /// with those it matches.
-let savedIndicators = SavedIndicatorSet()
+///
+/// Not in 3.2: looking on GitHub for a newer indicator pack (`SavedIndicatorSet+Updates.swift`). The work is done
+/// and tested, and waits for a later release. Passing the fetcher turns it on.
+let savedIndicators = SavedIndicatorSet(/* fetcher: IndicatorPackFetcher() */)
 
+/// Looks up Mac Monitor's releases for Mac Monitor and `macmonitor`, and installs one for Mac Monitor.
+let updates = UpdateInstaller()
 /// Mac Monitor's side: the app's event stream, its subscriptions and its saved sets.
 let sensorService = SensorService(savedMutes: savedMutes, savedIndicators: savedIndicators,
-                                  commandLineAccess: commandLineAccess, updates: UpdateInstaller())
+                                  commandLineAccess: commandLineAccess, updates: updates)
 
 /// Lives for the life of the process: `NSXPCListener` only holds its delegate weakly. `macmonitor status` asks the
 /// command line's side, which asks Mac Monitor's who is connected.
 let sensorListener = SensorListener(
     app: sensorService,
     commandLine: StreamService(savedMutes: savedMutes, savedIndicators: savedIndicators, access: commandLineAccess,
-                               appCapture: sensorService.captureState))
+                               appCapture: sensorService.captureState, updates: updates))
 
 autoreleasepool {
     os_log("🏎 Hello from the Mac Monitor Security Extension!")
@@ -39,6 +44,8 @@ autoreleasepool {
     /// compiles the shipped ones first, and logs a fault for any that can't run.
     savedMutes.load()
     savedIndicators.load()
+    /// Look for a newer indicator pack once a day, unless the mode is off.
+    savedIndicators.startUpdates()
     // Settings > Command Line's authorization right
     CommandLineToolAuthorization.registerRight()
     // Let's get this show on the road!

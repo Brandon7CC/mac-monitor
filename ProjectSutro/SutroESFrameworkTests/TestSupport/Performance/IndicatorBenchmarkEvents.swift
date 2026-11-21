@@ -55,8 +55,8 @@ extension XCTestCase {
     /// - Returns: The rules.
     /// - Throws: A failure when no shipped rule runs on the type.
     func distinctRules(_ count: Int, for type: es_event_type_t? = nil) throws -> [Indicator] {
-        let shipped = Indicator.defaults.filter { indicator in
-            guard let type, case .success(let rule) = IndicatorCompiler.compile(indicator.predicate) else {
+        let shipped = Indicator.eventDefaults.filter { indicator in
+            guard let type, case .success(let rule) = IndicatorCompiler.compile(indicator.predicate!) else {
                 return type == nil
             }
             return rule.types.contains(Int(type.rawValue))
@@ -65,7 +65,7 @@ extension XCTestCase {
         return (0..<count).map { index in
             var indicator = shipped[index % shipped.count]
             indicator.id = UUID()
-            indicator.predicate = "(\(indicator.predicate)) AND NOT context == \"/nonexistent/\(index)\""
+            indicator.rule = .event("(\(indicator.predicate!)) AND NOT context == \"/nonexistent/\(index)\"")
             return indicator
         }
     }

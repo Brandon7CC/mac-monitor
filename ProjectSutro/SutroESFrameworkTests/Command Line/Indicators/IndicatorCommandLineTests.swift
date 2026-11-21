@@ -51,8 +51,8 @@ final class IndicatorCommandLineTests: XCTestCase {
         XCTAssertEqual(try parse("list", "--format=text"), .indicators(.list(format: .text)))
         XCTAssertEqual(try parse("list", "--json"), .indicators(.list(format: .json)))
         XCTAssertEqual(try parse("export"), .indicators(.export()))
-        XCTAssertEqual(try parse("show", "Plist modified", "New executable"),
-                       .indicators(.show(["Plist modified", "New executable"])))
+        XCTAssertEqual(try parse("show", "Property list modified", "New executable"),
+                       .indicators(.show(["Property list modified", "New executable"])))
         XCTAssertThrowsError(try parse("show"), "show needs an indicator")
         XCTAssertTrue(try parse("list").requiresRoot)
         XCTAssertEqual(try parse("list").id, .indicators)
@@ -61,12 +61,12 @@ final class IndicatorCommandLineTests: XCTestCase {
         XCTAssertEqual(usageError("list", "--json=yes"), "--json takes no value.")
         XCTAssertEqual(usageError("list", "--jsn"),
                        "Unknown option '--jsn' for indicators list. Did you mean '--json'?")
-        XCTAssertEqual(try parse("export", "Plist modified", "--", "-odd"),
-                       .indicators(.export(["Plist modified", "-odd"])))
+        XCTAssertEqual(try parse("export", "Property list modified", "--", "-odd"),
+                       .indicators(.export(["Property list modified", "-odd"])))
         XCTAssertEqual(usageError("export", "--format", "json"), "Unknown option '--format' for indicators export.")
         XCTAssertEqual(usageError("export", " "), "An indicator's name can't be empty.")
         XCTAssertEqual(usageError(),
-                       "indicators needs one of list, show, add, edit, import, remove, enable, disable or export.")
+                       "indicators needs one of list, show, add, edit, import, remove, enable, disable, export, test or pack.")
         XCTAssertEqual(usageError("lst"), "Unknown indicators command 'lst'. Did you mean 'list'?")
         XCTAssertEqual(try parse("add", "-h"), .help(command: "indicators"))
     }
@@ -127,7 +127,7 @@ final class IndicatorCommandLineTests: XCTestCase {
     /// `--`, and no options.
     func testReferences() throws {
         let id = UUID().uuidString
-        XCTAssertEqual(try parse("remove", id, "Plist modified"), .indicators(.remove([id, "Plist modified"])))
+        XCTAssertEqual(try parse("remove", id, "Property list modified"), .indicators(.remove([id, "Property list modified"])))
         XCTAssertEqual(try parse("enable", "A"), .indicators(.enable(["A"])))
         XCTAssertEqual(try parse("disable", "--", "-odd", "B"), .indicators(.disable(["-odd", "B"])))
         XCTAssertEqual(usageError("remove"), "indicators remove needs an indicator's ID or name.")

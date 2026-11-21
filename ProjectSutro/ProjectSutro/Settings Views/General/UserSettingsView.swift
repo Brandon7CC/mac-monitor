@@ -10,8 +10,8 @@ import SutroESFramework
 
 
 // MARK: - Settings > General
-/// Settings > General: updates, the warnings before quitting and clearing, dark mode, and which parents Event Facts'
-/// process tree follows.
+/// Settings > General: Mac Monitor's updates, the warnings before quitting and clearing, dark mode, and which parents
+/// Event Facts' process tree follows.
 struct GeneralSettingsView: View {
     @EnvironmentObject var userPrefs: UserPrefs
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
@@ -45,6 +45,9 @@ struct GeneralSettingsView: View {
                 }
                 .disabled(!EndpointSecurityManager.supportsUpdates)
                 .help(EndpointSecurityManager.supportsUpdates ? "" : "Community builds don't update themselves.")
+                /// Not in 3.2: indicator pack updates (`SavedIndicatorSet+Updates.swift`). The rows are done, and
+                /// wait for a later release.
+                // IndicatorPackSettings()
             }
             Section {
                 Toggle(isOn: userPrefs.$lifecycleWarnBeforeQuit) {

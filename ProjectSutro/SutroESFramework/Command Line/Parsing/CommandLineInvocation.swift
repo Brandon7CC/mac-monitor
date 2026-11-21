@@ -29,6 +29,8 @@ public enum CommandLineInvocation: Equatable {
     case indicators(IndicatorInvocation)
     /// Show what's installed, what it needs, and who is capturing.
     case status(StatusInvocation)
+    /// Check whether a newer Mac Monitor is out.
+    case update(UpdateInvocation)
     /// Write the telemetry schema.
     case schema
     /// Check a trace against the telemetry schema.
@@ -36,8 +38,12 @@ public enum CommandLineInvocation: Equatable {
     /// Write a shell completion script.
     case completion(CommandLineShell)
     
-    /// Does it need root? Its command decides (``CommandLineCommand/requiresRoot``).
-    public var requiresRoot: Bool { id.requiresRoot }
+    /// Does it need root? Its command decides (``CommandLineCommand/requiresRoot``), but for `indicators test`, which
+    /// never talks to the Security Extension.
+    public var requiresRoot: Bool {
+        if case .indicators(let indicators) = self, !indicators.needsSecurityExtension { return false }
+        return id.requiresRoot
+    }
     
     /// The command it came from.
     public var id: CommandLineCommand {
@@ -49,6 +55,7 @@ public enum CommandLineInvocation: Equatable {
         case .mute: return .mute
         case .indicators: return .indicators
         case .status: return .status
+        case .update: return .update
         case .schema: return .schema
         case .validate: return .validate
         case .completion: return .completion

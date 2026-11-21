@@ -19,11 +19,12 @@ final class RetiredIndicatorTests: XCTestCase {
     private static let exec = #"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC""#
 
     /// The identities earlier builds shipped and this one doesn't are Not quarantined's, osascript's and Non-Apple as
-    /// root's. None is a shipped indicator's or a built-in mark's again, so a saved switch, silence or verdict of
-    /// one never lands on another rule.
+    /// root's, which the linked pack retires, and the built-in marks 3.1.0's defaults replaced (34, 36 to 39). None
+    /// is a shipped indicator's or a built-in mark's again, so a saved switch, silence or verdict of one never
+    /// lands on another rule.
     func testDroppedIdentitiesAreNeverShippedAgain() throws {
-        let dropped = Set(Indicator.retiredNumbers.map(Indicator.uuid))
-        XCTAssertEqual(dropped, Set([2, 12, 14, 34, 36, 37, 38, 39].map(Indicator.uuid)))
+        XCTAssertEqual(Indicator.retiredDefaults, Set([2, 12, 14].map(Indicator.uuid)))
+        let dropped = Indicator.retiredDefaults.union([34, 36, 37, 38, 39].map(Indicator.uuid))
         XCTAssertTrue(dropped.isDisjoint(with: (Indicator.defaults + Indicator.builtInMarks).map(\.id)))
         XCTAssertNil(CompiledIndicators.shippedDefaults[Self.osascriptID])
         XCTAssertFalse(Indicator.defaults.contains { $0.name == "osascript" })
@@ -39,16 +40,16 @@ final class RetiredIndicatorTests: XCTestCase {
         let exec: NSDictionary = ["es_event_type": "ES_EVENT_TYPE_NOTIFY_EXEC", "event": ["exec": ["target": [
             "executable": ["path": "/usr/bin/osascript", "name": "osascript"], "codesigning_type": "PLATFORM",
             "signing_id": "com.apple.osascript", "is_adhoc_signed": false]]]]
-        XCTAssertTrue(try StreamFilter.Predicate(droppedOsascript().predicate, for: .indicator).evaluate(on: exec))
-        for indicator in Indicator.defaults {
-            let predicate = try StreamFilter.Predicate(indicator.predicate, for: .indicator)
+        XCTAssertTrue(try StreamFilter.Predicate(droppedOsascript().predicate!, for: .indicator).evaluate(on: exec))
+        for indicator in Indicator.eventDefaults {
+            let predicate = try StreamFilter.Predicate(indicator.predicate!, for: .indicator)
             XCTAssertFalse(try predicate.evaluate(on: exec), indicator.name)
         }
         let mmap: NSDictionary = ["es_event_type": "ES_EVENT_TYPE_NOTIFY_MMAP", "event": ["mmap": [:]],
                                   "target_path": "/System/Library/Components/AppleScript.component/Contents/MacOS/"
                                     + "AppleScript"]
-        let script = try XCTUnwrap(Indicator.defaults.first { $0.name == "AppleScript / JXA" })
-        XCTAssertTrue(try StreamFilter.Predicate(script.predicate, for: .indicator).evaluate(on: mmap))
+        let script = try XCTUnwrap(Indicator.defaults.first { $0.name == "AppleScript or JXA loaded" })
+        XCTAssertTrue(try StreamFilter.Predicate(script.predicate!, for: .indicator).evaluate(on: mmap))
     }
 
     /// The Security Extension loads a set the build before saved with osascript as shipped, turned off and given a
@@ -123,7 +124,7 @@ final class RetiredIndicatorTests: XCTestCase {
         macs.tableMarks = []
         let mac = Indicator.defaults + [macs]
         var mine = try droppedOsascript()
-        mine.predicate += #" AND process.executable.name != "Terminal""#
+        mine.rule = .event(mine.predicate! + #" AND process.executable.name != "Terminal""#)
         let legacy = try JSONSerialization.data(withJSONObject: savedWithOsascript(mine))
         let offer = try XCTUnwrap(IndicatorImportOffer(legacy: legacy, mac: mac))
         XCTAssertEqual(offer.added, [])
@@ -136,22 +137,17 @@ final class RetiredIndicatorTests: XCTestCase {
             try editedOsascript())), mac: mac), "Already the Mac's")
     }
 
-    /// A user's view switches and Don't Notify for osascript outlast it harmlessly: the switches are still read back,
-    /// and the silence isn't counted, until an edited osascript the Mac kept, which they still apply to.
-    func testLeftoverViewsAndSilenceChangeNothing() throws {
+    /// A user's view switches for osascript outlast it harmlessly: the switches are still read back, and still apply
+    /// to an edited osascript the Mac kept.
+    func testLeftoverViewsChangeNothing() throws {
         var views = try droppedOsascript().views
         views.tableMarks = [.dot, .symbol]
         let defaults = makeDefaults()
         IndicatorOverlay([Self.osascriptID: views]).save(to: defaults)
         let overlay = IndicatorOverlay(defaults: defaults)
         XCTAssertEqual(overlay.views, [Self.osascriptID: views], "Read back, not dropped")
-        let alerts = IndicatorAlertSettings(high: true, medium: true, silenced: [Self.osascriptID])
-        XCTAssertEqual(alerts.silencedCount(among: Indicator.defaults), 0)
-        XCTAssertEqual(IndicatorAlertSettings(silenced: [Self.osascriptID, Indicator.defaults[0].id])
-            .silencedCount(among: Indicator.defaults), 1)
 
         let kept = Indicator.defaults + [try editedOsascript()]
-        XCTAssertEqual(alerts.silencedCount(among: kept), 1)
         XCTAssertEqual(overlay.applied(to: kept).last?.views, views)
     }
 

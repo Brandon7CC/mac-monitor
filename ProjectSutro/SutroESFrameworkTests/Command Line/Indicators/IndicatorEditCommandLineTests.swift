@@ -39,12 +39,12 @@ final class IndicatorEditCommandLineTests: XCTestCase {
     /// that may be empty. `--` before a name that starts with a dash.
     func testEachFieldOption() throws {
         let curl = IndicatorCommandLineTests.curl
-        XCTAssertEqual(try parse("Plist modified", "--name", " Plist written ", "--predicate=\(curl)",
+        XCTAssertEqual(try parse("Property list modified", "--name", " Plist written ", "--predicate=\(curl)",
                                  "--severity", "HIGH", "--description", "", "--symbol", "doc.badge.gearshape"),
-                       IndicatorEdit("Plist modified", .values([.name: "Plist written", .predicate: curl,
+                       IndicatorEdit("Property list modified", .values([.name: "Plist written", .predicate: curl,
                                                                 .severity: "high", .description: "",
                                                                 .symbol: "doc.badge.gearshape"])))
-        let tactics = [("TA0003", "persistence"), ("defense-evasion", "defenseEvasion"),
+        let tactics = [("TA0003", "persistence"), ("defense-evasion", "stealth"), ("TA0112", "defenseImpairment"),
                        ("Command and Control", "commandAndControl"), ("NONE", "")]
         for (typed, canonical) in tactics {
             XCTAssertEqual(try parse("A", "--tactic", typed), IndicatorEdit("A", .values([.tactic: canonical])), typed)
@@ -115,10 +115,10 @@ final class IndicatorEditCommandLineTests: XCTestCase {
             XCTAssertEqual(refused?.message, message, arguments.joined(separator: " "))
             XCTAssertEqual(refused?.exit, .dataError, arguments.joined(separator: " "))
         }
-        let tactic = try XCTUnwrap(refusal(["A", "--tactic", "stealth"]))
+        let tactic = try XCTUnwrap(refusal(["A", "--tactic", "hiding"]))
         XCTAssertTrue(tactic.message.hasPrefix("--tactic must be one of reconnaissance, resourceDevelopment, "),
                       tactic.message)
-        XCTAssertTrue(tactic.message.hasSuffix(", its ATT&CK ID or name, or none, not 'stealth'."), tactic.message)
+        XCTAssertTrue(tactic.message.hasSuffix(", its ATT&CK ID or name, or none, not 'hiding'."), tactic.message)
         XCTAssertEqual(tactic.exit, .dataError)
     }
 

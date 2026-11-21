@@ -51,6 +51,9 @@ public struct StreamReply: XPCReply, Equatable, Sendable {
     public var summary: StreamSummary?
     /// What the Security Extension says of itself, for a status request. `nil` from one older than 3.1.0.
     public var report: SensorReport? = nil
+    /// How the look up of Mac Monitor's latest release went, for an update check request. `nil` from a build that
+    /// doesn't update itself, as a Community build doesn't.
+    public var update: UpdateCheck? = nil
 }
 
 

@@ -14,7 +14,8 @@ import Foundation
 /// serves every test that needs an indicator to hit and to miss: what each default matches, what each mark matches,
 /// and the matcher's differential, which lays each record over an event of the synthetic corpus.
 extension IndicatorTests {
-    /// - Returns: A case or more for every default: these, then the persistence defaults' (``persistenceCases()``).
+    /// - Returns: A case or more for the defaults these tests were written for: these, then the persistence defaults'
+    ///   (``persistenceCases()``). The indicators repository tests every default the pack ships.
     func defaultCases() -> [Case] {
         /// - Parameters:
         ///   - target: The exec's target.
@@ -43,17 +44,12 @@ extension IndicatorTests {
              "event": ["iokit_open": ["user_client_class": "IOUserClient", "driver_bundle_id": driver]]]
         }
         /// - Parameters:
-        ///   - path: The file closed.
-        ///   - modified: Whether it was written.
-        /// - Returns: A close's record.
-        func close(_ path: String, modified: Bool) -> NSDictionary {
-            ["es_event_type": "ES_EVENT_TYPE_NOTIFY_CLOSE", "target_path": path,
-             "event": ["close": ["modified": modified]]]
-        }
-        /// - Parameter path: The new path.
+        ///   - path: The new path.
+        ///   - type: The type its content is named by, or `NSNull`.
         /// - Returns: A rename's record.
-        func rename(to path: String) -> NSDictionary {
-            ["es_event_type": "ES_EVENT_TYPE_NOTIFY_RENAME", "target_path": path]
+        func rename(to path: String, _ type: Any) -> NSDictionary {
+            ["es_event_type": "ES_EVENT_TYPE_NOTIFY_RENAME", "target_path": path,
+             "event": ["rename": ["file_type": type]]]
         }
         /// - Parameter type: The Mach-O type written, or `NSNull`.
         /// - Returns: A close's record of a file written.
@@ -71,6 +67,9 @@ extension IndicatorTests {
                                  "target": ["path": path, "name": (path as NSString).lastPathComponent]]]]
         }
         let agent = "/Users/a/Library/LaunchAgents/com.example.agent.plist"
+        let xmlPlist = "com.apple.xml-property-list", binaryPlist = "com.apple.binary-property-list"
+        /// A user's folder in `/private/var/folders`.
+        let folders = "/private/var/folders/by/997_b3mj46j5hy98rnfc28w00000gn"
         let mmap = "ES_EVENT_TYPE_NOTIFY_MMAP"
         let login = "/Users/a/Library/Keychains/login.keychain-db"
         let detected = "ES_EVENT_TYPE_NOTIFY_XP_MALWARE_DETECTED"
@@ -79,12 +78,12 @@ extension IndicatorTests {
             ("Reflective loading",
              ["es_event_type": mmap, "target_path": "/private/var/folders/T/NSCreateObjectFileImageFromMemory-cgAR"],
              ["es_event_type": mmap, "target_path": "/tmp/NSCreateObjectFileImageFromMemory.txt"]),
-            ("Quarantine removed",
+            ("Quarantine attribute removed",
              ["es_event_type": "ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR",
               "event": ["deleteextattr": ["extattr": "com.apple.quarantine"]]],
              ["es_event_type": "ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR",
               "event": ["deleteextattr": ["extattr": "com.apple.lastuseddate#PS"]]]),
-            ("AppleScript / JXA",
+            ("AppleScript or JXA loaded",
              ["es_event_type": mmap, "target_path": "/System/Library/ScriptingAdditions/StandardAdditions.osax/x"],
              ["es_event_type": mmap, "target_path": "/usr/lib/libSystem.B.dylib"]),
             ("Keychain opened", open(login, by: "/tmp/stealer"), open("/Users/a/Library/Keychain.txt", by: "/tmp/a")),
@@ -96,19 +95,24 @@ extension IndicatorTests {
              ["es_event_type": "ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGIN", "event": ["openssh_login": ["success": false]]],
              ["es_event_type": "ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGOUT"]),
             ("New executable", exec([:], ["executable_age_ms": 4]), exec([:], ["executable_age_ms": 1_000])),
-            ("Adhoc signed", exec(["codesigning_type": "ADHOC", "signing_id": "a.out"]),
+            ("Ad-hoc signed", exec(["codesigning_type": "ADHOC", "signing_id": "a.out"]),
              exec(["codesigning_type": "DEVELOPER_ID", "signing_id": "com.example.app"])),
             ("Unsigned", exec(["codesigning_type": "UNSIGNED", "signing_id": "Unknown", "is_adhoc_signed": false]),
              exec(["codesigning_type": "ADHOC", "signing_id": "a.out"])),
             ("Ran a script", exec([:], ["script_content": "echo hi"]), exec([:], ["script_content": ""])),
             ("Download tool", tool("/usr/bin/curl"), tool("/usr/local/bin/curly")),
-            ("Non-Apple driver opened", iokitOpen(driver: "com.example.driver"),
+            ("Third-party driver opened", iokitOpen(driver: "com.example.driver"),
              iokitOpen(driver: "com.apple.iokit.IOSurface")),
-            ("Non-Apple driver opened", iokitOpen(driver: "com.applesauce.driver"), iokitOpen(driver: NSNull())),
-            ("Plist modified", close(agent, modified: true), close(agent, modified: false)),
-            ("Plist modified", rename(to: agent), rename(to: "/Users/a/Library/LaunchAgents/notes.txt")),
-            ("Plist modified", close("/Users/a/Library/Preferences/com.example.app.PLIST", modified: true),
-             close("/Users/a/Library/Preferences/com.example.plist.bak", modified: true)),
+            ("Third-party driver opened", iokitOpen(driver: "com.applesauce.driver"), iokitOpen(driver: NSNull())),
+            /// A property list is known by its content, whatever its name. A close in a user's temporary folder doesn't
+            /// count, but a rename there does.
+            ("Property list modified", typedClose(xmlPlist, at: agent),
+             typedClose(xmlPlist, at: agent, modified: false)),
+            ("Property list modified", rename(to: agent, binaryPlist), rename(to: agent, NSNull())),
+            ("Property list modified", typedClose(binaryPlist, at: "/Users/a/Library/Preferences/com.example.app"),
+             typedClose("public.json", at: "/Users/a/Library/Preferences/com.example.app.plist")),
+            ("Property list modified", rename(to: folders + "/T/com.example.app.plist", xmlPlist),
+             typedClose(xmlPlist, at: folders + "/T/com.example.app.plist")),
             ("Hidden Mach-O written", machO(at: "/tmp/.update"), machO(at: "/tmp/update")),
             ("Hidden Mach-O written", machO(at: "/Users/a/.cache/.lib", "MH_DYLIB"), machO(at: "/Users/a/.cache/lib")),
             ("Hidden Mach-O written", machO(at: "/tmp/.BC.T_djbmra", "MH_BUNDLE"), machO(at: "/tmp/.o", "MH_OBJECT")),
@@ -356,10 +360,11 @@ extension IndicatorTests {
         ///   - path: The file created.
         ///   - quarantined: Whether it's quarantined.
         ///   - aware: Whether the process creating it is File Quarantine-aware.
+        ///   - age: How old the process is, in milliseconds.
         /// - Returns: A create's record.
-        func create(_ path: String, quarantined: Int, aware: Bool = false) -> NSDictionary {
+        func create(_ path: String, quarantined: Int, aware: Bool = false, age: Int = 2000) -> NSDictionary {
             let created = NSMutableDictionary(dictionary: record("CREATE", ["is_quarantined": quarantined], path: path))
-            created["process"] = ["file_quarantine_type": aware ? "OPT_IN" : "DISABLED"]
+            created["process"] = ["file_quarantine_type": aware ? "OPT_IN" : "DISABLED", "process_age_ms": age]
             return created
         }
         /// - Parameters:
@@ -372,7 +377,6 @@ extension IndicatorTests {
         let reflective = "/private/var/folders/T/NSCreateObjectFileImageFromMemory-cgAR"
         /// A user's folder in `/private/var/folders`.
         let folders = "/private/var/folders/by/997_b3mj46j5hy98rnfc28w00000gn"
-        let btm = "/private/var/db/com.apple.backgroundtaskmanagement/BackgroundItems-v9.btm"
         let typeOnly: [(String, String, String)] = [
             ("Background item added", "BTM_LAUNCH_ITEM_ADD", "BTM_LAUNCH_ITEM_REMOVE"),
             ("Background item removed", "BTM_LAUNCH_ITEM_REMOVE", "BTM_LAUNCH_ITEM_ADD"),
@@ -393,25 +397,24 @@ extension IndicatorTests {
             ("Reflective loading", create(reflective, quarantined: 0),
              create("/tmp/NSCreateObjectFileImageFromMemory.txt", quarantined: 0)),
             ("Reflective loading", record("MMAP", path: reflective), record("MMAP", path: "/tmp/x.dylib")),
-            ("Unquarantined file from a File Quarantine-aware app", create("/Users/a/x", quarantined: 0, aware: true),
+            ("Quarantine attribute missing", create("/Users/a/x", quarantined: 0, aware: true),
              create("/Users/a/x", quarantined: 1, aware: true)),
-            ("Unquarantined file from a File Quarantine-aware app", create("/Users/a/x", quarantined: 0, aware: true),
+            ("Quarantine attribute missing", create("/Users/a/x", quarantined: 0, aware: true),
              create("/Users/a/x", quarantined: 0)),
-            ("Unquarantined file from a File Quarantine-aware app",
+            ("Quarantine attribute missing", create("/Users/a/x", quarantined: 0, aware: true),
+             create("/Users/a/x", quarantined: 0, aware: true, age: 1999)),
+            ("Quarantine attribute missing",
              create(folders + "/T/X-files/x", quarantined: 0, aware: true),
              create(folders + "/X/com.google.Chrome.code_sign_clone/code_sign_clone.lAVKBe", quarantined: 0,
                     aware: true)),
             ("Quarantined file", create("/Users/a/x", quarantined: 1), create("/Users/a/x", quarantined: 0)),
-            ("AppleScript / JXA",
+            ("AppleScript or JXA loaded",
              record("MMAP", path: "/System/Library/Components/AppleScript.component/Contents/MacOS/AppleScript"),
              record("MMAP", path: "/usr/lib/libSystem.B.dylib")),
             ("Quarantined file renamed", rename("/Users/a/x", quarantined: 1), rename("/Users/a/x", quarantined: 0)),
             ("Unquarantined app bundle", rename("/Applications/X.app", quarantined: 0),
              rename("/Applications/X.app", quarantined: 1)),
-            ("BTM database modified", rename(btm, quarantined: 1),
-             rename("/private/var/db/com.apple.backgroundtaskmanagementd/x.btm", quarantined: 0)),
-            ("BTM database modified", rename(btm, quarantined: 0), rename("/Users/a/x", quarantined: 0)),
-            ("Quarantine removed", record("DELETEEXTATTR", ["extattr": "com.apple.quarantine"]),
+            ("Quarantine attribute removed", record("DELETEEXTATTR", ["extattr": "com.apple.quarantine"]),
              record("DELETEEXTATTR", ["extattr": "com.apple.lastuseddate#PS"])),
             ("Login Item written",
              record("WRITE", path: "/private/var/db/com.apple.backgroundtaskmanagementd/x"),

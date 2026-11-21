@@ -17,18 +17,19 @@ import EndpointSecurity
 /// matches none carries `[]`, and a lane without a set stamps nothing, so its records have no `indicators`. An event
 /// the scan budget can't decide carries `indicators_undetermined`.
 final class MessageSerializerIndicatorTests: XCTestCase {
-    /// A plist written in a launch agents folder is "Plist modified".
-    func testAModifiedCloseOfAPlist() throws {
+    /// A shell's startup file written is Shell startup file modified, with its indicator's severity.
+    func testAModifiedCloseOfAStartupFile() throws {
+        let shipped = Indicator.shipped(0x2C)
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_CLOSE)
-        fixture.close("/Users/a/Library/LaunchAgents/com.example.agent.plist", modified: true)
-        let message = try assertStamps(fixture, on: .file, including: "Plist modified")
-        XCTAssertEqual(message.indicators?.hits.first?.severity, .low)
+        fixture.close("/Users/a/.zshrc", modified: true)
+        let message = try assertStamps(fixture, on: .file, including: shipped.name)
+        XCTAssertEqual(message.indicators?.hits.first { $0.id == shipped.id }?.severity, shipped.severity)
     }
 
-    /// The same plist closed unwritten matches nothing, and says so with `[]`.
+    /// The same file closed unwritten matches nothing, and says so with `[]`.
     func testAnUnmodifiedCloseMatchesNothing() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_CLOSE)
-        fixture.close("/Users/a/Library/LaunchAgents/com.example.agent.plist", modified: false)
+        fixture.close("/Users/a/.zshrc", modified: false)
         let (message, record) = try serialized(fixture, on: .file)
         XCTAssertEqual(message.indicators, IndicatorVerdicts([]))
         XCTAssertEqual((record["indicators"] as? [Any])?.count, 0)
@@ -52,11 +53,11 @@ final class MessageSerializerIndicatorTests: XCTestCase {
         XCTAssertEqual(message.indicators?.hits.map(\.severity), [.low])
     }
 
-    /// The AppleScript component mapped is "AppleScript / JXA", on the memory lane.
+    /// The AppleScript component mapped is "AppleScript or JXA loaded", on the memory lane.
     func testAnMmapOfAnOSAComponent() throws {
         let fixture = rawMessage(type: ES_EVENT_TYPE_NOTIFY_MMAP)
         fixture.mmap("/System/Library/Components/AppleScript.component/Contents/MacOS/AppleScript")
-        try assertStamps(fixture, on: .memory, including: "AppleScript / JXA")
+        try assertStamps(fixture, on: .memory, including: "AppleScript or JXA loaded")
     }
 
     /// A lane without a set evaluates nothing: the event has no verdicts, and its JSON no `indicators`.

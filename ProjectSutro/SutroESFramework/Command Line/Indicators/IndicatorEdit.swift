@@ -55,7 +55,7 @@ public struct IndicatorEdit: Equatable {
             case .name: edited.name = value
             case .description: edited.description = value
             case .symbol: edited.symbol = value
-            case .predicate: edited.predicate = value
+            case .predicate: edited.rule = .event(value)
             case .tactic: edited.tactic = Indicator.Tactic(rawValue: value)
             case .technique: edited.technique = value.isEmpty ? nil : value
             case .severity: edited.severity = IndicatorSeverity(rawValue: value) ?? edited.severity

@@ -33,13 +33,16 @@ final class StatusCommandTests: XCTestCase {
     ///   - endpointSecurity: What Endpoint Security answers it.
     ///   - app: Whether Mac Monitor is connected and recording.
     ///   - streams: How many `macmonitor` streams run.
+    ///   - indicators: Which indicator pack Mac Monitor's own indicators are: the build's own unless given.
     /// - Returns: The reply.
     private func reply(_ endpointSecurity: SensorReport.EndpointSecurity = .ok,
-                       app: (connected: Bool, recording: Bool) = (true, true), streams: Int = 1) -> StreamReply {
+                       app: (connected: Bool, recording: Bool) = (true, true), streams: Int = 1,
+                       indicators: IndicatorPackStatus? = IndicatorPackStatus(sequence: 0, source: .linked))
+        -> StreamReply {
         StreamReply(status: .ok, sensorVersion: "3.1.0 (97)",
                     report: SensorReport(endpointSecurity: endpointSecurity,
                                          app: SensorReport.App(connected: app.connected, recording: app.recording),
-                                         streams: streams, streamCapacity: 3))
+                                         streams: streams, streamCapacity: 3, indicators: indicators))
     }
 
     /// `status` takes `--json` and nothing else, and `-v` asks for the version as `--version` does.
@@ -89,6 +92,9 @@ final class StatusCommandTests: XCTestCase {
               Mac Monitor          connected, recording
               macmonitor streams   1 of 3
 
+            Indicators
+              Pack                 this build's own
+
             """)
         let idle = StatusReport(tool: "3.1.0 (97)", app: nil, systemExtension: "activated enabled",
                                 answer: .success(reply(app: (false, false), streams: 0)))
@@ -99,6 +105,36 @@ final class StatusCommandTests: XCTestCase {
         let stopped = StatusReport(tool: "1", app: "1", systemExtension: "activated enabled",
                                    answer: .success(reply(app: (true, false))))
         XCTAssertTrue(StatusCommand.output(stopped, json: false).contains("connected, not recording"))
+    }
+
+    /// The indicator pack is the build's own, a release the build links in, or one installed since. A Security
+    /// Extension older than 3.2 doesn't say, and JSON has the pack's release, source, date and commit.
+    func testTheIndicatorPack() throws {
+        let packs: [(IndicatorPackStatus?, String)] = [
+            (IndicatorPackStatus(sequence: 0, source: .linked), "this build's own"),
+            (IndicatorPackStatus(sequence: 3, source: .linked, linked: 3), "3, in this build"),
+            (IndicatorPackStatus(sequence: 4, source: .installed, published: "2026-11-16T00:00:00Z", commit: "abc",
+                                 linked: 3), "4, installed"),
+            (nil, "unknown"),
+        ]
+        for (pack, words) in packs {
+            let report = StatusReport(tool: "1", app: "1", systemExtension: "activated enabled",
+                                      answer: .success(reply(indicators: pack)))
+            XCTAssertTrue(StatusCommand.output(report, json: false).hasSuffix("""
+                Indicators
+                  Pack                 \(words)
+
+                """), words)
+            XCTAssertTrue(report.isReady, "The pack doesn't decide whether it's ready")
+        }
+        let report = StatusReport(tool: "1", app: "1", systemExtension: "activated enabled",
+                                  answer: .success(reply(indicators: packs[2].0)))
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: Data(StatusCommand.output(report, json: true).utf8)) as? [String: [String: Any]])
+        XCTAssertEqual(object["indicators"]?["pack"] as? Int, 4)
+        XCTAssertEqual(object["indicators"]?["source"] as? String, "installed")
+        XCTAssertEqual(object["indicators"]?["published"] as? String, "2026-11-16T00:00:00Z")
+        XCTAssertEqual(object["indicators"]?["commit"] as? String, "abc")
     }
 
     /// Without Full Disk Access, or not activated, it isn't ready, and the text says what's missing.
@@ -141,12 +177,14 @@ final class StatusCommandTests: XCTestCase {
 
     /// `--json` writes every part, with `null` for what isn't known.
     func testJSON() throws {
+        IndicatorPackUpdates.isAvailable = true
+        defer { IndicatorPackUpdates.isAvailable = false }
         let report = StatusReport(tool: "3.1.0 (97)", app: "3.1.0 (97)", systemExtension: "activated enabled",
                                   answer: .success(reply(app: (true, false), streams: 2)))
         let json = StatusCommand.output(report, json: true)
         XCTAssertTrue(json.hasSuffix("}\n"))
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: [String: Any]])
-        XCTAssertEqual(Set(object.keys), ["versions", "security_extension", "capturing"])
+        XCTAssertEqual(Set(object.keys), ["versions", "security_extension", "capturing", "indicators"])
         XCTAssertEqual(object["versions"]?["security_extension"] as? String, "3.1.0 (97)")
         XCTAssertEqual(object["security_extension"]?["activated"] as? Bool, true)
         XCTAssertEqual(object["security_extension"]?["full_disk_access"] as? Bool, true)
@@ -162,6 +200,9 @@ final class StatusCommandTests: XCTestCase {
         XCTAssertTrue(unknown["versions"]?["security_extension"] is NSNull)
         XCTAssertTrue(unknown["security_extension"]?["full_disk_access"] is NSNull)
         XCTAssertTrue(unknown["capturing"]?["streams"] is NSNull)
+        XCTAssertEqual(Set(unknown["indicators"]?.keys.map { $0 } ?? []),
+                       ["pack", "source", "published", "commit", "mode", "checked", "available"])
+        XCTAssertTrue(unknown["indicators"]?["pack"] is NSNull)
         XCTAssertEqual(unknown["security_extension"]?["problem"] as? String, "No answer.")
     }
 

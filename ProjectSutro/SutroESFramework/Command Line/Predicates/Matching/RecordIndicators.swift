@@ -24,21 +24,39 @@ public final class RecordIndicators: @unchecked Sendable {
     /// Finds the indicators an event matches, or `nil` to match none (``stored``). Not thread-safe, so one per
     /// encoder, used on its context's queue.
     private let matcher: IndicatorMatcher?
-    /// The indicators Mac Monitor ships, by identity, for each hit's `default` and `edited`.
-    private let shipped = CompiledIndicators.shippedDefaults
+    /// Mac Monitor's own indicators, by identity, for each hit's `default` and `edited`: as the Security Extension
+    /// last sent them to Mac Monitor (``IndicatorEngine/cachedBaseline(in:)``), so a hit matched here says what one
+    /// the Security Extension stamped says. Where none were kept, as in `macmonitor`, they're this build's.
+    private let shipped: [UUID: Indicator]
+    /// The indicator pack those are, for each hit's `pack`: 0 for a build's own, which aren't a pack.
+    private let pack: Int
 
     /// The indicators the encoding on this thread or task lists, if any.
     @TaskLocal static var current: RecordIndicators?
 
     /// - Parameter indicators: The indicators, in Settings' order. Those off, or whose predicate can't be used, are
     ///   left out.
-    public init(_ indicators: [Indicator]) {
+    public convenience init(_ indicators: [Indicator]) {
+        self.init(indicators, shipped: Indicator.byID(IndicatorEngine.cachedBaseline()),
+                  pack: IndicatorEngine.cachedPack())
+    }
+
+    /// - Parameters:
+    ///   - indicators: The indicators, in Settings' order. Those off, or whose predicate can't be used, are left
+    ///     out.
+    ///   - shipped: Mac Monitor's own indicators, by identity.
+    ///   - pack: The indicator pack those are, or 0 for a build's own.
+    public init(_ indicators: [Indicator], shipped: [UUID: Indicator], pack: Int = 0) {
         matcher = IndicatorMatcher(indicators)
+        self.shipped = shipped
+        self.pack = pack
     }
 
     /// - Parameter matcher: Finds the indicators an event matches, or `nil` to match none.
     private init(matcher: IndicatorMatcher?) {
         self.matcher = matcher
+        shipped = [:]
+        pack = 0
     }
 
     /// Only the verdicts each event carries, matching nothing: `macmonitor stream`'s records, whose events the
@@ -65,7 +83,7 @@ public final class RecordIndicators: @unchecked Sendable {
     func entries(for message: ESMessage) -> [IndicatorHit]? {
         guard let matcher else { return nil }
         return Self.$current.withValue(nil) { matcher.matches(message) }.map {
-            IndicatorHit($0, against: shipped, evaluatedBy: .export)
+            IndicatorHit($0, against: shipped, pack: pack, evaluatedBy: .export)
         }
     }
 }
@@ -73,8 +91,13 @@ public final class RecordIndicators: @unchecked Sendable {
 
 // MARK: - Example
 public extension RecordIndicators {
-    /// A predicate that finds the events an indicator matched, by its name: the predicate editor's example.
-    static let exampleQuery = #"ANY indicators.name ==[c] "Plist modified""#
+    /// A predicate that finds the events an indicator matched, by its name: the predicate editor's example. The name
+    /// is the one the linked pack gives Property list modified, so a pack that renames it keeps the example finding
+    /// its events.
+    static let exampleQuery: String = {
+        let name = Indicator.defaults.first { $0.id == Indicator.uuid(0x2A) }?.name ?? "Property list modified"
+        return #"ANY indicators.name ==[c] "\#(name)""#
+    }()
 }
 
 
@@ -98,17 +121,30 @@ public struct IndicatorHit: Codable, Hashable, Sendable {
     public let severity: IndicatorSeverity
     /// Is it one of Mac Monitor's defaults, which Mac Monitor ships? The record's `default`.
     public let isDefault: Bool
-    /// Did this Mac change one Mac Monitor ships (``Indicator/sameDetection(as:)``)? Never for one it doesn't ship.
+    /// Did this Mac change one Mac Monitor ships (``Indicator/sameIndicator(as:)``)? Never for one it doesn't ship.
     public let edited: Bool
     /// Who matched it.
     public let evaluated_by: IndicatorEvaluator
+    /// The indicator's revision, which its pack raises whenever the indicator changes, or `nil` for one without. An
+    /// edited one keeps the revision it was edited from.
+    public let revision: Int?
+    /// The indicator pack this Mac had when it matched, by its sequence, for one Mac Monitor ships. `nil` for one
+    /// this Mac added, and when the indicators are a build's own rather than a pack's.
+    public let pack: Int?
+    /// What made it match: the comparisons of its rule the event passed, each with the value the event had
+    /// (``IndicatorMatchedField``). For a sequence, those of its steps this event matched, as it completed it.
+    /// `nil` when its rule compares nothing but the event's type, and for a hit Mac Monitor made as it wrote a
+    /// record, which only the Security Extension explains.
+    public var matched: [IndicatorMatchedField]?
 
     /// - Parameters:
     ///   - indicator: The indicator.
     ///   - isDefault: Does Mac Monitor ship it?
     ///   - edited: Did this Mac change it? Only one Mac Monitor ships can be.
+    ///   - pack: The indicator pack the shipped indicators are, or 0 for a build's own.
     ///   - evaluatedBy: Who matched it.
-    public init(_ indicator: Indicator, isDefault: Bool, edited: Bool = false, evaluatedBy: IndicatorEvaluator) {
+    public init(_ indicator: Indicator, isDefault: Bool, edited: Bool = false, pack: Int = 0,
+                evaluatedBy: IndicatorEvaluator) {
         id = indicator.id
         name = indicator.name
         tactic = indicator.tactic?.name
@@ -118,6 +154,8 @@ public struct IndicatorHit: Codable, Hashable, Sendable {
         self.isDefault = isDefault
         self.edited = isDefault && edited
         evaluated_by = evaluatedBy
+        revision = indicator.revision
+        self.pack = isDefault && pack > 0 ? pack : nil
     }
 
     /// A hit that says whether Mac Monitor ships its indicator, and whether this Mac edited it.
@@ -125,11 +163,14 @@ public struct IndicatorHit: Codable, Hashable, Sendable {
     /// - Parameters:
     ///   - indicator: The indicator.
     ///   - defaults: The indicators Mac Monitor ships, by identity.
+    ///   - pack: The indicator pack those are, or 0 for a build's own.
     ///   - evaluatedBy: Who matched it.
-    public init(_ indicator: Indicator, against defaults: [UUID: Indicator], evaluatedBy: IndicatorEvaluator) {
+    public init(_ indicator: Indicator, against defaults: [UUID: Indicator], pack: Int = 0,
+                evaluatedBy: IndicatorEvaluator) {
         let original = defaults[indicator.id]
         self.init(indicator, isDefault: original != nil,
-                  edited: original.map { !indicator.sameDetection(as: $0) } ?? false, evaluatedBy: evaluatedBy)
+                  edited: original.map { !indicator.sameIndicator(as: $0) } ?? false, pack: pack,
+                  evaluatedBy: evaluatedBy)
     }
 
     /// Strictly, whatever the decoder: Open Trace's fills in what's missing, so a hit without its identity, name or
@@ -138,7 +179,8 @@ public struct IndicatorHit: Codable, Hashable, Sendable {
     /// - Parameter decoder: A decoder holding one entry of the record's `indicators` array.
     /// - Throws: When a required key is missing or `null`, the identity isn't a UUID, the severity isn't one this
     ///   build knows, or the evaluator has no name. `edited` is required: a hit stored by a build before it isn't
-    ///   read, so its event counts as not evaluated, and is matched again as it's exported.
+    ///   read, so its event counts as not evaluated, and is matched again as it's exported. `revision`, `pack` and
+    ///   `matched` may be missing, as they are in a trace Mac Monitor 3.1 wrote.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         guard let id = UUID(uuidString: try container.decodePresent(String.self, forKey: .id)) else {
@@ -153,6 +195,10 @@ public struct IndicatorHit: Codable, Hashable, Sendable {
         isDefault = try container.decodePresent(Bool.self, forKey: .isDefault)
         edited = try container.decodePresent(Bool.self, forKey: .edited)
         evaluated_by = try container.decodePresent(IndicatorEvaluator.self, forKey: .evaluated_by)
+        revision = try container.decodeIfPresent(Int.self, forKey: .revision)
+        pack = try container.decodeIfPresent(Int.self, forKey: .pack)
+        /// What it matched explains the verdict and isn't part of it: one that can't be read is dropped, not the hit.
+        matched = try? container.decodeIfPresent([IndicatorMatchedField].self, forKey: .matched)
     }
 
     /// Every key, `null` for none.
@@ -170,11 +216,14 @@ public struct IndicatorHit: Codable, Hashable, Sendable {
         try container.encode(isDefault, forKey: .isDefault)
         try container.encode(edited, forKey: .edited)
         try container.encode(evaluated_by, forKey: .evaluated_by)
+        try container.encode(revision, forKey: .revision)
+        try container.encode(pack, forKey: .pack)
+        try container.encode(matched, forKey: .matched)
     }
 
     /// A hit's keys in a record.
     private enum CodingKeys: String, CodingKey {
-        case id, name, tactic, tactic_id, technique, severity, edited, evaluated_by
+        case id, name, tactic, tactic_id, technique, severity, edited, evaluated_by, revision, pack, matched
         /// `default` is a Swift keyword, so the property is ``isDefault``.
         case isDefault = "default"
     }

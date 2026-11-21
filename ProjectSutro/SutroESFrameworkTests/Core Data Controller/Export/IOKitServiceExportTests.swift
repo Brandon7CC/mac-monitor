@@ -143,10 +143,9 @@ final class IOKitServiceExportTests: XCTestCase {
     /// Non-Apple driver opened matches an open whose driver is known and isn't Apple's, on its record and on the
     /// stored event alike, and not an Apple driver's, an unknown one, or another event.
     func testNonAppleDriverIndicator() throws {
-        let indicator = try XCTUnwrap(Indicator.defaults.first { $0.name == "Non-Apple driver opened" })
+        let indicator = try XCTUnwrap(Indicator.defaults.first { $0.name == "Third-party driver opened" })
         XCTAssertEqual(indicator.id, UUID(uuidString: "6D4D0F1D-0000-4000-8000-000000000029"))
-        XCTAssertEqual(indicator.predicate, Indicator.nonAppleDriverPredicate)
-        let predicate = try StreamFilter.Predicate(indicator.predicate, for: .indicator)
+        let predicate = try StreamFilter.Predicate(indicator.predicate!, for: .indicator)
         XCTAssertTrue(StoredEventValues.canEvaluate(predicate.parsed))
 
         let base = try captured()

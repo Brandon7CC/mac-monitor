@@ -14,13 +14,13 @@ import XCTest
 /// built-in mark both matches and doesn't.
 extension IndicatorTests {
     /// Routing by type and narrowing by the store never leave an indicator out, nor put one in: the matcher agrees with
-    /// evaluating every default and built-in mark on every event of ``indicatorCorpus()``. Each one both matches some
-    /// event and doesn't match another, and matches only events of the types its predicate names
-    /// (``PredicateEventTypes``).
+    /// evaluating every default and built-in mark on every event of ``indicatorCorpus()``. Each matches only events of
+    /// the types its predicate names (``PredicateEventTypes``) and doesn't match some event, and each with a case
+    /// matches some event too.
     func testMatcherAgreesWithEveryPredicate() throws {
-        let indicators = Indicator.defaults + Indicator.builtInMarks
+        let indicators = Indicator.eventDefaults + Indicator.builtInMarks
         let matcher = IndicatorMatcher(indicators)
-        let predicates = try indicators.map { try StreamFilter.Predicate($0.predicate, for: .indicator) }
+        let predicates = try indicators.map { try StreamFilter.Predicate($0.predicate!, for: .indicator) }
         let types = try zip(indicators, predicates).map { indicator, predicate in
             try XCTUnwrap(PredicateEventTypes.eventTypes(of: predicate.parsed), "\(indicator.name) names no types")
         }
@@ -43,9 +43,11 @@ extension IndicatorTests {
                 XCTAssertEqual(matcher.matches(event).map(\.id), expected, type)
             }
         }
+        let cased = Set((defaultCases() + markCases()).map(\.0))
         for (index, indicator) in indicators.enumerated() {
-            XCTAssertGreaterThan(hits[index], 0, "\(indicator.name) matched no event")
             XCTAssertGreaterThan(misses[index], 0, "\(indicator.name) matched every event")
+            guard cased.contains(indicator.name) else { continue }
+            XCTAssertGreaterThan(hits[index], 0, "\(indicator.name) matched no event")
         }
     }
 

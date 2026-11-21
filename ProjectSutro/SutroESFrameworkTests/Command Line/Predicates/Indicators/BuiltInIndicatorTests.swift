@@ -34,7 +34,8 @@ final class BuiltInIndicatorTests: XCTestCase {
         let btm = "/private/var/db/com.apple.backgroundtaskmanagement"
         let image = "/private/var/folders/T/NSCreateObjectFileImageFromMemory-x"
         let archiver: [String: Any] = ["executable": ["name": "ArchiveService"], "file_quarantine_type": "DISABLED"]
-        let optIn: [String: Any] = ["file_quarantine_type": "OPT_IN"]
+        let optIn: [String: Any] = ["file_quarantine_type": "OPT_IN", "process_age_ms": 2000]
+        let young: [String: Any] = ["file_quarantine_type": "OPT_IN", "process_age_ms": 1999]
         func file(_ type: String, _ key: String, _ quarantined: Int, _ path: String, _ process: [String: Any] = [:])
             -> NSDictionary {
             event(type, ["target_path": path, "process": process, "event": [key: ["is_quarantined": quarantined]]])
@@ -42,7 +43,7 @@ final class BuiltInIndicatorTests: XCTestCase {
         return [
             ("Root user", exec(["ruid": 0]), exec(["ruid": 501])),
             ("Elevated to root", exec(["euid": 0, "ruid": 501]), exec(["euid": 0, "ruid": 0])),
-            ("Dylib inserted", exec([:], ["env": ["HOME=/var/root", "DYLD_INSERT_LIBRARIES=/tmp/a.dylib"]]),
+            ("Dynamic library inserted", exec([:], ["env": ["HOME=/var/root", "DYLD_INSERT_LIBRARIES=/tmp/a.dylib"]]),
              exec([:], ["env": ["DYLD_LIBRARY_PATH=/tmp"]])),
             ("File Quarantine-aware", exec(["file_quarantine_type": "OPT_IN"]),
              exec(["file_quarantine_type": "DISABLED"])),
@@ -51,21 +52,21 @@ final class BuiltInIndicatorTests: XCTestCase {
             ("New executable", exec([:], ["executable_age_ms": 250]), exec([:], ["executable_age_ms": -5])),
             ("Ran a script", exec([:], ["script_content": "echo"]), exec([:], ["script_content": ""])),
             ("Reflective loading", file("CREATE", "create", 0, image), file("CREATE", "create", 0, "/tmp/x")),
-            ("Unquarantined file from a File Quarantine-aware app",
+            ("Quarantine attribute missing",
              file("CREATE", "create", 0, "/Users/a/Downloads/a.app", archiver),
              file("CREATE", "create", 0, "/private/var/folders/T/a.app", archiver)),
-            ("Unquarantined file from a File Quarantine-aware app", file("CREATE", "create", 0, "/Users/a/x", optIn),
+            ("Quarantine attribute missing", file("CREATE", "create", 0, "/Users/a/x", optIn),
              file("CREATE", "create", 0, "/Users/a/x", ["file_quarantine_type": "DISABLED"])),
+            ("Quarantine attribute missing", file("CREATE", "create", 0, "/Users/a/x", optIn),
+             file("CREATE", "create", 0, "/Users/a/x", young)),
             ("Quarantined file", file("CREATE", "create", 1, "/Users/a/x"), file("CREATE", "create", 1, image)),
-            ("AppleScript / JXA", event("MMAP", ["target_path": "/System/Library/ScriptingAdditions/a.osax/a"]),
+            ("AppleScript or JXA loaded", event("MMAP", ["target_path": "/System/Library/ScriptingAdditions/a.osax/a"]),
              event("MMAP", ["target_path": "/usr/lib/libSystem.B.dylib"])),
             ("Quarantined file renamed", file("RENAME", "rename", 1, "/Users/a/x"),
              file("RENAME", "rename", 0, "/Users/a/x")),
             ("Unquarantined app bundle", file("RENAME", "rename", 0, "/Applications/X.app"),
              file("RENAME", "rename", 1, "/Applications/X.app")),
-            ("BTM database modified", file("RENAME", "rename", 0, btm + "/BackgroundItems-v13.btm"),
-             file("RENAME", "rename", 0, btm + "d/BackgroundItems-v13.btm")),
-            ("Quarantine removed",
+            ("Quarantine attribute removed",
              event("DELETEEXTATTR", ["event": ["deleteextattr": ["extattr": "com.apple.quarantine"]]]),
              event("DELETEEXTATTR", ["event": ["deleteextattr": ["extattr": "com.apple.quarantine.x"]]])),
             ("Login Item written", event("WRITE", ["target_path": "/private/var/folders/backgroundtaskmanagementd/a"]),
@@ -91,7 +92,7 @@ final class BuiltInIndicatorTests: XCTestCase {
         for (name, matching, other) in cases {
             let indicator = try XCTUnwrap((Indicator.builtInMarks + Indicator.defaults).first { $0.name == name }, name)
             XCTAssertTrue(!indicator.tableMarks.isEmpty && indicator.isEnabled, name)
-            let predicate = try StreamFilter.Predicate(indicator.predicate, for: .indicator)
+            let predicate = try StreamFilter.Predicate(indicator.predicate!, for: .indicator)
             XCTAssertTrue(try predicate.evaluate(on: matching), name)
             XCTAssertFalse(try predicate.evaluate(on: other), name)
         }
@@ -124,11 +125,11 @@ final class BuiltInIndicatorTests: XCTestCase {
         create.process.file_quarantine_type = .disabled
         create.process.executable?.path = "/System/Library/CoreServices/ArchiveService"
         create.target_path = "/Users/a/Downloads/x"
-        let names = ["Dylib inserted", "Root user", "Unquarantined file from a File Quarantine-aware app"]
+        let names = ["Dynamic library inserted", "Root user", "Quarantine attribute missing"]
         let indicators = Indicator.builtInMarks.filter { names.contains($0.name) }
-            + Indicator.defaults.filter { $0.id == Indicator.unquarantinedFileID }
+            + Indicator.eventDefaults.filter { $0.id == Indicator.unquarantinedFileID }
         for indicator in indicators {
-            let predicate = try StreamFilter.Predicate(indicator.predicate, for: .indicator)
+            let predicate = try StreamFilter.Predicate(indicator.predicate!, for: .indicator)
             XCTAssertTrue(StoredEventValues.canEvaluate(predicate.parsed), indicator.name)
         }
         try withEventStore([execMessage, create]) { _, stored in
@@ -143,13 +144,13 @@ final class BuiltInIndicatorTests: XCTestCase {
         let twins = Indicator.builtInMarks.filter { mark in Indicator.defaults.contains { $0.id == mark.id } }
         XCTAssertEqual(Set(Indicator.builtInMarks.map(\.id)).count, Indicator.builtInMarks.count)
         XCTAssertEqual(Indicator.builtInMarks.count, 11)
-        XCTAssertEqual(Set(twins.map(\.name)), ["New executable", "Ran a script", "Dylib inserted"])
+        XCTAssertEqual(Set(twins.map(\.name)), ["New executable", "Ran a script", "Dynamic library inserted"])
         /// 18, 32 and 33 were the dyld exec path mismatch and the adhoc and unsigned warnings, now removed. 17 was the
-        /// dyld injection mark, now the Dylib inserted indicator's twin (50). The marks with the numbers 16, 24 to 30
+        /// dyld injection mark, now the Dylib inserted indicator's twin (50). The marks with the numbers 16, 25 to 30
         /// and 35 became the defaults with those numbers in 3.1.0, and those 34 and 36 to 39 replaced were retired.
         XCTAssertEqual(Set(Indicator.builtInMarks.map(\.id)),
                        Set([9, 11, 15, 19, 20, 21, 22, 23, 31, 40, 50].map(Indicator.uuid)))
-        XCTAssertTrue(Set([16, 24, 25, 26, 27, 28, 29, 30, 35].map(Indicator.uuid))
+        XCTAssertTrue(Set([16, 25, 26, 27, 28, 29, 30, 35].map(Indicator.uuid))
             .isSubset(of: Indicator.defaults.map(\.id)))
         for twin in twins {
             let indicator = try XCTUnwrap(Indicator.defaults.first { $0.id == twin.id })
@@ -172,8 +173,8 @@ final class BuiltInIndicatorTests: XCTestCase {
                 try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(event)) as? NSDictionary)
             } + crafted
             for (indicator, mark) in twins {
-                let found = try StreamFilter.Predicate(indicator.predicate, for: .indicator)
-                let marked = try StreamFilter.Predicate(mark.predicate, for: .indicator)
+                let found = try StreamFilter.Predicate(indicator.predicate!, for: .indicator)
+                let marked = try StreamFilter.Predicate(mark.predicate!, for: .indicator)
                 for record in records {
                     XCTAssertEqual(try found.evaluate(on: record), try marked.evaluate(on: record), indicator.name)
                 }
@@ -230,8 +231,8 @@ final class BuiltInIndicatorTests: XCTestCase {
     /// The dyld injection mark is the Dylib inserted indicator's twin: the same identity, symbol and predicate, so an
     /// event that matches both draws one symbol, and changing the indicator changes the mark.
     func testDylibInsertedIsTheDyldMarksTwin() throws {
-        let indicator = try XCTUnwrap(Indicator.defaults.first { $0.name == "Dylib inserted" })
-        let mark = try XCTUnwrap(Indicator.builtInMarks.first { $0.name == "Dylib inserted" })
+        let indicator = try XCTUnwrap(Indicator.defaults.first { $0.name == "Dynamic library inserted" })
+        let mark = try XCTUnwrap(Indicator.builtInMarks.first { $0.name == "Dynamic library inserted" })
         XCTAssertEqual(mark.id, indicator.id)
         XCTAssertEqual(mark.symbol, indicator.symbol)
         XCTAssertEqual(mark.predicate, indicator.predicate)
@@ -246,7 +247,7 @@ final class BuiltInIndicatorTests: XCTestCase {
     func testEachPlaceDrawsItsMarks() {
         let label = Set(Indicator.labelMarks.map(\.name))
         let name = Set(Indicator.nameMarks.map(\.name))
-        XCTAssertEqual(label.intersection(name), ["Dylib inserted"])
+        XCTAssertEqual(label.intersection(name), ["Dynamic library inserted"])
         XCTAssertTrue(name.contains("Root user"))
         XCTAssertFalse(label.contains("Root user"))
     }
