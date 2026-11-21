@@ -71,8 +71,11 @@ public struct IndicatorField: Hashable, Sendable {
     public static let processFileQuarantineType = Self(rawValue: 32), createIsQuarantined = Self(rawValue: 33)
     public static let closeTargetName = Self(rawValue: 34)
 
-    /// Each direct field's key path and kind, by its raw value.
-    private static let direct: [(path: String, kind: Kind)] = [
+    /// Each direct field's key path and kind, by its raw value: the record's, then the ancestors' (``LineageField``).
+    private static let direct = recordDirect + LineageField.all.map { (path: $0.path, kind: $0.kind) }
+
+    /// The key path and kind of each direct field a record has.
+    private static let recordDirect: [(path: String, kind: Kind)] = [
         ("es_event_type", .string), ("context", .string), ("target_path", .string),
         ("process.executable.path", .string), ("process.executable.name", .string), ("process.signing_id", .string),
         ("process.team_id", .string), ("process.is_platform_binary", .boolean), ("process.codesigning_type", .string),
@@ -92,8 +95,11 @@ public struct IndicatorField: Hashable, Sendable {
         ("event.close.target.name", .string),
     ]
 
-    /// Each direct field's name, as its static property has it, by its raw value.
-    private static let names = [
+    /// Each direct field's name, by its raw value: as its static property has it, then the ancestors'.
+    private static let names = recordNames + LineageField.all.map(\.name)
+
+    /// The name of each direct field a record has, as its static property has it.
+    private static let recordNames = [
         "esEventType", "context", "targetPath", "processExecutablePath", "processExecutableName", "processSigningID",
         "processTeamID", "processIsPlatformBinary", "processCodesigningType", "processIsAdhocSigned",
         "execCommandLine", "execEnv", "execScriptContent", "execExecutableAge", "execTargetSigningID",
@@ -107,8 +113,18 @@ public struct IndicatorField: Hashable, Sendable {
     /// The direct fields, in order.
     public static let allCases = (0..<UInt16(direct.count)).map(Self.init(rawValue:))
 
+    /// The direct fields a record has, in order: all but the ancestors' (``LineageField``).
+    public static let recordCases = allCases.filter { $0.lineageOffset == nil }
+
     /// Is it read with one `switch` to its leaf (``MessageValues``), rather than from the event's encoding?
     public var isDirect: Bool { Int(rawValue) < Self.direct.count }
+
+    /// Its place among the lineage fields (``LineageField/all``), or `nil` when it isn't one: an ancestor's field,
+    /// which is read from the lineage table, not from the event.
+    var lineageOffset: Int? {
+        let offset = Int(rawValue) - Self.recordDirect.count
+        return offset >= 0 && offset < LineageField.all.count ? offset : nil
+    }
 
     /// The record's key path, as a predicate names it: `event.exec.command_line`.
     public var path: String {

@@ -91,6 +91,8 @@ public class ESMessage: NSManagedObject, Identifiable {
     /// Platform -- Mac Monitor enrichment
     @NSManaged public var macOS: String?
     @NSManaged public var sip_status: String?
+    /// Which start of the Mac the event is from (``Message/boot_session_uuid``).
+    @NSManaged public var boot_session_uuid: String?
     @NSManaged public var sensor_id: String?
     
     /// Initiating process. The row may be shared with other events of the same process.
@@ -155,6 +157,7 @@ public class ESMessage: NSManagedObject, Identifiable {
         // MARK: Platform
         case macOS
         case sip_status
+        case boot_session_uuid
         case sensor_id
         
         // MARK: Process and thread
@@ -212,6 +215,7 @@ public class ESMessage: NSManagedObject, Identifiable {
         // MARK: Platform
         self.macOS = message.macOS
         self.sip_status = message.sip_status
+        self.boot_session_uuid = message.boot_session_uuid
         self.sensor_id = message.sensor_id
         
         // MARK: Process and thread
@@ -349,6 +353,7 @@ extension ESMessage: Encodable {
         // MARK: Platform
         try container.encode(macOS, forKey: .macOS)
         try container.encode(sip_status, forKey: .sip_status)
+        try container.encode(boot_session_uuid, forKey: .boot_session_uuid)
         try container.encode(sensor_id, forKey: .sensor_id)
         
         // MARK: Process and thread

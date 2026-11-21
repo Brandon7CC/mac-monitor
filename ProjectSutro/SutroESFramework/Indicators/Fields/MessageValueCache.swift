@@ -1,172 +1,11 @@
 //
-//  MessageValues.swift
+//  MessageValueCache.swift
 //  SutroESFramework
 //
 //  Created by Brandon Dalton on 11/8/26.
 //
 
 import Foundation
-
-
-// MARK: - Message values
-/// An event's values for the fields the Security Extension evaluates indicators on (``IndicatorField``), read from
-/// the `Message` a capture lane builds, before it's encoded or stored. Each is the value a predicate on the event's
-/// record compares there (`ESMessage(from:)` encoded, read as ``PredicateRecord`` reads it), which
-/// `MessageValuesParityTests` checks for every field on every event of the synthetic corpus, the fixtures, the lineage
-/// trace and the macath recordings:
-///
-/// - `context` and `target_path` are "Not supported" where the event has none, as the store writes them.
-/// - An exec's `command_line` is "" where it has none.
-/// - A process's `codesigning_type` and `file_quarantine_type` are "" when it has no executable: the store keeps
-///   them only beside one.
-/// - An executable's `name` is its path's last component, as `File/name` is.
-/// - `iokit_open.driver_bundle_id` is `nil` before message version 10, which the store doesn't keep it for.
-/// - A field of another event type than the event's is `nil`, as the record has no such object.
-///
-/// The message is borrowed: each read goes through one `switch` on the event to the one leaf it needs, and copies
-/// none of the message, its event's payload or a process's executable on the way (an optimized build's disassembly
-/// shows none of them copied). A string comes back as a slice of the event's own, which only retains its storage.
-public enum MessageValues {
-    /// What the store writes for an event's `context` or `target_path` when it has none.
-    static let notSupported = "Not supported"
-
-    /// One field's value on an event. A record field is read from the event's encoding alone, which a lane does
-    /// once for all of its set's (``MessageValueCache``).
-    ///
-    /// - Parameters:
-    ///   - field: The field.
-    ///   - message: The event.
-    /// - Returns: The value its record has there.
-    public static func value(of field: IndicatorField, in message: borrowing Message) -> IndicatorValue {
-        guard field.isDirect else {
-            var value = IndicatorValue.null
-            RecordPathTrie([field]).read(message) { _, found in value = found }
-            return value
-        }
-        return switch field {
-        case .esEventType: IndicatorValue(message.es_event_type)
-        case .context: IndicatorValue(message.context ?? notSupported)
-        case .targetPath: IndicatorValue(message.target_path ?? notSupported)
-        case .processExecutablePath: process(.executablePath, of: message.process)
-        case .processExecutableName: process(.executableName, of: message.process)
-        case .processSigningID: process(.signingID, of: message.process)
-        case .processTeamID: process(.teamID, of: message.process)
-        case .processIsPlatformBinary: process(.isPlatformBinary, of: message.process)
-        case .processCodesigningType: process(.codesigningType, of: message.process)
-        case .processIsAdhocSigned: process(.isAdhocSigned, of: message.process)
-        case .processFileQuarantineType: process(.fileQuarantineType, of: message.process)
-        default: event(field, of: message.event, version: message.version)
-        }
-    }
-
-    /// A field of the event's own object, under `event`.
-    ///
-    /// - Parameters:
-    ///   - field: A field under `event`.
-    ///   - event: The event.
-    ///   - version: The message's version.
-    /// - Returns: The value, or ``IndicatorValue/null`` when the event is of another type.
-    private static func event(_ field: IndicatorField, of event: EventType, version: Int) -> IndicatorValue {
-        switch event {
-        case .exec(let exec): Self.exec(field, of: exec)
-        case .close(let close) where field == .closeModified: IndicatorValue(close.modified)
-        case .close(let close) where field == .closeFileType: IndicatorValue(close.file_type)
-        case .close(let close) where field == .closeMachOType: IndicatorValue(close.mach_o_type)
-        case .close(let close) where field == .closeTargetName: name(ofPath: close.target.path)
-        case .create(let create) where field == .createIsQuarantined: IndicatorValue(Int(create.is_quarantined))
-        case .deleteextattr(let xattr) where field == .deleteextattrExtattr: IndicatorValue(xattr.extattr)
-        case .iokit_open(let open) where field == .iokitOpenDriverBundleID && version >= 10:
-            IndicatorValue(open.driver_bundle_id)
-        case .iokit_open(let open) where field == .iokitOpenUserClientClass: IndicatorValue(open.user_client_class)
-        case .uipc_connect(let connect) where field == .uipcConnectFileStatUID:
-            IndicatorValue(Int(connect.file.stat.st_uid))
-        case .xpc_connect(let connect) where field == .xpcConnectServiceName: IndicatorValue(connect.service_name)
-        case .xpc_connect(let connect) where field == .xpcConnectServiceDomainTypeString:
-            IndicatorValue(connect.service_domain_type_string)
-        default: .null
-        }
-    }
-
-    /// A field under `event.exec`.
-    ///
-    /// - Parameters:
-    ///   - field: A field.
-    ///   - exec: The exec.
-    /// - Returns: The value, or ``IndicatorValue/null`` for a field that isn't under `event.exec`.
-    private static func exec(_ field: IndicatorField, of exec: borrowing ProcessExecEvent) -> IndicatorValue {
-        switch field {
-        case .execCommandLine: IndicatorValue(exec.command_line ?? "")
-        case .execEnv: .strings(exec.env)
-        case .execScriptContent: IndicatorValue(exec.script_content)
-        case .execExecutableAge: IndicatorValue(exec.executable_age_ms)
-        case .execTargetSigningID: process(.signingID, of: exec.target)
-        case .execTargetTeamID: process(.teamID, of: exec.target)
-        case .execTargetIsPlatformBinary: process(.isPlatformBinary, of: exec.target)
-        case .execTargetIsAdhocSigned: process(.isAdhocSigned, of: exec.target)
-        case .execTargetCodesigningType: process(.codesigningType, of: exec.target)
-        case .execTargetExecutablePath: process(.executablePath, of: exec.target)
-        case .execTargetExecutableName: process(.executableName, of: exec.target)
-        case .execTargetEUID: IndicatorValue(exec.target.euid)
-        case .execTargetRUID: IndicatorValue(exec.target.ruid)
-        default: .null
-        }
-    }
-
-    /// A process's value that a field reads: the initiating process's, or an exec target's.
-    private enum ProcessLeaf {
-        case signingID, teamID, isPlatformBinary, isAdhocSigned, codesigningType, executablePath, executableName
-        case fileQuarantineType
-    }
-
-    /// One of a process's values.
-    ///
-    /// - Parameters:
-    ///   - leaf: The value.
-    ///   - process: The process.
-    /// - Returns: The value its record has.
-    private static func process(_ leaf: ProcessLeaf, of process: borrowing Process) -> IndicatorValue {
-        switch leaf {
-        case .signingID: IndicatorValue(process.signing_id)
-        case .teamID: IndicatorValue(process.team_id)
-        case .isPlatformBinary: IndicatorValue(process.is_platform_binary)
-        case .isAdhocSigned: IndicatorValue(process.is_adhoc_signed)
-        case .codesigningType: besideExecutable(process.codesigning_type.rawValue, of: process)
-        case .executablePath: IndicatorValue(process.executable?.path)
-        case .executableName: name(ofPath: process.executable?.path)
-        case .fileQuarantineType: besideExecutable(process.file_quarantine_type.rawValue, of: process)
-        }
-    }
-
-    /// A process's `codesigning_type` or `file_quarantine_type`, which the store keeps only beside an executable: ""
-    /// without one.
-    ///
-    /// The executable is tested with a pattern, not `== nil`, which would compare a copy of it by `File`'s `==`.
-    ///
-    /// - Parameters:
-    ///   - type: The type's raw value.
-    ///   - process: The process.
-    /// - Returns: The raw value, or "" without an executable.
-    private static func besideExecutable(_ type: String, of process: borrowing Process) -> IndicatorValue {
-        if case .none = process.executable { return IndicatorValue("") }
-        return IndicatorValue(type)
-    }
-
-    /// A file's `name`: its path's last component, as `NSString` gives it (`File/name`), sliced from the path where
-    /// it doesn't end in "/", so it copies no bytes.
-    ///
-    /// - Parameter path: The file's path, or `nil` without a file.
-    /// - Returns: The name, or ``IndicatorValue/null`` without a file.
-    static func name(ofPath path: String?) -> IndicatorValue {
-        guard let path else { return .null }
-        let bytes = path.utf8
-        let slash = UInt8(ascii: "/")
-        guard let last = bytes.last, last != slash else {
-            return IndicatorValue((path as NSString).lastPathComponent)
-        }
-        guard let separator = bytes.lastIndex(of: slash) else { return .string(path[...]) }
-        return .string(Substring(bytes[bytes.index(after: separator)...]))
-    }
-}
 
 
 // MARK: - Value cache
@@ -185,6 +24,12 @@ public struct MessageValueCache {
     /// The record fields of the set evaluating an event, read from its encoding in one walk the first time one of
     /// them is asked for (``RecordPathTrie``). Each set gives its own as it starts an event.
     var recordPaths: RecordPathTrie?
+    /// The table an event's ancestors are read from (``LineageField``), or `nil` when lineage isn't tracked, and
+    /// every ancestor's field is `nil`.
+    var lineage: ProcessLineage?
+    /// The ancestors of this event's process along each chain (``ProcessLineage/Chain``), once a field of theirs has
+    /// been asked for.
+    private var ancestors = [[ProcessProgram]?](repeating: nil, count: ProcessLineage.Chain.allCases.count)
     /// Has this event's walk been made?
     private var walked = false
     /// Each field's value, by its raw value, where ``isRead`` says so.
@@ -199,6 +44,9 @@ public struct MessageValueCache {
     var foundation = FoundationStrings()
     /// This event's indicator work.
     var scan = ScanBudget()
+    /// What saying what this event's hits matched has spent of its own allowance, so the event's hits share one
+    /// (``CompiledIndicators/matched(roots:_:type:values:)``). `nil` until an event's first hit is explained.
+    var explaining: ScanBudget?
     /// The units the last event spent, and the pools it was refused reads of, by bit (``ScanPool``): what
     /// ``reset()`` found, for the benchmarks.
     private(set) var lastEventUnits = 0, lastEventRefused: UInt8 = 0
@@ -211,6 +59,9 @@ public struct MessageValueCache {
     /// The bits of the rules an event is evaluated against (``IndicatorIndex``), with room for 4,096 rules of a type,
     /// so a lane allocates more only for a type with more.
     private var candidates = ContiguousArray<UInt64>(repeating: 0, count: 64)
+    /// The sequence steps this event matched, in the set's order (``CompiledIndicators/stepRule(sequence:step:)``).
+    /// Its room is kept from event to event.
+    var stepMatches = ContiguousArray<Int32>()
 
     /// An empty cache, with room for every direct field. A record field's room is made when it's first read.
     public init() {
@@ -258,8 +109,10 @@ public struct MessageValueCache {
         }
         read.removeAll(keepingCapacity: true)
         walked = false
+        for chain in ancestors.indices { ancestors[chain] = nil }
         foundation.reset()
         (lastEventUnits, lastEventRefused) = (scan.spent, scan.refusedPools)
+        explaining = nil
         /// A budget nothing spent or refused is as new.
         if scan.spent != 0 || scan.refusals != 0 { scan.reset() }
     }
@@ -280,9 +133,50 @@ public struct MessageValueCache {
         let slot = Int(field.rawValue)
         if slot < isRead.count, isRead[slot] { return values[slot] }
         guard field.isDirect else { return recordValue(of: field, in: message) }
-        let value = MessageValues.value(of: field, in: message)
+        let value: IndicatorValue
+        if let offset = field.lineageOffset {
+            value = lineageValue(at: offset, in: message)
+        } else {
+            value = MessageValues.value(of: field, in: message)
+        }
         keep(value, for: field)
         return value
+    }
+
+    /// An ancestor's field: the ancestors of the event's process are read from the lineage table once for the
+    /// event and the field's chain, by its process's key, or by its parent's when the table hasn't heard of the
+    /// process yet. When it has heard of neither, the parents are read from the system, and waited for when
+    /// they're gone (``ProcessLineage/ancestors(of:parent:reading:at:chain:)``): a capture lane can be ahead of
+    /// the client that tells the table of forks and execs.
+    ///
+    /// - Parameters:
+    ///   - offset: The field's place among the lineage fields.
+    ///   - message: The event.
+    /// - Returns: The value, or ``IndicatorValue/null`` when lineage isn't tracked.
+    private mutating func lineageValue(at offset: Int, in message: borrowing Message) -> IndicatorValue {
+        guard let lineage else { return .null }
+        let chain = LineageField.chain(at: offset)
+        let slot = ProcessLineage.Chain.allCases.firstIndex(of: chain) ?? 0
+        if ancestors[slot] == nil {
+            let time = UInt64(clamping: message.mach_time)
+            ancestors[slot] = Self.subject(of: message).map {
+                lineage.ancestors(of: $0.key, parent: $0.parent, reading: true, at: time, chain: chain)
+            } ?? []
+        }
+        return LineageField.value(at: offset, of: ancestors[slot] ?? [])
+    }
+
+    /// The process whose ancestors an event's lineage fields read: the program an exec starts, which has its
+    /// process's ancestors and its own launched-by parent, and any other event's process.
+    ///
+    /// - Parameter message: The event.
+    /// - Returns: The process's key and its parent's, as the event names them, or `nil` without an audit token.
+    private static func subject(of message: borrowing Message) -> (key: ProcessKey, parent: ProcessKey?)? {
+        if case .exec(let exec) = message.event, let token = exec.target.audit_token {
+            return (ProcessKey(token), exec.target.parent_audit_token.map(ProcessKey.init))
+        }
+        guard let token = message.process.audit_token else { return nil }
+        return (ProcessKey(token), message.process.parent_audit_token.map(ProcessKey.init))
     }
 
     /// A record field's value: every record field of the set is read in one walk the first time one is asked for,

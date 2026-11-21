@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import SutroESFramework
 
 
 // MARK: - Text view
@@ -35,6 +36,8 @@ final class PredicateEditorController: ObservableObject {
 struct PredicateTextView: NSViewRepresentable {
     @Binding var text: String
     let editor: PredicateEditorController
+    /// What the predicate is for, which decides the key paths it underlines: the window's search unless given.
+    var audience = PredicateAudience.search
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -63,6 +66,7 @@ struct PredicateTextView: NSViewRepresentable {
         textView.isContinuousSpellCheckingEnabled = false
         textView.isGrammarCheckingEnabled = false
         textView.setAccessibilityLabel("Predicate")
+        textView.audience = audience
         textView.setText(text)
         scrollView.verticalRulerView = LineNumberRuler(textView: textView)
         scrollView.hasVerticalRuler = true
@@ -94,7 +98,7 @@ struct PredicateTextView: NSViewRepresentable {
 
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
-            PredicateSyntax.highlight(textView.textStorage!)
+            PredicateSyntax.highlight(textView.textStorage!, for: parent.audience)
             parent.text = textView.string
             textView.enclosingScrollView?.verticalRulerView?.needsDisplay = true
         }

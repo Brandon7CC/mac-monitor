@@ -87,6 +87,12 @@ extension TelemetrySchemaSource {
                      absent: Absence("the target has none")),
             enrichment("launched_by_parent", .nullable(.ref("launched_by_parent")),
                      "The process that really caused the target to run; null when it isn't known."),
+            enrichment("ancestor_keys", .nullable(.array(.pattern(.processKey))),
+                     "The target's ancestors, nearest first, as they were when its process was forked: each one's "
+                     + "pid and pid version, as `pid.pidversion`, which name the exec whose target has that audit "
+                     + "token. At most 8: the nearest, and the first below launchd, which is never listed. Empty "
+                     + "for a child of launchd, and null when the Security Extension wasn't tracking lineage. Since "
+                     + "telemetry 1.2.0."),
         ])
     }
     
@@ -96,6 +102,11 @@ extension TelemetrySchemaSource {
             eslogger("child", .ref("process")),
             enrichment("launched_by_parent", .nullable(.ref("launched_by_parent")),
                      "The process that really caused the child to run; null when it isn't known."),
+            enrichment("ancestor_keys", .nullable(.array(.pattern(.processKey))),
+                     "The child's ancestors, nearest first, the forking process's first: each one's pid and pid "
+                     + "version, as `pid.pidversion`. At most 8: the nearest, and the first below launchd, which "
+                     + "is never listed. null when the Security Extension wasn't tracking lineage. Since telemetry "
+                     + "1.2.0."),
         ])
     }
 }

@@ -237,6 +237,7 @@
         <attribute name="instigator_parent_audit_token" optional="YES" attributeType="String"/>
         <attribute name="macOS" optional="YES" attributeType="String"/>
         <attribute name="sip_status" optional="YES" attributeType="String"/>
+        <attribute name="boot_session_uuid" optional="YES" attributeType="String"/>
         <attribute name="mach_time" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="message_darwin_time" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="process_age_ms" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
@@ -406,6 +407,7 @@
         <relationship name="target" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcess"/>
     </entity>
     <entity name="ESProcessExecEvent" representedClassName="ESProcessExecEvent" syncable="YES">
+        <attribute name="ancestor_keys_joined" optional="YES" attributeType="String"/>
         <attribute name="argsData" optional="YES" attributeType="Binary"/>
         <attribute name="cdhash" optional="YES" attributeType="String"/>
         <attribute name="certificateChainData" optional="YES" attributeType="Binary"/>
@@ -456,6 +458,7 @@
         <attribute name="stat" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
     <entity name="ESProcessForkEvent" representedClassName="ESProcessForkEvent" syncable="YES">
+        <attribute name="ancestor_keys_joined" optional="YES" attributeType="String"/>
         <attribute name="child_age_ms" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
         <attribute name="child_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="launched_by_parent_job" optional="YES" attributeType="String"/>

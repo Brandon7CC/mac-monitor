@@ -63,6 +63,8 @@ public final class TraceImporter {
     private unowned let store: CoreDataController
     /// The Clear that opened this trace: its inserts carry it.
     private let clear: Int
+    /// Where the trace's process snapshots are kept: the store's for this trace, which the next Clear replaces.
+    private let snapshots: StoredSnapshots
     /// Where the file is read and decoded.
     private let queue = DispatchQueue(label: "com.swiftlydetecting.agent.TraceImporter", qos: .userInitiated)
     /// Has ``stop()`` been called? Set from any thread, read on `queue`.
@@ -78,6 +80,7 @@ public final class TraceImporter {
         self.url = url
         self.store = store
         self.clear = clear
+        snapshots = store.traceSnapshots
     }
     
     /// Stop reading after the record being read, keeping the events read so far. Any thread.
@@ -222,6 +225,10 @@ public final class TraceImporter {
             reader = file
             reading: while let record = try file.next() {
                 switch record {
+                case .object(let json, _) where TraceLineage.snapshot(in: json) != nil:
+                    /// A process snapshot isn't an event: it's kept for exports, and isn't counted as skipped.
+                    if !isStopped, let snapshot = TraceLineage.snapshot(in: json) { snapshots.add(snapshot) }
+                    continue
                 case .object(let json, let line):
                     records.append((line, json))
                     recordBytes += json.count

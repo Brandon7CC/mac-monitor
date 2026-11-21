@@ -89,7 +89,7 @@ enum SyntheticValues {
         }
     }
     
-    /// A string, by its key: a time, a hash, a path or a URL where the key says so.
+    /// A string, by its key: a time, a hash, a process key, a path or a URL where the key says so.
     ///
     /// - Parameter key: The string's key.
     /// - Returns: The string.
@@ -101,6 +101,8 @@ enum SyntheticValues {
         case "sha256": return String(repeating: "AB", count: 32)
         case "state_base64": return "AAECAwQFBgc="
         case "sip_status": return "disabled"
+        case "boot_session_uuid": return uuid.uuidString
+        case "ancestor_keys": return "4242.7"
         case _ where key.hasSuffix("_url"): return "file:///synthetic/\(key)"
         case _ where key.hasSuffix("path") || key == "dir" || key == "file_path": return "/synthetic/\(key)"
         default: return "synthetic \(key)"

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:mac-monitor:telemetry:1.1.0",
-  "title": "Mac Monitor telemetry 1.1.0",
-  "description": "The records Mac Monitor writes: its JSONL and pretty exports, and the macmonitor command line's output. Each record is eslogger's JSON for an Endpoint Security event plus Mac Monitor's enrichments; every key is marked x-mac-monitor-origin: eslogger or mac-monitor, and everything under a Mac Monitor key is Mac Monitor's. Each GitHub release attaches the schema as Mac-Monitor.telemetry.schema.json, and the latest is at https://github.com/Brandon7CC/mac-monitor/releases/latest/download/Mac-Monitor.telemetry.schema.json.",
+  "$id": "urn:mac-monitor:telemetry:1.2.0",
+  "title": "Mac Monitor telemetry 1.2.0",
+  "description": "The records Mac Monitor writes: its JSONL and pretty exports, and the macmonitor command line's output. Each record is eslogger's JSON for an Endpoint Security event plus Mac Monitor's enrichments; every key is marked x-mac-monitor-origin: eslogger or mac-monitor, and everything under a Mac Monitor key is Mac Monitor's. One kind of line is not an event's record: a process snapshot, which has a process_snapshot key and follows #/$defs/process_snapshot_record. Each GitHub release attaches the schema as Mac-Monitor.telemetry.schema.json, and the latest is at https://github.com/Brandon7CC/mac-monitor/releases/latest/download/Mac-Monitor.telemetry.schema.json.",
   "type": "object",
   "properties": {
     "action": {
@@ -17,6 +17,12 @@
       "description": "The name of `action_type`: ES_ACTION_TYPE_NOTIFY.",
       "x-mac-monitor-origin": "mac-monitor",
       "type": "string"
+    },
+    "boot_session_uuid": {
+      "description": "Which start of the Mac the event is from: the kernel's boot session UUID (`sysctl kern.bootsessionuuid`), new at every start. A pid and a pid version, and so a process key in `ancestor_keys`, mean one process only within a boot session, so join records on `sensor_id`, `boot_session_uuid` and the key. null in a trace that didn't record it, such as eslogger's.",
+      "x-mac-monitor-origin": "mac-monitor",
+      "type": ["string", "null"],
+      "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
     },
     "context": {
       "description": "A summary of the event, as Mac Monitor's event list shows it.",
@@ -213,7 +219,7 @@
       "description": "The version of Mac Monitor's telemetry schema the record follows.",
       "x-mac-monitor-origin": "mac-monitor",
       "type": "string",
-      "const": "1.1.0"
+      "const": "1.2.0"
     },
     "thread": {
       "x-mac-monitor-origin": "eslogger",
@@ -241,6 +247,7 @@
     "action",
     "action_type",
     "action_type_string",
+    "boot_session_uuid",
     "context",
     "es_event_type",
     "event",
@@ -1064,6 +1071,22 @@
       "description": "An exec: es_event_exec_t.",
       "type": "object",
       "properties": {
+        "ancestor_keys": {
+          "description": "The target's ancestors, nearest first, as they were when its process was forked: each one's pid and pid version, as `pid.pidversion`, which name the exec whose target has that audit token. At most 8: the nearest, and the first below launchd, which is never listed. Empty for a child of launchd, and null when the Security Extension wasn't tracking lineage. Since telemetry 1.2.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[0-9]+\\.[0-9]+$"
+              }
+            }
+          ]
+        },
         "args": {
           "x-mac-monitor-origin": "eslogger",
           "type": "array",
@@ -1209,6 +1232,7 @@
         }
       },
       "required": [
+        "ancestor_keys",
         "args",
         "command_line",
         "cwd",
@@ -1267,6 +1291,22 @@
       "description": "A fork: es_event_fork_t.",
       "type": "object",
       "properties": {
+        "ancestor_keys": {
+          "description": "The child's ancestors, nearest first, the forking process's first: each one's pid and pid version, as `pid.pidversion`. At most 8: the nearest, and the first below launchd, which is never listed. null when the Security Extension wasn't tracking lineage. Since telemetry 1.2.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[0-9]+\\.[0-9]+$"
+              }
+            }
+          ]
+        },
         "child": {
           "x-mac-monitor-origin": "eslogger",
           "$ref": "#/$defs/process"
@@ -1284,7 +1324,7 @@
           ]
         }
       },
-      "required": ["child", "launched_by_parent"],
+      "required": ["ancestor_keys", "child", "launched_by_parent"],
       "additionalProperties": false
     },
     "gatekeeper_user_override_event": {
@@ -1406,19 +1446,69 @@
           "type": "string",
           "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
         },
+        "matched": {
+          "description": "What made it match: the comparisons of its rule the event passed, at most 16. For a sequence, those of its steps this event matched, as it completed it. Only comparisons that say what the event has are listed, not a != a value or anything under NOT. null when none of its comparisons is one of those, and when evaluated_by is export. Since telemetry 1.2.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "description": "One comparison of an indicator's rule that the event passed.",
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "description": "The key path the comparison read, as the rule names it, such as event.exec.target.executable.path, or lineage.paths for one of the process's ancestors.",
+                    "x-mac-monitor-origin": "mac-monitor",
+                    "type": "string"
+                  },
+                  "value": {
+                    "description": "The value the event had there: for ANY, the one of the array's strings that matched. A string's first 256 characters. A whole number past 2^53 is rounded.",
+                    "x-mac-monitor-origin": "mac-monitor",
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  }
+                },
+                "required": ["field", "value"],
+                "additionalProperties": false
+              }
+            }
+          ]
+        },
         "name": {
           "description": "What Settings > Indicators calls it, such as Background item added.",
           "x-mac-monitor-origin": "mac-monitor",
           "type": "string"
         },
+        "pack": {
+          "description": "The indicator pack this Mac had when the indicator matched, by its sequence, for one Mac Monitor ships. With id and revision it says which rule fired. null for one this Mac added, and when Mac Monitor's indicators are its build's own rather than a pack's. Since telemetry 1.2.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["integer", "null"]
+        },
+        "revision": {
+          "description": "The indicator's revision, which its indicator pack raises whenever the indicator changes, or null for one without. An edited one keeps the revision it was edited from. Since telemetry 1.2.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["integer", "null"]
+        },
         "severity": {
-          "description": "How strong a sign of malicious activity a match is: high for a strong one, medium for suspicious behavior that has benign uses, low for context and noisy signals. It never changes what matches.",
+          "description": "How closely a match is worth looking at: high for behavior that is rare in ordinary use, medium for less common behavior that has ordinary uses, low for context and common behavior. It never changes what matches.",
           "x-mac-monitor-origin": "mac-monitor",
           "type": "string",
           "enum": ["high", "low", "medium"]
         },
         "tactic": {
-          "description": "The MITRE ATT&CK tactic it's for, by name, or null for none.",
+          "description": "The MITRE ATT&CK tactic it's for, by name, or null for none. Stealth and Defense Impairment since telemetry 1.2.0, when ATT&CK v19 split Defense Evasion into them: Defense Evasion is only in records written before.",
           "x-mac-monitor-origin": "mac-monitor",
           "anyOf": [
             {
@@ -1431,6 +1521,7 @@
                 "Command and Control",
                 "Credential Access",
                 "Defense Evasion",
+                "Defense Impairment",
                 "Discovery",
                 "Execution",
                 "Exfiltration",
@@ -1440,13 +1531,14 @@
                 "Persistence",
                 "Privilege Escalation",
                 "Reconnaissance",
-                "Resource Development"
+                "Resource Development",
+                "Stealth"
               ]
             }
           ]
         },
         "tactic_id": {
-          "description": "The tactic's ATT&CK identity, such as TA0003, or null for none.",
+          "description": "The tactic's ATT&CK identity, such as TA0003, or null for none. TA0005 is Stealth since telemetry 1.2.0, and Defense Evasion before. TA0112, Defense Impairment, since 1.2.0.",
           "x-mac-monitor-origin": "mac-monitor",
           "anyOf": [
             {
@@ -1468,7 +1560,8 @@
                 "TA0011",
                 "TA0040",
                 "TA0042",
-                "TA0043"
+                "TA0043",
+                "TA0112"
               ]
             }
           ]
@@ -1484,7 +1577,10 @@
         "edited",
         "evaluated_by",
         "id",
+        "matched",
         "name",
+        "pack",
+        "revision",
         "severity",
         "tactic",
         "tactic_id",
@@ -1518,10 +1614,20 @@
           "type": "string",
           "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
         },
+        "matched": {
+          "description": "Always null: an indicator that wasn't decided matched nothing. Since telemetry 1.2.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "null"
+        },
         "name": {
           "description": "What Settings > Indicators calls it, such as Background item added.",
           "x-mac-monitor-origin": "mac-monitor",
           "type": "string"
+        },
+        "pack": {
+          "description": "The indicator pack this Mac had when the indicator matched, by its sequence, for one Mac Monitor ships. With id and revision it says which rule fired. null for one this Mac added, and when Mac Monitor's indicators are its build's own rather than a pack's. Since telemetry 1.2.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["integer", "null"]
         },
         "reason": {
           "description": "Why it wasn't decided: scan_budget when evaluating the event's values exceeded the Security Extension's per-event scan budget, or value_limit when a value that isn't ASCII was longer than the 64 KiB the Security Extension compares.",
@@ -1529,14 +1635,19 @@
           "type": "string",
           "enum": ["scan_budget", "value_limit"]
         },
+        "revision": {
+          "description": "The indicator's revision, which its indicator pack raises whenever the indicator changes, or null for one without. An edited one keeps the revision it was edited from. Since telemetry 1.2.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["integer", "null"]
+        },
         "severity": {
-          "description": "How strong a sign of malicious activity a match is: high for a strong one, medium for suspicious behavior that has benign uses, low for context and noisy signals. It never changes what matches.",
+          "description": "How closely a match is worth looking at: high for behavior that is rare in ordinary use, medium for less common behavior that has ordinary uses, low for context and common behavior. It never changes what matches.",
           "x-mac-monitor-origin": "mac-monitor",
           "type": "string",
           "enum": ["high", "low", "medium"]
         },
         "tactic": {
-          "description": "The MITRE ATT&CK tactic it's for, by name, or null for none.",
+          "description": "The MITRE ATT&CK tactic it's for, by name, or null for none. Stealth and Defense Impairment since telemetry 1.2.0, when ATT&CK v19 split Defense Evasion into them: Defense Evasion is only in records written before.",
           "x-mac-monitor-origin": "mac-monitor",
           "anyOf": [
             {
@@ -1549,6 +1660,7 @@
                 "Command and Control",
                 "Credential Access",
                 "Defense Evasion",
+                "Defense Impairment",
                 "Discovery",
                 "Execution",
                 "Exfiltration",
@@ -1558,13 +1670,14 @@
                 "Persistence",
                 "Privilege Escalation",
                 "Reconnaissance",
-                "Resource Development"
+                "Resource Development",
+                "Stealth"
               ]
             }
           ]
         },
         "tactic_id": {
-          "description": "The tactic's ATT&CK identity, such as TA0003, or null for none.",
+          "description": "The tactic's ATT&CK identity, such as TA0003, or null for none. TA0005 is Stealth since telemetry 1.2.0, and Defense Evasion before. TA0112, Defense Impairment, since 1.2.0.",
           "x-mac-monitor-origin": "mac-monitor",
           "anyOf": [
             {
@@ -1586,7 +1699,8 @@
                 "TA0011",
                 "TA0040",
                 "TA0042",
-                "TA0043"
+                "TA0043",
+                "TA0112"
               ]
             }
           ]
@@ -1602,8 +1716,11 @@
         "edited",
         "evaluated_by",
         "id",
+        "matched",
         "name",
+        "pack",
         "reason",
+        "revision",
         "severity",
         "tactic",
         "tactic_id",
@@ -3218,6 +3335,87 @@
         "team_id",
         "tty"
       ],
+      "additionalProperties": false
+    },
+    "process_snapshot": {
+      "description": "A process nothing earlier in the file describes: one that was running before the capture started, or whose exec a filter, a selection or a Clear left out. Its fields are named as a process's are.",
+      "type": "object",
+      "properties": {
+        "ancestor_keys": {
+          "description": "The keys of the process's own ancestors, nearest first, as an exec's `ancestor_keys` are. Empty for a child of launchd.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+$"
+          }
+        },
+        "codesigning_type": {
+          "description": "How the process is signed, as a process's `codesigning_type` says it. Absent when its signature was never read.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "command_line": {
+          "description": "The process's command line, up to 1024 characters. Absent when it could not be read, or the snapshot was made from a fork.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "executable": {
+          "description": "The process's executable. Absent when the process was gone before it could be read.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "object",
+          "properties": {
+            "path": {
+              "description": "The executable's path.",
+              "x-mac-monitor-origin": "mac-monitor",
+              "type": "string"
+            }
+          },
+          "required": ["path"],
+          "additionalProperties": false
+        },
+        "key": {
+          "description": "The process's key, as `ancestor_keys` names it: its pid, a dot, and its pid version.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$"
+        },
+        "signing_id": {
+          "description": "The process's signing ID. Absent when the code is unsigned, or its signature was never read.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "team_id": {
+          "description": "The process's team ID. Absent when the code has none, or its signature was never read.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        }
+      },
+      "required": ["ancestor_keys", "key"],
+      "additionalProperties": false
+    },
+    "process_snapshot_record": {
+      "description": "A process snapshot's line, the one kind of line that is not an event's record. A line with a `process_snapshot` key follows this definition, not the schema's root. Mac Monitor writes one before the first record that is from a process, or names it in `ancestor_keys`, when nothing earlier in the file describes that process.",
+      "type": "object",
+      "properties": {
+        "boot_session_uuid": {
+          "description": "Which start of that Mac the snapshot is from, as the records beside it carry. Absent when the records beside it carry none, or the line is from a test fixture.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
+        },
+        "process_snapshot": {
+          "description": "The process the line describes.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/process_snapshot"
+        },
+        "sensor_id": {
+          "description": "The Sensor ID of the Mac the snapshot is from, as its events carry. Absent when the line is from a test fixture, which has every Sensor ID removed.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        }
+      },
+      "required": ["process_snapshot"],
       "additionalProperties": false
     },
     "profile_add_event": {

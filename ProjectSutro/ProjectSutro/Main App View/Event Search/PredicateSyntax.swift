@@ -35,7 +35,9 @@ enum PredicateSyntax {
     /// - Parameters:
     ///   - storage: The predicate's text, such as the editor's.
     ///   - size: The text's size, in points: 12 in the editor.
-    static func highlight(_ storage: NSTextStorage, size: CGFloat = 12) {
+    ///   - audience: What the predicate is for, which decides the key paths it may use: an indicator's reads a
+    ///     process's ancestors, and the window's search doesn't.
+    static func highlight(_ storage: NSTextStorage, size: CGFloat = 12, for audience: PredicateAudience = .search) {
         let font = monospaced(size: size)
         let boldFont = monospaced(size: size, weight: .semibold)
         let full = NSRange(location: 0, length: storage.length)
@@ -63,7 +65,7 @@ enum PredicateSyntax {
                 }
                 /// Related events, which a SUBQUERY goes through, are where they should be on their own.
                 let valid = token.kind == .keyPath && keys.count == 1 && PredicateRelation(rawValue: keys[0]) != nil
-                    ? keys.count : RecordKeyPaths.shared.validCount(of: keys)
+                    ? keys.count : audience.validKeyCount(of: keys)
                 for (index, key) in keys.enumerated() {
                     let range = NSRange(location: offset, length: (key as NSString).length)
                     if index >= valid {

@@ -164,6 +164,15 @@ public class CoreDataController {
     
     /// Where the events in the store come from. Set by ``clearSystemEvents(source:)``. Main thread only.
     public private(set) var source: EventSource = .live
+    /// The process snapshots of a recording: the ones the Security Extension has sent, and one for each exec and
+    /// fork received. They outlast a Clear: a capture describes a process once, however often the events are
+    /// cleared.
+    public let recordedSnapshots = StoredSnapshots()
+    /// The process snapshots of the trace that's open, if one is. Each trace has its own, so one that's still being
+    /// read when another opens adds nothing to the other's. Main thread only.
+    public private(set) var traceSnapshots = StoredSnapshots()
+    /// The process snapshots that go with the events in the store. Main thread only.
+    public var snapshots: StoredSnapshots { source == .live ? recordedSnapshots : traceSnapshots }
     
     /// Clears requested so far. Main thread only.
     private var clearsRequested = 0
@@ -205,26 +214,7 @@ public class CoreDataController {
     ///      back-pressure when inserts fall behind.
     ///
     public func insertSystemEvents(messages: [Message], completion: @escaping () -> Void = {}) {
-        insertSystemEvents(messages: messages, watching: []) { _ in completion() }
-    }
-
-    /// Inserts a batch of system events, as ``insertSystemEvents(messages:completion:)`` does, and says which of some
-    /// of them it kept: notifications are only for events the store holds.
-    ///
-    /// - Parameters:
-    ///   - messages: An array of system events (`Message`) to insert.
-    ///   - watching: The identities of the events to report on.
-    ///   - completion: Called on the private context's queue once the batch has been saved (or failed to save), with
-    ///     those of `watching` that were inserted: none when the store can't save, or the events happened before the
-    ///     last Clear or while a trace is open.
-    public func insertSystemEvents(messages: [Message], watching: Set<UUID>,
-                                   completion: @escaping (_ kept: Set<UUID>) -> Void) {
-        var kept: Set<UUID> = []
-        insert(messages, keeping: { message in
-            guard message.message_darwin_time >= self.discardBefore else { return false }
-            if !watching.isEmpty, watching.contains(message.id) { kept.insert(message.id) }
-            return true
-        }) { saved in completion(saved ? kept : []) }
+        insert(messages, keeping: { $0.message_darwin_time >= self.discardBefore }) { _ in completion() }
     }
     
     /// Inserts a batch of events read from a trace file (see ``TraceImporter``), however long ago they happened.
@@ -334,6 +324,7 @@ public class CoreDataController {
         clearsRequested += 1
         let clear = clearsRequested
         self.source = source
+        traceSnapshots = StoredSnapshots()
         currentImport?.stop()
         NotificationCenter.default.post(name: Self.eventsWillClear, object: self)
         
