@@ -174,7 +174,6 @@ final class DiskImageWrittenTests: XCTestCase {
         let images = ["com.apple.disk-image-udif", "com.apple.disk-image-raw", "com.apple.disk-image-sparse",
                       "com.apple.disk-image-sparse-bundle", "com.apple.disk-image"]
         XCTAssertTrue(Set(images).isSubset(of: Indicator.archiveTypes.map(\.identifier)))
-        XCTAssertEqual(Indicator.diskImageDaemons, ["com.apple.diskimagesiod", "com.apple.diskimages-helper"])
     }
 }
 

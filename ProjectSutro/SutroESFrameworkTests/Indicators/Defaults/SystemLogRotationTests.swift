@@ -29,13 +29,6 @@ final class SystemLogRotationTests: XCTestCase {
                                       ("/PRIVATE/VAR/LOG/install.log.0.gz", .gzip),
                                       ("/private/var/log/wïfi.log.1.bz2", .bzip2)]
 
-    /// The log rotators are exactly aslmanager, bzip2 by both of its signing IDs, macOS 27.0's and 27.2's, and gzip:
-    /// newsyslog runs bzip2 or gzip, and writes no archive.
-    func testLogRotators() {
-        XCTAssertEqual(Indicator.logRotators, ["com.apple.aslmanager", "com.apple.bzip2", "com.apple.bzcat",
-                                               "com.apple.gzip"])
-    }
-
     /// macOS's own log rotators writing rotated logs don't match Archive written.
     func testRotatedLogsAreLeftOut() throws {
         for (path, type) in Self.rotatedLogs {

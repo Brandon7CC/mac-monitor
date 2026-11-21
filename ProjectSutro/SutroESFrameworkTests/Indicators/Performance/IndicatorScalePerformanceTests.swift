@@ -143,7 +143,7 @@ final class IndicatorScalePerformanceTests: PerformanceTestCase {
                   messages: Array(repeating: exec, count: 64))
     }
 
-    // MARK: g. A mix a detection engineer writes, over execs, opens and closes
+    // MARK: g. A mix an analyst writes, over execs, opens and closes
     /// Execs, the mix.
     func testMixExec() throws { try sweep(.mix, ES_EVENT_TYPE_NOTIFY_EXEC) }
     /// Opens, the mix.
@@ -198,7 +198,7 @@ extension IndicatorScalePerformanceTests {
         case recordNumber = "record.number"
         /// `ANY event.exec.args ==` an argument, a record field.
         case recordArgs = "record.args"
-        /// Ten rules a detection engineer writes, in turn (``mixRule(_:)``).
+        /// Ten rules an analyst writes, in turn (``mixRule(_:)``).
         case mix
 
         /// The shipped indicators and generated ones of the shape, `count` in all.

@@ -9,14 +9,14 @@ import Foundation
 
 
 // MARK: - Severity
-/// How strong a sign of something malicious an indicator's match is. It's part of the detection: Mac-wide, saved
-/// with the indicator, and in every record that lists it. It never changes what matches.
+/// How closely an indicator's match is worth looking at. It's part of the indicator: Mac-wide, saved with it, and
+/// in every record that lists it. It never changes what matches.
 public enum IndicatorSeverity: String, Codable, CaseIterable, Comparable, Sendable {
-    /// Context, and signals that are often benign.
+    /// Context, and behavior that is common in ordinary use.
     case low
-    /// Suspicious behavior that has benign uses.
+    /// Behavior that is less common and has ordinary uses.
     case medium
-    /// A strong sign of malicious activity.
+    /// Behavior that is rare in ordinary use, to look at first.
     case high
 
     /// Its name, as Settings shows it.

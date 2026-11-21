@@ -43,7 +43,7 @@ enum AdversarialEvent: String, CaseIterable {
     static let craftedUnit = "c/ - . D L C -c l b s "
     /// The crafted line's end: the shipped rules' whole constants.
     static let craftedTail = " com.apple.atrun com.apple.Terminal CommandString com.apple.loginwindow LoginHook setenv "
-        + "DYLD_INSERT_LIBRARIES -load-extension= bootstrap /Users/a/Library/LaunchAgents/x.plist"
+        + "DYLD_INSERT_LIBRARIES bootstrap /Users/a/Library/LaunchAgents/x.plist"
     /// The library the Xcode cases insert, which isn't Xcode's.
     static let insertion = "DYLD_INSERT_LIBRARIES=/tmp/x.dylib"
 

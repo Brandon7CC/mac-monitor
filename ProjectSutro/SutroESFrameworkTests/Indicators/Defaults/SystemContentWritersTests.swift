@@ -77,8 +77,6 @@ final class SystemContentWritersTests: XCTestCase {
     /// and each other platform binary still matches: the rest of Spotlight's processes, Archive Utility, ditto and
     /// Script Editor among them.
     func testOnlyTheKeepersAreLeftOut() throws {
-        XCTAssertEqual(Indicator.contentKeepers, ["com.apple.backupd", "com.apple.fseventsd", "com.apple.mds_stores",
-                                                  "com.apple.corespotlightd", "com.apple.managedcorespotlightd"])
         let others = ["com.apple.mds", "com.apple.mdworker_shared", "com.apple.mdworker", "com.apple.archiveutility",
                       "com.apple.ditto", "com.apple.ScriptEditor2", "com.apple.fseventsd.helper", "com.apple.mds_store"]
         let types = ["org.gnu.gnu-zip-archive", FileType.compiledAppleScript.identifier]

@@ -138,7 +138,7 @@ final class TelemetryExporterOrderTests: XCTestCase {
         let exit = try importRecord(try fixtureObject("eslogger-exit.jsonl"))
         let recorded = (0..<3).map { _ in var message = exit; message.id = UUID(); return message }
         let saved = expectation(description: "recorded")
-        store.insertSystemEvents(messages: recorded, watching: []) { _ in saved.fulfill() }
+        store.insertSystemEvents(messages: recorded) { saved.fulfill() }
         wait(for: [saved], timeout: 60)
         XCTAssertEqual(store.eventCount, recorded.count)
 
