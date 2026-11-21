@@ -28,6 +28,9 @@ public struct CaptureConfiguration {
     /// message. `nil`, the default, evaluates nothing, so events carry no verdicts. `SensorService` and
     /// `StreamSession` set it.
     public var indicators: CompiledIndicators?
+    /// The most open chains the session's sequences hold together (``SessionChains``): Mac Monitor's session's by
+    /// default, and a quarter of it for a `macmonitor stream`, which `StreamSession` sets.
+    public var chainBudget = SessionChains.sessionBudget
     /// Names the session in the log, such as "Mac Monitor".
     public var label: String
     

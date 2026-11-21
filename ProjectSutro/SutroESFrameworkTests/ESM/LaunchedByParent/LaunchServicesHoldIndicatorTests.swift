@@ -54,7 +54,7 @@ final class LaunchServicesHoldIndicatorTests: XCTestCase {
         let reader = FakeLaunchServicesReader { pid, _ in self.launch(of: pid) }
         let stamped = try appExec(pid: 606)
         let hold = hold(reader)
-        hold.hold(stamped)
+        hold.hold(stamped, chains: nil)
         let sent = try sentExecs(1)
         XCTAssertEqual(sent.first?.indicators, stamped.indicators)
         XCTAssertEqual(launchedByParent(of: sent.first)?.source, .launchServices)
@@ -74,20 +74,24 @@ final class LaunchServicesHoldIndicatorTests: XCTestCase {
         indicators.stamp(&stamped, values: &values)
         XCTAssertEqual(stamped.indicators?.hits.map(\.id), [], "Not yet launched by the launcher")
         let hold = hold(FakeLaunchServicesReader { pid, _ in self.launch(of: pid) })
-        hold.hold(stamped, stampedWith: indicators)
+        hold.hold(stamped, stampedWith: indicators, chains: nil)
         let sent = try XCTUnwrap(try sentExecs(1).first)
         withExtendedLifetime(hold) {}
         XCTAssertEqual(launchedByParent(of: sent)?.path, "/path/of/700")
         XCTAssertEqual(sent.indicators?.hits.map(\.id), [rule.id])
     }
 
-    /// An exec past the hold's bound leaves at once, with its verdicts.
+    /// An exec past the hold's bound isn't held, and it keeps its verdicts. Launch Services answers only once both
+    /// execs arrived, so the first is still held when the second comes.
     func testVerdictsSurviveTheBound() throws {
-        let reader = FakeLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }
+        let reader = WaitingLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }
+        defer { reader.open() }
         let hold = hold(reader, maxHeld: 1)
         let (first, second) = (try appExec(pid: 606), try appExec(pid: 607))
-        hold.hold(first)
-        hold.hold(second)
+        hold.hold(first, chains: nil)
+        hold.hold(second, chains: nil)
+        XCTAssertTrue(emitted.all.isEmpty, "The exec past the bound waits in line")
+        reader.open()
         let sent = try sentExecs(2)
         XCTAssertEqual(sent.map(\.indicators), [first.indicators, second.indicators])
         XCTAssertEqual(launchedByParent(of: sent.last), .appJob(), "Not looked up")
@@ -99,7 +103,7 @@ final class LaunchServicesHoldIndicatorTests: XCTestCase {
         defer { reader.open() }
         let hold = hold(reader)
         let stamped = try appExec(pid: 606)
-        hold.hold(stamped)
+        hold.hold(stamped, chains: nil)
         hold.close()
         XCTAssertEqual(try sentExecs(1).first?.indicators, stamped.indicators)
     }
@@ -109,12 +113,12 @@ final class LaunchServicesHoldIndicatorTests: XCTestCase {
     func testUndeterminedSurviveTheHold() throws {
         let settled = try undecidedAppExec(pid: 606)
         let settling = hold(FakeLaunchServicesReader { pid, _ in self.launch(of: pid) })
-        settling.hold(settled)
+        settling.hold(settled, chains: nil)
         XCTAssertEqual(try sentExecs(1).count, 1)
         let reader = WaitingLaunchServicesReader()
         defer { reader.open() }
         let released = try undecidedAppExec(pid: 607), closing = hold(reader)
-        closing.hold(released)
+        closing.hold(released, chains: nil)
         closing.close()
         let sent = try sentExecs(2)
         XCTAssertEqual(sent.map(\.indicators_undetermined), [settled, released].map(\.indicators_undetermined))

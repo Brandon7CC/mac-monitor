@@ -26,6 +26,7 @@ import EndpointSecurity
 /// |---|---|
 /// | `indicators.evaluate.<type>.0` | ≤ 0.1 µs |
 /// | `indicators.evaluate.<type>.<shipped>` | ≤ 3 µs, no allocations when nothing matches |
+/// | `indicators.evaluate.close.<shipped>.sequences` | ≤ 3 µs, no allocations when nothing matches |
 /// | `indicators.evaluate.{exec,open}.<shipped>.record` | ≤ 4 µs: one walk of the event's encoding |
 /// | `indicators.evaluate.open.<shipped>.record.guarded` | ≤ 3 µs, no allocations when nothing matches: no walk |
 /// | `indicators.evaluate.{uipc_connect,xpc_connect}.<shipped>` | ≤ 3 µs, nothing matches, no allocations |
@@ -66,6 +67,15 @@ final class IndicatorPerformanceTests: PerformanceTestCase {
     func testCreateShipped() throws { try run("create.\(Self.shipped)", .shipped, ES_EVENT_TYPE_NOTIFY_CREATE) }
     /// An open, the shipped rules.
     func testOpenShipped() throws { try run("open.\(Self.shipped)", .shipped, ES_EVENT_TYPE_NOTIFY_OPEN) }
+    /// A close, the shipped rules and two sequences whose steps run on closes, which match no step: what sequences
+    /// cost an event that isn't one of their steps.
+    func testCloseShippedWithSequences() throws {
+        let compiled = CompiledIndicators(Indicator.defaults + [try SequencePerformanceTests.download(),
+                                                                SequencePerformanceTests.threeKinds])
+        try benchmarkEvaluation("indicators.evaluate.close.\(Self.shipped).sequences", compiled,
+                                messages: indicatorEvents(ES_EVENT_TYPE_NOTIFY_CLOSE, count: Self.events),
+                                expecting: .decided)
+    }
     /// A Unix domain socket connect that matches nothing, as nearly every one does, the shipped rules.
     func testUIPCConnectShipped() throws { try runConnects("uipc_connect", ES_EVENT_TYPE_NOTIFY_UIPC_CONNECT) }
     /// An XPC connect that matches nothing, as nearly every one does, the shipped rules.

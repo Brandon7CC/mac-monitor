@@ -23,6 +23,10 @@ import OSLog
 /// - Indicators with the same predicate, byte for byte (``Source``), share one compiled program, and a set made from
 ///   another (`reusing:`) compiles only the predicates that one didn't have, and copies the rest from its store.
 /// - Each rule's ``IndicatorHit`` is made once, here, so a hit costs a copy of it.
+/// - A sequence's steps are rules too, which tag nothing alone: the event that completes one of its chains gets its
+///   hit (``advanceSequences(_:values:chains:into:)``). Its chains are in a ``SequenceTable`` each capture session has
+///   of its own (``SessionChains``), which every lane of the session shares. The set's own (``chains``), which a set
+///   made from this one keeps while the sequence is the same, are for code evaluating it alone.
 /// - One that doesn't compile is kept in ``problems``, by identity, which may repeat.
 /// - Its programs are frozen in buffers of its own (``FrozenPrograms``), so lanes sharing it touch no reference count
 ///   of its as they evaluate: it's `@unchecked Sendable` for those buffers, which nothing changes after `init`.
@@ -57,21 +61,37 @@ public final class CompiledIndicators: @unchecked Sendable {
         public var reason: String { problem.description }
     }
 
-    /// Its programs and its index by type, as lanes evaluate them.
-    private let frozen: FrozenPrograms
+    /// Its programs and its index by type, as lanes evaluate them. A set made from this one copies its programs.
+    let frozen: FrozenPrograms
     /// Its rules for each type by the literals they need, which pick the rules an event is evaluated against.
     private let index: IndicatorIndex
     /// The record fields its rules read (``RecordPathTrie``), which each event's values read in one walk when a rule
     /// first asks for one.
-    private let recordPaths: RecordPathTrie?
-    /// Does a rule read an exec's launched-by parent, which Launch Services can change after the exec is stamped
-    /// (``LaunchServicesHold``)?
+    let recordPaths: RecordPathTrie?
+    /// Does a rule, a sequence's step or its keys read an exec's launched-by parent, which Launch Services can change
+    /// after the exec is stamped (``LaunchServicesHold``)?
     let readsLaunchedByParent: Bool
-    /// Each rule's hit, in the set's order.
+    /// Each rule's hit, in the set's order: a step's is its sequence's.
     let ruleHits: ContiguousArray<IndicatorHit>
+    /// Each rule's sequence and step (``stepRule(sequence:step:)``), or -1 for a rule on one event of its own.
+    let ruleSteps: ContiguousArray<Int32>
+    /// Each step's program, by its step (``stepRule(sequence:step:)``), to say what a completed chain's last event
+    /// matched.
+    let stepRoots: [Int32: Int]
+    /// The sequences it runs, in the set's order.
+    let sequences: [CompiledSequence]
+    /// Each indicator's place in the set, by identity: its first rule's. A sequence's hit is put among an event's
+    /// others by it.
+    let positions: [UUID: Int32]
+    /// The most chains each of its sequences holds as it advances them: an even share of
+    /// ``SequenceTable/totalChains``.
+    let chainShare: Int
+    /// Its own chains for its sequences, which an evaluation given no session's advances, as
+    /// `macmonitor indicators test` does.
+    let chains: SessionChains
     /// Every predicate compiled, by its text's bytes: the types it runs on and its program, or its problem. A set made
     /// from this one copies its programs from ``frozen``.
-    private let compiled: [Source: Compiled]
+    let compiled: [Source: Compiled]
 
     /// The indicators it can't run, in the set's order.
     public let problems: [Problem]
@@ -82,8 +102,8 @@ public final class CompiledIndicators: @unchecked Sendable {
     /// too.
     let programCount: Int
 
-    /// How many rules it runs: the indicators that are on and compile.
-    public var count: Int { ruleHits.count }
+    /// How many indicators it runs: those that are on and compile, a sequence once however many steps it has.
+    public var count: Int { ruleHits.count - ruleSteps.count(where: { $0 >= 0 }) + sequences.count }
 
     /// How many rules an event of a type is evaluated against.
     ///
@@ -111,65 +131,32 @@ public final class CompiledIndicators: @unchecked Sendable {
     ///   - indicators: The indicators, in order. Those that are off aren't run, but their problems are listed.
     ///   - defaults: Those Mac Monitor ships, by identity. Each hit says whether its indicator is one, and whether
     ///     this Mac edited it, worked out here once rather than for each event.
+    ///   - pack: The indicator pack those are, which each of their hits names, or 0 for a build's own.
     ///   - previous: A set whose compiled predicates to reuse, by their text's bytes.
-    public init(_ indicators: [Indicator], defaults: [UUID: Indicator] = shippedDefaults,
+    public init(_ indicators: [Indicator], defaults: [UUID: Indicator] = shippedDefaults, pack: Int = 0,
                 reusing previous: CompiledIndicators? = nil) {
-        var compiled: [Source: Compiled] = [:]
-        compiled.reserveCapacity(indicators.count)
-        var origins: [FrozenPrograms.Origin] = []
-        var rules: [Int32] = [], ruleHits = ContiguousArray<IndicatorHit>()
-        var byType = [[Int32]](repeating: [], count: Int(ES_EVENT_TYPE_LAST.rawValue))
-        var problems: [Problem] = []
-        var compiledCount = 0
-        for indicator in indicators {
-            let source = Source(indicator.predicate)
-            let entry: Compiled
-            if let known = compiled[source] {
-                entry = known
-            } else {
-                if let previous, let known = previous.compiled[source] {
-                    if case .rule(let types, let program) = known {
-                        entry = .rule(types: types, program: Int32(origins.count))
-                        origins.append(.frozen(previous.frozen, Int(program)))
-                    } else {
-                        entry = known
-                    }
-                } else {
-                    compiledCount += 1
-                    switch IndicatorCompiler.compile(source.text) {
-                    case .success(let rule):
-                        entry = .rule(types: rule.types, program: Int32(origins.count))
-                        origins.append(.compiled(rule.program))
-                    case .failure(let problem):
-                        entry = .problem(problem)
-                    }
-                }
-                compiled[source] = entry
-            }
-            switch entry {
-            case .problem(let problem):
-                problems.append(Problem(id: indicator.id, problem: problem))
-            case .rule(let types, let program) where indicator.isEnabled:
-                let index = Int32(rules.count)
-                rules.append(program)
-                ruleHits.append(IndicatorHit(indicator, against: defaults, evaluatedBy: .securityExtension))
-                for type in types where byType.indices.contains(type) { byType[type].append(index) }
-            case .rule:
-                continue
-            }
-        }
-        frozen = FrozenPrograms(origins: origins, rules: rules, byType: byType)
+        var builder = Builder(defaults: defaults, pack: pack, previous: previous, capacity: indicators.count)
+        for indicator in indicators { builder.add(indicator) }
+        frozen = FrozenPrograms(origins: builder.origins, rules: builder.rules, byType: builder.byType)
         index = IndicatorIndex(frozen)
-        let nodes = frozen.view.nodes
-        let compares = nodes.lazy.filter { $0.kind == .compare || $0.kind == .anyCompare }
-        let recordPaths = RecordPathTrie(compares.map(\.field))
+        let fields = frozen.view.nodes.flatMap(\.fields) + builder.sequences.flatMap(\.table.program.fields)
+        let recordPaths = RecordPathTrie(fields)
         self.recordPaths = recordPaths.isEmpty ? nil : recordPaths
         readsLaunchedByParent = recordPaths.fields.contains { $0.path.hasPrefix(Self.launchedByParent) }
-        programCount = origins.count
-        self.ruleHits = ruleHits
-        self.compiled = compiled
-        self.problems = problems
-        self.compiledCount = compiledCount
+            || fields.contains { $0.lineageOffset.map(LineageField.chain(at:)) == .launchedBy }
+        programCount = builder.origins.count
+        ruleHits = builder.ruleHits
+        ruleSteps = builder.ruleSteps
+        var stepRoots: [Int32: Int] = [:]
+        for (rule, step) in builder.ruleSteps.enumerated() where step >= 0 { stepRoots[step] = frozen.root(of: rule) }
+        self.stepRoots = stepRoots
+        sequences = builder.sequences
+        positions = Dictionary(builder.ruleHits.enumerated().map { ($1.id, Int32($0)) }) { first, _ in first }
+        compiled = builder.compiled
+        problems = builder.problems
+        compiledCount = builder.compiledCount
+        chainShare = SessionChains.share(of: SequenceTable.totalChains, among: sequences.count)
+        chains = SessionChains(tables: sequences.map(\.table), sequences: sequences, share: chainShare)
     }
 
     /// The indicators an event matches, in the set's order, at most ``hitLimit``: what its record lists.
@@ -184,7 +171,8 @@ public final class CompiledIndicators: @unchecked Sendable {
 
     /// What the Security Extension decides for an event: the indicators it matches, and those its ``ScanBudget`` or
     /// Foundation's window left undecided, each in the set's order. Each call is a new event: the lane's values,
-    /// its budget's included, are reset before and after it.
+    /// its budget's included, are reset before and after it, and its steps advance the set's sequences, unless they're
+    /// deferred to the event's turn.
     ///
     /// Rules are evaluated in the set's order until a hit past ``hitLimit``, which stops it as before. Undetermined
     /// rules are listed up to ``undeterminedLimit`` and counted past it, apart from the hits, so they can't bury one.
@@ -192,8 +180,13 @@ public final class CompiledIndicators: @unchecked Sendable {
     /// - Parameters:
     ///   - message: The event.
     ///   - values: The lane's values.
+    ///   - chains: The capture session's chains, or `nil` for the set's own.
+    ///   - deferringSteps: Leave the sequences as they are, and hand back the steps it matched
+    ///     (``IndicatorEvaluation/steps``) to advance them once it's the event's turn
+    ///     (``advance(_:steps:values:chains:)``), as the exec lane does (``LaunchServicesHold``).
     /// - Returns: The hits and the undetermined. Both empty, which allocates nothing, when it matches none.
-    public func evaluate(_ message: borrowing Message, values: inout MessageValueCache) -> IndicatorEvaluation {
+    public func evaluate(_ message: borrowing Message, values: inout MessageValueCache, chains: SessionChains? = nil,
+                         deferringSteps: Bool = false) -> IndicatorEvaluation {
         values.reset()
         defer { values.reset() }
         values.recordPaths = recordPaths
@@ -206,6 +199,12 @@ public final class CompiledIndicators: @unchecked Sendable {
         index.candidates(forType: type, message, values: &values, into: &words)
         let view = frozen.view
         var result = IndicatorEvaluation()
+        /// The last sequence a step of which was undetermined, so the event lists it once.
+        var uncertainSequence: Int32 = -1
+        /// Did a hit past ``hitLimit`` end the scan, which counted the event?
+        var capped = false
+        /// Each hit's program, to say what it matched once the scan is over.
+        var roots = ContiguousArray<Int>()
         scan: for word in 0..<index.words(forType: type) {
             var bits = words[word]
             while bits != 0 {
@@ -217,12 +216,26 @@ public final class CompiledIndicators: @unchecked Sendable {
                 case .no:
                     continue
                 case .yes:
+                    /// A rule's step is read only once it matched, so a rule that doesn't match costs what it did
+                    /// before sequences.
+                    let step = ruleSteps[rule]
+                    guard step < 0 else {
+                        values.noteStep(step)
+                        continue
+                    }
                     guard result.hits.count < Self.hitLimit else {
                         noteCapped(message, values: &values)
+                        capped = true
                         break scan
                     }
                     result.hits.append(ruleHits[rule])
+                    roots.append(frozen.root(of: rule))
                 case .unknown:
+                    let step = ruleSteps[rule]
+                    if step >= 0 {
+                        guard step >> 3 != uncertainSequence else { continue }
+                        uncertainSequence = step >> 3
+                    }
                     result.undeterminedCount += 1
                     guard result.undetermined.count < Self.undeterminedLimit else { continue }
                     let reason: UndeterminedReason = values.scan.refusedThisRule ? .scanBudget : .valueLimit
@@ -230,9 +243,53 @@ public final class CompiledIndicators: @unchecked Sendable {
                 }
             }
         }
+        for index in result.hits.indices {
+            result.hits[index].matched = matched(roots: CollectionOfOne(roots[index]), message, type: type,
+                                                 values: &values)
+        }
+        if values.hasStepMatches {
+            if deferringSteps {
+                result.steps = values.takeStepMatches()
+            } else {
+                advanceSequences(message, values: &values, chains: chains ?? self.chains, capped: capped,
+                                 into: &result)
+            }
+        }
         if values.scan.refusedThisEvent { noteExhausted(message, values: &values) }
         if result.undeterminedCount > 0 { values.undeterminedEvents += 1 }
         return result
+    }
+
+    /// What made programs an event matched match: the comparisons it passed, each with the value it had
+    /// (``IndicatorProgram/View/matched(root:_:eventType:values:into:)``).
+    ///
+    /// It's worked out after the event's rules are all decided, within an allowance of its own that an event's
+    /// hits share, so explaining a hit never leaves a later rule short, and at most doubles what an event can cost.
+    /// The scan's own account and Foundation's counts are put back as they were, for the lane's counts.
+    ///
+    /// - Parameters:
+    ///   - roots: The programs' root nodes: a rule's one, or those of the steps of a sequence the event matched.
+    ///   - message: The event.
+    ///   - type: Its type's number.
+    ///   - values: The lane's values for this event.
+    /// - Returns: What they matched, or `nil` when they compare nothing but the event's type.
+    func matched(roots: some Sequence<Int>, _ message: borrowing Message, type: Int,
+                 values: inout MessageValueCache) -> [IndicatorMatchedField]? {
+        let scan = values.scan
+        let (truncations, stringsMade) = (values.foundation.truncations, values.foundation.stringsMade)
+        var allowance = values.explaining ?? ScanBudget()
+        if values.explaining == nil { allowance.limit = scan.limit }
+        values.scan = allowance
+        defer {
+            values.explaining = values.scan
+            values.scan = scan
+            values.foundation.restoreCounts(truncations: truncations, stringsMade: stringsMade)
+        }
+        values.beginRule()
+        var fields: [IndicatorMatchedField] = []
+        let view = frozen.view
+        for root in roots { view.matched(root: root, message, eventType: type, values: &values, into: &fields) }
+        return fields.isEmpty ? nil : fields
     }
 
     /// The rules of an event's type its set's index picks for it, by their position among the type's rules: every
@@ -293,7 +350,7 @@ public final class CompiledIndicators: @unchecked Sendable {
     /// - Parameters:
     ///   - message: The event.
     ///   - values: The lane's values, which count it.
-    private func noteCapped(_ message: borrowing Message, values: inout MessageValueCache) {
+    func noteCapped(_ message: borrowing Message, values: inout MessageValueCache) {
         values.cappedEvents += 1
         guard values.cappedEvents == 1 else { return }
         let name = message.es_event_type
@@ -328,10 +385,19 @@ public final class CompiledIndicators: @unchecked Sendable {
     /// - Parameters:
     ///   - message: The event, whose ``Message/indicators`` and ``Message/indicators_undetermined`` it sets.
     ///   - values: The lane's values.
-    public func stamp(_ message: inout Message, values: inout MessageValueCache) {
-        let result = evaluate(message, values: &values), undetermined = result.undetermined
+    ///   - chains: The capture session's chains, or `nil` for the set's own.
+    ///   - deferringSteps: Leave the sequences, to advance them once it's the event's turn
+    ///     (``evaluate(_:values:chains:deferringSteps:)``).
+    /// - Returns: The sequence steps it matched and left, for ``advance(_:steps:values:chains:)``: none unless
+    ///   deferring.
+    @discardableResult
+    public func stamp(_ message: inout Message, values: inout MessageValueCache, chains: SessionChains? = nil,
+                      deferringSteps: Bool = false) -> ContiguousArray<Int32> {
+        let result = evaluate(message, values: &values, chains: chains, deferringSteps: deferringSteps)
+        let undetermined = result.undetermined
         message.indicators = IndicatorVerdicts(result.hits)
         message.indicators_undetermined = undetermined.isEmpty ? nil : UndeterminedIndicators(undetermined)
+        return result.steps
     }
 
     /// The key path of an exec's launched-by parent, as a rule names the fields under it.
@@ -377,4 +443,7 @@ public struct IndicatorEvaluation: Equatable, Sendable {
     public var undetermined: [IndicatorUndetermined] = []
     /// How many it couldn't rule out, those past the limit too.
     public var undeterminedCount = 0
+    /// The sequence steps it matched, in the set's order, when they were deferred to the event's turn
+    /// (``CompiledIndicators/advance(_:steps:values:chains:)``): none otherwise.
+    var steps = ContiguousArray<Int32>()
 }
