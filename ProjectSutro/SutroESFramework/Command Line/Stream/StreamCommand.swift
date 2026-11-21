@@ -84,6 +84,8 @@ public final class StreamCommand: NSObject {
     private let toolVersion: String
     /// How long to wait for the list `--indicator` is checked against (``checkIndicators(_:timeout:completion:)``).
     private let indicatorTimeout: DispatchTimeInterval
+    /// How long a stop from outside the stream, such as a signal's, waits for the Security Extension's answer.
+    private let stopTimeout: DispatchTimeInterval
     /// Writes batches and handles answers, in order.
     private let queue = DispatchQueue(label: "com.swiftlydetecting.agent.cli.stream")
     /// Called once, on ``queue``, with how the stream ended.
@@ -107,11 +109,14 @@ public final class StreamCommand: NSObject {
     ///   - isChatty: Write the banner and the summary (standard error is a terminal).
     ///   - diagnose: Writes one line to standard error.
     ///   - indicatorTimeout: How long to wait for the Mac's indicators, for `--indicator`: 10 seconds unless given.
+    ///   - stopTimeout: How long ``stop()`` waits for the Security Extension's answer: 2 seconds unless given.
     public init(client: StreamClient, pipeline: StreamPipeline, output: StreamOutput, toolVersion: String,
                 isChatty: Bool, diagnose: @escaping (String) -> Void,
-                indicatorTimeout: DispatchTimeInterval = .seconds(10)) {
+                indicatorTimeout: DispatchTimeInterval = .seconds(10),
+                stopTimeout: DispatchTimeInterval = .seconds(2)) {
         self.client = client
         self.indicatorTimeout = indicatorTimeout
+        self.stopTimeout = stopTimeout
         self.pipeline = pipeline
         self.output = output
         self.toolVersion = toolVersion
@@ -159,12 +164,17 @@ public final class StreamCommand: NSObject {
     /// Stop: no new events, write every event already captured, then end with the summary. Once a stop has been asked
     /// for, or the stream has ended, this does nothing.
     ///
-    /// A signal's stop keeps the 2 second limit, and the tool's watchdog backs it up. The stream's own stops at its
-    /// `--count` or `--for` wait as long as it takes. The answer comes only after every queued batch is written, which
-    /// takes a while under a slow reader.
+    /// A signal's stop waits the stop timeout, 2 seconds unless the command was made with another, and the tool's
+    /// watchdog backs it up. The stream's own stops at its `--count` or `--for` wait as long as it takes. The answer
+    /// comes only after every queued batch is written, which takes a while under a slow reader.
+    public func stop() {
+        stop(timeout: stopTimeout)
+    }
+    
+    /// Ask the Security Extension to stop the stream, once.
     ///
     /// - Parameter timeout: How long to wait for the Security Extension's answer, or `nil` to wait as long as it takes.
-    public func stop(timeout: DispatchTimeInterval? = .seconds(2)) {
+    private func stop(timeout: DispatchTimeInterval?) {
         queue.async { [self] in
             guard completion != nil, !isStopping else { return }
             isStopping = true
@@ -243,6 +253,14 @@ extension StreamCommand {
         pipeline.meter.fieldFilteredTypes = Self.fieldFilteredTypes(echoed: echoed)
         if echoed == nil, let stream = reply.stream {
             Self.unappliedFieldFilters(asked: askedFieldFilters, events: stream.events).forEach(diagnose)
+        }
+        /// A Security Extension that echoes its filters has indicators to list. The answer can come at any time,
+        /// and no answer says nothing.
+        if let echoed, !echoed.isEmpty {
+            client.send(IndicatorRequest(.list), timeout: indicatorTimeout) { [weak self] result in
+                guard let self, case .success(let listed) = result else { return }
+                Self.starvedIndicators(echoed: echoed, indicators: listed.indicators).forEach(self.diagnose)
+            }
         }
         guard isChatty, let stream = reply.stream else { return }
         /// Say how to see what the saved set hides: a stream applies it unless asked not to.

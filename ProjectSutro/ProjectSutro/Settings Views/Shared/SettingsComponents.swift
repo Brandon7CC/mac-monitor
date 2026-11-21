@@ -66,7 +66,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
                          summary: "What Event Facts points out among an exec's correlated events and a group's "
                             + "execs, and what marks events in the tables: a predicate each.",
                          symbol: "sparkle.magnifyingglass", tint: .orange,
-                         keywords: ["findings", "detections", "correlation", "groups", "predicate", "reflective",
+                         keywords: ["findings", "correlation", "groups", "predicate", "reflective",
                                     "applescript", "script", "marks"])
         case .commandLine:
             return Facts(title: "Command Line",
@@ -126,24 +126,22 @@ struct SettingsIconTile: View {
 }
 
 
-/// The top of every pane, as System Settings' panes start: a small tile beside the pane's name and what it's for.
+/// The top of every pane: a small tile, the pane's name, and what it's for on the same line, cut short where the
+/// pane is narrow and whole when pointed at.
 struct SettingsPaneHeader: View {
     let pane: SettingsPane
-    
+
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            SettingsIconTile(pane: pane, size: 32)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(pane.title).font(.headline)
-                /// Wraps to the pane's width. Not fixed to its ideal height: a split view measures the pane at a tiny
-                /// width first, and the text, one word a line, would push the whole window's content up.
-                Text(pane.summary)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(3)
-            }
+        HStack(spacing: 8) {
+            SettingsIconTile(pane: pane)
+            Text(pane.title).font(.headline).fixedSize()
+            Text(pane.summary)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .help(pane.summary)
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 4)
     }
 }
 

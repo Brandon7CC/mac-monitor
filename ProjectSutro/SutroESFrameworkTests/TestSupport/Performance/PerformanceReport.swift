@@ -13,7 +13,7 @@ import Foundation
 ///
 /// The JSON (`format` 1) holds the ``PerformanceEnvironment`` once and every ``PerformanceResult`` with its samples, in
 /// snake case. A CSV beside it (same name, `.csv`) holds a row per benchmark with the machine on every row, so the
-/// CSVs of several Macs can be pasted into one sheet. `Scripts/compare-performance.js` compares two JSON files.
+/// CSVs of several Macs can be pasted into one sheet. `Scripts/Test/compare-performance.js` compares two JSON files.
 ///
 /// **Threading:** the main thread only, as XCTest runs the tests.
 final class PerformanceReport {

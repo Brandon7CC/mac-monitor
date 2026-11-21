@@ -22,7 +22,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 DERIVED_DATA="${DERIVED_DATA:-$PROJECT_DIR/build/DerivedData-arm64e-tests}"
 PRODUCTS="$DERIVED_DATA/Build/Products/Community"
 HOST="$DERIVED_DATA/arm64e-test-host"
@@ -49,7 +49,7 @@ fi
     -Wl,-rpath,"$DEVELOPER/Library/Frameworks" \
     -Wl,-rpath,"$DEVELOPER/Library/PrivateFrameworks" \
     -Wl,-rpath,"$DEVELOPER/usr/lib" \
-    "$PROJECT_DIR/Scripts/arm64e-test-host.m" -o "$HOST"
+    "$PROJECT_DIR/Scripts/Test/arm64e-test-host.m" -o "$HOST"
 
 # The tests find SutroESFramework where it was built, as xcodebuild test has them do.
 DYLD_FRAMEWORK_PATH="$PRODUCTS" DYLD_LIBRARY_PATH="$PRODUCTS" \

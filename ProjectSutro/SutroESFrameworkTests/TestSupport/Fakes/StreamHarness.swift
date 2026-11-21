@@ -35,13 +35,18 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
     ///   - savedIndicators: The indicator set every stream follows and stamps its events with. `nil` stamps none.
     ///   - appCapture: What Mac Monitor's side says of the app, for a status request: not connected unless given.
     ///   - probe: What Endpoint Security answers an idle Security Extension that asks for a client.
+    ///   - updates: Looks up Mac Monitor's latest release, for an update check: nothing does unless given.
+    ///   - closed: Called from a session's queue each time one closes, after it has said its clients are free.
+    ///   - holdsSyncs: Every stream's clients hold their syncs from the start, so a stop waits until the test releases
+    ///     them (``FakeEndpointSecurityClient/releaseSyncs()``).
     init(savedMutes: SavedMuteSet, capacity: Int = SensorXPC.maxCommandLineStreams, admits: Bool = true,
          grant: CommandLineGrant? = nil, admitting: ((NSXPCConnection?) -> CommandLineGrant)? = nil,
          refusals: [Int: NewClientResult] = [:], serializer: any EventSerializing = StubSerializer.globalSequence,
          savedIndicators: SavedIndicatorSet? = nil,
          appCapture: @escaping StreamService.AppCapture = { $0(SensorReport.App(connected: false, recording: false),
                                                               false) },
-         probe: @escaping () -> NewClientResult = { .success }) {
+         probe: @escaping () -> NewClientResult = { .success }, updates: SensorUpdating? = nil,
+         closed: @escaping () -> Void = {}, holdsSyncs: Bool = false) {
         let (made, releases) = (madeFactories, releaseCount)
         let fixed = grant ?? (admits ? .everything : .refused(CommandLineAccess.needsRoot))
         service = StreamService(savedMutes: savedMutes, savedIndicators: savedIndicators,
@@ -49,10 +54,12 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
                                 sensorVersion: "3.0.0 (1)", grant: admitting ?? { _ in fixed },
                                 makeCapture: { configuration, emit in
             let factory = FakeEndpointSecurityClientFactory(refusals: refusals)
+            factory.holdsSyncs = holdsSyncs
             made.append(factory)
             return try CaptureSession(configuration, clients: factory, serializer: serializer,
                                       sensorID: { "SENSOR" }, emit: emit)
-        }, released: { releases.withLock { $0 += 1 } }, appCapture: appCapture, probe: probe)
+        }, released: { releases.withLock { $0 += 1 } }, closed: closed, appCapture: appCapture, probe: probe,
+                                updates: updates)
         super.init()
         listener.delegate = self
         listener.activate()

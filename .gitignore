@@ -3,6 +3,8 @@
 
 # Xcode build files
 build/
+# The build scripts' folder, which build/ also matches on a disk that ignores case
+!/ProjectSutro/Scripts/Build/
 DerivedData/
 *.ipa
 *.dSYM.zip

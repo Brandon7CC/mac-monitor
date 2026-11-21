@@ -128,20 +128,23 @@ final class StreamSessionTests: XCTestCase {
     }
     
     /// Endpoint Security's refusals have their own statuses, and free the slot. No clients were held, so none are said
-    /// to be free.
+    /// to be free once the session has closed.
     func testEndpointSecurityRefusalsAreAnswered() {
         let refusals: [(NewClientResult, StreamReply.Status)] = [
             (.tooManyClients, .clientLimit), (.notPermitted, .notPermitted), (.internalSubsystem, .failed)
         ]
         for (refusal, status) in refusals {
-            let harness = StreamHarness(savedMutes: savedMutes, refusals: [1: refusal])
+            let closed = expectation(description: "\(refusal) closed")
+            let harness = StreamHarness(savedMutes: savedMutes, refusals: [1: refusal], closed: closed.fulfill)
             let connection = harness.connect(reader: TestStreamReader())
             let reply = connection.send(stream())
             XCTAssertEqual(reply?.status, status, "\(refusal)")
             XCTAssertNotNil(reply?.problem)
             XCTAssertEqual(harness.service.slots.count, 0)
             connection.invalidate()
-            XCTAssertEqual(harness.releases, 0)
+            /// The session closes on its queue once the service sees the connection go.
+            wait(for: [closed], timeout: 5)
+            XCTAssertEqual(harness.releases, 0, "\(refusal)")
         }
     }
     

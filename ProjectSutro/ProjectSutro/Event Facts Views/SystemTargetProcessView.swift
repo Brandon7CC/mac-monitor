@@ -213,21 +213,21 @@ struct SystemTargetProcessView: View {
     private var parentDetails: some View {
         let process = selectedMessage.process
         VStack(alignment: .leading) {
-            let codeSigningType = process.codeSigningTypeLabel(version: selectedMessage.version)
-            Text("\u{2022} **Code signing type:** `\(codeSigningType)`")
-
-            /// The process row may be shared: its age is the event's, as the Parent tab reads it.
-            if let age = selectedMessage.processAgeText {
-                Text("\u{2022} **Parent process age:** `\(age)`")
-            }
+            HStack {
+                Text("\u{2022} **Code signing type:**")
+                GroupBox { Text("`\(process.codeSigningTypeLabel(version: selectedMessage.version))`") }
+                /// The process row may be shared: its age is the event's, as the Parent tab reads it.
+                if let age = selectedMessage.processAgeText {
+                    Text("\u{2022} **Parent process age:**")
+                    GroupBox { Text("`\(age)`") }
+                }
+            }.frame(maxWidth: .infinity, alignment: .leading)
 
             HStack {
                 Label("**Parent user:**", systemImage: "person.fill")
-                UserFact(process: process)
-
-                // Parent PID / GID
+                /// As wide as the user, so the PID and group ID follow it.
+                UserFact(process: process).fixedSize()
                 InitiatingPIDandGIDView(selectedMessage: selectedMessage)
-                    .frame(alignment: .leading)
             }.frame(maxWidth: .infinity, alignment: .leading)
 
             // MARK: Parents

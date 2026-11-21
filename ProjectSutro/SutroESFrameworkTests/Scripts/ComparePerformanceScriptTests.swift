@@ -9,8 +9,8 @@ import XCTest
 
 
 // MARK: - Comparing results files
-/// Runs `Scripts/compare-performance.js` from the source checkout on results files ``PerformanceReport`` writes, and
-/// checks that it gates only on optimized builds: two `-O` files get a verdict per benchmark, a file from an
+/// Runs `Scripts/Test/compare-performance.js` from the source checkout on results files ``PerformanceReport`` writes,
+/// and checks that it gates only on optimized builds: two `-O` files get a verdict per benchmark, a file from an
 /// unoptimized build (or one that doesn't say) is refused with a non-zero exit, and `--unoptimized` lists the times
 /// with no verdict.
 final class ComparePerformanceScriptTests: XCTestCase {
@@ -22,7 +22,8 @@ final class ComparePerformanceScriptTests: XCTestCase {
     }
 
     /// The script, in the checkout these tests were built from.
-    private static let scriptURL = repositoryURL.appendingPathComponent("ProjectSutro/Scripts/compare-performance.js")
+    private static let scriptURL = repositoryURL
+        .appendingPathComponent("ProjectSutro/Scripts/Test/compare-performance.js")
 
     /// Each file's benchmarks: the same three names, with the after file's times halved, kept and doubled.
     private static let before: [String: UInt64] = ["bench.faster": 100, "bench.same": 100, "bench.slower": 100]

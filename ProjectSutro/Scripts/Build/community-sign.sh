@@ -26,7 +26,7 @@ if [[ $# -ne 1 || ! -d "$1" ]]; then
 fi
 
 APP="$1"
-PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 APP_ENTITLEMENTS="$PROJECT_DIR/ProjectSutro/ProjectSutro.entitlements"
 SYSEXT_ENTITLEMENTS="$PROJECT_DIR/SecurityExtension/SecurityExtension.entitlements"
 

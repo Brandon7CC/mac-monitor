@@ -5,7 +5,7 @@
 //  Created by Brandon Dalton on 10/5/26.
 //
 //  Runs an .xctest bundle's tests in an arm64e process, which xcodebuild test can't do: Xcode's test runner (xctest)
-//  has only x86_64 and arm64 slices. Scripts/test-arm64e.sh builds it and runs SutroESFrameworkTests with it.
+//  has only x86_64 and arm64 slices. Scripts/Test/test-arm64e.sh builds it and runs SutroESFrameworkTests with it.
 //
 //  Usage: arm64e-test-host <bundle.xctest> [TestClass | TestClass/testMethod]
 //

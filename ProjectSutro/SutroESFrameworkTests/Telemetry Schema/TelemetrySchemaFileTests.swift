@@ -13,8 +13,8 @@ import XCTest
 /// Pins `Schema/mac-monitor-telemetry.schema.json`: it's what the source generates, the framework bundles it, its
 /// version agrees everywhere, a released version never changes, and every key is marked and every object closed.
 ///
-/// `ProjectSutro/Scripts/generate-telemetry-schema.sh` regenerates it: it runs ``testCommittedSchemaIsGenerated()``
-/// with `MM_WRITE_SCHEMA=1`, which writes the file instead of comparing it.
+/// `ProjectSutro/Scripts/Generate/generate-telemetry-schema.sh` regenerates it: it runs
+/// ``testCommittedSchemaIsGenerated()`` with `MM_WRITE_SCHEMA=1`, which writes the file instead of comparing it.
 final class TelemetrySchemaFileTests: XCTestCase {
     /// The environment variable that makes ``testCommittedSchemaIsGenerated()`` write the file.
     static let writeVariable = "MM_WRITE_SCHEMA"
@@ -50,7 +50,7 @@ final class TelemetrySchemaFileTests: XCTestCase {
               \(line < old.count ? old[line] : "(the end of the file)")
             and should be
               \(line < new.count ? new[line] : "(the end of the file)")
-            Regenerate it with ProjectSutro/Scripts/generate-telemetry-schema.sh.
+            Regenerate it with ProjectSutro/Scripts/Generate/generate-telemetry-schema.sh.
             """)
     }
     

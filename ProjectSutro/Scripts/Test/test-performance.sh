@@ -28,7 +28,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 DERIVED_DATA="${DERIVED_DATA:-$PROJECT_DIR/build/DerivedData-performance}"
 LOG="$(/usr/bin/mktemp)"
 trap '/bin/rm -f "$LOG"' EXIT
@@ -88,5 +88,5 @@ fi
 [[ -f "$RESULTS" ]] || { echo "No results were written." >&2; exit 1; }
 echo "Results: $RESULTS"
 echo "     and ${RESULTS%.json}.csv"
-echo "Compare: $PROJECT_DIR/Scripts/compare-performance.js <before.json> $RESULTS"
+echo "Compare: $PROJECT_DIR/Scripts/Test/compare-performance.js <before.json> $RESULTS"
 exit $STATUS

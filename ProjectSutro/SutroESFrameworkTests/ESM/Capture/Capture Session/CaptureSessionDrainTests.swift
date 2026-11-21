@@ -42,6 +42,13 @@ final class CaptureSessionDrainTests: XCTestCase {
         }
     }
     
+    /// Run everything the session's queue has now, and what that schedules on it in turn. A drain that completes
+    /// hops onto the queue twice, once for its clients' markers and once for its completion.
+    private func flushDrain() {
+        queue.sync {}
+        queue.sync {}
+    }
+    
     /// What reached the queue, once it has seen this many drains complete.
     ///
     /// - Parameter drains: How many drains to wait for.
@@ -77,8 +84,8 @@ final class CaptureSessionDrainTests: XCTestCase {
         drain(session)
         factory.client(.process).releaseSyncs()
         factory.client(.memory).releaseSyncs()
-        queue.sync {}
-        XCTAssertEqual(arrivals.all, [])
+        flushDrain()
+        XCTAssertEqual(arrivals.all, [], "Still waiting for the file client's marker")
         factory.client(.file).releaseSyncs()
         XCTAssertEqual(arrivals(), ["drained"])
     }

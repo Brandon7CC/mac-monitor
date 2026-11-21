@@ -16,7 +16,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 REPO_DIR="$(cd "$PROJECT_DIR/.." && pwd)"
 DERIVED_DATA="${DERIVED_DATA:-$PROJECT_DIR/build/DerivedData-schema}"
 LOG="$(/usr/bin/mktemp)"

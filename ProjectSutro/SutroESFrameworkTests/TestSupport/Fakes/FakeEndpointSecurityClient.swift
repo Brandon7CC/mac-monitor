@@ -240,6 +240,8 @@ final class FakeEndpointSecurityClientFactory: EndpointSecurityClientFactory {
     /// Runs inside every successful `subscribe` of each client made from now on, with the client and the events it
     /// added: a test delivers from here to reach the session before it has finished starting.
     var onSubscribe: ((FakeEndpointSecurityClient, [es_event_type_t]) -> Void)?
+    /// Each client made from now on holds its syncs from the start (``FakeEndpointSecurityClient/holdSyncs()``).
+    var holdsSyncs = false
     
     /// - Parameters:
     ///   - refusals: Refusals by request.
@@ -270,6 +272,7 @@ final class FakeEndpointSecurityClientFactory: EndpointSecurityClientFactory {
         if let refusal = refusals[requests] { throw ClientRefusal(result: refusal) }
         let client = FakeEndpointSecurityClient(handler: handler, refusing: refusing[requests] ?? [],
                                                 mutedPaths: mutedPaths[requests] ?? [], onSubscribe: onSubscribe)
+        if holdsSyncs { client.holdSyncs() }
         clients.append(client)
         return client
     }
