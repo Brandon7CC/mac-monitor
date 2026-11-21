@@ -195,6 +195,8 @@ private struct SubscriptionRow: View {
     let subscribed: Set<String>
     /// Subscribes to events or turns field filters on, or the reverse.
     let set: ([String], Bool) -> Void
+    /// The Mac's indicators: one that a field filter leaves nothing to match is named under the filter.
+    @ObservedObject private var indicators = IndicatorStore.shared
 
     var body: some View {
         SettingsItemRow(title: event.title, symbol: event.symbol, tint: tint,
@@ -212,6 +214,12 @@ private struct SubscriptionRow: View {
                 .disabled(!isOn)
                 .help(filter.help)
                 .padding(.top, 3)
+                if isOn, subscribed.contains(filter.rawValue) {
+                    ForEach(FieldFilter.conflicts(of: [filter], with: indicators.indicators), id: \.self) {
+                        Label($0.explanation, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
         } accessory: {
             Link(destination: event.documentation) { Image(systemName: "book") }

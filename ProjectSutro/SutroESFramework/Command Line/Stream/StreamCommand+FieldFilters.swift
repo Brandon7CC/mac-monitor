@@ -36,6 +36,21 @@ extension StreamCommand {
                 + "updating." }
     }
 
+    /// Warnings for the indicators that can't match in a stream because of the filters it applied
+    /// (``FieldFilterConflict``).
+    ///
+    /// - Parameters:
+    ///   - echoed: ``StreamStarted/fieldFilters``.
+    ///   - indicators: The Mac's indicators.
+    /// - Returns: One line per rule, such as "macmonitor: “Name” can't match: it needs the unmodified close of a
+    ///   file. --every close shows every close."
+    static func starvedIndicators(echoed: [String]?, indicators: [Indicator]) -> [String] {
+        FieldFilter.conflicts(of: Set(filters(named: echoed ?? [])), with: indicators).map { conflict in
+            "macmonitor: \(TerminalSafeText.text(conflict.explanation)) --every \(conflict.filter.eventName) shows "
+                + "every \(conflict.filter.eventName)."
+        }
+    }
+
     /// What the banner adds for the filters the Security Extension applied.
     ///
     /// - Parameter echoed: ``StreamStarted/fieldFilters``.
