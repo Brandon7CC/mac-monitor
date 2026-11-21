@@ -64,6 +64,9 @@ extension IndicatorProgram {
     ///   `BEGINSWITH`, `ENDSWITH`, `CONTAINS` and `LIKE` are false on one.
     /// - Numbers, and Booleans as 1 and 0, compare as numbers, as `NSNumber` does.
     /// - `ANY` over a missing or empty array is false.
+    /// - A field compared with another is decided as `NSPredicate` decides two values
+    ///   (`IndicatorProgram+Fields.swift`): two missing values are equal, and a missing value differs from every
+    ///   present one.
     /// - `AND` and `OR` stop at the first child that decides them, in the order the compiler gave them, cheapest to
     ///   read first (``IndicatorDraft/readingCheapestFirst``).
     ///
@@ -117,8 +120,8 @@ extension IndicatorProgram {
         ///   - eventType: Its type's number.
         ///   - values: The lane's values for this event.
         /// - Returns: The node's verdict.
-        private func evaluate(_ index: Int, _ message: borrowing Message, _ eventType: Int,
-                              _ values: inout MessageValueCache) -> IndicatorVerdict {
+        func evaluate(_ index: Int, _ message: borrowing Message, _ eventType: Int,
+                      _ values: inout MessageValueCache) -> IndicatorVerdict {
             let node = nodes[index]
             switch node.kind {
             case .and, .or:
@@ -148,6 +151,8 @@ extension IndicatorProgram {
             case .anyCompare:
                 guard case .strings(let elements) = values.value(of: node.field, in: message) else { return .no }
                 return any(node, elements, &values)
+            case .fieldCompare:
+                return compareFields(node, message, &values)
             }
         }
 
@@ -161,14 +166,17 @@ extension IndicatorProgram {
         ///   - node: An `ANY` comparison.
         ///   - elements: The array.
         ///   - values: The lane's values for this event.
+        ///   - found: Given the index of the element that matched, when one did: for saying what a hit matched.
         /// - Returns: `yes` when an element matches, `unknown` when one was undetermined or not reached, else `no`.
-        private func any(_ node: Node, _ elements: [String], _ values: inout MessageValueCache) -> IndicatorVerdict {
+        func any(_ node: Node, _ elements: [String], _ values: inout MessageValueCache,
+                 found: UnsafeMutablePointer<Int>? = nil) -> IndicatorVerdict {
             let pool = node.field.scanPool, searches = node.op == .contains || node.op == .like
             var verdict = IndicatorVerdict.no, deferred = false, refused = false
             /// The first pass keeps its own account, spent at every exit and before each search, which spends too.
             var room = values.scan.allowance(pool), used = 0
             defer { values.scan.spend(used, from: pool) }
-            for var element in elements {
+            for index in elements.indices {
+                var element = elements[index]
                 let seen: IndicatorVerdict? = element.withUTF8 { bytes in
                     let cost = ScanCost.element(bytes.count)
                     guard cost <= room - used else {
@@ -189,7 +197,9 @@ extension IndicatorProgram {
                     return .unknown
                 }
                 switch seen {
-                case .yes: return .yes
+                case .yes:
+                    found?.pointee = index
+                    return .yes
                 case .unknown: verdict = .unknown
                 case nil: deferred = true
                 case .no: continue
@@ -199,11 +209,13 @@ extension IndicatorProgram {
             used = 0
             guard deferred else { return verdict }
             let everyOne = !constants[Int(node.first)].isASCII
-            for element in elements {
+            for (index, element) in elements.enumerated() {
                 guard everyOne || !StringMatching.isASCII(element[...]) else { continue }
                 switch compareFoundation(node, element[...], bytes: element.utf8.count, field: nil, pool: pool,
                                          &values) {
-                case .yes: return .yes
+                case .yes:
+                    found?.pointee = index
+                    return .yes
                 case .unknown: verdict = .unknown
                 case .no: continue
                 }

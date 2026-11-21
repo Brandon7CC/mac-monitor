@@ -186,6 +186,15 @@ struct FoundationStrings {
         made = []
     }
 
+    /// Put the counts back as they were, after work that isn't the scan's: saying what a hit matched.
+    ///
+    /// - Parameters:
+    ///   - truncations: How many values Foundation had compared only part of.
+    ///   - stringsMade: How many strings it had made.
+    mutating func restoreCounts(truncations: Int, stringsMade: Int) {
+        (self.truncations, self.stringsMade) = (truncations, stringsMade)
+    }
+
     /// Forget the last event's values.
     mutating func reset() {
         for slot in made { entries[slot] = nil }

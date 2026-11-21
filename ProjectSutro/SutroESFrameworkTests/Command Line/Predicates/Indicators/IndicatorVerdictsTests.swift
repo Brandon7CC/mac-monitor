@@ -20,9 +20,10 @@ final class IndicatorVerdictsTests: XCTestCase {
                                   predicate: "TRUEPREDICATE", severity: .low)
         let hit = try jsonObject(encoding: IndicatorHit(indicator, isDefault: false, evaluatedBy: .securityExtension))
         XCTAssertEqual(Set(hit.keys), ["id", "name", "tactic", "tactic_id", "technique", "severity", "default",
-                                       "edited", "evaluated_by"])
+                                       "edited", "evaluated_by", "revision", "pack", "matched"])
         XCTAssertEqual(hit["edited"] as? Bool, false)
         XCTAssertTrue(hit["tactic"] is NSNull && hit["tactic_id"] is NSNull && hit["technique"] is NSNull)
+        XCTAssertTrue(hit["revision"] is NSNull && hit["pack"] is NSNull && hit["matched"] is NSNull)
         XCTAssertEqual(hit["severity"] as? String, "low")
         XCTAssertEqual(hit["evaluated_by"] as? String, "security_extension")
         XCTAssertEqual(IndicatorEvaluator.known.map(\.rawValue), ["security_extension", "export"])
