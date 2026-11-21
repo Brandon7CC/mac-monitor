@@ -19,24 +19,23 @@ struct ThreadStateFactsView: View {
     
     var body: some View {
         if let state {
-            FactRow(name: "Thread state flavor", value: flavor(of: state), style: .monospaced)
+            FactRow(name: "Thread state flavor", value: flavor(of: state))
             if let bytes = state.stateBytes {
                 DisclosureGroup {
                     /// Formatted only while the group is open.
                     GroupBox {
                         Text((state.hexRows() ?? []).joined(separator: "\n"))
                             .monospaced()
-                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 } label: {
                     Text("**Thread state:** \(bytes.count) bytes")
                 }.padding([.leading], 5.0)
             } else {
-                FactRow(name: "Thread state", value: "Not recorded", style: .monospaced)
+                FactRow(name: "Thread state", value: "Not recorded")
                     .help("eslogger doesn't write a thread state's bytes, and Mac Monitor recorded none before 3.0.0.")
             }
         } else {
-            FactRow(name: "Thread state", value: "None", style: .monospaced)
+            FactRow(name: "Thread state", value: "None")
                 .help("Endpoint Security gives a thread state only for thread_create_running.")
         }
     }

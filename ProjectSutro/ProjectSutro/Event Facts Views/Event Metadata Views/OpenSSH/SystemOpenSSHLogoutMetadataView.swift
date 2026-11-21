@@ -17,29 +17,11 @@ struct SystemOpenSSHLogoutMetadataView: View {
         if let event = esSystemEvent.event.openssh_logout {
             EventFactsCard(message: esSystemEvent) {
                 FactsBox {
-                    HStack {
-                        Label("Username:", systemImage: "person.fill")
-                            .bold()
-                        GroupBox {
-                            Text(event.username)
-                                .monospaced()
-                        }
-                    }
+                    FactRow { Fact("Username", event.username, systemImage: "person.fill") }
 
-                    HStack {
-                        Text("\u{2022} Source Address:")
-                            .bold()
-                        VStack(alignment: .leading) {
-                            GroupBox {
-                                Text("\(event.source_address_type_string) (\(event.source_address_type))")
-                                    .monospaced()
-                            }
-
-                            GroupBox {
-                                Text(event.source_address)
-                                    .monospaced()
-                            }
-                        }
+                    FactRow {
+                        Fact("Source Address", "\(event.source_address_type_string) (\(event.source_address_type))")
+                        FactValue(event.source_address)
                     }
                 }
             }

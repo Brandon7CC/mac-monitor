@@ -18,37 +18,19 @@ struct SystemLinkEventMetadataView: View {
             EventFactsCard(message: esSystemEvent) {
                 FactsBox {
                     if let srcPath = event.source.path {
-                        FactRow(name: "Source file path", value: srcPath, stacked: true, style: .monospaced)
+                        FactRow(name: "Source file path", value: srcPath, stacked: true)
                     }
                     if let tgtPath = esSystemEvent.target_path {
-                        FactRow(name: "Destination file path", value: tgtPath, stacked: true, style: .monospaced)
+                        FactRow(name: "Destination file path", value: tgtPath, stacked: true)
                     }
 
                     Divider()
 
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("\u{2022} Source file name:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(event.source.name)
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
+                    FactRow {
+                        Fact("Source file name", event.source.name)
                         Image(systemName: "arrow.right")
-                        VStack(alignment: .leading) {
-                            Text("\u{2022} Destination file name:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text(event.target_filename)
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                    }.frame(maxWidth: .infinity, alignment: .leading)
+                        Fact("Destination file name", event.target_filename)
+                    }
                 }
             }
         }

@@ -19,51 +19,18 @@ struct SystemTCCModifyMetadataView: View {
         if let event = message.event.tcc_modify {
             EventFactsCard(message: message) {
                 FactsBox {
-                    HStack {
-                        HStack {
-                            Text("\u{2022} **Update type:**")
-                            GroupBox {
-                                Text("`\(event.updateSuffix)`")
-                            }
-                        }
-                        
-                        HStack {
-                            Text("\u{2022} **Reason:**")
-                            GroupBox {
-                                Text("`\(event.reasonSuffix)`")
-                            }
-                        }
-                        
-                        HStack {
-                            Text("\u{2022} **Service name:**")
-                            GroupBox {
-                                Text("`\(event.service)`")
-                            }
-                        }
+                    FactRow {
+                        Fact("Update type", event.updateSuffix)
+                        Fact("Reason", event.reasonSuffix)
+                        Fact("Service name", event.service)
                     }
-                    
-                    HStack {
-                        HStack {
-                            Text("\u{2022} **Identity type:**")
-                            GroupBox {
-                                Text("`\(event.identitySuffix)`")
-                            }
-                        }
-                        
-                        HStack {
-                            Text("\u{2022} **Identity:**")
-                            GroupBox {
-                                Text("`\(event.identity)`")
-                            }
-                        }
+                    FactRow {
+                        Fact("Identity type", event.identitySuffix)
+                        Fact("Identity", event.identity)
                     }
-                    
-                    HStack {
-                        Label("Right", systemImage: event.rightGranted ? "checkmark.circle" : "xmark.circle")
-                            .bold()
-                        GroupBox {
-                            Text("`\(event.rightSuffix)`")
-                        }
+                    FactRow {
+                        Fact("Right", event.rightSuffix,
+                             systemImage: event.rightGranted ? "checkmark.circle" : "xmark.circle")
                     }
                     
                     if let instigator = event.instigator, let executable = instigator.executable {
@@ -93,20 +60,11 @@ struct SystemTCCModifyMetadataView: View {
                 .font(.title3)
                 .bold()
             
-            HStack {
-                Text("\u{2022} **\(role) name:**")
-                GroupBox {
-                    Text("`\(executable.name)`")
-                }
-                Text("\u{2022} **PID:**")
-                GroupBox {
-                    Text("`\(String(process.pid))`")
-                }
-                Text("\u{2022} **GID:**")
-                GroupBox {
-                    Text("`\(String(process.group_id))`")
-                }
-            }.frame(maxWidth: .infinity, alignment: .leading)
+            FactRow {
+                Fact("\(role) name", executable.name)
+                Fact("PID", String(process.pid))
+                Fact("GID", String(process.group_id))
+            }
             
             FactRow(name: "\(role) path", value: executable.path ?? "")
         }

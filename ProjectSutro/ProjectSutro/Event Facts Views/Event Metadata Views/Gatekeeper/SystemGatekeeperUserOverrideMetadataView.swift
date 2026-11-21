@@ -19,9 +19,9 @@ struct SystemGatekeeperUserOverrideMetadataView: View {
         if let event = message.event.gatekeeper_user_override {
             EventFactsCard(message: message) {
                 FactsBox {
-                    FactRow(name: "Override path", value: message.target_path ?? "", style: .monospaced)
-                    FactRow(name: "File type", value: event.file_type_string, style: .monospaced)
-                    FactRow(name: "SHA256", value: event.sha256, style: .monospaced)
+                    FactRow(name: "Override path", value: message.target_path ?? "")
+                    FactRow(name: "File type", value: event.file_type_string)
+                    FactRow(name: "SHA256", value: event.sha256)
                     
                     if let codeSigning = event.signing_info {
                         Divider()
@@ -32,15 +32,15 @@ struct SystemGatekeeperUserOverrideMetadataView: View {
                                 .font(.title3)
                             
                             if let signingID = codeSigning.signing_id.nonEmpty {
-                                FactRow(name: "Signing ID", value: signingID, style: .monospaced)
+                                FactRow(name: "Signing ID", value: signingID)
                             }
                             
                             if let teamID = codeSigning.team_id.nonEmpty {
-                                FactRow(name: "Team ID", value: teamID, style: .monospaced)
+                                FactRow(name: "Team ID", value: teamID)
                             }
                             
                             if !codeSigning.cdhash.isEmpty {
-                                FactRow(name: "CDHash", value: codeSigning.cdhash, style: .monospaced)
+                                FactRow(name: "CDHash", value: codeSigning.cdhash)
                             }
                         }
                     }

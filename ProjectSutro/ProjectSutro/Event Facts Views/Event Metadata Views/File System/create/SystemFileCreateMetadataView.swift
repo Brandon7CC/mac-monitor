@@ -73,22 +73,11 @@ struct SystemFileCreateMetadataView: View {
 
                     FactRow(name: "Type", value: event.destination_type_string)
 
-                    HStack {
-                        Text("\u{2022} **File name:**")
-                        GroupBox {
-                            Text("`\(event.fileName)`")
-                        }
+                    FactRow {
+                        Fact("File name", event.fileName)
                         FileQuarantineStatusLabelView(isQuarantined: fileQuarantineType)
                     }
-
-                    HStack {
-                        FileExistsLabel(title: "**File path:**", path: event.targetPath)
-                        GroupBox {
-                            Text("`\(event.targetPath)`")
-                                .lineLimit(10)
-                        }
-                        ShowInFinderButton(path: event.targetPath)
-                    }
+                    FilePathFact(path: event.targetPath)
 
                     if let acl = event.acl {
                         FactRow(name: "ACL", value: acl.trimmingCharacters(in: .whitespacesAndNewlines))

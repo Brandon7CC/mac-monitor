@@ -35,14 +35,7 @@ struct SystemSetModeMetadataView: View {
                     }
 
                     if let path = event.target.path {
-                        HStack {
-                            FileExistsLabel(title: "**File path:**", path: path)
-                            GroupBox {
-                                Text("`\(path)`")
-                                    .lineLimit(10)
-                            }
-                            ShowInFinderButton(path: path)
-                        }
+                        FilePathFact(path: path)
                     }
                 }
             }

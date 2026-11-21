@@ -23,7 +23,6 @@ struct AuthorizationProcessesView: View {
             if let instigator, let petitioner, instigator.audit_token_string == petitioner.audit_token_string {
                 GroupBox {
                     Label("The processes petitioning and instigating are the same:", systemImage: "info.square")
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 processFacts(instigator, role: "Process")
                 Divider().padding(.vertical, 10)
@@ -48,11 +47,11 @@ struct AuthorizationProcessesView: View {
     /// - Returns: The process's facts.
     @ViewBuilder
     private func processFacts(_ process: ESProcess, role: String) -> some View {
-        FactRow(name: "\(role) name", value: process.executable?.name, style: .monospaced)
+        FactRow(name: "\(role) name", value: process.executable?.name)
         if let path = process.executable?.path {
-            FactRow(name: "\(role) path", value: path, stacked: true, style: .monospaced)
+            FactRow(name: "\(role) path", value: path, stacked: true)
         }
-        FactRow(name: "\(role) signing ID", value: process.signing_id.nonEmpty ?? "Unsigned", style: .monospaced)
+        FactRow(name: "\(role) signing ID", value: process.signing_id.nonEmpty ?? "Unsigned")
     }
 }
 
@@ -76,7 +75,6 @@ struct SystemAuthorizationPetitionMetadataView: View {
                               Flags are defined as part of the Security framework in: \
                               `Authorization/Authorization.h`
                               """, systemImage: "info.square")
-                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     GroupBox {
                         FactsGrid(Array(event.flags_array.enumerated()), id: \.offset,
@@ -93,7 +91,6 @@ struct SystemAuthorizationPetitionMetadataView: View {
                               Default right definitions: `/System/Library/Security/authorization.plist` and \
                               runtime authorization database: `/var/db/auth.db`.
                               """, systemImage: "info.square")
-                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     GroupBox {
                         FactsGrid(Array(event.rights.enumerated()), id: \.offset,

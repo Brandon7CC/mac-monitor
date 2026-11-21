@@ -19,9 +19,9 @@ struct SystemUIPCBindMetadataView: View {
             EventFactsCard(message: message) {
                 FactsBox {
                     if let path = message.target_path {
-                        FactRow(name: "File path", value: path, style: .monospaced)
+                        FactRow(name: "File path", value: path)
                     }
-                    FactRow(name: "Mode", value: String(event.mode), style: .monospaced)
+                    FactRow(name: "Mode", value: String(event.mode))
                 }
             }
         }

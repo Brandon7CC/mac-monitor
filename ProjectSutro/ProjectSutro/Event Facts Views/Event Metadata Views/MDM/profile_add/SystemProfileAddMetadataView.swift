@@ -19,30 +19,14 @@ struct SystemProfileAddMetadataView: View {
             EventFactsCard(message: esSystemEvent) {
                 FactsBox {
                     if let profile = event.profile {
-                        FactRow(name: "Profile display name", value: profile.display_name, stacked: true,
-                                style: .monospaced)
-                        FactRow(name: "Profile identifer", value: profile.identifier, stacked: true,
-                                style: .monospaced)
-                        FactRow(name: "Organization", value: profile.organization, stacked: true, style: .monospaced)
+                        FactRow(name: "Profile display name", value: profile.display_name)
+                        FactRow(name: "Profile identifer", value: profile.identifier)
+                        FactRow(name: "Organization", value: profile.organization)
                         
-                        HStack {
-                            Text("\u{2022} Source type:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text("\(profile.installSourceShortName) (\(profile.install_source))")
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            Text("\u{2022} Is update:")
-                                .bold()
-                                .padding([.leading], 5.0)
-                            GroupBox {
-                                Text("\(event.is_update ? "Yes" : "No")")
-                                    .monospaced()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        FactRow {
+                            Fact("Source type", "\(profile.installSourceShortName) (\(profile.install_source))")
+                            Fact("Is update", event.is_update ? "Yes" : "No")
+                        }
                     }
                 }
             }

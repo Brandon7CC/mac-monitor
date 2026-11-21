@@ -55,7 +55,7 @@ struct SystemAuthenticationMetadataView: View {
         switch es_authentication_type_t(UInt32(truncatingIfNeeded: event.type)) {
         case ES_AUTHENTICATION_TYPE_OD:
             FactRow(name: "\(event.record_type.nonEmpty ?? "Record") record name", value: event.record_name)
-            FactRow(name: "Node name", value: event.node_name, stacked: true)
+            FactRow(name: "Node name", value: event.node_name)
             if let path = event.db_path.nonEmpty {
                 FactRow(name: "Database path", value: path)
             }
@@ -66,7 +66,7 @@ struct SystemAuthenticationMetadataView: View {
             } ?? "Not identified")
         case ES_AUTHENTICATION_TYPE_TOKEN:
             FactRow(name: "Token identifier", value: event.token_id)
-            FactRow(name: "Public key hash", value: event.pubkey_hash, stacked: true)
+            FactRow(name: "Public key hash", value: event.pubkey_hash)
             if let principal = event.kerberos_principal.nonEmpty {
                 FactRow(name: "Kerberos principal", value: principal)
             }
@@ -91,7 +91,6 @@ struct AuthenticationInstigatorView: View {
         if let process = event.instigator {
             GroupBox {
                 Label("The process that asked for the authentication.", systemImage: "info.square")
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             FactRow(name: "Process name", value: process.executable?.name)
             FactRow(name: "Process signing ID", value: process.signing_id.nonEmpty ?? "Unsigned")

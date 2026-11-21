@@ -19,35 +19,30 @@ struct SystemIOKitOpenMetadataView: View {
                 FactsBox {
                     FactRow(name: "Client type", value: "\(event.user_client_type)")
 
-                    HStack {
-                        Text("\u{2022} **Client class:**")
-                            .padding([.leading], 5.0)
-                        GroupBox {
-                            Text("`\(event.user_client_class)`")
-                                .frame(alignment: .leading)
-                        }
+                    FactRow {
+                        Fact("Client class", event.user_client_class)
                         /// What opening it gives, for a class ``IOKitUserClients`` knows.
                         if let description = event.userClientDescription {
                             InfoTip(text: description)
                         }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
+                    }
 
                     /// The service's class, read from the registry at capture, else its path's last component.
                     if let service = event.serviceName {
-                        FactRow(name: "Service", value: service, style: .monospaced)
+                        FactRow(name: "Service", value: service)
                     }
 
                     if let driver = event.driver_bundle_id {
-                        FactRow(name: "Driver", value: driver, style: .monospaced)
+                        FactRow(name: "Driver", value: driver)
                     }
 
                     if let parent_path = event.parent_path {
-                        FactRow(name: "Parent path", value: parent_path, style: .monospaced)
+                        FactRow(name: "Parent path", value: parent_path)
                     }
 
                     /// Whenever the record has one, also beside a NULL parent path.
                     if let parentRegistryID = event.parentRegistryID {
-                        FactRow(name: "Parent registry ID", value: String(parentRegistryID), style: .monospaced)
+                        FactRow(name: "Parent registry ID", value: String(parentRegistryID))
                     }
                 }
             }

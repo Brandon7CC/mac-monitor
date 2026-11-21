@@ -24,24 +24,12 @@ struct AuditTokenView: View {
                 Section {
                     Text("**Audit tokens**").font(.title2)
                     Divider()
-                    token("Process audit token", audit_token)
-                    if let responsible_audit_token { token("Responsible audit token", responsible_audit_token) }
-                    if let parent_audit_token { token("Parent audit token", parent_audit_token) }
+                    Fact("Process audit token", audit_token)
+                    if let responsible_audit_token { Fact("Responsible audit token", responsible_audit_token) }
+                    if let parent_audit_token { Fact("Parent audit token", parent_audit_token) }
                 }
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity).padding(.all)
-    }
-
-    /// - Parameters:
-    ///   - name: Whose audit token it is.
-    ///   - value: The audit token.
-    /// - Returns: The token under its name.
-    @ViewBuilder
-    private func token(_ name: String, _ value: String) -> some View {
-        Text("\u{2022} **\(name):**")
-        GroupBox {
-            Text("`\(value)`")
-        }
     }
 }
 

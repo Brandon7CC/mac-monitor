@@ -17,15 +17,15 @@ struct UserFact: View {
     let process: ESProcess
 
     var body: some View {
-        HStack {
+        FactRow {
             if process.ruid != process.euid {
                 Text("**Real:**")
-                GroupBox { Text("`\(Self.label(process.ruid_human, process.ruid))`") }
+                FactValue(Self.label(process.ruid_human, process.ruid))
                 Image(systemName: "arrow.right")
                 Text("**Effective:**")
             }
-            GroupBox { Text("`\(Self.label(process.euid_human, process.euid))`") }
-        }.frame(maxWidth: .infinity, alignment: .leading)
+            FactValue(Self.label(process.euid_human, process.euid))
+        }
     }
 
     /// - Parameters:

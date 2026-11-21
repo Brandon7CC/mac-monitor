@@ -17,18 +17,9 @@ struct SystemLoginLoginMetadataView: View {
         if let event = esSystemEvent.event.login_login {
             EventFactsCard(message: esSystemEvent) {
                 FactsBox {
-                    HStack {
-                        Label("**Username:**", systemImage: "person.fill")
-                            .padding([.leading], 5.0)
-                        GroupBox {
-                            let username = event.username ?? "Unknown"
-                            if let uid = event.uid {
-                                Text("`\(username) (\(uid))`")
-                            } else {
-                                Text("`\(username)`")
-                            }
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
+                    let username = event.username ?? "Unknown"
+                    let user = event.uid.map { "\(username) (\($0))" } ?? username
+                    FactRow { Fact("Username", user, systemImage: "person.fill") }
 
                     FactRow(name: "Success", value: event.success ? "Yes" : "No")
                     if let failureMessage = event.failure_message, !failureMessage.isEmpty {

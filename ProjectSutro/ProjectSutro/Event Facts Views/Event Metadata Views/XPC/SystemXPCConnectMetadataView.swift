@@ -18,8 +18,8 @@ struct SystemXPCConnectMetadataView: View {
         if let event = esSystemEvent.event.xpc_connect {
             EventFactsCard(message: esSystemEvent) {
                 FactsBox {
-                    FactRow(name: "Service name", value: event.service_name, style: .monospaced)
-                    FactRow(name: "Domain type", value: event.service_domain_type_string, style: .monospaced)
+                    FactRow(name: "Service name", value: event.service_name)
+                    FactRow(name: "Domain type", value: event.service_domain_type_string)
                 }
             }
         }

@@ -19,31 +19,14 @@ struct SystemUIPCConnectMetadataView: View {
         if let event = message.event.uipc_connect {
             EventFactsCard(message: message) {
                 FactsBox {
-                    HStack {
-                        Text("\u{2022} Type:")
-                            .bold()
-                        GroupBox {
-                            Text("\(event.type_string) (\(event.type))")
-                                .monospaced()
-                        }
-
-                        Text("\u{2022} Protocol:")
-                            .bold()
-                        GroupBox {
-                            Text("\(event.protocol_string) (\(event.protocol))")
-                                .monospaced()
-                        }
-
-                        Text("\u{2022} Domain:")
-                            .bold()
-                        GroupBox {
-                            Text("\(event.domain_string) (\(event.domain))")
-                                .monospaced()
-                        }
+                    FactRow {
+                        Fact("Type", "\(event.type_string) (\(event.type))")
+                        Fact("Protocol", "\(event.protocol_string) (\(event.protocol))")
+                        Fact("Domain", "\(event.domain_string) (\(event.domain))")
                     }
 
                     if let path = event.file.path {
-                        FactRow(name: "File path", value: path, style: .monospaced)
+                        FactRow(name: "File path", value: path)
                     }
                 }
             }

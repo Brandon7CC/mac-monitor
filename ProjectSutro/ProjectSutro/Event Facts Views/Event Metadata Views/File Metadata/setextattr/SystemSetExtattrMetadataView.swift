@@ -35,11 +35,11 @@ struct ExtendedAttributeFacts: View {
     var body: some View {
         FactsBox {
             if let attribute {
-                FactRow(name: "Extended attribute", value: attribute, style: .monospaced)
+                FactRow(name: "Extended attribute", value: attribute)
             }
-            FactRow(name: "File name", value: file.name, style: .monospaced)
+            FactRow(name: "File name", value: file.name)
             if let path = file.path {
-                FactRow(name: "File path", value: path, stacked: true, style: .monospaced)
+                FactRow(name: "File path", value: path, stacked: true)
             }
         }
     }

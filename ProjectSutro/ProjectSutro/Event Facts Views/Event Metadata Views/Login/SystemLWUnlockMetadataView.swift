@@ -17,13 +17,7 @@ struct SystemLWUnlockMetadataView: View {
         if let event = esSystemEvent.event.lw_session_unlock {
             EventFactsCard(message: esSystemEvent) {
                 FactsBox {
-                    HStack {
-                        Label("**Username:**", systemImage: "person.fill")
-                            .padding([.leading], 5.0)
-                        GroupBox {
-                            Text("`\(event.username ?? "Unknown")`")
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
+                    FactRow { Fact("Username", event.username, systemImage: "person.fill") }
 
                     FactRow(name: "Graphical session ID", value: "\(UInt32(bitPattern: event.graphical_session_id))")
                 }
