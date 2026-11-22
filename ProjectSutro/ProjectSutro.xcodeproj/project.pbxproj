@@ -287,6 +287,7 @@
 		4D4D0000000000000000006F /* StreamFilter+Indicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000006E /* StreamFilter+Indicators.swift */; };
 		4D4D00000000000000000071 /* IndicatorFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000070 /* IndicatorFilter.swift */; };
 		4D4D00000000000000000073 /* IndicatorPredicateSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000072 /* IndicatorPredicateSection.swift */; };
+		5E5E00000000000000000004 /* IndicatorMatchedSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5E00000000000000000003 /* IndicatorMatchedSection.swift */; };
 		4D4D00000000000000000075 /* IndicatorsButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000074 /* IndicatorsButton.swift */; };
 		4D4D00000000000000000077 /* IndicatorsPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000076 /* IndicatorsPopover.swift */; };
 		4D4D00000000000000000079 /* NSColor+Appearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000078 /* NSColor+Appearance.swift */; };
@@ -297,6 +298,7 @@
 		4D4D00000000000000000083 /* ScanCost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000082 /* ScanCost.swift */; };
 		4D4D00000000000000000085 /* CompiledIndicators+Source.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000084 /* CompiledIndicators+Source.swift */; };
 		4D4D00000000000000000087 /* PredicateLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000086 /* PredicateLayout.swift */; };
+		5E5E00000000000000000002 /* PredicateLayout+Passed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5E00000000000000000001 /* PredicateLayout+Passed.swift */; };
 		4D4D000000000000000000B1 /* Indicator+Editing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000B0 /* Indicator+Editing.swift */; };
 		4D4D000000000000000000B3 /* IndicatorExchange+Entries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000B2 /* IndicatorExchange+Entries.swift */; };
 		4D4D000000000000000000B5 /* IndicatorEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000B4 /* IndicatorEdit.swift */; };
@@ -1085,6 +1087,7 @@
 		4D4D0000000000000000006E /* StreamFilter+Indicators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Indicators.swift"; sourceTree = "<group>"; };
 		4D4D00000000000000000070 /* IndicatorFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorFilter.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000072 /* IndicatorPredicateSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPredicateSection.swift; sourceTree = "<group>"; };
+		5E5E00000000000000000003 /* IndicatorMatchedSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorMatchedSection.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000074 /* IndicatorsButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorsButton.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000076 /* IndicatorsPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorsPopover.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000078 /* NSColor+Appearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSColor+Appearance.swift"; sourceTree = "<group>"; };
@@ -1095,6 +1098,7 @@
 		4D4D00000000000000000082 /* ScanCost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCost.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000084 /* CompiledIndicators+Source.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CompiledIndicators+Source.swift"; sourceTree = "<group>"; };
 		4D4D00000000000000000086 /* PredicateLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateLayout.swift; sourceTree = "<group>"; };
+		5E5E00000000000000000001 /* PredicateLayout+Passed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PredicateLayout+Passed.swift"; sourceTree = "<group>"; };
 		4D4D000000000000000000B0 /* Indicator+Editing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Indicator+Editing.swift"; sourceTree = "<group>"; };
 		4D4D000000000000000000B2 /* IndicatorExchange+Entries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorExchange+Entries.swift"; sourceTree = "<group>"; };
 		4D4D000000000000000000B4 /* IndicatorEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorEdit.swift; sourceTree = "<group>"; };
@@ -4354,6 +4358,7 @@
 				4D4D00000000000000000074 /* IndicatorsButton.swift */,
 				4D4D00000000000000000076 /* IndicatorsPopover.swift */,
 				4D4D00000000000000000072 /* IndicatorPredicateSection.swift */,
+				5E5E00000000000000000003 /* IndicatorMatchedSection.swift */,
 				0D0D0D0000000000000000A7 /* RelatedIndicators.swift */,
 			);
 			path = Indicators;
@@ -4577,6 +4582,7 @@
 			children = (
 				F17E0000000000000000002B /* PredicateText.swift */,
 				4D4D00000000000000000086 /* PredicateLayout.swift */,
+				5E5E00000000000000000001 /* PredicateLayout+Passed.swift */,
 				F17E0000000000000000003F /* CompletionPlacement.swift */,
 			);
 			path = Text;
@@ -4936,6 +4942,7 @@
 				4D4D0000000000000000006F /* StreamFilter+Indicators.swift in Sources */,
 				F17E0000000000000000002C /* PredicateText.swift in Sources */,
 				4D4D00000000000000000087 /* PredicateLayout.swift in Sources */,
+				5E5E00000000000000000002 /* PredicateLayout+Passed.swift in Sources */,
 				F17E00000000000000000040 /* CompletionPlacement.swift in Sources */,
 				F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */,
 				D15C00000000000000000166 /* RelatedEvents.swift in Sources */,
@@ -5334,6 +5341,7 @@
 			files = (
 				4D4D00000000000000000077 /* IndicatorsPopover.swift in Sources */,
 				4D4D00000000000000000073 /* IndicatorPredicateSection.swift in Sources */,
+				5E5E00000000000000000004 /* IndicatorMatchedSection.swift in Sources */,
 				4D4D00000000000000000075 /* IndicatorsButton.swift in Sources */,
 				CA970000000000000000005D /* MuteFileMenu.swift in Sources */,
 				4D4D00000000000000000006 /* MuteSetUpdatePrompt.swift in Sources */,

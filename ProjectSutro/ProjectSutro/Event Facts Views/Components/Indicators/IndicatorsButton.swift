@@ -73,7 +73,8 @@ struct IndicatorsButton: ViewModifier {
             .map(\.name).joined(separator: ", "))
         /// Below the button, its arrow on the button's bottom edge pointing up at it.
         .popover(isPresented: $isShown, arrowEdge: .bottom) {
-            IndicatorsPopover(indicators: indicators, related: related) { isShown = false }
+            IndicatorsPopover(indicators: indicators, matches: IndicatorMatch.matches(of: message),
+                              related: related) { isShown = false }
         }
     }
 

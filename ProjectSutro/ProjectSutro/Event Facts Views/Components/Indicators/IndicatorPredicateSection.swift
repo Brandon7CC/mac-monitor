@@ -15,8 +15,13 @@ import SutroESFramework
 /// a condition a line (``PredicateLayout``), colored and selectable, and beside it Copy, which puts it on the
 /// pasteboard exactly as stored, on one line, and tells VoiceOver it did. A sequence's is a Sequence disclosure with
 /// each step's predicate under its name, and Copy puts the whole sequence on the pasteboard, a step a line.
+///
+/// The lines the event passed are marked (``PredicateLayout/passedLines(by:eventType:)``), when its hit says why it
+/// matched.
 struct IndicatorPredicateSection: View {
     let indicator: Indicator
+    /// Why the event matched the indicator, when its hit says.
+    var match: IndicatorMatch?
     @State private var isOpen = false
     /// How many times Copy was clicked, so only the last click's "Copied" goes back to "Copy".
     @State private var copies = 0
@@ -41,19 +46,27 @@ struct IndicatorPredicateSection: View {
                         if let step = layouts[index].step {
                             Text(step).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
                         }
-                        LaidOutPredicateView(layout: layouts[index].layout, name: indicator.name)
+                        LaidOutPredicateView(layout: layouts[index].layout, name: indicator.name,
+                                             passed: passed(layouts[index].layout))
                     }
                 }
-                    .padding(8)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 8 - LaidOutPredicateView.linePadding)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Self.panel, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
         }
     }
 
-    /// The panel behind the predicate, a shade darker than the popover.
-    private static let panel = Color.appearance(light: .black.withAlphaComponent(0.05),
-                                                dark: .black.withAlphaComponent(0.18))
+    /// The panel behind the predicate and behind a matched value, a shade darker than the popover.
+    static let panel = Color.appearance(light: .black.withAlphaComponent(0.05),
+                                        dark: .black.withAlphaComponent(0.18))
+
+    /// - Parameter layout: A laid-out predicate of the indicator's.
+    /// - Returns: The lines the event passed, or none when its hit doesn't say why it matched.
+    private func passed(_ layout: PredicateLayout) -> IndexSet {
+        match.map { layout.passedLines(by: $0.fields, eventType: $0.eventType) } ?? []
+    }
 
     /// Predicate, with a chevron that turns down while it's open.
     private var disclosure: some View {
@@ -128,16 +141,32 @@ struct IndicatorPredicateSection: View {
 // MARK: - Laid-out predicate
 /// A laid-out predicate to read and select, in a text view that doesn't scroll: monospaced and colored as the
 /// predicate editor colors a predicate (``PredicateSyntax``), in light and dark. Each line wraps two characters in
-/// from where it starts, so a wrapped condition reads as one.
+/// from where it starts, so a wrapped condition reads as one. A line the event passed has a yellow mark behind its
+/// text.
 struct LaidOutPredicateView: NSViewRepresentable {
     let layout: PredicateLayout
     /// The indicator's name, for VoiceOver.
     let name: String
+    /// The lines the event passed, by their place in the layout.
+    var passed: IndexSet = []
 
     /// The text's size, in points.
     static let fontSize: CGFloat = 11
     /// Each line's height, in points.
     static let lineHeight: CGFloat = 16
+    /// The room at each end of a line, in points, which a mark reaches into.
+    static let linePadding: CGFloat = 3
+    /// The mark behind a line the event passed, in light and dark.
+    private static let mark = NSColor.appearance(light: .systemYellow.withAlphaComponent(0.34),
+                                                 dark: .systemYellow.withAlphaComponent(0.26))
+
+    /// Remembers the lines marked, so they're marked again only when they change.
+    final class Coordinator {
+        var passed: IndexSet = []
+    }
+
+    /// - Returns: The view's coordinator.
+    func makeCoordinator() -> Coordinator { Coordinator() }
 
     /// - Parameter context: The representable's context.
     /// - Returns: A text view that can be selected but not edited, without a background or margins.
@@ -149,19 +178,23 @@ struct LaidOutPredicateView: NSViewRepresentable {
         textView.isRichText = false
         textView.drawsBackground = false
         textView.textContainerInset = .zero
-        textView.textContainer?.lineFragmentPadding = 0
+        textView.textContainer?.replaceLayoutManager(MarkLayoutManager())
+        textView.textContainer?.lineFragmentPadding = Self.linePadding
         textView.textContainer?.widthTracksTextView = true
         show(in: textView)
+        context.coordinator.passed = passed
         return textView
     }
 
-    /// Show the predicate again if it changed.
+    /// Show the predicate again if it, or the lines the event passed, changed.
     ///
     /// - Parameters:
     ///   - textView: The text view ``makeNSView(context:)`` made.
     ///   - context: The representable's context.
     func updateNSView(_ textView: NSTextView, context: Context) {
-        if textView.string != layout.text { show(in: textView) }
+        guard textView.string != layout.text || context.coordinator.passed != passed else { return }
+        show(in: textView)
+        context.coordinator.passed = passed
     }
 
     /// - Parameters:
@@ -187,14 +220,15 @@ struct LaidOutPredicateView: NSViewRepresentable {
         let storage = NSTextStorage(attributedString: text)
         let manager = NSLayoutManager()
         let container = NSTextContainer(size: NSSize(width: width, height: .greatestFiniteMagnitude))
-        container.lineFragmentPadding = 0
+        container.lineFragmentPadding = linePadding
         manager.addTextContainer(container)
         storage.addLayoutManager(manager)
         manager.ensureLayout(for: container)
         return ceil(manager.usedRect(for: container).height)
     }
 
-    /// Show the laid-out predicate: colored, each line indented as deep as it is, and wrapping two characters further.
+    /// Show the laid-out predicate: colored, each line indented as deep as it is, and wrapping two characters further,
+    /// with a mark behind the text of each line the event passed.
     ///
     /// - Parameter textView: The text view.
     private func show(in textView: NSTextView) {
@@ -206,9 +240,13 @@ struct LaidOutPredicateView: NSViewRepresentable {
         let space = (" " as NSString).size(withAttributes: [.font: font]).width
         var location = 0
         storage.beginEditing()
-        for line in layout.lines {
+        for (index, line) in layout.lines.enumerated() {
             let lead = line.depth * PredicateLayout.indentWidth
             let length = lead + (line.text as NSString).length
+            if passed.contains(index) {
+                storage.addAttribute(.backgroundColor, value: Self.mark,
+                                     range: NSRange(location: location + lead, length: length - lead))
+            }
             let style = NSMutableParagraphStyle()
             style.headIndent = CGFloat(lead + 2) * space
             style.minimumLineHeight = Self.lineHeight
@@ -219,5 +257,29 @@ struct LaidOutPredicateView: NSViewRepresentable {
             location += length + 1
         }
         storage.endEditing()
+    }
+}
+
+
+// MARK: - Marks
+/// Draws the mark behind a passed line as a round-cornered box around its text, a little wider than the text, on each
+/// line it wraps to. The text view has no inset, so the text container's coordinates are the view's.
+private final class MarkLayoutManager: NSLayoutManager {
+    /// - Parameters:
+    ///   - rectArray: The rectangles behind the text, which reach the line's end where it wraps. They aren't used.
+    ///   - rectCount: How many there are.
+    ///   - charRange: The characters they're behind.
+    ///   - color: The background's color.
+    override func fillBackgroundRectArray(_ rectArray: UnsafePointer<NSRect>, count rectCount: Int,
+                                          forCharacterRange charRange: NSRange, color: NSColor) {
+        color.setFill()
+        let glyphs = glyphRange(forCharacterRange: charRange, actualCharacterRange: nil)
+        enumerateLineFragments(forGlyphRange: glyphs) { _, _, container, fragment, _ in
+            let part = NSIntersectionRange(glyphs, fragment)
+            guard part.length > 0 else { return }
+            let rect = self.boundingRect(forGlyphRange: part, in: container)
+                .insetBy(dx: -LaidOutPredicateView.linePadding, dy: 1)
+            NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4).fill()
+        }
     }
 }
