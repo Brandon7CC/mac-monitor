@@ -10,34 +10,40 @@ import Foundation
 
 // MARK: - The lines an event passed
 public extension PredicateLayout {
-    /// The lines whose condition an event passed, which Event Facts' Indicators popover marks. Each line's condition
-    /// is evaluated on what a hit says the event had (``IndicatorHit/matched``), and on the event's type.
+    /// The lines whose condition an event passed, which Event Facts' Indicators popover marks.
     ///
-    /// A line is passed when it reads a key path the hit lists, or the event's type, and its condition holds there.
-    /// A hit lists only what an event has, so a line that only rules something out is never passed: one that starts
-    /// with `NOT`, one in a group under `NOT`, and a `!=` a value. A value the hit cut short
-    /// (``IndicatorMatchedField/Value/isCut``) can't always be checked, so a line that reads one is passed.
+    /// In the rule an event matched, every condition joined with `AND` held, or the rule wouldn't have matched. So
+    /// each is passed, a `!=` and a `NOT` too, as is each line of a group joined with `AND` whose own conditions are.
+    /// A group under `NOT` has the lines that open and close it passed, not the lines it rules out.
+    ///
+    /// Of conditions joined with `OR` only one need hold, so each is evaluated on what the hit says the event had
+    /// (``IndicatorHit/matched``), and on the event's type. One is passed when it reads a key path the hit lists, or
+    /// the event's type, and holds there. A hit lists only what an event has, so there a line that only rules
+    /// something out is never passed: one that starts with `NOT`, one in a group under `NOT`, and a `!=` a value. A
+    /// value the hit cut short (``IndicatorMatchedField/Value/isCut``) can't always be checked, so a line that reads
+    /// one is passed.
     ///
     /// - Parameters:
     ///   - matched: What the hit lists.
     ///   - eventType: The event's type, such as `ES_EVENT_TYPE_NOTIFY_EXEC`, or `nil` when it isn't known.
+    ///   - isWholeRule: Is the layout the whole rule the event matched? A sequence's step isn't, as another event
+    ///     may have passed it, so each of its lines is evaluated on what the hit lists.
     /// - Returns: The passed lines' places in ``lines``.
-    func passedLines(by matched: [IndicatorMatchedField], eventType: String? = nil) -> IndexSet {
+    func passedLines(by matched: [IndicatorMatchedField], eventType: String? = nil,
+                     isWholeRule: Bool = true) -> IndexSet {
         let facts = PassedFacts(matched, eventType: eventType)
+        let conditions = lines.map { LineCondition($0.text) }
+        let groups = LineGroups(conditions)
         var passed = IndexSet()
-        /// The depth of the line that opened the group under `NOT` being skipped.
-        var negated: Int?
-        for (index, line) in lines.enumerated() {
-            if let depth = negated {
-                if line.depth > depth { continue }
-                negated = nil
+        for (index, condition) in conditions.enumerated() {
+            let group = groups.group[index]
+            let isPassed: Bool
+            if isWholeRule, groups.conditionsHold(in: group) {
+                isPassed = condition.text != nil || condition.opensNegatedGroup || groups.closesNegatedGroup(index)
+            } else {
+                isPassed = !groups.isUnderNot(group) && facts.pass(condition)
             }
-            let condition = LineCondition(line.text)
-            if condition.opensNegatedGroup {
-                negated = line.depth
-            } else if facts.pass(condition) {
-                passed.insert(index)
-            }
+            if isPassed { passed.insert(index) }
         }
         return passed
     }
@@ -77,8 +83,14 @@ public extension IndicatorMatchedField.Value {
 private struct LineCondition {
     /// The condition, or `nil` for a line without one: a group's `(` or `)`.
     let text: String?
+    /// What joins it to the line before: `AND` or `OR`, or `nil` for a group's first line or its `)`.
+    let joiner: String?
+    /// Does the line open a group, as `AND (` does?
+    let opensGroup: Bool
     /// Does the line open a group under `NOT`, as `AND NOT (` does?
     let opensNegatedGroup: Bool
+    /// Does the line close a group, as `)` does?
+    let closesGroup: Bool
     /// Does it only rule something out: `NOT`, `NONE`, or `!=` anything but `nil`?
     let rulesOut: Bool
     /// Does it compare any of an array's strings, with `ANY` or `SOME`?
@@ -88,22 +100,31 @@ private struct LineCondition {
 
     /// The words that join conditions, which start a line.
     private static let joiners: Set<String> = ["AND", "OR"]
+    /// The symbols that join conditions, and the word each stands for.
+    private static let symbols = [("&&", "AND"), ("||", "OR")]
 
     /// - Parameter line: A line's text, without its indentation.
     init(_ line: String) {
         var text = line.trimmingCharacters(in: .whitespaces)
-        for symbol in ["&&", "||"] where text.hasPrefix(symbol) { text.removeFirst(symbol.count) }
-        text = text.trimmingCharacters(in: .whitespaces)
+        var joiner: String?
+        for (symbol, word) in Self.symbols where text.hasPrefix(symbol) {
+            text = String(text.dropFirst(symbol.count)).trimmingCharacters(in: .whitespaces)
+            joiner = word
+        }
         var tokens = PredicateText.tokens(in: text)
         if let first = tokens.first, first.range.location == 0, Self.joiners.contains(Self.word(first)) {
+            joiner = Self.word(first)
             text = (text as NSString).substring(from: NSMaxRange(first.range)).trimmingCharacters(in: .whitespaces)
             tokens = PredicateText.tokens(in: text)
         }
+        self.joiner = joiner
         let balance = Self.parentheses(in: text, outside: tokens)
         let opens = balance > 0 && text.hasSuffix("(")
         if opens { text = String(text.dropLast()).trimmingCharacters(in: .whitespaces) }
         let words = tokens.filter { [.keyword, .function].contains($0.kind) }.map(Self.word)
+        opensGroup = opens
         opensNegatedGroup = opens && words.last == "NOT"
+        closesGroup = balance < 0
         rulesOut = words.first == "NOT" || text.hasPrefix("!") || words.contains("NONE")
             || tokens.indices.contains { index in
                 tokens[index].text.hasPrefix("!=")
@@ -136,6 +157,69 @@ private struct LineCondition {
             }
         }
         return balance
+    }
+}
+
+
+// MARK: - A layout's groups
+/// The groups a layout's lines are in: the whole predicate, and each group in parentheses that breaks into lines. The
+/// line that opens a group and the line that closes it are in the group around it, as the `AND` or `OR` that starts
+/// the first is.
+private struct LineGroups {
+    /// A group of conditions.
+    private struct Group {
+        /// The group around it, or `nil` for the whole predicate.
+        var parent: Int?
+        /// Is it under `NOT`, as `NOT (` opens one?
+        var isNegated = false
+        /// Is any of its conditions joined with `OR`?
+        var hasOr = false
+    }
+
+    /// The groups: the whole predicate first.
+    private var groups = [Group()]
+    /// Each line's group.
+    private(set) var group: [Int] = []
+    /// The group each line closes, by the line's place.
+    private var closed: [Int: Int] = [:]
+
+    /// - Parameter conditions: Each line's condition, in order.
+    init(_ conditions: [LineCondition]) {
+        var current = 0
+        for (index, condition) in conditions.enumerated() {
+            if condition.closesGroup, let parent = groups[current].parent {
+                closed[index] = current
+                current = parent
+            }
+            group.append(current)
+            if condition.joiner == "OR" { groups[current].hasOr = true }
+            if condition.opensGroup {
+                groups.append(Group(parent: current, isNegated: condition.opensNegatedGroup))
+                current = groups.count - 1
+            }
+        }
+    }
+
+    /// - Parameter group: A group.
+    /// - Returns: Did each of its conditions hold, for an event that matched the predicate? They did when they're
+    ///   joined with `AND`, and so are the conditions of every group around it, none of them under `NOT`.
+    func conditionsHold(in group: Int) -> Bool {
+        let found = groups[group]
+        guard !found.hasOr else { return false }
+        guard let parent = found.parent else { return true }
+        return !found.isNegated && conditionsHold(in: parent)
+    }
+
+    /// - Parameter group: A group.
+    /// - Returns: Is it, or a group around it, under `NOT`?
+    func isUnderNot(_ group: Int) -> Bool {
+        groups[group].isNegated || groups[group].parent.map(isUnderNot) == true
+    }
+
+    /// - Parameter line: A line's place.
+    /// - Returns: Does the line close a group under `NOT`?
+    func closesNegatedGroup(_ line: Int) -> Bool {
+        closed[line].map { groups[$0].isNegated } == true
     }
 }
 

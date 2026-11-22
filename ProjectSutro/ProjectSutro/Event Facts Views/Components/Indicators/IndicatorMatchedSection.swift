@@ -12,7 +12,7 @@ import SutroESFramework
 // MARK: - Why an event matched
 /// Why an event matched an indicator, as its hit says (``IndicatorHit/matched``): what the event had, and the
 /// event's type. The Indicators popover lists what it had (``IndicatorMatchedSection``), and marks the lines of the
-/// predicate it passed (``PredicateLayout/passedLines(by:eventType:)``).
+/// predicate it passed (``PredicateLayout/passedLines(by:eventType:isWholeRule:)``).
 struct IndicatorMatch {
     /// The key paths the predicate's comparisons read, each with the value the event had.
     let fields: [IndicatorMatchedField]

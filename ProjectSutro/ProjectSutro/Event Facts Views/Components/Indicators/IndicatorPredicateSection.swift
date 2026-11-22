@@ -16,8 +16,8 @@ import SutroESFramework
 /// pasteboard exactly as stored, on one line, and tells VoiceOver it did. A sequence's is a Sequence disclosure with
 /// each step's predicate under its name, and Copy puts the whole sequence on the pasteboard, a step a line.
 ///
-/// The lines the event passed are marked (``PredicateLayout/passedLines(by:eventType:)``), when its hit says why it
-/// matched.
+/// The lines the event passed are marked (``PredicateLayout/passedLines(by:eventType:isWholeRule:)``), when its hit
+/// says why it matched.
 struct IndicatorPredicateSection: View {
     let indicator: Indicator
     /// Why the event matched the indicator, when its hit says.
@@ -63,9 +63,12 @@ struct IndicatorPredicateSection: View {
                                         dark: .black.withAlphaComponent(0.18))
 
     /// - Parameter layout: A laid-out predicate of the indicator's.
-    /// - Returns: The lines the event passed, or none when its hit doesn't say why it matched.
+    /// - Returns: The lines the event passed, or none when its hit doesn't say why it matched. A sequence's step may
+    ///   be one another event passed, so only what the hit lists marks its lines.
     private func passed(_ layout: PredicateLayout) -> IndexSet {
-        match.map { layout.passedLines(by: $0.fields, eventType: $0.eventType) } ?? []
+        match.map {
+            layout.passedLines(by: $0.fields, eventType: $0.eventType, isWholeRule: indicator.sequence == nil)
+        } ?? []
     }
 
     /// Predicate, with a chevron that turns down while it's open.

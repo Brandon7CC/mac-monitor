@@ -11,8 +11,9 @@ import XCTest
 
 // MARK: - The lines an event passed
 /// Pins which lines of a laid-out predicate Event Facts' Indicators popover marks as passed
-/// (``PredicateLayout/passedLines(by:eventType:)``): those whose condition holds on what a hit says the event had,
-/// and never one that only rules something out.
+/// (``PredicateLayout/passedLines(by:eventType:isWholeRule:)``): every condition a matched rule's `AND`s make certain,
+/// and otherwise those whose condition holds on what a hit says the event had, never one that only rules something
+/// out.
 final class PredicateLayoutPassedTests: XCTestCase {
     private static let exec = "ES_EVENT_TYPE_NOTIFY_EXEC"
     private static let name = "event.exec.target.executable.name"
@@ -22,13 +23,63 @@ final class PredicateLayoutPassedTests: XCTestCase {
     ///   - predicate: A predicate.
     ///   - matched: What a hit lists, as key paths and values, in order.
     ///   - eventType: The event's type, or `nil`.
+    ///   - whole: Is the predicate the whole rule the event matched? A sequence's step isn't, and each of its lines
+    ///     is checked on what's listed.
     /// - Returns: The text of the lines the event passed, in order.
     private func passed(_ predicate: String, _ matched: KeyValuePairs<String, IndicatorMatchedField.Value>,
-                        eventType: String? = nil) -> [String] {
+                        eventType: String? = nil, whole: Bool = false) -> [String] {
         let layout = PredicateLayout(predicate)
         let fields = matched.map { IndicatorMatchedField(field: $0.key, value: $0.value) }
-        return layout.passedLines(by: fields, eventType: eventType).map { layout.lines[$0].text }
+        return layout.passedLines(by: fields, eventType: eventType, isWholeRule: whole).map { layout.lines[$0].text }
     }
+
+    // MARK: A matched rule
+
+    /// Every condition a matched rule joins with `AND` held, or it wouldn't have matched: each is passed, a `!=` a
+    /// value and a `NOT` too, and one that reads nothing the hit lists.
+    func testEveryConditionAMatchedRuleJoinsWithANDIsPassed() {
+        let rule = "event.exec != nil AND event.exec.target.euid == 0 AND event.exec.target.ruid != 0 "
+            + #"AND NOT \#(Self.name) == "login" AND process.signing_id == nil"#
+        XCTAssertEqual(passed(rule, ["event.exec.target.euid": .integer(0)], whole: true), [
+            "event.exec != nil",
+            "AND event.exec.target.euid == 0",
+            "AND event.exec.target.ruid != 0",
+            #"AND NOT \#(Self.name) == "login""#,
+            "AND process.signing_id == nil",
+        ])
+        XCTAssertEqual(passed(rule, ["event.exec.target.euid": .integer(0)]), ["AND event.exec.target.euid == 0"],
+                       "A sequence's step may be one another event passed")
+    }
+
+    /// In a matched rule, a group joined with `AND` held too: every line of one whose own conditions are joined
+    /// with `AND` is passed, and a group under `NOT` has the lines that open and close it passed, not what it rules
+    /// out. An `OR`'s alternatives are checked on what's listed, as one of them held, not each.
+    func testAMatchedRulesGroupsArePassedByWhatTheyJoin() {
+        let rule = #"\#(Self.name) == "curl" AND (\#(Self.path) BEGINSWITH "/usr" OR \#(Self.path) != "/bin/curl") "#
+            + #"AND NOT (\#(Self.path) BEGINSWITH "/opt" OR \#(Self.name) == "wget") "#
+            + "AND (process.is_platform_binary == NO AND process.audit_token.pid != 1)"
+        let matched: KeyValuePairs<String, IndicatorMatchedField.Value> = [
+            Self.name: .string("curl"), Self.path: .string("/usr/bin/curl"),
+        ]
+        XCTAssertEqual(passed(rule, matched, whole: true), [
+            #"\#(Self.name) == "curl""#,
+            #"\#(Self.path) BEGINSWITH "/usr""#,
+            "AND NOT (",
+            ")",
+            "process.is_platform_binary == NO",
+            "AND process.audit_token.pid != 1",
+        ])
+    }
+
+    /// A matched rule whose conditions are joined with `OR` says only that one held: each is checked on what's
+    /// listed, and one that only rules something out isn't passed.
+    func testAMatchedRulesORIsCheckedOnWhatsListed() {
+        let rule = #"\#(Self.name) != "wget" OR \#(Self.path) ENDSWITH "/curl" OR \#(Self.path) ENDSWITH "/nc""#
+        XCTAssertEqual(passed(rule, [Self.path: .string("/usr/bin/curl")], whole: true),
+                       [#"OR \#(Self.path) ENDSWITH "/curl""#])
+    }
+
+    // MARK: What's listed
 
     /// Of an `OR`'s alternatives on one key path, only the one that holds for the event's value is passed, and the
     /// lines that open and close the group never are.
@@ -131,8 +182,8 @@ final class PredicateLayoutPassedTests: XCTestCase {
                        ["OR process.audit_token.pid == 321"])
     }
 
-    /// What the Security Extension lists for a hit marks the lines its rule passed: the alternative that matched,
-    /// and nothing the rule ruled out.
+    /// What the Security Extension lists for a hit marks the lines its rule passed: every condition it joins with
+    /// `AND`, and the alternative that matched.
     func testAHitsOwnListMarksItsRule() throws {
         var message = try corpusExec { exec in
             exec.target.executable?.path = "/usr/bin/curl"
@@ -153,17 +204,19 @@ final class PredicateLayoutPassedTests: XCTestCase {
             #"OR \#(Self.path) ENDSWITH "/curl""#,
             #"AND (ANY event.exec.env BEGINSWITH "DYLD_INSERT_LIBRARIES=")"#,
             "AND process.is_platform_binary == NO",
+            #"AND NOT (\#(Self.path) BEGINSWITH "/opt/")"#,
         ])
     }
 
-    /// Every shipped predicate's lines can be checked, whatever the event's type, and with nothing listed only the
-    /// lines that name the type are passed.
+    /// Every shipped predicate's lines can be checked, as a matched rule and as a step, whatever the event's type.
+    /// With nothing listed, a step's lines that name the type are the only ones passed.
     func testShippedPredicatesAreChecked() {
         for indicator in Indicator.eventDefaults {
             let predicate = indicator.predicate!
             let layout = PredicateLayout(predicate)
-            XCTAssertEqual(layout.passedLines(by: []), [], indicator.name)
-            for line in layout.passedLines(by: [], eventType: Self.exec) {
+            XCTAssertEqual(layout.passedLines(by: [], isWholeRule: false), [], indicator.name)
+            _ = layout.passedLines(by: [], eventType: Self.exec)
+            for line in layout.passedLines(by: [], eventType: Self.exec, isWholeRule: false) {
                 let text = layout.lines[line].text
                 XCTAssertTrue(text.contains("es_event_type") || text.contains("event.exec"),
                               "\(indicator.name): \(text)")
