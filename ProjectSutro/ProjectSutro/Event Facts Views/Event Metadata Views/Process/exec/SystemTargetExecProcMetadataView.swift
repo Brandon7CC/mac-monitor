@@ -163,14 +163,16 @@ struct SystemTargetExecProcMetadataView: View {
                 if !event.certificate_chain.isEmpty {
                     Text("\u{2022} **Certificate chain:**")
                     ScrollView(.horizontal) {
-                        ForEach(event.certificate_chain, id: \.self) { cert in
-                            let summary: String = cert.summary
-                            let thumbprint: String = cert.thumbprint
-                            GroupBox {
-                                HStack {
-                                    Label("`\(summary)`", systemImage: "lock.doc")
-                                    Image(systemName: "arrow.right")
-                                    Label("`\(thumbprint)`", systemImage: "touchid")
+                        VStack(alignment: .leading) {
+                            ForEach(event.certificate_chain, id: \.self) { cert in
+                                let summary: String = cert.summary
+                                let thumbprint: String = cert.thumbprint
+                                GroupBox {
+                                    HStack {
+                                        Label("`\(summary)`", systemImage: "lock.doc")
+                                        Image(systemName: "arrow.right")
+                                        Label("`\(thumbprint)`", systemImage: "touchid")
+                                    }
                                 }
                             }
                         }
