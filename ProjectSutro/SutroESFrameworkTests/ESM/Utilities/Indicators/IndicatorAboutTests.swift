@@ -19,8 +19,9 @@ final class IndicatorAboutTests: XCTestCase {
         Dictionary(about.rows.map { ($0.name, $0.value) }) { first, _ in first }
     }
 
-    /// A shipped indicator names the pack it's from, the pack's commit and day, its revision, and that it's
-    /// unchanged. Edited, it says so, and keeps the revision it was edited from.
+    /// A shipped indicator names the pack it's from, as `Mac Monitor (Pack 1)` whether the build links the pack in
+    /// or it was installed since, its revision, and that it's unchanged. Edited, it says so, and keeps the revision
+    /// it was edited from.
     func testAShippedIndicatorNamesItsPack() throws {
         var shipped = ownIndicator("Ran a script", "event.exec != nil AND event.exec.script != nil")
         shipped.revision = 2
@@ -30,18 +31,18 @@ final class IndicatorAboutTests: XCTestCase {
         let about = IndicatorAbout(shipped, baseline: [shipped], pack: pack)
         XCTAssertEqual(about.identity, shipped.id.uuidString)
         XCTAssertEqual(about.summary, "Pack 1, revision 2")
-        XCTAssertEqual(about.rows.map(\.name), ["ID", "Source", "Revision", "State", "Runs on", "Needs"])
+        XCTAssertEqual(about.rows.map(\.name), ["ID", "Source", "Revision", "State", "Runs on", "Requires"])
         XCTAssertEqual(values(about), [
-            "ID": shipped.id.uuidString, "Source": "Mac Monitor, pack 1, in this build (fac2be0, 2026-11-18)",
-            "Revision": "2", "State": "Unchanged", "Runs on": "exec", "Needs": "Mac Monitor 3.2.0 or later",
+            "ID": shipped.id.uuidString, "Source": "Mac Monitor (Pack 1)",
+            "Revision": "2", "State": "Unchanged", "Runs on": "exec", "Requires": "Mac Monitor 3.2.0 or later",
         ])
         var edited = shipped
         edited.severity = .high
         edited.isEnabled = false
         let installed = IndicatorPackStatus(sequence: 3, source: .installed)
         XCTAssertEqual(values(IndicatorAbout(edited, baseline: [shipped], pack: installed)), [
-            "ID": shipped.id.uuidString, "Source": "Mac Monitor, pack 3, installed", "Revision": "2",
-            "State": "Edited on this Mac", "Runs on": "exec", "Needs": "Mac Monitor 3.2.0 or later",
+            "ID": shipped.id.uuidString, "Source": "Mac Monitor (Pack 3)", "Revision": "2",
+            "State": "Edited on this Mac", "Runs on": "exec", "Requires": "Mac Monitor 3.2.0 or later",
         ])
         XCTAssertEqual(IndicatorAbout(edited, baseline: [shipped], pack: installed).summary,
                        "Pack 3, revision 2, edited")
@@ -78,7 +79,7 @@ final class IndicatorAboutTests: XCTestCase {
             XCTAssertEqual(facts["State"], "Unchanged", indicator.name)
             XCTAssertEqual(facts["Revision"], indicator.revision.map(String.init), indicator.name)
             XCTAssertNotEqual(facts["Runs on"], "No event type", indicator.name)
-            XCTAssertTrue(facts["Source"]?.hasPrefix("Mac Monitor, pack ") == true, indicator.name)
+            XCTAssertEqual(facts["Source"], "Mac Monitor (Pack \(status.sequence))", indicator.name)
         }
     }
 }

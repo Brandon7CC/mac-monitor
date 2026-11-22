@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - About an indicator
 /// What Settings > Indicators says about one indicator besides what's edited there: its identity, where it comes
-/// from, its revision and whether this Mac changed it, the event types it runs on, and the Mac Monitor it needs.
+/// from, its revision and whether this Mac changed it, the event types it runs on, and the Mac Monitor it requires.
 public struct IndicatorAbout: Equatable {
     /// One fact: its name, and its value.
     public struct Row: Equatable, Identifiable {
@@ -48,20 +48,16 @@ public struct IndicatorAbout: Equatable {
         }
         rows.append(Row(name: "Runs on", value: Self.eventTypes(of: indicator)))
         if let minEngine = indicator.minEngine {
-            rows.append(Row(name: "Needs", value: "Mac Monitor \(minEngine) or later"))
+            rows.append(Row(name: "Requires", value: "Mac Monitor \(minEngine) or later"))
         }
         self.rows = rows
     }
 
     /// - Parameter pack: Which pack Mac Monitor's indicators are.
-    /// - Returns: Where a shipped indicator comes from: the pack, the commit it was built from and the day it was,
-    ///   and whether the build links it in or it was installed since.
+    /// - Returns: Where a shipped indicator comes from: `Mac Monitor (Pack 1)`, or `Mac Monitor` for a build's own.
     private static func source(of pack: IndicatorPackStatus?) -> String {
         guard let pack, pack.sequence > 0 else { return "Mac Monitor" }
-        let built = [pack.commit.map { String($0.prefix(7)) }, pack.published.map { String($0.prefix(10)) }]
-            .compactMap { $0 }.joined(separator: ", ")
-        let place = pack.source == .linked ? "in this build" : "installed"
-        return "Mac Monitor, pack \(pack.sequence), \(place)" + (built.isEmpty ? "" : " (\(built))")
+        return "Mac Monitor (Pack \(pack.sequence))"
     }
 
     /// - Parameter indicator: An indicator.
