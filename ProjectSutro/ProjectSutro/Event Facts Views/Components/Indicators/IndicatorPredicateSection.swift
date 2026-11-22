@@ -170,11 +170,28 @@ struct LaidOutPredicateView: NSViewRepresentable {
     ///   - context: The representable's context.
     /// - Returns: The width offered, and the height of the text wrapped to it.
     func sizeThatFits(_ proposal: ProposedViewSize, nsView textView: NSTextView, context: Context) -> CGSize? {
-        guard let container = textView.textContainer, let manager = textView.layoutManager else { return nil }
+        guard let storage = textView.textStorage else { return nil }
         let width = proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? IndicatorsPopover.width
-        container.containerSize = NSSize(width: width, height: .greatestFiniteMagnitude)
+        return CGSize(width: width, height: Self.height(of: storage, wrappedTo: width))
+    }
+
+    /// The height of text wrapped to a width, measured apart from the text view. Changing the text view's own
+    /// container as SwiftUI measures it asks the popover's window to lay out again each time, and macOS 13 raises an
+    /// exception when a window is asked more often than it has views.
+    ///
+    /// - Parameters:
+    ///   - text: The text, with its paragraph styles.
+    ///   - width: The width its lines wrap to, in points.
+    /// - Returns: Its height, in points.
+    private static func height(of text: NSAttributedString, wrappedTo width: CGFloat) -> CGFloat {
+        let storage = NSTextStorage(attributedString: text)
+        let manager = NSLayoutManager()
+        let container = NSTextContainer(size: NSSize(width: width, height: .greatestFiniteMagnitude))
+        container.lineFragmentPadding = 0
+        manager.addTextContainer(container)
+        storage.addLayoutManager(manager)
         manager.ensureLayout(for: container)
-        return CGSize(width: width, height: ceil(manager.usedRect(for: container).height))
+        return ceil(manager.usedRect(for: container).height)
     }
 
     /// Show the laid-out predicate: colored, each line indented as deep as it is, and wrapping two characters further.
