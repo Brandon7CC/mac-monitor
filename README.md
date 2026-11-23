@@ -100,7 +100,7 @@ macmonitor status                          # versions, what the Security Extensi
 ![Event facts overview](./Resources/v3.0.0/event-metadata-overview-v3.0.png)
 
 - **Indicators**: predicates that point out events worth a look. Change Mac Monitor's own or write your own in Settings > Indicators.
-  - They run in the Security Extension, so every record and every `macmonitor` stream lists what it matched. 43 ship by default, each with a severity and an ATT&CK tactic.
+  - They run in the Security Extension, so every record and every `macmonitor` stream lists what it matched. 45 ship by default, each with a severity and an ATT&CK tactic.
 
 ![Custom indicators](./Resources/v3.1.0/indicators-v3.1.png)
 
