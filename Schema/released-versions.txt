@@ -5,3 +5,4 @@
 # TelemetrySchemaFileTests fails if the file's hash differs from its version's line.
 1.0.0 4663ee116ca61e8b71810b083b777f6e25601cf6663fc79c44255eddc12a9ffa
 1.1.0 3127ab854a6bedca115d8c68cb0d778797e03c62461c39c6ad20bd078b555089
+1.2.0 a8790bb91fc0655758a455c01947cb5c6be7272dddfb0eef1b53ba8cab863be1
