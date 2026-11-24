@@ -56,7 +56,7 @@ final class AdhocSigningIndicatorTests: XCTestCase {
     /// `/usr/bin/true`'s, or the adhoc programs' execs of `/bin/sh`: it reads the code run, not the process running.
     /// Unsigned matches none of them: every program recorded is signed.
     func testAdhocSignedMatchesTheRecordedExecs() throws {
-        let id = try shippedID("Ad-hoc signed"), unsigned = try shippedID("Unsigned")
+        let id = try shippedID("Adhoc signed"), unsigned = try shippedID("Unsigned")
         XCTAssertEqual([id, unsigned], [Indicator.uuid(10), Indicator.uuid(61)])
         let messages = try fixtureMessages(Self.fixture)
         for (message, matches) in zip(messages, [true, true, false, false, false, false]) {
@@ -69,7 +69,7 @@ final class AdhocSigningIndicatorTests: XCTestCase {
     /// has one, as code whose signature is no longer valid is. Adhoc signed doesn't match those, and Unsigned doesn't
     /// match adhoc code, even without a signing ID: no exec matches both, so each colors its own label.
     func testUnsignedMatchesCodeWithoutASignature() throws {
-        let adhoc = try shippedID("Ad-hoc signed"), unsigned = try shippedID("Unsigned")
+        let adhoc = try shippedID("Adhoc signed"), unsigned = try shippedID("Unsigned")
         let messages = try fixtureMessages(Self.fixture)
         let developerID = try target(messages[2])
         let unsignedTargets: [(String, (inout SutroESFramework.Process) -> Void)] = [
@@ -95,7 +95,7 @@ final class AdhocSigningIndicatorTests: XCTestCase {
     /// Both color an exec's label by default, orange and red, and what they match together is what Adhoc or unsigned,
     /// 3.0's, matched.
     func testTheSplitKeepsAdhocOrUnsigned() throws {
-        let adhoc = try XCTUnwrap(Indicator.defaults.first { $0.name == "Ad-hoc signed" })
+        let adhoc = try XCTUnwrap(Indicator.defaults.first { $0.name == "Adhoc signed" })
         let unsigned = try XCTUnwrap(Indicator.defaults.first { $0.name == "Unsigned" })
         XCTAssertEqual([adhoc.tableMarks, unsigned.tableMarks], [[.dot, .symbol, .label], [.dot, .symbol, .label]])
         XCTAssertEqual([adhoc.color, unsigned.color], [.orange, .red])
@@ -127,7 +127,7 @@ final class AdhocSigningIndicatorTests: XCTestCase {
     /// With the checks off, an adhoc program execed is still Adhoc signed, by its flag, though it's a platform
     /// binary. A Developer ID program reported as one, with no team ID, isn't.
     func testAdhocSignedWithChecksOff() throws {
-        let id = try shippedID("Ad-hoc signed")
+        let id = try shippedID("Adhoc signed")
         let messages = try fixtureMessages(Self.fixture)
         let vmAdhoc = try recordedResolverConnect().process
         XCTAssertTrue(vmAdhoc.is_platform_binary && vmAdhoc.is_adhoc_signed && vmAdhoc.team_id == nil)
@@ -140,7 +140,7 @@ final class AdhocSigningIndicatorTests: XCTestCase {
     /// recorded with SIP on, running or as an exec's target. Not by the Developer ID program, Apple's
     /// `/usr/bin/true`, or zsh.
     func testResolverConnectByTheRecordedProcesses() throws {
-        let id = try shippedID("DNS lookup by ad-hoc or unsigned code")
+        let id = try shippedID("DNS lookup by adhoc or unsigned code")
         let messages = try fixtureMessages(Self.fixture)
         let connect = try recordedResolverConnect()
         let signers: [(SutroESFramework.Process, Bool, String)] = [
@@ -163,7 +163,7 @@ final class AdhocSigningIndicatorTests: XCTestCase {
     /// as a platform binary with no team ID doesn't, nor does code signed with a certificate that has no team ID,
     /// which isn't adhoc.
     func testResolverConnectWithChecksOff() throws {
-        let id = try shippedID("DNS lookup by ad-hoc or unsigned code")
+        let id = try shippedID("DNS lookup by adhoc or unsigned code")
         let connect = try recordedResolverConnect()
         try assertShippedMatch(connect, true, id: id, "adhoc, checks off")
         let developerID = try target(try fixtureMessages(Self.fixture)[2])

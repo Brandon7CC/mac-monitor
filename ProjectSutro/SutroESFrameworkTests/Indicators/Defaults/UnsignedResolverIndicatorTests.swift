@@ -20,7 +20,7 @@ import EndpointSecurity
 /// path or the service's exact name, so no other connect is evaluated against it.
 final class UnsignedResolverIndicatorTests: XCTestCase {
     /// The indicator's name.
-    private static let name = "DNS lookup by ad-hoc or unsigned code"
+    private static let name = "DNS lookup by adhoc or unsigned code"
     /// The fixture's events, in the order they ran.
     private static let fixture = "macmonitor-3.1-resolver.jsonl"
     /// The code signing flags Endpoint Security reports on macOS 27.2, with its checks on, for a running adhoc,

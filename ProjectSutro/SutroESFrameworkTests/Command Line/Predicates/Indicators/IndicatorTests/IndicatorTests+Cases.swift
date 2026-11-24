@@ -95,7 +95,7 @@ extension IndicatorTests {
              ["es_event_type": "ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGIN", "event": ["openssh_login": ["success": false]]],
              ["es_event_type": "ES_EVENT_TYPE_NOTIFY_OPENSSH_LOGOUT"]),
             ("New executable", exec([:], ["executable_age_ms": 4]), exec([:], ["executable_age_ms": 1_000])),
-            ("Ad-hoc signed", exec(["codesigning_type": "ADHOC", "signing_id": "a.out"]),
+            ("Adhoc signed", exec(["codesigning_type": "ADHOC", "signing_id": "a.out"]),
              exec(["codesigning_type": "DEVELOPER_ID", "signing_id": "com.example.app"])),
             ("Unsigned", exec(["codesigning_type": "UNSIGNED", "signing_id": "Unknown", "is_adhoc_signed": false]),
              exec(["codesigning_type": "ADHOC", "signing_id": "a.out"])),

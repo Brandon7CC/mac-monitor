@@ -67,7 +67,7 @@ final class CompiledIndicatorsTests: XCTestCase {
     /// Each hit is the indicator's: its name, tactic, technique and severity, whether Mac Monitor ships it, and that
     /// the Security Extension evaluated it.
     func testHitsDescribeTheirIndicators() throws {
-        let shipped = try XCTUnwrap(Indicator.defaults.first { $0.name == "Ad-hoc signed" })
+        let shipped = try XCTUnwrap(Indicator.defaults.first { $0.name == "Adhoc signed" })
         var own = indicator(Self.everyExec)
         own.severity = .high
         var values = MessageValueCache()
