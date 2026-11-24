@@ -13,7 +13,8 @@ import XCTest
 extension XCTestCase {
     /// The JSONL fixtures of real events: eslogger's on macOS 27, and Mac Monitor 2.1's export.
     static let eventFixtures = ["eslogger-exit.jsonl", "eslogger-open.jsonl", "eslogger-od.jsonl",
-                                "eslogger-remote-thread-create.jsonl", "macmonitor-2.1-exit.jsonl"]
+                                "eslogger-remote-thread-create.jsonl", "eslogger-authentication.jsonl",
+                                "macmonitor-2.1-exit.jsonl"]
     
     /// Every record in a JSONL fixture, read as File > Open Trace... reads it.
     ///

@@ -16,12 +16,24 @@ import Foundation
 /// { "format": "com.swiftlydetecting.indicators", "version": 1, "indicators": [ { "name": "...", ... } ] }
 /// ```
 ///
-/// A bare array of indicators, or one indicator alone, imports too.
+/// A bare array of indicators, or one indicator alone, imports too. Version 2 is what an indicator pack's payload is
+/// (``IndicatorPack``): it adds sequences, each indicator's `revision` and `minEngine`, and the pack's own `pack`
+/// header, which importing ignores.
 public enum IndicatorExchange {
     /// What the file says it is.
     public static let format = "com.swiftlydetecting.indicators"
-    /// The file's version. A newer one isn't read, since its indicators may mean more than this build knows.
-    public static let version = 1
+    /// The newest version of the file this build reads. A newer one isn't read, since its indicators may mean more
+    /// than this build knows.
+    public static let version = 2
+
+    /// The version a file of some indicators is written as: 1, which Mac Monitor 3.1 reads too, unless one is a
+    /// sequence or names the oldest Mac Monitor that can run it, which 3.1 would run without knowing.
+    ///
+    /// - Parameter indicators: The file's indicators.
+    /// - Returns: 1 or 2.
+    public static func version(of indicators: [Indicator]) -> Int {
+        indicators.contains { $0.sequence != nil || $0.minEngine != nil } ? 2 : 1
+    }
 
     /// Why a file can't be imported.
     public struct ImportError: LocalizedError, Equatable {
@@ -42,12 +54,13 @@ public enum IndicatorExchange {
     }
 
     /// - Parameter indicators: The indicators, in the order they're listed.
-    /// - Returns: The file, pretty-printed with its keys sorted, so a shared file reads and diffs well.
+    /// - Returns: The file, at the version its indicators need (``version(of:)``), pretty-printed with its keys
+    ///   sorted, so a shared file reads and diffs well.
     /// - Throws: The encoder's error.
     public static func data(of indicators: [Indicator]) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        return try encoder.encode(File(format: format, version: version, indicators: indicators))
+        return try encoder.encode(File(format: format, version: version(of: indicators), indicators: indicators))
     }
 
     /// - Parameter data: A file of indicators.

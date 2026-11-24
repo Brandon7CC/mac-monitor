@@ -54,27 +54,19 @@ struct LaunchItemFacts<Event: LaunchItemEventFacts>: View {
 
     var body: some View {
         FactsBox {
-            FactRow(name: "Type", value: event.item.item_type_string, style: .monospaced)
+            FactRow(name: "Type", value: event.item.item_type_string)
 
             if let executablePath = event.executablePath {
-                FactRow(name: "Executable path", value: executablePath, style: .monospaced)
+                FactRow(name: "Executable path", value: executablePath)
             }
 
-            HStack {
-                Text("\u{2022} **Is legacy:**")
-                GroupBox {
-                    Text("`\(String(event.item.legacy))`")
-                }
-
-                Text("\u{2022} **Is managed:**")
-                GroupBox {
-                    Text(String(event.item.managed))
-                        .monospaced()
-                }
+            FactRow {
+                Fact("Is legacy", String(event.item.legacy))
+                Fact("Is managed", String(event.item.managed))
             }
 
             if let itemName = event.itemName {
-                FactRow(name: "Item name", value: itemName, style: .monospaced)
+                FactRow(name: "Item name", value: itemName)
             }
 
             FactRow(name: "Item path", value: event.item.item_path)
@@ -110,11 +102,11 @@ struct LaunchItemFacts<Event: LaunchItemEventFacts>: View {
         FactRow(name: "App path", value: appPath)
 
         if let teamID = event.app?.team_id.nonEmpty {
-            FactRow(name: "App Team ID", value: teamID, style: .monospaced)
+            FactRow(name: "App Team ID", value: teamID)
         }
 
         if let signingID = event.app?.signing_id.nonEmpty {
-            FactRow(name: "App Signing ID", value: signingID, style: .monospaced)
+            FactRow(name: "App Signing ID", value: signingID)
         }
 
         // MARK: App bundle
@@ -141,11 +133,11 @@ struct LaunchItemFacts<Event: LaunchItemEventFacts>: View {
         LaunchItemInstigatorAgeRow(instigator: instigator)
 
         if let teamID = instigator.team_id.nonEmpty {
-            FactRow(name: "Instigator Team ID", value: teamID, style: .monospaced)
+            FactRow(name: "Instigator Team ID", value: teamID)
         }
 
         if let signingID = instigator.signing_id.nonEmpty {
-            FactRow(name: "Instigator Signing ID", value: signingID, style: .monospaced)
+            FactRow(name: "Instigator Signing ID", value: signingID)
         }
     }
 }

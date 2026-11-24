@@ -33,21 +33,24 @@ struct EventTimeView: View {
 }
 
 
-/// The title of a file path in Event Facts, with whether the file exists. The check is made on this Mac, which for a
-/// trace may not be the Mac the event happened on, so for a trace its help says so.
-struct FileExistsLabel: View {
-    /// The label's title (Markdown).
-    let title: LocalizedStringKey
+/// A file's path in Event Facts: its name with whether the file exists, the path, and Show in Finder while it does.
+/// The check is made on this Mac, which for a trace may not be the Mac the event happened on, so for a trace its
+/// help says so.
+struct FilePathFact: View {
+    /// The fact's name, without a colon.
+    var name = "File path"
     /// The file's path.
     let path: String
-    
-    /// The title, with a check mark if the file exists and a cross if it doesn't.
+
+    /// The name, with a check mark if the file exists and a cross if it doesn't, then the path.
     var body: some View {
         let exists = FileManager.default.fileExists(atPath: path)
         let trace = CoreDataController.shared.isShowingTrace
-        Label(title, systemImage: exists ? "checkmark.circle" : "xmark.circle")
-            .labelStyle(.titleAndIcon)
-            .help(exists ? (trace ? "This file exists on this Mac." : "This file exists.")
-                  : (trace ? "This file isn't on this Mac." : "This file no longer exists."))
+        FactRow {
+            Fact(name, path, systemImage: exists ? "checkmark.circle" : "xmark.circle")
+                .help(exists ? (trace ? "This file exists on this Mac." : "This file exists.")
+                      : (trace ? "This file isn't on this Mac." : "This file no longer exists."))
+            ShowInFinderButton(path: path)
+        }
     }
 }

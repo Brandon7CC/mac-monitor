@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C27B03B6567C4A7798EA5C32 /* SystemAuthenticationMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9A904370C6C4B22ADD79A0A /* SystemAuthenticationMetadataView.swift */; };
+		9BE13EBC72164960A8744422 /* ESAuthenticationEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E013B52AF614D02946A6A3E /* ESAuthenticationEvent+CoreDataClass.swift */; };
+		12631718AC8D477E85127139 /* AuthenticationEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B120B087E084F30B92D23FC /* AuthenticationEvent.swift */; };
 		0D0D0D000000000000000002 /* OpenDirectoryMember.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000001 /* OpenDirectoryMember.swift */; };
 		0D0D0D000000000000000004 /* OpenDirectoryEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000003 /* OpenDirectoryEvent.swift */; };
 		0D0D0D000000000000000006 /* ESODEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0D0D000000000000000005 /* ESODEvent+CoreDataClass.swift */; };
@@ -62,6 +65,7 @@
 		284BAED62A4D09BE007F1193 /* ESODAttributeValueAddEvent+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284BAED42A4D09BE007F1193 /* ESODAttributeValueAddEvent+CoreDataClass.swift */; };
 		284BAEDB2A4DE047007F1193 /* ODHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284BAEDA2A4DE047007F1193 /* ODHelpers.swift */; };
 		284CFE152A16EDEA00D0038B /* UserSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284CFE142A16EDEA00D0038B /* UserSettingsView.swift */; };
+		3D4F0000000000000000001C /* IndicatorPackSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F0000000000000000001B /* IndicatorPackSettings.swift */; };
 		284CFE172A16EE1900D0038B /* SystemDetailsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284CFE162A16EE1900D0038B /* SystemDetailsSettingsView.swift */; };
 		284CFE1B2A16F03200D0038B /* PathMutingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284CFE1A2A16F03200D0038B /* PathMutingSettingsView.swift */; };
 		284CFE1D2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284CFE1C2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift */; };
@@ -127,6 +131,7 @@
 		28ADAC412DCC7464000DB4D2 /* NewPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28ADAC402DCC7464000DB4D2 /* NewPath.swift */; };
 		28ADAC452DCC77AA000DB4D2 /* FileDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28ADAC442DCC77AA000DB4D2 /* FileDestination.swift */; };
 		28AE3A2B2971E4E60077CC37 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28AE3A2A2971E4E60077CC37 /* Assets.xcassets */; };
+		3D4F00000000000000000043 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000041 /* InfoPlist.strings */; };
 		28AE6BD928FB85AF009AC91F /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 28AE6BD828FB85AF009AC91F /* README.md */; };
 		28AF16612923099400AA75A5 /* ESMessage+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28AF165F2923099400AA75A5 /* ESMessage+CoreDataClass.swift */; };
 		28B343A32D876880004127E8 /* Stat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B343A22D876880004127E8 /* Stat.swift */; };
@@ -227,14 +232,18 @@
 		4D4D00000000000000000015 /* FollowerRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000014 /* FollowerRegistry.swift */; };
 		4D4D00000000000000000017 /* SavedSetState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000016 /* SavedSetState.swift */; };
 		4D4D0000000000000000001A /* IndicatorField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000019 /* IndicatorField.swift */; };
+		3D4F0000000000000000003E /* LineageField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F0000000000000000003D /* LineageField.swift */; };
 		4D4D0000000000000000001C /* MessageValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000001B /* MessageValues.swift */; };
+		3D4F00000000000000000040 /* MessageValueCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F0000000000000000003F /* MessageValueCache.swift */; };
 		4D4D0000000000000000001E /* IndicatorSeverity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000001D /* IndicatorSeverity.swift */; };
 		4D4D00000000000000000020 /* Indicator+Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000001F /* Indicator+Validation.swift */; };
 		4D4D00000000000000000022 /* PredicateEventTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000021 /* PredicateEventTypes.swift */; };
 		4D4D00000000000000000024 /* IndicatorProgram.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000023 /* IndicatorProgram.swift */; };
 		4D4D00000000000000000026 /* IndicatorProgram+Evaluation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000025 /* IndicatorProgram+Evaluation.swift */; };
+		3D4F0000000000000000005F /* IndicatorProgram+Matched.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F0000000000000000005E /* IndicatorProgram+Matched.swift */; };
 		4D4D00000000000000000028 /* IndicatorDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000027 /* IndicatorDraft.swift */; };
 		4D4D0000000000000000002A /* IndicatorCompiler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000029 /* IndicatorCompiler.swift */; };
+		3D4F00000000000000000059 /* FieldFilterConflicts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000058 /* FieldFilterConflicts.swift */; };
 		4D4D0000000000000000002C /* StringMatching.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000002B /* StringMatching.swift */; };
 		4D4D0000000000000000002E /* StringMatching+Foundation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000002D /* StringMatching+Foundation.swift */; };
 		4D4D00000000000000000030 /* CompiledIndicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000002F /* CompiledIndicators.swift */; };
@@ -242,8 +251,9 @@
 		4D4D00000000000000000034 /* IndicatorProgram+Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000033 /* IndicatorProgram+Layout.swift */; };
 		4D4D00000000000000000036 /* Indicators+Building.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000035 /* Indicators+Building.swift */; };
 		4D4D00000000000000000038 /* Indicators+BuiltInMarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000037 /* Indicators+BuiltInMarks.swift */; };
-		4D4D0000000000000000003A /* DefaultIndicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000039 /* DefaultIndicators.swift */; };
+		4D4D0000000000000000003A /* LinkedIndicatorPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000039 /* LinkedIndicatorPack.swift */; };
 		4D4D0000000000000000003C /* IndicatorVerdicts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000003B /* IndicatorVerdicts.swift */; };
+		3D4F0000000000000000005D /* IndicatorMatchedField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F0000000000000000005C /* IndicatorMatchedField.swift */; };
 		4D4D0000000000000000003E /* ESMessage+Indicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000003D /* ESMessage+Indicators.swift */; };
 		4D4D00000000000000000040 /* CaptureSession+Indicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000003F /* CaptureSession+Indicators.swift */; };
 		4D4D00000000000000000042 /* IndicatorAnchor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000041 /* IndicatorAnchor.swift */; };
@@ -253,6 +263,10 @@
 		4D4D0000000000000000004A /* IndicatorFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000049 /* IndicatorFile.swift */; };
 		4D4D0000000000000000004C /* SavedIndicatorSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000004B /* SavedIndicatorSet.swift */; };
 		4D4D0000000000000000004E /* SavedIndicatorSet+Loading.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000004D /* SavedIndicatorSet+Loading.swift */; };
+		3D4F00000000000000000016 /* SavedIndicatorSet+Verifying.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000015 /* SavedIndicatorSet+Verifying.swift */; };
+		3D4F00000000000000000014 /* SavedIndicatorSet+Updates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000013 /* SavedIndicatorSet+Updates.swift */; };
+		3D4F0000000000000000000A /* SavedIndicatorSet+Changes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000009 /* SavedIndicatorSet+Changes.swift */; };
+		3D4F00000000000000000006 /* SavedIndicatorSet+Packs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000005 /* SavedIndicatorSet+Packs.swift */; };
 		4D4D00000000000000000051 /* IndicatorInvocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000050 /* IndicatorInvocation.swift */; };
 		4D4D00000000000000000053 /* IndicatorCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000052 /* IndicatorCommand.swift */; };
 		4D4D00000000000000000055 /* IndicatorCommand+Confirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000054 /* IndicatorCommand+Confirmation.swift */; };
@@ -261,15 +275,19 @@
 		4D4D0000000000000000005B /* StreamCommand+Indicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000005A /* StreamCommand+Indicators.swift */; };
 		4D4D0000000000000000005D /* FileInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000005C /* FileInput.swift */; };
 		4D4D00000000000000000060 /* IndicatorEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000005F /* IndicatorEngine.swift */; };
+		3D4F00000000000000000018 /* IndicatorPackOffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000017 /* IndicatorPackOffer.swift */; };
 		4D4D00000000000000000062 /* EventIndicatorMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000061 /* EventIndicatorMatcher.swift */; };
 		4D4D00000000000000000064 /* IndicatorViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000063 /* IndicatorViews.swift */; };
 		4D4D00000000000000000066 /* IndicatorImportOffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000065 /* IndicatorImportOffer.swift */; };
+		3D4F0000000000000000005B /* IndicatorAbout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F0000000000000000005A /* IndicatorAbout.swift */; };
 		4D4D00000000000000000069 /* IndicatorMarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000068 /* IndicatorMarks.swift */; };
 		4D4D0000000000000000006B /* IndicatorImportBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000006A /* IndicatorImportBanner.swift */; };
+		3D4F0000000000000000001E /* IndicatorPackBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F0000000000000000001D /* IndicatorPackBanner.swift */; };
 		4D4D0000000000000000006D /* SensorSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000006C /* SensorSupport.swift */; };
 		4D4D0000000000000000006F /* StreamFilter+Indicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000006E /* StreamFilter+Indicators.swift */; };
 		4D4D00000000000000000071 /* IndicatorFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000070 /* IndicatorFilter.swift */; };
 		4D4D00000000000000000073 /* IndicatorPredicateSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000072 /* IndicatorPredicateSection.swift */; };
+		5E5E00000000000000000004 /* IndicatorMatchedSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5E00000000000000000003 /* IndicatorMatchedSection.swift */; };
 		4D4D00000000000000000075 /* IndicatorsButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000074 /* IndicatorsButton.swift */; };
 		4D4D00000000000000000077 /* IndicatorsPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000076 /* IndicatorsPopover.swift */; };
 		4D4D00000000000000000079 /* NSColor+Appearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000078 /* NSColor+Appearance.swift */; };
@@ -280,29 +298,12 @@
 		4D4D00000000000000000083 /* ScanCost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000082 /* ScanCost.swift */; };
 		4D4D00000000000000000085 /* CompiledIndicators+Source.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000084 /* CompiledIndicators+Source.swift */; };
 		4D4D00000000000000000087 /* PredicateLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000086 /* PredicateLayout.swift */; };
-		4D4D0000000000000000008A /* NotificationSafeText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000089 /* NotificationSafeText.swift */; };
-		4D4D0000000000000000008C /* IndicatorAlertTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000008B /* IndicatorAlertTap.swift */; };
-		4D4D0000000000000000008E /* IndicatorAlertStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000008D /* IndicatorAlertStatus.swift */; };
-		4D4D00000000000000000090 /* IndicatorAlertSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000008F /* IndicatorAlertSettings.swift */; };
-		4D4D00000000000000000092 /* IndicatorAlertScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000091 /* IndicatorAlertScheduler.swift */; };
-		4D4D00000000000000000094 /* IndicatorAlertPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000093 /* IndicatorAlertPolicy.swift */; };
-		4D4D00000000000000000096 /* IndicatorAlertLimits.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000095 /* IndicatorAlertLimits.swift */; };
-		4D4D00000000000000000098 /* IndicatorAlertInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000097 /* IndicatorAlertInfo.swift */; };
-		4D4D0000000000000000009A /* IndicatorAlertEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000099 /* IndicatorAlertEvent.swift */; };
-		4D4D0000000000000000009C /* IndicatorAlertContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000009B /* IndicatorAlertContent.swift */; };
-		4D4D0000000000000000009E /* IndicatorAlertCoalescer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000009D /* IndicatorAlertCoalescer.swift */; };
-		4D4D000000000000000000A0 /* IndicatorAlertCoalescer+Overflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D0000000000000000009F /* IndicatorAlertCoalescer+Overflow.swift */; };
-		4D4D000000000000000000A2 /* IndicatorAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000A1 /* IndicatorAlert.swift */; };
-		4D4D000000000000000000A4 /* AlertTokenBucket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000A3 /* AlertTokenBucket.swift */; };
-		4D4D000000000000000000A7 /* IndicatorAlertCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000A6 /* IndicatorAlertCenter.swift */; };
-		4D4D000000000000000000A9 /* IndicatorAlertCenter+Authorization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000A8 /* IndicatorAlertCenter+Authorization.swift */; };
-		4D4D000000000000000000AB /* IndicatorAlertCenter+Responses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000AA /* IndicatorAlertCenter+Responses.swift */; };
-		4D4D000000000000000000AD /* IndicatorAlertsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000AC /* IndicatorAlertsSection.swift */; };
-		4D4D000000000000000000AF /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000AE /* UserNotifications.framework */; };
+		5E5E00000000000000000002 /* PredicateLayout+Passed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5E00000000000000000001 /* PredicateLayout+Passed.swift */; };
 		4D4D000000000000000000B1 /* Indicator+Editing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000B0 /* Indicator+Editing.swift */; };
 		4D4D000000000000000000B3 /* IndicatorExchange+Entries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000B2 /* IndicatorExchange+Entries.swift */; };
 		4D4D000000000000000000B5 /* IndicatorEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000B4 /* IndicatorEdit.swift */; };
 		4D4D000000000000000000B7 /* IndicatorCommand+Edit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000B6 /* IndicatorCommand+Edit.swift */; };
+		3D4F00000000000000000008 /* IndicatorCommand+Pack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000007 /* IndicatorCommand+Pack.swift */; };
 		4D4D000000000000000000B9 /* IndicatorEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000B8 /* IndicatorEditing.swift */; };
 		4D4D000000000000000000BB /* StopWatchdog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000BA /* StopWatchdog.swift */; };
 		4D4D000000000000000000BD /* SensorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000BC /* SensorService.swift */; };
@@ -315,6 +316,7 @@
 		4D4D000000000000000000CB /* DiskImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D000000000000000000CA /* DiskImage.swift */; };
 		4D4D00000000000000000F02 /* SensorReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000F01 /* SensorReport.swift */; };
 		4D4D00000000000000000F04 /* StatusCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000F03 /* StatusCommand.swift */; };
+		3D4F0000000000000000000C /* UpdateCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F0000000000000000000B /* UpdateCommand.swift */; };
 		4D4D00000000000000000F07 /* RecordFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D00000000000000000F06 /* RecordFields.swift */; };
 		5A1F00000000000000000002 /* String+CapitalizedFirst.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1F00000000000000000001 /* String+CapitalizedFirst.swift */; };
 		5C4E00000000000000000003 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4E00000000000000000002 /* JSONValue.swift */; };
@@ -359,6 +361,17 @@
 		7E5A1C000000000000000027 /* ESMessage+LaunchedByParent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C000000000000000026 /* ESMessage+LaunchedByParent.swift */; };
 		7E5A1C000000000000000030 /* LaunchServicesReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C00000000000000002F /* LaunchServicesReader.swift */; };
 		7E5A1C0000000000000F0002 /* LaunchServicesHold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C0000000000000F0001 /* LaunchServicesHold.swift */; };
+		3D4F00000000000000000034 /* ProcessLineage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000033 /* ProcessLineage.swift */; };
+		3D4F0000000000000000003C /* Message+AncestorKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F0000000000000000003B /* Message+AncestorKeys.swift */; };
+		3D4F0000000000000000003A /* LineageMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000039 /* LineageMonitor.swift */; };
+		3D4F00000000000000000038 /* RunningProcesses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000037 /* RunningProcesses.swift */; };
+		3D4F00000000000000000036 /* ProcessLineage+Messages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000035 /* ProcessLineage+Messages.swift */; };
+		3D4F00000000000000000049 /* SnapshotLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000048 /* SnapshotLedger.swift */; };
+		3D4F00000000000000000055 /* SnapshotTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000054 /* SnapshotTable.swift */; };
+		3D4F00000000000000000047 /* ProcessSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000046 /* ProcessSnapshot.swift */; };
+		3D4F00000000000000000045 /* ProcessLineage+Seeding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000044 /* ProcessLineage+Seeding.swift */; };
+		3D4F00000000000000000061 /* ProcessLineage+Discovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000060 /* ProcessLineage+Discovery.swift */; };
+		3D4F00000000000000000032 /* ProcessKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000031 /* ProcessKey.swift */; };
 		7E5A1C0000000000000F0004 /* CommandLineToolEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C0000000000000F0003 /* CommandLineToolEngine.swift */; };
 		7E5A1C300000000000000002 /* LineageLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C300000000000000001 /* LineageLookup.swift */; };
 		7E5A1C300000000000000004 /* ProcessParents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5A1C300000000000000003 /* ProcessParents.swift */; };
@@ -431,6 +444,7 @@
 		CA59365E2E8B51A0008A115D /* FDPipe.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA59365D2E8B519A008A115D /* FDPipe.swift */; };
 		CA7D0EE62E427E850024243F /* UpdateEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7D0EE52E427E770024243F /* UpdateEngine.swift */; };
 		CA7D0EE82E42A07B0024243F /* UpdateAvailableSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7D0EE72E42A0600024243F /* UpdateAvailableSheet.swift */; };
+		3D4F0000000000000000001A /* IndicatorPackSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000019 /* IndicatorPackSheet.swift */; };
 		CA9700000000000000000003 /* EventClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000002 /* EventClass.swift */; };
 		CA9700000000000000000005 /* AppleEventCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000004 /* AppleEventCategory.swift */; };
 		CA9700000000000000000007 /* EventClassTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9700000000000000000006 /* EventClassTable.swift */; };
@@ -482,6 +496,7 @@
 		CB1C00000000000000000032 /* EventHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000031 /* EventHeader.swift */; };
 		CB1C00000000000000000034 /* PipelineScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000033 /* PipelineScope.swift */; };
 		CB1C00000000000000000036 /* StreamDropMeter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000035 /* StreamDropMeter.swift */; };
+		3D4F0000000000000000004B /* StreamSnapshots.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F0000000000000000004A /* StreamSnapshots.swift */; };
 		CB1C00000000000000000038 /* TerminalSafeText.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000037 /* TerminalSafeText.swift */; };
 		CB1C0000000000000000003A /* TextEventFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C00000000000000000039 /* TextEventFormatter.swift */; };
 		CB1C0000000000000000003C /* StreamPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1C0000000000000000003B /* StreamPipeline.swift */; };
@@ -532,11 +547,14 @@
 		D15C00000000000000000076 /* AppKitEventTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000075 /* AppKitEventTable.swift */; };
 		D15C00000000000000000078 /* EventRowMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000077 /* EventRowMenu.swift */; };
 		D15C0000000000000000007A /* TelemetryExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000079 /* TelemetryExporter.swift */; };
+		3D4F00000000000000000053 /* TelemetryExporter+Worker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000052 /* TelemetryExporter+Worker.swift */; };
+		3D4F00000000000000000051 /* StoredSnapshots.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000050 /* StoredSnapshots.swift */; };
 		D15C00000000000000000102 /* RowCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000101 /* RowCache.swift */; };
 		D15C00000000000000000104 /* TraceImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000103 /* TraceImporter.swift */; };
 		D15C00000000000000000106 /* TraceSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000105 /* TraceSession.swift */; };
 		D15C00000000000000000108 /* TraceImporter+Summary.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000107 /* TraceImporter+Summary.swift */; };
 		D15C0000000000000000010A /* TraceRecordReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C00000000000000000109 /* TraceRecordReader.swift */; };
+		3D4F0000000000000000004E /* TraceLineage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F0000000000000000004D /* TraceLineage.swift */; };
 		D15C0000000000000000010C /* TraceImport+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000010B /* TraceImport+Extensions.swift */; };
 		D15C0000000000000000010E /* TraceDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000010D /* TraceDecoder.swift */; };
 		D15C00000000000000000110 /* TraceDecoderContainers.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15C0000000000000000010F /* TraceDecoderContainers.swift */; };
@@ -585,6 +603,7 @@
 		F17E00000000000000000010 /* RequirementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E0000000000000000000F /* RequirementsView.swift */; };
 		F17E00000000000000000012 /* SecurityExtensionSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */; };
 		F17E00000000000000000014 /* SIPStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000013 /* SIPStatus.swift */; };
+		3D4F00000000000000000057 /* BootSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000056 /* BootSession.swift */; };
 		F17E00000000000000000016 /* SettingsComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000015 /* SettingsComponents.swift */; };
 		F17E00000000000000000018 /* EventCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000017 /* EventCatalog.swift */; };
 		F17E0000000000000000001A /* TelemetrySchemaSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17E00000000000000000019 /* TelemetrySchemaSettingsView.swift */; };
@@ -623,6 +642,45 @@
 		FD351B35FAAB287624161D8A /* ToolRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BE084741F7325B96F4E8AF5 /* ToolRunner.swift */; };
 		FF1C00000000000000000002 /* FieldFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1C00000000000000000001 /* FieldFilter.swift */; };
 		FF1C00000000000000000004 /* StreamCommand+FieldFilters.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1C00000000000000000003 /* StreamCommand+FieldFilters.swift */; };
+		3D2D00000000000000000011 /* Indicator+Tactic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000010 /* Indicator+Tactic.swift */; };
+		3D2D00000000000000000013 /* Indicator+Rule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000012 /* Indicator+Rule.swift */; };
+		3D2D00000000000000000015 /* ReleaseVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000014 /* ReleaseVersion.swift */; };
+		3D2D00000000000000000017 /* IndicatorSequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000016 /* IndicatorSequence.swift */; };
+		3D2D00000000000000000019 /* IndicatorSequence+Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000018 /* IndicatorSequence+Validation.swift */; };
+		3D2D0000000000000000001B /* SequenceStepsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D0000000000000000001A /* SequenceStepsView.swift */; };
+		3D2D0000000000000000001D /* IndicatorPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D0000000000000000001C /* IndicatorPack.swift */; };
+		3D2D0000000000000000001F /* IndicatorTestPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D0000000000000000001E /* IndicatorTestPlan.swift */; };
+		3D2D00000000000000000021 /* IndicatorReplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000020 /* IndicatorReplay.swift */; };
+		3D2D00000000000000000023 /* IndicatorTestRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000022 /* IndicatorTestRun.swift */; };
+		3D2D00000000000000000025 /* IndicatorTestReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000024 /* IndicatorTestReport.swift */; };
+		3D4E00000000000000000011 /* IndicatorPackVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4E00000000000000000010 /* IndicatorPackVerifier.swift */; };
+		3D4E00000000000000000013 /* IndicatorPackFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4E00000000000000000012 /* IndicatorPackFile.swift */; };
+		3D4E00000000000000000015 /* IndicatorPackSignature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4E00000000000000000014 /* IndicatorPackSignature.swift */; };
+		3D4E00000000000000000017 /* IndicatorPackRequirement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4E00000000000000000016 /* IndicatorPackRequirement.swift */; };
+		3D4E00000000000000000019 /* IndicatorPackTrust.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4E00000000000000000018 /* IndicatorPackTrust.swift */; };
+		3D4F00000000000000000012 /* IndicatorPackUpdates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000011 /* IndicatorPackUpdates.swift */; };
+		3D4F00000000000000000010 /* IndicatorPackFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F0000000000000000000F /* IndicatorPackFetcher.swift */; };
+		3D4F0000000000000000000E /* IndicatorPackRelease.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F0000000000000000000D /* IndicatorPackRelease.swift */; };
+		3D4F00000000000000000004 /* IndicatorPackRefusal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000003 /* IndicatorPackRefusal.swift */; };
+		3D4F00000000000000000002 /* IndicatorBaseline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F00000000000000000001 /* IndicatorBaseline.swift */; };
+		3D4E0000000000000000001B /* IndicatorPackCertificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4E0000000000000000001A /* IndicatorPackCertificate.swift */; };
+		3D4E0000000000000000001D /* IndicatorPackError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4E0000000000000000001C /* IndicatorPackError.swift */; };
+		3D4E0000000000000000001F /* VerifiedIndicatorPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4E0000000000000000001E /* VerifiedIndicatorPack.swift */; };
+		3D2D00000000000000000027 /* IndicatorPackVerifyCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000026 /* IndicatorPackVerifyCommand.swift */; };
+		3D3C00000000000000000011 /* IndicatorDraft+Shaping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3C00000000000000000010 /* IndicatorDraft+Shaping.swift */; };
+		3D3C00000000000000000013 /* IndicatorDraft+Fields.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3C00000000000000000012 /* IndicatorDraft+Fields.swift */; };
+		3D3C00000000000000000015 /* IndicatorProgram+Fields.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3C00000000000000000014 /* IndicatorProgram+Fields.swift */; };
+		3D3C00000000000000000017 /* StringMatching+Pairs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3C00000000000000000016 /* StringMatching+Pairs.swift */; };
+		3D2D00000000000000000029 /* CompiledIndicators+Building.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000028 /* CompiledIndicators+Building.swift */; };
+		3D2D0000000000000000002B /* CompiledIndicators+Sequences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D0000000000000000002A /* CompiledIndicators+Sequences.swift */; };
+		3D2D0000000000000000002D /* SequenceHash.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D0000000000000000002C /* SequenceHash.swift */; };
+		3D2D0000000000000000002F /* SequenceProgram.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D0000000000000000002E /* SequenceProgram.swift */; };
+		3D2D00000000000000000031 /* SequenceTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000030 /* SequenceTable.swift */; };
+		3D2D00000000000000000033 /* SequenceChains.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000032 /* SequenceChains.swift */; };
+		3D2D00000000000000000035 /* SequenceWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000034 /* SequenceWindow.swift */; };
+		3D2D00000000000000000037 /* SequenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000036 /* SequenceStore.swift */; };
+		3D2D00000000000000000039 /* SessionChains.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D00000000000000000038 /* SessionChains.swift */; };
+		3D2D0000000000000000003B /* SequenceChains+Chain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2D0000000000000000003A /* SequenceChains+Chain.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -746,6 +804,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C9A904370C6C4B22ADD79A0A /* SystemAuthenticationMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAuthenticationMetadataView.swift; sourceTree = "<group>"; };
+		7E013B52AF614D02946A6A3E /* ESAuthenticationEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESAuthenticationEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
+		5B120B087E084F30B92D23FC /* AuthenticationEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationEvent.swift; sourceTree = "<group>"; };
+		3D4F00000000000000000042 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		0BE084741F7325B96F4E8AF5 /* ToolRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolRunner.swift; sourceTree = "<group>"; };
 		0D0D0D000000000000000001 /* OpenDirectoryMember.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryMember.swift; sourceTree = "<group>"; };
 		0D0D0D000000000000000003 /* OpenDirectoryEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenDirectoryEvent.swift; sourceTree = "<group>"; };
@@ -803,6 +865,7 @@
 		284BAED42A4D09BE007F1193 /* ESODAttributeValueAddEvent+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESODAttributeValueAddEvent+CoreDataClass.swift"; sourceTree = "<group>"; };
 		284BAEDA2A4DE047007F1193 /* ODHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ODHelpers.swift; sourceTree = "<group>"; };
 		284CFE142A16EDEA00D0038B /* UserSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSettingsView.swift; sourceTree = "<group>"; };
+		3D4F0000000000000000001B /* IndicatorPackSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackSettings.swift; sourceTree = "<group>"; };
 		284CFE162A16EE1900D0038B /* SystemDetailsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemDetailsSettingsView.swift; sourceTree = "<group>"; };
 		284CFE1A2A16F03200D0038B /* PathMutingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathMutingSettingsView.swift; sourceTree = "<group>"; };
 		284CFE1C2A16F08B00D0038B /* EventSubscriptionsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSubscriptionsSettingsView.swift; sourceTree = "<group>"; };
@@ -969,14 +1032,18 @@
 		4D4D00000000000000000014 /* FollowerRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FollowerRegistry.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000016 /* SavedSetState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedSetState.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000019 /* IndicatorField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorField.swift; sourceTree = "<group>"; };
+		3D4F0000000000000000003D /* LineageField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineageField.swift; sourceTree = "<group>"; };
 		4D4D0000000000000000001B /* MessageValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageValues.swift; sourceTree = "<group>"; };
+		3D4F0000000000000000003F /* MessageValueCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageValueCache.swift; sourceTree = "<group>"; };
 		4D4D0000000000000000001D /* IndicatorSeverity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorSeverity.swift; sourceTree = "<group>"; };
 		4D4D0000000000000000001F /* Indicator+Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Indicator+Validation.swift"; sourceTree = "<group>"; };
 		4D4D00000000000000000021 /* PredicateEventTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateEventTypes.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000023 /* IndicatorProgram.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorProgram.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000025 /* IndicatorProgram+Evaluation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorProgram+Evaluation.swift"; sourceTree = "<group>"; };
+		3D4F0000000000000000005E /* IndicatorProgram+Matched.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorProgram+Matched.swift"; sourceTree = "<group>"; };
 		4D4D00000000000000000027 /* IndicatorDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorDraft.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000029 /* IndicatorCompiler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorCompiler.swift; sourceTree = "<group>"; };
+		3D4F00000000000000000058 /* FieldFilterConflicts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldFilterConflicts.swift; sourceTree = "<group>"; };
 		4D4D0000000000000000002B /* StringMatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringMatching.swift; sourceTree = "<group>"; };
 		4D4D0000000000000000002D /* StringMatching+Foundation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StringMatching+Foundation.swift"; sourceTree = "<group>"; };
 		4D4D0000000000000000002F /* CompiledIndicators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompiledIndicators.swift; sourceTree = "<group>"; };
@@ -984,8 +1051,9 @@
 		4D4D00000000000000000033 /* IndicatorProgram+Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorProgram+Layout.swift"; sourceTree = "<group>"; };
 		4D4D00000000000000000035 /* Indicators+Building.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Indicators+Building.swift"; sourceTree = "<group>"; };
 		4D4D00000000000000000037 /* Indicators+BuiltInMarks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Indicators+BuiltInMarks.swift"; sourceTree = "<group>"; };
-		4D4D00000000000000000039 /* DefaultIndicators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultIndicators.swift; sourceTree = "<group>"; };
+		4D4D00000000000000000039 /* LinkedIndicatorPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedIndicatorPack.swift; sourceTree = "<group>"; };
 		4D4D0000000000000000003B /* IndicatorVerdicts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorVerdicts.swift; sourceTree = "<group>"; };
+		3D4F0000000000000000005C /* IndicatorMatchedField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorMatchedField.swift; sourceTree = "<group>"; };
 		4D4D0000000000000000003D /* ESMessage+Indicators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESMessage+Indicators.swift"; sourceTree = "<group>"; };
 		4D4D0000000000000000003F /* CaptureSession+Indicators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CaptureSession+Indicators.swift"; sourceTree = "<group>"; };
 		4D4D00000000000000000041 /* IndicatorAnchor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAnchor.swift; sourceTree = "<group>"; };
@@ -995,6 +1063,10 @@
 		4D4D00000000000000000049 /* IndicatorFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorFile.swift; sourceTree = "<group>"; };
 		4D4D0000000000000000004B /* SavedIndicatorSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedIndicatorSet.swift; sourceTree = "<group>"; };
 		4D4D0000000000000000004D /* SavedIndicatorSet+Loading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SavedIndicatorSet+Loading.swift"; sourceTree = "<group>"; };
+		3D4F00000000000000000015 /* SavedIndicatorSet+Verifying.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SavedIndicatorSet+Verifying.swift"; sourceTree = "<group>"; };
+		3D4F00000000000000000013 /* SavedIndicatorSet+Updates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SavedIndicatorSet+Updates.swift"; sourceTree = "<group>"; };
+		3D4F00000000000000000009 /* SavedIndicatorSet+Changes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SavedIndicatorSet+Changes.swift"; sourceTree = "<group>"; };
+		3D4F00000000000000000005 /* SavedIndicatorSet+Packs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SavedIndicatorSet+Packs.swift"; sourceTree = "<group>"; };
 		4D4D00000000000000000050 /* IndicatorInvocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorInvocation.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000052 /* IndicatorCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorCommand.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000054 /* IndicatorCommand+Confirmation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorCommand+Confirmation.swift"; sourceTree = "<group>"; };
@@ -1003,15 +1075,19 @@
 		4D4D0000000000000000005A /* StreamCommand+Indicators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamCommand+Indicators.swift"; sourceTree = "<group>"; };
 		4D4D0000000000000000005C /* FileInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileInput.swift; sourceTree = "<group>"; };
 		4D4D0000000000000000005F /* IndicatorEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorEngine.swift; sourceTree = "<group>"; };
+		3D4F00000000000000000017 /* IndicatorPackOffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackOffer.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000061 /* EventIndicatorMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventIndicatorMatcher.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000063 /* IndicatorViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorViews.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000065 /* IndicatorImportOffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorImportOffer.swift; sourceTree = "<group>"; };
+		3D4F0000000000000000005A /* IndicatorAbout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAbout.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000068 /* IndicatorMarks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorMarks.swift; sourceTree = "<group>"; };
 		4D4D0000000000000000006A /* IndicatorImportBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorImportBanner.swift; sourceTree = "<group>"; };
+		3D4F0000000000000000001D /* IndicatorPackBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackBanner.swift; sourceTree = "<group>"; };
 		4D4D0000000000000000006C /* SensorSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorSupport.swift; sourceTree = "<group>"; };
 		4D4D0000000000000000006E /* StreamFilter+Indicators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamFilter+Indicators.swift"; sourceTree = "<group>"; };
 		4D4D00000000000000000070 /* IndicatorFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorFilter.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000072 /* IndicatorPredicateSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPredicateSection.swift; sourceTree = "<group>"; };
+		5E5E00000000000000000003 /* IndicatorMatchedSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorMatchedSection.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000074 /* IndicatorsButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorsButton.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000076 /* IndicatorsPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorsPopover.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000078 /* NSColor+Appearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSColor+Appearance.swift"; sourceTree = "<group>"; };
@@ -1022,29 +1098,12 @@
 		4D4D00000000000000000082 /* ScanCost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCost.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000084 /* CompiledIndicators+Source.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CompiledIndicators+Source.swift"; sourceTree = "<group>"; };
 		4D4D00000000000000000086 /* PredicateLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredicateLayout.swift; sourceTree = "<group>"; };
-		4D4D00000000000000000089 /* NotificationSafeText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSafeText.swift; sourceTree = "<group>"; };
-		4D4D0000000000000000008B /* IndicatorAlertTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAlertTap.swift; sourceTree = "<group>"; };
-		4D4D0000000000000000008D /* IndicatorAlertStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAlertStatus.swift; sourceTree = "<group>"; };
-		4D4D0000000000000000008F /* IndicatorAlertSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAlertSettings.swift; sourceTree = "<group>"; };
-		4D4D00000000000000000091 /* IndicatorAlertScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAlertScheduler.swift; sourceTree = "<group>"; };
-		4D4D00000000000000000093 /* IndicatorAlertPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAlertPolicy.swift; sourceTree = "<group>"; };
-		4D4D00000000000000000095 /* IndicatorAlertLimits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAlertLimits.swift; sourceTree = "<group>"; };
-		4D4D00000000000000000097 /* IndicatorAlertInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAlertInfo.swift; sourceTree = "<group>"; };
-		4D4D00000000000000000099 /* IndicatorAlertEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAlertEvent.swift; sourceTree = "<group>"; };
-		4D4D0000000000000000009B /* IndicatorAlertContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAlertContent.swift; sourceTree = "<group>"; };
-		4D4D0000000000000000009D /* IndicatorAlertCoalescer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAlertCoalescer.swift; sourceTree = "<group>"; };
-		4D4D0000000000000000009F /* IndicatorAlertCoalescer+Overflow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorAlertCoalescer+Overflow.swift"; sourceTree = "<group>"; };
-		4D4D000000000000000000A1 /* IndicatorAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAlert.swift; sourceTree = "<group>"; };
-		4D4D000000000000000000A3 /* AlertTokenBucket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertTokenBucket.swift; sourceTree = "<group>"; };
-		4D4D000000000000000000A6 /* IndicatorAlertCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAlertCenter.swift; sourceTree = "<group>"; };
-		4D4D000000000000000000A8 /* IndicatorAlertCenter+Authorization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorAlertCenter+Authorization.swift"; sourceTree = "<group>"; };
-		4D4D000000000000000000AA /* IndicatorAlertCenter+Responses.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorAlertCenter+Responses.swift"; sourceTree = "<group>"; };
-		4D4D000000000000000000AC /* IndicatorAlertsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorAlertsSection.swift; sourceTree = "<group>"; };
-		4D4D000000000000000000AE /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
+		5E5E00000000000000000001 /* PredicateLayout+Passed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PredicateLayout+Passed.swift"; sourceTree = "<group>"; };
 		4D4D000000000000000000B0 /* Indicator+Editing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Indicator+Editing.swift"; sourceTree = "<group>"; };
 		4D4D000000000000000000B2 /* IndicatorExchange+Entries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorExchange+Entries.swift"; sourceTree = "<group>"; };
 		4D4D000000000000000000B4 /* IndicatorEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorEdit.swift; sourceTree = "<group>"; };
 		4D4D000000000000000000B6 /* IndicatorCommand+Edit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorCommand+Edit.swift"; sourceTree = "<group>"; };
+		3D4F00000000000000000007 /* IndicatorCommand+Pack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorCommand+Pack.swift"; sourceTree = "<group>"; };
 		4D4D000000000000000000B8 /* IndicatorEditing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorEditing.swift; sourceTree = "<group>"; };
 		4D4D000000000000000000BA /* StopWatchdog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopWatchdog.swift; sourceTree = "<group>"; };
 		4D4D000000000000000000BC /* SensorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorService.swift; sourceTree = "<group>"; };
@@ -1057,7 +1116,8 @@
 		4D4D000000000000000000CA /* DiskImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskImage.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000F01 /* SensorReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorReport.swift; sourceTree = "<group>"; };
 		4D4D00000000000000000F03 /* StatusCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusCommand.swift; sourceTree = "<group>"; };
-		4D4D00000000000000000F05 /* DefaultIndicators.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = DefaultIndicators.json; sourceTree = "<group>"; };
+		3D4F0000000000000000000B /* UpdateCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCommand.swift; sourceTree = "<group>"; };
+		4D4D00000000000000000F05 /* LinkedIndicatorPack.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = LinkedIndicatorPack.json; sourceTree = "<group>"; };
 		4D4D00000000000000000F06 /* RecordFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordFields.swift; sourceTree = "<group>"; };
 		5A1F00000000000000000001 /* String+CapitalizedFirst.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+CapitalizedFirst.swift"; sourceTree = "<group>"; };
 		5C4E00000000000000000002 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
@@ -1099,6 +1159,17 @@
 		7E5A1C000000000000000026 /* ESMessage+LaunchedByParent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ESMessage+LaunchedByParent.swift"; sourceTree = "<group>"; };
 		7E5A1C00000000000000002F /* LaunchServicesReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchServicesReader.swift; sourceTree = "<group>"; };
 		7E5A1C0000000000000F0001 /* LaunchServicesHold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchServicesHold.swift; sourceTree = "<group>"; };
+		3D4F00000000000000000033 /* ProcessLineage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessLineage.swift; sourceTree = "<group>"; };
+		3D4F0000000000000000003B /* Message+AncestorKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Message+AncestorKeys.swift"; sourceTree = "<group>"; };
+		3D4F00000000000000000039 /* LineageMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineageMonitor.swift; sourceTree = "<group>"; };
+		3D4F00000000000000000037 /* RunningProcesses.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunningProcesses.swift; sourceTree = "<group>"; };
+		3D4F00000000000000000035 /* ProcessLineage+Messages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessLineage+Messages.swift"; sourceTree = "<group>"; };
+		3D4F00000000000000000048 /* SnapshotLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SnapshotLedger.swift"; sourceTree = "<group>"; };
+		3D4F00000000000000000054 /* SnapshotTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotTable.swift; sourceTree = "<group>"; };
+		3D4F00000000000000000046 /* ProcessSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessSnapshot.swift"; sourceTree = "<group>"; };
+		3D4F00000000000000000044 /* ProcessLineage+Seeding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessLineage+Seeding.swift"; sourceTree = "<group>"; };
+		3D4F00000000000000000060 /* ProcessLineage+Discovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProcessLineage+Discovery.swift"; sourceTree = "<group>"; };
+		3D4F00000000000000000031 /* ProcessKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessKey.swift; sourceTree = "<group>"; };
 		7E5A1C0000000000000F0003 /* CommandLineToolEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandLineToolEngine.swift; sourceTree = "<group>"; };
 		7E5A1C300000000000000001 /* LineageLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineageLookup.swift; sourceTree = "<group>"; };
 		7E5A1C300000000000000003 /* ProcessParents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessParents.swift; sourceTree = "<group>"; };
@@ -1174,6 +1245,7 @@
 		CA59365D2E8B519A008A115D /* FDPipe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FDPipe.swift; sourceTree = "<group>"; };
 		CA7D0EE52E427E770024243F /* UpdateEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateEngine.swift; sourceTree = "<group>"; };
 		CA7D0EE72E42A0600024243F /* UpdateAvailableSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateAvailableSheet.swift; sourceTree = "<group>"; };
+		3D4F00000000000000000019 /* IndicatorPackSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackSheet.swift; sourceTree = "<group>"; };
 		CA9700000000000000000002 /* EventClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventClass.swift; sourceTree = "<group>"; };
 		CA9700000000000000000004 /* AppleEventCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleEventCategory.swift; sourceTree = "<group>"; };
 		CA9700000000000000000006 /* EventClassTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventClassTable.swift; sourceTree = "<group>"; };
@@ -1225,6 +1297,7 @@
 		CB1C00000000000000000031 /* EventHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventHeader.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000033 /* PipelineScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineScope.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000035 /* StreamDropMeter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamDropMeter.swift; sourceTree = "<group>"; };
+		3D4F0000000000000000004A /* StreamSnapshots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSnapshots.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000037 /* TerminalSafeText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSafeText.swift; sourceTree = "<group>"; };
 		CB1C00000000000000000039 /* TextEventFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextEventFormatter.swift; sourceTree = "<group>"; };
 		CB1C0000000000000000003B /* StreamPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamPipeline.swift; sourceTree = "<group>"; };
@@ -1274,11 +1347,14 @@
 		D15C00000000000000000075 /* AppKitEventTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitEventTable.swift; sourceTree = "<group>"; };
 		D15C00000000000000000077 /* EventRowMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventRowMenu.swift; sourceTree = "<group>"; };
 		D15C00000000000000000079 /* TelemetryExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryExporter.swift; sourceTree = "<group>"; };
+		3D4F00000000000000000052 /* TelemetryExporter+Worker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TelemetryExporter+Worker.swift"; sourceTree = "<group>"; };
+		3D4F00000000000000000050 /* StoredSnapshots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredSnapshots.swift; sourceTree = "<group>"; };
 		D15C00000000000000000101 /* RowCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RowCache.swift; sourceTree = "<group>"; };
 		D15C00000000000000000103 /* TraceImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceImporter.swift; sourceTree = "<group>"; };
 		D15C00000000000000000105 /* TraceSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceSession.swift; sourceTree = "<group>"; };
 		D15C00000000000000000107 /* TraceImporter+Summary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TraceImporter+Summary.swift"; sourceTree = "<group>"; };
 		D15C00000000000000000109 /* TraceRecordReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceRecordReader.swift; sourceTree = "<group>"; };
+		3D4F0000000000000000004D /* TraceLineage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceLineage.swift; sourceTree = "<group>"; };
 		D15C0000000000000000010B /* TraceImport+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TraceImport+Extensions.swift"; sourceTree = "<group>"; };
 		D15C0000000000000000010D /* TraceDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceDecoder.swift; sourceTree = "<group>"; };
 		D15C0000000000000000010F /* TraceDecoderContainers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceDecoderContainers.swift; sourceTree = "<group>"; };
@@ -1325,6 +1401,7 @@
 		F17E0000000000000000000F /* RequirementsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequirementsView.swift; sourceTree = "<group>"; };
 		F17E00000000000000000011 /* SecurityExtensionSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityExtensionSettingsView.swift; sourceTree = "<group>"; };
 		F17E00000000000000000013 /* SIPStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SIPStatus.swift; sourceTree = "<group>"; };
+		3D4F00000000000000000056 /* BootSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BootSession.swift; sourceTree = "<group>"; };
 		F17E00000000000000000015 /* SettingsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsComponents.swift; sourceTree = "<group>"; };
 		F17E00000000000000000017 /* EventCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCatalog.swift; sourceTree = "<group>"; };
 		F17E00000000000000000019 /* TelemetrySchemaSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetrySchemaSettingsView.swift; sourceTree = "<group>"; };
@@ -1364,6 +1441,45 @@
 		FA4E067D8D5C5BADF8AC2F4B /* QuitReason.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuitReason.swift; sourceTree = "<group>"; };
 		FF1C00000000000000000001 /* FieldFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldFilter.swift; sourceTree = "<group>"; };
 		FF1C00000000000000000003 /* StreamCommand+FieldFilters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamCommand+FieldFilters.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000010 /* Indicator+Tactic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Indicator+Tactic.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000012 /* Indicator+Rule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Indicator+Rule.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000014 /* ReleaseVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReleaseVersion.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000016 /* IndicatorSequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorSequence.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000018 /* IndicatorSequence+Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorSequence+Validation.swift"; sourceTree = "<group>"; };
+		3D2D0000000000000000001A /* SequenceStepsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SequenceStepsView.swift"; sourceTree = "<group>"; };
+		3D2D0000000000000000001C /* IndicatorPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorPack.swift"; sourceTree = "<group>"; };
+		3D2D0000000000000000001E /* IndicatorTestPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorTestPlan.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000020 /* IndicatorReplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorReplay.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000022 /* IndicatorTestRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorTestRun.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000024 /* IndicatorTestReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorTestReport.swift"; sourceTree = "<group>"; };
+		3D4E00000000000000000010 /* IndicatorPackVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackVerifier.swift; sourceTree = "<group>"; };
+		3D4E00000000000000000012 /* IndicatorPackFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackFile.swift; sourceTree = "<group>"; };
+		3D4E00000000000000000014 /* IndicatorPackSignature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackSignature.swift; sourceTree = "<group>"; };
+		3D4E00000000000000000016 /* IndicatorPackRequirement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackRequirement.swift; sourceTree = "<group>"; };
+		3D4E00000000000000000018 /* IndicatorPackTrust.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackTrust.swift; sourceTree = "<group>"; };
+		3D4F00000000000000000011 /* IndicatorPackUpdates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackUpdates.swift; sourceTree = "<group>"; };
+		3D4F0000000000000000000F /* IndicatorPackFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackFetcher.swift; sourceTree = "<group>"; };
+		3D4F0000000000000000000D /* IndicatorPackRelease.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackRelease.swift; sourceTree = "<group>"; };
+		3D4F00000000000000000003 /* IndicatorPackRefusal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackRefusal.swift; sourceTree = "<group>"; };
+		3D4F00000000000000000001 /* IndicatorBaseline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorBaseline.swift; sourceTree = "<group>"; };
+		3D4E0000000000000000001A /* IndicatorPackCertificate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackCertificate.swift; sourceTree = "<group>"; };
+		3D4E0000000000000000001C /* IndicatorPackError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorPackError.swift; sourceTree = "<group>"; };
+		3D4E0000000000000000001E /* VerifiedIndicatorPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifiedIndicatorPack.swift; sourceTree = "<group>"; };
+		3D2D00000000000000000026 /* IndicatorPackVerifyCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorPackVerifyCommand.swift"; sourceTree = "<group>"; };
+		3D3C00000000000000000010 /* IndicatorDraft+Shaping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorDraft+Shaping.swift"; sourceTree = "<group>"; };
+		3D3C00000000000000000012 /* IndicatorDraft+Fields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorDraft+Fields.swift"; sourceTree = "<group>"; };
+		3D3C00000000000000000014 /* IndicatorProgram+Fields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IndicatorProgram+Fields.swift"; sourceTree = "<group>"; };
+		3D3C00000000000000000016 /* StringMatching+Pairs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StringMatching+Pairs.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000028 /* CompiledIndicators+Building.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CompiledIndicators+Building.swift"; sourceTree = "<group>"; };
+		3D2D0000000000000000002A /* CompiledIndicators+Sequences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CompiledIndicators+Sequences.swift"; sourceTree = "<group>"; };
+		3D2D0000000000000000002C /* SequenceHash.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SequenceHash.swift"; sourceTree = "<group>"; };
+		3D2D0000000000000000002E /* SequenceProgram.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SequenceProgram.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000030 /* SequenceTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SequenceTable.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000032 /* SequenceChains.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SequenceChains.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000034 /* SequenceWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SequenceWindow.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000036 /* SequenceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SequenceStore.swift"; sourceTree = "<group>"; };
+		3D2D00000000000000000038 /* SessionChains.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionChains.swift"; sourceTree = "<group>"; };
+		3D2D0000000000000000003A /* SequenceChains+Chain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SequenceChains+Chain.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -1417,7 +1533,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				BA9522542886CFB700CF6222 /* SutroESFramework.framework in Frameworks */,
-				4D4D000000000000000000AF /* UserNotifications.framework in Frameworks */,
 				BA99377C288614200019E9FB /* libEndpointSecurity.tbd in Frameworks */,
 				BA99377B288614100019E9FB /* libbsm.tbd in Frameworks */,
 			);
@@ -2018,6 +2133,7 @@
 				283C4D4429E0B749009FF6D3 /* Extensions */,
 				283C4D4129E0B3E7009FF6D3 /* Utilities */,
 				7E5A1C00000000000000001D /* LaunchedByParent */,
+				3D4F00000000000000000030 /* Lineage */,
 				BA3368B4287624F100794525 /* ESManager.swift */,
 				CB1C00000000000000000001 /* Streaming */,
 			);
@@ -2027,16 +2143,36 @@
 		283C4D4129E0B3E7009FF6D3 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				4D4D00000000000000000088 /* Indicator Alerts */,
 				284F855E2E7369E7001542E3 /* Path Muting */,
 				4D4D00000000000000000011 /* Saved Sets */,
 				4D4D0000000000000000004F /* Saved Indicator Set */,
 				4D4D00000000000000000067 /* Indicators */,
 				4D4D0000000000000000D101 /* Updates */,
+				3D4E00000000000000000001 /* Indicator Packs */,
 				4D4D0000000000000000D102 /* Engines */,
 				4D4D0000000000000000D103 /* Support */,
 			);
 			path = Utilities;
+			sourceTree = "<group>";
+		};
+		3D4E00000000000000000001 /* Indicator Packs */ = {
+			isa = PBXGroup;
+			children = (
+				3D4E0000000000000000001A /* IndicatorPackCertificate.swift */,
+				3D4E0000000000000000001C /* IndicatorPackError.swift */,
+				3D4E00000000000000000012 /* IndicatorPackFile.swift */,
+				3D4E00000000000000000016 /* IndicatorPackRequirement.swift */,
+				3D4E00000000000000000014 /* IndicatorPackSignature.swift */,
+				3D4E00000000000000000018 /* IndicatorPackTrust.swift */,
+				3D4F00000000000000000011 /* IndicatorPackUpdates.swift */,
+				3D4F0000000000000000000F /* IndicatorPackFetcher.swift */,
+				3D4F0000000000000000000D /* IndicatorPackRelease.swift */,
+				3D4F00000000000000000003 /* IndicatorPackRefusal.swift */,
+				3D4F00000000000000000001 /* IndicatorBaseline.swift */,
+				3D4E00000000000000000010 /* IndicatorPackVerifier.swift */,
+				3D4E0000000000000000001E /* VerifiedIndicatorPack.swift */,
+			);
+			path = "Indicator Packs";
 			sourceTree = "<group>";
 		};
 		4D4D0000000000000000D101 /* Updates */ = {
@@ -2335,6 +2471,7 @@
 				28B3437E2D8633C4004127E8 /* Directory Events */,
 				CADD9D812E8DBE62009EC919 /* Socket Events */,
 				CAE9E4522E4FF823001143C2 /* TCC Events */,
+				D9FFED512FF34BD08E227BB2 /* Authentication Events */,
 				CA4CE5B42E53F7DD00C057EB /* Gatekeeper Events */,
 			);
 			path = CoreDataModels;
@@ -2831,6 +2968,7 @@
 			isa = PBXGroup;
 			children = (
 				CA7D0EE72E42A0600024243F /* UpdateAvailableSheet.swift */,
+				3D4F00000000000000000019 /* IndicatorPackSheet.swift */,
 				28B865CE2A3107D900F06441 /* AppIconView.swift */,
 				28B865CA2A30019D00F06441 /* SonomaStartButton.swift */,
 				28B865C82A30015D00F06441 /* VenturaStartButton.swift */,
@@ -2851,6 +2989,7 @@
 			children = (
 				282744A928EF75F400464C5B /* Message.swift */,
 				F17E00000000000000000013 /* SIPStatus.swift */,
+				3D4F00000000000000000056 /* BootSession.swift */,
 				7E5A1C00000000000000000D /* Message+LaunchedByParent.swift */,
 				F17E7E000000000000000011 /* Message+FileType.swift */,
 				282DFE062D9DDF7B006E0C94 /* EventType */,
@@ -2875,6 +3014,7 @@
 				28B3439A2D863CAD004127E8 /* Directory Events */,
 				CADD9D7A2E8DB6B5009EC919 /* Socket Events */,
 				CAE9E44B2E4FE28B001143C2 /* TCC Events */,
+				404395D29BCC4DA4A1AEEDFF /* Authentication Events */,
 				CA4CE59C2E53DB5F00C057EB /* Gatekeeper */,
 			);
 			path = Models;
@@ -2884,6 +3024,7 @@
 			isa = PBXGroup;
 			children = (
 				CADD9D822E8DC720009EC919 /* Socket */,
+				678B9E37A49F4BA59EECA233 /* Authentication */,
 				CA4CE6442E5903FE00C057EB /* Gatekeeper */,
 				CA4CE5992E53BBC600C057EB /* TCC */,
 				CAC48B032E28565F00260C5F /* Open Directory */,
@@ -3078,25 +3219,29 @@
 			path = "Saved Sets";
 			sourceTree = "<group>";
 		};
-		4D4D00000000000000000018 /* Detection */ = {
+		4D4D00000000000000000018 /* Indicators */ = {
 			isa = PBXGroup;
 			children = (
-				4D4D00000000000000000F05 /* DefaultIndicators.json */,
+				4D4D00000000000000000F05 /* LinkedIndicatorPack.json */,
 				4D4D0000000000000000D001 /* Compiler */,
 				4D4D0000000000000000D002 /* Program */,
 				4D4D0000000000000000D003 /* Set */,
 				4D4D0000000000000000D004 /* Fields */,
 				4D4D0000000000000000D005 /* Matching */,
 				4D4D0000000000000000D006 /* Budget */,
+				4D4D0000000000000000D007 /* Sequences */,
 			);
-			path = Detection;
+			path = Indicators;
 			sourceTree = "<group>";
 		};
 		4D4D0000000000000000D001 /* Compiler */ = {
 			isa = PBXGroup;
 			children = (
 				4D4D00000000000000000029 /* IndicatorCompiler.swift */,
+				3D4F00000000000000000058 /* FieldFilterConflicts.swift */,
 				4D4D00000000000000000027 /* IndicatorDraft.swift */,
+				3D3C00000000000000000012 /* IndicatorDraft+Fields.swift */,
+				3D3C00000000000000000010 /* IndicatorDraft+Shaping.swift */,
 				4D4D00000000000000000041 /* IndicatorAnchor.swift */,
 			);
 			path = Compiler;
@@ -3108,6 +3253,8 @@
 				4D4D00000000000000000023 /* IndicatorProgram.swift */,
 				4D4D00000000000000000033 /* IndicatorProgram+Layout.swift */,
 				4D4D00000000000000000025 /* IndicatorProgram+Evaluation.swift */,
+				3D4F0000000000000000005E /* IndicatorProgram+Matched.swift */,
+				3D3C00000000000000000014 /* IndicatorProgram+Fields.swift */,
 				4D4D00000000000000000080 /* IndicatorProgram+Comparison.swift */,
 			);
 			path = Program;
@@ -3117,6 +3264,8 @@
 			isa = PBXGroup;
 			children = (
 				4D4D0000000000000000002F /* CompiledIndicators.swift */,
+				3D2D0000000000000000002A /* CompiledIndicators+Sequences.swift */,
+				3D2D00000000000000000028 /* CompiledIndicators+Building.swift */,
 				4D4D00000000000000000084 /* CompiledIndicators+Source.swift */,
 				4D4D00000000000000000043 /* IndicatorIndex.swift */,
 				4D4D00000000000000000045 /* IndicatorIndex+Building.swift */,
@@ -3129,7 +3278,9 @@
 			isa = PBXGroup;
 			children = (
 				4D4D00000000000000000019 /* IndicatorField.swift */,
+				3D4F0000000000000000003D /* LineageField.swift */,
 				4D4D0000000000000000001B /* MessageValues.swift */,
+				3D4F0000000000000000003F /* MessageValueCache.swift */,
 				4D4D00000000000000000F06 /* RecordFields.swift */,
 			);
 			path = Fields;
@@ -3140,8 +3291,24 @@
 			children = (
 				4D4D0000000000000000002B /* StringMatching.swift */,
 				4D4D0000000000000000002D /* StringMatching+Foundation.swift */,
+				3D3C00000000000000000016 /* StringMatching+Pairs.swift */,
 			);
 			path = Matching;
+			sourceTree = "<group>";
+		};
+		4D4D0000000000000000D007 /* Sequences */ = {
+			isa = PBXGroup;
+			children = (
+				3D2D0000000000000000002C /* SequenceHash.swift */,
+				3D2D0000000000000000002E /* SequenceProgram.swift */,
+				3D2D00000000000000000030 /* SequenceTable.swift */,
+				3D2D00000000000000000034 /* SequenceWindow.swift */,
+				3D2D00000000000000000032 /* SequenceChains.swift */,
+				3D2D0000000000000000003A /* SequenceChains+Chain.swift */,
+				3D2D00000000000000000038 /* SessionChains.swift */,
+				3D2D00000000000000000036 /* SequenceStore.swift */,
+			);
+			path = Sequences;
 			sourceTree = "<group>";
 		};
 		4D4D0000000000000000D006 /* Budget */ = {
@@ -3158,7 +3325,11 @@
 			children = (
 				4D4D00000000000000000049 /* IndicatorFile.swift */,
 				4D4D0000000000000000004B /* SavedIndicatorSet.swift */,
+				3D4F00000000000000000009 /* SavedIndicatorSet+Changes.swift */,
 				4D4D0000000000000000004D /* SavedIndicatorSet+Loading.swift */,
+				3D4F00000000000000000015 /* SavedIndicatorSet+Verifying.swift */,
+				3D4F00000000000000000013 /* SavedIndicatorSet+Updates.swift */,
+				3D4F00000000000000000005 /* SavedIndicatorSet+Packs.swift */,
 			);
 			path = "Saved Indicator Set";
 			sourceTree = "<group>";
@@ -3168,11 +3339,17 @@
 			children = (
 				4D4D00000000000000000054 /* IndicatorCommand+Confirmation.swift */,
 				4D4D000000000000000000B6 /* IndicatorCommand+Edit.swift */,
+				3D4F00000000000000000007 /* IndicatorCommand+Pack.swift */,
 				4D4D00000000000000000052 /* IndicatorCommand.swift */,
 				4D4D00000000000000000050 /* IndicatorInvocation.swift */,
 				4D4D00000000000000000056 /* IndicatorLookup.swift */,
 				4D4D000000000000000000B4 /* IndicatorEdit.swift */,
 				4D4D00000000000000000058 /* IndicatorTable.swift */,
+				3D2D00000000000000000024 /* IndicatorTestReport.swift */,
+				3D2D00000000000000000026 /* IndicatorPackVerifyCommand.swift */,
+				3D2D00000000000000000022 /* IndicatorTestRun.swift */,
+				3D2D00000000000000000020 /* IndicatorReplay.swift */,
+				3D2D0000000000000000001E /* IndicatorTestPlan.swift */,
 			);
 			path = Indicators;
 			sourceTree = "<group>";
@@ -3181,58 +3358,13 @@
 			isa = PBXGroup;
 			children = (
 				4D4D00000000000000000065 /* IndicatorImportOffer.swift */,
+				3D4F0000000000000000005A /* IndicatorAbout.swift */,
 				4D4D000000000000000000B8 /* IndicatorEditing.swift */,
 				4D4D00000000000000000063 /* IndicatorViews.swift */,
 				4D4D0000000000000000005F /* IndicatorEngine.swift */,
+				3D4F00000000000000000017 /* IndicatorPackOffer.swift */,
 			);
 			path = Indicators;
-			sourceTree = "<group>";
-		};
-		4D4D00000000000000000088 /* Indicator Alerts */ = {
-			isa = PBXGroup;
-			children = (
-				4D4D0000000000000000008F /* IndicatorAlertSettings.swift */,
-				4D4D0000000000000000008D /* IndicatorAlertStatus.swift */,
-				4D4D0000000000000000008B /* IndicatorAlertTap.swift */,
-				4D4D0000000000000000D401 /* Coalescing */,
-				4D4D0000000000000000D402 /* Content */,
-			);
-			path = "Indicator Alerts";
-			sourceTree = "<group>";
-		};
-		4D4D0000000000000000D401 /* Coalescing */ = {
-			isa = PBXGroup;
-			children = (
-				4D4D0000000000000000009D /* IndicatorAlertCoalescer.swift */,
-				4D4D0000000000000000009F /* IndicatorAlertCoalescer+Overflow.swift */,
-				4D4D00000000000000000091 /* IndicatorAlertScheduler.swift */,
-				4D4D00000000000000000093 /* IndicatorAlertPolicy.swift */,
-				4D4D00000000000000000095 /* IndicatorAlertLimits.swift */,
-				4D4D000000000000000000A3 /* AlertTokenBucket.swift */,
-			);
-			path = Coalescing;
-			sourceTree = "<group>";
-		};
-		4D4D0000000000000000D402 /* Content */ = {
-			isa = PBXGroup;
-			children = (
-				4D4D000000000000000000A1 /* IndicatorAlert.swift */,
-				4D4D0000000000000000009B /* IndicatorAlertContent.swift */,
-				4D4D00000000000000000099 /* IndicatorAlertEvent.swift */,
-				4D4D00000000000000000097 /* IndicatorAlertInfo.swift */,
-				4D4D00000000000000000089 /* NotificationSafeText.swift */,
-			);
-			path = Content;
-			sourceTree = "<group>";
-		};
-		4D4D000000000000000000A5 /* Indicator Alerts */ = {
-			isa = PBXGroup;
-			children = (
-				4D4D000000000000000000AA /* IndicatorAlertCenter+Responses.swift */,
-				4D4D000000000000000000A8 /* IndicatorAlertCenter+Authorization.swift */,
-				4D4D000000000000000000A6 /* IndicatorAlertCenter.swift */,
-			);
-			path = "Indicator Alerts";
 			sourceTree = "<group>";
 		};
 		5A1F00000000000000000003 /* Utilities */ = {
@@ -3273,6 +3405,24 @@
 			path = "Telemetry Schema Views";
 			sourceTree = "<group>";
 		};
+		3D4F00000000000000000030 /* Lineage */ = {
+			isa = PBXGroup;
+			children = (
+				3D4F00000000000000000031 /* ProcessKey.swift */,
+				3D4F00000000000000000033 /* ProcessLineage.swift */,
+				3D4F0000000000000000003B /* Message+AncestorKeys.swift */,
+				3D4F00000000000000000039 /* LineageMonitor.swift */,
+				3D4F00000000000000000037 /* RunningProcesses.swift */,
+				3D4F00000000000000000035 /* ProcessLineage+Messages.swift */,
+				3D4F00000000000000000048 /* SnapshotLedger.swift */,
+				3D4F00000000000000000054 /* SnapshotTable.swift */,
+				3D4F00000000000000000046 /* ProcessSnapshot.swift */,
+				3D4F00000000000000000044 /* ProcessLineage+Seeding.swift */,
+				3D4F00000000000000000060 /* ProcessLineage+Discovery.swift */,
+			);
+			path = Lineage;
+			sourceTree = "<group>";
+		};
 		7E5A1C00000000000000001D /* LaunchedByParent */ = {
 			isa = PBXGroup;
 			children = (
@@ -3300,7 +3450,7 @@
 				BA3368A0287620FD00794525 /* SutroESFramework.h */,
 				28E2E13F2D61701E00EF4145 /* ESExtensions.swift */,
 				CB1C0000000000000000002E /* Command Line */,
-				4D4D00000000000000000018 /* Detection */,
+				4D4D00000000000000000018 /* Indicators */,
 			);
 			path = SutroESFramework;
 			sourceTree = "<group>";
@@ -3334,7 +3484,6 @@
 		BA97AFCE2875471D0099C035 /* ProjectSutro */ = {
 			isa = PBXGroup;
 			children = (
-				4D4D000000000000000000A5 /* Indicator Alerts */,
 				28EC62B72924237C00EAC8AD /* Main App View */,
 				28EC62E62925965A00EAC8AD /* Chart Views */,
 				28EC62B9292423B000EAC8AD /* Settings Views */,
@@ -3360,7 +3509,6 @@
 				2889013C28F776E000C1F4A6 /* Foundation.framework */,
 				BA3368972876208D00794525 /* SecurityFoundation.framework */,
 				BA3368952876207700794525 /* SecurityInterface.framework */,
-				4D4D000000000000000000AE /* UserNotifications.framework */,
 				BA3368932876207000794525 /* Security.framework */,
 				BA3368912876205F00794525 /* libproc.tbd */,
 				BA33688E2876203900794525 /* libbsm.tbd */,
@@ -3379,6 +3527,7 @@
 				BA97AFEE28754ABF0099C035 /* Info.plist */,
 				BA97AFEF28754ABF0099C035 /* SecurityExtension.entitlements */,
 				28AE3A2A2971E4E60077CC37 /* Assets.xcassets */,
+				3D4F00000000000000000041 /* InfoPlist.strings */,
 			);
 			path = SecurityExtension;
 			sourceTree = "<group>";
@@ -3389,6 +3538,14 @@
 				CA4CE59A2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift */,
 			);
 			path = TCC;
+			sourceTree = "<group>";
+		};
+		404395D29BCC4DA4A1AEEDFF /* Authentication Events */ = {
+			isa = PBXGroup;
+			children = (
+				5B120B087E084F30B92D23FC /* AuthenticationEvent.swift */,
+			);
+			path = "Authentication Events";
 			sourceTree = "<group>";
 		};
 		CA4CE59C2E53DB5F00C057EB /* Gatekeeper */ = {
@@ -3418,6 +3575,14 @@
 				28A608A32D9B633000962337 /* X509Cert.swift */,
 			);
 			path = "Code Signing";
+			sourceTree = "<group>";
+		};
+		D9FFED512FF34BD08E227BB2 /* Authentication Events */ = {
+			isa = PBXGroup;
+			children = (
+				7E013B52AF614D02946A6A3E /* ESAuthenticationEvent+CoreDataClass.swift */,
+			);
+			path = "Authentication Events";
 			sourceTree = "<group>";
 		};
 		CA4CE5B42E53F7DD00C057EB /* Gatekeeper Events */ = {
@@ -3452,6 +3617,14 @@
 				D15C0000000000000000013A /* Query */,
 			);
 			path = "Event Tables";
+			sourceTree = "<group>";
+		};
+		678B9E37A49F4BA59EECA233 /* Authentication */ = {
+			isa = PBXGroup;
+			children = (
+				C9A904370C6C4B22ADD79A0A /* SystemAuthenticationMetadataView.swift */,
+			);
+			path = Authentication;
 			sourceTree = "<group>";
 		};
 		CA4CE6442E5903FE00C057EB /* Gatekeeper */ = {
@@ -3987,6 +4160,7 @@
 				D5A100000000000000000001 /* SchemaCommand.swift */,
 				D5A100000000000000000003 /* ValidateCommand.swift */,
 				4D4D00000000000000000F03 /* StatusCommand.swift */,
+				3D4F0000000000000000000B /* UpdateCommand.swift */,
 				4D4D000000000000000000BA /* StopWatchdog.swift */,
 			);
 			path = "Command Line";
@@ -4010,6 +4184,8 @@
 			children = (
 				D15C00000000000000000136 /* CoreDataController+Export.swift */,
 				D15C00000000000000000079 /* TelemetryExporter.swift */,
+				3D4F00000000000000000052 /* TelemetryExporter+Worker.swift */,
+				3D4F00000000000000000050 /* StoredSnapshots.swift */,
 				CB1C0000000000000000003D /* ExportEncoder.swift */,
 			);
 			path = Export;
@@ -4130,6 +4306,7 @@
 				D15C00000000000000000107 /* TraceImporter+Summary.swift */,
 				D15C000000000000000006A4 /* TraceInsertPipeline.swift */,
 				D15C00000000000000000109 /* TraceRecordReader.swift */,
+				3D4F0000000000000000004D /* TraceLineage.swift */,
 				D15C0000000000000000010B /* TraceImport+Extensions.swift */,
 				D15C0000000000000000010D /* TraceDecoder.swift */,
 				D15C0000000000000000010F /* TraceDecoderContainers.swift */,
@@ -4181,6 +4358,7 @@
 				4D4D00000000000000000074 /* IndicatorsButton.swift */,
 				4D4D00000000000000000076 /* IndicatorsPopover.swift */,
 				4D4D00000000000000000072 /* IndicatorPredicateSection.swift */,
+				5E5E00000000000000000003 /* IndicatorMatchedSection.swift */,
 				0D0D0D0000000000000000A7 /* RelatedIndicators.swift */,
 			);
 			path = Indicators;
@@ -4240,6 +4418,7 @@
 			isa = PBXGroup;
 			children = (
 				284CFE142A16EDEA00D0038B /* UserSettingsView.swift */,
+				3D4F0000000000000000001B /* IndicatorPackSettings.swift */,
 				7E5A1C900000000000000003 /* ProcessTreePrefsView.swift */,
 				F17E0000000000000000001B /* ReleaseNotesSheet.swift */,
 			);
@@ -4262,8 +4441,8 @@
 			children = (
 				F17E00000000000000000035 /* IndicatorsSettingsView.swift */,
 				4D4D0000000000000000000D /* IndicatorRow.swift */,
-				4D4D000000000000000000AC /* IndicatorAlertsSection.swift */,
 				4D4D0000000000000000006A /* IndicatorImportBanner.swift */,
+				3D4F0000000000000000001D /* IndicatorPackBanner.swift */,
 				F17E00000000000000000033 /* IndicatorStore.swift */,
 				4D4D00000000000000000068 /* IndicatorMarks.swift */,
 				F17E00000000000000000049 /* IndicatorsFile.swift */,
@@ -4278,6 +4457,7 @@
 				4D4D0000000000000000000F /* IndicatorEditorSheet.swift */,
 				F17E0000000000000000003D /* RepresentativeEventPicker.swift */,
 				F17E0000000000000000003B /* SymbolPicker.swift */,
+				3D2D0000000000000000001A /* SequenceStepsView.swift */,
 			);
 			path = Editor;
 			sourceTree = "<group>";
@@ -4305,6 +4485,7 @@
 				CB1C0000000000000000003B /* StreamPipeline.swift */,
 				CB1C00000000000000000033 /* PipelineScope.swift */,
 				CB1C00000000000000000035 /* StreamDropMeter.swift */,
+				3D4F0000000000000000004A /* StreamSnapshots.swift */,
 				CB1C00000000000000000031 /* EventHeader.swift */,
 				CB1C00000000000000000039 /* TextEventFormatter.swift */,
 			);
@@ -4341,12 +4522,18 @@
 			children = (
 				F17E00000000000000000031 /* Indicator.swift */,
 				4D4D000000000000000000B0 /* Indicator+Editing.swift */,
+				3D2D00000000000000000010 /* Indicator+Tactic.swift */,
+				3D2D00000000000000000018 /* IndicatorSequence+Validation.swift */,
+				3D2D00000000000000000016 /* IndicatorSequence.swift */,
+				3D2D00000000000000000014 /* ReleaseVersion.swift */,
+				3D2D00000000000000000012 /* Indicator+Rule.swift */,
 				4D4D0000000000000000001F /* Indicator+Validation.swift */,
 				4D4D0000000000000000001D /* IndicatorSeverity.swift */,
 				4D4D0000000000000000007A /* IndicatorScope.swift */,
 				4D4D00000000000000000070 /* IndicatorFilter.swift */,
 				4D4D00000000000000000009 /* SavedIndicators.swift */,
 				F17E00000000000000000047 /* IndicatorExchange.swift */,
+				3D2D0000000000000000001C /* IndicatorPack.swift */,
 				4D4D000000000000000000B2 /* IndicatorExchange+Entries.swift */,
 			);
 			path = Indicators;
@@ -4355,7 +4542,7 @@
 		4D4D0000000000000000D202 /* Defaults */ = {
 			isa = PBXGroup;
 			children = (
-				4D4D00000000000000000039 /* DefaultIndicators.swift */,
+				4D4D00000000000000000039 /* LinkedIndicatorPack.swift */,
 				4D4D00000000000000000035 /* Indicators+Building.swift */,
 				4D4D00000000000000000037 /* Indicators+BuiltInMarks.swift */,
 				F17E00000000000000000039 /* Indicators+Defaults.swift */,
@@ -4369,6 +4556,7 @@
 				4D4D0000000000000000000B /* IndicatorMatcher.swift */,
 				4D4D00000000000000000061 /* EventIndicatorMatcher.swift */,
 				4D4D0000000000000000003B /* IndicatorVerdicts.swift */,
+				3D4F0000000000000000005C /* IndicatorMatchedField.swift */,
 				F17E00000000000000000045 /* RecordIndicators.swift */,
 			);
 			path = Matching;
@@ -4394,6 +4582,7 @@
 			children = (
 				F17E0000000000000000002B /* PredicateText.swift */,
 				4D4D00000000000000000086 /* PredicateLayout.swift */,
+				5E5E00000000000000000001 /* PredicateLayout+Passed.swift */,
 				F17E0000000000000000003F /* CompletionPlacement.swift */,
 			);
 			path = Text;
@@ -4648,6 +4837,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				28AE3A2B2971E4E60077CC37 /* Assets.xcassets in Resources */,
+				3D4F00000000000000000043 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4665,24 +4855,46 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3D4E00000000000000000011 /* IndicatorPackVerifier.swift in Sources */,
+				3D4E00000000000000000013 /* IndicatorPackFile.swift in Sources */,
+				3D4E00000000000000000015 /* IndicatorPackSignature.swift in Sources */,
+				3D4E00000000000000000017 /* IndicatorPackRequirement.swift in Sources */,
+				3D4E00000000000000000019 /* IndicatorPackTrust.swift in Sources */,
+				3D4F00000000000000000012 /* IndicatorPackUpdates.swift in Sources */,
+				3D4F00000000000000000010 /* IndicatorPackFetcher.swift in Sources */,
+				3D4F0000000000000000000E /* IndicatorPackRelease.swift in Sources */,
+				3D4F00000000000000000004 /* IndicatorPackRefusal.swift in Sources */,
+				3D4F00000000000000000002 /* IndicatorBaseline.swift in Sources */,
+				3D4E0000000000000000001B /* IndicatorPackCertificate.swift in Sources */,
+				3D4E0000000000000000001D /* IndicatorPackError.swift in Sources */,
+				3D4E0000000000000000001F /* VerifiedIndicatorPack.swift in Sources */,
 				F17E00000000000000000046 /* RecordIndicators.swift in Sources */,
 				4D4D0000000000000000003C /* IndicatorVerdicts.swift in Sources */,
+				3D4F0000000000000000005D /* IndicatorMatchedField.swift in Sources */,
 				F17E00000000000000000048 /* IndicatorExchange.swift in Sources */,
+				3D2D0000000000000000001D /* IndicatorPack.swift in Sources */,
 				4D4D000000000000000000B3 /* IndicatorExchange+Entries.swift in Sources */,
 				CB1C0000000000000000008C /* TerminalPrompt.swift in Sources */,
 				D5A100000000000000000002 /* SchemaCommand.swift in Sources */,
 				D5A100000000000000000004 /* ValidateCommand.swift in Sources */,
 				4D4D00000000000000000F04 /* StatusCommand.swift in Sources */,
+				3D4F0000000000000000000C /* UpdateCommand.swift in Sources */,
 				4D4D000000000000000000BB /* StopWatchdog.swift in Sources */,
 				CB1C0000000000000000008A /* MuteCommand+Confirmation.swift in Sources */,
 				CB1C00000000000000000084 /* MuteTable.swift in Sources */,
 				CB1C00000000000000000082 /* MuteCommand.swift in Sources */,
 				CB1C00000000000000000080 /* MuteInvocation.swift in Sources */,
 				4D4D00000000000000000059 /* IndicatorTable.swift in Sources */,
+				3D2D00000000000000000025 /* IndicatorTestReport.swift in Sources */,
+				3D2D00000000000000000027 /* IndicatorPackVerifyCommand.swift in Sources */,
+				3D2D00000000000000000023 /* IndicatorTestRun.swift in Sources */,
+				3D2D00000000000000000021 /* IndicatorReplay.swift in Sources */,
+				3D2D0000000000000000001F /* IndicatorTestPlan.swift in Sources */,
 				4D4D00000000000000000057 /* IndicatorLookup.swift in Sources */,
 				4D4D000000000000000000B5 /* IndicatorEdit.swift in Sources */,
 				4D4D00000000000000000055 /* IndicatorCommand+Confirmation.swift in Sources */,
 				4D4D000000000000000000B7 /* IndicatorCommand+Edit.swift in Sources */,
+				3D4F00000000000000000008 /* IndicatorCommand+Pack.swift in Sources */,
 				4D4D00000000000000000053 /* IndicatorCommand.swift in Sources */,
 				4D4D00000000000000000051 /* IndicatorInvocation.swift in Sources */,
 				CB1C00000000000000000078 /* FileOutput.swift in Sources */,
@@ -4701,6 +4913,7 @@
 				CB1C0000000000000000003A /* TextEventFormatter.swift in Sources */,
 				CB1C00000000000000000038 /* TerminalSafeText.swift in Sources */,
 				CB1C00000000000000000036 /* StreamDropMeter.swift in Sources */,
+				3D4F0000000000000000004B /* StreamSnapshots.swift in Sources */,
 				CB1C00000000000000000034 /* PipelineScope.swift in Sources */,
 				F17E00000000000000000006 /* StreamFilter.swift in Sources */,
 				F17E0000000000000000000C /* StreamFilter+Predicates.swift in Sources */,
@@ -4711,19 +4924,25 @@
 				4D4D0000000000000000007B /* IndicatorScope.swift in Sources */,
 				4D4D00000000000000000020 /* Indicator+Validation.swift in Sources */,
 				4D4D000000000000000000B1 /* Indicator+Editing.swift in Sources */,
+				3D2D00000000000000000011 /* Indicator+Tactic.swift in Sources */,
+				3D2D00000000000000000019 /* IndicatorSequence+Validation.swift in Sources */,
+				3D2D00000000000000000017 /* IndicatorSequence.swift in Sources */,
+				3D2D00000000000000000015 /* ReleaseVersion.swift in Sources */,
+				3D2D00000000000000000013 /* Indicator+Rule.swift in Sources */,
 				4D4D0000000000000000001E /* IndicatorSeverity.swift in Sources */,
 				4D4D0000000000000000000A /* SavedIndicators.swift in Sources */,
 				4D4D0000000000000000000C /* IndicatorMatcher.swift in Sources */,
 				4D4D00000000000000000062 /* EventIndicatorMatcher.swift in Sources */,
 				4D4D00000000000000000022 /* PredicateEventTypes.swift in Sources */,
 				F17E0000000000000000003A /* Indicators+Defaults.swift in Sources */,
-				4D4D0000000000000000003A /* DefaultIndicators.swift in Sources */,
+				4D4D0000000000000000003A /* LinkedIndicatorPack.swift in Sources */,
 				4D4D00000000000000000038 /* Indicators+BuiltInMarks.swift in Sources */,
 				4D4D00000000000000000036 /* Indicators+Building.swift in Sources */,
 				F17E00000000000000000030 /* StreamFilter+Store.swift in Sources */,
 				4D4D0000000000000000006F /* StreamFilter+Indicators.swift in Sources */,
 				F17E0000000000000000002C /* PredicateText.swift in Sources */,
 				4D4D00000000000000000087 /* PredicateLayout.swift in Sources */,
+				5E5E00000000000000000002 /* PredicateLayout+Passed.swift in Sources */,
 				F17E00000000000000000040 /* CompletionPlacement.swift in Sources */,
 				F17E0000000000000000002A /* StreamFilter+Relations.swift in Sources */,
 				D15C00000000000000000166 /* RelatedEvents.swift in Sources */,
@@ -4792,6 +5011,17 @@
 				CC9900000000000000000008 /* StreamingJSONEncoder+ValueSlot.swift in Sources */,
 				CA9700000000000000000019 /* MessageSerializer.swift in Sources */,
 				7E5A1C0000000000000F0002 /* LaunchServicesHold.swift in Sources */,
+				3D4F00000000000000000034 /* ProcessLineage.swift in Sources */,
+				3D4F0000000000000000003C /* Message+AncestorKeys.swift in Sources */,
+				3D4F0000000000000000003A /* LineageMonitor.swift in Sources */,
+				3D4F00000000000000000038 /* RunningProcesses.swift in Sources */,
+				3D4F00000000000000000036 /* ProcessLineage+Messages.swift in Sources */,
+				3D4F00000000000000000049 /* SnapshotLedger.swift in Sources */,
+				3D4F00000000000000000055 /* SnapshotTable.swift in Sources */,
+				3D4F00000000000000000047 /* ProcessSnapshot.swift in Sources */,
+				3D4F00000000000000000045 /* ProcessLineage+Seeding.swift in Sources */,
+				3D4F00000000000000000061 /* ProcessLineage+Discovery.swift in Sources */,
+				3D4F00000000000000000032 /* ProcessKey.swift in Sources */,
 				CA9700000000000000000017 /* CaptureLane.swift in Sources */,
 				F17E7E000000000000000002 /* FileType.swift in Sources */,
 				F17E7E000000000000000004 /* MachOHeader.swift in Sources */,
@@ -4824,6 +5054,7 @@
 				2852BBBC29DB852500AA833C /* ESXattrSetEvent+CoreDataClass.swift in Sources */,
 				28B9A92A29DBDE2F006619FF /* ESProcessCheckEvent+CoreDataClass.swift in Sources */,
 				2820DD1A297228290053CB48 /* ESOpenSSHLogoutEvent+CoreDataClass.swift in Sources */,
+				9BE13EBC72164960A8744422 /* ESAuthenticationEvent+CoreDataClass.swift in Sources */,
 				CA4CE5BB2E53F80B00C057EB /* ESGatekeeperUserOverrideEvent+CoreDataClass.swift in Sources */,
 				28823F342EC82F28000B7F5C /* ESMProtectEvent+CoreDataClass.swift in Sources */,
 				CA4CE5BF2E53F80B00C057EB /* ESSignedFileInfo+CoreDataClass.swift in Sources */,
@@ -4833,6 +5064,7 @@
 				CAD3D9822E0F167300028111 /* ESFileDestination+CoreDataClass.swift in Sources */,
 				282744AA28EF75F400464C5B /* Message.swift in Sources */,
 				F17E00000000000000000014 /* SIPStatus.swift in Sources */,
+				3D4F00000000000000000057 /* BootSession.swift in Sources */,
 				7E5A1C00000000000000000E /* Message+LaunchedByParent.swift in Sources */,
 				2852BBB629DB756900AA833C /* ESCodeSignatureInvalidatedEvent+CoreDataClass.swift in Sources */,
 				283C4D3F29E09D89009FF6D3 /* MutingEngine.swift in Sources */,
@@ -4899,23 +5131,41 @@
 				282FEDEC295FCE3600572E22 /* ESXProtectDetect+CoreDataClass.swift in Sources */,
 				288AB3962919BCEF00D221AD /* MutedPath.swift in Sources */,
 				4D4D0000000000000000001A /* IndicatorField.swift in Sources */,
+				3D4F0000000000000000003E /* LineageField.swift in Sources */,
 				4D4D0000000000000000001C /* MessageValues.swift in Sources */,
+				3D4F00000000000000000040 /* MessageValueCache.swift in Sources */,
 				4D4D00000000000000000024 /* IndicatorProgram.swift in Sources */,
 				4D4D0000000000000000002C /* StringMatching.swift in Sources */,
 				4D4D0000000000000000002E /* StringMatching+Foundation.swift in Sources */,
+				3D3C00000000000000000017 /* StringMatching+Pairs.swift in Sources */,
 				4D4D0000000000000000002A /* IndicatorCompiler.swift in Sources */,
+				3D4F00000000000000000059 /* FieldFilterConflicts.swift in Sources */,
 				4D4D00000000000000000030 /* CompiledIndicators.swift in Sources */,
+				3D2D0000000000000000002B /* CompiledIndicators+Sequences.swift in Sources */,
+				3D2D00000000000000000029 /* CompiledIndicators+Building.swift in Sources */,
 				4D4D00000000000000000085 /* CompiledIndicators+Source.swift in Sources */,
 				4D4D00000000000000000046 /* IndicatorIndex+Building.swift in Sources */,
 				4D4D00000000000000000044 /* IndicatorIndex.swift in Sources */,
 				4D4D0000000000000000007F /* ScanBudget.swift in Sources */,
+				3D2D00000000000000000031 /* SequenceTable.swift in Sources */,
+				3D2D00000000000000000035 /* SequenceWindow.swift in Sources */,
+				3D2D00000000000000000033 /* SequenceChains.swift in Sources */,
+				3D2D0000000000000000003B /* SequenceChains+Chain.swift in Sources */,
+				3D2D00000000000000000039 /* SessionChains.swift in Sources */,
+				3D2D00000000000000000037 /* SequenceStore.swift in Sources */,
+				3D2D0000000000000000002F /* SequenceProgram.swift in Sources */,
+				3D2D0000000000000000002D /* SequenceHash.swift in Sources */,
 				4D4D00000000000000000083 /* ScanCost.swift in Sources */,
 				4D4D00000000000000000042 /* IndicatorAnchor.swift in Sources */,
 				4D4D00000000000000000F07 /* RecordFields.swift in Sources */,
 				4D4D00000000000000000032 /* FrozenPrograms.swift in Sources */,
 				4D4D00000000000000000028 /* IndicatorDraft.swift in Sources */,
+				3D3C00000000000000000013 /* IndicatorDraft+Fields.swift in Sources */,
+				3D3C00000000000000000011 /* IndicatorDraft+Shaping.swift in Sources */,
 				4D4D00000000000000000034 /* IndicatorProgram+Layout.swift in Sources */,
 				4D4D00000000000000000026 /* IndicatorProgram+Evaluation.swift in Sources */,
+				3D4F0000000000000000005F /* IndicatorProgram+Matched.swift in Sources */,
+				3D3C00000000000000000015 /* IndicatorProgram+Fields.swift in Sources */,
 				4D4D00000000000000000081 /* IndicatorProgram+Comparison.swift in Sources */,
 				28CEF0DC2977634C003057D2 /* ESMountEvent+CoreDataClass.swift in Sources */,
 				288AB398291DBFF400D221AD /* ESTranslation.swift in Sources */,
@@ -4994,28 +5244,17 @@
 				4D4D0000000000000000003E /* ESMessage+Indicators.swift in Sources */,
 				2852BB8929D89AEB00AA833C /* FileOpenEvent.swift in Sources */,
 				28B865DB2A312C7100F06441 /* ESODCreateUserEvent+CoreDataClass.swift in Sources */,
+				12631718AC8D477E85127139 /* AuthenticationEvent.swift in Sources */,
 				CA4CE59E2E53DB7900C057EB /* GatekeeperUserOverrideEvent.swift in Sources */,
 				2820DD11297225900053CB48 /* SSHLoginEvent.swift in Sources */,
 				2847138C2A2E9D4D00FA4E59 /* ProfileAddEvent.swift in Sources */,
 				283C4D4829E0E16F009FF6D3 /* SubscriptionEngine.swift in Sources */,
 				4D4D00000000000000000060 /* IndicatorEngine.swift in Sources */,
+				3D4F00000000000000000018 /* IndicatorPackOffer.swift in Sources */,
 				4D4D0000000000000000006D /* SensorSupport.swift in Sources */,
-				4D4D000000000000000000A4 /* AlertTokenBucket.swift in Sources */,
-				4D4D000000000000000000A2 /* IndicatorAlert.swift in Sources */,
-				4D4D000000000000000000A0 /* IndicatorAlertCoalescer+Overflow.swift in Sources */,
-				4D4D0000000000000000009E /* IndicatorAlertCoalescer.swift in Sources */,
-				4D4D0000000000000000009C /* IndicatorAlertContent.swift in Sources */,
-				4D4D0000000000000000009A /* IndicatorAlertEvent.swift in Sources */,
-				4D4D00000000000000000098 /* IndicatorAlertInfo.swift in Sources */,
-				4D4D00000000000000000096 /* IndicatorAlertLimits.swift in Sources */,
-				4D4D00000000000000000094 /* IndicatorAlertPolicy.swift in Sources */,
-				4D4D00000000000000000092 /* IndicatorAlertScheduler.swift in Sources */,
-				4D4D00000000000000000090 /* IndicatorAlertSettings.swift in Sources */,
-				4D4D0000000000000000008E /* IndicatorAlertStatus.swift in Sources */,
-				4D4D0000000000000000008C /* IndicatorAlertTap.swift in Sources */,
-				4D4D0000000000000000008A /* NotificationSafeText.swift in Sources */,
 				4D4D00000000000000000064 /* IndicatorViews.swift in Sources */,
 				4D4D00000000000000000066 /* IndicatorImportOffer.swift in Sources */,
+				3D4F0000000000000000005B /* IndicatorAbout.swift in Sources */,
 				4D4D000000000000000000B9 /* IndicatorEditing.swift in Sources */,
 				28B9A92429DBD5FD006619FF /* ESGetTaskEvent+CoreDataClass.swift in Sources */,
 				2847138F2A2EA51A00FA4E59 /* ESProfileAddEvent+CoreDataClass.swift in Sources */,
@@ -5035,12 +5274,15 @@
 				D15C00000000000000000137 /* CoreDataController+Export.swift in Sources */,
 				D15C00000000000000000135 /* EventStoreFile.swift in Sources */,
 				D15C0000000000000000007A /* TelemetryExporter.swift in Sources */,
+				3D4F00000000000000000053 /* TelemetryExporter+Worker.swift in Sources */,
+				3D4F00000000000000000051 /* StoredSnapshots.swift in Sources */,
 				D15C00000000000000000102 /* RowCache.swift in Sources */,
 				D15C00000000000000000104 /* TraceImporter.swift in Sources */,
 				7E5A1C00000000000000001A /* TraceImporter+LaunchedByParent.swift in Sources */,
 				D15C00000000000000000108 /* TraceImporter+Summary.swift in Sources */,
 				D15C000000000000000006A5 /* TraceInsertPipeline.swift in Sources */,
 				D15C0000000000000000010A /* TraceRecordReader.swift in Sources */,
+				3D4F0000000000000000004E /* TraceLineage.swift in Sources */,
 				D15C0000000000000000010C /* TraceImport+Extensions.swift in Sources */,
 				D15C0000000000000000010E /* TraceDecoder.swift in Sources */,
 				D15C00000000000000000110 /* TraceDecoderContainers.swift in Sources */,
@@ -5058,6 +5300,10 @@
 				4D4D0000000000000000004A /* IndicatorFile.swift in Sources */,
 				4D4D0000000000000000004C /* SavedIndicatorSet.swift in Sources */,
 				4D4D0000000000000000004E /* SavedIndicatorSet+Loading.swift in Sources */,
+				3D4F00000000000000000016 /* SavedIndicatorSet+Verifying.swift in Sources */,
+				3D4F00000000000000000014 /* SavedIndicatorSet+Updates.swift in Sources */,
+				3D4F0000000000000000000A /* SavedIndicatorSet+Changes.swift in Sources */,
+				3D4F00000000000000000006 /* SavedIndicatorSet+Packs.swift in Sources */,
 				28AF16612923099400AA75A5 /* ESMessage+CoreDataClass.swift in Sources */,
 				28A2501B299FF635007B0753 /* FileRenameEvent.swift in Sources */,
 				CA5936542E8B139B008A115D /* PTYGrantEvent.swift in Sources */,
@@ -5095,6 +5341,7 @@
 			files = (
 				4D4D00000000000000000077 /* IndicatorsPopover.swift in Sources */,
 				4D4D00000000000000000073 /* IndicatorPredicateSection.swift in Sources */,
+				5E5E00000000000000000004 /* IndicatorMatchedSection.swift in Sources */,
 				4D4D00000000000000000075 /* IndicatorsButton.swift in Sources */,
 				CA970000000000000000005D /* MuteFileMenu.swift in Sources */,
 				4D4D00000000000000000006 /* MuteSetUpdatePrompt.swift in Sources */,
@@ -5147,6 +5394,7 @@
 				D15C00000000000000000158 /* MuteTableRows.swift in Sources */,
 				D15C0000000000000000015A /* MuteInspector.swift in Sources */,
 				CA7D0EE82E42A07B0024243F /* UpdateAvailableSheet.swift in Sources */,
+				3D4F0000000000000000001A /* IndicatorPackSheet.swift in Sources */,
 				28823F5D2ED14D5F000B7F5C /* SystemListExtattrMetadataView.swift in Sources */,
 				28EC62EA29259BB900EAC8AD /* ProcessSystemEventsViews.swift in Sources */,
 				28CEF0E529776BE0003057D2 /* SystemEventJSONView.swift in Sources */,
@@ -5194,6 +5442,7 @@
 				7E5A1C30000000000000000C /* ParentsView.swift in Sources */,
 				BA97AFD02875471D0099C035 /* ProjectSutroApp.swift in Sources */,
 				284CFE152A16EDEA00D0038B /* UserSettingsView.swift in Sources */,
+				3D4F0000000000000000001C /* IndicatorPackSettings.swift in Sources */,
 				CA59364B2E8B06EC008A115D /* SystemSetModeMetadataView.swift in Sources */,
 				28EC62E5292595C100EAC8AD /* EventLabelViews.swift in Sources */,
 				D15C0000000000000000012D /* EventFactsLabels.swift in Sources */,
@@ -5217,6 +5466,7 @@
 				28CEF0EF29776C98003057D2 /* SystemOpenSSHLogoutMetadataView.swift in Sources */,
 				28B9A94129DC9578006619FF /* SystemCodeSigningInvalidatedMetadataView.swift in Sources */,
 				CA4CE59B2E53BBDE00C057EB /* SystemTCCModifyMetadataView.swift in Sources */,
+				C27B03B6567C4A7798EA5C32 /* SystemAuthenticationMetadataView.swift in Sources */,
 				CA4CE6462E59041400C057EB /* SystemGatekeeperUserOverrideMetadataView.swift in Sources */,
 				284CFE172A16EE1900D0038B /* SystemDetailsSettingsView.swift in Sources */,
 				F17E00000000000000000018 /* EventCatalog.swift in Sources */,
@@ -5239,14 +5489,12 @@
 				4D4D0000000000000000007D /* SettingsCatalog.swift in Sources */,
 				F17E00000000000000000036 /* IndicatorsSettingsView.swift in Sources */,
 				4D4D0000000000000000000E /* IndicatorRow.swift in Sources */,
-				4D4D000000000000000000AD /* IndicatorAlertsSection.swift in Sources */,
-				4D4D000000000000000000AB /* IndicatorAlertCenter+Responses.swift in Sources */,
-				4D4D000000000000000000A9 /* IndicatorAlertCenter+Authorization.swift in Sources */,
-				4D4D000000000000000000A7 /* IndicatorAlertCenter.swift in Sources */,
 				4D4D0000000000000000006B /* IndicatorImportBanner.swift in Sources */,
+				3D4F0000000000000000001E /* IndicatorPackBanner.swift in Sources */,
 				4D4D00000000000000000010 /* IndicatorEditorSheet.swift in Sources */,
 				F17E0000000000000000003E /* RepresentativeEventPicker.swift in Sources */,
 				F17E0000000000000000003C /* SymbolPicker.swift in Sources */,
+				3D2D0000000000000000001B /* SequenceStepsView.swift in Sources */,
 				F17E00000000000000000034 /* IndicatorStore.swift in Sources */,
 				4D4D00000000000000000069 /* IndicatorMarks.swift in Sources */,
 				F17E0000000000000000004A /* IndicatorsFile.swift in Sources */,
@@ -5317,6 +5565,17 @@
 		};
 /* End PBXTargetDependency section */
 
+/* Begin PBXVariantGroup section */
+		3D4F00000000000000000041 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				3D4F00000000000000000042 /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
 /* Begin XCBuildConfiguration section */
 		7E5700000000000000000016 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -5333,7 +5592,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.SutroESFrameworkTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -5354,7 +5613,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.SutroESFrameworkTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_COMPILATION_MODE = singlefile;
@@ -5379,7 +5638,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.SutroESFrameworkTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -5420,12 +5679,12 @@
 					"$(PROJECT_DIR)/SutroESFramework",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				OTHER_LDFLAGS = (
 					"-sectcreate",
 					__TEXT,
 					__indicators,
-					"\"$(SRCROOT)/SutroESFramework/Detection/DefaultIndicators.json\"",
+					"\"$(SRCROOT)/SutroESFramework/Indicators/LinkedIndicatorPack.json\"",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.SutroESFramework;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
@@ -5474,12 +5733,12 @@
 					"$(PROJECT_DIR)/SutroESFramework",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				OTHER_LDFLAGS = (
 					"-sectcreate",
 					__TEXT,
 					__indicators,
-					"\"$(SRCROOT)/SutroESFramework/Detection/DefaultIndicators.json\"",
+					"\"$(SRCROOT)/SutroESFramework/Indicators/LinkedIndicatorPack.json\"",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.SutroESFramework;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
@@ -5655,7 +5914,7 @@
 					"$(SDKROOT)/usr/lib/system",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent;
 				PRODUCT_NAME = "Mac Monitor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5700,7 +5959,7 @@
 					"$(SDKROOT)/usr/lib/system",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent;
 				PRODUCT_NAME = "Mac Monitor";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5730,7 +5989,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SecurityExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Mac Monitor Security Extension";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_BUNDLE_IDENTIFIER)";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "2026 Brandon Dalton";
 				INFOPLIST_KEY_NSSystemAdministrationUsageDescription = "The Mac Monitor Security Extension needs Full Disk Access to monitor security events.";
 				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Mac Monitor to work. We use the security extension to record endpoint security events and display them to the user.";
@@ -5740,7 +5999,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.securityextension;
 				PRODUCT_NAME = "$(inherited)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5770,7 +6029,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SecurityExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Mac Monitor Security Extension";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_BUNDLE_IDENTIFIER)";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "2026 Brandon Dalton";
 				INFOPLIST_KEY_NSSystemAdministrationUsageDescription = "The Mac Monitor Security Extension needs Full Disk Access to monitor security events.";
 				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Mac Monitor to work. We use the security extension to record endpoint security events and display them to the user.";
@@ -5780,7 +6039,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.securityextension;
 				PRODUCT_NAME = "$(inherited)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -5819,12 +6078,12 @@
 					"$(PROJECT_DIR)/SutroESFramework",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				OTHER_LDFLAGS = (
 					"-sectcreate",
 					__TEXT,
 					__indicators,
-					"\"$(SRCROOT)/SutroESFramework/Detection/DefaultIndicators.json\"",
+					"\"$(SRCROOT)/SutroESFramework/Indicators/LinkedIndicatorPack.json\"",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.SutroESFramework;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
@@ -5931,7 +6190,7 @@
 					"$(SDKROOT)/usr/lib/system",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent;
 				PRODUCT_NAME = "Mac Monitor";
 				SKIP_INSTALL = NO;
@@ -5954,7 +6213,7 @@
 				DEVELOPMENT_ASSET_PATHS = SecurityExtension/Assets.xcassets;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SecurityExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Mac Monitor Security Extension";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_BUNDLE_IDENTIFIER)";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "2026 Brandon Dalton";
 				INFOPLIST_KEY_NSSystemAdministrationUsageDescription = "The Mac Monitor Security Extension needs Full Disk Access to monitor security events.";
 				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "This security extension is required for Mac Monitor to work. We use the security extension to record endpoint security events and display them to the user.";
@@ -5964,7 +6223,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.securityextension;
 				PRODUCT_NAME = "$(inherited)";
 				SKIP_INSTALL = NO;
@@ -5992,7 +6251,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.cli;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6015,7 +6274,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.cli;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -6042,7 +6301,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftlydetecting.agent.cli;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

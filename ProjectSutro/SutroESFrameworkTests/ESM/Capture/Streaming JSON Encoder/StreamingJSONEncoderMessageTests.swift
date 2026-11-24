@@ -36,7 +36,8 @@ final class StreamingJSONEncoderMessageTests: XCTestCase {
     func testImportedEventsMatchJSONEncoder() throws {
         var count = 0
         for name in ["eslogger-exit.jsonl", "eslogger-open.jsonl", "eslogger-od.jsonl",
-                     "eslogger-remote-thread-create.jsonl", "macmonitor-2.1-exit.jsonl"] {
+                     "eslogger-remote-thread-create.jsonl", "eslogger-authentication.jsonl",
+                     "macmonitor-2.1-exit.jsonl"] {
             for (line, record) in try fixtureRecords(name).enumerated() {
                 guard let message = try? importRecord(record) else { continue }
                 try assertMessageRoundTrips(message, "\(name) line \(line + 1)")

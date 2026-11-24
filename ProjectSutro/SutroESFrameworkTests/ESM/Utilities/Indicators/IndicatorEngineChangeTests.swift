@@ -92,7 +92,7 @@ final class IndicatorEngineChangeTests: XCTestCase {
         let shown = try XCTUnwrap(settled().first { $0.id == respelled.id })
         XCTAssertEqual(sent.all.map(\.operation), [.add, .update])
         XCTAssertEqual(sent.all.last?.fields, [.predicate])
-        XCTAssertEqual(Array(shown.predicate.utf8), Array(respelled.predicate.utf8))
+        XCTAssertEqual(Array(shown.predicate!.utf8), Array(respelled.predicate!.utf8))
     }
 
     /// An indicator another writer turned off while the editor had it open stays off when the editor, which still
@@ -115,7 +115,7 @@ final class IndicatorEngineChangeTests: XCTestCase {
         let opened = Indicator.defaults[0]
         XCTAssertEqual(set.send(IndicatorRequest(.remove, ids: [opened.id])).status, .ok)
         var edited = opened
-        edited.predicate += " AND process.pid > 1"
+        edited.rule = .event(edited.predicate! + " AND process.pid > 1")
         engine.change(edited, from: opened)
         XCTAssertFalse(settled().contains { $0.id == opened.id })
         XCTAssertEqual(engine.failure, "No indicator has the identity \(opened.id.uuidString).")

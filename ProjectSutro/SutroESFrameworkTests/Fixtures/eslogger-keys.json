@@ -1,5 +1,5 @@
 {
- "_comment": "eslogger's JSON keys on macOS 27.0 (26A5353q), recovered from the eslogger binary's Codable models, for the 51 event types Mac Monitor records. Paths are relative to their object; [] is an array's elements. Types: int, bool, string, string(time), string(hex), null, object, array, array[int], array[string], and the definitions below. |null: eslogger writes null. A ? after a key: eslogger leaves the key out, by message version or as a union's other arm.",
+ "_comment": "eslogger's JSON keys on macOS 27.0 (26A5353q), recovered from the eslogger binary's Codable models, for the 52 event types Mac Monitor records. Paths are relative to their object; [] is an array's elements. Types: int, bool, string, string(time), string(hex), null, object, array, array[int], array[string], and the definitions below. |null: eslogger writes null. A ? after a key: eslogger leaves the key out, by message version or as a union's other arm. authentication's od arm is as eslogger wrote it on macOS 27.2 (26B123); its other arms are the binary's keys read with the SDK's structs.",
  "definitions": {
   "audit_token": {
    "asid": "int",
@@ -75,6 +75,32 @@
   "version": "int"
  },
  "events": {
+  "authentication": {
+   "data": "object",
+   "data.auto_unlock.type": "int",
+   "data.auto_unlock.username": "string",
+   "data.auto_unlock?": "object",
+   "data.od.db_path": "string|null",
+   "data.od.instigator": "process|null",
+   "data.od.instigator_token?": "audit_token",
+   "data.od.node_name": "string",
+   "data.od.record_name": "string",
+   "data.od.record_type": "string",
+   "data.od?": "object",
+   "data.token.instigator": "process|null",
+   "data.token.instigator_token?": "audit_token",
+   "data.token.kerberos_principal": "string|null",
+   "data.token.pubkey_hash": "string",
+   "data.token.token_id": "string",
+   "data.token?": "object",
+   "data.touchid.instigator": "process|null",
+   "data.touchid.instigator_token?": "audit_token",
+   "data.touchid.touchid_mode": "int",
+   "data.touchid.uid": "int|null",
+   "data.touchid?": "object",
+   "success": "bool",
+   "type": "int"
+  },
   "authorization_judgement": {
    "instigator": "process|null",
    "instigator_token?": "audit_token",

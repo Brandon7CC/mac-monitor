@@ -40,6 +40,24 @@ final class MessageSerializerTests: XCTestCase {
         XCTAssertEqual(Message(from: exit.raw).macOS, expected)
     }
 
+    /// Events carry the boot session's identifier as the serializer read it: the kernel's UUID for this start of
+    /// the Mac, which a process key is only unique within. A trace without it reads as none.
+    func testStampsTheBootSession() throws {
+        let exit = sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, seq: 1, global: 1)
+        let lane = LaneContext(eventClass: .process, sensorID: "SENSOR-1", encoder: StreamingJSONEncoder())
+        let boot = "0F1E2D3C-4B5A-4978-8695-A4B3C2D1E0F9"
+        let stamped = try XCTUnwrap(MessageSerializer(bootSession: boot).serialize(exit.raw, in: lane))
+        XCTAssertEqual(try JSONDecoder().decode(Message.self, from: stamped).boot_session_uuid, boot)
+        let current = try XCTUnwrap(BootSession.current)
+        XCTAssertNotNil(UUID(uuidString: current))
+        XCTAssertEqual(current, current.uppercased(), "As the schema's UUIDs are written")
+        XCTAssertEqual(Message(from: exit.raw).boot_session_uuid, current)
+        let exported = try export(Message(from: exit.raw, bootSession: boot))
+        XCTAssertEqual(exported["boot_session_uuid"] as? String, boot)
+        XCTAssertEqual(try importRecord(exported).boot_session_uuid, boot)
+        XCTAssertTrue(try export(Message(from: exit.raw, bootSession: nil))["boot_session_uuid"] is NSNull)
+    }
+
     /// Events carry System Integrity Protection's status as the serializer read it, as `csrutil status` names it:
     /// enabled with nothing allowed, disabled with everything `csrutil disable` allows, custom with less.
     func testStampsTheSIPStatus() throws {
@@ -56,6 +74,32 @@ final class MessageSerializerTests: XCTestCase {
         XCTAssertEqual(SIPStatus(configuration: 0x6e), .custom)
     }
     
+    /// A lane that holds app execs leaves its events' sequence steps for the hold, which advances them as it sends
+    /// each event, in the lane's order. Another lane advances them as it builds the event.
+    func testALaneThatHoldsDefersSequenceSteps() throws {
+        let exited = IndicatorSequence.Step(name: "exit", predicate: "event.exit != nil")
+        let never = IndicatorSequence.Step(name: "never",
+                                           predicate: "event.exit != nil AND process.audit_token.pid < 0")
+        let sequence = sequenceIndicator(IndicatorSequence(order: .ordered, within: 5, by: ["process.audit_token.pid"],
+                                                           steps: [exited, never]))
+        let exit = sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, seq: 1, global: 1)
+        for holds in [true, false] {
+            let indicators = CompiledIndicators([sequence])
+            let lane = LaneContext(eventClass: .process, sensorID: "SENSOR-1", encoder: StreamingJSONEncoder(),
+                                   holdsForLaunchServices: holds, indicators: indicators)
+            switch try XCTUnwrap(MessageSerializer().serializeEvent(exit.raw, in: lane)) {
+            case .stamped(_, let steps):
+                XCTAssertTrue(holds)
+                XCTAssertEqual(steps.count, 1)
+            case .json:
+                XCTAssertFalse(holds)
+            case .held:
+                XCTFail("Not an app's exec")
+            }
+            XCTAssertEqual(indicators.openChains, holds ? 0 : 1, "Holds: \(holds)")
+        }
+    }
+
     /// Through a session, the process client's exit event reaches `emit` as the `Message` Mac Monitor decodes.
     func testThroughASession() throws {
         let factory = FakeEndpointSecurityClientFactory()

@@ -49,56 +49,21 @@ struct SystemFileRenameMetadataView: View {
                         Divider()
                     }
 
-                    GroupBox {
-                        HStack {
-                            Text("\u{2022} Destination type:")
-                                .bold()
-                            Text(event.destination_type_string.droppingPrefix("ES_DESTINATION_TYPE_"))
-                                .monospaced()
-                        }
-                    }
-
-                    HStack {
-                        Text("\u{2022} Destination file name:")
-                            .bold()
-                            .padding([.leading], 5.0)
-
-                        GroupBox {
-                            Text(event.destination_file_name)
-                                .monospaced()
-                        }
-
+                    FactRow(name: "Destination type",
+                            value: event.destination_type_string.droppingPrefix("ES_DESTINATION_TYPE_"))
+                    FactRow {
+                        Fact("Destination file name", event.destination_file_name)
                         FileQuarantineStatusLabelView(isQuarantined: Int(event.is_quarantined))
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-
-                    HStack {
-                        FileExistsLabel(title: "**Destination Path:**", path: event.destination_path)
-                        GroupBox {
-                            Text(event.destination_path)
-                                .monospaced()
-                                .lineLimit(10)
-                        }
-                        ShowInFinderButton(path: event.destination_path)
                     }
-
+                    FilePathFact(name: "Destination Path", path: event.destination_path)
                     if let sourcePath = event.source.path {
-                        HStack {
-                            FileExistsLabel(title: "**Source path:**", path: sourcePath)
-                            GroupBox {
-                                Text(sourcePath)
-                                    .monospaced()
-                                    .lineLimit(10)
-                            }
-                            ShowInFinderButton(path: sourcePath)
-                        }
+                        FilePathFact(name: "Source path", path: sourcePath)
                     }
 
                     /// Read from the renamed file's first bytes, or its close's, when the event was recorded: none
                     /// when it wasn't read.
                     if let fileType = event.file_type {
                         FileTypeFact(identifier: fileType, machOType: event.mach_o_type)
-                            .padding([.leading], 5.0)
-                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }

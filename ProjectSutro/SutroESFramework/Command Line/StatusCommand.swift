@@ -23,8 +23,8 @@ public struct StatusInvocation: Equatable {
 
 // MARK: - Status
 /// What `macmonitor status` shows: the versions of `macmonitor`, Mac Monitor and its Security Extension, what the
-/// Security Extension needs to run (activated, and Full Disk Access), and who is capturing through it (Mac Monitor
-/// and `macmonitor` streams).
+/// Security Extension needs to run (activated, and Full Disk Access), who is capturing through it (Mac Monitor
+/// and `macmonitor` streams), and which indicator pack Mac Monitor's own indicators are.
 ///
 /// It needs neither root nor Mac Monitor: every part it can't learn says so, and the rest is still shown. It never
 /// changes anything.
@@ -67,9 +67,29 @@ public struct StatusReport: Encodable, Equatable {
         public var stream_capacity: Int?
     }
 
+    /// Which indicator pack Mac Monitor's own indicators are. `nil` fields when the Security Extension couldn't be
+    /// asked, or is older than 3.2.
+    public struct Indicators: Equatable {
+        /// Which release of the indicators it is: 0 for a build's own, which aren't a pack's.
+        public var pack: Int?
+        /// `linked` when this build links them in, `installed` when a pack was installed since.
+        public var source: String?
+        /// When the pack's commit was made, as the pack says it.
+        public var published: String?
+        /// The indicators repository's commit the pack was built from.
+        public var commit: String?
+        /// What the Security Extension does about newer packs: `off`, `notify` or `auto`.
+        public var mode: String?
+        /// When GitHub was last asked for a newer pack, in ISO 8601.
+        public var checked: String?
+        /// The release of a newer pack the last look found, which isn't installed.
+        public var available: Int?
+    }
+
     public var versions: Versions
     public var security_extension: Requirements
     public var capturing: Capturing
+    public var indicators: Indicators
 
     /// - Parameters:
     ///   - tool: `macmonitor`'s version.
@@ -89,6 +109,10 @@ public struct StatusReport: Encodable, Equatable {
         capturing = Capturing(mac_monitor_connected: report?.app.connected,
                               mac_monitor_recording: report?.app.recording, streams: report?.streams,
                               stream_capacity: report?.streamCapacity)
+        let pack = report?.indicators
+        indicators = Indicators(pack: pack?.sequence, source: pack?.source.rawValue, published: pack?.published,
+                                commit: pack?.commit, mode: pack?.mode?.rawValue, checked: pack?.checked,
+                                available: pack?.available)
     }
 
     /// Every key, with `null` for what isn't known, so a script always finds the same keys.
@@ -112,6 +136,16 @@ public struct StatusReport: Encodable, Equatable {
         try capturing.encode(self.capturing.mac_monitor_recording, forKey: Key("mac_monitor_recording"))
         try capturing.encode(self.capturing.streams, forKey: Key("streams"))
         try capturing.encode(self.capturing.stream_capacity, forKey: Key("stream_capacity"))
+        var indicators = container.nestedContainer(keyedBy: Key.self, forKey: Key("indicators"))
+        try indicators.encode(self.indicators.pack, forKey: Key("pack"))
+        try indicators.encode(self.indicators.source, forKey: Key("source"))
+        try indicators.encode(self.indicators.published, forKey: Key("published"))
+        try indicators.encode(self.indicators.commit, forKey: Key("commit"))
+        /// Left out while pack updates wait for a later release.
+        guard IndicatorPackUpdates.isAvailable else { return }
+        try indicators.encode(self.indicators.mode, forKey: Key("mode"))
+        try indicators.encode(self.indicators.checked, forKey: Key("checked"))
+        try indicators.encode(self.indicators.available, forKey: Key("available"))
     }
 
     /// A key of the JSON, by its name.
@@ -199,7 +233,11 @@ public enum StatusCommand {
                 ("Activated", needs.activated ? "yes" : "no (\(needs.system_extension ?? "not installed"))"),
                 ("Full Disk Access", fullDiskAccess(needs))]),
             ("Capturing", [("Mac Monitor", app(capturing)), ("macmonitor streams", streams(capturing))]),
+            ("Indicators", [("Pack", pack(report.indicators))]),
         ]
+        if IndicatorPackUpdates.isAvailable, let available = report.indicators.available {
+            groups[3].rows.append(("Available", "pack \(available)"))
+        }
         if let problem = needs.problem { groups[1].rows.append(("Note", problem)) }
         let width = groups.flatMap(\.rows).map(\.0.count).max() ?? 0
         let lines = groups.map { group in
@@ -230,6 +268,14 @@ public enum StatusCommand {
         guard let connected = capturing.mac_monitor_connected else { return "unknown" }
         guard connected else { return "not connected" }
         return capturing.mac_monitor_recording == true ? "connected, recording" : "connected, not recording"
+    }
+
+    /// - Parameter indicators: Which indicator pack Mac Monitor's own indicators are.
+    /// - Returns: The pack's release and whether it was installed since this build, or that they're this build's own.
+    private static func pack(_ indicators: StatusReport.Indicators) -> String {
+        guard let pack = indicators.pack, let source = indicators.source else { return "unknown" }
+        if source == IndicatorBaseline.Source.installed.rawValue { return "\(pack), installed" }
+        return pack == 0 ? "this build's own" : "\(pack), in this build"
     }
 
     /// - Parameter capturing: Who is capturing.

@@ -79,7 +79,8 @@ extension XCTestCase {
     /// event Mac Monitor records.
     static let fixtureEventCounts: KeyValuePairs<String, Int> = [
         "eslogger-exit.jsonl": 1, "eslogger-open.jsonl": 1, "eslogger-lineage.jsonl": 10, "eslogger-od.jsonl": 11,
-        "eslogger-remote-thread-create.jsonl": 2, "macmonitor-2.1-exit.jsonl": 1, "macmonitor-2.1-od.json": 6,
+        "eslogger-remote-thread-create.jsonl": 2, "eslogger-authentication.jsonl": 1,
+        "macmonitor-2.1-exit.jsonl": 1, "macmonitor-2.1-od.json": 6,
     ]
     
     /// Every record of eslogger's fixtures and Mac Monitor 2.1's, opened as File > Open Trace... opens them

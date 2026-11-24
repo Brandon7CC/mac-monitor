@@ -57,7 +57,7 @@ struct IndicatorNarrowing {
     /// - Parameter indicators: The indicators records list for events without stored verdicts.
     init(_ indicators: [Indicator]) {
         let pairs = indicators.filter(\.isEnabled).compactMap { indicator -> (UUID, NSPredicate?)? in
-            (try? StreamFilter.Predicate(indicator.predicate, for: .indicator))
+            indicator.eventPredicate.flatMap { try? StreamFilter.Predicate($0, for: .indicator) }
                 .map { (indicator.id, $0.storePredicate) }
         }
         local = Dictionary(pairs) { first, _ in first }

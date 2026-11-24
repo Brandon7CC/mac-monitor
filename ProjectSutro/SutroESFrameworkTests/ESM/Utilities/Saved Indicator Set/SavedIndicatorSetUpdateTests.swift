@@ -52,14 +52,14 @@ final class SavedIndicatorSetUpdateTests: XCTestCase {
         var edited = target
         edited.name = "Renamed"
         edited.severity = target.severity == .high ? .low : .high
-        edited.predicate = Self.exec + " AND process.pid > 1"
+        edited.rule = .event(Self.exec + " AND process.pid > 1")
         edited.isEnabled.toggle()
         edited.tableMarks = target.tableMarks.isEmpty ? [.dot, .symbol] : []
         let reply = set.send(IndicatorRequest(.update, indicators: [edited], fields: [.predicate, .severity]))
         XCTAssertEqual(reply.status, .ok)
         XCTAssertTrue(reply.changed)
         var expected = target
-        expected.predicate = edited.predicate
+        expected.rule = edited.rule
         expected.severity = edited.severity
         XCTAssertEqual(reply.indicators[3], expected)
         XCTAssertEqual(reply.indicators.map(\.id), Indicator.defaults.map(\.id))
@@ -120,7 +120,7 @@ final class SavedIndicatorSetUpdateTests: XCTestCase {
         XCTAssertEqual(set.current.compiledCount, 0)
         let hit = try XCTUnwrap(set.current.ruleHits.first { $0.id == target.id })
         XCTAssertEqual([hit.name, hit.severity.rawValue], ["Renamed", edited.severity.rawValue])
-        edited.predicate = Self.exec + " AND process.pid > 1"
+        edited.rule = .event(Self.exec + " AND process.pid > 1")
         set.send(IndicatorRequest(.update, indicators: [edited], fields: [.predicate]))
         XCTAssertEqual(set.current.compiledCount, 1)
     }
@@ -149,7 +149,7 @@ final class SavedIndicatorSetUpdateTests: XCTestCase {
             XCTAssertEqual(reply.status, .ok, pair.format)
             XCTAssertTrue(reply.changed, pair.format)
             let saved = try XCTUnwrap(try savedIndicators(in: directory).first { $0.id == id }, pair.format)
-            XCTAssertEqual(Array(saved.predicate.utf8), Array(respelled.predicate.utf8), pair.format)
+            XCTAssertEqual(Array(saved.predicate!.utf8), Array(respelled.predicate!.utf8), pair.format)
             XCTAssertEqual(hits(id), pair.hit != id, pair.format)
         }
     }
@@ -159,7 +159,7 @@ final class SavedIndicatorSetUpdateTests: XCTestCase {
     func testUpdateIsCheckedAsTheResult() throws {
         let before = indicatorFile(in: directory)
         var unknownType = target
-        unknownType.predicate = #"es_event_type == "ES_EVENT_TYPE_NOTIFY_NOPE""#
+        unknownType.rule = .event(#"es_event_type == "ES_EVENT_TYPE_NOTIFY_NOPE""#)
         let refusals: [(IndicatorRequest, String?)] = [
             (IndicatorRequest(.update, indicators: [target]), "Name the fields to change."),
             (IndicatorRequest(.update, indicators: [target, target], fields: [.name]), "Name each indicator once."),
@@ -206,12 +206,12 @@ final class SavedIndicatorSetUpdateTests: XCTestCase {
         XCTAssertNil(reference["predicate"])
 
         var later = Indicator.defaults
-        later[3].predicate += " AND process.pid > 0"
+        later[3].rule = .event(later[3].predicate! + " AND process.pid > 0")
         XCTAssertEqual(try savedIndicators(in: directory, defaults: later)[3].predicate, later[3].predicate)
         XCTAssertEqual(try savedIndicators(in: directory, defaults: later)[3].severity, severe.severity)
 
         var rule = severe
-        rule.predicate = Self.exec + " AND process.pid > 1"
+        rule.rule = .event(Self.exec + " AND process.pid > 1")
         set.send(IndicatorRequest(.update, indicators: [rule], fields: [.predicate]))
         let full = try XCTUnwrap(try savedEntries().first { $0["id"] as? String == target.id.uuidString })
         XCTAssertEqual(full["predicate"] as? String, rule.predicate)
@@ -227,7 +227,7 @@ final class SavedIndicatorSetUpdateTests: XCTestCase {
         var viewed = target
         viewed.tableMarks = target.tableMarks.isEmpty ? [.dot, .symbol] : []
         set.send(IndicatorRequest(.add, indicators: [viewed]))
-        XCTAssertEqual(edited(), false, "Views aren't the detection")
+        XCTAssertEqual(edited(), false, "Views aren't the indicator")
         var technique = target
         technique.technique = "T1059.002"
         set.send(IndicatorRequest(.update, indicators: [technique], fields: [.technique]))

@@ -86,7 +86,6 @@ struct SystemTargetExecProcMetadataView: View {
             }
             HStack {
                 Label("**User:**", systemImage: "person.fill")
-                    .padding([.leading], 5.0)
                 UserFact(process: event.target)
             }
         }
@@ -94,10 +93,7 @@ struct SystemTargetExecProcMetadataView: View {
         FactsBox {
             ScrollView(.horizontal) {
                 ProcessIDFacts(process: event.target, name: processName(event)) {
-                    Text("\u{2022} **Session:**")
-                    GroupBox {
-                        Text("`\(String(event.target.session_id))`")
-                    }
+                    Fact("Session", String(event.target.session_id))
                     // MARK: Launched-by parent and group leader
                     AdditionalProcMetadataView(selectedMessage: selectedMessage)
                 }
@@ -119,7 +115,7 @@ struct SystemTargetExecProcMetadataView: View {
             }
 
             if let script = event.resolved_script_path {
-                FactRow(name: "Script", value: script, stacked: true, style: .monospaced)
+                FactRow(name: "Script", value: script, stacked: true)
             }
             if let cwdPath = event.cwd?.path, cwdPath.count > 1 {
                 FactRow(name: "CWD", value: cwdPath, stacked: true)
@@ -148,12 +144,9 @@ struct SystemTargetExecProcMetadataView: View {
 
                 // MARK: Code signing flags
                 /// The value and how many are set: the Code signing flags section lists them.
-                HStack {
-                    Text("\u{2022} **Code signing flags:**")
-                    GroupBox {
-                        Text(String(format: "0x%08X", UInt32(truncatingIfNeeded: event.target.codesigning_flags)))
-                            .monospaced()
-                    }
+                FactRow {
+                    Fact("Code signing flags",
+                         String(format: "0x%08X", UInt32(truncatingIfNeeded: event.target.codesigning_flags)))
                     Text("\(ProcessHelpers.codeSigningFlags(event.target.codesigning_flags).count) set")
                         .foregroundStyle(.secondary)
                 }
@@ -170,16 +163,17 @@ struct SystemTargetExecProcMetadataView: View {
                 if !event.certificate_chain.isEmpty {
                     Text("\u{2022} **Certificate chain:**")
                     ScrollView(.horizontal) {
-                        ForEach(event.certificate_chain, id: \.self) { cert in
-                            let summary: String = cert.summary
-                            let thumbprint: String = cert.thumbprint
-                            GroupBox {
-                                HStack {
-                                    Label("`\(summary)`", systemImage: "lock.doc")
-                                    Image(systemName: "arrow.right")
-                                    Label("`\(thumbprint)`", systemImage: "touchid")
+                        VStack(alignment: .leading) {
+                            ForEach(event.certificate_chain, id: \.self) { cert in
+                                let summary: String = cert.summary
+                                let thumbprint: String = cert.thumbprint
+                                GroupBox {
+                                    HStack {
+                                        Label("`\(summary)`", systemImage: "lock.doc")
+                                        Image(systemName: "arrow.right")
+                                        Label("`\(thumbprint)`", systemImage: "touchid")
+                                    }
                                 }
-                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
                     }

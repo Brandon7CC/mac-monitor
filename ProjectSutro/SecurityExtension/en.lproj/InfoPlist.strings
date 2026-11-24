@@ -1,0 +1,4 @@
+/* The name people read for the Security Extension. The Finder, and System Settings where it names a bundle as the
+   Finder would, show it because the Info.plist names the bundle by its file name. */
+"CFBundleDisplayName" = "Mac Monitor Security Extension";
+"CFBundleName" = "Mac Monitor Security Extension";

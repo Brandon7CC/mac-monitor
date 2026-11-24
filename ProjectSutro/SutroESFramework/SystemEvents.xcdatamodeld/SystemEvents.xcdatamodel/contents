@@ -11,6 +11,27 @@
         <attribute name="ruid" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="od_instigated" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ESODEvent" inverseName="instigator_token" inverseEntity="ESODEvent"/>
     </entity>
+    <entity name="ESAuthenticationEvent" representedClassName="ESAuthenticationEvent" syncable="YES">
+        <attribute name="auto_unlock_type" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
+        <attribute name="auto_unlock_type_string" optional="YES" attributeType="String"/>
+        <attribute name="db_path" optional="YES" attributeType="String"/>
+        <attribute name="kerberos_principal" optional="YES" attributeType="String"/>
+        <attribute name="node_name" optional="YES" attributeType="String"/>
+        <attribute name="pubkey_hash" optional="YES" attributeType="String"/>
+        <attribute name="record_name" optional="YES" attributeType="String"/>
+        <attribute name="record_type" optional="YES" attributeType="String"/>
+        <attribute name="success" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="token_id" optional="YES" attributeType="String"/>
+        <attribute name="touchid_mode" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
+        <attribute name="touchid_mode_string" optional="YES" attributeType="String"/>
+        <attribute name="type" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="type_string" optional="YES" attributeType="String"/>
+        <attribute name="uid" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
+        <attribute name="uid_human" optional="YES" attributeType="String"/>
+        <attribute name="username" optional="YES" attributeType="String"/>
+        <relationship name="instigator" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcess"/>
+        <relationship name="instigator_token" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESAuditToken"/>
+    </entity>
     <entity name="ESAuthorizationJudgementEvent" representedClassName="ESAuthorizationJudgementEvent" syncable="YES">
         <attribute name="result_count" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="resultsData" optional="YES" attributeType="Binary"/>
@@ -33,6 +54,7 @@
     <entity name="ESCodeSignatureInvalidatedEvent" representedClassName="ESCodeSignatureInvalidatedEvent" syncable="YES">
     </entity>
     <entity name="ESEventType" representedClassName="ESEventType" syncable="YES">
+        <relationship name="authentication" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESAuthenticationEvent"/>
         <relationship name="authorization_judgement" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESAuthorizationJudgementEvent"/>
         <relationship name="authorization_petition" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESAuthorizationPetitionEvent"/>
         <relationship name="btm_launch_item_add" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESLaunchItemAddEvent"/>
@@ -237,6 +259,7 @@
         <attribute name="instigator_parent_audit_token" optional="YES" attributeType="String"/>
         <attribute name="macOS" optional="YES" attributeType="String"/>
         <attribute name="sip_status" optional="YES" attributeType="String"/>
+        <attribute name="boot_session_uuid" optional="YES" attributeType="String"/>
         <attribute name="mach_time" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="message_darwin_time" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="process_age_ms" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
@@ -406,6 +429,7 @@
         <relationship name="target" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcess"/>
     </entity>
     <entity name="ESProcessExecEvent" representedClassName="ESProcessExecEvent" syncable="YES">
+        <attribute name="ancestor_keys_joined" optional="YES" attributeType="String"/>
         <attribute name="argsData" optional="YES" attributeType="Binary"/>
         <attribute name="cdhash" optional="YES" attributeType="String"/>
         <attribute name="certificateChainData" optional="YES" attributeType="Binary"/>
@@ -456,6 +480,7 @@
         <attribute name="stat" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
     <entity name="ESProcessForkEvent" representedClassName="ESProcessForkEvent" syncable="YES">
+        <attribute name="ancestor_keys_joined" optional="YES" attributeType="String"/>
         <attribute name="child_age_ms" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
         <attribute name="child_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="launched_by_parent_job" optional="YES" attributeType="String"/>

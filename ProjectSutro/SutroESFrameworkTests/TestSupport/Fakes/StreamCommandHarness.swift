@@ -80,10 +80,11 @@ final class StreamCommandRun {
     ///   - filter: Which events are written.
     ///   - limit: The most events to write (`--count`), if any.
     ///   - indicatorTimeout: How long `--indicator`'s check waits for the Mac's indicators.
+    ///   - stopTimeout: How long a stop from outside the stream, such as a signal's, waits for the answer.
     init(harness: StreamHarness?, endpoint: NSXPCListenerEndpoint? = nil, formatter: StreamPipeline.Formatter,
          scope: PipelineScope, toolVersion: String = "3.0.0 (1)", isChatty: Bool = true, requirement: String? = nil,
          filter: StreamFilter = StreamFilter(), limit: Int? = nil,
-         indicatorTimeout: DispatchTimeInterval = .seconds(10)) {
+         indicatorTimeout: DispatchTimeInterval = .seconds(10), stopTimeout: DispatchTimeInterval = .seconds(2)) {
         guard let endpoint = endpoint ?? harness?.endpoint else { preconditionFailure("Nowhere to connect.") }
         let client = StreamClient(connection: NSXPCConnection(listenerEndpoint: endpoint), requirement: requirement)
         let pipeline = StreamPipeline(formatter: formatter, scope: scope, forTerminal: false, filter: filter,
@@ -92,7 +93,8 @@ final class StreamCommandRun {
         self.output = output
         self.diagnostics = diagnostics
         command = StreamCommand(client: client, pipeline: pipeline, output: output, toolVersion: toolVersion,
-                                isChatty: isChatty, diagnose: diagnostics.append, indicatorTimeout: indicatorTimeout)
+                                isChatty: isChatty, diagnose: diagnostics.append, indicatorTimeout: indicatorTimeout,
+                                stopTimeout: stopTimeout)
     }
     
     /// Every outcome reported, which should only ever be one.

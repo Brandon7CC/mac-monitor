@@ -53,6 +53,8 @@ public struct CommandLineOption: Equatable {
     static let validate = [CommandLineOption("--eslogger")]
     /// `status`'s options.
     static let status = [CommandLineOption("--json")]
+    /// `update`'s options.
+    static let update = [CommandLineOption("--json")]
 
     /// A mute command's options.
     ///
@@ -92,6 +94,8 @@ public struct CommandLineOption: Equatable {
                 }
             } + [CommandLineOption("--file", .file), CommandLineOption("--yes"), CommandLineOption("--restore")]
         case .import: return [CommandLineOption("--replace"), CommandLineOption("--yes")]
+        case .test: return [CommandLineOption("--plan", .file)]
+        case .pack: return [CommandLineOption("--yes"), CommandLineOption("--json")]
         case .show, .remove, .enable, .disable, .export: return []
         }
     }

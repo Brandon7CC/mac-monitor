@@ -14,12 +14,16 @@ import Foundation
 ///
 /// Import and Export happen in the caller: it reads a file into indicators and sends `.add` or `.replace`, and writes
 /// the indicators of a reply to a file. The Security Extension only ever reads indicators, never a file or a path to
-/// one. Severity, like the rest of an indicator but its view switches, is part of the detection, so it travels here.
+/// one. Severity, like the rest of an indicator but its view switches, is part of the indicator, so it travels here.
+///
+/// A signed indicator pack is the one file that crosses: its bytes travel in the request (``pack``), since the
+/// Security Extension has to check the signature over exactly them (``IndicatorPackVerifier``).
 public struct IndicatorRequest: XPCRequest, Equatable {
     /// The version of requests and replies this Mac Monitor sends and understands.
     public static let currentVersion: Int = 1
-    /// The largest request: as large as the saved file.
-    public static let maximumSize: Int = IndicatorLimits.maxFileBytes
+    /// The largest request: 6 MiB, which a pack's file of ``IndicatorLimits/maxFileBytes`` fits in. JSON carries it
+    /// in base64, a third larger.
+    public static let maximumSize: Int = 6 << 20
     /// What the request is, for messages.
     public static let noun = "indicator request"
 
@@ -45,6 +49,20 @@ public struct IndicatorRequest: XPCRequest, Equatable {
         /// their place, switch and views. One the set doesn't have is refused, never added, and fields not named
         /// stay as the set has them, so an edit undoes no other writer's change.
         case update
+        /// Say what installing a signed pack would do: the reply has the set, its problems and the shipped indicators
+        /// as they would be, and nothing changes. A pack that wouldn't be installed is refused as an install would
+        /// refuse it. The pack is the one the request brings (``IndicatorRequest/pack``), or without one, the newest
+        /// the Security Extension finds on GitHub: then a reply with the set as it stands means there's none newer.
+        case checkPack
+        /// Install a signed pack as the shipped indicators the set is saved against (``IndicatorBaseline``): the one
+        /// the request brings (``IndicatorRequest/pack``), or without one, the newest the Security Extension finds
+        /// on GitHub.
+        case installPack
+        /// Change what the Security Extension does about newer packs to ``IndicatorRequest/mode``.
+        case setPackMode
+
+        /// Is the request about a signed pack to check or install?
+        var bringsPack: Bool { self == .checkPack || self == .installPack }
     }
 
     /// The request's version.
@@ -59,6 +77,14 @@ public struct IndicatorRequest: XPCRequest, Equatable {
     public var enabled: Bool?
     /// The fields an ``Operation/update`` takes from each of the request's indicators.
     public var fields: [Indicator.EditableField]
+    /// A signed pack's file, for ``Operation/checkPack`` and ``Operation/installPack``. Without one, the Security
+    /// Extension looks on GitHub for the newest.
+    public var pack: Data?
+    /// What to do about newer packs, for ``Operation/setPackMode``.
+    public var mode: IndicatorPackMode?
+    /// The sequence of the pack the caller checked, for ``Operation/installPack``: an install that would bring
+    /// another release is refused, so what's installed is what was asked about. `nil` installs whatever is newest.
+    public var expecting: Int?
 
     /// - Parameters:
     ///   - operation: What to do.
@@ -66,14 +92,21 @@ public struct IndicatorRequest: XPCRequest, Equatable {
     ///   - ids: The indicators to remove, or turn on or off.
     ///   - enabled: On or off, for ``Operation/setEnabled``.
     ///   - fields: The fields to change, for ``Operation/update``.
+    ///   - pack: A signed pack's file, to check or install.
+    ///   - mode: What to do about newer packs.
+    ///   - expecting: The sequence of the pack the caller checked.
     public init(_ operation: Operation, indicators: [Indicator] = [], ids: [UUID] = [], enabled: Bool? = nil,
-                fields: [Indicator.EditableField] = []) {
+                fields: [Indicator.EditableField] = [], pack: Data? = nil, mode: IndicatorPackMode? = nil,
+                expecting: Int? = nil) {
         version = Self.currentVersion
         self.operation = operation
         self.indicators = indicators
         self.ids = ids
         self.enabled = enabled
         self.fields = fields
+        self.pack = pack
+        self.mode = mode
+        self.expecting = expecting
     }
 
     /// Read the version, then the operation as a name, so a newer request is reported as unsupported rather than as
@@ -95,6 +128,14 @@ public struct IndicatorRequest: XPCRequest, Equatable {
             }
             return field
         }
+        pack = try container.decodeIfPresent(Data.self, forKey: .pack)
+        mode = try container.decodeIfPresent(String.self, forKey: .mode).map { name in
+            guard let mode = IndicatorPackMode(rawValue: name) else {
+                throw XPCRequestError.unsupported("This Security Extension doesn't know the mode “\(name)”.")
+            }
+            return mode
+        }
+        expecting = try container.decodeIfPresent(Int.self, forKey: .expecting)
     }
 
     /// Why some JSON isn't an indicator request: where, and what.
@@ -155,6 +196,15 @@ public struct IndicatorReply: XPCReply, Equatable {
     /// Can nobody change the set? A newer Mac Monitor saved it, or it can't be kept: every change is refused, Restore
     /// Defaults included, whatever ``access`` says.
     public var readOnly: Bool = false
+    /// Which release the shipped indicators are, and whether the build links them in or a pack was installed since.
+    /// `nil` from a Security Extension older than 3.2, whose shipped indicators are its build's.
+    public var pack: IndicatorPackStatus?
+    /// The shipped indicators the set is saved against, in order: what Restore Defaults brings back, and what an
+    /// indicator is edited from. `nil` from a Security Extension older than 3.2.
+    public var baseline: [Indicator]?
+    /// What the release says, on GitHub, of the pack a check looked at there. Unlike the pack, it isn't signed, so
+    /// it's shown as text and nothing more. `nil` for every other reply, and when the release says nothing.
+    public var notes: String?
 
     /// - Parameters:
     ///   - status: How the request went.
@@ -165,8 +215,11 @@ public struct IndicatorReply: XPCReply, Equatable {
     ///   - notice: Something to tell the user about the set.
     ///   - access: What the caller may do.
     ///   - readOnly: Can nobody change the set?
+    ///   - pack: Which release the shipped indicators are.
+    ///   - baseline: The shipped indicators the set is saved against.
     public init(status: Status, changed: Bool = false, indicators: [Indicator], problems: [Problem] = [],
-                failure: String? = nil, notice: String? = nil, access: MuteAccess? = nil, readOnly: Bool = false) {
+                failure: String? = nil, notice: String? = nil, access: MuteAccess? = nil, readOnly: Bool = false,
+                pack: IndicatorPackStatus? = nil, baseline: [Indicator]? = nil) {
         self.status = status
         self.changed = changed
         self.indicators = indicators
@@ -175,6 +228,8 @@ public struct IndicatorReply: XPCReply, Equatable {
         self.notice = notice
         self.access = access
         self.readOnly = readOnly
+        self.pack = pack
+        self.baseline = baseline
     }
 }
 
@@ -182,7 +237,7 @@ public struct IndicatorReply: XPCReply, Equatable {
 extension IndicatorReply {
     /// Everything but the version and status may be missing, an unknown status reads as ``Status/unsupported``, an
     /// unknown access as none, a missing `readOnly` as `false`, and an indicator or problem that doesn't read is left
-    /// out, so a newer Security Extension's reply still reads.
+    /// out, so a newer Security Extension's reply still reads. A pack status that doesn't read is none.
     ///
     /// - Parameter decoder: The decoder.
     /// - Throws: A `DecodingError` for a missing version or status.
@@ -200,6 +255,18 @@ extension IndicatorReply {
         access = (try? container.decodeIfPresent(String.self, forKey: .access)).flatMap { $0 }
             .flatMap(MuteAccess.init(rawValue:))
         readOnly = (try? container.decodeIfPresent(Bool.self, forKey: .readOnly)) ?? false
+        pack = try? container.decodeIfPresent(IndicatorPackStatus.self, forKey: .pack)
+        baseline = (try? container.decodeIfPresent([Lossy<Indicator>].self, forKey: .baseline))?.compactMap(\.value)
+        notes = try? container.decodeIfPresent(String.self, forKey: .notes)
+    }
+}
+
+
+extension IndicatorReply {
+    /// The shipped indicators by identity: the Security Extension's (``baseline``), or this build's when it's older
+    /// than 3.2 and sent none.
+    public var shipped: [UUID: Indicator] {
+        baseline.map(Indicator.byID) ?? CompiledIndicators.shippedDefaults
     }
 }
 

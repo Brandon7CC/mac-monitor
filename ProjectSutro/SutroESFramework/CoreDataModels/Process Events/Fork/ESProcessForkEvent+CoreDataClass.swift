@@ -24,9 +24,11 @@ public class ESProcessForkEvent: NSManagedObject, Identifiable, LaunchedByParent
     @NSManaged public var launched_by_parent_path, launched_by_parent_job: String?
     @NSManaged public var launched_by_parent_pid: NSNumber?
     @NSManaged public var launched_by_parent_token: Data?
+    /// ``ancestor_keys``, joined by commas (``AncestorKeysColumn``).
+    @NSManaged public var ancestor_keys_joined: String?
 
     enum CodingKeys: CodingKey {
-        case child, launched_by_parent
+        case child, launched_by_parent, ancestor_keys
     }
     
     /// Mac Monitor's launched-by parent of ``child`` (``LaunchedByParent``), kept in plain columns
@@ -48,6 +50,7 @@ public class ESProcessForkEvent: NSManagedObject, Identifiable, LaunchedByParent
         self.child_id = event.child.id
         self.child_age_ms = event.child.process_age_ms.map { NSNumber(value: $0) }
         self.launched_by_parent = event.launched_by_parent
+        self.ancestor_keys = event.ancestor_keys
     }
 }
 
@@ -59,5 +62,6 @@ extension ESProcessForkEvent: Encodable {
                              forKey: .child)
         /// Mac Monitor's enrichment beside eslogger's fields: `null` when there's none, so the key is always there.
         try container.encode(launched_by_parent, forKey: .launched_by_parent)
+        try container.encode(ancestor_keys, forKey: .ancestor_keys)
     }
 }

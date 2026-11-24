@@ -50,6 +50,8 @@ final class CaptureLane {
         var sensorID: String
         /// The indicators to stamp events with, or `nil` for none.
         var indicators: CompiledIndicators?
+        /// The session's chains for their sequences, or `nil` for the set's own.
+        var chains: SessionChains?
         /// Messages skipped while open but not recording.
         var skipped: UInt64 = 0
         /// Each event type's field filter, by its raw value (``FieldFilter/table(_:)``).
@@ -74,7 +76,7 @@ final class CaptureLane {
                 skipped &+= 1
                 return nil
             }
-            return Admission(sensorID: sensorID, indicators: indicators)
+            return Admission(sensorID: sensorID, indicators: indicators, chains: chains)
         }
     }
     
@@ -84,6 +86,8 @@ final class CaptureLane {
         let sensorID: String
         /// The indicators to stamp its event with: one reference, retained for the event.
         let indicators: CompiledIndicators?
+        /// The session's chains for their sequences.
+        let chains: SessionChains?
     }
     
     /// What the lane has seen of its client's messages.
@@ -122,6 +126,10 @@ final class CaptureLane {
     private let emit: (CapturedEvent) -> Void
     /// Only the exec lane has one
     private let hold: LaunchServicesHold?
+    /// The lineage table the session keeps told, or `nil` when lineage isn't tracked.
+    private let lineage: ProcessLineage?
+    /// The snapshots owed for ancestors the lane's execs and forks name, when lineage is tracked.
+    private let snapshots: LaneSnapshots?
     
     /// A lane that isn't recording and has no client yet.
     ///
@@ -132,21 +140,27 @@ final class CaptureLane {
     ///   - serializer: Builds each event's JSON.
     ///   - fieldFilters: Each event type's field filter (``FieldFilter/table(_:)``), in place before any message.
     ///   - indicators: The indicators to stamp events with, in place before any message. `nil` stamps none.
+    ///   - chains: The session's chains for their sequences.
     ///   - launchServices: Lets the exec lane hold app execs. `nil` holds nothing.
+    ///   - lineage: The lineage table the session keeps told. `nil` tracks none.
+    ///   - snapshots: The session's ledger of the processes it has described (``ProcessSnapshot``).
     ///   - emit: Receives each event in order, under the lane's locks. It must not block.
     init(_ eventClass: EventClass, label: String, sensorID: String, serializer: any EventSerializing,
          fieldFilters: ContiguousArray<FieldFilter?>, indicators: CompiledIndicators? = nil,
-         launchServices: LaunchServicesReading? = nil, emit: @escaping (CapturedEvent) -> Void) {
+         chains: SessionChains?, launchServices: LaunchServicesReading? = nil, lineage: ProcessLineage? = nil,
+         snapshots: SnapshotLedger? = nil, emit: @escaping (CapturedEvent) -> Void) {
         self.eventClass = eventClass
         self.label = label
         self.serializer = serializer
         self.emit = emit
+        self.lineage = lineage
+        self.snapshots = lineage == nil ? nil : snapshots.map(LaneSnapshots.init)
         control = OSAllocatedUnfairLock(initialState: Control(sensorID: sensorID, indicators: indicators,
-                                                              fieldFilters: fieldFilters))
+                                                              chains: chains, fieldFilters: fieldFilters))
         hold = launchServices.flatMap { reader in
             EventClassTable.eventClass(of: ES_EVENT_TYPE_NOTIFY_EXEC) == eventClass
                 ? LaunchServicesHold(eventClass: eventClass, upgrader: LaunchedByParentUpgrader(reader: reader),
-                                     emit: emit)
+                                     lineage: lineage, emit: emit)
                 : nil
         }
     }
@@ -165,22 +179,34 @@ final class CaptureLane {
             let lane = LaneContext(eventClass: eventClass, sensorID: admission.sensorID, encoder: encoder,
                                    processPaths: processPaths, fileTypes: fileTypes,
                                    holdsForLaunchServices: hold != nil, indicators: admission.indicators,
-                                   indicatorState: indicatorState)
+                                   chains: admission.chains, indicatorState: indicatorState, lineage: lineage,
+                                   snapshots: snapshots)
             let serialized = serializer.serializeEvent(message, in: lane)
+            let described = snapshots?.take() ?? []
             if let counts = indicatorState.takeCounts() { counters.withLockUnchecked { $0.indicators = counts } }
             guard let serialized else {
                 counters.withLockUnchecked { $0.serializationFailures &+= 1 }
+                /// The snapshots stand on their own, and the ledger already counts their processes as described.
+                control.withLockUnchecked { state in
+                    guard !state.isAbandoned else { return }
+                    for line in described { emit(CapturedEvent(json: line, eventClass: eventClass)) }
+                }
                 return
             }
             /// Under the control lock, so an event is never emitted once closing has given up on it.
             control.withLockUnchecked { state in
                 guard !state.isAbandoned else { return }
+                /// Ahead of the event that names them, and never held with it.
+                for line in described { emit(CapturedEvent(json: line, eventClass: eventClass)) }
                 switch serialized {
                 case .json(let json):
                     let event = CapturedEvent(json: json, eventClass: eventClass)
                     if let hold { hold.submit(event) } else { emit(event) }
-                case .held(let exec):
-                    hold?.hold(exec, stampedWith: admission.indicators)
+                case .held(let exec, let steps):
+                    hold?.hold(exec, stampedWith: admission.indicators, chains: admission.chains, steps: steps)
+                case .stamped(let event, let steps):
+                    /// Only a lane with a hold defers its steps.
+                    hold?.submit(event, stampedWith: admission.indicators, chains: admission.chains, steps: steps)
                 }
             }
         }
@@ -249,11 +275,13 @@ final class CaptureLane {
     /// Stamp events with these indicators from the next message on. An event already being built keeps the set it
     /// was admitted with. The set replaced is released after the lock, should this be its last reference.
     ///
-    /// - Parameter indicators: The set, or `nil` to stamp none.
-    func setIndicators(_ indicators: CompiledIndicators?) {
+    /// - Parameters:
+    ///   - indicators: The set, or `nil` to stamp none.
+    ///   - chains: The session's chains for its sequences, or `nil` for the set's own.
+    func setIndicators(_ indicators: CompiledIndicators?, chains: SessionChains?) {
         let replaced = control.withLock { state in
-            defer { state.indicators = indicators }
-            return state.indicators
+            defer { (state.indicators, state.chains) = (indicators, chains) }
+            return (state.indicators, state.chains)
         }
         withExtendedLifetime(replaced) {}
     }

@@ -28,6 +28,9 @@ Mac Monitor is an **advanced, stand-alone system monitoring tool tailor-made for
 * Turn on [Full Disk Access](https://developer.apple.com/documentation/endpointsecurity/3259700-es_new_client) for `Mac Monitor Security Extension` in System Settings.
 * 🏎️ Click "Start". Done!
 
+**🏢 Managed Macs**
+* A device management service can allow the Security Extension and Full Disk Access for you with [`Profiles/Mac-Monitor.mobileconfig`](./Profiles/Mac-Monitor.mobileconfig). See [Managed Deployment](https://github.com/Brandon7CC/mac-monitor/wiki/Managed-Deployment).
+
 Settings > General > **Check Now** looks for updates.
 
 ![Install process](./Resources/v3.0.0/install-graphic-v3.0.png)
@@ -68,9 +71,9 @@ sudo macmonitor stream exec --target '/osascript$' \
 
 sudo macmonitor mute list                  # the saved mute set
 sudo macmonitor indicators list            # this Mac's indicators, with each one's severity
-sudo macmonitor indicators show 'Plist modified'  # every detail of one, by name or ID
-sudo macmonitor indicators edit 'Plist modified' --severity medium  # change one, keeping its ID
-sudo macmonitor stream --indicator 'Plist modified'  # events the Security Extension matched to it
+sudo macmonitor indicators show 'Property list modified'  # every detail of one, by name or ID
+sudo macmonitor indicators edit 'Property list modified' --severity medium  # change one, keeping its ID
+sudo macmonitor stream --indicator 'Property list modified'  # events the Security Extension matched to it
 macmonitor validate trace.jsonl            # check an export against the schema
 macmonitor status                          # versions, what the Security Extension needs, and who is capturing
 ```
@@ -97,7 +100,7 @@ macmonitor status                          # versions, what the Security Extensi
 ![Event facts overview](./Resources/v3.0.0/event-metadata-overview-v3.0.png)
 
 - **Indicators**: predicates that point out events worth a look. Change Mac Monitor's own or write your own in Settings > Indicators.
-  - They run in the Security Extension, so every record and every `macmonitor` stream lists what it matched, and Mac Monitor can notify you of a High or Medium match. 43 ship by default, each with a severity and an ATT&CK tactic.
+  - They run in the Security Extension, so every record and every `macmonitor` stream lists what it matched. 45 ship by default, each with a severity and an ATT&CK tactic.
 
 ![Custom indicators](./Resources/v3.1.0/indicators-v3.1.png)
 

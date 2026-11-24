@@ -39,10 +39,10 @@ extension IndicatorCommand {
             let edited: Indicator
             switch edit.change {
             case .values(let values): edited = IndicatorEdit.applying(values, to: target)
-            case .restore: edited = try Self.restored(target)
+            case .restore: edited = try Self.restored(target, shipped: reply.shipped)
             case .file: edited = try Self.applying(file?.entry ?? [:], to: target, from: file?.name ?? "")
             }
-            let fields = target.changedFields(to: edited)
+            let fields = target.changedFields(to: edited), shipped = reply.shipped
             try Self.check(edited, fields: fields, among: reply.indicators)
             guard !fields.isEmpty else {
                 let already = edit.change == .restore ? "is already Mac Monitor's own" : "already has that"
@@ -51,7 +51,9 @@ extension IndicatorCommand {
             }
             let send = { [self] in
                 self.send(IndicatorRequest(.update, indicators: [edited], fields: fields), completion) { reply in
-                    if let note = Self.shippedNote(target, edited: edited, fields: fields) { self.diagnose(note) }
+                    if let note = Self.shippedNote(target, edited: edited, fields: fields, shipped: shipped) {
+                        self.diagnose(note)
+                    }
                     let verb = edit.change == .restore ? "Restored" : "Changed"
                     return "\(verb) \(TerminalSafeText.quoted(target.name)) (\(target.id.uuidString)): "
                         + "\(Self.summary(of: fields, from: target, to: edited)). \(Self.count(reply)) now.\n"
@@ -108,10 +110,19 @@ extension IndicatorCommand {
         if let severity = entry["severity"], (severity as? String).flatMap(IndicatorSeverity.init) == nil {
             throw unusable(name, "Its severity must be low, medium or high, not '\(severity)'.")
         }
-        let present = Indicator.EditableField.allCases.filter { entry[$0.rawValue] != nil }
+        /// A sequence's rule is its `sequence`, where a rule on one event's is its `predicate`.
+        let present = Indicator.EditableField.allCases.filter { field in
+            entry[field.rawValue] != nil || (field == .predicate && entry["sequence"] != nil)
+        }
         do {
             var object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(target)) as? [String: Any] ?? [:]
-            for key in present.map(\.rawValue) + ["kind"] { object[key] = entry[key] }
+            for key in present.filter({ $0 != .predicate }).map(\.rawValue) { object[key] = entry[key] }
+            /// A rule is `kind` with `sequence`, or a `predicate`: changed together, and only when the entry has one of
+            /// them, so an entry without one keeps the target's rule, a sequence's included.
+            let rule = ["kind", "sequence", "predicate"]
+            if rule.contains(where: { entry[$0] != nil }) {
+                for key in rule { object[key] = entry[key] }
+            }
             let data = try JSONSerialization.data(withJSONObject: object)
             let read = try IndicatorExchange.decoded { [try JSONDecoder().decode(Indicator.self, from: data)] }
             var edited = target
@@ -122,13 +133,16 @@ extension IndicatorCommand {
         }
     }
 
-    /// An indicator with every editable field as this build ships it.
+    /// An indicator with every editable field as Mac Monitor ships it.
     ///
-    /// - Parameter target: The indicator.
+    /// - Parameters:
+    ///   - target: The indicator.
+    ///   - shipped: The shipped indicators, by identity, as the Security Extension has them.
     /// - Returns: It, restored.
     /// - Throws: ``CommandLineFailure`` (65) for one Mac Monitor doesn't ship.
-    static func restored(_ target: Indicator) throws -> Indicator {
-        guard let shipped = CompiledIndicators.shippedDefaults[target.id] else {
+    static func restored(_ target: Indicator,
+                         shipped: [UUID: Indicator] = CompiledIndicators.shippedDefaults) throws -> Indicator {
+        guard let shipped = shipped[target.id] else {
             throw CommandLineFailure(.dataError, """
                 \(TerminalSafeText.quoted(target.name)) isn't one of Mac Monitor's own, so it has nothing to restore.
                 """)
@@ -192,9 +206,11 @@ extension IndicatorCommand {
     ///   - target: The indicator before.
     ///   - edited: It after.
     ///   - fields: The fields the edit changed.
+    ///   - shipped: The shipped indicators, by identity, as the Security Extension has them.
     /// - Returns: The line for standard error, or `nil`.
-    static func shippedNote(_ target: Indicator, edited: Indicator, fields: [Indicator.EditableField]) -> String? {
-        guard let shipped = CompiledIndicators.shippedDefaults[target.id], fields.contains(where: \.isRule),
+    static func shippedNote(_ target: Indicator, edited: Indicator, fields: [Indicator.EditableField],
+                            shipped: [UUID: Indicator] = CompiledIndicators.shippedDefaults) -> String? {
+        guard let shipped = shipped[target.id], fields.contains(where: \.isRule),
               !shipped.hasSameRule(as: edited) else { return nil }
         return """
             macmonitor: \(TerminalSafeText.quoted(target.name)) is one of Mac Monitor's own. Mac Monitor updates no \

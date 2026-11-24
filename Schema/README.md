@@ -39,6 +39,7 @@ integer) is untouched. The telemetry version is independent of the app's and fol
 |---|---|---|
 | 1.0.0 | 3.0.0 | The first schema. |
 | 1.1.0 | 3.1.0 | Adds the keys below, and removes none. |
+| 1.2.0 | 3.2.0 | Adds ATT&CK v19's tactics to `tactic` and `tactic_id`, and removes nothing. |
 
 ### Added in 1.1.0
 
@@ -51,6 +52,13 @@ integer) is untouched. The telemetry version is independent of the app's and fol
 | `iokit_open` | `parent_class`, `driver_bundle_id` | The service being opened and its driver. |
 | `mmap`, modified `close`, `rename` | `file_type`, `mach_o_type` | What the file is by its content: a Launch Services type and a Mach-O's `MH_*` type. |
 | Every record | `indicators`, `indicators_undetermined` | The indicators the event matched, and those the Security Extension couldn't rule out. |
+
+### Added in 1.2.0
+
+ATT&CK v19 split Defense Evasion into Stealth, which kept its identity, TA0005, and Defense Impairment, TA0112. An
+indicator's `tactic` can be `Stealth` or `Defense Impairment`, and its `tactic_id` `TA0112`. A record Mac Monitor 3.2
+or later writes never names Defense Evasion, and `TA0005` is Stealth in it. `Defense Evasion` stays a valid `tactic`,
+for records written before.
 
 Each key's `description` in the schema says how it's derived and when it's `null`. Three things hold across them:
 
@@ -81,7 +89,7 @@ every record is valid, 65 when one isn't or the trace has no records, and 66 whe
 
 The schema is generated and its source is a declarative description of the export in
 `ProjectSutro/SutroESFrameworkTests/Telemetry Schema/Source`, and
-`ProjectSutro/Scripts/generate-telemetry-schema.sh` writes it. The framework bundles this file, so the app and
+`ProjectSutro/Scripts/Generate/generate-telemetry-schema.sh` writes it. The framework bundles this file, so the app and
 the command line validate against exactly the bytes in the repository.
 
 The tests keep the schema and the exports in sync. Every object has `additionalProperties: false` and every key

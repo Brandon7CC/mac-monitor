@@ -63,6 +63,8 @@ public final class TelemetryExporter {
     private let cancelled = OSAllocatedUnfairLock(initialState: false)
     /// The shortest time between progress reports while writing, in nanoseconds.
     private let reportInterval: UInt64
+    /// The process snapshots the records owe (``StreamSnapshots``). Used on the exporter's context.
+    private let snapshots: StreamSnapshots
     
     /// - Parameters:
     ///   - container: The event store.
@@ -71,11 +73,16 @@ public final class TelemetryExporter {
     ///     trace reports, or none, so tests see a report per batch.
     ///   - workers: Batches fetched and encoded at once.
     ///   - indicators: The indicators each record lists under `indicators`, or `nil` to leave the key out.
+    ///   - snapshots: The process snapshots that go with the store's events (``StoredSnapshots``). Each is written
+    ///     before the first record that needs it.
     init(container: NSPersistentContainer, pretty: Bool, reportInterval: UInt64 = 100_000_000,
-         workers: Int = TelemetryExporter.defaultWorkers, indicators: [Indicator]? = nil) {
+         workers: Int = TelemetryExporter.defaultWorkers, indicators: [Indicator]? = nil,
+         snapshots: SnapshotTable = SnapshotTable()) {
         context = container.newBackgroundContext()
         self.pretty = pretty
         self.reportInterval = reportInterval
+        /// An export ends, so it remembers every process it describes: none is described twice.
+        self.snapshots = StreamSnapshots(pretty: pretty, capacity: nil, waiting: snapshots)
         prefetch = ESMessage.recordPrefetchKeyPaths(in: container.managedObjectModel)
         self.workers = (0..<max(1, workers)).map { _ in
             Worker(context: container.newBackgroundContext(), pretty: pretty,
@@ -134,6 +141,7 @@ public final class TelemetryExporter {
                 /// Choosing every event can't stop partway: a Cancel meanwhile stops here.
                 guard !self.isCancelled else { throw CancellationError() }
                 guard writeIfEmpty || !ids.isEmpty else { return 0 }
+                self.snapshots.resolve = { [unowned self] in self.snapshot(of: $0) }
                 progress(Progress(written: 0, total: ids.count))
                 return try self.write(ids, to: url, progress: progress)
             }
@@ -196,6 +204,21 @@ public final class TelemetryExporter {
         return found.map(\.objectID)
     }
     
+    /// A process the file doesn't describe, as a snapshot made from the exec or the fork that created it: the
+    /// event may not be among those exported. Found through the indexed ``ESMessage/created_audit_token``, whose
+    /// text starts with the pid and ends with the pid version.
+    ///
+    /// - Parameter key: The process's key.
+    /// - Returns: The snapshot, or `nil` when the store has no event that created the process, or the event carries
+    ///   no ancestor keys.
+    private func snapshot(of key: ProcessKey) -> ProcessSnapshotRecord? {
+        /// Only the pid and the pid version are known, which is what the lookup falls back to matching.
+        let token = "pid:\(key.pid), pidversion:\(key.pidversion)"
+        guard let creator = try? LineageLookup(context).creator(ofImage: token) else { return nil }
+        defer { context.refresh(creator, mergeChanges: false) }
+        return StreamSnapshots.Naming(creator)?.snapshot
+    }
+
     // MARK: Writing
     /// Encode `ids` into a temporary file, a round of batches at a time (one per worker, in parallel), then move it
     /// over `url`.
@@ -210,6 +233,8 @@ public final class TelemetryExporter {
         var finished = false
         defer { if !finished { unlink(temporary.path) } }
         var buffer = Data(), written = 0, reported = DispatchTime.now().uptimeNanoseconds
+        /// Has nothing been written yet? Records and snapshots alike are joined by newlines.
+        var isEmpty = true
         workers.forEach { $0.unencodable = 0 }
         defer { Worker.logUnencodable(workers.reduce(0) { $0 + $1.unencodable }, of: written) }
         let batches = stride(from: 0, to: ids.count, by: Self.batchSize).map {
@@ -222,8 +247,25 @@ public final class TelemetryExporter {
             for encoded in jobs.indices.concurrentMap({ workers[$0].encode(jobs[$0], prefetch: prefetch) }) {
                 let records = try encoded.get()
                 guard records.count > 0 else { continue }
-                if written > 0 { buffer.append(0x0A) }
-                buffer.append(records.json)
+                if !records.namings.contains(where: { $0.map(snapshots.owes) ?? false }) {
+                    if !isEmpty { buffer.append(0x0A) }
+                    buffer.append(records.json)
+                    isEmpty = false
+                } else {
+                    /// Each record on its own, with the snapshots it owes ahead of it.
+                    var start = 0
+                    for (index, end) in records.ends.enumerated() {
+                        let owed = records.namings[index].flatMap { naming in
+                            snapshots.owes(naming) ? snapshots.records(before: naming) : nil
+                        } ?? []
+                        for element in owed + [records.json[start..<end]] {
+                            if !isEmpty { buffer.append(0x0A) }
+                            buffer.append(element)
+                            isEmpty = false
+                        }
+                        start = end + 1
+                    }
+                }
                 written += records.count
             }
             if buffer.count >= 1 << 20 {
@@ -275,105 +317,6 @@ public final class TelemetryExporter {
             try FileManager.default.setAttributes([.posixPermissions: mode], ofItemAtPath: temporary.path)
         }
         guard rename(temporary.path, url.path) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
-    }
-}
-
-
-// MARK: - Workers
-extension TelemetryExporter {
-    /// Fetches and encodes one batch at a time on its own context, pinned to the export's snapshot. Used by one thread
-    /// at a time.
-    final class Worker {
-        let context: NSManagedObjectContext
-        private let pretty: Bool
-        /// Writes JSONL records where it sorts keys as `JSONEncoder` does
-        /// (``ProcessHelpers/eventToJSON(value:pretty:)`` otherwise).
-        private let encoder: StreamingJSONEncoder?
-        /// The indicators each record lists, its own.
-        private let indicators: RecordIndicators?
-        /// Events this worker couldn't encode in the current export.
-        var unencodable = 0
-        /// How many unencodable events each worker names in the log. Past that it only counts them.
-        private static let namedLimit = 10
-        private static let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "TelemetryExporter")
-        
-        /// - Parameters:
-        ///   - context: Its own context.
-        ///   - pretty: Pretty-printed JSON (`true`) or JSONL (`false`).
-        ///   - indicators: The indicators each record lists, if any.
-        init(context: NSManagedObjectContext, pretty: Bool, indicators: RecordIndicators?) {
-            self.context = context
-            self.pretty = pretty
-            self.indicators = indicators
-            encoder = !pretty && StreamingJSONEncoder.sortsKeysAsJSONEncoderDoes
-                ? StreamingJSONEncoder(sortsKeys: true, escapesSlashes: false) : nil
-        }
-        
-        /// Fetch a batch, fully loaded with every relationship its events encode, and encode its events in `batch`
-        /// order: the events still in the store, each as `eventToJSON` writes it (`{}` for one it can't encode, see
-        /// ``record(_:)``).
-        ///
-        /// - Parameters:
-        ///   - batch: The events' object IDs.
-        ///   - prefetch: Every to-one relationship an event encodes.
-        /// - Returns: The records joined by newlines and how many there are, or the error fetching them.
-        func encode(_ batch: [NSManagedObjectID], prefetch: [String]) -> Result<(json: Data, count: Int), Error> {
-            context.performAndWait {
-                Result {
-                    try autoreleasepool {
-                        let request = ESMessage.request(where: NSPredicate(format: "self IN %@", batch), loaded: true)
-                        request.relationshipKeyPathsForPrefetching = prefetch
-                        let loaded = Dictionary(try context.fetch(request).map { ($0.objectID, $0) },
-                                                uniquingKeysWith: { first, _ in first })
-                        var json = Data(), count = 0
-                        for message in batch.compactMap({ loaded[$0] }) {
-                            if count > 0 { json.append(0x0A) }
-                            json.append(record(message))
-                            count += 1
-                        }
-                        /// Not reset(): that would also unpin the context from the snapshot.
-                        context.refreshAllObjects()
-                        return (json, count)
-                    }
-                }
-            }
-        }
-        
-        /// One event's record.
-        ///
-        /// An event that can't be encoded is logged by ID and type, counted, and written as `{}`. Dropping it would
-        /// leave the file with fewer records than the export's total and the count it reports. Old exports wrote `{}`
-        /// too.
-        ///
-        /// - Parameter message: The event.
-        /// - Returns: Its JSON, or `{}`.
-        private func record(_ message: ESMessage) -> Data {
-            do {
-                return try RecordIndicators.encoding(with: indicators) {
-                    try encoder?.encode(message) ?? ProcessHelpers.eventJSON(message, pretty: pretty)
-                }
-            } catch {
-                unencodable += 1
-                if unencodable <= Self.namedLimit {
-                    Self.logger.error("""
-                        Event \(message.id.uuidString, privacy: .public) \
-                        (\(message.es_event_type ?? String(message.event_type), privacy: .public)) couldn't be \
-                        encoded and was written as {}: \(error.localizedDescription, privacy: .public)
-                        """)
-                }
-                return Data("{}".utf8)
-            }
-        }
-        
-        /// Log how many events an export wrote as `{}`, if any.
-        ///
-        /// - Parameters:
-        ///   - count: The events that couldn't be encoded.
-        ///   - written: The events written.
-        static func logUnencodable(_ count: Int, of written: Int) {
-            guard count > 0 else { return }
-            logger.fault("\(count) of \(written) exported events couldn't be encoded. Each was written as {}.")
-        }
     }
 }
 

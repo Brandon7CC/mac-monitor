@@ -22,8 +22,8 @@ final class SavedIndicatorSetSessionTests: XCTestCase {
 
     /// Every close.
     private static let everyClose = #"es_event_type == "ES_EVENT_TYPE_NOTIFY_CLOSE""#
-    /// A closed plist, which "Plist modified" matches.
-    private static let plist = "/Users/a/Library/LaunchAgents/com.example.agent.plist"
+    /// A closed file, which Shell startup file modified matches by its path.
+    private static let startupFile = "/Users/a/.zshrc"
 
     /// A recording session following a set the way the Security Extension's does: the set read and followed at once,
     /// then given to the configuration. The follower applies changes synchronously, as the test drives the session
@@ -57,21 +57,21 @@ final class SavedIndicatorSetSessionTests: XCTestCase {
     }
 
     /// A following session starts with the set loaded, and each change reaches it before its next event, severity
-    /// and all. The shipped set stamps the first plist, the own indicator the next.
+    /// and all. The shipped set stamps the first close, the own indicator the next.
     func testAFollowingSessionGetsEachChange() throws {
         let set = try makeSavedIndicatorSet()
         let (session, factory, emitted, subscription) = try follower(of: set)
         defer { session.stop(); subscription.cancel() }
         XCTAssertTrue(session.indicators === set.current)
-        factory.client(.file).deliver(closeMessage(modified: true, path: Self.plist, global: 1))
+        factory.client(.file).deliver(closeMessage(modified: true, path: Self.startupFile, global: 1))
 
         let own = ownIndicator("Any close", Self.everyClose, severity: .high)
         XCTAssertEqual(set.send(IndicatorRequest(.replace, indicators: [own])).status, .ok)
         XCTAssertTrue(session.indicators === set.current)
-        factory.client(.file).deliver(closeMessage(modified: true, path: Self.plist, global: 2))
+        factory.client(.file).deliver(closeMessage(modified: true, path: Self.startupFile, global: 2))
 
         let names = try hitNames(emitted)
-        XCTAssertTrue(names[0].contains("Plist modified"), "\(names[0])")
+        XCTAssertTrue(names[0].contains(Indicator.shipped(0x2C).name), "\(names[0])")
         XCTAssertEqual(names[1], ["Any close"])
         let hit = try JSONDecoder().decode(Message.self, from: emitted.all[1].json).indicators?.hits.first
         XCTAssertEqual(hit?.severity, .high)

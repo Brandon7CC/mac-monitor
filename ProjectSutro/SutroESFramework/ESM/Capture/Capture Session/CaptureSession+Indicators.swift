@@ -13,6 +13,9 @@ extension CaptureSession {
     /// Evaluate a new set of indicators on every lane from the next message on, or none. An event already being built
     /// keeps the set it was admitted with, so each event is judged entirely by the old set or entirely by the new one.
     ///
+    /// The session keeps its own chains for the set's sequences (``SessionChains``), the old set's for each sequence
+    /// that didn't change, within its budget (``CaptureConfiguration/chainBudget``).
+    ///
     /// Each event a lane builds is stamped with the indicators it matches (``Message/indicators``) before it's encoded
     /// or held, so an app exec held for Launch Services carries its verdicts. Events a lane never builds (left out by a
     /// field filter, skipped while not recording) are never evaluated.
@@ -23,7 +26,8 @@ extension CaptureSession {
     public func applyIndicators(_ indicators: CompiledIndicators?) -> Bool {
         guard !isStopped else { return false }
         self.indicators = indicators
-        lanes.forEach { $0.setIndicators(indicators) }
+        chains = indicators.map { SessionChains(for: $0, reusing: chains, budget: chainBudget) }
+        lanes.forEach { $0.setIndicators(indicators, chains: chains) }
         Self.logger.log("""
             \(self.label, privacy: .public): evaluating \(Self.describe(indicators), privacy: .public).
             """)
@@ -54,13 +58,20 @@ final class LaneIndicators {
     private var reported = IndicatorCounts()
 
     /// Stamp an event with the indicators it matches, as its record lists them
-    /// (``CompiledIndicators/stamp(_:values:)``).
+    /// (``CompiledIndicators/stamp(_:values:deferringSteps:)``).
     ///
     /// - Parameters:
     ///   - message: The event.
     ///   - indicators: The set the event was admitted with. `nil` leaves the event without verdicts.
-    func stamp(_ message: inout Message, with indicators: CompiledIndicators?) {
-        indicators?.stamp(&message, values: &values)
+    ///   - chains: The session's chains for its sequences, or `nil` for the set's own.
+    ///   - deferringSteps: Leave the sequences for the hold to advance as it sends the event.
+    ///   - lineage: The table an indicator's ancestor fields are read from, or `nil` when lineage isn't tracked.
+    /// - Returns: The sequence steps it matched and left: none unless deferring.
+    @discardableResult
+    func stamp(_ message: inout Message, with indicators: CompiledIndicators?, chains: SessionChains?,
+               deferringSteps: Bool = false, lineage: ProcessLineage? = nil) -> ContiguousArray<Int32> {
+        values.lineage = lineage
+        return indicators?.stamp(&message, values: &values, chains: chains, deferringSteps: deferringSteps) ?? []
     }
 
     /// The lane's counts, when they changed since they were last taken, so the lane only takes its counters' lock

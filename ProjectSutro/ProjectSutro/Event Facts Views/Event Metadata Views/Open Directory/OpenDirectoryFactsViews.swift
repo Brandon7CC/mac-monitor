@@ -92,7 +92,6 @@ struct OpenDirectoryInstigatorView: View {
     var body: some View {
         GroupBox {
             Label("The process responsible for \(role).", systemImage: "info.square")
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
         
         FactRow(name: "Process name", value: event.instigator_process_name)
@@ -116,16 +115,15 @@ struct OpenDirectoryNodeView: View {
     let event: ESODEvent
     
     var body: some View {
-        FactRow(name: "Node name", value: event.node_name, stacked: true)
+        FactRow(name: "Node name", value: event.node_name)
         if let dbPath = event.db_path.nonEmpty {
             FactRow(name: "Database path", value: dbPath)
         }
         if event.error_code != 0 {
-            HStack {
+            FactRow {
                 Text("\u{2022} **Error:**")
                 GroupBox {
                     Text(Self.markdown(event.error_code_human ?? "Unknown"))
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }

@@ -130,8 +130,6 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         set { recordingState.withLock { $0 = newValue } }
     }
     private let recordingState = OSAllocatedUnfairLock(initialState: false)
-    /// Hands the live events this user's notifications are for to them, once the store keeps them.
-    public let indicatorAlertTap = IndicatorAlertTap()
     
     /// Drop the events Apple's platform binaries make, apart from the critical ones (``EventType/isCritical``)?
     /// Set on the main thread, by any window's Filters sheet: every window shows this one answer. Each used to
@@ -181,9 +179,17 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
     /// instead. See ``CoreDataController/clearSystemEvents(source:)``.
     ///
     /// - Parameters:
-    ///   - events: JSON serializations of `Message`, oldest first.
+    ///   - events: JSON serializations of `Message`, oldest first. The process snapshots among them
+    ///     (``ProcessSnapshot``) aren't events: they're kept for exports (``CoreDataController/recordedSnapshots``),
+    ///     as is the process each exec and fork creates, whether or not the event is kept.
     ///   - reply: Lets the Security Extension send its next batch.
     public func receive(events: [Data], reply: @escaping () -> Void) {
+        var described: [ProcessSnapshotRecord] = []
+        let events = events.filter { event in
+            guard ProcessSnapshotRecord.isSnapshot(event) else { return true }
+            if let snapshot = ProcessSnapshotRecord.read(event) { described.append(snapshot) }
+            return false
+        }
         // Quickly decode the JSON.
         var firstError: Error?
         let decoded: [Message] = events.compactMap { event in
@@ -196,15 +202,27 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         }
         if let firstError { noteUndecodable(events.count - decoded.count, firstError) }
         let dropping = dropPlatformBinaries.withLock { $0 }
+        /// An exec or a fork may be an ancestor a later event names, after it's dropped here or cleared.
+        let creators = decoded.filter { message in
+            switch message.event {
+            case .exec, .fork: return true
+            default: return false
+            }
+        }
+        if !described.isEmpty || !creators.isEmpty {
+            eventBufferQueue.async { [described] in
+                let snapshots = self.coreDataContainer.recordedSnapshots
+                described.forEach(snapshots.add)
+                creators.forEach(snapshots.add(creatorOf:))
+            }
+        }
         var messages: [Message] = decoded.filter { shouldInsert($0, droppingPlatformBinaries: dropping) }
         guard !messages.isEmpty else { return reply() }
         /// An exec or fork without a launched-by parent (from an older Security Extension) gets one, with its parent's
         /// path read now, and processes without an age (a 3.0.0 Security Extension sends none) get theirs.
         for index in messages.indices { messages[index].completeReceived(path: ProcessPath.live) }
-        let alerting = indicatorAlertTap.candidates(in: messages)
         
         eventBufferQueue.async { [messages] in
-            if !alerting.isEmpty { self.indicatorAlertTap.hold(alerting) }
             self.eventBuffer.append(contentsOf: messages)
             self.pendingReplies.append(reply)
             
@@ -283,12 +301,8 @@ public class EndpointSecurityManager: NSObject, ObservableObject, OSSystemExtens
         self.eventBuffer = []
         self.pendingReplies = []
         
-        /// Pass the entire batch to Core Data, then notify for the events it kept.
-        let alerts = indicatorAlertTap.takeHeld()
-        coreDataContainer.insertSystemEvents(messages: batchToProcess, watching: Set(alerts.map(\.eventID))) { kept in
-            replies.forEach { $0() }
-            self.indicatorAlertTap.deliver(alerts, kept: kept)
-        }
+        /// Pass the entire batch to Core Data.
+        coreDataContainer.insertSystemEvents(messages: batchToProcess) { replies.forEach { $0() } }
     }
     
     // MARK: - XPC Entry
@@ -332,7 +346,7 @@ extension EndpointSecurityManager {
     /// The Security Extension only serializes events while recording, so this is what turns the event stream on.
     public func startRecordingEvents() {
         if self.connectionResult == .notPermitted {
-            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
+            NSWorkspace.shared.open(SetupRequirements.fullDiskAccessSettings)
         }
         self.isRecording = true
         sensor.call { $0.setRecording(true, reply: $1) } completion: { hasClient in

@@ -45,11 +45,13 @@ extension XCTestCase {
     ///   - input: What standard input holds, for `import -`.
     ///   - readFile: Reads a file to import, unless the real reader is wanted.
     ///   - confirm: Answers the question `import` asks: by default there's no one to ask.
+    ///   - timeout: How long the command waits for each answer: 10 seconds unless given.
     /// - Returns: What it did.
     func runIndicators(_ invocation: IndicatorInvocation, savedMutes: SavedMuteSet,
                        savedIndicators: SavedIndicatorSet, grant: CommandLineGrant = .everything,
                        input: Data = Data(), readFile: ((String) throws -> Data)? = nil,
-                       confirm: @escaping (String) -> Bool? = { _ in nil }) -> IndicatorRun {
+                       confirm: @escaping (String) -> Bool? = { _ in nil },
+                       timeout: DispatchTimeInterval = .seconds(10)) -> IndicatorRun {
         let harness = StreamHarness(savedMutes: savedMutes, grant: grant, savedIndicators: savedIndicators)
         let client = StreamClient(connection: NSXPCConnection(listenerEndpoint: harness.endpoint), requirement: nil)
         client.activate(receiving: TestStreamReader()) { _ in }
@@ -57,7 +59,7 @@ extension XCTestCase {
         let (output, errors) = (BufferOutput(), DiagnosticLines())
         let read = readFile ?? { path in path == "-" ? input : try IndicatorCommand.readImport(path) }
         let command = IndicatorCommand(client: client, output: output, diagnose: errors.append, confirm: confirm,
-                                       readFile: read)
+                                       readFile: read, timeout: timeout)
         let result = try? awaitCallback(timeout: 15) { command.run(invocation, completion: $0) }
         return IndicatorRun(result: result, output: output.text, errors: errors.all)
     }

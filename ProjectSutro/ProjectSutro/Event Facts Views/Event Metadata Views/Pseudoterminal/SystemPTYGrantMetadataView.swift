@@ -18,12 +18,7 @@ struct SystemPTYGrantMetadataView: View {
         if let event = esSystemEvent.event.pty_grant {
             EventFactsCard(message: esSystemEvent) {
                 FactsBox {
-                    HStack {
-                        Text("\u{2022} **Dev:**")
-                        GroupBox {
-                            Text("\(String(event.dev))")
-                        }
-                    }
+                    FactRow(name: "Dev", value: String(event.dev))
                 }
             }
         }

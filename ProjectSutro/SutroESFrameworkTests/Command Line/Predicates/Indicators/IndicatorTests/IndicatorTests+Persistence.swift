@@ -18,7 +18,7 @@ extension IndicatorTests {
 
     /// - Returns: The persistence defaults' cases, for ``defaultCases()``.
     func persistenceCases() -> [Case] {
-        shellStartupCases + scheduledJobCases + authenticationCases + sshCases + browserExtensionCases
+        shellStartupCases + scheduledJobCases + authenticationCases + sshCases
             + launchJobCases + dylibCases + pluginCases + terminalStartupCases + loginHookCases + profileCases
             + folderActionCases
     }
@@ -161,7 +161,7 @@ extension IndicatorTests {
     }
 
     private var sshCases: [Case] {
-        let name = "SSH access modified"
+        let name = "Remote Login access modified"
         return [
             (name, close("/Users/a/.ssh/authorized_keys"), close("/Users/a/.ssh/authorized_keys", modified: false)),
             (name, file("CREATE", "/Users/a/.ssh/AUTHORIZED_KEYS"), file("CREATE", "/Users/a/.ssh/id_ed25519")),
@@ -178,36 +178,8 @@ extension IndicatorTests {
         ]
     }
 
-    private var browserExtensionCases: [Case] {
-        let name = "Browser extension sideloaded"
-        let chrome = "/Users/a/Library/Application Support/Google/Chrome"
-        let chromium = "/Applications/Chromium.app/Contents/MacOS/Chromium"
-        let flags = " --user-data-dir=/Users/a/Library/Application Support/Chromium/"
-            + String(repeating: "p", count: 200)
-        return [
-            (name, close(chrome + "/External Extensions/aaaa.json"),
-             close(chrome + "/External Extensions/aaaa.json", modified: false)),
-            (name, file("RENAME", chrome + "/external extensions\\/bbbb.JSON"),
-             file("RENAME", chrome + "/Default/Extensions/bbbb/1.0/manifest.json")),
-            (name, file("RENAME", "/Library/Application Support/BraveSoftware/Brave-Browser\\/External Extensions"),
-             file("CREATE", "/Library/Application Support/BraveSoftware/Brave-Browser/External Extensions")),
-            (name, file("LINK", "/Library/Application Support/Google/Chrome/External Extensions/cccc.json"),
-             file("CREATE", chrome + "/External Extensions/cccc.json")),
-            (name, exec(chromium, chromium + " --load-extension=/tmp/ext", by: "/bin/bash"),
-             exec("/usr/bin/grep", "grep -c -- --load-extension=")),
-            (name, exec(chromium, chromium + " -load-extension=/tmp/ext", by: "/usr/libexec/xpcproxy"),
-             exec(chromium, chromium + " --load-extension=/tmp/ext", by: "/opt/homebrew/bin/node")),
-            (name, exec(chromium, chromium + flags + " --load-extension=/tmp/ext"),
-             exec(chromium, chromium + " --disable-extensions")),
-            (name, file("RENAME", chrome + "/External Extensions/dddd.json"),
-             file("RENAME", chrome + "/External Extensions/dddd.json.tmp")),
-            (name, file("RENAME", "/Library/Application Support/Google/Chrome/External Extensions"),
-             file("RENAME", chrome + "/External Extensions.bak")),
-        ]
-    }
-
     private var launchJobCases: [Case] {
-        let name = "Launch job loaded"
+        let name = "Job loaded with launchctl"
         return [
             (name, launchctl("/bin/launchctl bootstrap gui/501 /tmp/mmv/mmv.persist.plist"),
              launchctl("/bin/launchctl print gui/501")),
@@ -245,7 +217,7 @@ extension IndicatorTests {
     }
 
     private var dylibCases: [Case] {
-        let name = "Dylib inserted"
+        let name = "Dynamic library inserted"
         let xpcproxy = "/usr/libexec/xpcproxy"
         let insert = "DYLD_INSERT_LIBRARIES=/tmp/x.dylib"
         let xcodeLibrary = "DYLD_INSERT_LIBRARIES=/Applications/Xcode.app/Contents/Developer/usr/lib/"

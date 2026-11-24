@@ -69,8 +69,8 @@ final class SavedIndicatorSetTests: XCTestCase {
     /// the build. Only a choice is saved with an unedited one, so it outlasts the next change and a later build's.
     func testShippedSeveritiesFollowTheBuildUnlessChanged() throws {
         let earlierSeverities: [String: IndicatorSeverity] = [
-            "Reflective loading": .high, "Dylib inserted": .high, "Login hook set": .high,
-            "Quarantine removed": .medium, "Keychain opened": .medium, "Shell startup file modified": .medium,
+            "Reflective loading": .high, "Dynamic library inserted": .high, "Login hook set": .high,
+            "Quarantine attribute removed": .medium, "Keychain opened": .medium, "Shell startup file modified": .medium,
         ]
         let earlier = Indicator.defaults.map { shipped in
             var indicator = shipped
@@ -82,8 +82,8 @@ final class SavedIndicatorSetTests: XCTestCase {
         var indicators = earlier
         let chosen = try XCTUnwrap(indicators.firstIndex { $0.name == "Login hook set" })
         indicators[chosen].severity = .low
-        let edited = try XCTUnwrap(indicators.firstIndex { $0.name == "Dylib inserted" })
-        indicators[edited].predicate += " AND process.pid > 1"
+        let edited = try XCTUnwrap(indicators.firstIndex { $0.name == "Dynamic library inserted" })
+        indicators[edited].rule = .event(indicators[edited].predicate! + " AND process.pid > 1")
         try writeIndicatorFile(XCTUnwrap(IndicatorFile(SavedIndicators(indicators, defaults: earlier)).encoded()),
                                in: directory)
         var expected = Indicator.defaults

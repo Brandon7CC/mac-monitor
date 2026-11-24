@@ -22,7 +22,7 @@ struct SystemXProtectDetectMetadataView: View {
                     FactRow(name: "Incident ID", value: event.incident_identifier)
                     FactRow(name: "Detected path", value: event.detected_path)
                     if let executable = event.detected_executable {
-                        FactRow(name: "Executable path", value: executable, style: .monospaced)
+                        FactRow(name: "Executable path", value: executable)
                     }
                     FactRow(name: "XProtect version", value: event.signature_version)
                 }

@@ -18,6 +18,10 @@ extension CoreDataController {
     
     /// Export system events to a file: the full trace, or the selected events.
     ///
+    /// Before the first record that's from a process, or names it as an ancestor, when nothing earlier in the file
+    /// describes it, the export writes that process's snapshot (``ProcessSnapshot``): one the Security Extension
+    /// sent or the trace held, or one made from the exec a selection or a Clear left out.
+    ///
     /// We can export the events to either JSON or JSONL format: the full trace of a live recording sorted by
     /// `mach_time`, of an opened trace in its file order, and a selection sorted by `mach_time`. The export starts once
     /// the inserts already queued have been saved, and covers the events saved up to then: what it covered when it ran
@@ -40,7 +44,8 @@ extension CoreDataController {
                              indicators: [Indicator]? = nil,
                              progress: @escaping (TelemetryExporter.Progress) -> Void = { _ in },
                              completion: @escaping (Result<Int, Error>) -> Void = { _ in }) -> TelemetryExporter {
-        let exporter = TelemetryExporter(container: container, pretty: !jsonl, indicators: indicators)
+        let exporter = TelemetryExporter(container: container, pretty: !jsonl, indicators: indicators,
+                                         snapshots: snapshots.current)
         let source = self.source
         let key = ObjectIdentifier(exporter)
         exports.withLock { $0[key] = (exporter, url) }

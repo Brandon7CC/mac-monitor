@@ -18,7 +18,7 @@ struct SystemRemoteThreadCreateMetadataView: View {
             EventFactsCard(message: esSystemEvent, targetAuditToken: event.target.audit_token_string) {
                 FactsBox {
                     ThreadStateFactsView(state: event.thread_state, flavorName: event.thread_state_string)
-                    TargetProcessFacts(process: event.target, style: .monospaced)
+                    TargetProcessFacts(process: event.target)
                 }
             }
         }

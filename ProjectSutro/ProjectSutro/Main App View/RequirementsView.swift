@@ -81,6 +81,7 @@ struct RequirementRow: View {
                     .foregroundStyle(row.status == .pending ? .secondary : .primary)
                 Text(row.detail).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
+                if !row.steps.isEmpty { RequirementSteps(steps: row.steps).padding(.top, 4) }
             }
             Spacer(minLength: 8)
             if let action = row.action {
@@ -91,6 +92,24 @@ struct RequirementRow: View {
         }
         .padding(.vertical, padded ? 12 : 2)
         .padding(.horizontal, padded ? 14 : 0)
+    }
+}
+
+
+/// What to do in System Settings for a requirement that takes more than one click, numbered.
+struct RequirementSteps: View {
+    let steps: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(Array(steps.enumerated()), id: \.offset) { number, step in
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("\(number + 1).").monospacedDigit().foregroundStyle(.secondary)
+                    Text(step).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -124,8 +143,6 @@ struct RequirementStatusIcon: View {
 // MARK: - Actions
 /// What a requirement's button does.
 enum RequirementActions {
-    /// System Settings > Privacy & Security > Full Disk Access.
-    static let fullDiskAccess = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!
     /// Is this macOS 15 or later, where extensions are allowed in General > Login Items & Extensions?
     static let hasExtensionsPane = ProcessInfo.processInfo.isOperatingSystemAtLeast(
         OperatingSystemVersion(majorVersion: 15, minorVersion: 0, patchVersion: 0))
@@ -150,6 +167,7 @@ enum RequirementActions {
         case .openExtensions:
             return hasExtensionsPane ? "Open Endpoint Security Extensions" : "Open Privacy & Security"
         case .openFullDiskAccess: return "Open Full Disk Access"
+        case .openPrivacySecurity: return "Open Privacy & Security"
         }
     }
 
@@ -163,7 +181,8 @@ enum RequirementActions {
         case .showInFinder: NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
         case .installExtension: manager.activateSystemExtension()
         case .openExtensions: NSWorkspace.shared.open(extensions)
-        case .openFullDiskAccess: NSWorkspace.shared.open(fullDiskAccess)
+        case .openFullDiskAccess, .openPrivacySecurity:
+            NSWorkspace.shared.open(SetupRequirements.fullDiskAccessSettings)
         }
     }
 }

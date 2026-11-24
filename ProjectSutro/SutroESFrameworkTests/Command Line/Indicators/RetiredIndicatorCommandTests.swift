@@ -51,20 +51,22 @@ final class RetiredIndicatorCommandTests: XCTestCase {
     }
 
     /// An unedited osascript, though turned off, is gone: not listed, and neither its ID nor its name finds an
-    /// indicator to restore.
+    /// indicator to restore. A shipped indicator whose name only starts with osascript is another indicator.
     func testAnUneditedOsascriptIsGone() throws {
         var osascript = try droppedOsascript()
         osascript.isEnabled = false
         let set = try set(with: osascript)
         let listed = run(.list(), against: set)
         XCTAssertEqual(listed.rows.count, Indicator.defaults.count)
-        XCTAssertFalse(listed.output.contains("osascript"))
         let id = Self.osascriptID.uuidString
+        XCTAssertFalse(listed.rows.contains { $0.contains(id) || $0.hasSuffix("   osascript") }, listed.output)
         XCTAssertEqual(run(.edit(IndicatorEdit(id, .restore)), against: set).failure,
                        CommandLineFailure(.dataError, """
                            No indicator has the ID or name “\(id)”. Run 'macmonitor indicators list' to see them.
                            """))
-        XCTAssertEqual(run(.edit(IndicatorEdit("osascript", .restore)), against: set).failure?.exit, .dataError)
+        let byName = try XCTUnwrap(run(.edit(IndicatorEdit("osascript", .restore)), against: set).failure)
+        XCTAssertEqual(byName.exit, .dataError)
+        XCTAssertTrue(byName.message.hasPrefix("No indicator has the ID or name “osascript”."), byName.message)
         XCTAssertEqual(try savedIndicators(in: set.store.directory), Indicator.defaults, "Nothing changed")
     }
 

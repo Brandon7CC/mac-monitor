@@ -8,7 +8,7 @@
 //  Author: Brandon Dalton
 //  Co-author: Claude
 //
-//  Usage (command line): Scripts/community-build.sh, or
+//  Usage (command line): Scripts/Build/community-build.sh, or
 //    xcodebuild -project ProjectSutro.xcodeproj -scheme "ProjectSutro (Community)" \
 //        -configuration Community build
 //
@@ -16,11 +16,11 @@
 //  keys (com.apple.developer.endpoint-security.client,
 //  com.apple.developer.system-extension.install) unless a provisioning profile
 //  is present. So we turn Xcode's signing off entirely and re-sign adhoc with
-//  the real entitlements in Scripts/community-sign.sh after the build.
+//  the real entitlements in Scripts/Build/community-sign.sh after the build.
 //
 
 // Disable Xcode's code signing step. The linker still emits an adhoc
-// signature, and Scripts/community-sign.sh replaces it with one that carries
+// signature, and Scripts/Build/community-sign.sh replaces it with one that carries
 // the entitlements and bundle identifiers the OS expects.
 CODE_SIGNING_ALLOWED = NO
 CODE_SIGNING_REQUIRED = NO
@@ -51,14 +51,15 @@ COMMUNITY_EXCLUDED_ARCHS_arm64 = x86_64
 COMMUNITY_EXCLUDED_ARCHS_x86_64 = arm64 arm64e
 
 // No Mac Monitor.debug.dylib or __preview.dylib beside the app's executable: they serve Xcode Previews, which a VM
-// build has no use for, and Scripts/community-sign.sh doesn't sign them. Only the linker's adhoc signature, which it
-// writes for arm64 and arm64e alone, kept them valid, so an Intel Mac's x86_64 build failed the script's verify step.
+// build has no use for, and Scripts/Build/community-sign.sh doesn't sign them. Only the linker's adhoc signature,
+// which it writes for arm64 and arm64e alone, kept them valid, so an Intel Mac's x86_64 build failed the script's
+// verify step.
 ENABLE_DEBUG_DYLIB = NO
 
 // Optimized as Release is, so a Community build costs what the shipped app does: unoptimized, the Security Extension
 // used about three times the CPU under load (90% of a core against 29% at the same storm of events). The tests build
 // in this configuration too, so they test the optimized framework. Their own bundle stays unoptimized, set on its
-// target, so it compiles quickly. Scripts/test-performance.sh optimizes the benchmarks' bundle as well.
+// target, so it compiles quickly. Scripts/Test/test-performance.sh optimizes the benchmarks' bundle as well.
 SWIFT_OPTIMIZATION_LEVEL = -O
 SWIFT_COMPILATION_MODE = wholemodule
 GCC_OPTIMIZATION_LEVEL = s

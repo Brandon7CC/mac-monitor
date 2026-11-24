@@ -34,9 +34,11 @@ final class CommandLineStreamTests: XCTestCase {
     /// - Parameters:
     ///   - capacity: The most streams at once.
     ///   - admits: Treat every caller as root?
+    ///   - holdsSyncs: Every stream's clients hold their syncs from the start, so each stop's drain waits for the test.
     /// - Returns: The harness.
-    private func makeHarness(capacity: Int = 3, admits: Bool = true) -> StreamHarness {
-        StreamHarness(savedMutes: savedMutes, capacity: capacity, admits: admits, serializer: MessageSerializer())
+    private func makeHarness(capacity: Int = 3, admits: Bool = true, holdsSyncs: Bool = false) -> StreamHarness {
+        StreamHarness(savedMutes: savedMutes, capacity: capacity, admits: admits, serializer: MessageSerializer(),
+                      holdsSyncs: holdsSyncs)
     }
     
     /// Wait until the stream has started (its answer was handled, so its capture session is recording), then hand
@@ -127,41 +129,58 @@ final class CommandLineStreamTests: XCTestCase {
     }
     
     /// A stream that stops itself at its `--count` waits for the stop's answer however long the drain takes. The old
-    /// 2 second limit ended such a stream with exit 69 and lost what was still queued.
+    /// 2 second limit ended such a stream with exit 69 and lost what was still queued. Both streams here have a 50 ms
+    /// stop limit, and the second one's signal stop, sent after the first stream's own stop, gives up first.
     func testASelfStopWaitsForItsAnswer() throws {
-        let harness = makeHarness()
-        let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody, limit: 1)
+        /// Each drain waits on Endpoint Security's sync, so each answer waits too.
+        let harness = makeHarness(holdsSyncs: true)
+        let counted = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody, limit: 1,
+                                       stopTimeout: .milliseconds(50))
         var invocation = StreamInvocation()
         invocation.events = [ES_EVENT_TYPE_NOTIFY_EXIT]
         invocation.limit = 1
-        run.start(invocation)
-        XCTAssertTrue(waitUntil { !run.diagnostics.all.isEmpty }, "The stream never started.")
-        /// The drain waits on Endpoint Security's sync, so the answer waits too.
+        counted.start(invocation)
+        try deliverExits([1], in: harness, to: counted)
+        XCTAssertTrue(waitUntil { counted.output.lines.count == 1 })
         let clients = try XCTUnwrap(harness.factories.last?.clients)
-        clients.forEach { $0.holdSyncs() }
-        try deliverExits([1], in: harness, to: run)
-        XCTAssertTrue(waitUntil { run.output.lines.count == 1 })
-        XCTAssertFalse(waitUntil(timeout: 2.5) { !run.reported.isEmpty }, "\(run.reported)")
+        XCTAssertTrue(waitUntil { clients.allSatisfy { !$0.calls(.sync).isEmpty } }, "The stream never stopped itself.")
+        
+        let signalled = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody,
+                                         stopTimeout: .milliseconds(50))
+        signalled.start()
+        XCTAssertTrue(waitUntil { !signalled.diagnostics.all.isEmpty }, "The second stream never started.")
+        signalled.command.stop()
+        XCTAssertTrue(waitUntil { !signalled.reported.isEmpty })
+        XCTAssertEqual(signalled.reported, [.failed(.noAnswer)])
+        XCTAssertEqual(counted.reported, [])
+        
         clients.forEach { $0.releaseSyncs() }
-        XCTAssertTrue(waitUntil { !run.reported.isEmpty })
-        guard case .stopped(let summary?) = run.reported.first else { return XCTFail("\(run.reported)") }
+        XCTAssertTrue(waitUntil { !counted.reported.isEmpty })
+        guard case .stopped(let summary?) = counted.reported.first else { return XCTFail("\(counted.reported)") }
         XCTAssertEqual(summary.delivered, 1)
     }
-    
-    /// `--for` stops the stream itself once the time is up, with every event captured before then written.
+        
+    /// `--for` stops the stream itself once the time is up, with every event captured before then written. A
+    /// fraction of a second works, and the clients hold the stop's drain until the test has seen both exits written.
     func testATimeStopsTheStream() throws {
-        let harness = makeHarness()
+        let harness = makeHarness(holdsSyncs: true)
         let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody)
         var invocation = StreamInvocation()
         invocation.events = [ES_EVENT_TYPE_NOTIFY_EXIT]
-        invocation.duration = 3
+        invocation.duration = 0.05
         run.start(invocation)
         try deliverExits([1, 2], in: harness, to: run)
+        XCTAssertTrue(waitUntil { run.output.lines.count == 2 })
+        /// Only the time stops this stream, so a sync means its stop is draining.
+        let clients = try XCTUnwrap(harness.factories.last?.clients)
+        XCTAssertTrue(waitUntil { clients.allSatisfy { !$0.calls(.sync).isEmpty } }, "The time never stopped it.")
+        clients.forEach { $0.releaseSyncs() }
         XCTAssertTrue(waitUntil { !run.reported.isEmpty })
         guard case .stopped(let summary?) = run.reported.first else { return XCTFail("\(run.reported)") }
         XCTAssertEqual(summary.delivered, 2)
         XCTAssertEqual(run.output.lines.count, 2)
-        XCTAssertEqual(run.diagnostics.all.first?.hasSuffix(" Stops after 3 seconds, or press Ctrl-C."), true)
+        XCTAssertEqual(run.diagnostics.all.first?.hasSuffix(" Stops after 50 milliseconds, or press Ctrl-C."), true,
+                       "\(run.diagnostics.all)")
         XCTAssertEqual(StreamCommand.describe(5_400), "1 hour, 30 minutes")
         XCTAssertEqual(StreamCommand.describe(30), "30 seconds")
     }
@@ -287,22 +306,37 @@ final class CommandLineStreamTests: XCTestCase {
     
     /// `macmonitor` pins the Security Extension's signature. NSXPC checks it on what comes back, so a service that
     /// isn't signed as Mac Monitor's Security Extension, such as this test process, still gets the request, but
-    /// nothing it answers is believed: the stream fails with exit 69 and writes no events. Registering the Security
-    /// Extension's service name takes root.
+    /// nothing it sends is believed. A batch it sends ahead of its answer, while the stream still waits for one, is
+    /// never written, and ends the stream. Its answer fails the stream too. Either way `macmonitor` exits 69 and says
+    /// the signature is wrong. Registering the Security Extension's service name takes root.
     func testMacmonitorBelievesNothingFromAnUnsignedSecurityExtension() throws {
+        let event = try wire(try XCTUnwrap(fixtureMessages("eslogger-exit.jsonl").first))
+        let delivered = expectation(description: "macmonitor answered or refused the batch")
+        delivered.assertForOverFulfill = false
+        /// Asked once, for the stream request, before it's answered. A batch sent here arrives ahead of the answer.
+        let pushing = StreamHarness(savedMutes: savedMutes, admitting: { connection in
+            let proxy = connection?.remoteObjectProxyWithErrorHandler { _ in delivered.fulfill() }
+            (proxy as? StreamReaderProtocol)?.receive(events: [event]) { delivered.fulfill() }
+            return .everything
+        }, serializer: MessageSerializer())
+        let pushed = StreamCommandRun(harness: pushing, formatter: .text(utc), scope: nobody,
+                                      requirement: SensorXPC.sensorRequirement)
+        pushed.start()
+        wait(for: [delivered], timeout: 5)
+        XCTAssertEqual(pushed.output.lines, [])
+        XCTAssertTrue(waitUntil { !pushed.reported.isEmpty })
+        XCTAssertEqual(pushed.reported, [.failed(.signatureMismatch)])
+        
         let harness = makeHarness()
         let run = StreamCommandRun(harness: harness, formatter: .text(utc), scope: nobody,
                                    requirement: SensorXPC.sensorRequirement)
         run.start()
         XCTAssertTrue(waitUntil { !run.reported.isEmpty })
-        guard case .failed(let failure) = run.reported.first else { return XCTFail("\(run.reported)") }
-        XCTAssertEqual(failure.exit, .unavailable)
-        XCTAssertTrue(failure.message.contains("signature"), failure.message)
-        if let client = harness.factories.first?.client(.process) {
-            client.deliver(sequencedMessage(ES_EVENT_TYPE_NOTIFY_EXIT, global: 1))
-        }
-        usleep(100_000)
-        XCTAssertEqual(run.output.lines, [])
+        XCTAssertEqual(run.reported, [.failed(.signatureMismatch)])
+        XCTAssertEqual(CommandLineFailure.signatureMismatch.exit, .unavailable)
+        XCTAssertTrue(CommandLineFailure.signatureMismatch.message.contains("signature"))
+        /// Its capture started before it answered.
+        XCTAssertEqual(harness.factories.count, 1, "The request never reached the Security Extension.")
     }
     
     /// A Security Extension that goes away mid-stream ends it with exit 69, once.

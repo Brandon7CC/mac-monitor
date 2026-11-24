@@ -173,12 +173,12 @@ final class ProcessAgeExportTests: XCTestCase {
         let (url, events) = try exportAll(try makeExportStore(messages))
         XCTAssertEqual(events, 3)
         let validator = try TelemetryValidator(schema: try TelemetrySchema.data())
-        XCTAssertEqual(validator.schemaVersion, "1.1.0")
+        XCTAssertEqual(validator.schemaVersion, "1.2.0")
         let lines = try String(contentsOf: url, encoding: .utf8).split(separator: "\n").map(String.init)
         assertValid(lines.enumerated().map { (label: "line \($0 + 1)", json: $1) }, with: validator)
         let records = try lines.map { try jsonObject(Data($0.utf8)) }
         for record in records {
-            XCTAssertEqual(record[TelemetrySchema.versionKey] as? String, "1.1.0")
+            XCTAssertEqual(record[TelemetrySchema.versionKey] as? String, "1.2.0")
             XCTAssertEqual(record[path: "process", "process_age_ms"] as? Int, 114_281)
         }
         let exec = try XCTUnwrap(records.first { $0[path: "event", "exec"] != nil })

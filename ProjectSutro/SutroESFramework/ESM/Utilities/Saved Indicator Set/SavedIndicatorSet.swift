@@ -31,6 +31,12 @@ import OSLog
 /// them too, and is saved. A newer file is kept as it is, read-only, with the shipped indicators applied. Every
 /// shipped indicator is compiled first, and one that doesn't compile is logged as a fault.
 ///
+/// **Packs:** the shipped indicators are a baseline (``IndicatorBaseline``): the ones this build links in, or a signed
+/// pack installed since (`SavedIndicatorSet+Packs.swift`). Installing one changes what the set is saved against, so
+/// each indicator nobody edited takes the pack's, and every follower gets the set that makes. The Security Extension
+/// looks on GitHub for a newer pack once a day, and says so or installs it as the mode decides
+/// (`SavedIndicatorSet+Updates.swift`).
+///
 /// **Threading:** all state lives on ``queue``. Followers are called on it in change order and must hop to their
 /// session's own queue. Nothing here ever waits on a session's queue, so a session may call ``follow(_:)``
 /// synchronously from its own. A follower must never call back in synchronously.
@@ -42,10 +48,49 @@ public final class SavedIndicatorSet {
     let store: RootFileStore
     /// The marker kept while the saved file is read and compiled.
     let loadingMarker: RootFileStore
-    /// The indicators this build ships, which the set starts from and Restore Defaults brings back.
-    let defaults: [Indicator]
+    /// The installed pack's file, as it was signed.
+    let packStore: RootFileStore
+    /// The marker kept while the installed pack is read and compiled.
+    let packLoadingMarker: RootFileStore
+    /// Checks a pack's signature: a release's requirement, unless a test passes its own.
+    let verifier: IndicatorPackVerifier
+    /// Gets the newest pack from GitHub, or `nil` for a set that never looks for one.
+    let fetcher: IndicatorPackFetching?
+    /// The file that keeps the update mode and what the last look found.
+    let updateStore: RootFileStore
+    /// The marker kept while packs are verified and checked, which names them.
+    let checkingMarker: RootFileStore
+    /// The SHA-256 of each pack being verified or checked now.
+    var checking: [String] = []
+    /// What time it is.
+    let clock: () -> Date
+    /// The update mode, when GitHub was last asked, and what that found.
+    var updates = IndicatorPackUpdates()
+    /// GitHub's last answer and when it came, which stands in for another for
+    /// ``IndicatorPackUpdates/answerLifetime``.
+    var lastFetch: (at: Date, outcome: Result<FoundPack?, IndicatorPackFetchError>)?
+    /// Who waits for the fetch under way: one fetch answers them all.
+    var fetchWaiters: [(Result<FoundPack?, IndicatorPackFetchError>) -> Void] = []
+    /// Wakes the set to look for a newer pack when one is due.
+    var updateTimer: DispatchSourceTimer?
+    /// Verifies packs one at a time, off ``queue``.
+    let verifying = DispatchQueue(label: "com.swiftlydetecting.agent.securityextension.indicators.verifying",
+                                  qos: .utility)
+    /// How many packs are being verified or wait to be.
+    var verifications = 0
+    /// The most packs that may be verified or wait to be at once. A request that brings one more is told to try
+    /// again, so callers can't pile up packs for the Security Extension to hold and check.
+    static let maxVerifications = 4
+    /// The indicators this build links in: the floor a pack must be a later release than.
+    let linked: IndicatorBaseline
+    /// The shipped indicators the set is saved against: ``linked``, or a pack installed since.
+    var baseline: IndicatorBaseline {
+        didSet { shipped = Indicator.byID(baseline.indicators) }
+    }
+    /// The shipped indicators, which the set starts from and Restore Defaults brings back.
+    var defaults: [Indicator] { baseline.indicators }
     /// Them by identity, which each hit says it is, and whether this Mac edited it.
-    let shipped: [UUID: Indicator]
+    private(set) var shipped: [UUID: Indicator]
     /// Serializes everything below.
     let queue = DispatchQueue(label: "com.swiftlydetecting.agent.securityextension.indicators")
     /// The set as saved: its indicators, and the entries this build can't read, which are written back.
@@ -70,15 +115,28 @@ public final class SavedIndicatorSet {
     /// - Parameters:
     ///   - directory: The directory holding the saved file: the Security Extension's own, unless a test passes one.
     ///   - owner: Who must own the directory and file: root, unless a test passes the user running it.
-    ///   - defaults: The indicators this build ships, unless a test passes its own.
+    ///   - linked: The indicators this build links in, unless a test passes its own.
+    ///   - verifier: Checks a pack's signature: a release's requirement, unless a test passes its own.
+    ///   - fetcher: Gets the newest pack from GitHub. Without one, the set never looks for a pack.
+    ///   - clock: What time it is. Tests pass one.
     public init(directory: URL = RootFileStore.systemDirectory, owner: uid_t = 0,
-                defaults: [Indicator] = Indicator.defaults) {
+                linked: IndicatorBaseline = .linked, verifier: IndicatorPackVerifier = IndicatorPackVerifier(),
+                fetcher: IndicatorPackFetching? = nil, clock: @escaping () -> Date = Date.init) {
         store = RootFileStore(directory: directory, owner: owner, layout: IndicatorFile.layout)
         loadingMarker = RootFileStore(directory: directory, owner: owner, layout: IndicatorFile.loadingLayout)
-        self.defaults = defaults
-        shipped = Indicator.byID(defaults)
-        saved = SavedIndicators(defaults, defaults: defaults)
-        compiled = CompiledIndicators([], defaults: shipped)
+        packStore = RootFileStore(directory: directory, owner: owner, layout: IndicatorPackFile.installedLayout)
+        packLoadingMarker = RootFileStore(directory: directory, owner: owner, layout: IndicatorPackFile.loadingLayout)
+        self.verifier = verifier
+        self.fetcher = fetcher
+        self.clock = clock
+        updateStore = RootFileStore(directory: directory, owner: owner, layout: IndicatorPackUpdates.layout)
+        checkingMarker = RootFileStore(directory: directory, owner: owner,
+                                       layout: IndicatorPackUpdates.checkingLayout)
+        self.linked = linked
+        baseline = linked
+        shipped = Indicator.byID(linked.indicators)
+        saved = SavedIndicators(linked.indicators, defaults: linked.indicators)
+        compiled = CompiledIndicators([], defaults: shipped, pack: baseline.sequence)
     }
 
     /// Read the saved set, creating it from the shipped indicators on first run. Does nothing once loaded.
@@ -107,6 +165,9 @@ public final class SavedIndicatorSet {
 
     /// Answer a request from Mac Monitor or `macmonitor`.
     ///
+    /// A pack's signature is verified off ``queue``, since checking whether its certificate was revoked may wait on
+    /// the network, and the set is answered for and followed meanwhile.
+    ///
     /// - Parameters:
     ///   - request: A JSON encoded ``IndicatorRequest``.
     ///   - access: What the caller may do.
@@ -114,7 +175,16 @@ public final class SavedIndicatorSet {
     ///   - reply: Receives a JSON encoded ``IndicatorReply``, on ``queue``. It says what the caller may do, so Mac
     ///     Monitor can disable what it may not.
     public func handle(_ request: Data, access: MuteAccess, caller: String, reply: @escaping (Data) -> Void) {
-        queue.async { [self] in reply(respond(to: request, access: access, caller: caller)) }
+        queue.async { [self] in
+            switch response(to: request, access: access, caller: caller) {
+            case .reply(let answer):
+                reply(answer)
+            case .verify(let pack):
+                verify(pack, access: access, caller: caller, reply: reply)
+            case .look(let installs, let expecting):
+                look(installs: installs, expecting: expecting, access: access, caller: caller, reply: reply)
+            }
+        }
     }
 
     /// Wait for every request already handled to be answered and every change handed to the followers.
@@ -122,32 +192,96 @@ public final class SavedIndicatorSet {
         queue.sync {}
     }
 
-    /// The work behind ``handle(_:access:caller:reply:)``. Call on ``queue``.
+    /// What a request gets.
+    enum Response {
+        /// The encoded reply.
+        case reply(Data)
+        /// A pack to verify before the request is answered (``answer(to:_:access:caller:looked:)``).
+        case verify(PackRequest)
+        /// The request brought no pack: look on GitHub for the newest, to check it or install it, and when it's to
+        /// be installed, the sequence the caller expects it to have, if it said.
+        case look(installs: Bool, expecting: Int?)
+    }
+
+    /// Read a request and answer it, or hand back the pack it brings, or asks for, to be verified first. Call on
+    /// ``queue``.
     ///
     /// - Parameters:
     ///   - data: A JSON encoded ``IndicatorRequest``.
     ///   - access: What the caller may do.
     ///   - caller: Names the caller in the log.
-    /// - Returns: The encoded reply: for a list, the one cached since the last change.
-    func respond(to data: Data, access: MuteAccess, caller: String) -> Data {
+    /// - Returns: The encoded reply, for a list the one cached since the last change, or the pack to verify or look
+    ///   for.
+    func response(to data: Data, access: MuteAccess, caller: String) -> Response {
         loadIfNeeded()
         var answer: IndicatorReply
         do {
             let request = try IndicatorRequest.decode(data)
             if request.operation == .list {
-                if let cached = listReplies[access] { return cached }
+                if let cached = listReplies[access] { return .reply(cached) }
                 answer = reply(.ok)
                 answer.access = access
                 let encoded = answer.encoded()
                 listReplies[access] = encoded
-                return encoded
+                return .reply(encoded)
             }
-            answer = perform(request, access: access, caller: caller)
+            if request.operation.bringsPack {
+                switch packRequest(request, access: access, caller: caller) {
+                case .success(let pack?): return .verify(pack)
+                case .success(nil):
+                    return .look(installs: request.operation == .installPack, expecting: request.expecting)
+                case .failure(let refusal): answer = refusal.reply
+                }
+            } else if request.operation == .setPackMode {
+                answer = setMode(request, access: access, caller: caller)
+            } else {
+                answer = perform(request, access: access, caller: caller)
+            }
         } catch {
             answer = reply(error.status(), failure: error.description)
         }
         answer.access = access
-        return answer.encoded()
+        return .reply(answer.encoded())
+    }
+
+    /// Why a caller that may only read the set is refused a change. Call on ``queue``.
+    ///
+    /// - Parameters:
+    ///   - operation: What was asked.
+    ///   - access: What the caller may do.
+    ///   - caller: Names the caller in the log.
+    /// - Returns: The reply that refuses it, or `nil` when the caller may change the set.
+    func accessRefusal(of operation: IndicatorRequest.Operation, access: MuteAccess,
+                       caller: String) -> IndicatorReply? {
+        guard let refusal = access.refusal(changing: "the indicators") else { return nil }
+        logger.error("""
+            Refused \(operation.rawValue, privacy: .public) from \(caller, privacy: .public), which may \
+            only read the indicators (\(access.rawValue, privacy: .public)).
+            """)
+        return reply(refusal.status, failure: refusal.problem)
+    }
+
+    /// Why a change is refused whatever it is: the caller may only read the set, or the set can't be changed. Call
+    /// on ``queue``.
+    ///
+    /// - Parameters:
+    ///   - operation: What was asked.
+    ///   - access: What the caller may do.
+    ///   - caller: Names the caller in the log.
+    /// - Returns: The reply that refuses it, or `nil` when the change may be made.
+    func refusal(of operation: IndicatorRequest.Operation, access: MuteAccess, caller: String) -> IndicatorReply? {
+        if let refusal = accessRefusal(of: operation, access: access, caller: caller) { return refusal }
+        switch state {
+        case .readOnly:
+            return reply(.readOnly, failure: """
+                The indicators were saved by a newer Mac Monitor, so they can't be changed here. Update Mac Monitor \
+                to change them.
+                """)
+        case .unavailable(let reason):
+            return reply(.storageFailed, failure: reason)
+        case .writable:
+            return nil
+        }
     }
 
     /// Make a change. Call on ``queue``.
@@ -167,36 +301,23 @@ public final class SavedIndicatorSet {
     /// - Returns: The reply, with the set as it stands.
     func perform(_ request: IndicatorRequest, access: MuteAccess, caller: String) -> IndicatorReply {
         loadIfNeeded()
-        if let refusal = access.refusal(changing: "the indicators") {
-            logger.error("""
-                Refused \(request.operation.rawValue, privacy: .public) from \(caller, privacy: .public), which may \
-                only read the indicators (\(access.rawValue, privacy: .public)).
-                """)
-            return reply(refusal.status, failure: refusal.problem)
-        }
-        switch state {
-        case .readOnly:
-            return reply(.readOnly, failure: """
-                The indicators were saved by a newer Mac Monitor, so they can't be changed here. Update Mac Monitor \
-                to change them.
-                """)
-        case .unavailable(let reason):
-            return reply(.storageFailed, failure: reason)
-        case .writable:
-            break
-        }
+        if let refusal = refusal(of: request.operation, access: access, caller: caller) { return refusal }
         let next: [Indicator], nextCompiled: CompiledIndicators
         do {
             next = try nextIndicators(for: request)
             try IndicatorFile.validate(next)
-            guard !next.isIdentical(to: saved.indicators) else { return reply(.ok) }
-            nextCompiled = CompiledIndicators(next, defaults: shipped, reusing: compiled)
+            /// Restore Defaults also forgets what someone chose, which the indicators alone don't show.
+            let forgets = request.operation == .reset && saved.hasChoices
+            guard forgets || !next.isIdentical(to: saved.indicators) else { return reply(.ok) }
+            nextCompiled = CompiledIndicators(next, defaults: shipped, pack: baseline.sequence, reusing: compiled)
             try IndicatorFile.validate(nextCompiled)
+            try checkRuns(next, compiled: nextCompiled)
         } catch {
             return reply(.invalid, failure: "\(error)")
         }
         var nextSaved = saved
         nextSaved.indicators = next
+        if request.operation == .reset { nextSaved.forgetChoices() }
         guard let bytes = IndicatorFile(nextSaved).encoded(), bytes.count <= IndicatorLimits.maxFileBytes else {
             return reply(.invalid, failure: "The indicators would be larger than \(store.maxSizeText) saved.")
         }
@@ -214,93 +335,39 @@ public final class SavedIndicatorSet {
         return reply(.ok, changed: true)
     }
 
+    /// Refuse a set that brings an indicator the Security Extension can't run. Every indicator runs there, so one
+    /// it can't run would match nothing.
+    ///
+    /// Two are let through, and stay listed as problems. One the set already has with the same rule, as a set saved
+    /// by Mac Monitor 3.1 may hold: it's refused only once its rule changes. And one the baseline ships as it
+    /// ships it, which a pack may hold for a newer Mac Monitor.
+    ///
+    /// - Parameters:
+    ///   - next: The set a request asks for.
+    ///   - compiled: It, compiled.
+    /// - Throws: ``IndicatorFileError/cannotRun(_:_:)`` for the first such indicator, in the set's order.
+    func checkRuns(_ next: [Indicator], compiled: CompiledIndicators) throws(IndicatorFileError) {
+        guard !compiled.problems.isEmpty else { return }
+        let reasons = Dictionary(compiled.problems.map { ($0.id, $0.reason) }) { first, _ in first }
+        let had = Indicator.byID(saved.indicators)
+        for indicator in next {
+            guard let reason = reasons[indicator.id], had[indicator.id]?.rule != indicator.rule,
+                  shipped[indicator.id]?.rule != indicator.rule else { continue }
+            throw .cannotRun(indicator.name, reason)
+        }
+    }
+
     /// Make a set the current one, and hand it to every follower. Call on ``queue``.
     ///
     /// - Parameters:
     ///   - next: The set as saved.
     ///   - nextCompiled: The set, compiled.
-    private func replace(with next: SavedIndicators, compiled nextCompiled: CompiledIndicators) {
+    func replace(with next: SavedIndicators, compiled nextCompiled: CompiledIndicators) {
         saved = next
         compiled = nextCompiled
         notice = nil
         listReplies = [:]
         followers.notify { $0(nextCompiled) }
-    }
-
-    /// The set a request asks for. Every indicator it brings is checked first (``IndicatorFile/validateIncoming(_:)``).
-    ///
-    /// - Parameter request: The request.
-    /// - Returns: The next set, in order.
-    /// - Throws: ``IndicatorFileError``, or ``IndicatorRequestProblem`` for an identity the set doesn't have.
-    private func nextIndicators(for request: IndicatorRequest) throws -> [Indicator] {
-        let indicators = saved.indicators
-        switch request.operation {
-        case .list:
-            return indicators
-        case .add:
-            try IndicatorFile.validateIncoming(request.indicators)
-            return IndicatorExchange.merge(request.indicators, into: indicators).indicators
-        case .replace:
-            try IndicatorFile.validateIncoming(request.indicators)
-            return request.indicators
-        case .reset:
-            return defaults
-        case .remove:
-            try checkKnown(request.ids)
-            let removing = Set(request.ids)
-            return indicators.filter { !removing.contains($0.id) }
-        case .setEnabled:
-            guard let enabled = request.enabled else {
-                throw IndicatorRequestProblem("Say whether to turn the indicators on or off.")
-            }
-            try checkKnown(request.ids)
-            let changing = Set(request.ids)
-            return indicators.map { indicator in
-                var indicator = indicator
-                if changing.contains(indicator.id) { indicator.isEnabled = enabled }
-                return indicator
-            }
-        case .update:
-            return try updated(indicators, by: request)
-        }
-    }
-
-    /// The set after an update: the named fields of each indicator the request brings taken into the one with its
-    /// identity, in its place, and nothing else changed. What it makes is checked as the indicators an add brings
-    /// are.
-    ///
-    /// - Parameters:
-    ///   - indicators: The set now.
-    ///   - request: The update.
-    /// - Returns: The next set, in order.
-    /// - Throws: ``IndicatorRequestProblem`` for no fields, an identity named twice or one the set doesn't have.
-    ///   ``IndicatorFileError`` for an indicator the update leaves past a limit.
-    private func updated(_ indicators: [Indicator], by request: IndicatorRequest) throws -> [Indicator] {
-        guard !request.fields.isEmpty else { throw IndicatorRequestProblem("Name the fields to change.") }
-        let ids = request.indicators.map(\.id)
-        guard Set(ids).count == ids.count else { throw IndicatorRequestProblem("Name each indicator once.") }
-        try checkKnown(ids)
-        let incoming = Dictionary(uniqueKeysWithValues: request.indicators.map { ($0.id, $0) })
-        let next = indicators.map { indicator in
-            guard let edit = incoming[indicator.id] else { return indicator }
-            var indicator = indicator
-            indicator.take(request.fields, from: edit)
-            return indicator
-        }
-        try IndicatorFile.validateIncoming(next.filter { incoming[$0.id] != nil })
-        return next
-    }
-
-    /// - Parameter ids: Identities a request names.
-    /// - Throws: ``IndicatorRequestProblem`` when it names none, or one the set doesn't have.
-    private func checkKnown(_ ids: [UUID]) throws {
-        guard !ids.isEmpty else { throw IndicatorRequestProblem("Name the indicators by their identities.") }
-        let known = Set(saved.indicators.map(\.id))
-        let unknown = ids.filter { !known.contains($0) }
-        guard unknown.isEmpty else {
-            let list = unknown.map(\.uuidString).joined(separator: ", ")
-            throw IndicatorRequestProblem("No indicator has the identity \(list).")
-        }
     }
 
     /// A reply with the set as it stands.
@@ -313,19 +380,7 @@ public final class SavedIndicatorSet {
     func reply(_ status: IndicatorReply.Status, changed: Bool = false, failure: String? = nil) -> IndicatorReply {
         IndicatorReply(status: status, changed: changed, indicators: saved.indicators,
                        problems: compiled.problems.map { IndicatorReply.Problem(id: $0.id, reason: $0.reason) },
-                       failure: failure, notice: notice, readOnly: state != .writable)
-    }
-}
-
-
-// MARK: - Request problems
-/// Why a request can't be done, beyond what ``IndicatorFileError`` says: such as an identity the set doesn't have.
-struct IndicatorRequestProblem: Error, CustomStringConvertible {
-    /// The problem, as a sentence.
-    let description: String
-
-    /// - Parameter description: The problem, as a sentence.
-    init(_ description: String) {
-        self.description = description
+                       failure: failure, notice: notice, readOnly: state != .writable,
+                       pack: describe(baseline), baseline: defaults)
     }
 }

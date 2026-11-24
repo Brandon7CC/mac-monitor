@@ -21,17 +21,32 @@ final class IndicatorRequestTests: XCTestCase {
                         IndicatorRequest(.remove, ids: [high.id]),
                         IndicatorRequest(.setEnabled, ids: [low.id], enabled: false),
                         IndicatorRequest(.replace, indicators: Indicator.defaults),
-                        IndicatorRequest(.update, indicators: [high], fields: [.predicate, .severity])]
+                        IndicatorRequest(.update, indicators: [high], fields: [.predicate, .severity]),
+                        IndicatorRequest(.checkPack, pack: Data([0, 1, 2, 255])),
+                        IndicatorRequest(.installPack, pack: Data("a pack's file".utf8)),
+                        IndicatorRequest(.installPack), IndicatorRequest(.setPackMode, mode: .automatic)]
         for request in requests {
             XCTAssertEqual(try IndicatorRequest.decode(request.encoded()), request, request.operation.rawValue)
         }
         let reply = IndicatorReply(status: .refused, changed: true, indicators: [high, low],
                                    problems: [IndicatorReply.Problem(id: low.id, reason: "No.")],
-                                   failure: "Refused.", notice: "Read-only.", access: .list, readOnly: true)
+                                   failure: "Refused.", notice: "Read-only.", access: .list, readOnly: true,
+                                   pack: IndicatorPackStatus(sequence: 7, source: .installed, published: "2026",
+                                                             commit: "abc", linked: 3, needsNewer: 1),
+                                   baseline: [high])
         let read = try XCTUnwrap(IndicatorReply.decode(reply.encoded()))
         XCTAssertEqual(read, reply)
         XCTAssertEqual(read.indicators.map(\.severity), [.high, .low])
         XCTAssertTrue(read.readOnly)
+        XCTAssertEqual(read.shipped, [high.id: high])
+    }
+
+    /// A pack's file of 4 MiB, the largest the Security Extension reads, fits in a request.
+    func testAPackOfTheLargestSizeFitsInARequest() throws {
+        let file = Data(repeating: 0xA5, count: IndicatorLimits.maxFileBytes)
+        let request = IndicatorRequest(.installPack, pack: file)
+        XCTAssertLessThanOrEqual(request.encoded().count, IndicatorRequest.maximumSize)
+        XCTAssertEqual(try IndicatorRequest.decode(request.encoded()).pack, file)
     }
 
     /// A reply missing everything but its version and status still reads, writable when it doesn't say. An unknown
@@ -53,6 +68,27 @@ final class IndicatorRequestTests: XCTestCase {
         XCTAssertFalse(read.readOnly)
         XCTAssertEqual(read.indicators.map(\.name), ["Kept"])
         XCTAssertEqual(read.problems.map(\.reason), ["Why."])
+        XCTAssertNil(read.pack)
+        XCTAssertNil(read.baseline)
+        XCTAssertEqual(read.shipped, CompiledIndicators.shippedDefaults, "An older one's are this build's")
+
+        let later = Data("""
+            {"version": 1, "status": "ok", "pack": {"sequence": 4, "source": "mirrored", "linked": 1, "needsNewer": 0},
+             "baseline": [{"name": "Kept", "predicate": "TRUEPREDICATE"}, 7]}
+            """.utf8)
+        let packed = try XCTUnwrap(IndicatorReply.decode(later))
+        XCTAssertNil(packed.pack, "A source this build doesn't know is no status")
+        XCTAssertEqual(packed.baseline?.map(\.name), ["Kept"])
+        let moded = Data(#"{"version": 1, "status": "unreachable", "pack": {"sequence": 4, "source": "linked", "#.utf8)
+            + Data(#""mode": "nightly", "available": 5, "extra": true}}"#.utf8)
+        let unreached = try XCTUnwrap(IndicatorReply.decode(moded))
+        XCTAssertEqual(unreached.status, .unreachable)
+        XCTAssertEqual(unreached.pack, IndicatorPackStatus(sequence: 4, source: .linked, available: 5),
+                       "A mode this build doesn't know is left out")
+        let unknown = thrown(XPCRequestError.self) {
+            try IndicatorRequest.decode(Data(#"{"version": 1, "operation": "setPackMode", "mode": "nightly"}"#.utf8))
+        }
+        XCTAssertEqual(unknown, .unsupported("This Security Extension doesn't know the mode “nightly”."))
     }
 
     /// A newer version, an unknown operation or an unknown field is unsupported, not invalid. Missing indicators,
@@ -116,12 +152,12 @@ final class IndicatorRequestTests: XCTestCase {
                       missing?.description ?? "")
     }
 
-    /// A request of every operation, `update` included, padded with spaces to exactly 4 MiB, reads. One byte more is
+    /// A request of every operation, `update` included, padded with spaces to exactly 6 MiB, reads. One byte more is
     /// too large, though it's still the same request.
     func testTheSizeLimitIsExact() {
         let mine = ownIndicator("Mine", #"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC""#, severity: .high)
         assertSizeLimit(IndicatorRequest.Operation.allCases.map { operation in
             IndicatorRequest(operation, indicators: [mine], ids: [mine.id], enabled: true, fields: [.severity])
-        }, refusal: "The request is larger than 4 MiB.")
+        }, refusal: "The request is larger than 6 MiB.")
     }
 }

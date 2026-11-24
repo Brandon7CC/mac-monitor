@@ -17,6 +17,8 @@ final class IndicatorCommandTests: XCTestCase {
     private var savedIndicators: SavedIndicatorSet?
     /// How many indicators Mac Monitor ships.
     private let shipped = Indicator.defaults.count
+    /// Property list modified, found by its identity, which every pack keeps.
+    private let plist = Indicator.defaults.first { $0.id == Indicator.uuid(0x2A) }!
 
     /// A mute set and an indicator set in fresh directories.
     ///
@@ -124,11 +126,12 @@ final class IndicatorCommandTests: XCTestCase {
             2 indicators are named “twin”. Name the one you mean by its ID: \(twins[0].id.uuidString), \
             \(twins[1].id.uuidString).
             """)
-        let plist = try XCTUnwrap(Indicator.defaults.first { $0.name == "Plist modified" })
-        let unknown = try XCTUnwrap(run(.remove(["Plist modifed"])).failure)
+        // Its name with the next to last letter left out.
+        let typo = String(plist.name.dropLast(2) + plist.name.suffix(1))
+        let unknown = try XCTUnwrap(run(.remove([typo])).failure)
         XCTAssertEqual(unknown, CommandLineFailure(.dataError, """
-            No indicator has the ID or name “Plist modifed”. Did you mean 'Plist modified'? Run 'macmonitor \
-            indicators list' to see them.
+            No indicator has the ID or name “\(typo)”. Did you mean '\(plist.name)'? Run 'macmonitor indicators \
+            list' to see them.
             """))
         XCTAssertEqual(rows().count, shipped + 2)
 
@@ -136,38 +139,41 @@ final class IndicatorCommandTests: XCTestCase {
         XCTAssertEqual(run(.remove([lowercased, twins[1].id.uuidString, lowercased])).output,
                        "Removed “Twin” and “Twin”. \(shipped) indicators now.\n")
         XCTAssertNoThrow(try run(.remove([plist.id.uuidString])).result?.get())
-        XCTAssertFalse(rows().contains { $0.hasSuffix("   Plist modified") })
+        XCTAssertFalse(rows().contains { $0.hasSuffix("   \(plist.name)") })
     }
 
     /// `show` writes every detail of each indicator named, by name or identity, with a blank line between them: its
     /// state, severity, tactic, technique, whether it's one of Mac Monitor's own, how the tables mark it, its
     /// description and its predicate. An indicator nothing names is refused, with the name meant.
     func testShowWritesEveryDetail() throws {
-        let executable = try XCTUnwrap(Indicator.defaults.first { $0.name == "New executable" })
-        let shown = run(.show(["new executable"]))
+        let executable = try XCTUnwrap(Indicator.defaults.first { $0.id == Indicator.uuid(9) && $0.isEnabled })
+        let tactic = try XCTUnwrap(executable.tactic)
+        let technique = try XCTUnwrap(executable.technique)
+        let predicate = try XCTUnwrap(executable.predicate)
+        let shown = run(.show([executable.name.lowercased()]))
         XCTAssertNoThrow(try shown.result?.get())
         XCTAssertEqual(shown.output, """
-            New executable
+            \(executable.name)
               ID             \(executable.id.uuidString)
               State          on
-              Severity       medium
-              Tactic         Execution (TA0002)
-              Technique      T1204.002
+              Severity       \(executable.severity.rawValue)
+              Tactic         \(tactic.name) (\(tactic.identifier))
+              Technique      \(technique)
               Default        yes
-              Event tables   Dot, Symbol
+              Event tables   \(executable.tableMarks.title)
               Description    \(executable.description)
-              Predicate      \(executable.predicate)
+              Predicate      \(predicate)
 
             """)
-        let plist = try XCTUnwrap(Indicator.defaults.first { $0.name == "Plist modified" })
-        let both = run(.show([plist.id.uuidString, "New executable"])).output
-        XCTAssertTrue(both.hasPrefix("Plist modified\n  ID             \(plist.id.uuidString)\n"))
-        XCTAssertTrue(both.contains("\n\nNew executable\n"), "A blank line between indicators")
-        XCTAssertNoThrow(try run(.disable(["Plist modified"])).result?.get())
-        XCTAssertTrue(run(.show(["Plist modified"])).output.contains("  State          off\n"))
-        let unknown = try XCTUnwrap(run(.show(["Plist modifed"])).failure)
+        let both = run(.show([plist.id.uuidString, executable.name])).output
+        XCTAssertTrue(both.hasPrefix("\(plist.name)\n  ID             \(plist.id.uuidString)\n"))
+        XCTAssertTrue(both.contains("\n\n\(executable.name)\n"), "A blank line between indicators")
+        XCTAssertNoThrow(try run(.disable([plist.name])).result?.get())
+        XCTAssertTrue(run(.show([plist.name])).output.contains("  State          off\n"))
+        let typo = String(plist.name.dropLast(2) + plist.name.suffix(1))
+        let unknown = try XCTUnwrap(run(.show([typo])).failure)
         XCTAssertEqual(unknown.exit, .dataError)
-        XCTAssertTrue(unknown.message.contains("Did you mean 'Plist modified'?"))
+        XCTAssertTrue(unknown.message.contains("Did you mean '\(plist.name)'?"))
         var own = executable
         own.id = UUID()
         own.description = ""
@@ -184,33 +190,42 @@ final class IndicatorCommandTests: XCTestCase {
 
     /// `disable` and `enable` turn indicators off and on, say which already were, and `list` shows each one's state.
     func testEnableAndDisable() throws {
-        let plist = try XCTUnwrap(Indicator.defaults.first { $0.name == "Plist modified" && $0.isEnabled })
-        XCTAssertEqual(run(.disable(["plist modified"])).output,
-                       "Turned off “Plist modified”. \(shipped) indicators now.\n")
-        XCTAssertTrue(rows().contains { $0.hasPrefix("off ") && $0.hasSuffix("   Plist modified") })
+        XCTAssertTrue(plist.isEnabled)
+        XCTAssertEqual(run(.disable([plist.name.lowercased()])).output,
+                       "Turned off “\(plist.name)”. \(shipped) indicators now.\n")
+        XCTAssertTrue(rows().contains { $0.hasPrefix("off ") && $0.hasSuffix("   \(plist.name)") })
         XCTAssertEqual(run(.disable([plist.id.uuidString])).output,
-                       "Already off: “Plist modified”. \(shipped) indicators now.\n")
+                       "Already off: “\(plist.name)”. \(shipped) indicators now.\n")
         let other = try XCTUnwrap(Indicator.defaults.first { $0.isEnabled && $0.id != plist.id })
         XCTAssertEqual(run(.enable([plist.id.uuidString, other.name])).output, """
-            Turned on “Plist modified”. Already on: \(TerminalSafeText.quoted(other.name)). \(shipped) indicators now.
+            Turned on “\(plist.name)”. Already on: \(TerminalSafeText.quoted(other.name)). \(shipped) indicators \
+            now.
 
             """)
-        XCTAssertTrue(rows().contains { $0.hasPrefix("on ") && $0.hasSuffix("   Plist modified") })
+        XCTAssertTrue(rows().contains { $0.hasPrefix("on ") && $0.hasSuffix("   \(plist.name)") })
     }
 
-    /// `enable` of an indicator the Security Extension can't run turns it on and says it never matches, as `add` and
-    /// `import` do. `disable` of it doesn't: off, it isn't meant to match.
-    func testEnablingAnIndicatorThatCantRunSaysSo() throws {
+    /// `import` of an indicator the Security Extension can't run is refused, with the reason, and changes nothing.
+    /// `enable` of one the Mac already has, as a set saved by Mac Monitor 3.1 may hold, turns it on and says it
+    /// never matches. `disable` of it doesn't: off, it isn't meant to match.
+    func testAnIndicatorThatCantRun() throws {
         let unrun = Indicator(name: "Unrun", description: "", symbol: "star", color: .red,
                               predicate: #"process.executable.path ENDSWITH "/curl""#, isEnabled: false)
         let file = try indicatorFile(of: [unrun], named: "unrun.json")
         let imported = run(.importFile(path: file.path, replace: false, confirmed: true))
-        XCTAssertNoThrow(try imported.result?.get())
+        XCTAssertThrowsError(try imported.result?.get()) { error in
+            XCTAssertEqual("\(error)",
+                           "macmonitor: “Unrun” can't run in the Security Extension. \(SensorProblem.untyped)")
+        }
+        XCTAssertEqual(rows().count, shipped)
+
+        let directory = try makeIndicatorDirectory()
+        let saved = SavedIndicators(Indicator.defaults + [unrun])
+        try writeIndicatorFile(XCTUnwrap(IndicatorFile(saved).encoded()), in: directory)
+        savedIndicators = try makeSavedIndicatorSet(in: directory)
         let warning = """
             macmonitor: The Security Extension can't run “Unrun”, so it never matches. \(SensorProblem.untyped)
             """
-        XCTAssertEqual(imported.errors, [warning])
-
         let enabled = run(.enable(["unrun"]))
         XCTAssertEqual(enabled.output, "Turned on “Unrun”. \(shipped + 1) indicators now.\n")
         XCTAssertEqual(enabled.errors, [warning])
@@ -257,7 +272,7 @@ final class IndicatorCommandTests: XCTestCase {
                         """))
         var unknownType = Indicator.defaults[0]
         unknownType.id = UUID()
-        unknownType.predicate = #"es_event_type == "ES_EVENT_TYPE_NOTIFY_NOPE""#
+        unknownType.rule = .event(#"es_event_type == "ES_EVENT_TYPE_NOTIFY_NOPE""#)
         let refused = try indicatorFile(of: [unknownType], named: "refused.json")
         XCTAssertEqual(run(.importFile(path: refused.path, replace: false, confirmed: true)).failure?.exit,
                        .dataError)
@@ -265,12 +280,16 @@ final class IndicatorCommandTests: XCTestCase {
     }
 
     /// The real reader reads a regular file or standard input, at most one byte past the cap, and refuses anything
-    /// else, such as a folder, without reading it.
+    /// else, such as a folder or a named pipe with no writer, without reading it or blocking.
     func testFileInputReadsRegularFilesOnly() throws {
         let file = try temporaryFile(containing: "0123456789", named: "ten.txt")
         XCTAssertEqual(try FileInput.read(file.path, upTo: 4), Data("01234".utf8))
         XCTAssertEqual(try FileInput.read(file.path, upTo: 100), Data("0123456789".utf8))
         XCTAssertThrowsError(try FileInput.read(try makeTemporaryDirectory().path, upTo: 4)) {
+            XCTAssertEqual(($0 as? CocoaError)?.code, .fileReadUnsupportedScheme)
+        }
+        let fifo = try makeFIFO()
+        XCTAssertThrowsError(try withoutBlocking(on: fifo) { try FileInput.read(fifo, upTo: 4) }.get()) {
             XCTAssertEqual(($0 as? CocoaError)?.code, .fileReadUnsupportedScheme)
         }
         XCTAssertThrowsError(try FileInput.read("/nonexistent/file", upTo: 4)) {
@@ -290,7 +309,7 @@ final class IndicatorCommandTests: XCTestCase {
     /// A Security Extension older than 3.1 has no indicators: every indicators command says to update it (69).
     func testAnExtensionWithoutIndicators() throws {
         let older = ServiceBeforeIndicators()
-        for invocation in [IndicatorInvocation.list(), .export(), .remove(["Plist modified"])] {
+        for invocation in [IndicatorInvocation.list(), .export(), .remove(["Property list modified"])] {
             let client = StreamClient(connection: NSXPCConnection(listenerEndpoint: older.endpoint), requirement: nil)
             client.activate(receiving: TestStreamReader()) { _ in }
             let command = IndicatorCommand(client: client, output: BufferOutput(), diagnose: { _ in },
@@ -307,7 +326,7 @@ final class IndicatorCommandTests: XCTestCase {
     func testAccess() throws {
         XCTAssertNoThrow(try run(.list(), grant: .streaming).result?.get())
         for change in [IndicatorInvocation.add(name: "Curl", predicate: IndicatorCommandLineTests.curl),
-                       .disable(["Plist modified"]), .remove(["Plist modified"])] {
+                       .disable(["Property list modified"]), .remove(["Property list modified"])] {
             let refused = try XCTUnwrap(run(change, grant: .streaming).failure, "\(change)")
             XCTAssertEqual(refused.exit, .noPermission)
             XCTAssertEqual(refused.message, CommandLineAccess.needsChanges)

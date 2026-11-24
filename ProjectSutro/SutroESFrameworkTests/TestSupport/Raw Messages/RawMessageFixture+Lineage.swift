@@ -269,3 +269,43 @@ extension XCTestCase {
         return messages
     }
 }
+
+
+// MARK: - A capture with snapshots
+extension XCTestCase {
+    /// What the Security Extension sends for a capture that began after sshd (50.1) and its shell (100.1) were
+    /// running: the shell forks a child (200.2), which execs `/bin/sh` (200.3) and forks a child of its own (300.4),
+    /// which execs `/usr/bin/true` (300.5). Each event is stamped with its ancestors' keys, and the snapshots it
+    /// owes come ahead of it.
+    ///
+    /// - Parameter exits: Also the exit of 300.5 at the end, an event that creates no process.
+    /// - Returns: The wire lines, in order: the snapshots of 50.1 and 100.1, then a fork, an exec, a fork and an
+    ///   exec.
+    /// - Throws: If a fixture can't be read.
+    func captureWithSnapshots(exits: Bool = false) throws -> [Data] {
+        let lineage = ProcessLineage()
+        lineage.seed([(ProcessProgram(key: ProcessKey(pid: 50, pidversion: 1), path: "/usr/sbin/sshd"), 1),
+                      (ProcessProgram(key: ProcessKey(pid: 100, pidversion: 1), path: "/bin/zsh"), 50)])
+        let shell = try esloggerProcess(pid: 100, pidversion: 1, path: "/bin/zsh", parent: (50, 1))
+        let child = { (version: Int) in
+            try self.esloggerProcess(pid: 200, pidversion: version, path: version == 2 ? "/bin/zsh" : "/bin/sh",
+                                     parent: (100, 1))
+        }
+        let grandchild = { (version: Int) in
+            try self.esloggerProcess(pid: 300, pidversion: version, path: version == 4 ? "/bin/sh" : "/usr/bin/true",
+                                     parent: (200, 3))
+        }
+        let events = [try forkMessage(by: shell, of: try child(2)), try execMessage(by: try child(2), of: try child(3)),
+                      try forkMessage(by: try child(3), of: try grandchild(4)),
+                      try execMessage(by: try grandchild(4), of: try grandchild(5))]
+            + (exits ? [try exitMessage(of: try grandchild(5))] : [])
+        let snapshots = LaneSnapshots(ledger: SnapshotLedger())
+        return try events.flatMap { event in
+            var event = event
+            lineage.note(event, at: 0)
+            let ancestors = event.stampAncestorKeys(from: lineage)
+            snapshots.describe(event, naming: ancestors, from: lineage)
+            return snapshots.take() + [try wire(event)]
+        }
+    }
+}

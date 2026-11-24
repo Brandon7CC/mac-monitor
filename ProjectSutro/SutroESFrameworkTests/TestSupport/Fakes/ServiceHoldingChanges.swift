@@ -19,6 +19,8 @@ final class ServiceHoldingChanges: NSObject, NSXPCListenerDelegate, StreamProtoc
     private let indicators: [Indicator]
     /// The changes it got, which it never answers.
     private let changes = Recorded<IndicatorRequest.Operation>()
+    /// Signaled once for each change it gets.
+    private let received = DispatchSemaphore(value: 0)
     /// How it answers a change, or `nil` to never answer one.
     private let answer: IndicatorReply.Status?
 
@@ -44,6 +46,14 @@ final class ServiceHoldingChanges: NSObject, NSXPCListenerDelegate, StreamProtoc
     /// The changes asked for, in order.
     var heldChanges: [IndicatorRequest.Operation] {
         changes.all
+    }
+
+    /// Wait for the next change to arrive, which `macmonitor` may have stopped waiting for already.
+    ///
+    /// - Parameter timeout: How long to wait, in seconds.
+    /// - Returns: `true` once it has arrived and been recorded, `false` if none came in time.
+    func awaitChange(timeout: TimeInterval = 5) -> Bool {
+        received.wait(timeout: .now() + timeout) == .success
     }
 
     /// Accept every connection, exporting the stream interface.
@@ -86,6 +96,7 @@ final class ServiceHoldingChanges: NSObject, NSXPCListenerDelegate, StreamProtoc
         guard let decoded = try? IndicatorRequest.decode(request) else { return reply(Data()) }
         guard decoded.operation == .list else {
             changes.append(decoded.operation)
+            received.signal()
             guard let answer else { return }
             return reply(IndicatorReply(status: answer, indicators: indicators, failure: "Unknown.").encoded())
         }

@@ -80,3 +80,23 @@ extension AuditToken {
                   rgid: values[6], egid: values[7])
     }
 }
+
+
+// MARK: - Ancestor keys
+/// A created process's ancestor keys (``ProcessExecEvent/ancestor_keys``, ``ProcessForkEvent/ancestor_keys``), kept in
+/// one text column: the keys joined by commas, which a key never has.
+protocol AncestorKeysColumn: AnyObject {
+    /// The keys, joined by commas. "" for none, and `nil` when the process's lineage wasn't tracked.
+    var ancestor_keys_joined: String? { get set }
+}
+
+extension AncestorKeysColumn {
+    /// The keys of the created process's ancestors, nearest first, or `nil` when its lineage wasn't tracked.
+    public var ancestor_keys: [String]? {
+        get { ancestor_keys_joined.map { $0.split(separator: ",").map(String.init) } }
+        set { ancestor_keys_joined = newValue?.joined(separator: ",") }
+    }
+}
+
+extension ESProcessExecEvent: AncestorKeysColumn {}
+extension ESProcessForkEvent: AncestorKeysColumn {}

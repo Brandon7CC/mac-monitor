@@ -86,6 +86,8 @@ public final class StreamPipeline {
     private let filters: [StreamFilter]
     /// Escape JSONL for a terminal (``TerminalSafeText/json(_:)``). Text is always escaped.
     private let escapesJSON: Bool
+    /// The process snapshots the records owe (``StreamSnapshots``). Text writes none.
+    private let snapshots: StreamSnapshots
     
     /// - Parameters:
     ///   - formatter: How events become output. With a filter that reads records, it must have encoders.
@@ -101,6 +103,7 @@ public final class StreamPipeline {
         self.escapesJSON = forTerminal
         self.filters = (0..<max(1, formatter.encoders.count)).map { _ in filter.copy }
         self.limit = limit
+        snapshots = StreamSnapshots(pretty: formatter.encoders.first?.pretty ?? false)
     }
     
     /// Has the pipeline written as many events as its limit allows?
@@ -110,10 +113,14 @@ public final class StreamPipeline {
     
     /// Turn a batch into output.
     ///
-    /// - Parameter batch: Wire events (`Message` JSON), oldest first.
-    /// - Returns: The output for the events written, one line each, in order, up to the limit.
+    /// - Parameter batch: Wire events (`Message` JSON), oldest first, and process snapshots among them.
+    /// - Returns: The output for the events written, one line each, in order, up to the limit. JSONL also has the
+    ///   snapshot of each process a record is from or names, before the first record that needs it
+    ///   (``StreamSnapshots``).
     public func process(_ batch: [Data]) -> Data {
         guard !isFull else { return Data() }
+        let batch = snapshots.sift(batch)
+        let writesSnapshots = { if case .jsonl = formatter { return true } else { return false } }()
         let chunks: [Chunk]
         switch formatter {
         case .text(let text, let records) where records.isEmpty:
@@ -136,8 +143,28 @@ public final class StreamPipeline {
             unreadable += chunk.unreadable
             let taken = min(chunk.ends.count, limit.map { $0 - written } ?? .max)
             written += taken
-            /// The output up to the end of the last event taken, if any.
-            output.append(chunk.output.prefix(taken == 0 ? 0 : chunk.ends[taken - 1]))
+            /// A snapshot is its own line, escaped for a terminal as a record's is.
+            let lines = { (records: [Data]) in
+                StreamSnapshots.lines(self.escapesJSON ? records.map(TerminalSafeText.json) : records)
+            }
+            if writesSnapshots {
+                chunk.unwritten.forEach { snapshots.keep($0, made: true) }
+                output.append(lines(snapshots.overdue()))
+            }
+            guard writesSnapshots, chunk.namings.prefix(taken).contains(where: { $0.map(snapshots.owes) ?? false })
+            else {
+                /// The output up to the end of the last event taken, if any.
+                output.append(chunk.output.prefix(taken == 0 ? 0 : chunk.ends[taken - 1]))
+                return
+            }
+            var start = 0
+            for (index, end) in chunk.ends.prefix(taken).enumerated() {
+                if let naming = chunk.namings[index], snapshots.owes(naming) {
+                    output.append(lines(snapshots.records(before: naming)))
+                }
+                output.append(chunk.output[start..<end])
+                start = end
+            }
         }
     }
     
@@ -160,7 +187,9 @@ public final class StreamPipeline {
                 let message = received
                 let header = EventHeader(message)
                 let record = { encoders[index].line(for: message) }
-                return Decoded(header: header, record: record) { made in format(header, made ?? record()) }
+                return Decoded(header: header, record: record, naming: StreamSnapshots.Naming(message)) { made in
+                    format(header, made ?? record())
+                }
             }
         }
         encoders.forEach { $0.reset() }
@@ -189,6 +218,8 @@ extension StreamPipeline {
         let header: EventHeader
         /// Makes the event's export record line, if the format can: only for a filter that reads records.
         var record: (() -> Data)?
+        /// What the event says of processes, when the whole event was decoded.
+        var naming: StreamSnapshots.Naming?
         /// Makes the event's output, given the record line if the filter made it.
         let output: (Data?) -> Data
     }
@@ -202,6 +233,10 @@ extension StreamPipeline {
         private(set) var output = Data()
         /// Where each written event's output ends in ``output``.
         private(set) var ends: [Int] = []
+        /// What each written event says of processes, when the whole event was decoded.
+        private(set) var namings: [StreamSnapshots.Naming?] = []
+        /// The process each exec or fork that wasn't written creates, as a snapshot.
+        private(set) var unwritten: [ProcessSnapshotRecord] = []
         /// Events left out as the pipeline's own.
         private(set) var suppressed: Int = 0
         /// Events the filter left out.
@@ -229,20 +264,36 @@ extension StreamPipeline {
                     continue
                 }
                 headers.append(decoded.header)
-                guard !scope.suppresses(decoded.header) else {
-                    suppressed += 1
+                guard isWritten(decoded, scope: scope, filter: filter) else {
+                    if let snapshot = decoded.naming?.snapshot { unwritten.append(snapshot) }
                     continue
                 }
-                guard filter.admits(decoded.header) else {
-                    filtered += 1
-                    continue
-                }
-                /// Made only once the header passes: it's the slow part.
-                let record = filter.readsRecords ? decoded.record?() : nil
-                guard admits(record, to: filter) else { continue }
-                output.append(decoded.output(record))
-                ends.append(output.count)
             }
+        }
+
+        /// Write an event unless it's the pipeline's own or the filter leaves it out, and count it either way.
+        ///
+        /// - Parameters:
+        ///   - decoded: The event.
+        ///   - scope: Which events are the pipeline's own.
+        ///   - filter: Which events are written.
+        /// - Returns: Whether it was written.
+        private mutating func isWritten(_ decoded: Decoded, scope: PipelineScope, filter: StreamFilter) -> Bool {
+            guard !scope.suppresses(decoded.header) else {
+                suppressed += 1
+                return false
+            }
+            guard filter.admits(decoded.header) else {
+                filtered += 1
+                return false
+            }
+            /// Made only once the header passes: it's the slow part.
+            let record = filter.readsRecords ? decoded.record?() : nil
+            guard admits(record, to: filter) else { return false }
+            namings.append(decoded.naming)
+            output.append(decoded.output(record))
+            ends.append(output.count)
+            return true
         }
         
         /// Does the filter admit an event's record? Count the event if not.

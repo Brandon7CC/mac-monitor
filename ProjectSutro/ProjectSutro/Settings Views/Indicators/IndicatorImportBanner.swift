@@ -12,8 +12,9 @@ import SutroESFramework
 // MARK: - 3.0 import offer
 /// Settings > Indicators' one offer of this user's Mac Monitor 3.0 indicators (``IndicatorImportOffer``): it lists
 /// their own indicators, and, as its own choice, the shipped ones they edited, which would replace this Mac's
-/// versions. It says that every user of this Mac sees and is watched by them. While this Mac Monitor can't change the
-/// Mac's indicators, it says so and stays until the import runs.
+/// versions, and names the ones left out because the Security Extension can't run them. It says that every user of
+/// this Mac sees and is watched by them. While this Mac Monitor can't change the Mac's indicators, it says so and
+/// stays until the import runs.
 struct IndicatorImportBanner: View {
     let offer: IndicatorImportOffer
     /// May the Mac's indicators be changed?
@@ -45,6 +46,12 @@ struct IndicatorImportBanner: View {
                         .font(.callout)
                 }
                 .toggleStyle(.checkbox)
+            }
+            if !offer.leftOut.isEmpty {
+                Text("Not imported, as the Security Extension can't run \(offer.leftOut.count == 1 ? "it" : "them"): "
+                     + "\(names(offer.leftOut)). An indicator has to name its event types, as in event.exec != nil.")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             HStack {
                 if !canChange {

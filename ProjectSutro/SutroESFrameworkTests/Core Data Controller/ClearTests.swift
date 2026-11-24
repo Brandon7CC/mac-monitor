@@ -40,17 +40,18 @@ final class ClearTests: XCTestCase {
     /// - Parameters:
     ///   - messages: The events.
     ///   - store: The event store.
-    /// - Returns: The events the store kept, by ID.
+    /// - Returns: Those of the events the store holds, by ID.
     @discardableResult
     private func record(_ messages: [Message], in store: CoreDataController) -> Set<UUID> {
         let saved = expectation(description: "saved")
-        var kept: Set<UUID> = []
-        store.insertSystemEvents(messages: messages, watching: Set(messages.map(\.id))) {
-            kept = $0
-            saved.fulfill()
-        }
+        store.insertSystemEvents(messages: messages) { saved.fulfill() }
         wait(for: [saved], timeout: 60)
-        return kept
+        let context = store.container.newBackgroundContext()
+        return context.performAndWait {
+            let request = NSFetchRequest<ESMessage>(entityName: "ESMessage")
+            request.predicate = NSPredicate(format: "id IN %@", messages.map(\.id))
+            return Set(((try? context.fetch(request)) ?? []).compactMap(\.id))
+        }
     }
 
     /// Clear, and wait until the Clear has finished.

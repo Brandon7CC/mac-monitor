@@ -26,8 +26,7 @@ struct ParentsView: View {
                     pid: parents.unix.pid
                 ) {
                     if parents.unix.original_ppid != parents.unix.pid {
-                        Text("\u{2022} **Original parent PID:**")
-                        GroupBox { Text("`\(String(parents.unix.original_ppid))`") }
+                        Fact("Original parent PID", String(parents.unix.original_ppid))
                     }
                 }
                 .help(LaunchedByParent.Source.unixParent.explanation)
@@ -92,15 +91,12 @@ private struct ParentRow<Trailing: View>: View {
     }
 
     var body: some View {
-        HStack {
-            Label("**\(title):**", systemImage: systemImage)
-            GroupBox { Text("`\(path ?? "Unknown")`").lineLimit(30) }
+        FactRow {
+            Fact(title, path, systemImage: systemImage)
             if let pid {
-                Text("\u{2022} **PID:**")
-                GroupBox { Text("`\(String(pid))`") }
+                Fact("PID", String(pid))
             }
             trailing()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

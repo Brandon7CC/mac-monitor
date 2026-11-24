@@ -33,6 +33,8 @@ final class CompletingTextView: NSTextView {
     }
     /// Is the list showing?
     private var isListShowing: Bool { loadedPanel?.isVisible == true }
+    /// What the predicate is for, which decides the key paths it underlines (``PredicateSyntax``) and completes.
+    var audience = PredicateAudience.search
 
     /// The rest of the chosen completion, drawn in grey after the cursor, when the cursor ends the word.
     private var ghost: String? {
@@ -63,7 +65,7 @@ final class CompletingTextView: NSTextView {
     func setText(_ text: String) {
         isSettingText = true
         string = text
-        if let textStorage { PredicateSyntax.highlight(textStorage) }
+        if let textStorage { PredicateSyntax.highlight(textStorage, for: audience) }
         isSettingText = false
         guard completion != nil else { return }
         DispatchQueue.main.async { [weak self] in self?.hideCompletion() }
@@ -127,7 +129,7 @@ final class CompletingTextView: NSTextView {
             }
         } else if selector == #selector(insertTab(_:)) || selector == #selector(cancelOperation(_:)),
                   selectedRange().length == 0,
-                  PredicateText.completions(in: string, at: selectedRange().location) != nil {
+                  PredicateText.completions(in: string, at: selectedRange().location, for: audience) != nil {
             dismissed = false
             return refreshCompletion(evenEmpty: true)
         }
@@ -150,7 +152,7 @@ final class CompletingTextView: NSTextView {
     private func refreshCompletion(evenEmpty: Bool = false) {
         let caret = selectedRange()
         guard caret.length == 0, !dismissed, window != nil,
-              let found = PredicateText.completions(in: string, at: caret.location),
+              let found = PredicateText.completions(in: string, at: caret.location, for: audience),
               evenEmpty || found.range.length > 0 else { return hideCompletion() }
         if completion?.range.location != found.range.location || completion?.items.first != found.items.first {
             selected = 0

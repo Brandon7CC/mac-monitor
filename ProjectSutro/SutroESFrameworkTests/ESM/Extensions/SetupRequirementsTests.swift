@@ -20,12 +20,13 @@ final class SetupRequirementsTests: XCTestCase {
     ///   - client: Endpoint Security's answer.
     ///   - location: Where Mac Monitor runs from.
     ///   - sipDisabled: Is SIP off?
+    ///   - reviews: Does macOS ask the user to review Full Disk Access first (macOS 27.3 and later)?
     /// - Returns: The requirements.
     private func requirements(_ state: SetupRequirements.ExtensionState, _ client: NewClientResult = .waiting,
                               at location: SetupRequirements.Location = .applications,
-                              sipDisabled: Bool = false) -> SetupRequirements {
+                              sipDisabled: Bool = false, reviews: Bool = false) -> SetupRequirements {
         SetupRequirements(location: location, extensionState: state, client: client, sipDisabled: sipDisabled,
-                          hasExtensionsPane: true)
+                          hasExtensionsPane: true, reviewsFullDiskAccess: reviews)
     }
 
     /// Each requirement's status, in order.
@@ -61,7 +62,8 @@ final class SetupRequirementsTests: XCTestCase {
         XCTAssertTrue(first.isSettled)
         XCTAssertFalse(first.isReady)
         let older = SetupRequirements(location: .applications, extensionState: .awaitingApproval, client: .waiting,
-                                      sipDisabled: false, hasExtensionsPane: false)
+                                      sipDisabled: false, hasExtensionsPane: false,
+                                      reviewsFullDiskAccess: false)
         XCTAssertTrue(older.nextStep?.detail.contains("Privacy & Security") == true)
     }
 
@@ -80,6 +82,32 @@ final class SetupRequirementsTests: XCTestCase {
         XCTAssertEqual(sipOff.rows[2].title, "Full Disk Access isn't needed")
         XCTAssertFalse(requirements(.running(version: nil), .waiting).isSettled, "Waiting on Endpoint Security")
         XCTAssertTrue(requirements(.running(version: nil), .streamOwned).isReady, "Another Mac Monitor records")
+    }
+
+    /// macOS 27.3 and later offers folders in place of Full Disk Access and has the user confirm what it allows. The
+    /// row says which buttons to click, in order, and its button opens Privacy & Security, where the link lands.
+    func testFullDiskAccessOnAMacThatReviewsIt() {
+        let row = requirements(.running(version: nil), .notPermitted, reviews: true).rows[2]
+        XCTAssertEqual(row.status, .needed)
+        XCTAssertEqual(row.title, "Allow Full Disk Access")
+        XCTAssertEqual(row.action, .openPrivacySecurity)
+        XCTAssertEqual(row.detail, "Endpoint Security requires it of every security tool. macOS asks you to review "
+                       + "what it allows first:")
+        XCTAssertEqual(row.steps, [
+            "In Privacy & Security, click Full Disk Access.",
+            "Turn on Mac Monitor Security Extension.",
+            "Click Bypass System Protections. Choosing folders doesn't give Endpoint Security what it needs.",
+            "Click OK beside each item, then Turn On Full Disk Access.",
+            "Enter your password.",
+        ])
+        let before = requirements(.running(version: nil), .notPermitted).rows[2]
+        XCTAssertEqual(before.action, .openFullDiskAccess)
+        XCTAssertEqual(before.steps, [])
+        XCTAssertTrue(before.detail.hasSuffix("Privacy & Security ▸ Full Disk Access."))
+        let granted = requirements(.running(version: nil), .success, reviews: true).rows[2]
+        XCTAssertEqual(granted.steps, [], "Nothing to do once it's allowed")
+        XCTAssertEqual(requirements(.running(version: nil), .success, sipDisabled: true, reviews: true).rows[2].action,
+                       .openPrivacySecurity)
     }
 
     /// An answer from Endpoint Security means the extension runs, whatever macOS last reported.

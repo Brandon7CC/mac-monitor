@@ -78,7 +78,8 @@ extension EndpointSecurityManager {
         SetupRequirements(location: .of(Bundle.main.bundlePath), extensionState: extensionState,
                           client: connectionResult, sipDisabled: Self.isSIPDisabled,
                           hasExtensionsPane: ProcessInfo.processInfo.isOperatingSystemAtLeast(
-                            OperatingSystemVersion(majorVersion: 15, minorVersion: 0, patchVersion: 0)))
+                            OperatingSystemVersion(majorVersion: 15, minorVersion: 0, patchVersion: 0)),
+                          reviewsFullDiskAccess: SetupRequirements.systemReviewsFullDiskAccess)
     }
 
     /// Is System Integrity Protection's file system protection off? Then Endpoint Security doesn't ask for Full Disk

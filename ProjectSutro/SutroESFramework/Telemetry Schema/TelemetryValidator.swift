@@ -96,7 +96,10 @@ public struct TelemetryValidator: @unchecked Sendable {
     private func issues(in record: Any, line: Int?, coverage: CoverageRecorder?, keeping limit: Int) -> FoundIssues {
         var issues = FoundIssues(limit: limit)
         let context = CheckContext(line: line, mode: mode, coverage: coverage)
-        _ = schema.check(record, against: schema.root, at: .root, in: context, into: &issues)
+        /// A process snapshot's line follows its own definition. Every other line is an event's record.
+        let isSnapshot = (record as? NSDictionary)?[TelemetrySchema.snapshotKey] != nil
+        let node = isSnapshot ? schema.definitions[TelemetrySchema.snapshotDefinition] ?? schema.root : schema.root
+        _ = schema.check(record, against: node, at: .root, in: context, into: &issues)
         return issues
     }
     

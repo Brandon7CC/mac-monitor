@@ -16,14 +16,14 @@ import Foundation
 /// ``CommandLineInvocation`` case, and `CommandLineTool.run` in `macmonitor` runs that case. A command that needs
 /// neither root nor the Security Extension, as `schema` and `validate` don't, runs entirely in `macmonitor`.
 public enum CommandLineCommand: String, CaseIterable, Sendable {
-    case stream, mute, indicators, status, events, schema, validate, completion, version, help
+    case stream, mute, indicators, status, update, events, schema, validate, completion, version, help
     
     /// Does the command need root? Only what talks to the Security Extension does, and then the Security Extension
     /// decides: root always, and any user when Mac Monitor's Settings allows it (``CommandLineAccess``).
     public var requiresRoot: Bool {
         switch self {
         case .stream, .mute, .indicators: return true
-        case .status, .events, .schema, .validate, .completion, .version, .help: return false
+        case .status, .update, .events, .schema, .validate, .completion, .version, .help: return false
         }
     }
     
@@ -67,7 +67,7 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                                           'process.audit_token.euid == 0 AND event_type == 9'
                   --indicator NAME|ID     An indicator the event matched, by its name, ignoring case, or its
                                           ID, as 'macmonitor indicators list' shows them:
-                                          --indicator 'Plist modified'.
+                                          --indicator 'Property list modified'.
 
                 A filter given more than once matches any of its values. --predicate is the exception. Every one \
                 given must match. An event is written only if every filter given matches it. REGEX is found \
@@ -123,6 +123,24 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                 captured, so they never show as lost.
                 """)
         case .indicators:
+            /// Not in 3.2: indicator pack updates (`SavedIndicatorSet+Updates.swift`), so the help leaves these out.
+            /// The commands are done, and wait for a later release:
+            //
+            //   pack status [--json]            Show which indicator pack Mac Monitor's own indicators are, the
+            //                                   update mode, and what the last look for a newer pack found. GitHub
+            //                                   isn't asked.
+            //   pack check [--json]             Have the Security Extension look on GitHub for a newer indicator
+            //                                   pack, and say what installing it would change.
+            //   pack install [FILE|-] [--yes]   Install a signed indicator pack as Mac Monitor's own indicators:
+            //                                   the newest on GitHub, or FILE's. It has to be a later release than
+            //                                   the one this Mac has. - reads standard input.
+            //   pack mode off|notify|auto       Set what the Security Extension does about newer packs: look once
+            //                                   a day and say so (notify, the default), look once a day and install
+            //                                   them (auto), or never look on its own (off).
+            //
+            //   The Security Extension gets a pack from GitHub itself and installs it only when Swiftly Detecting
+            //   signed it. It asks GitHub at most once every five minutes. pack check and pack install exit 75 when
+            //   GitHub couldn't be reached.
             return ("Show or change the indicators the Security Extension runs on every event.",
                     "sudo macmonitor indicators " + IndicatorInvocation.Name.allCases.map(\.rawValue)
                         .joined(separator: "|"), """
@@ -148,10 +166,26 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                   disable ID|NAME...                      Turn indicators off.
                   export [ID|NAME...]                     Write the set, or the indicators named, as an indicator
                                                           file to standard output.
+                  test PACK --plan PLAN                   Test an indicator pack's payload on recorded events, as
+                                                          the indicators repository's tools/mmi test does. Needs
+                                                          neither root nor the Security Extension.
+                  pack status [--json]                    Show which indicator pack Mac Monitor's own indicators
+                                                          are.
+                  pack install FILE|- [--yes]             Install a signed indicator pack's file as Mac Monitor's
+                                                          own indicators. It has to be a later release than the
+                                                          one this Mac has. - reads standard input.
+                  pack verify FILE                        Check a signed indicator pack as the Security Extension
+                                                          checks one before installing it, and say who signed it
+                                                          and what it holds. Needs neither root nor the Security
+                                                          Extension.
 
-                import and edit --file say what they would change, Mac Monitor's own indicators they would remove, \
-                turn off or replace among them, and ask first. --yes goes ahead without asking, and is needed when \
-                there's no terminal to ask at.
+                import, edit --file and pack install say what they would change, Mac Monitor's own indicators they \
+                would remove, turn off or replace among them, and ask first. --yes goes ahead without asking, and is \
+                needed when there's no terminal to ask at.
+
+                pack install keeps what this Mac changed: an indicator nobody edited takes the pack's, an edited or \
+                deleted one stays as it is, and one the pack no longer has goes unless it was edited. The Security \
+                Extension installs a pack only when Swiftly Detecting signed it.
 
                 edit keeps an indicator's ID, so earlier records, streams following it with --indicator ID, and each \
                 user's table marks stay with it. It never turns an indicator on or off, and never changes how \
@@ -160,8 +194,8 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                 refused. --file takes the editable keys present in one exported indicator (name, description, \
                 symbol, color, predicate, tactic, technique and severity) and ignores the rest, \
                 such as isEnabled; 'macmonitor indicators export ID > one.json' writes one to start from. TACTIC is \
-                an ATT&CK tactic in any case, by name, ID or as the JSON writes it: "Defense Evasion", TA0005 or \
-                defenseEvasion. TECHNIQUE is one such as T1059.002. none clears either. SYMBOL is an SF Symbol's \
+                an ATT&CK tactic in any case, by name, ID or as the JSON writes it: "Defense Impairment", TA0112 or \
+                defenseImpairment. TECHNIQUE is one such as T1059.002. none clears either. SYMBOL is an SF Symbol's \
                 name, which macmonitor can't check: Mac Monitor shows its plain symbol for one it doesn't know. \
                 Editing the rule of one of Mac Monitor's own, not just its tactic, technique or severity, stops Mac \
                 Monitor updates changing it, until edit --restore.
@@ -170,8 +204,8 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                 indicators share is refused: use the ID. PREDICATE is an NSPredicate on an event's record, as \
                 'macmonitor stream --predicate' takes one, that names its event types by their payloads or by \
                 es_event_type, such as 'event.exec != nil AND process.executable.path ENDSWITH "/curl"'. \
-                SEVERITY is low, medium or high: how strong a sign of something malicious a match is. It doesn't \
-                change what matches.
+                SEVERITY is low, medium or high: how closely a match is worth looking at. It doesn't change \
+                what matches.
 
                 The set lives in the Security Extension, which matches it against every event it captures for Mac \
                 Monitor and for every stream, --no-mutes included, and lists the matches in each record's \
@@ -182,13 +216,29 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
             return ("Show what's installed, what it needs, and who is capturing.", "macmonitor status [--json]", """
                 Shows the versions of macmonitor, Mac Monitor and its Security Extension, whether the Security \
                 Extension is activated and has Full Disk Access, whether Mac Monitor is connected and recording, how \
-                many macmonitor streams are running. It needs no root, and changes nothing.
+                many macmonitor streams are running, and which indicator pack Mac Monitor's own indicators are. It \
+                needs no root, and changes nothing.
 
                 Options:
                   --json   Write JSON, for a script. A part that isn't known is null.
 
                 It exits 0 when the Security Extension is activated and Endpoint Security lets it capture, and \
                 \(CommandLineExit.unavailable.rawValue) when it isn't ready, after showing why.
+                """)
+        case .update:
+            return ("Check whether a newer Mac Monitor is out.", "macmonitor update check [--json]", """
+                Has the Security Extension look up Mac Monitor's latest release on GitHub, as Mac Monitor's Check for \
+                Updates does, and says whether it's newer than the one running, with its page. It needs no root, \
+                and installs nothing: Mac Monitor installs a release.
+
+                Options:
+                  --json   Write JSON, for a script: available, current, latest, published and url. What there \
+                           isn't is null.
+
+                It exits 0 when the look up worked, whether or not a newer release is out, \
+                \(CommandLineExit.unavailable.rawValue) when the Security Extension isn't there or doesn't check for \
+                updates, as a Community build doesn't, and \(CommandLineExit.temporaryFailure.rawValue) when GitHub \
+                couldn't be reached.
                 """)
         case .events:
             return ("List the events macmonitor can stream.", "macmonitor events", """

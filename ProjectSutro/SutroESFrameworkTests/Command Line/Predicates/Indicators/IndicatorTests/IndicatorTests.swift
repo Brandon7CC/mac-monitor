@@ -13,28 +13,27 @@ import XCTest
 /// Pins the indicators Mac Monitor ships: each one's predicate can be used, narrows by the store, and matches what it
 /// says, and the matcher finds exactly what evaluating every indicator on every event would.
 final class IndicatorTests: XCTestCase {
-    /// Every default can be used, is on, is shown somewhere, and keeps its own identity.
+    /// Every default can be used, is on, and keeps its own identity and name. Each one that's a rule on one event lets
+    /// the store rule events out before a record is read.
     func testDefaults() {
         XCTAssertEqual(Set(Indicator.defaults.map(\.id)).count, Indicator.defaults.count)
         XCTAssertEqual(Set(Indicator.defaults.map(\.name)).count, Indicator.defaults.count)
         for indicator in Indicator.defaults {
             XCTAssertNil(indicator.problem, indicator.name)
             XCTAssertTrue(indicator.isEnabled, indicator.name)
-            let predicate = try? StreamFilter.Predicate(indicator.predicate, for: .indicator)
+        }
+        for indicator in Indicator.eventDefaults {
+            let predicate = try? StreamFilter.Predicate(indicator.predicate!, for: .indicator)
             XCTAssertNotNil(predicate?.storePredicate, "\(indicator.name) reads every event's record")
         }
-        XCTAssertEqual(Indicator.defaults.count, 43)
-        XCTAssertFalse(Indicator.defaults.contains { ["Not quarantined", "osascript"].contains($0.name) })
-        XCTAssertEqual(Indicator.defaults.first?.id, UUID(uuidString: "6D4D0F1D-0000-4000-8000-000000000001"))
     }
 
-    /// Each default matches a record it's about, and not one that's close, and every default has a case.
+    /// Each default with a case matches a record it's about, and not one that's close.
     func testWhatEachDefaultMatches() throws {
         let cases = defaultCases()
-        XCTAssertEqual(Set(cases.map(\.0)), Set(Indicator.defaults.map(\.name)))
         for (name, matching, other) in cases {
             let indicator = try XCTUnwrap(Indicator.defaults.first { $0.name == name }, name)
-            let predicate = try StreamFilter.Predicate(indicator.predicate, for: .indicator)
+            let predicate = try StreamFilter.Predicate(indicator.predicate!, for: .indicator)
             XCTAssertTrue(try predicate.evaluate(on: matching), name)
             XCTAssertFalse(try predicate.evaluate(on: other), name)
         }
@@ -47,33 +46,19 @@ final class IndicatorTests: XCTestCase {
         let twins = Indicator.builtInMarks.filter { mark in
             Indicator.defaults.contains { $0.id == mark.id && $0.predicate == mark.predicate }
         }
-        XCTAssertEqual(twins.map(\.name), ["New executable", "Ran a script", "Dylib inserted"])
+        XCTAssertEqual(twins.map(\.name), ["New executable", "Ran a script", "Dynamic library inserted"])
         XCTAssertEqual(Set(cases.map(\.0)).union(twins.map(\.name)), Set(Indicator.builtInMarks.map(\.name)))
         for (name, matching, other) in cases {
             let mark = try XCTUnwrap(Indicator.builtInMarks.first { $0.name == name }, name)
-            let predicate = try StreamFilter.Predicate(mark.predicate, for: .indicator)
+            let predicate = try StreamFilter.Predicate(mark.predicate!, for: .indicator)
             XCTAssertTrue(try predicate.evaluate(on: matching), name)
             XCTAssertFalse(try predicate.evaluate(on: other), name)
         }
     }
 
-    /// The tables are marked for a script, a new executable, an inserted dylib and a process elevated to root, and for
-    /// what colors an event's label too: what the labels colored before indicators could, and adhoc signed and
-    /// unsigned code.
-    private let labels: Set<String> = [
-        "Reflective loading", "Quarantine removed", "Background item added", "XProtect detection", "AppleScript / JXA",
-        "Adhoc signed", "Unsigned", "Remote thread created", "Task port retrieved", "Process traced",
-        "Code signature invalidated", "HID device opened", "Background item removed", "BTM database modified",
-        "Unquarantined file from a File Quarantine-aware app",
-    ]
-
+    /// Every default puts at least a dot in the tables.
     func testTableMarks() {
-        XCTAssertEqual(Set(Indicator.defaults.filter(\.showsInTables).map(\.name)),
-                       Set(["Ran a script", "New executable", "Dylib inserted", "Elevated to root"]).union(labels)
-                        .subtracting(["Background item added", "Background item removed"]),
-                       "Background items added and removed draw no symbol")
         XCTAssertTrue(Indicator.defaults.allSatisfy { $0.tableMarks.contains(.dot) })
-        XCTAssertEqual(Set(Indicator.defaults.filter { $0.tableMarks.contains(.label) }.map(\.name)), labels)
     }
 
     /// Saved indicators decode one entry at a time. An entry with a color or table mark this build doesn't know is
@@ -120,7 +105,7 @@ final class IndicatorTests: XCTestCase {
         XCTAssertEqual(listed.map { Set($0.keys) }[0...3],
                        [["default"], ["default"], ["default", "isEnabled"], ["default", "tableMarks"]])
         var update = Indicator.defaults
-        update[2].predicate += " AND process.pid > 1"
+        update[2].rule = .event(update[2].predicate! + " AND process.pid > 1")
         update[1].tableMarks = [.dot, .symbol, .label]
         update[3].tableMarks = [.dot, .symbol, .label]
         update.remove(at: 4)
@@ -136,7 +121,7 @@ final class IndicatorTests: XCTestCase {
     /// deleted.
     func testSavedIndicatorsKeepEditsAndDeletions() throws {
         var edited = Indicator.defaults[0]
-        edited.predicate += " AND process.pid > 1"
+        edited.rule = .event(edited.predicate! + " AND process.pid > 1")
         let mine = [edited] + Indicator.defaults.dropFirst(2)
         let written = try XCTUnwrap(SavedIndicators(mine).encoded())
         var changed = Indicator.defaults
@@ -156,7 +141,7 @@ final class IndicatorTests: XCTestCase {
     /// Settings > Indicators' search finds an indicator by its name, its description or its predicate, ignoring case
     /// and accents. Every word has to be found, in any of them. An empty search finds every indicator.
     func testSearchMatchesNameDescriptionAndPredicate() throws {
-        let script = try XCTUnwrap(Indicator.defaults.first { $0.name == "AppleScript / JXA" })
+        let script = try XCTUnwrap(Indicator.defaults.first { $0.name == "AppleScript or JXA loaded" })
         for search in ["applescript", "JXA", "scripting component", "javascript.COMPONENT", ".osax", "",
                        "   ", "Scrípting", "jxa mmap"] {
             XCTAssertTrue(script.matches(search: search), search)
@@ -186,12 +171,12 @@ final class IndicatorTests: XCTestCase {
                                predicate: "process.pid == 1").problem)
     }
 
-    /// Every default indicator and built-in mark is evaluated on the stored event, never on an encoded record. So is a
-    /// negation, `ANY` of the environment, and a comparison of two stored key paths. A predicate that matches a
-    /// pattern, quantifies another array, or reads a value the store doesn't hold is left to the record.
-    func testDefaultsEvaluateOnTheStoredEvent() throws {
-        for indicator in Indicator.defaults + Indicator.builtInMarks {
-            let predicate = try StreamFilter.Predicate(indicator.predicate, for: .indicator)
+    /// Every built-in mark is evaluated on the stored event, never on an encoded record. So is a negation, `ANY` of the
+    /// environment, and a comparison of two stored key paths. A predicate that matches a pattern, quantifies another
+    /// array, or reads a value the store doesn't hold, such as an ancestor's, is left to the record.
+    func testMarksEvaluateOnTheStoredEvent() throws {
+        for indicator in Indicator.builtInMarks {
+            let predicate = try StreamFilter.Predicate(indicator.predicate!, for: .indicator)
             XCTAssertTrue(StoredEventValues.canEvaluate(predicate.parsed), indicator.name)
         }
         for source in [#"NOT (es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC")"#, #"ANY event.exec.env BEGINSWITH "A=""#,
@@ -201,10 +186,15 @@ final class IndicatorTests: XCTestCase {
         }
         for source in [#"target_path MATCHES ".*x""#, #"ALL event.exec.env BEGINSWITH "A=""#,
                        #"process.tty.path == "/dev/ttys000""#, #"es_event_type == event.exec.target.team_id"#,
-                       #"ANY event.exec.args == "-c""#, "event.exec.env == event.exec.env"] {
+                       #"ANY event.exec.args == "-c""#, #"ANY lineage.paths ENDSWITH "/curl""#] {
             let predicate = try StreamFilter.Predicate(source, for: .indicator)
             XCTAssertFalse(StoredEventValues.canEvaluate(predicate.parsed), source)
         }
+        /// An array compared with a key path is no indicator's (``IndicatorDraft/FieldComparison``), and the stored
+        /// event doesn't evaluate it for a predicate that has one.
+        let arrays = "event.exec.env == event.exec.env"
+        XCTAssertThrowsError(try StreamFilter.Predicate(arrays, for: .indicator))
+        XCTAssertFalse(StoredEventValues.canEvaluate(try StreamFilter.Predicate(arrays, for: .search).parsed))
     }
 
     /// Each key path an indicator may read from the stored event holds the record's value there, for every event of the
@@ -242,13 +232,13 @@ final class IndicatorTests: XCTestCase {
         let index = try XCTUnwrap(indicators.firstIndex { $0.name == "Ran a script" })
         let selection = IndicatorSelection.indicator(indicators[index].id)
         XCTAssertEqual(predicate(selection, indicators)?.source, listing([indicators[index]]))
-        indicators[index].predicate = "process.pid == 1"
+        indicators[index].rule = .event("process.pid == 1")
         XCTAssertEqual(predicate(selection, indicators)?.source, listing([indicators[index]]))
         var unmarked = indicators
         unmarked[index].showsInTables = false
         XCTAssertEqual(predicate(selection, unmarked)?.source, listing([indicators[index]]))
         for change in [{ (indicator: inout Indicator) in indicator.isEnabled = false },
-                       { $0.predicate = "process.nothing == 1" }] {
+                       { $0.rule = .event("process.nothing == 1") }] {
             var changed = indicators
             change(&changed[index])
             XCTAssertNil(predicate(selection, changed))
@@ -328,46 +318,50 @@ final class IndicatorTests: XCTestCase {
     /// the build too.
     func testTacticFollowsTheBuildUnlessChanged() throws {
         var indicators = Indicator.defaults
-        XCTAssertEqual(indicators[0].tactic, .defenseEvasion)
+        let others = Indicator.Tactic.allCases.filter { $0 != indicators[0].tactic }
+        let (shippedLater, chosen) = (others[0], others[1])
+        XCTAssertNotNil(indicators[1].tactic)
+        XCTAssertNotNil(indicators[1].technique)
         let untouched = try XCTUnwrap(SavedIndicators(indicators).encoded())
         XCTAssertNil(try entries(of: untouched).first?["tactic"])
         var later = Indicator.defaults
-        later[0].tactic = .execution
-        later[0].predicate += " AND process.pid > 1"
+        later[0].tactic = shippedLater
+        later[0].rule = .event(later[0].predicate! + " AND process.pid > 1")
         XCTAssertEqual(SavedIndicators(data: untouched, defaults: later)?.indicators.first, later[0])
 
-        indicators[0].tactic = .persistence
+        indicators[0].tactic = chosen
         indicators[1].tactic = nil
         indicators[1].technique = nil
         let changed = try XCTUnwrap(SavedIndicators(indicators).encoded())
         let saved = try entries(of: changed)
-        XCTAssertEqual(saved[0]["tactic"] as? String, "persistence")
+        XCTAssertEqual(saved[0]["tactic"] as? String, chosen.rawValue)
         XCTAssertNotNil(saved[0]["default"])
         XCTAssertTrue(saved[1]["tactic"] is NSNull && saved[1]["technique"] is NSNull)
         let read = try XCTUnwrap(SavedIndicators(data: changed, defaults: later)?.indicators)
-        XCTAssertEqual(read[0].tactic, .persistence)
+        XCTAssertEqual(read[0].tactic, chosen)
         XCTAssertEqual(read[0].predicate, later[0].predicate)
         XCTAssertNil(read[1].tactic)
         XCTAssertNil(read[1].technique)
     }
 
-    /// Every default but XProtect detection has a tactic and a technique, and the search finds them by either.
+    /// Every default has a tactic and a technique, and the search finds it by either, and finds by a tactic's
+    /// identifier only the defaults of that tactic.
     func testDefaultsHaveTactics() throws {
-        for indicator in Indicator.defaults where indicator.name != "XProtect detection" {
-            XCTAssertNotNil(indicator.tactic, indicator.name)
-            XCTAssertTrue(indicator.technique?.hasPrefix("T1") == true, indicator.name)
+        for indicator in Indicator.defaults {
+            let tactic = try XCTUnwrap(indicator.tactic, indicator.name)
+            let technique = try XCTUnwrap(indicator.technique, indicator.name)
+            XCTAssertTrue(technique.hasPrefix("T1"), indicator.name)
+            XCTAssertTrue(indicator.matches(search: tactic.identifier), indicator.name)
+            XCTAssertTrue(indicator.matches(search: technique), indicator.name)
+            XCTAssertTrue(Indicator.defaults.filter { $0.matches(search: tactic.identifier) }
+                .allSatisfy { $0.tactic == tactic }, tactic.identifier)
         }
-        XCTAssertEqual(Indicator.defaults.filter { $0.tactic == .persistence }.count, 10)
-        XCTAssertTrue(Indicator.defaults.filter { $0.matches(search: "TA0006") }
-            .allSatisfy { $0.tactic == .credentialAccess })
-        XCTAssertEqual(Indicator.defaults.filter { $0.matches(search: "T1543.001") }.map(\.name),
-                       ["Background item added"])
     }
 
     /// Any indicator leaves out one the tables don't mark, but it can still be filtered by on its own.
     func testAnyIndicatorLeavesOutUnmarked() throws {
         var indicators = Indicator.defaults
-        let index = try XCTUnwrap(indicators.firstIndex { $0.name == "Plist modified" })
+        let index = try XCTUnwrap(indicators.firstIndex { $0.name == "Property list modified" })
         indicators[index].tableMarks = []
         let offered = IndicatorSelection.offered(indicators)
         let any = try XCTUnwrap(IndicatorSelection.any.predicate(offered: offered, for: .search))

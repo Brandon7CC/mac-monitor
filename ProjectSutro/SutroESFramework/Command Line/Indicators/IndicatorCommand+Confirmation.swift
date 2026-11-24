@@ -89,7 +89,8 @@ extension IndicatorCommand {
     func ask(about change: PendingChange, then send: @escaping () -> Void,
              otherwise completion: @escaping (Result<Void, CommandLineFailure>) -> Void) {
         listing(completion) { [self] reply in
-            let effect = IndicatorSetChange(from: reply.indicators, to: change.result(reply.indicators))
+            let effect = IndicatorSetChange(from: reply.indicators, to: change.result(reply.indicators),
+                                            shipped: Set(reply.shipped.keys))
             /// A notice means the set applied isn't the one saved, so the change matters whatever the numbers say.
             if effect.isEmpty && reply.notice == nil { return send() }
             let question = [change.question, effect.isEmpty ? nil : effect.description, Self.reach].compactMap { $0 }

@@ -40,6 +40,8 @@ final class IndicatorConfirmationTests: XCTestCase {
     /// An indicator of the user's own.
     private let own = Indicator(name: "Curl", description: "", symbol: "star", color: .red,
                                 predicate: IndicatorCommandLineTests.curl)
+    /// Property list modified, found by its identity, which every pack keeps.
+    private let plist = Indicator.defaults.first { $0.id == Indicator.uuid(0x2A) }!
 
     /// `--replace` with a file of one indicator says it removes every shipped one, names the first few, and asks.
     /// With no one to ask it's 64, a no is 1, and a yes replaces the set.
@@ -69,8 +71,9 @@ final class IndicatorConfirmationTests: XCTestCase {
 
     /// Without `--replace`, an import that changes a shipped indicator's rule and turns it off says so by name.
     func testMergeNamesTheShippedIndicatorsItChanges() throws {
-        var edited = try XCTUnwrap(Indicator.defaults.first { $0.name == "Plist modified" && $0.isEnabled })
-        edited.predicate += #" AND process.executable.path != "/usr/bin/true""#
+        XCTAssertTrue(plist.isEnabled)
+        var edited = plist
+        edited.rule = .event(try XCTUnwrap(edited.predicate) + #" AND process.executable.path != "/usr/bin/true""#)
         edited.isEnabled = false
         let merging = try indicatorFile(of: [edited, own], named: "edited.json")
         let questions = DiagnosticLines()
@@ -82,20 +85,19 @@ final class IndicatorConfirmationTests: XCTestCase {
             Add the 2 indicators from “\(merging.path)” to this Mac's indicators? Each replaces the indicator with its \
             ID.
             It adds 1 indicator, removes 0 and changes 1: \(count) indicators now, \(count + 1) after.
-            Of Mac Monitor's own indicators, it turns off 1 (“Plist modified”) and replaces 1 (“Plist modified”).
+            Of Mac Monitor's own indicators, it turns off 1 (“\(plist.name)”) and replaces 1 (“\(plist.name)”).
             \(IndicatorCommand.reach)
             """])
-        XCTAssertTrue(run(.list()).rows.contains { $0.hasPrefix("off ") && $0.hasSuffix("   Plist modified") })
+        XCTAssertTrue(run(.list()).rows.contains { $0.hasPrefix("off ") && $0.hasSuffix("   \(plist.name)") })
     }
 
     /// `edit --file` asks first, naming the fields it changes and the shipped indicator whose rule it replaces. With
     /// no one to ask it's 64, a no is 1, both changing nothing, and a yes, or `--yes`, makes the edit.
     func testEditFromAFileAsksFirst() throws {
-        let plist = try XCTUnwrap(Indicator.defaults.first { $0.name == "Plist modified" })
         let file = try JSONSerialization.data(withJSONObject: ["predicate": IndicatorCommandLineTests.curl,
                                                                "symbol": "star"])
         let edit = { (confirmed: Bool, confirm: @escaping (String) -> Bool?) in
-            self.runIndicators(.edit(IndicatorEdit(plist.name, .file("one.json", confirmed: confirmed))),
+            self.runIndicators(.edit(IndicatorEdit(self.plist.name, .file("one.json", confirmed: confirmed))),
                           savedMutes: self.savedMutes, savedIndicators: self.savedIndicators!,
                           readFile: { _ in file }, confirm: confirm)
         }
@@ -108,12 +110,12 @@ final class IndicatorConfirmationTests: XCTestCase {
 
         let questions = DiagnosticLines()
         let edited = edit(false) { questions.append($0); return true }
-        XCTAssertTrue(edited.output.hasPrefix("Changed “Plist modified” ("), edited.output)
+        XCTAssertTrue(edited.output.hasPrefix("Changed “\(plist.name)” ("), edited.output)
         let count = Indicator.defaults.count
         XCTAssertEqual(questions.all, ["""
-            Change “Plist modified”'s symbol and predicate from “one.json”?
+            Change “\(plist.name)”'s symbol and predicate from “one.json”?
             It adds 0 indicators, removes 0 and changes 1: \(count) indicators now, \(count) after.
-            Of Mac Monitor's own indicators, it replaces 1 (“Plist modified”).
+            Of Mac Monitor's own indicators, it replaces 1 (“\(plist.name)”).
             \(IndicatorCommand.reach)
             """])
         let restored = runIndicators(.edit(IndicatorEdit(plist.name, .restore)), savedMutes: savedMutes,
@@ -125,11 +127,11 @@ final class IndicatorConfirmationTests: XCTestCase {
     /// What a change counts: identities added and removed, and those whose indicator changes, a switch alone
     /// included. Only a change to a rule replaces a shipped one, and only on to off turns one off.
     func testTheChangeCountsByIdentity() {
-        var defaults = Array(Indicator.defaults.prefix(5))
+        var defaults = Array(Indicator.eventDefaults.prefix(5))
         let current = defaults
         defaults[0].isEnabled.toggle()
         defaults[1].severity = defaults[1].severity == .high ? .low : .high
-        defaults[2].predicate += " AND event_type >= 0"
+        defaults[2].rule = .event(defaults[2].predicate! + " AND event_type >= 0")
         defaults.remove(at: 3)
         let change = IndicatorSetChange(from: current, to: defaults + [own])
         XCTAssertEqual([change.added, change.removed, change.changed, change.before, change.after], [1, 1, 3, 5, 5])

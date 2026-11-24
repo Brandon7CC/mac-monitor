@@ -9,8 +9,8 @@ import XCTest
 
 
 // MARK: - Performance run
-/// How this test process measures, from its environment. `Scripts/test-performance.sh` sets every variable (through
-/// xcodebuild's `TEST_RUNNER_` prefix), and the Performance test plan sets `SUTRO_PERFORMANCE`.
+/// How this test process measures, from its environment. `Scripts/Test/test-performance.sh` sets every variable
+/// (through xcodebuild's `TEST_RUNNER_` prefix), and the Performance test plan sets `SUTRO_PERFORMANCE`.
 ///
 /// | Variable | Meaning |
 /// |---|---|
@@ -27,8 +27,8 @@ enum PerformanceRun {
     static let isEnabled = environment["SUTRO_PERFORMANCE"] == "1"
 
     /// Why a benchmark is skipped when the run isn't enabled.
-    static let skipReason = "Benchmarks run with SUTRO_PERFORMANCE=1: Scripts/test-performance.sh, or the Performance "
-        + "test plan in Xcode"
+    static let skipReason = "Benchmarks run with SUTRO_PERFORMANCE=1: Scripts/Test/test-performance.sh, or the "
+        + "Performance test plan in Xcode"
 
     /// Samples per benchmark.
     static let sampleCount = environment["SUTRO_PERFORMANCE_SAMPLES"].flatMap(Int.init).map { max(1, $0) } ?? 10

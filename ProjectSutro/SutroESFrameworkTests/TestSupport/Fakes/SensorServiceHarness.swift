@@ -165,18 +165,26 @@ final class RecordingAgent: NSObject, AppAgentProtocol {
 /// installs nothing.
 final class FakeUpdater: SensorUpdating {
     private let counts = OSAllocatedUnfairLock(initialState: (checks: 0, installs: 0))
+    /// What a check answers: that this is the latest release, unless given. `nil` is a build that doesn't update
+    /// itself.
+    private let answer: UpdateCheck?
+
+    /// - Parameter answer: What a check answers.
+    init(answering answer: UpdateCheck? = .upToDate) {
+        self.answer = answer
+    }
 
     /// How many checks and installs were asked for.
     var asked: (checks: Int, installs: Int) {
         counts.withLock { $0 }
     }
 
-    /// Answer that this is the latest release.
+    /// Answer what it was made to: that this is the latest release, unless given.
     ///
-    /// - Parameter reply: Receives ``UpdateCheck/upToDate``.
+    /// - Parameter reply: Receives the answer, JSON encoded, or `nil` for none.
     func check(reply: @escaping (Data?) -> Void) {
         counts.withLock { $0.checks += 1 }
-        reply(try? JSONEncoder().encode(UpdateCheck.upToDate))
+        reply(answer.flatMap { try? JSONEncoder().encode($0) })
     }
 
     /// Report the verifying step, then that the release was installed.

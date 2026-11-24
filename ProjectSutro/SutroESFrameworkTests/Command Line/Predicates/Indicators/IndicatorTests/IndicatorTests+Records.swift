@@ -18,7 +18,7 @@ extension IndicatorTests {
     func testRecordsListTheirIndicators() throws {
         let message = try XCTUnwrap(SyntheticCorpus.records().first).message
         var every = Indicator.defaults[0]
-        every.predicate = "event_type >= 0"
+        every.rule = .event("event_type >= 0")
         var off = every
         off.id = UUID()
         off.isEnabled = false
@@ -27,25 +27,26 @@ extension IndicatorTests {
         let line = ExportEncoder(model: model, indicators: [never, every, off]).line(for: message)
         let record = try XCTUnwrap(JSONSerialization.jsonObject(with: line) as? NSDictionary)
         let listed = try XCTUnwrap(record["indicators"] as? [[String: Any]])
-        XCTAssertEqual(listed.map { $0["name"] as? String }, ["Reflective loading"])
-        XCTAssertEqual(listed.first?["tactic"] as? String, "Defense Evasion")
-        XCTAssertEqual(listed.first?["tactic_id"] as? String, "TA0005")
-        XCTAssertEqual(listed.first?["technique"] as? String, "T1620")
+        let tactic = try XCTUnwrap(every.tactic)
+        XCTAssertEqual(listed.map { $0["name"] as? String }, [every.name])
+        XCTAssertEqual(listed.first?["tactic"] as? String, tactic.name)
+        XCTAssertEqual(listed.first?["tactic_id"] as? String, tactic.identifier)
+        XCTAssertEqual(listed.first?["technique"] as? String, try XCTUnwrap(every.technique))
         XCTAssertEqual(listed.first?["default"] as? Bool, true)
         let plain = ExportEncoder(model: model).line(for: message)
         XCTAssertNil((try JSONSerialization.jsonObject(with: plain) as? NSDictionary)?["indicators"])
 
         var filter = StreamFilter()
-        filter.indicators = ["reflective LOADING"]
+        filter.indicators = [every.name.uppercased()]
         XCTAssertTrue(filter.readsRecords)
         XCTAssertTrue(try filter.admits(record: record))
         filter.indicators = ["Never"]
         XCTAssertFalse(try filter.admits(record: record))
-        guard case .stream(let stream) = try CommandLineParser.parse(["stream", "--indicator", "Plist modified",
+        guard case .stream(let stream) = try CommandLineParser.parse(["stream", "--indicator", "Property list modified",
                                                                       "--indicator=Login"]) else {
             return XCTFail("Not a stream")
         }
-        XCTAssertEqual(stream.filter.indicators, ["Plist modified", "Login"])
+        XCTAssertEqual(stream.filter.indicators, ["Property list modified", "Login"])
         XCTAssertThrowsError(try CommandLineParser.parse(["stream", "--indicator", " "]))
     }
 

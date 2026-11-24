@@ -194,4 +194,24 @@ final class LaunchedByParentResolveTests: XCTestCase {
         XCTAssertNil(ProcessPath.of(0))
         XCTAssertNil(ProcessPath.of(-1))
     }
+
+    /// A live path read by token names that process alone: this process by its own token, and nothing by a token
+    /// with its pid and another pid version, as a process that exited and gave its pid to another would have.
+    func testALivePathChecksTheToken() {
+        let own = AuditToken(from: .currentProcess)
+        XCTAssertEqual(own.pid, getpid())
+        let again = AuditToken(from: own.raw)
+        XCTAssertEqual([again.pid, again.pidversion, again.asid], [own.pid, own.pidversion, own.asid])
+        XCTAssertEqual([again.auid, again.euid, again.ruid, again.rgid, again.egid],
+                       [own.auid, own.euid, own.ruid, own.rgid, own.egid], "The token round trips")
+        XCTAssertEqual(ProcessPath.live(getpid(), own), ProcessPath.of(getpid()))
+        XCTAssertNotNil(ProcessPath.of(own))
+        var reused = own
+        reused.pidversion &+= 1
+        XCTAssertNil(ProcessPath.live(getpid(), reused), "Another process's token, with this pid")
+        XCTAssertNotNil(ProcessPath.live(getpid(), nil), "Without a token, whichever process has the pid")
+        var none = own
+        none.pid = 0
+        XCTAssertNil(ProcessPath.of(none))
+    }
 }

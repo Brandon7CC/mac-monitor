@@ -179,6 +179,8 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
             return failure(.unavailable, "The saved mute set was written by a newer Mac Monitor. It can only be reset.")
         case .unsupported:
             return olderSecurityExtension
+        case .unreachable:
+            return failure(.temporaryFailure, "What the request needs couldn't be reached. Try again later.")
         }
     }
     
@@ -199,6 +201,7 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
         case .readOnly:
             return failure(.unavailable, "The indicators were saved by a newer Mac Monitor. They can't be changed.")
         case .unsupported: return olderSecurityExtension
+        case .unreachable: return failure(.temporaryFailure, "GitHub couldn't be reached. Try again later.")
         }
     }
     
@@ -221,24 +224,36 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
         list' to see this Mac's indicators.
         """)
 
+    /// The Security Extension didn't answer a check of an indicator pack in time: it may still be asking GitHub.
+    public static let packCheckUnanswered = CommandLineFailure(.temporaryFailure, """
+        The Security Extension didn't answer in time. It may still be asking GitHub: run 'macmonitor indicators \
+        pack status' in a moment to see what it found.
+        """)
+
     /// The failure an indicator request ended with, saying a Security Extension that didn't answer is likely older
     /// than 3.1.
     ///
     /// A Security Extension older than 3.1 cuts the connection off at any indicator request, so a cut-off connection
-    /// is always one. Only a list that times out is taken for one too: a change that times out was reached by a
-    /// Security Extension that may be slow to compile and save it, and the change may have been made.
+    /// is always one. Only a list that times out is taken for one too. A pack check that times out was reached by a
+    /// Security Extension that may still be asking GitHub, and changed nothing. A change that times out was reached
+    /// by one that may be slow to compile and save it, and the change may have been made.
     ///
     /// - Parameters:
     ///   - failure: Why there's no answer.
     ///   - operation: What the request asked.
     /// - Returns: ``indicatorsUnanswered`` for a connection cut off before any answer (``refusedBeforeAnswer``), or
-    ///   for no answer to a list (``noAnswer``), ``indicatorChangeUnanswered`` for no answer to a change, and any other
-    ///   failure as it is.
+    ///   for no answer to a list (``noAnswer``), ``packCheckUnanswered`` for no answer to a pack check,
+    ///   ``indicatorChangeUnanswered`` for no answer to a change, and any other failure as it is.
     public static func indicators(_ failure: CommandLineFailure, to operation: IndicatorRequest.Operation)
         -> CommandLineFailure {
         switch failure {
         case refusedBeforeAnswer: return indicatorsUnanswered
-        case noAnswer: return operation == .list ? indicatorsUnanswered : indicatorChangeUnanswered
+        case noAnswer:
+            switch operation {
+            case .list: return indicatorsUnanswered
+            case .checkPack: return packCheckUnanswered
+            default: return indicatorChangeUnanswered
+            }
         default: return failure
         }
     }
@@ -248,17 +263,18 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
     /// - Parameters:
     ///   - error: The error from the connection's proxy.
     ///   - started: Had the Security Extension already answered? Then the connection going away means it stopped.
+    ///   - closed: Had `macmonitor` closed the connection itself?
     /// - Returns: The failure: exit 69.
-    public static func connection(_ error: Error, started: Bool) -> CommandLineFailure {
+    public static func connection(_ error: Error, started: Bool, closed: Bool = false) -> CommandLineFailure {
         let nsError = error as NSError
         let code = nsError.domain == NSCocoaErrorDomain ? XPCError(rawValue: nsError.code) : nil
         switch (code, started) {
         case (.codeSigningRequirementFailed?, _):
-            return CommandLineFailure(.unavailable, """
-                The Security Extension's code signature didn't match. Reinstall Mac Monitor.
-                """)
+            return signatureMismatch
         case (_, true):
             return stopped
+        case (.invalid?, false) where !closed && nsError.saysInvalidatedHere:
+            return signatureMismatch
         case (.invalid?, false):
             return CommandLineFailure(.unavailable, """
                 Mac Monitor's Security Extension isn't running. Open Mac Monitor and allow its Security Extension.
@@ -271,6 +287,11 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
         }
     }
     
+    /// What answered as the Security Extension isn't signed as Mac Monitor's.
+    public static let signatureMismatch = CommandLineFailure(.unavailable, """
+        The Security Extension's code signature didn't match. Reinstall Mac Monitor.
+        """)
+
     /// The Security Extension cut the connection off before answering: it doesn't accept this `macmonitor`, or it's
     /// older than `macmonitor`.
     public static let refusedBeforeAnswer = CommandLineFailure(.unavailable, """
@@ -344,5 +365,19 @@ public struct CommandLineFailure: Error, Equatable, CustomStringConvertible {
             '\(command)' changes \(changed) Mac Monitor and every stream follow, and there's no terminal to ask at. \
             Add --yes to go ahead.
             """)
+    }
+}
+
+
+// MARK: - Invalidated here
+private extension NSError {
+    /// Does NSXPC say this process invalidated the connection?
+    ///
+    /// NSXPC does that itself when the other side sends something that isn't a reply and fails the code signing
+    /// requirement, such as a batch ahead of its answer. The error is the one a missing service gets
+    /// (``CommandLineFailure/XPCError/invalid``), and only its debug description, which isn't localized, tells them
+    /// apart. A description that reads another way is taken as a missing service.
+    var saysInvalidatedHere: Bool {
+        (userInfo[NSDebugDescriptionErrorKey] as? String)?.contains("invalidated from this process") ?? false
     }
 }

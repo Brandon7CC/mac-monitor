@@ -26,7 +26,7 @@ final class IndicatorExchangeTests: XCTestCase {
         let listed = try XCTUnwrap(file["indicators"] as? [[String: Any]])
         XCTAssertEqual(listed.map { $0["severity"] as? String }, edited.map(\.severity.rawValue))
         XCTAssertEqual(file["format"] as? String, "com.swiftlydetecting.indicators")
-        XCTAssertEqual(file["version"] as? Int, 1)
+        XCTAssertEqual(file["version"] as? Int, IndicatorExchange.version(of: edited))
         XCTAssertEqual((file["indicators"] as? [Any])?.count, edited.count)
     }
 
@@ -90,7 +90,7 @@ final class IndicatorExchangeTests: XCTestCase {
         XCTAssertEqual(message("not json"), "The file isn't JSON.")
         XCTAssertEqual(message(#"{"format": "other", "version": 1, "indicators": []}"#),
                        "The file isn't Mac Monitor indicators.")
-        XCTAssertEqual(message(#"{"format": "com.swiftlydetecting.indicators", "version": 2, "indicators": []}"#),
+        XCTAssertEqual(message(#"{"format": "com.swiftlydetecting.indicators", "version": 3, "indicators": []}"#),
                        "The file is from a newer Mac Monitor. Update to import it.")
         XCTAssertEqual(message(#"{"format": "com.swiftlydetecting.indicators", "version": 1, "indicators": []}"#),
                        "The file has no indicators.")

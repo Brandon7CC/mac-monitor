@@ -70,6 +70,7 @@ struct ModeledEvent {
         .init(ES_EVENT_TYPE_NOTIFY_LOGIN_LOGIN, "person.fill.checkmark", isDefault: true),
         .init(ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN, "macwindow.badge.plus"),
         .init(ES_EVENT_TYPE_NOTIFY_LW_SESSION_UNLOCK, "lock.open", isDefault: true),
+        .init(ES_EVENT_TYPE_NOTIFY_AUTHENTICATION, "person.badge.key.fill", isDefault: true),
         .init(ES_EVENT_TYPE_NOTIFY_DUP, "folder.badge.plus"),
         .init(ES_EVENT_TYPE_NOTIFY_RENAME, "filemenu.and.cursorarrow", isDefault: true),
         .init(ES_EVENT_TYPE_NOTIFY_UNLINK, "trash"),
@@ -136,7 +137,7 @@ public var defaultFieldFilters: [FieldFilter] {
 }
 
 /// The defaults for a client that can't field-filter (`macmonitor` 3.0.0, or a 3.0.0 Security Extension): the
-/// defaults without those that are default only with a filter. Equals 3.0.0's list.
+/// defaults without those that are default only with a filter.
 public var defaultEventSubscriptionsWithoutFieldFilters: [es_event_type_t] {
     ModeledEvent.all.filter { $0.isAvailable && $0.isDefault && $0.defaultFilter == nil }.map(\.type)
 }

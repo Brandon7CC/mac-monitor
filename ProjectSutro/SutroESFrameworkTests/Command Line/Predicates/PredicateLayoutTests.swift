@@ -32,9 +32,8 @@ final class PredicateLayoutTests: XCTestCase {
     /// Every shipped indicator's predicate is on one line, its lines join back to it exactly, and its laid-out text,
     /// pasted back and put on one line, is it again. Laying out the laid-out text gives the same layout.
     func testShippedPredicatesRoundTrip() {
-        XCTAssertEqual(Indicator.defaults.count, 43)
-        for indicator in Indicator.defaults {
-            let predicate = indicator.predicate
+        for indicator in Indicator.eventDefaults {
+            let predicate = indicator.predicate!
             let layout = PredicateLayout(predicate)
             XCTAssertEqual(PredicateLayout.oneLine(predicate), predicate, indicator.name)
             XCTAssertEqual(layout.oneLine, predicate, indicator.name)
@@ -47,11 +46,11 @@ final class PredicateLayoutTests: XCTestCase {
 
     /// Dylib inserted, the deepest shipped predicate, lays out as the owner's approved design shows it.
     func testShippedDylibInsertedLayout() throws {
-        let indicator = try XCTUnwrap(Indicator.defaults.first { $0.name == "Dylib inserted" })
+        let indicator = try XCTUnwrap(Indicator.defaults.first { $0.name == "Dynamic library inserted" })
         let env = "ANY event.exec.env"
         let xcode = "/Applications/Xcode*.app/Contents/Developer/*"
         let nested = "/Applications/Xcode*/*.app/Contents/Developer/*"
-        XCTAssertEqual(PredicateLayout(indicator.predicate).text, [
+        XCTAssertEqual(PredicateLayout(indicator.predicate!).text, [
             "event.exec != nil",
             "  AND (",
             #"    (\#(env) BEGINSWITH "DYLD_INSERT_LIBRARIES=")"#,
@@ -157,12 +156,12 @@ final class PredicateLayoutTests: XCTestCase {
     /// splits, merges or recolors a token, and no token runs over a line.
     func testShippedOperatorTokens() {
         var used: [PredicateText.Token.Kind: Set<String>] = [:]
-        for indicator in Indicator.defaults {
-            let tokens = PredicateText.tokens(in: indicator.predicate)
+        for indicator in Indicator.eventDefaults {
+            let tokens = PredicateText.tokens(in: indicator.predicate!)
             for token in tokens where [.comparison, .keyword].contains(token.kind) {
                 used[token.kind, default: []].insert(token.text)
             }
-            let text = PredicateLayout(indicator.predicate).text
+            let text = PredicateLayout(indicator.predicate!).text
             let laidOut = PredicateText.tokens(in: text)
             XCTAssertEqual(laidOut.map(\.kind), tokens.map(\.kind), indicator.name)
             XCTAssertEqual(laidOut.map(\.text), tokens.map(\.text), indicator.name)

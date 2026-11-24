@@ -17,23 +17,18 @@ import SutroESFramework
 /// the sections picks every indicator, a tactic that has one, those with none, those off, or those whose symbol marks
 /// the tables (``IndicatorScope``), and a search finds them in all. Each indicator's row has its severity and its
 /// switch, and clicking it edits it. Export writes the indicators listed, or one, to a JSON file to share, and Import
-/// adds a file's (``IndicatorsFile``). The bell button opens this user's notifications for High and Medium matches
-/// (``IndicatorAlertsSection``), and a row's menu stops or starts them for its indicator. Add Indicator is the pane's
-/// prominent button.
+/// adds a file's (``IndicatorsFile``). Add Indicator is the pane's prominent button.
 ///
 /// The indicators are the Mac's, which the Security Extension keeps and runs on every event, for every user: each
 /// change is asked of it. Where each shows, in Correlation, Groups and the tables, is this user's. While this Mac
 /// Monitor may not change them, because another owns the event stream, the Security Extension is older than 3.1, or a
 /// newer Mac Monitor saved them, they show read-only, with why. A user's Mac Monitor 3.0 indicators are offered once
-/// (``IndicatorImportBanner``).
+/// (``IndicatorImportBanner``). While a newer indicator pack is out, a line says so, with Install
+/// (``IndicatorPackBanner``).
 struct IndicatorsSettingsView: View {
     @ObservedObject private var store = IndicatorStore.shared
-    /// This user's indicator notifications, for each row's Don't Notify.
-    @ObservedObject private var alerts = IndicatorAlertCenter.shared
     /// The main window's search, whose queries preview what an indicator finds.
     @EnvironmentObject private var search: EventSearchController
-    /// Mac Monitor's connection to the Security Extension, which the notifications popover reads.
-    @EnvironmentObject private var manager: EndpointSecurityManager
     /// The indicator being edited, and whether it's new, decided as the editor opens.
     @State private var editing: IndicatorEditing?
     @State private var confirmsRestore = false
@@ -48,8 +43,8 @@ struct IndicatorsSettingsView: View {
     @State private var imported: (title: String, message: String)?
     /// The indicator to scroll the sections to, until they have.
     @State private var revealed: AnyHashable?
-    /// Is the notifications popover showing?
-    @State private var showsAlerts = false
+    /// The newer indicator pack being offered, while its sheet is open.
+    @State private var packOffer: IndicatorPackOffer?
 
     var body: some View {
         let cards = IndicatorCard.cards(of: store.indicators, in: scope, search: query)
@@ -66,14 +61,6 @@ struct IndicatorsSettingsView: View {
                 Button("Export…") { exporting = IndicatorsFile(cards.flatMap(\.indicators)) }
                     .disabled(cards.isEmpty)
                     .help("Save the indicators listed to a JSON file to share")
-                Button { showsAlerts.toggle() } label: {
-                    Image(systemName: alerts.high || alerts.medium ? "bell.badge" : "bell.slash")
-                }
-                .help("Notifications for High and Medium matches")
-                .accessibilityLabel("Notifications")
-                .popover(isPresented: $showsAlerts, arrowEdge: .bottom) {
-                    IndicatorAlertsSection().environmentObject(manager)
-                }
                 Button("Add Indicator…") { editing = .new(Self.newIndicator(in: scope.shown(search: query))) }
                     .buttonStyle(.borderedProminent)
                     .disabled(!canChange)
@@ -81,6 +68,10 @@ struct IndicatorsSettingsView: View {
             if let offer = store.importOffer {
                 IndicatorImportBanner(offer: offer, canChange: canChange, take: store.takeImportOffer,
                                       decline: store.declineImportOffer)
+            }
+            if let available = store.engine.pack?.available {
+                IndicatorPackBanner(sequence: available, offer: store.engine.packOffer,
+                                    isLooking: store.engine.isLookingForPack) { offerPack(available) }
             }
             if let notice = notice {
                 Label(notice, systemImage: canChange ? "info.circle.fill" : "lock.fill")
@@ -104,7 +95,10 @@ struct IndicatorsSettingsView: View {
         .sheet(item: $editing) { editing in
             IndicatorEditorSheet(indicator: editing.indicator, model: search.queries, canChange: canChange,
                                  save: { store.save($0, from: editing.original) },
-                                 delete: !editing.isNew && canChange ? { store.delete($0) } : nil)
+                                 delete: !editing.isNew && canChange ? { store.delete($0) } : nil,
+                                 about: editing.isNew ? nil : IndicatorAbout(editing.indicator,
+                                                                             baseline: store.engine.baseline,
+                                                                             pack: store.engine.pack))
         }
         .fileExporter(isPresented: Binding { exporting != nil } set: { if !$0 { exporting = nil } },
                       document: exporting, contentType: .json, defaultFilename: exporting?.defaultName) { _ in }
@@ -116,6 +110,7 @@ struct IndicatorsSettingsView: View {
         } message: {
             Text(imported?.message ?? "")
         }
+        .indicatorPackOffer($packOffer)
         .alert("The Security Extension didn't change the indicators",
                isPresented: Binding { store.engine.failure != nil } set: { if !$0 { store.engine.failure = nil } }) {
             Button("OK") {}
@@ -136,8 +131,33 @@ struct IndicatorsSettingsView: View {
         .onAppear {
             store.engine.refresh()
             takeRevealRequest()
+            lookForPackEffect()
         }
+        .onChange(of: store.engine.pack?.available) { _ in lookForPackEffect() }
         .onChange(of: store.revealRequest) { _ in takeRevealRequest() }
+    }
+
+    /// Learn what the newer pack would do, for the line that says it's out, unless that's known. Only while the Mac
+    /// looks for packs on its own: with updates off, GitHub is asked when someone says to.
+    private func lookForPackEffect() {
+        let engine = store.engine
+        guard let available = engine.pack?.available, engine.packOffer?.sequence != available,
+              engine.pack?.mode != .off else { return }
+        engine.lookForPack()
+    }
+
+    /// Offer the newer pack: what a look already said of it, or what one says now.
+    ///
+    /// - Parameter available: The newer pack's release.
+    private func offerPack(_ available: Int) {
+        if let offer = store.engine.packOffer, offer.sequence == available { return packOffer = offer }
+        store.engine.lookForPack { look in
+            switch look {
+            case .newer(let offer): packOffer = offer
+            case .upToDate: imported = ("There's no newer indicator pack", "This Mac has the newest one.")
+            case .failed(let reason): imported = ("The indicator pack couldn't be checked", reason)
+            }
+        }
     }
 
     /// Show the indicator Event Facts' Indicators popover asked for: its tactic, scrolled to its row.
@@ -199,9 +219,8 @@ struct IndicatorsSettingsView: View {
     /// - Returns: Its row, with its menu.
     private func row(_ indicator: Indicator) -> some View {
         let canChange = store.canChangeIndicators
-        let silenced = alerts.silenced.contains(indicator.id)
         let problem = store.sensorProblem(of: indicator)
-        return IndicatorRow(indicator: indicator, sensorProblem: problem, canChange: canChange, silenced: silenced,
+        return IndicatorRow(indicator: indicator, sensorProblem: problem, canChange: canChange,
                             save: { store.save($0, from: indicator) }, edit: { editing = .existing(indicator) })
             /// What Show in Settings scrolls to.
             .id(AnyHashable(indicator.id))
@@ -215,8 +234,6 @@ struct IndicatorsSettingsView: View {
                     store.save(copy, from: nil)
                 }
                 .disabled(!canChange)
-                /// This user's, so it's never off-limits.
-                Button(silenced ? "Notify" : "Don't Notify") { alerts.setSilenced(indicator.id, !silenced) }
                 Divider()
                 Button("Delete", role: .destructive) { store.delete(indicator) }
                     .disabled(!canChange)

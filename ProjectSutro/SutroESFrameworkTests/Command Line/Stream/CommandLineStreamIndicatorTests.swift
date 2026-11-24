@@ -137,7 +137,7 @@ final class CommandLineStreamIndicatorTests: XCTestCase {
             run.command.stop()
             XCTAssertTrue(waitUntil { !run.reported.isEmpty })
         }
-        let plist = try XCTUnwrap(Indicator.defaults.first { $0.name == "Plist modified" })
+        let plist = try XCTUnwrap(Indicator.defaults.first { $0.id == Indicator.uuid(0x2A) })
         let harness = makeHarness()
         let run = try streamExits(indicators: [plist.id.uuidString], count: 3, in: harness)
         run.command.stop()
@@ -236,7 +236,7 @@ final class CommandLineStreamIndicatorTests: XCTestCase {
         let plain = try jsonObject(StreamPipeline.Formatter.encoders(model: eventModel)[0].line(for: message))
         XCTAssertNil(plain["indicators"])
         var every = everyExit
-        every.predicate = "event_type >= 0"
+        every.rule = .event("event_type >= 0")
         let matched = try jsonObject(ExportEncoder(model: eventModel, indicators: [every]).line(for: message))
         XCTAssertEqual((matched["indicators"] as? [[String: Any]])?.first?["evaluated_by"] as? String, "export")
 

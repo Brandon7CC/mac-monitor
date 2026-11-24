@@ -17,6 +17,9 @@ public struct ProcessForkEvent: Codable, IdentityHashable {
     /// Mac Monitor's launched-by parent of ``child`` (``LaunchedByParent``): stamped by the Security Extension's
     /// serializer from the message's own fields. `nil` until it's resolved.
     public var launched_by_parent: LaunchedByParent?
+    /// The keys of ``child``'s ancestors, nearest first, the forking process's first (``ProcessKey``,
+    /// ``ProcessLineage``): stamped by the Security Extension's serializer. `nil` when its lineage isn't tracked.
+    public var ancestor_keys: [String]?
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let forkEvent: es_event_fork_t = rawMessage.pointee.event.fork

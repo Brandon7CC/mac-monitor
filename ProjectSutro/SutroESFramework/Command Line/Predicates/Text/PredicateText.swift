@@ -25,7 +25,7 @@ public enum PredicateText {
         (.string, #""(?:[^"\\]|\\.)*"?|'(?:[^'\\]|\\.)*'?"#),
         (.keyword, #"\b(?:AND|OR|NOT|ANY|ALL|NONE|IN|CONTAINS|BEGINSWITH|ENDSWITH|MATCHES|LIKE|BETWEEN|TRUEPREDICATE"#
             + #"|FALSEPREDICATE|TRUE|FALSE|NIL|NULL|YES|NO)\b(?:\[[cd]+\])?"#),
-        (.comparison, #"==|!=|>=|<=|=|<|>"#),
+        (.comparison, #"(?:==|!=|>=|<=|=|<|>)(?:\[[cd]+\])?"#),
         (.number, #"\b\d+(?:\.\d+)?\b"#),
         (.variable, #"\$[A-Za-z_]\w*(?:\.[\w@]+)*"#),
         (.keyPath, #"[A-Za-z_@][\w@]*(?:\.[\w@]+)*"#),
@@ -149,8 +149,11 @@ public enum PredicateText {
     /// - Parameters:
     ///   - text: A predicate.
     ///   - location: Where the word ends, the cursor.
+    ///   - audience: What the predicate is for: an indicator's also completes a process's ancestors
+    ///     (``LineageField``), which the window's search and `macmonitor` refuse.
     /// - Returns: The word and its completions, or `nil` if there's no word or nothing completes it.
-    public static func completions(in text: String, at location: Int) -> Completion? {
+    public static func completions(in text: String, at location: Int,
+                                   for audience: PredicateAudience = .search) -> Completion? {
         let string = text as NSString
         guard location <= string.length else { return nil }
         if let quoted = tokens(in: text).first(where: { isInside($0, location) }) {
@@ -174,9 +177,10 @@ public enum PredicateText {
         if typed.hasPrefix("$") {
             guard let dot = typed.firstIndex(of: ".") else { return nil }
             variable = String(typed[...dot])
-            words = pathCompletions(String(typed[typed.index(after: dot)...]), keywords: false).map { variable + $0 }
+            words = pathCompletions(String(typed[typed.index(after: dot)...]), keywords: false, lineage: false)
+                .map { variable + $0 }
         } else {
-            words = pathCompletions(typed, keywords: true)
+            words = pathCompletions(typed, keywords: true, lineage: audience.readsLineage)
         }
         words.removeAll { $0 == typed }
         let items = words.map { item(for: $0, variable: variable) }
@@ -194,8 +198,12 @@ public enum PredicateText {
         if variable.isEmpty, completedKeywords.contains(word) {
             return Completion.Item(word: word, kind: .keyword, type: "", summary: nil)
         }
-        let node = RecordKeyPaths.shared.nodes[String(word.dropFirst(variable.count))]
-        return Completion.Item(word: word, kind: .key, type: node?.type ?? "", summary: node?.summary)
+        let path = String(word.dropFirst(variable.count))
+        if let node = RecordKeyPaths.shared.nodes[path] {
+            return Completion.Item(word: word, kind: .key, type: node.type, summary: node.summary)
+        }
+        let ancestor = variable.isEmpty ? LineageField.completion(of: path.split(separator: ".").map(String.init)) : nil
+        return Completion.Item(word: word, kind: .key, type: ancestor?.type ?? "", summary: ancestor?.summary)
     }
 
     /// - Parameters:
@@ -211,16 +219,19 @@ public enum PredicateText {
     /// - Parameters:
     ///   - typed: A key path being typed, without a variable.
     ///   - keywords: Complete keywords and related events too?
+    ///   - lineage: Complete a process's ancestors too (``LineageField``)?
     /// - Returns: Its completions.
-    private static func pathCompletions(_ typed: String, keywords: Bool) -> [String] {
+    private static func pathCompletions(_ typed: String, keywords: Bool, lineage: Bool) -> [String] {
         let keyPaths = RecordKeyPaths.shared
         let lowered = typed.lowercased()
         if let dot = typed.lastIndex(of: ".") {
             let parent = String(typed[..<dot]), fragment = typed[typed.index(after: dot)...].lowercased()
-            guard let node = keyPaths.nodes[parent] else { return [] }
-            return node.children.filter { $0.lowercased().hasPrefix(fragment) }.map { parent + "." + $0 }
+            let ancestors = lineage ? LineageField.children(of: parent.split(separator: ".").map(String.init)) : []
+            return ((keyPaths.nodes[parent]?.children ?? []) + ancestors)
+                .filter { $0.lowercased().hasPrefix(fragment) }.map { parent + "." + $0 }
         }
         var words = (keyPaths.nodes[""]?.children ?? []).filter { $0.lowercased().hasPrefix(lowered) }
+        if lineage { words += LineageField.children(of: []).filter { $0.hasPrefix(lowered) } }
         if keywords {
             words += (completedKeywords + PredicateRelation.allCases.map(\.rawValue))
                 .filter { $0.lowercased().hasPrefix(lowered) }
@@ -229,6 +240,11 @@ public enum PredicateText {
             words += keyPaths.paths.lazy.filter { path in
                 path.contains(".") && (path.split(separator: ".").last ?? "").lowercased().hasPrefix(lowered)
             }.prefix(byLastKeyLimit)
+            if lineage {
+                words += LineageField.all.lazy.map(\.path).filter { path in
+                    (path.split(separator: ".").last ?? "").hasPrefix(lowered)
+                }
+            }
         }
         return words
     }

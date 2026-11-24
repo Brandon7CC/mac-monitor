@@ -11,8 +11,8 @@ import XCTest
 
 // MARK: - Changing the Mac's indicator set
 /// Pins each request to the Mac's indicator set: what add, remove, setEnabled and replace make of it, what's saved,
-/// what's refused and why, who may change it, that an indicator that can't run is kept and listed, that a change
-/// compiles only what it adds, and that a list is answered from one reply a change.
+/// what's refused and why, who may change it, that an indicator that can't run is refused and one already there
+/// stays, that a change compiles only what it adds, and that a list is answered from one reply a change.
 final class SavedIndicatorSetChangeTests: XCTestCase {
     /// Every exec.
     private static let exec = #"es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC""#
@@ -38,7 +38,7 @@ final class SavedIndicatorSetChangeTests: XCTestCase {
         let mine = ownIndicator("Mine", Self.exec, severity: .low)
         var edited = try XCTUnwrap(Indicator.defaults.first)
         edited.severity = .high
-        edited.predicate += " AND process.is_platform_binary == NO"
+        edited.rule = .event(edited.predicate! + " AND process.is_platform_binary == NO")
         let reply = set.send(IndicatorRequest(.add, indicators: [mine, edited]))
         XCTAssertEqual(reply.status, .ok)
         XCTAssertTrue(reply.changed)
@@ -123,21 +123,76 @@ final class SavedIndicatorSetChangeTests: XCTestCase {
         XCTAssertEqual(before, after, "A save replaces the file")
     }
 
-    /// An indicator the Security Extension can't run joins and is kept, and every reply says why, in the set's
-    /// order, until it's fixed.
-    func testAnIndicatorThatCantRunIsKeptAndListed() throws {
+    /// Every indicator runs in the Security Extension, so one it can't run isn't taken: an add or a replace that
+    /// brings one is refused with the reason, and the set stays as it was. Fixed, it joins. An edit that leaves its
+    /// rule one the Security Extension can't run is refused too.
+    func testAnIndicatorThatCantRunIsRefused() throws {
         let untyped = ownIndicator("Untyped", #"process.executable.name == "curl""#)
-        let added = set.send(IndicatorRequest(.add, indicators: [untyped]))
-        XCTAssertEqual(added.status, .ok)
-        XCTAssertEqual(added.indicators.last, untyped)
-        XCTAssertEqual(added.problems.map(\.id), [untyped.id])
-        XCTAssertEqual(added.problems.first?.reason, SensorProblem.untyped.description)
-        XCTAssertEqual(set.send(IndicatorRequest(.list)).problems.map(\.id), [untyped.id])
-        XCTAssertEqual(try savedIndicators(in: directory).last, untyped)
-
+        let before = set.send(IndicatorRequest(.list)).indicators
+        for request in [IndicatorRequest(.add, indicators: [untyped]),
+                        IndicatorRequest(.replace, indicators: before + [untyped])] {
+            let reply = set.send(request)
+            XCTAssertEqual(reply.status, .invalid)
+            XCTAssertEqual(reply.failure, "“Untyped” can't run in the Security Extension. "
+                           + SensorProblem.untyped.description)
+            XCTAssertFalse(reply.changed)
+            XCTAssertEqual(reply.indicators, before)
+            XCTAssertEqual(reply.problems, [])
+        }
         var fixed = untyped
-        fixed.predicate = Self.exec + #" AND process.executable.name == "curl""#
-        XCTAssertEqual(set.send(IndicatorRequest(.add, indicators: [fixed])).problems, [])
+        fixed.rule = .event(Self.exec + #" AND process.executable.name == "curl""#)
+        let added = set.send(IndicatorRequest(.add, indicators: [fixed]))
+        XCTAssertEqual(added.status, .ok)
+        XCTAssertEqual(added.problems, [])
+        XCTAssertEqual(set.send(IndicatorRequest(.add, indicators: [untyped])).status, .invalid)
+        XCTAssertEqual(set.send(IndicatorRequest(.list)).indicators.last, fixed)
+    }
+
+    /// An indicator the Mac already has that can't run, as a set saved by Mac Monitor 3.1 may hold, stays and is
+    /// listed with its reason. Other changes go through beside it, and so do changes to it that leave its rule
+    /// alone. A new rule for it has to be one the Security Extension runs.
+    func testAnIndicatorThatCantRunAndIsAlreadyThereStays() throws {
+        let untyped = ownIndicator("Untyped", #"process.executable.name == "curl""#)
+        directory = try makeIndicatorDirectory()
+        let saved = SavedIndicators(Indicator.defaults + [untyped])
+        try writeIndicatorFile(XCTUnwrap(IndicatorFile(saved).encoded()), in: directory)
+        let set = try makeSavedIndicatorSet(in: directory)
+        set.load()
+        XCTAssertEqual(set.send(IndicatorRequest(.list)).problems.map(\.id), [untyped.id])
+        XCTAssertEqual(set.send(IndicatorRequest(.add, indicators: [ownIndicator("Mine", Self.exec)])).status, .ok)
+        XCTAssertEqual(set.send(IndicatorRequest(.setEnabled, ids: [untyped.id], enabled: false)).status, .ok)
+        var renamed = untyped
+        renamed.name = "Renamed"
+        renamed.isEnabled = false
+        let kept = set.send(IndicatorRequest(.add, indicators: [renamed]))
+        XCTAssertEqual(kept.status, .ok)
+        XCTAssertEqual(kept.problems.map(\.id), [untyped.id])
+        var changed = renamed
+        changed.rule = .event("process.pid == 1")
+        let refused = set.send(IndicatorRequest(.add, indicators: [changed]))
+        XCTAssertEqual(refused.status, .invalid)
+        XCTAssertEqual(refused.failure, "“Renamed” can't run in the Security Extension. "
+                       + SensorProblem.untyped.description)
+        changed.rule = .event(Self.exec + " AND process.pid == 1")
+        XCTAssertEqual(set.send(IndicatorRequest(.add, indicators: [changed])).problems, [])
+    }
+
+    /// Restore Defaults brings back a shipped indicator that needs a newer Mac Monitor, which a pack may hold and
+    /// isn't run. Someone's own copy of it is refused.
+    func testRestoreDefaultsBringsBackWhatThePackHoldsForANewerMacMonitor() throws {
+        var later = ownIndicator("Later", Self.exec)
+        later.minEngine = ReleaseVersion(9, 0, 0)
+        directory = try makeIndicatorDirectory()
+        let set = try makeSavedIndicatorSet(in: directory, defaults: [ownIndicator("Now", Self.exec), later])
+        set.load()
+        XCTAssertEqual(set.send(IndicatorRequest(.remove, ids: [later.id])).status, .ok)
+        let reset = set.send(IndicatorRequest(.reset))
+        XCTAssertEqual(reset.status, .ok)
+        XCTAssertEqual(reset.indicators.last, later)
+        XCTAssertEqual(reset.problems.map(\.id), [later.id])
+        var mine = later
+        mine.id = UUID()
+        XCTAssertEqual(set.send(IndicatorRequest(.add, indicators: [mine])).status, .invalid)
     }
 
     /// A change compiles only the predicates it adds, and takes the rest from the set it replaces.

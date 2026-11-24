@@ -82,11 +82,12 @@ extension StreamSession: StreamProtocol {
     func perform(_ request: Data, reply: @escaping (Data) -> Void) {
         /// Decided on the thread delivering the message, by the caller's effective user and `CommandLineAccess`.
         let grant = service.grant(NSXPCConnection.current())
-        /// A status request only reads, so anyone `macmonitor` runs as may send it. A stop only ends this
-        /// connection's own stream: one that began while streaming was allowed still drains and reports what it
-        /// lost when it's stopped after Settings narrowed access, rather than being refused and cut off.
+        /// A status request only reads, and an update check only looks a release up, as any user's Mac Monitor may,
+        /// so anyone `macmonitor` runs as may send either. A stop only ends this connection's own stream: one that
+        /// began while streaming was allowed still drains and reports what it lost when it's stopped after Settings
+        /// narrowed access, rather than being refused and cut off.
         let kind = (try? StreamRequest.decode(request))?.kind
-        guard kind == .status || kind == .stop || grant.mayStream else {
+        guard kind == .status || kind == .updateCheck || kind == .stop || grant.mayStream else {
             StreamService.logger.error("\(self.label, privacy: .public): refused a stream request.")
             return reply(answer(.refused, problem: grant.refusal).encoded())
         }
@@ -145,6 +146,14 @@ extension StreamSession {
                 service.report { [self] report in
                     queue.async { reply(self.answer(.ok, report: report)) }
                 }
+            case .updateCheck:
+                guard let updates = service.updates else {
+                    return reply(answer(.failed, problem: "This Security Extension doesn't look up releases."))
+                }
+                /// The look up runs on the updater's own tasks. A build that doesn't update itself answers nothing.
+                updates.check { [self] check in
+                    queue.async { reply(self.answer(.ok, update: check.map { UpdateCheck.decode($0) })) }
+                }
             }
         } catch {
             reply(answer(error.status(), problem: error.description))
@@ -171,6 +180,7 @@ extension StreamSession {
         hasStreamed = true
         var configuration = CaptureConfiguration(events: plan.events, label: label)
         configuration.fieldFilters = plan.fieldFilters ?? []
+        configuration.chainBudget = SessionChains.streamBudget
         /// Every stream is evaluated, `--no-mutes` too: its records carry the verdicts. Changes hop onto `queue`.
         if let savedIndicators = service.savedIndicators {
             let (indicators, subscription) = savedIndicators.follow { [weak self] compiled in
@@ -236,7 +246,7 @@ extension StreamSession {
         }
     }
     
-    /// Close for good. Call on ``queue``.
+    /// Close for good, then say so (``StreamService/closed``). Call on ``queue``.
     private func finish() {
         guard !isClosed else { return }
         isClosed = true
@@ -261,6 +271,7 @@ extension StreamSession {
         batcher = nil
         service.slots.release(number)
         if heldClients { service.released() }
+        service.closed()
     }
     
     /// Apply a change to the saved mute set, then tell `macmonitor`. Call on ``queue``.
@@ -313,11 +324,13 @@ extension StreamSession {
     ///   - stream: The stream that started.
     ///   - summary: What the stream delivered and lost.
     ///   - report: What the Security Extension says of itself.
+    ///   - update: How the look up of Mac Monitor's latest release went.
     /// - Returns: The answer.
     private func answer(_ status: StreamReply.Status, problem: String? = nil, stream: StreamStarted? = nil,
-                        summary: StreamSummary? = nil, report: SensorReport? = nil) -> StreamReply {
+                        summary: StreamSummary? = nil, report: SensorReport? = nil,
+                        update: UpdateCheck? = nil) -> StreamReply {
         StreamReply(status: status, problem: problem, sensorVersion: service.sensorVersion, stream: stream,
-                    summary: summary, report: report)
+                    summary: summary, report: report, update: update)
     }
     
     /// What the stream has delivered and lost so far. Call on ``queue``.

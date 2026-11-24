@@ -7,7 +7,6 @@
 
 
 import Cocoa
-import UserNotifications
 import SutroESFramework
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -22,17 +21,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             "ApplePersistenceIgnoreState" : true
         ]
         userDefaults.register(defaults: defaultValues)
-    }
-
-    /// Answer indicator notifications' clicks from the start, so one that launches Mac Monitor is delivered, and
-    /// register their actions.
-    ///
-    /// - Parameter notification: The launch.
-    func applicationWillFinishLaunching(_ notification: Notification) {
-        MainActor.assumeIsolated {
-            UNUserNotificationCenter.current().delegate = IndicatorAlertCenter.shared
-            IndicatorAlertCenter.shared.registerCategories()
-        }
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

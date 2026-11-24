@@ -21,26 +21,20 @@ struct SystemInitiatingProcessView: View {
         List {
             VStack(alignment: .leading) {
                 MessageDetailsHeader(message: selectedMessage) {
-                    HStack {
+                    FactRow {
                         Text("\u{2022} **Resulting event type:**")
                         GroupBox {
                             SystemEventTypeLabel(message: selectedMessage)
                         }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
 
                 FactsBox {
-                    HStack {
-                        Text("\u{2022} **Parent PID:**")
-                        GroupBox {
-                            Text("`\(String(process.pid))`")
-                        }
-
-                        HStack {
-                            Image(systemName: "person.fill")
-                            Text("**Parent user:**")
-                            UserFact(process: process)
-                        }.frame(maxWidth: .infinity, alignment: .leading)
+                    FactRow {
+                        Fact("Parent PID", String(process.pid))
+                        Image(systemName: "person.fill")
+                        Text("**Parent user:**")
+                        UserFact(process: process)
                     }
 
                     FactRow(name: "Parent process name", value: process.executable?.name ?? "")

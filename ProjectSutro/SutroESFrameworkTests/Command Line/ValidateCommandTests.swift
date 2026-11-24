@@ -148,15 +148,12 @@ final class ValidateCommandTests: XCTestCase {
     
     // MARK: Traces that can't be read
     
-    /// A folder, a pipe, a device, standard input, a missing file, an unreadable one and an empty path (which names no
-    /// file, not the current folder) exit 66, saying why, and write nothing to standard output. None of them blocks.
+    /// A folder, a pipe, a device, standard input, a missing file and an empty path (which names no file, not the
+    /// current folder) exit 66, saying why, and write nothing to standard output. None of them blocks: each check
+    /// runs on another queue, and one that blocks on the pipe for 2 seconds fails.
     func testTracesThatCantBeReadExit66() throws {
         let folder = try makeTemporaryDirectory()
-        let fifo = folder.appendingPathComponent("fifo").path
-        XCTAssertEqual(mkfifo(fifo, 0o600), 0)
-        let locked = try temporaryFile(containing: "{}\n", named: "locked.jsonl").path
-        XCTAssertEqual(chmod(locked, 0), 0)
-        addTeardownBlock { chmod(locked, 0o600) }
+        let fifo = try makeFIFO()
         let missing = folder.appendingPathComponent("missing.jsonl").path
         
         let expected = [
@@ -164,16 +161,29 @@ final class ValidateCommandTests: XCTestCase {
             fifo: "“\(fifo)” couldn't be read: it isn't a regular file.",
             "/dev/null": "“/dev/null” couldn't be read: it isn't a regular file.",
             missing: "“\(missing)” couldn't be read: No such file or directory.",
-            locked: "“\(locked)” couldn't be read: Permission denied.",
             "-": "validate reads a trace from a file, not standard input. Save it to a file, then validate that.",
             "": "“” couldn't be read: No such file or directory."
         ]
         for (path, message) in expected {
-            let run = try validate(path)
+            let run = try withoutBlocking(on: fifo) { try self.validate(path) }.get()
             XCTAssertEqual(run.outcome, .failed(CommandLineFailure(.noInput, message)), path)
             XCTAssertEqual(run.outcome.exit?.rawValue, 66, path)
             XCTAssertEqual(run.report, "", path)
         }
+    }
+    
+    /// A trace its user can't read exits 66 with the reason, and writes nothing to standard output. Root reads a file
+    /// whatever its mode, so this is skipped as root.
+    func testAnUnreadableTraceExits66() throws {
+        try XCTSkipIf(geteuid() == 0, "Root can read a file with mode 0.")
+        let locked = try temporaryFile(containing: "{}\n", named: "locked.jsonl").path
+        XCTAssertEqual(chmod(locked, 0), 0)
+        addTeardownBlock { chmod(locked, 0o600) }
+        let run = try validate(locked)
+        let message = "“\(locked)” couldn't be read: Permission denied."
+        XCTAssertEqual(run.outcome, .failed(CommandLineFailure(.noInput, message)))
+        XCTAssertEqual(run.outcome.exit?.rawValue, 66)
+        XCTAssertEqual(run.report, "")
     }
     
     // MARK: Stopping, output, and the schema

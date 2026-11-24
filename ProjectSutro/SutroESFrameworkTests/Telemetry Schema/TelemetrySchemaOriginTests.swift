@@ -127,7 +127,7 @@ final class TelemetrySchemaOriginTests: XCTestCase {
         let recorded = Set(TelemetrySchemaSource.events.map(\.name))
         var checked = 0
         for name in ["eslogger-exit.jsonl", "eslogger-open.jsonl", "eslogger-od.jsonl",
-                     "eslogger-remote-thread-create.jsonl"] {
+                     "eslogger-remote-thread-create.jsonl", "eslogger-authentication.jsonl"] {
             for (index, record) in try fixtureRecords(name).enumerated() {
                 let event = (record["event"] as? [String: Any])?.keys.first ?? ""
                 let issues = validator.issues(in: record)

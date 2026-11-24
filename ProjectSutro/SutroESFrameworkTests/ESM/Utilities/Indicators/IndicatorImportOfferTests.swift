@@ -38,12 +38,31 @@ final class IndicatorImportOfferTests: XCTestCase {
         XCTAssertNil(IndicatorImportOffer(legacy: Data("not findings".utf8), mac: Indicator.defaults))
     }
 
+    /// A 3.0 indicator the Security Extension can't run, such as one that names no event type, which Mac Monitor 3.0
+    /// matched itself, isn't offered: it's listed as left out. With nothing else to import, the offer still says so.
+    func testIndicatorsThatCantRunAreLeftOut() throws {
+        let runs = ownIndicator("Runs", Self.exec)
+        let untyped = ownIndicator("Untyped", #"process.executable.name == "curl""#)
+        var edited = Indicator.defaults
+        edited[0].rule = .event("process.pid > 1")
+        let offer = try XCTUnwrap(IndicatorImportOffer(legacy: try legacy(edited + [runs, untyped]),
+                                                       mac: Indicator.defaults))
+        XCTAssertEqual(offer.added, [runs])
+        XCTAssertEqual(offer.edited, [])
+        XCTAssertEqual(offer.leftOut.map(\.id), [untyped.id, edited[0].id])
+        XCTAssertEqual(offer.request(replacingEdited: true), IndicatorRequest(.add, indicators: [runs]))
+        let only = try XCTUnwrap(IndicatorImportOffer(legacy: try legacy(Indicator.defaults + [untyped]),
+                                                      mac: Indicator.defaults))
+        XCTAssertEqual(only.added, [])
+        XCTAssertEqual(only.leftOut, [untyped])
+    }
+
     /// A shipped indicator the user edited is offered on its own, and imported only when they opt in. It keeps the
-    /// Mac's on or off and view switches, and isn't offered once the Mac has the same detection.
+    /// Mac's on or off and view switches, and isn't offered once the Mac has the same indicator.
     func testEditedIndicatorsNeedTheirOwnOptIn() throws {
         let own = ownIndicator("Mine", Self.exec)
         var edited = Indicator.defaults
-        edited[0].predicate += " AND process.pid > 1"
+        edited[0].rule = .event(edited[0].predicate! + " AND process.pid > 1")
         edited[0].isEnabled = true
         edited[0].tableMarks = []
         var mac = Indicator.defaults
@@ -58,7 +77,7 @@ final class IndicatorImportOfferTests: XCTestCase {
         XCTAssertEqual(offer.request(replacingEdited: true).indicators.map(\.id), [own.id, edited[0].id])
 
         var imported = mac
-        imported[0].predicate = edited[0].predicate
+        imported[0].rule = edited[0].rule
         XCTAssertNil(IndicatorImportOffer(legacy: try legacy(edited), mac: imported), "Already the Mac's")
     }
 

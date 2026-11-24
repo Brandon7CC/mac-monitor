@@ -70,6 +70,8 @@ struct ProjectSutroApp: App {
     @State private var updateCheck: UpdateCheck?
     /// Used to disable the update button while a check is in progress.
     @State private var isCheckingForUpdate: Bool = false
+    /// The newer indicator pack to offer (``SwiftUI/View/indicatorPackOffer(_:)``), in the first main window.
+    @State private var packOffer: IndicatorPackOffer?
     
     @AppStorage("lifecycleWarnBeforeQuit") var shouldWarnBeforeAppQuit: Bool = false
     
@@ -77,6 +79,8 @@ struct ProjectSutroApp: App {
     static let deactivating = CommandLine.arguments.contains("--deactivate-security-extension")
     /// Has the launch update check run? Once per process: every main window appears, a new one or a trace's too.
     private static var checkedForUpdatesAtLaunch = false
+    /// Was a newer indicator pack offered since Mac Monitor opened? Then it isn't offered again until it opens again.
+    private static var offeredPackAtLaunch = false
     
     private static let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "ProjectSutroApp")
     
@@ -109,9 +113,6 @@ struct ProjectSutroApp: App {
                 ForcedDarkMode.follow()
                 /// The Mac's indicators, over Mac Monitor's own connection to the Security Extension.
                 IndicatorStore.shared.connect(systemExtensionManager)
-                /// Notifications for this user's indicator matches, and their clicks.
-                IndicatorAlertCenter.shared.attach(systemExtensionManager, search: predicateSearch,
-                                                   openWindow: openWindow)
                 UserDefaults.standard.set(false, forKey: "lifecycleQuitInternal")
                 /// If auto-updates are enabled then check at app launch, in the first main window only.
                 if userPrefs.autoUpdates && EndpointSecurityManager.supportsUpdates && !Self.checkedForUpdatesAtLaunch {
@@ -131,6 +132,22 @@ struct ProjectSutroApp: App {
             /// `EventView`'s `onOpenURL`) rather than a new one. With no window open, SwiftUI opens one for it.
             .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
             .updateCheckResult($updateCheck)
+            /// Not in 3.2: indicator pack updates (`SavedIndicatorSet+Updates.swift`). This is done, and waits for a
+            /// later release.
+            ///
+            /// In the notify mode, a newer indicator pack the Security Extension found is offered once each time Mac
+            /// Monitor opens, unless it was skipped.
+            // .onReceive(IndicatorStore.shared.engine.$pack) { pack in
+            //     guard !Self.offeredPackAtLaunch, pack?.mode == .notify, let available = pack?.available,
+            //           available != UserDefaults.standard.integer(forKey: IndicatorPackSheet.skippedPackKey) else {
+            //         return
+            //     }
+            //     Self.offeredPackAtLaunch = true
+            //     IndicatorStore.shared.engine.lookForPack { look in
+            //         if case .newer(let offer) = look, offer.sequence == available { packOffer = offer }
+            //     }
+            // }
+            .indicatorPackOffer($packOffer)
             /// Last, so the window's content and its update sheet both have them.
             .environmentObject(systemExtensionManager)
             .environmentObject(userPrefs)
@@ -242,7 +259,7 @@ struct ProjectSutroApp: App {
             
             CommandMenu("Security Extension") {
                 Button("System Setting: Full Disk Access") {
-                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
+                    NSWorkspace.shared.open(SetupRequirements.fullDiskAccessSettings)
                 }
                 
                 Divider()

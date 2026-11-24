@@ -208,30 +208,40 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     }
 
     /// A held exec goes out once with Launch Services' answer, and the events behind it follow in order.
+    ///
+    /// Launch Services answers only once the test opens the reader, so the exec is still held when the events
+    /// behind it arrive.
     func testHeldExecLeavesFirstWithItsAnswer() {
-        let reader = FakeLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }
+        let reader = WaitingLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }
+        defer { reader.open() }
         let hold = hold(reader)
-        hold.hold(appExec(pid: 606))
+        hold.hold(appExec(pid: 606), chains: nil)
         hold.submit(ready("fork"))
         hold.submit(ready("exit"))
         XCTAssertTrue(emittedEvents.isEmpty, "The events behind a held exec wait")
 
+        reader.open()
         waitForEmitted(3)
         XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "fork", "exit"])
         XCTAssertEqual(emittedEvents.first?.launchedByParent, launchedByLauncher)
     }
 
     /// Held execs leave in the order they arrived, no matter which lookup finishes first.
+    ///
+    /// 606's first read waits until 607 is held, so 607's read is queued ahead of 606's retry and finishes first.
     func testHeldExecsLeaveInOrder() {
-        let reader = FakeLaunchServicesReader { pid, attempt in
-            pid == 606 && attempt < 2 ? nil : self.launch(of: pid)
+        let reader = WaitingLaunchServicesReader { pid, attempt in
+            pid == 606 && attempt == 0 ? nil : self.launch(of: pid)
         }
+        defer { reader.open() }
         let hold = hold(reader)
-        hold.hold(appExec(pid: 606))
+        hold.hold(appExec(pid: 606), chains: nil)
         hold.submit(ready("fork"))
-        hold.hold(appExec(pid: 607))
+        hold.hold(appExec(pid: 607), chains: nil)
 
+        reader.open()
         waitForEmitted(3)
+        XCTAssertEqual(reader.askedPIDs, [606, 607, 606], "607's lookup finishes first")
         XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "fork", "exec 607"])
         XCTAssertEqual(emittedEvents.compactMap(\.launchedByParent).map(\.source), [.launchServices, .launchServices])
     }
@@ -239,18 +249,23 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     /// When Launch Services has no record, the exec goes out with the answer it had.
     func testExecWithoutRecordKeepsItsAnswer() {
         let hold = hold(FakeLaunchServicesReader())
-        hold.hold(appExec(pid: 606))
+        hold.hold(appExec(pid: 606), chains: nil)
         waitForEmitted(1)
         XCTAssertEqual(emittedEvents.first?.launchedByParent, .appJob())
     }
 
     /// Past the limit, an exec isn't held. It goes in line with the answer it has.
+    ///
+    /// Launch Services answers only once both execs arrived, so the first is still held when the second comes.
     func testExecsPastTheBoundAreNotHeld() {
-        let reader = FakeLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }
+        let reader = WaitingLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }
+        defer { reader.open() }
         let hold = hold(reader, maxHeld: 1)
-        hold.hold(appExec(pid: 606))
-        hold.hold(appExec(pid: 607))
+        hold.hold(appExec(pid: 606), chains: nil)
+        hold.hold(appExec(pid: 607), chains: nil)
+        XCTAssertTrue(emittedEvents.isEmpty, "The exec past the bound waits in line")
 
+        reader.open()
         waitForEmitted(2)
         XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "exec 607"])
         XCTAssertEqual(emittedEvents.map(\.launchedByParent), [launchedByLauncher, .appJob()])
@@ -262,7 +277,7 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
         let reader = WaitingLaunchServicesReader()
         defer { reader.open() }
         let hold = hold(reader, maxWait: 0.05)
-        hold.hold(appExec(pid: 606))
+        hold.hold(appExec(pid: 606), chains: nil)
         hold.submit(ready("fork"))
         waitForEmitted(2)
         XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "fork"])
@@ -273,9 +288,9 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     func testAReleasedExecFreesItsPlace() {
         let reader = FakeLaunchServicesReader { pid, _ in self.launch(of: pid) }
         let hold = hold(reader, maxHeld: 1)
-        hold.hold(appExec(pid: 606))
+        hold.hold(appExec(pid: 606), chains: nil)
         waitForEmitted(1)
-        hold.hold(appExec(pid: 607))
+        hold.hold(appExec(pid: 607), chains: nil)
         waitForEmitted(2)
         XCTAssertEqual(emittedEvents.map(\.launchedByParent), [launchedByLauncher, launchedByLauncher])
         XCTAssertEqual(reader.askedPIDs, [606, 607])
@@ -320,18 +335,23 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
         XCTAssertEqual(atCompletion, 2, "The held exec and the exit behind it")
     }
     
-    /// Closing sends everything right away, and nothing after.
-    func testCloseReleasesEverythingAtOnce() {
-        let reader = FakeLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }
-        let hold = hold(reader)
-        hold.hold(appExec(pid: 606))
+    /// Closing sends everything right away, and nothing after: not a late event, and not the answer of a lookup
+    /// still running.
+    func testCloseReleasesEverythingAtOnce() throws {
+        let reader = WaitingLaunchServicesReader { pid, _ in self.launch(of: pid) }
+        defer { reader.open() }
+        let upgrader = upgrader(reader)
+        let hold = LaunchServicesHold(eventClass: .process, upgrader: upgrader, maxWait: 5, emit: emitted.append)
+        hold.hold(appExec(pid: 606), chains: nil)
         hold.submit(ready("fork"))
         hold.close()
         XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "fork"])
         XCTAssertEqual(emittedEvents.first?.launchedByParent, .appJob())
 
         hold.submit(ready("late"))
-        usleep(50_000)
+        let read: pid_t = try awaitCallback(timeout: 5) { reader.answer(then: $0) }
+        XCTAssertEqual(read, 606, "The lookup still running reads")
+        upgrader.queue.sync {}
         XCTAssertEqual(emittedEvents.map(\.name), ["exec 606", "fork"])
     }
 }

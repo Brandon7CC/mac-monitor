@@ -73,11 +73,11 @@ struct ProcessStartFacts: View {
 
     var body: some View {
         HStack {
-            Label("**Start time:**", systemImage: "clock")
-            GroupBox {
-                Text("`\(process.start_time)`")
+            Fact("Start time", process.start_time, systemImage: "clock")
+            /// The Groups inspector names the same fact "Process age" (``EventAge``).
+            if let ageText {
+                Fact("Process age", ageText, systemImage: "hourglass")
             }
-            ProcessAgeFact(ageText: ageText)
             if process.file_quarantine_type != "DISABLED" {
                 FileQuarantineLabelView(type: process.file_quarantine_type)
             }
@@ -107,23 +107,11 @@ struct ProcessIDFacts<Trailing: View>: View {
     }
 
     var body: some View {
-        HStack {
-            fact("Process name", name)
-            fact("PID", String(process.pid))
-            fact("GID", String(process.group_id))
+        FactRow {
+            Fact("Process name", name)
+            Fact("PID", String(process.pid))
+            Fact("GID", String(process.group_id))
             trailing()
-        }.frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// - Parameters:
-    ///   - name: The fact's name, without a colon.
-    ///   - value: Its value.
-    /// - Returns: The bulleted name and its value as code, in a row with the others.
-    @ViewBuilder
-    private func fact(_ name: String, _ value: String) -> some View {
-        Text("\u{2022} **\(name):**")
-        GroupBox {
-            Text("`\(value)`")
         }
     }
 }
@@ -155,12 +143,10 @@ struct CDHashFact: View {
     let process: ESProcess
 
     var body: some View {
-        HStack {
+        FactRow {
             Text("\u{2022} **`SHA256` Code directory hash:**")
-            GroupBox {
-                Text("`\(process.cdhash ?? "Unknown")`")
-            }
-        }.frame(maxWidth: .infinity, alignment: .leading)
+            FactValue(process.cdhash)
+        }
     }
 }
 
@@ -173,32 +159,12 @@ struct TargetProcessFacts: View {
     let process: ESProcess?
     /// The path's name, without a colon.
     var pathName = "Target process path"
-    /// How the values are drawn.
-    var style = FactRow.Style.code
 
     var body: some View {
-        FactRow(name: "Target process name", value: process?.executable?.name, style: style)
-        FactRow(name: pathName, value: process?.executable?.path, stacked: true, style: style)
+        FactRow(name: "Target process name", value: process?.executable?.name)
+        FactRow(name: pathName, value: process?.executable?.path, stacked: true)
         if let signingID = process?.signing_id, !signingID.isEmpty {
-            FactRow(name: "Signing ID", value: signingID, style: style)
-        }
-    }
-}
-
-
-// MARK: - Process age
-/// How old a process was at its event (``EventAge``), or nothing when that's unknown. The Groups inspector names the
-/// same fact "Process age".
-struct ProcessAgeFact: View {
-    /// The age as text, or `nil`.
-    let ageText: String?
-
-    var body: some View {
-        if let ageText {
-            Label("**Process age:**", systemImage: "hourglass")
-            GroupBox {
-                Text("`\(ageText)`")
-            }
+            FactRow(name: "Signing ID", value: signingID)
         }
     }
 }

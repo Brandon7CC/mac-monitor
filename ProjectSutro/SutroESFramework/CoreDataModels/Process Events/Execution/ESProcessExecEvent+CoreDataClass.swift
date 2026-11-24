@@ -40,6 +40,8 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
     @NSManaged public var launched_by_parent_path, launched_by_parent_job: String?
     @NSManaged public var launched_by_parent_pid: NSNumber?
     @NSManaged public var launched_by_parent_token: Data?
+    /// ``ancestor_keys``, joined by commas (``AncestorKeysColumn``).
+    @NSManaged public var ancestor_keys_joined: String?
 
     enum CodingKeys: String, CodingKey {
         case command_line
@@ -58,6 +60,7 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
         case script_content
         case launched_by_parent
         case executable_age_ms
+        case ancestor_keys
     }
     
     public var args: [String] {
@@ -148,6 +151,7 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
         self.certificate_chain = event.certificate_chain
         self.launched_by_parent = event.launched_by_parent
         self.executable_age_ms = event.executable_age_ms.map { NSNumber(value: $0) }
+        self.ancestor_keys = event.ancestor_keys
     }
 }
 
@@ -187,6 +191,7 @@ extension ESProcessExecEvent: Encodable {
         
         /// Mac Monitor's enrichment beside eslogger's fields: `null` when there's none, so the key is always there.
         try container.encode(launched_by_parent, forKey: .launched_by_parent)
+        try container.encode(ancestor_keys, forKey: .ancestor_keys)
     }
 }
 

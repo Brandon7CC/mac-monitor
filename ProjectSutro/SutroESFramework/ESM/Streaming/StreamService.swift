@@ -45,11 +45,16 @@ public final class StreamService {
     /// Called when a stream that held Endpoint Security clients closes, from its queue: Endpoint Security may have
     /// refused Mac Monitor's clients while the stream held its own.
     let released: () -> Void
+    /// Called when a stream session closes, from its queue, after ``released`` for one that held clients. The tests
+    /// wait on it.
+    let closed: () -> Void
     /// Asks Mac Monitor's side of the Security Extension who is connected (``SensorService/captureState(_:)``): the
     /// app's connection, whether it records, and whether it holds Endpoint Security clients.
     let appCapture: AppCapture
     /// Asks Endpoint Security for a client and lets it go, when nothing here holds one to judge by.
     let probe: () -> NewClientResult
+    /// Looks up Mac Monitor's latest release, for `macmonitor update check`, or `nil` for a service that can't.
+    let updates: SensorUpdating?
     /// The last session's number.
     private let sessionNumbers = OSAllocatedUnfairLock(initialState: UInt64(0))
     static let logger = Logger(subsystem: "com.swiftlydetecting.agent.securityextension", category: "StreamService")
@@ -80,14 +85,16 @@ public final class StreamService {
     ///   - savedIndicators: The Mac's indicator set, shared with Mac Monitor's capture.
     ///   - access: Who may use `macmonitor` without `sudo`, read at each request.
     ///   - appCapture: Asks Mac Monitor's side who is connected, for `macmonitor status`.
+    ///   - updates: Looks up Mac Monitor's latest release, for `macmonitor update check`.
     public convenience init(savedMutes: SavedMuteSet, savedIndicators: SavedIndicatorSet,
-                            access: CommandLineAccessStore, appCapture: @escaping AppCapture) {
+                            access: CommandLineAccessStore, appCapture: @escaping AppCapture,
+                            updates: SensorUpdating) {
         self.init(savedMutes: savedMutes, savedIndicators: savedIndicators,
                   slots: StreamSlots(capacity: SensorXPC.maxCommandLineStreams),
                   sensorVersion: Self.version(of: .main), grant: Self.granting { access.access },
                   makeCapture: { try CaptureSession($0, emit: $1) },
                   released: { notify_post(SensorXPC.sensorReleasedNotification) },
-                  appCapture: appCapture, probe: Self.probeEndpointSecurity)
+                  appCapture: appCapture, probe: Self.probeEndpointSecurity, updates: updates)
     }
     
     /// - Parameters:
@@ -98,13 +105,16 @@ public final class StreamService {
     ///   - grant: What the caller may do.
     ///   - makeCapture: Makes each stream's capture session.
     ///   - released: Called when a stream that held Endpoint Security clients closes.
+    ///   - closed: Called when any stream session closes: nothing is, unless given.
     ///   - appCapture: Asks Mac Monitor's side who is connected: nobody, unless given.
     ///   - probe: Asks Endpoint Security for a client and lets it go: it may, unless given.
+    ///   - updates: Looks up Mac Monitor's latest release: nothing does, unless given.
     init(savedMutes: SavedMuteSet, savedIndicators: SavedIndicatorSet? = nil, slots: StreamSlots,
          sensorVersion: String, grant: @escaping (NSXPCConnection?) -> CommandLineGrant,
          makeCapture: @escaping CaptureMaker, released: @escaping () -> Void = {},
+         closed: @escaping () -> Void = {},
          appCapture: @escaping AppCapture = { $0(SensorReport.App(connected: false, recording: false), false) },
-         probe: @escaping () -> NewClientResult = { .success }) {
+         probe: @escaping () -> NewClientResult = { .success }, updates: SensorUpdating? = nil) {
         self.savedMutes = savedMutes
         self.savedIndicators = savedIndicators
         self.slots = slots
@@ -112,8 +122,10 @@ public final class StreamService {
         self.grant = grant
         self.makeCapture = makeCapture
         self.released = released
+        self.closed = closed
         self.appCapture = appCapture
         self.probe = probe
+        self.updates = updates
     }
 
     /// What the Security Extension says of itself, for `macmonitor status`.
@@ -127,7 +139,7 @@ public final class StreamService {
             let streams = slots.count
             let result: NewClientResult = holdsClients || streams > 0 ? .success : probe()
             reply(SensorReport(endpointSecurity: SensorReport.EndpointSecurity(result), app: app, streams: streams,
-                               streamCapacity: slots.capacity))
+                               streamCapacity: slots.capacity, indicators: savedIndicators?.packStatus))
         }
     }
 

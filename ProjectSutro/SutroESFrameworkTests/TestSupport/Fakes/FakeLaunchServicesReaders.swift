@@ -43,22 +43,56 @@ final class FakeLaunchServicesReader: LaunchServicesReading {
 
 
 // MARK: - A reader that waits
-/// A Launch Services reader whose reads wait until the test lets them through, then find nothing.
+/// A Launch Services reader whose reads wait until the test lets them through, then give the scripted record.
+///
+/// The upgrader reads on one serial queue, so a read that waits holds every lookup behind it.
 final class WaitingLaunchServicesReader: LaunchServicesReading {
+    /// Signalled once for each read let through
     private let gate = DispatchSemaphore(value: 0)
-    
+    private let isOpen = OSAllocatedUnfairLock(initialState: false)
+    /// What ``answer(then:)`` asked to run, oldest first, one for each read let through
+    private let answered = OSAllocatedUnfairLock(uncheckedState: [(pid_t) -> Void]())
+    /// Gives the records and remembers the pids asked about
+    private let scripted: FakeLaunchServicesReader
+
+    /// - Parameter records: The record for a pid, given how many reads of it went through before. By default none.
+    init(_ records: @escaping (pid_t, Int) -> LaunchServicesRecord? = { _, _ in nil }) {
+        scripted = FakeLaunchServicesReader(records)
+    }
+
+    /// Let one read through.
+    ///
+    /// `then` runs on the upgrader's queue as the read returns its record. The lookup's completion runs right after
+    /// on that queue, so `queue.sync {}` on it once `then` has run waits for the completion too.
+    ///
+    /// - Parameter then: Gets the pid that was read.
+    func answer(then: @escaping (pid_t) -> Void) {
+        answered.withLockUnchecked { $0.append(then) }
+        gate.signal()
+    }
+
     /// Let every read waiting now, and every read after, through.
     func open() {
-        for _ in 0..<64 { gate.signal() }
+        isOpen.withLock { $0 = true }
+        gate.signal()
     }
-    
-    /// Wait for ``open()``.
+
+    /// Wait for ``answer(then:)`` or ``open()``, then give the scripted record.
     ///
     /// - Parameter pid: The pid.
-    /// - Returns: `nil`.
+    /// - Returns: The record, or `nil`.
     func record(forPID pid: pid_t) -> LaunchServicesRecord? {
         gate.wait()
-        gate.signal()
-        return nil
+        // Once open, each read passes the gate on to the next.
+        if isOpen.withLock({ $0 }) { gate.signal() }
+        let record = scripted.record(forPID: pid)
+        let then = answered.withLockUnchecked { $0.isEmpty ? nil : $0.removeFirst() }
+        then?(pid)
+        return record
+    }
+
+    /// The pids whose reads went through, in order.
+    var askedPIDs: [pid_t] {
+        scripted.askedPIDs
     }
 }

@@ -38,6 +38,12 @@ public final class IndicatorCommand {
     /// How long to wait for each answer. A Security Extension older than 3.1 cuts the connection off at the request.
     /// The timeout covers one that never answers.
     let timeout: DispatchTimeInterval
+    /// How long to wait for the set a command lists before it acts on it, such as to find the indicators a change
+    /// names.
+    let listTimeout: DispatchTimeInterval
+    /// How long to wait for an answer about a pack. The Security Extension may ask GitHub, download the pack and
+    /// check whether its certificate was revoked before it answers.
+    let packTimeout: DispatchTimeInterval
 
     /// - Parameters:
     ///   - client: The connection to the Security Extension, activated.
@@ -48,11 +54,14 @@ public final class IndicatorCommand {
     ///   - readFile: Reads a file to import, or standard input for `-`.
     ///   - encode: Writes indicators as an indicator file: ``IndicatorExchange/data(of:)`` unless given.
     ///   - timeout: How long to wait for each answer: 10 seconds unless given.
+    ///   - listTimeout: How long to wait for the set listed before acting on it: `timeout` unless given.
+    ///   - packTimeout: How long to wait for an answer about a pack: 3 minutes unless given.
     public init(client: StreamClient, output: StreamOutput, diagnose: @escaping (String) -> Void,
                 confirm: @escaping (String) -> Bool? = { _ in nil },
                 readFile: @escaping (String) throws -> Data = IndicatorCommand.readImport,
                 encode: @escaping ([Indicator]) throws -> Data = IndicatorExchange.data(of:),
-                timeout: DispatchTimeInterval = .seconds(10)) {
+                timeout: DispatchTimeInterval = .seconds(10), listTimeout: DispatchTimeInterval? = nil,
+                packTimeout: DispatchTimeInterval = .seconds(180)) {
         self.client = client
         self.output = output
         self.diagnose = diagnose
@@ -60,6 +69,8 @@ public final class IndicatorCommand {
         self.readFile = readFile
         self.encode = encode
         self.timeout = timeout
+        self.listTimeout = listTimeout ?? timeout
+        self.packTimeout = packTimeout
     }
 
     /// Run one indicator command.
@@ -77,7 +88,8 @@ public final class IndicatorCommand {
         case .show(let references):
             listing(completion) { [self] reply in
                 let targets = try IndicatorLookup(indicators: reply.indicators).unique(references)
-                completion(output.writeResult(Data(IndicatorTable.details(targets, problems: reply.problems).utf8)))
+                completion(output.writeResult(Data(IndicatorTable.details(targets, problems: reply.problems,
+                                                                          defaults: reply.shipped).utf8)))
             }
         case .export(let references) where references.isEmpty:
             run(.list(format: .json), completion: completion)
@@ -99,6 +111,15 @@ public final class IndicatorCommand {
             }
         case .enable(let references): turn(references, on: true, completion)
         case .disable(let references): turn(references, on: false, completion)
+        case .test(let pack, let plan): completion(IndicatorTestRun.command(pack: pack, plan: plan, output: output))
+        case .pack(.verify(let path)): completion(IndicatorPackVerifyCommand.run(path: path, output: output))
+        case .pack(.install(let path, let confirmed)): installPack(path, confirmed: confirmed, completion)
+        case .pack(.status(let json)): packStatus(json: json, completion)
+        case .pack(.check(let json)): checkPack(json: json, completion)
+        case .pack(.mode(let mode)):
+            send(IndicatorRequest(.setPackMode, mode: mode), completion) { reply in
+                "Indicator pack updates are set to \((reply.pack?.mode ?? mode).rawValue).\n"
+            }
         }
     }
 
@@ -241,7 +262,8 @@ extension IndicatorCommand {
     ///     written.
     func send(_ request: IndicatorRequest, _ completion: @escaping (Result<Void, CommandLineFailure>) -> Void,
               describe: @escaping (IndicatorReply) throws -> String) {
-        client.send(request, timeout: timeout) { [self] result in
+        let wait = request.operation.bringsPack ? packTimeout : timeout
+        client.send(request, timeout: wait) { [self] result in
             completion(answer(result, to: request.operation).flatMap { reply in
                 let turnedOn = request.enabled == true ? request.ids : []
                 let brought = Set(request.indicators.map(\.id) + turnedOn)
@@ -261,14 +283,14 @@ extension IndicatorCommand {
         }
     }
 
-    /// List the set, then act on it.
+    /// List the set, waiting as long as ``listTimeout``, then act on it.
     ///
     /// - Parameters:
     ///   - completion: Called once, on any thread, if listing or `body` fails.
     ///   - body: Acts on the set's answer. What it throws ends the command.
     func listing(_ completion: @escaping (Result<Void, CommandLineFailure>) -> Void,
                  then body: @escaping (IndicatorReply) throws -> Void) {
-        client.send(IndicatorRequest(.list), timeout: timeout) { [self] result in
+        client.send(IndicatorRequest(.list), timeout: listTimeout) { [self] result in
             do {
                 try body(try answer(result, to: .list).get())
             } catch {
@@ -297,8 +319,8 @@ extension IndicatorCommand {
     ///   - result: What the client got.
     ///   - operation: What the request asked.
     /// - Returns: The answer, or the failure.
-    private func answer(_ result: Result<IndicatorReply, CommandLineFailure>,
-                        to operation: IndicatorRequest.Operation) -> Result<IndicatorReply, CommandLineFailure> {
+    func answer(_ result: Result<IndicatorReply, CommandLineFailure>,
+                to operation: IndicatorRequest.Operation) -> Result<IndicatorReply, CommandLineFailure> {
         switch result {
         case .failure(let failure):
             return .failure(.indicators(failure, to: operation))

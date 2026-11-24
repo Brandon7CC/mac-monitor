@@ -47,11 +47,16 @@ enum SyntheticCorpus {
     /// - Parameter event: The event type.
     /// - Returns: The full variants, then the empty one.
     static func variants(of event: SchemaEvent) -> [SyntheticVariant] {
-        let arms = ["EventType": event.name, "FileDestination": "existing_file", "FilePathUnion": "file"]
-        let integers = ["event_type": event.number, "result_type": Int(ES_RESULT_TYPE_AUTH.rawValue),
+        let arms = ["EventType": event.name, "FileDestination": "existing_file", "FilePathUnion": "file",
+                    "AuthenticationData": "od"]
+        var integers = ["event_type": event.number, "result_type": Int(ES_RESULT_TYPE_AUTH.rawValue),
                         "destination_type": Int(ES_DESTINATION_TYPE_EXISTING_FILE.rawValue),
                         "file_type": Int(ES_GATEKEEPER_USER_OVERRIDE_FILE_TYPE_FILE.rawValue),
                         "member_type": Int(ES_OD_MEMBER_TYPE_USER_NAME.rawValue)]
+        /// An authentication's `type` names its arm. Other events' `type` is their own.
+        if event.type == ES_EVENT_TYPE_NOTIFY_AUTHENTICATION {
+            integers["type"] = Int(ES_AUTHENTICATION_TYPE_OD.rawValue)
+        }
         /// An auth result has no flags: the flags variant takes the other arm.
         let unflagged = "AuthResult.flags"
         let full = SyntheticVariant(name: "full", full: true, arms: arms, integers: integers, absent: [unflagged])
@@ -110,6 +115,27 @@ enum SyntheticCorpus {
             /// Signing information without IDs, such as an adhoc signature's: eslogger writes them as `null`.
             all.append(variant("signing info without IDs",
                                absent: [unflagged, "SignedFileInfo.signing_id", "SignedFileInfo.team_id"]))
+        case ES_EVENT_TYPE_NOTIFY_AUTHENTICATION:
+            /// A node that isn't local has no database, and Endpoint Security can leave the instigator out.
+            all.append(variant("od without database", absent: [unflagged, "ODAuthentication.db_path"]))
+            all.append(variant("od without instigator", absent: [unflagged, "ODAuthentication.instigator"]))
+            let touchID = ["type": Int(ES_AUTHENTICATION_TYPE_TOUCHID.rawValue)]
+            all.append(variant("touchid", arms: ["AuthenticationData": "touchid"], touchID))
+            /// An identification, or a verification that failed, names no user. Before message version 8 there's no
+            /// audit token, and Endpoint Security can leave the instigator out.
+            all.append(variant("touchid without user or instigator", arms: ["AuthenticationData": "touchid"], touchID,
+                               absent: Set(["uid", "uid_human", "instigator", "instigator_token"]
+                                   .map { "TouchIDAuthentication.\($0)" }).union([unflagged])))
+            let token = ["type": Int(ES_AUTHENTICATION_TYPE_TOKEN.rawValue)]
+            all.append(variant("token", arms: ["AuthenticationData": "token"], token))
+            all.append(variant("token without principal or instigator", arms: ["AuthenticationData": "token"], token,
+                               absent: Set(["kerberos_principal", "instigator", "instigator_token"]
+                                   .map { "TokenAuthentication.\($0)" }).union([unflagged])))
+            /// Auto Unlock's own `type` takes the same integer, which names none of its purposes.
+            all.append(variant("auto_unlock", arms: ["AuthenticationData": "auto_unlock"],
+                               ["type": Int(ES_AUTHENTICATION_TYPE_AUTO_UNLOCK.rawValue)]))
+            all.append(variant("unknown type", arms: ["AuthenticationData": "unknown"],
+                               ["type": Int(ES_AUTHENTICATION_TYPE_LAST.rawValue)]))
         case ES_EVENT_TYPE_NOTIFY_OD_GROUP_ADD, ES_EVENT_TYPE_NOTIFY_OD_GROUP_REMOVE:
             all.append(variant("user UUID", ["member_type": Int(ES_OD_MEMBER_TYPE_USER_UUID.rawValue)]))
             all.append(variant("group UUID", ["member_type": Int(ES_OD_MEMBER_TYPE_GROUP_UUID.rawValue)]))

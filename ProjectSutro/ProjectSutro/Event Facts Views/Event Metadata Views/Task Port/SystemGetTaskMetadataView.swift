@@ -17,7 +17,7 @@ struct SystemGetTaskMetadataView: View {
         if let event = esSystemEvent.event.get_task {
             EventFactsCard(message: esSystemEvent, targetAuditToken: event.target.audit_token_string) {
                 FactsBox {
-                    FactRow(name: "Type", value: "\(event.type_string) (\(event.type))", style: .monospaced)
+                    FactRow(name: "Type", value: "\(event.type_string) (\(event.type))")
                     ProcessView(message: esSystemEvent, process: event.target, ageText: event.target.processAgeText)
                 }
             }

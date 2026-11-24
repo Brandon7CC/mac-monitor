@@ -60,6 +60,8 @@ final class TelemetrySchemaDriftTests: XCTestCase {
         assertValid([("eslogger gatekeeper_user_override", try jsonText(override))],
                      with: try generatedValidator(mode: .eslogger), coverage: coverage)
         assertValid(try indicatedExports(), with: try generatedValidator(), coverage: coverage)
+        assertValid(try lineageExports(), with: try generatedValidator(), coverage: coverage)
+        assertValid(try snapshotLines(), with: try generatedValidator(), coverage: coverage)
         let seen = coverage.observations
         let (document, generator) = TelemetrySchemaSource.generate()
         let parts = SchemaParts(document.foundation)
@@ -144,7 +146,8 @@ final class TelemetrySchemaDriftTests: XCTestCase {
     /// - Throws: When the corpus can't be read, or the event model is missing.
     private func indicatedExports() throws -> [(label: String, json: String)] {
         var shipped = Indicator.defaults[0]
-        shipped.predicate = "event_type >= 0"
+        shipped.rule = .event("event_type >= 0")
+        shipped.severity = .medium
         let own = Indicator(name: "Every event", description: "", symbol: "star", color: .red,
                             predicate: "event_type >= 0", severity: .high)
         var quiet = own
@@ -156,15 +159,23 @@ final class TelemetrySchemaDriftTests: XCTestCase {
         let matched = records.map { record in
             ("\(record.label) with indicators", String(decoding: encoder.line(for: record.message), as: UTF8.self))
         }
+        /// The first says what it matched, a string, a number and a Boolean, and the others list nothing.
+        let fields = [IndicatorMatchedField(field: "event.exec.target.executable.path", value: .string("/bin/sh")),
+                      IndicatorMatchedField(field: "process.audit_token.pid", value: .integer(42)),
+                      IndicatorMatchedField(field: "process.is_platform_binary", value: .boolean(true))]
         let verdicts = [IndicatorVerdicts([shipped, own, quiet].map {
-            IndicatorHit($0, isDefault: $0.id == shipped.id, evaluatedBy: .securityExtension)
+            var hit = IndicatorHit(Self.revised($0), isDefault: $0.id == shipped.id, pack: 2,
+                                   evaluatedBy: .securityExtension)
+            if $0.id == shipped.id { hit.matched = fields }
+            return hit
         }), IndicatorVerdicts()]
         var undecided = own
         undecided.id = UUID()
         let unsettled = zip([Indicator.defaults[1], undecided], UndeterminedReason.known)
         let undetermined = [UndeterminedIndicators(unsettled.map {
-            IndicatorUndetermined(IndicatorHit($0, isDefault: $0.id == Indicator.defaults[1].id,
-                                               evaluatedBy: .securityExtension), reason: $1)
+            let isDefault = $0.id == Indicator.defaults[1].id
+            return IndicatorUndetermined(IndicatorHit(isDefault ? Self.revised($0) : $0, isDefault: isDefault,
+                                                      pack: 2, evaluatedBy: .securityExtension), reason: $1)
         }), nil]
         let stamped = zip(records, zip(verdicts, undetermined)).map { record, stamp in
             var message = record.message
@@ -179,5 +190,55 @@ final class TelemetrySchemaDriftTests: XCTestCase {
         XCTAssertTrue(stamped[1].1.contains(#""indicators":[]"#), stamped[1].0)
         XCTAssertTrue(matched[0].1.contains(#""evaluated_by":"export""#), matched[0].0)
         return matched + stamped
+    }
+
+    /// An exec and a fork as the Security Extension stamps them while it tracks lineage, with their ancestors' keys,
+    /// and as it writes them while it doesn't, with none.
+    ///
+    /// - Returns: The labeled records.
+    /// - Throws: When a fixture can't be read, or the event model is missing.
+    private func lineageExports() throws -> [(label: String, json: String)] {
+        let lineage = ProcessLineage()
+        lineage.seed([(ProcessProgram(key: ProcessKey(pid: 100, pidversion: 1), path: "/bin/zsh"), 1)])
+        let shell = try esloggerProcess(pid: 100, pidversion: 1, path: "/bin/zsh", parent: (1, 7))
+        let child = try esloggerProcess(pid: 200, pidversion: 2, path: "/bin/zsh", parent: (100, 1))
+        let target = try esloggerProcess(pid: 200, pidversion: 3, path: "/usr/bin/true", parent: (100, 1))
+        let encoder = ExportEncoder(model: try XCTUnwrap(ExportEncoder.model))
+        let events = [("exec", try execMessage(by: child, of: target)), ("fork", try forkMessage(by: shell, of: child))]
+        return events.flatMap { name, message -> [(label: String, json: String)] in
+            var stamped = message
+            stamped.stampAncestorKeys(from: lineage)
+            return [("\(name) with ancestor keys", String(decoding: encoder.line(for: stamped), as: UTF8.self)),
+                    ("\(name) without lineage", String(decoding: encoder.line(for: message), as: UTF8.self))]
+        }
+    }
+
+    /// Process snapshots' lines: one with every field and an ancestor, and one of a process known by its key alone,
+    /// with none.
+    ///
+    /// - Returns: The lines, labeled.
+    /// - Throws: A failure when a snapshot can't be encoded.
+    private func snapshotLines() throws -> [(label: String, json: String)] {
+        let full = ProcessProgram(key: ProcessKey(pid: 100, pidversion: 1), path: "/bin/zsh", commandLine: "-zsh",
+                                  signingID: "com.apple.zsh", teamID: "TEAM", codesigningType: "PLATFORM")
+        let snapshots = [("a process snapshot", ProcessSnapshot(full, ancestors: [ProcessKey(pid: 50, pidversion: 1)])),
+                         ("a process snapshot of a key alone",
+                          ProcessSnapshot(ProcessProgram(key: ProcessKey(pid: 50, pidversion: 1)), ancestors: []))]
+        return try snapshots.enumerated().map { index, entry in
+            /// The second says nothing of where it's from, as a test fixture's doesn't.
+            let record = ProcessSnapshotRecord(entry.1, sensorID: index == 0 ? "SENSOR" : nil,
+                                               bootSession: index == 0 ? SyntheticValues.uuid.uuidString : nil)
+            return (entry.0, String(decoding: try XCTUnwrap(record.line), as: UTF8.self))
+        }
+    }
+
+    /// An indicator as a pack has one, with a revision, so a hit's `revision` is a number.
+    ///
+    /// - Parameter indicator: The indicator.
+    /// - Returns: It, at revision 3.
+    private static func revised(_ indicator: Indicator) -> Indicator {
+        var revised = indicator
+        revised.revision = 3
+        return revised
     }
 }

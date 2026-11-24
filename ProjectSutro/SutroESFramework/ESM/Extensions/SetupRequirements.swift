@@ -121,6 +121,9 @@ public struct SetupRequirements: Equatable {
         case openExtensions
         /// Open System Settings > Privacy & Security > Full Disk Access.
         case openFullDiskAccess
+        /// Open System Settings > Privacy & Security, where the link to Full Disk Access lands on macOS 27.3 and
+        /// later. Full Disk Access is one click further.
+        case openPrivacySecurity
     }
 
     /// One requirement, as the checklist shows it.
@@ -131,6 +134,8 @@ public struct SetupRequirements: Equatable {
         public let detail: String
         /// The button, if the user can do something about it from here.
         public let action: Action?
+        /// What to do in System Settings, in order, when it takes more than one click.
+        public var steps: [String] = []
 
         public var id: Kind { kind }
     }
@@ -145,6 +150,17 @@ public struct SetupRequirements: Equatable {
     public let sipDisabled: Bool
     /// Does System Settings have General > Login Items & Extensions (macOS 15 and later)?
     public let hasExtensionsPane: Bool
+    /// Does macOS ask the user to review Full Disk Access before turning it on (macOS 27.3 and later)? It offers
+    /// folders in its place, which Endpoint Security doesn't accept, and has each thing it allows confirmed.
+    public let reviewsFullDiskAccess: Bool
+
+    /// System Settings > Privacy & Security > Full Disk Access. On macOS 27.3 and later the link opens Privacy &
+    /// Security with Full Disk Access in its list.
+    public static let fullDiskAccessSettings =
+        URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!
+    /// Is this macOS 27.3 or later, which asks the user to review Full Disk Access?
+    public static let systemReviewsFullDiskAccess = ProcessInfo.processInfo.isOperatingSystemAtLeast(
+        OperatingSystemVersion(majorVersion: 27, minorVersion: 3, patchVersion: 0))
 
     /// Every requirement, in the order they're done.
     public var rows: [Row] {
@@ -188,6 +204,20 @@ extension SetupRequirements {
                 + "Extensions."
             : "Open System Settings ▸ Privacy & Security and click Allow under the message about Mac Monitor."
     }
+
+    /// What Full Disk Access's button does: it opens the pane, or on macOS 27.3 and later Privacy & Security.
+    private var fullDiskAccessAction: Action {
+        reviewsFullDiskAccess ? .openPrivacySecurity : .openFullDiskAccess
+    }
+
+    /// What to click to allow Full Disk Access on macOS 27.3 and later, in order.
+    static let fullDiskAccessSteps = [
+        "In Privacy & Security, click Full Disk Access.",
+        "Turn on Mac Monitor Security Extension.",
+        "Click Bypass System Protections. Choosing folders doesn't give Endpoint Security what it needs.",
+        "Click OK beside each item, then Turn On Full Disk Access.",
+        "Enter your password.",
+    ]
 
     private var locationRow: Row {
         switch location {
@@ -257,10 +287,14 @@ extension SetupRequirements {
         case .success where sipDisabled, .streamOwned where sipDisabled:
             return Row(kind: .fullDiskAccess, status: .done, title: "Full Disk Access isn't needed",
                        detail: "System Integrity Protection is off, so Endpoint Security doesn't ask for it. Allow "
-                        + "it before you turn SIP back on.", action: .openFullDiskAccess)
+                        + "it before you turn SIP back on.", action: fullDiskAccessAction)
         case .success, .streamOwned:
             return Row(kind: .fullDiskAccess, status: .done, title: "Full Disk Access is allowed",
                        detail: "Endpoint Security can see every process and file.", action: nil)
+        case .notPermitted where reviewsFullDiskAccess:
+            return Row(kind: .fullDiskAccess, status: .needed, title: "Allow Full Disk Access",
+                       detail: "Endpoint Security requires it of every security tool. macOS asks you to review what "
+                        + "it allows first:", action: .openPrivacySecurity, steps: Self.fullDiskAccessSteps)
         case .notPermitted:
             return Row(kind: .fullDiskAccess, status: .needed, title: "Allow Full Disk Access",
                        detail: "Endpoint Security requires it. Turn on Mac Monitor Security Extension in System "

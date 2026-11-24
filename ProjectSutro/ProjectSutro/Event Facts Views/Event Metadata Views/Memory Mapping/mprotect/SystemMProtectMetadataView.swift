@@ -17,23 +17,10 @@ struct SystemMProtectMetadataView: View {
         if let event = esSystemEvent.event.mprotect {
             EventFactsCard(message: esSystemEvent) {
                 FactsBox {
-                    HStack {
-                        Text("\u{2022} **Protection:**")
-                        GroupBox {
-                            Text("`\(event.protection)`")
-                        }
-
-                        Text("\u{2022} **Address:**")
-                        GroupBox {
-                            Text(event.hex_address)
-                                .monospaced()
-                        }
-
-                        Text("\u{2022} **Size:**")
-                        GroupBox {
-                            Text("\(event.kb_size) kb")
-                                .monospaced()
-                        }
+                    FactRow {
+                        Fact("Protection", "\(event.protection)")
+                        Fact("Address", event.hex_address)
+                        Fact("Size", "\(event.kb_size) kb")
                     }
 
                     // MARK: Protection flags

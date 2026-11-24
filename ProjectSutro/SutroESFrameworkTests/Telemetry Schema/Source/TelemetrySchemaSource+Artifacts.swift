@@ -16,7 +16,48 @@ extension TelemetrySchemaSource {
         ["process": process, "file": file, "stat": stat, "audit_token": auditToken, "thread": thread,
          "action": action, "launched_by_parent": launchedByParent, "launch_item": launchItem, "od_member": odMember,
          "thread_state": threadState, "signed_file_info": signedFileInfo, "launch_item_bundle": launchItemBundle,
-         "indicator": indicator, "indicator_undetermined": indicatorUndetermined]
+         "indicator": indicator, "indicator_undetermined": indicatorUndetermined,
+         TelemetrySchema.snapshotDefinition: processSnapshotRecord, "process_snapshot": processSnapshot]
+    }
+
+    /// A process snapshot's line: the one kind of line that isn't an event's record.
+    static var processSnapshotRecord: SchemaObject {
+        SchemaObject("A process snapshot's line, the one kind of line that is not an event's record. A line with a "
+                     + "`process_snapshot` key follows this definition, not the schema's root. Mac Monitor writes "
+                     + "one before the first record that is from a process, or names it in `ancestor_keys`, when "
+                     + "nothing earlier in the file describes that process.", [
+            enrichment("process_snapshot", .ref("process_snapshot"), "The process the line describes."),
+            enrichment("boot_session_uuid", .pattern(.uuid), "Which start of that Mac the snapshot is from, as the "
+                        + "records beside it carry.",
+                       absent: Absence("the records beside it carry none, or the line is from a test fixture")),
+            enrichment("sensor_id", .string, "The Sensor ID of the Mac the snapshot is from, as its events carry.",
+                       absent: Absence("the line is from a test fixture, which has every Sensor ID removed")),
+        ])
+    }
+
+    /// A process a trace has no exec of.
+    static var processSnapshot: SchemaObject {
+        SchemaObject("A process nothing earlier in the file describes: one that was running before the capture "
+                     + "started, or whose exec a filter, a selection or a Clear left out. Its fields are named as a "
+                     + "process's are.", [
+            enrichment("key", .pattern(.processKey), "The process's key, as `ancestor_keys` names it: its pid, a dot, "
+                        + "and its pid version."),
+            enrichment("ancestor_keys", .array(.pattern(.processKey)),
+                       "The keys of the process's own ancestors, nearest first, as an exec's `ancestor_keys` are. "
+                        + "Empty for a child of launchd."),
+            enrichment("executable", .object(SchemaObject(nil, [
+                enrichment("path", .string, "The executable's path."),
+            ])), "The process's executable.", absent: Absence("the process was gone before it could be read")),
+            enrichment("command_line", .string, "The process's command line, up to "
+                        + "\(ProcessProgram.commandLineLimit) characters.",
+                       absent: Absence("it could not be read, or the snapshot was made from a fork")),
+            enrichment("signing_id", .string, "The process's signing ID.",
+                       absent: Absence("the code is unsigned, or its signature was never read")),
+            enrichment("team_id", .string, "The process's team ID.",
+                       absent: Absence("the code has none, or its signature was never read")),
+            enrichment("codesigning_type", .string, "How the process is signed, as a process's `codesigning_type` "
+                        + "says it.", absent: Absence("its signature was never read")),
+        ])
     }
     
     /// An indicator a record lists: one of the saved set's predicates the event matched, with its severity and who
@@ -26,16 +67,20 @@ extension TelemetrySchemaSource {
             enrichment("id", .pattern(.uuid), "The indicator's identity, the same on every Mac for one Mac Monitor "
                         + "ships."),
             enrichment("name", .string, "What Settings > Indicators calls it, such as Background item added."),
-            enrichment("tactic", .nullable(.values(Indicator.Tactic.allCases.map(\.name).sorted())),
-                       "The MITRE ATT&CK tactic it's for, by name, or null for none."),
+            enrichment("tactic", .nullable(.values((Indicator.Tactic.allCases.map(\.name)
+                                                     + Indicator.Tactic.retiredNames).sorted())),
+                       "The MITRE ATT&CK tactic it's for, by name, or null for none. Stealth and Defense Impairment "
+                       + "since telemetry 1.2.0, when ATT&CK v19 split Defense Evasion into them: Defense Evasion is "
+                       + "only in records written before."),
             enrichment("tactic_id", .nullable(.values(Indicator.Tactic.allCases.map(\.identifier).sorted())),
-                       "The tactic's ATT&CK identity, such as TA0003, or null for none."),
+                       "The tactic's ATT&CK identity, such as TA0003, or null for none. TA0005 is Stealth since "
+                       + "telemetry 1.2.0, and Defense Evasion before. TA0112, Defense Impairment, since 1.2.0."),
             enrichment("technique", .nullable(.string),
                        "The ATT&CK technique it finds, such as T1543.001, or null for none."),
             enrichment("severity", .values(IndicatorSeverity.allCases.map(\.rawValue).sorted()),
-                       "How strong a sign of malicious activity a match is: high for a strong one, medium for "
-                        + "suspicious behavior that has benign uses, low for context and noisy signals. It never "
-                        + "changes what matches."),
+                       "How closely a match is worth looking at: high for behavior that is rare in ordinary use, "
+                        + "medium for less common behavior that has ordinary uses, low for context and common "
+                        + "behavior. It never changes what matches."),
             enrichment("default", .boolean, "Whether it is one of Mac Monitor's default indicators, which Mac "
                         + "Monitor ships. edited says whether this Mac changed it."),
             enrichment("edited", .boolean, "Whether this Mac changed one Mac Monitor ships: its name, description, "
@@ -45,13 +90,41 @@ extension TelemetrySchemaSource {
                        "Who matched it: security_extension, the Security Extension as it captured the event, or "
                         + "export, Mac Monitor as it wrote the record of an event the Security Extension did not "
                         + "evaluate."),
+            enrichment("revision", .nullable(.integer),
+                       "The indicator's revision, which its indicator pack raises whenever the indicator changes, or "
+                        + "null for one without. An edited one keeps the revision it was edited from. Since "
+                        + "telemetry 1.2.0."),
+            enrichment("pack", .nullable(.integer),
+                       "The indicator pack this Mac had when the indicator matched, by its sequence, for one Mac "
+                        + "Monitor ships. With id and revision it says which rule fired. null for one this Mac "
+                        + "added, and when Mac Monitor's indicators are its build's own rather than a pack's. Since "
+                        + "telemetry 1.2.0."),
+            enrichment("matched", .nullable(.array(.object(matchedField))),
+                       "What made it match: the comparisons of its rule the event passed, at most 16. For a "
+                        + "sequence, those of its steps this event matched, as it completed it. Only comparisons "
+                        + "that say what the event has are listed, not a != a value or anything under NOT. null "
+                        + "when none of its comparisons is one of those, and when evaluated_by is export. Since "
+                        + "telemetry 1.2.0."),
+        ])
+    }
+
+    /// One comparison of an indicator's rule that the event passed.
+    static var matchedField: SchemaObject {
+        SchemaObject("One comparison of an indicator's rule that the event passed.", [
+            enrichment("field", .string, "The key path the comparison read, as the rule names it, such as "
+                        + "event.exec.target.executable.path, or lineage.paths for one of the process's ancestors."),
+            enrichment("value", .either([.string, .integer, .boolean]),
+                       "The value the event had there: for ANY, the one of the array's strings that matched. A "
+                        + "string's first 256 characters. A whole number past 2^53 is rounded."),
         ])
     }
     
     /// An indicator the Security Extension couldn't rule out for the event: an indicator's keys, and why.
     static var indicatorUndetermined: SchemaObject {
         SchemaObject("An indicator from this Mac's saved set that the Security Extension could not rule out for the "
-                        + "event: it may or may not match.", indicator.keys + [
+                        + "event: it may or may not match.", indicator.keys.filter { $0.name != "matched" } + [
+            enrichment("matched", .null, "Always null: an indicator that wasn't decided matched nothing. Since "
+                        + "telemetry 1.2.0."),
             enrichment("reason", .values(UndeterminedReason.known.map(\.rawValue).sorted()),
                        "Why it wasn't decided: scan_budget when evaluating the event's values exceeded the Security "
                         + "Extension's per-event scan budget, or value_limit when a value that isn't ASCII was "

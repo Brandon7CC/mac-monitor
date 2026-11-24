@@ -36,6 +36,9 @@ public struct ProcessExecEvent: Codable, IdentityHashable {
     /// serializer from the message's own fields, not by ``enrich()``, which also runs on traces recorded on other Macs,
     /// where no process's path may be read. `nil` until it's resolved.
     public var launched_by_parent: LaunchedByParent?
+    /// The keys of ``target``'s ancestors, nearest first (``ProcessKey``, ``ProcessLineage``): stamped by the
+    /// Security Extension's serializer. Empty for a child of launchd, and `nil` when its lineage isn't tracked.
+    public var ancestor_keys: [String]?
     
     // @note construct a new process_exec
     init(from rawMessage: UnsafePointer<es_message_t>) {

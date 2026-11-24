@@ -174,13 +174,35 @@ enum ProcessPath {
     /// The most bytes `proc_pidpath` writes: `PROC_PIDPATHINFO_MAXSIZE`, which Swift doesn't import.
     static let capacity = 4 * Int(MAXPATHLEN)
     
-    /// ``of(_:)`` as a resolver's `path`: reads the pid now, and ignores the token.
-    static let live: (Int32, AuditToken?) -> String? = { pid, _ in of(pid) }
+    /// A resolver's `path`: the executable of the process a token names, or without a token, of whichever process
+    /// has the pid now.
+    static let live: (Int32, AuditToken?) -> String? = { pid, token in
+        if let token { return of(token) }
+        return of(pid)
+    }
     
-    /// The executable of a process, now.
+    /// The executable of the process an audit token names, now.
     ///
-    /// The public SDK can't read a pid's pidversion, so this can't be checked against an audit token: the caller reads
-    /// it while the process is known to be alive (as its event is handled) and keeps the token as the identity.
+    /// The kernel checks the token's pid version (`proc_pidpath_audittoken`), so a process that has exited, or exec'd
+    /// another program since the token was made, has no path here, though another process has its pid: a reused pid
+    /// never names the wrong executable.
+    ///
+    /// - Parameter token: The process's audit token.
+    /// - Returns: Its executable's path, or `nil` when that process is gone or can't be read.
+    static func of(_ token: AuditToken) -> String? {
+        guard token.pid > 0 else { return nil }
+        var raw = token.raw
+        return withUnsafeTemporaryAllocation(of: CChar.self, capacity: capacity) { buffer in
+            guard let base = buffer.baseAddress,
+                  proc_pidpath_audittoken(&raw, base, UInt32(buffer.count)) > 0 else { return nil }
+            return String(cString: base)
+        }
+    }
+    
+    /// The executable of whichever process has a pid, now.
+    ///
+    /// A pid alone doesn't say which process: one that exited may have given its pid to another. Read by token
+    /// (``of(_:)-(AuditToken)``) wherever one is known.
     ///
     /// - Parameter pid: A process ID.
     /// - Returns: Its executable's path, or `nil` when it has exited or can't be read.

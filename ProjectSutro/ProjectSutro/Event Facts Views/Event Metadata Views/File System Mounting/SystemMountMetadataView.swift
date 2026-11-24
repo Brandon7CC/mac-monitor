@@ -17,19 +17,11 @@ struct SystemMountMetadataView: View {
         if let event = esSystemEvent.event.mount {
             EventFactsCard(message: esSystemEvent) {
                 FactsBox {
-                    FactRow(name: "Source path", value: event.statfs.f_mntfromname, style: .monospaced)
-                    FactRow(name: "Mount directory", value: event.statfs.f_mntonname, style: .monospaced)
-                    HStack {
-                        Text("\u{2022} **Type:**")
-                        GroupBox {
-                            Text(event.disposition_string.droppingPrefix("ES_MOUNT_DISPOSITION_"))
-                                .monospaced()
-                        }
-                        Text("\u{2022} **Total files:**")
-                        GroupBox {
-                            Text(String(event.statfs.f_files))
-                                .monospaced()
-                        }
+                    FactRow(name: "Source path", value: event.statfs.f_mntfromname)
+                    FactRow(name: "Mount directory", value: event.statfs.f_mntonname)
+                    FactRow {
+                        Fact("Type", event.disposition_string.droppingPrefix("ES_MOUNT_DISPOSITION_"))
+                        Fact("Total files", String(event.statfs.f_files))
                     }
                 }
             }

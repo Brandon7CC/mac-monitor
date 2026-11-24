@@ -45,7 +45,7 @@ enum StoreNarrowing {
         let text = [
             "es_event_type": "es_event_type", "context": "context", "target_path": "target_path", "time": "time",
             "action_type_string": "action_type_string", "macOS": "macOS", "sip_status": "sip_status",
-            "sensor_id": "sensor_id",
+            "sensor_id": "sensor_id", "boot_session_uuid": "boot_session_uuid",
             "process.executable.path": "initiating_path", "process.executable.name": "initiating_name",
             "process.signing_id": "initiating_signing_id", "process.euid_human": "initiating_euid_human",
             "process.audit_token_string": "instigator_audit_token",

@@ -76,26 +76,6 @@ struct GroupLeaderView: View {
     }
 }
 
-/// The PID and group ID of the process that caused an event, beside its user in the Metadata tab's parent process
-/// facts. For an exec that's the process that called exec, as the Parent tab's Parent PID is: its own Unix parent is
-/// in ``ParentsView``.
-struct InitiatingPIDandGIDView: View {
-    var selectedMessage: ESMessage
-
-    var body: some View {
-        HStack {
-            Text("\u{2022} **PID:**")
-            GroupBox {
-                Text("`\(String(selectedMessage.process.pid))`")
-            }
-            Text("\u{2022} **GID:**")
-            GroupBox {
-                Text("`\(String(selectedMessage.process.group_id))`")
-            }
-        }
-    }
-}
-
 // MARK: Parent proc event view
 struct ParentProcessMetadata: View {
     var selectedMessage: ESMessage
@@ -103,27 +83,15 @@ struct ParentProcessMetadata: View {
     
     var body: some View {
         ScrollView(.horizontal) {
-            HStack {
-                Text("\u{2022} **Process name:**")
-                GroupBox {
-                    Text("`\(String(selectedMessage.process.executable?.name ?? ""))`")
+            FactRow {
+                Fact("Process name", selectedMessage.process.executable?.name ?? "")
+                if let parentSigningID = selectedMessage.process.signing_id.nonEmpty {
+                    Fact("Signing ID", parentSigningID)
                 }
-                
-                if let parentSigningID: String = selectedMessage.process.signing_id.nonEmpty {
-                    Text("\u{2022} **Signing ID:**")
-                    GroupBox {
-                        Text("`\(parentSigningID)`")
-                    }
-                }
-                
                 if selectedMessage.process.file_quarantine_type != "DISABLED" {
-                    FileQuarantineLabelView(
-                        type: selectedMessage.process.file_quarantine_type
-                    )
+                    FileQuarantineLabelView(type: selectedMessage.process.file_quarantine_type)
                 }
-                
-                
-            }.frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         
         
@@ -149,21 +117,14 @@ struct MessageDetailsHeader<Content: View>: View {
             .font(.title2)
 
         GroupBox {
-            HStack {
+            FactRow {
                 Label("**Message timestamp:**", systemImage: "clock")
                 EventTimeView(message: message)
-            }.frame(maxWidth: .infinity, alignment: .leading)
-
-            HStack {
-                Label("**Version:**", systemImage: "number")
-                GroupBox {
-                    Text("`\(message.version)`")
-                }
-                Label("**Thread ID:**", systemImage: "scribble")
-                GroupBox {
-                    Text("`\(message.thread.map { String($0.thread_id) } ?? "None")`")
-                }
-            }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+            FactRow {
+                Fact("Version", String(message.version), systemImage: "number")
+                Fact("Thread ID", message.thread.map { String($0.thread_id) } ?? "None", systemImage: "scribble")
+            }
 
             content()
         }
@@ -213,22 +174,22 @@ struct SystemTargetProcessView: View {
     private var parentDetails: some View {
         let process = selectedMessage.process
         VStack(alignment: .leading) {
-            let codeSigningType = process.codeSigningTypeLabel(version: selectedMessage.version)
-            Text("\u{2022} **Code signing type:** `\(codeSigningType)`")
-
-            /// The process row may be shared: its age is the event's, as the Parent tab reads it.
-            if let age = selectedMessage.processAgeText {
-                Text("\u{2022} **Parent process age:** `\(age)`")
+            FactRow {
+                Fact("Code signing type", process.codeSigningTypeLabel(version: selectedMessage.version))
+                /// The process row may be shared: its age is the event's, as the Parent tab reads it.
+                if let age = selectedMessage.processAgeText {
+                    Fact("Parent process age", age)
+                }
             }
-
-            HStack {
+            /// The PID and group ID of the process that caused the event. For an exec that's the process that called
+            /// exec, as the Parent tab's Parent PID is: its own Unix parent is in ``ParentsView``.
+            FactRow {
                 Label("**Parent user:**", systemImage: "person.fill")
-                UserFact(process: process)
-
-                // Parent PID / GID
-                InitiatingPIDandGIDView(selectedMessage: selectedMessage)
-                    .frame(alignment: .leading)
-            }.frame(maxWidth: .infinity, alignment: .leading)
+                /// As wide as the user, so the PID and group ID follow it.
+                UserFact(process: process).fixedSize()
+                Fact("PID", String(process.pid))
+                Fact("GID", String(process.group_id))
+            }
 
             // MARK: Parents
             ParentsView(message: selectedMessage)

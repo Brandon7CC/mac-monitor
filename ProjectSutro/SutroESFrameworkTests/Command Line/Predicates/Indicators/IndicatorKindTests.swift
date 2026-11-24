@@ -10,42 +10,43 @@ import XCTest
 
 
 // MARK: - Kinds of rule
-/// Pins the guard on an indicator's `kind`: this build reads rules on one event, with or without the key, and never
-/// reads a later build's rule over several events as one. Saved, such a rule is kept as it was and written back. In a
-/// shared file, it isn't imported.
+/// Pins the guard on an indicator's `kind`: this build reads rules on one event, with or without the key, and
+/// sequences, and never reads a later build's kind of rule as either. Saved, such a rule is kept as it was and written
+/// back. In a shared file, it isn't imported.
 final class IndicatorKindTests: XCTestCase {
     /// An indicator without a kind is a rule on one event, and so is one whose kind says so.
     func testEventKindDecodes() throws {
-        XCTAssertEqual(Indicator.kind, "event")
+        XCTAssertEqual(Indicator.Rule.Kind.event.rawValue, "event")
         for kind in ["", #", "kind": "event""#] {
             let json = #"{"name": "Mine", "predicate": "TRUEPREDICATE"\#(kind)}"#
             XCTAssertEqual(try JSONDecoder().decode(Indicator.self, from: Data(json.utf8)).name, "Mine", kind)
         }
     }
 
-    /// Any other kind doesn't decode, and says why, and nor does a kind that isn't a string.
+    /// Any other kind doesn't decode, and says why, and nor does a kind that isn't a string, or a sequence without
+    /// its sequence.
     func testOtherKindsDontDecode() {
-        for kind in [#""sequence""#, #""EVENT""#, "3"] {
+        for kind in [#""chain""#, #""EVENT""#, "3", #""sequence""#] {
             let json = #"{"name": "Mine", "predicate": "TRUEPREDICATE", "kind": \#(kind)}"#
             XCTAssertThrowsError(try JSONDecoder().decode(Indicator.self, from: Data(json.utf8)), kind)
         }
         let file = Data(#"""
         {"format": "com.swiftlydetecting.indicators", "version": 1, "indicators": [
-          {"name": "Mine", "predicate": "TRUEPREDICATE", "kind": "sequence"}
+          {"name": "Mine", "predicate": "TRUEPREDICATE", "kind": "chain"}
         ]}
         """#.utf8)
         XCTAssertThrowsError(try IndicatorExchange.indicators(from: file)) { error in
             let message = (error as? IndicatorExchange.ImportError)?.message ?? ""
-            XCTAssertTrue(message.contains("kind sequence"), message)
+            XCTAssertTrue(message.contains("kind chain"), message)
         }
     }
 
-    /// A saved sequence rule, in full or as a reference to one a later build ships, is kept as it was saved and
-    /// written back after the rest, and none of it runs as a rule on one event.
-    func testSavedSequencesAreKept() throws {
-        let sequence: [String: Any] = ["id": UUID().uuidString, "name": "Download then run", "kind": "sequence",
+    /// A saved rule of a kind a later build added, in full or as a reference to one a later build ships, is kept as it
+    /// was saved and written back after the rest, and none of it runs as a rule on one event.
+    func testSavedLaterKindsAreKept() throws {
+        let sequence: [String: Any] = ["id": UUID().uuidString, "name": "Download then run", "kind": "chain",
                                        "predicate": "TRUEPREDICATE", "steps": [["predicate": "TRUEPREDICATE"]]]
-        let reference: [String: Any] = ["default": UUID().uuidString, "kind": "sequence", "isEnabled": false]
+        let reference: [String: Any] = ["default": UUID().uuidString, "kind": "chain", "isEnabled": false]
         let shipped: [String: Any] = ["default": Indicator.defaults[0].id.uuidString, "isEnabled": false]
         /// A kind that isn't a string isn't an event's either, as a full entry's isn't.
         let (second, third) = (Indicator.defaults[1], Indicator.defaults[2])
@@ -63,7 +64,7 @@ final class IndicatorKindTests: XCTestCase {
         XCTAssertEqual(saved.indicators[2].isEnabled, second.isEnabled)
         let written = try jsonObject(try XCTUnwrap(saved.encoded()))
         let entries = try XCTUnwrap(written["entries"] as? [[String: Any]])
-        XCTAssertEqual(entries.suffix(3).map { $0["kind"] as? String }, ["sequence", "sequence", nil])
+        XCTAssertEqual(entries.suffix(3).map { $0["kind"] as? String }, ["chain", "chain", nil])
         XCTAssertEqual(entries.suffix(3).last?["kind"] as? Int, 3)
         XCTAssertEqual(entries.dropLast().last?["default"] as? String, reference["default"] as? String)
         XCTAssertEqual(entries.suffix(3).first?["steps"] as? [[String: String]], [["predicate": "TRUEPREDICATE"]])

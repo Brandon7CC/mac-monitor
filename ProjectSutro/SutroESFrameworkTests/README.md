@@ -18,9 +18,9 @@ Benchmarks sit beside the tests of the code they time too, named `*PerformanceTe
 | Folder | What's there |
 |---|---|
 | `TestSupport` | Fakes and helpers the tests share (below) |
-| `Fixtures` | Real eslogger and Mac Monitor 2.1 records, `macmonitor stream`'s records of dscl checking a password on macOS 27 and of fseventsd and Spotlight writing their logs and caches, Mac Monitor 3.0's records of adhoc, Developer ID and Apple programs' signing on a Mac with SIP on, and `spctl --raw` output recorded for a notarized and an unsigned package, copied to the test bundle as a folder |
+| `Fixtures` | Real eslogger and Mac Monitor 2.1 records, `macmonitor stream`'s records of dscl checking a password on macOS 27 and of fseventsd and Spotlight writing their logs and caches, Mac Monitor 3.0's records of adhoc, Developer ID and Apple programs' signing on a Mac with SIP on, and `spctl --raw` output recorded for a notarized and an unsigned package, test indicator packs (`indicator-pack-*`) that `ProjectSutro/Scripts/Test/generate-indicator-pack-fixtures.sh` makes, and Mac Monitor 3.1's signing chain (`mac-monitor-3.1-signing-chain-*.cer`, public certificates `codesign --extract-certificates` wrote), copied to the test bundle as a folder |
 | `Telemetry Schema` | The schema's source (`Source`), the synthetic events it's checked on (`Synthetic`), and its tests |
-| `Default Indicators` | The source of the indicators Mac Monitor ships (`Source`): each default, the predicates they're built from and the parts those share, with what each is for. It generates `SutroESFramework/Detection/DefaultIndicators.json`, which the linker copies into the framework's binary. `DefaultIndicatorFileTests` fails when the file and the source differ; `ProjectSutro/Scripts/generate-default-indicators.sh` writes the file again |
+| `Command Line/Predicates/Defaults` | `LinkedIndicatorPackTests`: the signed indicator pack a build links in (`SutroESFramework/Indicators/LinkedIndicatorPack.json`) is in the framework's binary, is signed as a release is, and is what Mac Monitor ships. `ProjectSutro/Scripts/Generate/link-indicator-pack.sh` copies a newer one in |
 | `Scripts` | Tests of `ProjectSutro/Scripts`, run from the source checkout: `compare-performance.js`'s gate |
 
 The folder is synchronized with the test target, so a new file anywhere here builds with the tests without editing the
@@ -34,16 +34,19 @@ otherwise: `testStreamWithoutRootExits77` runs when `SUTRO_STREAM_REFUSED` is `1
 through `xcodebuild`), saying this Mac's Security Extension refuses this user's `stream`, and
 `testASetUserIDCopyExits77` runs only as root, which alone can make a set-user-ID copy owned by another user.
 
-Two tests read events from outside the checkout: `Detection/Fields/MessageValuesParityTests` checks the Security Extension's
-indicator values, and `Detection/Set/CompiledIndicatorsParityTests` its verdicts, against the records of every event the
+Two tests read events from outside the checkout: `Indicators/Fields/MessageValuesParityTests` checks the Security Extension's
+indicator values, and `Indicators/Set/CompiledIndicatorsParityTests` its verdicts, against the records of every event the
 macath harnesses recorded (`*.events.jsonl`, `macathEvents()`). They find them in
 `research/macOS/mac-atomic-test-harnesses/runs` in a folder holding the checkout, or in the folder
 `SUTRO_MACATH_RUNS` names (`TEST_RUNNER_SUTRO_MACATH_RUNS` through `xcodebuild`), and are skipped without them.
 
 The Security Extension's string matching is pinned to `NSPredicate` by differential tests
-(`Detection/Matching/StringMatchingTests`) and by fuzzing (`Detection/Compiler/IndicatorFuzzTests`), which compiles random predicates and
+(`Indicators/Matching/StringMatchingTests`) and by fuzzing (`Indicators/Compiler/IndicatorFuzzTests`), which compiles random predicates and
 checks each that compiles against `NSPredicate` on every corpus event's record. Their seeds are fixed
-(`SeededGenerator`), so a failure repeats. `Detection/Set/IndicatorIndexTests` checks that the index a set picks each
+(`SeededGenerator`), so a failure repeats. A field compared with another field of the event is pinned the same way
+(`Indicators/Matching/StringMatchingTests+Fields`, `Indicators/Compiler/IndicatorFieldFuzzTests`), which also checks that
+Mac Monitor's own check of an indicator refuses exactly the field comparisons the compiler does, in its words.
+`Indicators/Set/IndicatorIndexTests` checks that the index a set picks each
 event's rules by never leaves out one the event matches: on every corpus and macath event against the shipped rules,
 copies of them and 2,048 path rules, and on random rules from the same grammar, whose hits must be the rules'
 evaluated one by one.
@@ -56,20 +59,20 @@ Look here before writing a helper of your own, and move one here once a second t
 
 | File | What it stands in for |
 |---|---|
-| `FakeEndpointSecurityClient.swift` | `es_new_client`: records each call, refuses calls on request, holds `es_sync_client` until released, and `deliver(_:)` hands a message to the session's handler. `FakeEndpointSecurityClientFactory.client(.process)` finds a session's client by class |
+| `FakeEndpointSecurityClient.swift` | `es_new_client`: records each call, refuses calls on request, holds `es_sync_client` until released, and `deliver(_:)` hands a message to the session's handler. `FakeEndpointSecurityClientFactory.client(.process)` finds a session's client by class, and its `holdsSyncs` makes each new client hold its syncs from the start |
 | `FakeBatchDelivery.swift` | The reader of an `EventBatcher`: keeps each batch and replies only when told (`FakeBatchDelivery`), and an in-memory backlog (`FakeBacklog`) |
-| `FakeLaunchServicesReaders.swift` | Launch Services: scripted records (`FakeLaunchServicesReader`), or reads that wait until `open()` (`WaitingLaunchServicesReader`) |
+| `FakeLaunchServicesReaders.swift` | Launch Services: scripted records (`FakeLaunchServicesReader`), or the same from reads that wait until the test answers one (`answer(then:)`) or opens them all (`open()`) (`WaitingLaunchServicesReader`) |
 | `FakePeer.swift` | An XPC connection from one effective user and process, which records the code signing requirement pinned on it |
-| `StreamHarness.swift` | The Security Extension's side of `macmonitor`: the real `StreamService` on an in-process listener, capturing on fake clients |
+| `StreamHarness.swift` | The Security Extension's side of `macmonitor`: the real `StreamService` on an in-process listener, capturing on fake clients, which can hold every stop's drain until the test releases it (`holdsSyncs`), with a callback each time a session closes |
 | `SensorServiceHarness.swift` | The Security Extension's side of Mac Monitor: the real `SensorService` on an in-process listener, capturing on fake clients with Endpoint Security refusals on request, counting releases and Sensor IDs, with a `FakeUpdater` and a `RecordingAgent` that keeps events and update progress. `NSXPCConnection.sensor` sends any `SensorProtocol` request and waits for the reply |
 | `StreamCommandHarness.swift` | `macmonitor stream` in a test: `StreamCommandRun` with output kept in `BufferOutput` |
 | `ToolLinkFixture.swift` | A pretend `/` in a temporary directory, for linking `/usr/local/bin/macmonitor` |
 | `EndpointSecurityMuteModel.swift` | What `ESClient.h` says a client's mutes are, to check mute diffs against |
 | `XCTestCase+MuteStore.swift` | Mute stores in temporary directories, the saved file's bytes, a test console user, and `SavedMuteSet.send(_:access:)`, which sends a request, waits for the reply, and fails the test if none comes |
-| `XCTestCase+IndicatorSet.swift` | Indicator sets in temporary directories, the saved file and what it holds, and `SavedIndicatorSet.send(_:access:)`, which sends a request, waits for the reply, and fails the test if none comes |
+| `XCTestCase+IndicatorSet.swift` | Indicator sets in temporary directories, with the indicators and the pack release a build links in and a pack verifier of the test's, the saved file and what it holds, `SavedIndicatorSet.send(_:access:)`, which sends a request, waits for the reply, and fails the test if none comes, `respond(to:access:caller:)` for a reply's bytes, and `lookIfDueAndWait()`, which runs the daily look for a pack |
 | `ServiceBeforeIndicators.swift` | A Security Extension older than 3.1 on an in-process listener: it exports the stream interface without `indicators`, so NSXPC cuts the connection off at an indicator request, and counts the stream requests it gets |
 | `FakeSensorService.swift` | Mac Monitor's Security Extension on an in-process listener, as 3.0.0 (`SensorProtocolBeforeIndicators`, from `ServiceBeforeIndicators.swift`) or this build exports it, keeping the stream ownership of `SensorService` (pinned by `ESM/Streaming/SensorServiceOwnershipTests`) and noting when the owner's connection closes. `SilentAgent` is Mac Monitor's side, taking every batch |
-| `ServiceHoldingChanges.swift` | A 3.1 Security Extension on an in-process listener that lists its indicator set at once but records each change without answering it, as one slow to compile and save a large import seems when `macmonitor`'s wait runs out, or answers each change with one status, such as `unsupported` from one that doesn't know it |
+| `ServiceHoldingChanges.swift` | A 3.1 Security Extension on an in-process listener that lists its indicator set at once but records each change without answering it, as one slow to compile and save a large import seems when `macmonitor`'s wait runs out, or answers each change with one status, such as `unsupported` from one that doesn't know it. `awaitChange()` waits for each change to arrive |
 | `XCTestCase+IndicatorCommand.swift` | `macmonitor indicators` end to end against a `StreamHarness` (`runIndicators`, whose `IndicatorRun` keeps its result, output and standard error), and indicator files to import (`indicatorFile(of:named:)`) |
 | `XCTestCase+IndicatorEngine.swift` | Mac Monitor's side of the indicator set: user defaults of a test's own (`makeDefaults`), a transport to a `SavedIndicatorSet` as a caller with some access, replying on the main queue (`transport(to:access:)`), and a request sent through an `IndicatorEngine` and waited for (`send(_:through:)`) |
 | `Recorded.swift` | Values a test collects from any thread, such as what a fake was asked or what a session emitted, kept in order (`all`). `EmittedEvents` and `DiagnosticLines` are its aliases |
@@ -118,20 +121,23 @@ Look here before writing a helper of your own, and move one here once a second t
 | File | What it's for |
 |---|---|
 | `FileTypeSamples.swift` | The first bytes of each kind of file a file type check tells apart, made up byte by byte (`machO`, `universal`, `diskImageTrailer`, `tarHeader`), files and copies in a temporary folder whose path has no symbolic link, as Endpoint Security's paths don't (`resolvedTemporaryDirectory`, `temporaryFile(bytes:named:mode:)`, `temporaryCopy(of:named:)`), a file's `stat` as Endpoint Security gives it (`fileStat`), and this process's `FileReader` (`currentReader`) |
+| `XCTestCase+FIFO.swift` | A named pipe with no writer (`makeFIFO`), and `withoutBlocking(on:timeout:_:)`, which runs a read on another queue, fails the test if it blocks for 2 seconds, and then lets it go |
 
-### Detection
+### Indicators
 
 | File | What it's for |
 |---|---|
 | `XCTestCase+Indicators.swift` | The shipped indicators compiled once (`shippedIndicators`), one's identity by name (`shippedID`), an indicator of someone's own (`ownIndicator`), what Mac Monitor's own matching finds on an event as it stores it (`matcherHits`), and a check that verdicts are the Security Extension's, each with its indicator's name, severity and `shipped` (`assertStamped`) |
+| `ShippedIndicatorParts.swift` | The shipped indicators that are a rule on one event (`Indicator.eventDefaults`), and the programs and file types their tests try them with: `Indicator.archiveTypes`, `backupd`, `contentKeepers`, `logRotators` and `tccd` |
 | `CanonicalSpellings.swift` | One path spelled in NFC and in NFD, which Swift's `String` takes as equal and `==`, `!=` and `IN` don't, and pairs of indicators comparing an exec's target path with each (`pairs`), for the program and verdict caches keyed by a predicate's bytes |
 | `XCTestCase+ScanBudget.swift` | The scan budget's tests: the synthetic corpus's first exec, changed (`corpusExec`), a predicate on execs compiled (`execProgram`) or as an indicator of someone's own (`execIndicator`), and one program's verdict on a fresh cache with an allowance (`verdict(_:on:limit:)`) |
 
-### Indicator Alerts
+### Indicator Packs
 
 | File | What it's for |
 |---|---|
-| `XCTestCase+IndicatorAlerts.swift` | Notification tests' events: a hit as the Security Extension stamps it (`alertHit`), the corpus's first exec with verdicts (`alertMessage`), a candidate for an indicator (`alertEvent`), and the simulation's scenarios run through a coalescer at each next match or deadline (`ScenarioMatch`, `ScenarioRun`), whose posts `Fixtures/indicator-alert-scenarios.json` holds as the simulation printed them |
+| `XCTestCase+IndicatorPacks.swift` | The signed pack fixtures: a verifier that trusts only their throwaway root and requires their team anchored there (`packVerifier`), a pack changed in its JSON or its payload's or signature's bytes (`packFile`), a pack file `pack.py`'s way from a payload and a signature, what verifying throws (`packRefusal`), certificate fixtures, and Mac Monitor 3.1's signing chain (`releaseChain`). For installing one: the two signed releases (`releaseFixture`), the indicators a build older than them links in (`linkedFixtures`), a payload nobody signed (`packPayload`, `verified`), and `SavedIndicatorSet.take(_:installs:file:)`, which checks or installs a payload as if its signature had been accepted |
+| `FakePackFetcher.swift` | GitHub, for a set that looks for a newer pack: `FakePackFetcher` answers the releases' listing and each download from what a test offers, counts what it's asked, and can hold its answers. `TestClock` is the time a set thinks it is, which a test moves |
 
 ### Command Line
 
@@ -183,9 +189,8 @@ into drops.
 | `filter.*` | `macmonitor stream`'s filters, and its pipeline with a `--predicate`, per event |
 | `enrich.*` | File Quarantine, script and header reads, file types (a read, a hit in a lane's memory, a read's I/O policies, and naming bytes already read: data, a raw disk, text, a property list and a trailer), code signing certificates, and launched-by parent paths |
 | `indicators.evaluate.*` | The Security Extension's indicators on one event (`CompiledIndicators`): no rules, the shipped ones, 500 of the event's type, 2,048 path rules, closes Archive written's index looks up, and hostile execs, each printing its rules of the event's type, the rules its index has an event evaluated against, and its allocations per event. Each also prints the scan units an event spends (`ScanBudget`), the pools it was refused and the indicators it left undetermined |
-| `alerts.*` | Indicator notifications on Mac Monitor's side: a batch's candidates picked with and without hits, the coalescer per candidate, and a notice's text |
 | `indicators.compile.*`, `.footprint.*`, `.concurrent.*`, `.oracle.*` | A set compiled, one rule added to it, the heap it holds, eight lanes sharing one set against each having its own, and Mac Monitor's own matcher on the same events, for the speedup |
-| `IndicatorWeightTests` | Not a timed benchmark but a calibration sweep: every Foundation comparison, with no options, `[c]`, `[d]` and `[cd]`, on hostile text of 1 to 64 KiB, fails when a scan unit (`ScanCost`) takes more than 3 ns, and prints each comparison's slowest unit |
+| `IndicatorWeightTests` | Not a timed benchmark but a calibration sweep: every Foundation comparison, with no options, `[c]`, `[d]` and `[cd]`, on hostile text of 1 to 64 KiB, and each comparison of two fields on the same text, fails when a scan unit (`ScanCost`) takes more than 3 ns, and prints each comparison's slowest unit |
 
 Exec has no `capture.serialize` or `capture.build` benchmark: `ProcessExecEvent` retains its message with
 `es_retain_message`, which takes only a message Endpoint Security allocated. Its encode is timed from an eslogger record.
@@ -200,7 +205,7 @@ the script, and compare its results only with another run made the same way.
 Run them from the command line, which builds them with `-O` and whole-module optimization, as Release ships:
 
 ```bash
-ProjectSutro/Scripts/test-performance.sh
+ProjectSutro/Scripts/Test/test-performance.sh
 ```
 
 Name classes or tests to run only those (`test-performance.sh MessageSerializerPerformanceTests`), `-s` for the samples
@@ -216,7 +221,7 @@ each benchmark's samples, with the median, minimum, mean and standard deviation 
 CPU time. Compare two of them, two commits on one Mac or one commit on two Macs:
 
 ```bash
-ProjectSutro/Scripts/compare-performance.js before.json after.json
+ProjectSutro/Scripts/Test/compare-performance.js before.json after.json
 ```
 
 It lists each benchmark's median time per operation in both, and the change. A change is called "faster" or "slower" only

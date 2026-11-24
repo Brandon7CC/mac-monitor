@@ -22,7 +22,7 @@ final class IndicatorFileTests: XCTestCase {
     func testAFileRoundTrips() throws {
         var indicators = Indicator.defaults
         indicators[0].isEnabled = false
-        indicators[1].predicate += " AND process.is_platform_binary == NO"
+        indicators[1].rule = .event(indicators[1].predicate! + " AND process.is_platform_binary == NO")
         indicators.remove(at: 2)
         indicators.append(ownIndicator("Mine", Self.exec, severity: .high))
         let data = try XCTUnwrap(IndicatorFile(SavedIndicators(indicators)).encoded())

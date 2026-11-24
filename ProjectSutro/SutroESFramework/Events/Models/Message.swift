@@ -36,6 +36,8 @@ public struct Message: Codable, IdentityHashable {
     /// System Integrity Protection's status on the Mac that recorded the event (``SIPStatus``), or `nil` when the
     /// trace didn't record it.
     public var sip_status: String?
+    /// Which start of the Mac the event is from (``BootSession``), or `nil` when the trace didn't record it.
+    public var boot_session_uuid: String?
     public var sensor_id: String
     
     /// Initiating process
@@ -98,11 +100,13 @@ public struct Message: Codable, IdentityHashable {
     ///   - sensorID: The Sensor ID to stamp on the event.
     ///   - macOS: The macOS version to stamp on the event.
     ///   - sipStatus: System Integrity Protection's status to stamp on the event.
+    ///   - bootSession: The boot session's identifier to stamp on the event.
     init(
         from rawMessage: UnsafePointer<es_message_t>,
         sensorID: String = "SENSOR-ID-NOT-SET",
         macOS: String = Message.currentMacOSVersion(),
-        sipStatus: SIPStatus? = SIPStatus.current
+        sipStatus: SIPStatus? = SIPStatus.current,
+        bootSession: String? = BootSession.current
     ) {
         let message: es_message_t = rawMessage.pointee
         
@@ -121,6 +125,7 @@ public struct Message: Codable, IdentityHashable {
         self.sensor_id = sensorID
         self.macOS = macOS
         self.sip_status = sipStatus?.rawValue
+        self.boot_session_uuid = bootSession
         
         /// Initiating process
         self.process = Process(from: message.process.pointee, version: version)

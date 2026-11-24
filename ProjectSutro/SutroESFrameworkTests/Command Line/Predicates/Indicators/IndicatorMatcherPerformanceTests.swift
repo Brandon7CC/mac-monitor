@@ -61,7 +61,7 @@ final class IndicatorMatcherPerformanceTests: PerformanceTestCase {
         let many = (0..<500).map { index -> Indicator in
             var indicator = Indicator.defaults[index % Indicator.defaults.count]
             indicator.id = UUID()
-            indicator.predicate = "(\(indicator.predicate)) AND \(extra) != -\(index + 1)"
+            indicator.rule = .event("(\(indicator.predicate!)) AND \(extra) != -\(index + 1)")
             return indicator
         }
         try benchmark(name, unit: "row", operations: messages.count, setUp: {

@@ -81,19 +81,32 @@ public struct StreamFilter: Equatable {
         ///   - source: The predicate's format.
         ///   - audience: Who its errors are for.
         /// - Throws: ``CommandLineUsageError`` if it's too long, `NSPredicate` can't read it, or it does more than
-        ///   compare values.
+        ///   compare values, and for an indicator, if it compares two key paths in a way the Security Extension
+        ///   doesn't.
         public init(_ source: String, for audience: PredicateAudience = .commandLine) throws {
             try self.init(source, for: audience, maxLength: Self.maxLength)
         }
 
+        /// An indicator's comparison of two key paths has to be one the Security Extension runs
+        /// (``IndicatorDraft/FieldComparison``), refused in the compiler's words otherwise, so Mac Monitor and the
+        /// Security Extension take the same ones.
+        ///
         /// - Parameters:
         ///   - source: The predicate's format.
         ///   - audience: Who its errors are for.
         ///   - maxLength: The longest predicate taken, in characters.
         /// - Throws: ``CommandLineUsageError`` if it's too long, `NSPredicate` can't read it, or it does more than
-        ///   compare values.
+        ///   compare values, and for an indicator, if it compares two key paths in a way the Security Extension
+        ///   doesn't.
         init(_ source: String, for audience: PredicateAudience, maxLength: Int) throws {
             let parsed = try Self.parse(source, for: audience, maxLength: maxLength)
+            if audience == .indicator {
+                do {
+                    try IndicatorDraft.checkFieldComparisons(in: parsed)
+                } catch {
+                    throw CommandLineUsageError(error.description, command: audience.command)
+                }
+            }
             self.parsed = parsed
             matches = BoundedMatches()
             related = RelatedEvents(matches: matches)

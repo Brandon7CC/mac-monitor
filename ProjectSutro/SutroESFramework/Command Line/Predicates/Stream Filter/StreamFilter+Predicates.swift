@@ -20,6 +20,9 @@ public struct PredicateAudience: Equatable, Sendable {
     let command: String?
     /// Can it compare an event with others (``PredicateRelation``)? Only with every event at hand, not in a stream.
     let relatesEvents: Bool
+    /// Can it read an event's ancestors (``LineageField``)? Only the Security Extension can, as it captures the
+    /// event: a record doesn't have them.
+    var readsLineage = false
 
     /// `macmonitor stream --predicate`.
     public static let commandLine = PredicateAudience(name: "--predicate",
@@ -28,11 +31,30 @@ public struct PredicateAudience: Equatable, Sendable {
     /// An indicator's predicate, in Settings > Indicators, which compares one event at a time.
     public static let indicator = PredicateAudience(name: "The indicator's predicate",
                                                     schema: "Settings > Telemetry Schema describes them.", command: nil,
-                                                    relatesEvents: false)
+                                                    relatesEvents: false, readsLineage: true)
     /// The event tables' predicate search.
     public static let search = PredicateAudience(name: "The predicate",
                                                  schema: "Settings > Telemetry Schema describes them.", command: nil,
                                                  relatesEvents: true)
+}
+
+
+// MARK: - Key paths an audience may use
+extension PredicateAudience {
+    /// How many of a key path's leading keys are where the path puts them, for what the predicate is for. The
+    /// predicate editor underlines the rest.
+    ///
+    /// A record's key path is checked against the record (``RecordKeyPaths``). An ancestor's field
+    /// (``LineageField``) isn't a record's: where the predicate can read lineage, it's valid as far as it starts
+    /// one, so it isn't underlined while it's typed.
+    ///
+    /// - Parameter keys: The key path's keys.
+    /// - Returns: The number of leading keys that lead somewhere: `keys.count` for a key path the predicate may use.
+    public func validKeyCount(of keys: [String]) -> Int {
+        let record = RecordKeyPaths.shared.validCount(of: keys)
+        guard readsLineage, record < keys.count else { return record }
+        return max(record, LineageField.validCount(of: keys))
+    }
 }
 
 
@@ -87,11 +109,45 @@ enum PredicateGuard {
             }
             try check(comparison.leftExpression, for: audience, in: variable)
             try check(comparison.rightExpression, for: audience, in: variable)
+            try checkList(comparison, for: audience)
         default:
             guard ["TRUEPREDICATE", "FALSEPREDICATE"].contains(predicate.predicateFormat) else {
                 throw refusal(predicate.predicateFormat, for: audience)
             }
         }
+    }
+
+    /// Refuse a comparison of a list with one value, as if the list were one: `indicators.severity MATCHES "high"`.
+    /// A record's value there is a list, so the comparison matched nothing, or failed on every event, after the
+    /// predicate was called valid. Each value is compared with `ANY`, `ALL` or `NONE`. The whole list is still
+    /// compared with `CONTAINS`, `IN`, a set or `nil`, and its size with `@count`.
+    ///
+    /// An indicator's predicate is left to its compiler, which says the same of one in its own words
+    /// (``SensorProblem/mismatchedTypes(_:)``).
+    ///
+    /// - Parameters:
+    ///   - comparison: A comparison, whose expressions are checked.
+    ///   - audience: Who the error is for.
+    /// - Throws: ``CommandLineUsageError`` naming the comparison, and what to write.
+    private static func checkList(_ comparison: NSComparisonPredicate, for audience: PredicateAudience) throws {
+        guard audience != .indicator, comparison.comparisonPredicateModifier == .direct,
+              let path = comparison.leftExpression.namedKeyPath, !path.contains("@"),
+              let node = RecordKeyPaths.shared.nodes[path], node.type == "array" || node.isInArray else { return }
+        switch comparison.predicateOperatorType {
+        case .contains, .in:
+            return
+        case .equalTo, .notEqualTo:
+            /// `nil` and a set are compared with the whole list.
+            let right = comparison.rightExpression
+            guard right.expressionType == .constantValue,
+                  right.constantValue is NSString || right.constantValue is NSNumber else { return }
+        default:
+            break
+        }
+        throw CommandLineUsageError("""
+            \(audience.name) can't use '\(comparison.predicateFormat)': \(path) is a list. Compare each of its values \
+            with ANY, as in ANY \(comparison.predicateFormat), or test the whole list with CONTAINS.
+            """, command: audience.command)
     }
 
     /// Refuse an expression that does more than name or combine the record's values. Each property read is one the
@@ -185,6 +241,15 @@ enum PredicateGuard {
                 SUBQUERY, as in SUBQUERY(\(relation.rawValue), $e, $e.es_event_type == \
                 "ES_EVENT_TYPE_NOTIFY_EXEC").@count > 0.
                 """, command: audience.command)
+        }
+        if IndicatorField(path: keyPath)?.lineageOffset != nil {
+            guard audience.readsLineage, variable == nil else {
+                throw CommandLineUsageError("""
+                    \(audience.name) can't use '\(keyPath)': a process's ancestors are read by indicators, as the \
+                    Security Extension captures an event. A record doesn't have them.
+                    """, command: audience.command)
+            }
+            return
         }
         /// `$e.` before a related event's key path, as typed.
         let lead = variable.map { "$\($0)." } ?? ""

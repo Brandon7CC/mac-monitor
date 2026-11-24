@@ -42,6 +42,11 @@ public final class IndicatorEngine: ObservableObject {
 
     /// The user default that keeps the last set the Security Extension sent, as a JSON array of indicators.
     public static let cacheKey = "indicators.cache"
+    /// The user default that keeps Mac Monitor's own indicators as the Security Extension last sent them, as a JSON
+    /// array of indicators.
+    public static let baselineCacheKey = "indicators.baseline.cache"
+    /// The user default that keeps which indicator pack those are, by its sequence: 0 for a build's own.
+    public static let packCacheKey = "indicators.pack.cache"
     /// Posted on the main queue by ``EndpointSecurityManager`` once the Security Extension answers a handshake: its
     /// indicators may have changed while it was away, so they're asked for again.
     public static let sensorReady = Notification.Name("IndicatorEngine.sensorReady")
@@ -53,6 +58,17 @@ public final class IndicatorEngine: ObservableObject {
 
     /// The set, in order, as the Security Extension last sent it, or the cache until it does.
     @Published public private(set) var indicators: [Indicator]
+    /// Mac Monitor's own indicators as the Security Extension has them, which Restore Defaults brings back: this
+    /// build's, until it says, and from one older than 3.2, which doesn't.
+    @Published public private(set) var baseline: [Indicator] = Indicator.defaults
+    /// Which release Mac Monitor's own indicators are, and whether a pack was installed since this build. `nil` until
+    /// the Security Extension says, and from one older than 3.2.
+    @Published public private(set) var pack: IndicatorPackStatus?
+    /// A newer indicator pack the last look found, and what installing it would do. `nil` once it's installed, or
+    /// when a later look finds none.
+    @Published public private(set) var packOffer: IndicatorPackOffer?
+    /// Is a look for a newer pack under way?
+    @Published public private(set) var isLookingForPack = false
     /// Why the Security Extension can't run an indicator, by its identity.
     @Published public private(set) var problems: [UUID: String] = [:]
     /// How the engine last heard from the Security Extension.
@@ -96,6 +112,25 @@ public final class IndicatorEngine: ObservableObject {
     public static func cachedIndicators(in defaults: UserDefaults = .standard) -> [Indicator] {
         defaults.data(forKey: cacheKey).flatMap { try? JSONDecoder().decode([Indicator].self, from: $0) }
             ?? Indicator.defaults
+    }
+
+    /// Mac Monitor's own indicators as the Security Extension last sent them, read on any thread, such as an
+    /// export's worker: what each hit Mac Monitor matches itself says it's a default of, or edited from.
+    ///
+    /// - Parameter defaults: Where they're kept.
+    /// - Returns: Them, or ``Indicator/defaults`` when none were kept or they can't be read.
+    public static func cachedBaseline(in defaults: UserDefaults = .standard) -> [Indicator] {
+        defaults.data(forKey: baselineCacheKey).flatMap { try? JSONDecoder().decode([Indicator].self, from: $0) }
+            ?? Indicator.defaults
+    }
+
+    /// Which indicator pack Mac Monitor's own indicators are, as the Security Extension last said, for the hits Mac
+    /// Monitor matches itself (``RecordIndicators``).
+    ///
+    /// - Parameter defaults: Where it's kept.
+    /// - Returns: The pack's sequence, or 0 when none was kept or they're a build's own.
+    public static func cachedPack(in defaults: UserDefaults = .standard) -> Int {
+        defaults.integer(forKey: packCacheKey)
     }
 
     // MARK: Requests
@@ -147,10 +182,20 @@ public final class IndicatorEngine: ObservableObject {
         isReadOnly = reply.readOnly || reply.status == .readOnly
         notice = reply.notice
         problems = Dictionary(reply.problems.map { ($0.id, $0.reason) }) { first, _ in first }
-        if operation != .list {
+        if let shipped = reply.baseline, !shipped.isIdentical(to: baseline) {
+            baseline = shipped
+            defaults.set(try? JSONEncoder().encode(shipped), forKey: Self.baselineCacheKey)
+        }
+        if reply.pack != pack {
+            pack = reply.pack
+            defaults.set(reply.pack?.sequence ?? 0, forKey: Self.packCacheKey)
+        }
+        /// An install says how it went where it was asked for (``installPack(_:completion:)``).
+        if operation != .list, operation != .installPack {
             failure = reply.status == .ok ? nil
                 : reply.failure ?? "The Security Extension answered “\(reply.status.rawValue)”."
         }
+        if let offer = packOffer, offer.sequence <= (reply.pack?.sequence ?? 0) { packOffer = nil }
         guard !reply.indicators.isIdentical(to: indicators) || defaults.data(forKey: Self.cacheKey) == nil
         else { return }
         indicators = reply.indicators
@@ -220,10 +265,70 @@ public extension IndicatorEngine {
         send(IndicatorRequest(.reset), completion: completion)
     }
 
-    /// Is the set Mac Monitor's own, whatever the view switches each indicator has?
+    // MARK: Packs
+
+    /// Have the Security Extension look on GitHub for a newer indicator pack, and say what installing it would do
+    /// (``IndicatorRequest/Operation/checkPack``). Nothing is installed. The set shown stays the Mac's: the answer is
+    /// kept as ``packOffer``, and the set is asked for again, for what the look left the Security Extension knowing.
+    ///
+    /// - Parameter completion: Called on the main queue with how the look went.
+    func lookForPack(completion: ((IndicatorPackLook) -> Void)? = nil) {
+        guard let transport, !isLookingForPack else {
+            completion?(.failed(transport == nil ? Self.updateNotice : "A look is already under way."))
+            return
+        }
+        isLookingForPack = true
+        transport(IndicatorRequest(.checkPack).encoded()) { [weak self] data in
+            guard let self else { return }
+            isLookingForPack = false
+            let look: IndicatorPackLook
+            if let preview = data.flatMap(IndicatorReply.decode) {
+                if let offer = IndicatorPackOffer(preview, over: indicators, pack: pack) {
+                    look = .newer(offer)
+                } else if preview.status == .ok {
+                    look = .upToDate
+                } else {
+                    look = .failed(preview.failure
+                                   ?? "The Security Extension answered “\(preview.status.rawValue)”.")
+                }
+            } else {
+                look = .failed(Self.updateNotice)
+            }
+            if case .newer(let offer) = look { packOffer = offer } else if look == .upToDate { packOffer = nil }
+            refresh()
+            completion?(look)
+        }
+    }
+
+    /// Install the pack a look offered, and only that release: one that came out since is refused, to be looked at
+    /// first (``IndicatorRequest/expecting``).
+    ///
+    /// - Parameters:
+    ///   - offer: The pack that was offered.
+    ///   - completion: Called on the main queue with `nil` once it's installed, else why it wasn't.
+    func installPack(_ offer: IndicatorPackOffer, completion: @escaping (String?) -> Void) {
+        send(IndicatorRequest(.installPack, expecting: offer.sequence)) { reply in
+            guard let reply else { return completion(Self.updateNotice) }
+            guard reply.status == .ok else {
+                return completion(reply.failure ?? "The Security Extension answered “\(reply.status.rawValue)”.")
+            }
+            /// Nothing changed when the pack was installed meanwhile, by someone else or the daily look.
+            completion(reply.changed ? nil : "There's no newer indicator pack to install.")
+        }
+    }
+
+    /// Change what the Security Extension does about newer indicator packs, for every user of this Mac.
+    ///
+    /// - Parameter mode: The mode.
+    func setPackMode(_ mode: IndicatorPackMode) {
+        send(IndicatorRequest(.setPackMode, mode: mode))
+    }
+
+    /// Is the set Mac Monitor's own, as the Security Extension has them (``baseline``), whatever the view switches
+    /// each indicator has?
     var isDefault: Bool {
-        guard indicators.count == Indicator.defaults.count else { return false }
-        return zip(indicators, Indicator.defaults).allSatisfy { mine, shipped in
+        guard indicators.count == baseline.count else { return false }
+        return zip(indicators, baseline).allSatisfy { mine, shipped in
             var mine = mine
             mine.copyViews(from: shipped)
             return mine == shipped

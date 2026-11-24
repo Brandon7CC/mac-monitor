@@ -81,7 +81,7 @@ final class RecordIndicatorsPrecedenceTests: XCTestCase {
                 try jsonObject(encoding: $0) as NSDictionary
             })
             XCTAssertNil(try StreamFilter.Predicate.record(of: stored[0])["indicators"])
-            let search = try StreamFilter.Predicate(reading.predicate)
+            let search = try StreamFilter.Predicate(reading.predicate!)
             XCTAssertTrue(try search.searching(indicators: []) { try search.evaluate(on: stored[0]) })
             XCTAssertFalse(try search.evaluate(on: stored[0]))
         }

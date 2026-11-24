@@ -18,7 +18,7 @@ final class EventTypeProcessesTests: XCTestCase {
         "exec", "fork", "signal", "proc_suspend_resume", "proc_check", "remote_thread_create", "trace", "get_task",
         "btm_launch_item_add", "btm_launch_item_remove", "profile_add", "authorization_petition",
         "authorization_judgement", "od_create_user", "od_modify_password", "od_group_add", "od_group_remove",
-        "od_create_group", "od_attribute_value_add", "tcc_modify",
+        "od_create_group", "od_attribute_value_add", "tcc_modify", "authentication",
     ]
 
     /// Every `Process` in a value, found by reflection, however deep, in declaration order.

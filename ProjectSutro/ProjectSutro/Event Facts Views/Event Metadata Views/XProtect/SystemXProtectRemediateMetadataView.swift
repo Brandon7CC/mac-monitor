@@ -23,11 +23,9 @@ struct SystemXProtectRemediateMetadataView: View {
                     FactRow(name: "Incident ID", value: event.incident_identifier)
                     FactRow(name: "Action type", value: event.action_type)
                     
-                    HStack {
+                    FactRow {
                         Text("\u{2022} **Was successful?**")
-                        GroupBox {
-                            Text("`\(event.success ? "Yes" : "No")`")
-                        }
+                        FactValue(event.success ? "Yes" : "No")
                     }
                     
                     FactRow(name: "Description", value: event.result_description)

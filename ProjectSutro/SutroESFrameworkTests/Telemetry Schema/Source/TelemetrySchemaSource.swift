@@ -27,7 +27,8 @@ enum TelemetrySchemaSource {
         "The records Mac Monitor writes: its JSONL and pretty exports, and the macmonitor command line's output. Each "
             + "record is eslogger's JSON for an Endpoint Security event plus Mac Monitor's enrichments; every key is "
             + "marked x-mac-monitor-origin: eslogger or mac-monitor, and everything under a Mac Monitor key is Mac "
-            + "Monitor's. Each GitHub release attaches the schema as \(TelemetrySchema.releaseAssetName), and the "
+            + "Monitor's. One kind of line is not an event's record: a process snapshot, which has a "
+            + "process_snapshot key and follows #/$defs/\(TelemetrySchema.snapshotDefinition). Each GitHub release attaches the schema as \(TelemetrySchema.releaseAssetName), and the "
             + "latest is at \(latestURL)."
     }
     
@@ -74,6 +75,12 @@ enum TelemetrySchemaSource {
                        "System Integrity Protection on the Mac that recorded the event, as csrutil status names it: "
                         + "enabled, disabled, or custom when only some protections are off. null in a trace that "
                         + "didn't record it, such as eslogger's."),
+            enrichment("boot_session_uuid", .nullable(.pattern(.uuid)),
+                       "Which start of the Mac the event is from: the kernel's boot session UUID "
+                        + "(`sysctl kern.bootsessionuuid`), new at every start. A pid and a pid version, and so a "
+                        + "process key in `ancestor_keys`, mean one process only within a boot session, so join "
+                        + "records on `sensor_id`, `boot_session_uuid` and the key. null in a trace that didn't "
+                        + "record it, such as eslogger's."),
             enrichment("sensor_id", .string, "The Sensor ID of the Mac Monitor that recorded the event."),
             eslogger("process", .ref("process")),
             eslogger("thread", .nullable(.ref("thread"))),

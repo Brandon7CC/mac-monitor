@@ -18,17 +18,27 @@ final class IndicatorCommandFailureTests: XCTestCase {
         var errorDescription: String? { "Nothing encodes." }
     }
 
+    /// How long a command waits for an answer the service gives: as long as `macmonitor` waits.
+    private static let answered = DispatchTimeInterval.seconds(10)
+    /// How long a command waits for a change the service holds. Nothing it answers waits this short.
+    private static let held = DispatchTimeInterval.milliseconds(100)
+
     /// Run one indicators command against a Security Extension that lists its set but never answers a change.
+    ///
+    /// The set listed before a change always gets the long wait, since the service answers it. Only the command's
+    /// own request waits as long as `timeout`.
     ///
     /// - Parameters:
     ///   - invocation: The command.
     ///   - service: The Security Extension.
     ///   - file: What every file read holds, as JSON: the first shipped indicator in an indicator file unless given.
     ///   - encode: Writes indicators as an indicator file: the real encoder unless given.
+    ///   - timeout: How long to wait for the command's own request: ``answered`` unless given, ``held`` for a change
+    ///     the service holds.
     /// - Returns: What it did.
     private func run(_ invocation: IndicatorInvocation, against service: ServiceHoldingChanges, file: Any? = nil,
-                     encode: @escaping ([Indicator]) throws -> Data = IndicatorExchange.data(of:)) throws
-        -> IndicatorRun {
+                     encode: @escaping ([Indicator]) throws -> Data = IndicatorExchange.data(of:),
+                     timeout: DispatchTimeInterval = IndicatorCommandFailureTests.answered) throws -> IndicatorRun {
         let client = StreamClient(connection: NSXPCConnection(listenerEndpoint: service.endpoint), requirement: nil)
         client.activate(receiving: TestStreamReader()) { _ in }
         defer { client.invalidate() }
@@ -36,8 +46,9 @@ final class IndicatorCommandFailureTests: XCTestCase {
         let file = try file.map { try JSONSerialization.data(withJSONObject: $0) }
             ?? IndicatorExchange.data(of: [Indicator.defaults[0]])
         let command = IndicatorCommand(client: client, output: output, diagnose: errors.append,
-                                       readFile: { _ in file }, encode: encode, timeout: .milliseconds(300))
-        let result = try awaitCallback(timeout: 10) { command.run(invocation, completion: $0) }
+                                       readFile: { _ in file }, encode: encode, timeout: timeout,
+                                       listTimeout: Self.answered)
+        let result = try awaitCallback(timeout: 30) { command.run(invocation, completion: $0) }
         return IndicatorRun(result: result, output: output.text, errors: errors.all)
     }
 
@@ -62,16 +73,18 @@ final class IndicatorCommandFailureTests: XCTestCase {
     /// Extension older than `macmonitor`.
     func testAChangeThatTimesOutMayHaveBeenMade() throws {
         let service = ServiceHoldingChanges()
-        let plist = try XCTUnwrap(Indicator.defaults.first { $0.name == "Plist modified" })
+        let plist = try XCTUnwrap(Indicator.defaults.first { $0.name == "Property list modified" })
         let changes: [IndicatorInvocation] = [
             .importFile(path: "big.json", replace: true, confirmed: true), .remove([plist.name]),
             .disable([plist.id.uuidString]), .add(name: "Curl", predicate: IndicatorCommandLineTests.curl),
             .edit(IndicatorEdit(plist.name, .values([.severity: "high"]))),
         ]
         for change in changes {
-            let unanswered = try run(change, against: service)
+            let unanswered = try run(change, against: service, timeout: Self.held)
             XCTAssertEqual(unanswered.failure, .indicatorChangeUnanswered, "\(change)")
             XCTAssertEqual(unanswered.output, "", "\(change)")
+            /// The wait may end before the change arrives. It's recorded before the next is sent.
+            XCTAssertTrue(service.awaitChange(), "\(change)")
         }
         XCTAssertEqual(service.heldChanges, [.replace, .remove, .setEnabled, .add, .update])
         XCTAssertTrue(CommandLineFailure.indicatorChangeUnanswered.message.contains("'macmonitor indicators list'"))
@@ -82,7 +95,7 @@ final class IndicatorCommandFailureTests: XCTestCase {
     /// unsupported: it says the Security Extension is older (69), and nothing else is sent, an add least of all.
     func testAnEditTheExtensionDoesntKnowSaysItsOlder() throws {
         let service = ServiceHoldingChanges(answering: .unsupported)
-        let plist = try XCTUnwrap(Indicator.defaults.first { $0.name == "Plist modified" })
+        let plist = try XCTUnwrap(Indicator.defaults.first { $0.name == "Property list modified" })
         let changes: [IndicatorEdit.Change] = [.values([.predicate: IndicatorCommandLineTests.curl]),
                                                .file("one.json", confirmed: true)]
         for change in changes {
@@ -95,9 +108,13 @@ final class IndicatorCommandFailureTests: XCTestCase {
     }
 
     /// A connection cut off before any answer is a Security Extension older than 3.1, whatever was asked. No answer
-    /// in time is one only for a list. Any other failure is said as it is.
+    /// in time is one only for a list. A pack check that isn't answered in time may still be asking GitHub, and
+    /// changed nothing (75). Any other failure is said as it is.
     func testWhichFailuresSayTheExtensionIsOlder() {
-        let changes: [IndicatorRequest.Operation] = [.add, .remove, .setEnabled, .replace, .update]
+        XCTAssertEqual(CommandLineFailure.indicators(.noAnswer, to: .checkPack), .packCheckUnanswered)
+        XCTAssertEqual(CommandLineFailure.packCheckUnanswered.exit, .temporaryFailure)
+        let changes: [IndicatorRequest.Operation] = [.add, .remove, .setEnabled, .replace, .update, .installPack,
+                                                     .setPackMode]
         for operation in changes + [.list] {
             XCTAssertEqual(CommandLineFailure.indicators(.refusedBeforeAnswer, to: operation), .indicatorsUnanswered)
             XCTAssertEqual(CommandLineFailure.indicators(.stopped, to: operation), .stopped)

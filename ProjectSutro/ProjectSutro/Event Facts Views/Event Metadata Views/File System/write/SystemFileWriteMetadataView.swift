@@ -17,9 +17,9 @@ struct SystemFileWriteMetadataView: View {
         if let event = esSystemEvent.event.write {
             EventFactsCard(message: esSystemEvent) {
                 FactsBox {
-                    FactRow(name: "File name", value: event.target.name, style: .monospaced)
+                    FactRow(name: "File name", value: event.target.name)
                     if let path = event.target.path {
-                        FactRow(name: "File path", value: path, stacked: true, style: .monospaced)
+                        FactRow(name: "File path", value: path, stacked: true)
                     }
                 }
             }

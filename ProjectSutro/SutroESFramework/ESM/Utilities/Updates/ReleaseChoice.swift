@@ -23,6 +23,14 @@ public enum ReleaseChoice {
     private static let logger = Logger(subsystem: "com.swiftlydetecting.agent.securityextension",
                                        category: "UpdateInstaller")
 
+    /// A release's page on GitHub, where its notes and package are.
+    ///
+    /// - Parameter tag: The release's tag, such as "v3.2.0".
+    /// - Returns: The page's address.
+    public static func page(of tag: String) -> String {
+        "https://github.com/Brandon7CC/mac-monitor/releases/tag/\(tag)"
+    }
+
     /// The latest release, if it's newer than this build.
     ///
     /// - Parameters:

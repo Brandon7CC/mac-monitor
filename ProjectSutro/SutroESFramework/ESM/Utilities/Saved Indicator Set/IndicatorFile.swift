@@ -80,10 +80,12 @@ public struct IndicatorFile {
     /// - Parameters:
     ///   - data: The file's bytes.
     ///   - defaults: The indicators this build ships.
+    ///   - retired: The identities never used again, a saved reference to which is dropped.
     /// - Returns: The file.
     /// - Throws: ``IndicatorFileError/unsupportedVersion(_:)`` for a newer file, or
     ///   ``IndicatorFileError/malformed(_:)``.
-    public static func decode(_ data: Data, defaults: [Indicator] = Indicator.defaults) throws(IndicatorFileError)
+    public static func decode(_ data: Data, defaults: [Indicator] = Indicator.defaults,
+                              retired: Set<UUID> = Indicator.retiredDefaults) throws(IndicatorFileError)
         -> IndicatorFile {
         guard let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
             throw .malformed("It isn't a JSON object.")
@@ -95,7 +97,7 @@ public struct IndicatorFile {
         let version = number.intValue
         guard version >= 1 else { throw .malformed("It can't be version \(version).") }
         guard version <= currentVersion else { throw .unsupportedVersion(version) }
-        guard let saved = SavedIndicators(object: object["saved"], defaults: defaults) else {
+        guard let saved = SavedIndicators(object: object["saved"], defaults: defaults, retired: retired) else {
             throw .malformed("It has no saved indicators.")
         }
         return IndicatorFile(saved)
@@ -122,7 +124,8 @@ extension IndicatorFile {
 
     /// Check indicators a request brings, before they join the set: no identity twice, each within ``Indicator/Limits``
     /// and ``IndicatorLimits/maxPredicateLength``, and every event type a predicate names one this build knows, in
-    /// any branch, `NOT` included. A predicate that's otherwise unusable joins, and is listed as a problem.
+    /// any branch, `NOT` included. A rule the Security Extension can't run is refused once the set is compiled
+    /// (``SavedIndicatorSet/checkRuns(_:compiled:)``).
     ///
     /// - Parameter indicators: The request's indicators.
     /// - Throws: ``IndicatorFileError`` for the first problem.
@@ -130,8 +133,10 @@ extension IndicatorFile {
         try validate(indicators)
         for indicator in indicators {
             if let problem = indicator.limitProblem { throw .pastLimit(indicator.name, problem) }
-            guard let parsed = try? StreamFilter.Predicate.parse(indicator.predicate, for: .indicator) else { continue }
-            let unknown = PredicateEventTypes.namedEventTypes(in: parsed)
+            let parsed = indicator.rule.predicates.compactMap {
+                try? StreamFilter.Predicate.parse($0.predicate, for: .indicator)
+            }
+            let unknown = Set(parsed.flatMap(PredicateEventTypes.namedEventTypes(in:)))
                 .filter { eventStringToType(from: $0) == ES_EVENT_TYPE_LAST }.sorted()
             guard unknown.isEmpty else { throw .unknownEventTypes(indicator.name, unknown) }
         }
@@ -151,14 +156,15 @@ extension IndicatorFile {
     }
 
     /// - Parameter indicator: An indicator.
-    /// - Throws: ``IndicatorFileError/predicateTooLong(_:)`` when its predicate is past
-    ///   ``IndicatorLimits/maxPredicateLength`` characters. A short one in bytes is short in characters, so only a
-    ///   long one is counted.
+    /// - Throws: ``IndicatorFileError/predicateTooLong(_:)`` when a predicate of its, a sequence's step's included, is
+    ///   past ``IndicatorLimits/maxPredicateLength`` characters. A short one in bytes is short in characters, so only
+    ///   a long one is counted.
     private static func checkPredicateLength(of indicator: Indicator) throws(IndicatorFileError) {
-        let predicate = indicator.predicate
-        guard predicate.utf8.count > IndicatorLimits.maxPredicateLength,
-              predicate.count > IndicatorLimits.maxPredicateLength else { return }
-        throw .predicateTooLong(indicator.name)
+        for (_, predicate) in indicator.rule.predicates {
+            guard predicate.utf8.count > IndicatorLimits.maxPredicateLength,
+                  predicate.count > IndicatorLimits.maxPredicateLength else { continue }
+            throw .predicateTooLong(indicator.name)
+        }
     }
 }
 
@@ -184,6 +190,9 @@ public enum IndicatorFileError: Error, Equatable, CustomStringConvertible {
     case tooManyNodes(Int)
     /// More rules run on one event type than ``IndicatorLimits/maxRulesPerType``.
     case tooManyRules(type: String, count: Int)
+    /// An indicator a request brings, or changes the rule of, is one the Security Extension can't run: its name, and
+    /// why.
+    case cannotRun(String, String)
 
     /// The problem, as a sentence.
     public var description: String {
@@ -205,6 +214,7 @@ public enum IndicatorFileError: Error, Equatable, CustomStringConvertible {
         case .tooManyRules(let type, let count):
             "\(count) indicators run on \(type). The Security Extension runs \(IndicatorLimits.maxRulesPerType) on "
                 + "one event type at most."
+        case .cannotRun(let name, let reason): "“\(name)” can't run in the Security Extension. \(reason)"
         }
     }
 }

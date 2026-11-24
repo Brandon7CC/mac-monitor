@@ -24,12 +24,20 @@ extension XCTestCase {
     ///
     /// - Parameters:
     ///   - directory: The directory: a fresh one unless given.
-    ///   - defaults: The shipped indicators.
+    ///   - defaults: The shipped indicators the build links in.
+    ///   - sequence: Which pack release they are: 0, for none, unless given.
+    ///   - verifier: Checks a pack's signature: a release's requirement, unless given.
+    ///   - fetcher: Stands in for GitHub. Without one, the set never looks for a pack.
+    ///   - clock: What time the set thinks it is: now, unless given.
     /// - Returns: The set, not loaded yet.
     /// - Throws: If the directory can't be created.
-    func makeSavedIndicatorSet(in directory: URL? = nil,
-                               defaults: [Indicator] = Indicator.defaults) throws -> SavedIndicatorSet {
-        SavedIndicatorSet(directory: try directory ?? makeIndicatorDirectory(), owner: getuid(), defaults: defaults)
+    func makeSavedIndicatorSet(in directory: URL? = nil, defaults: [Indicator] = Indicator.defaults,
+                               sequence: Int = 0, verifier: IndicatorPackVerifier = IndicatorPackVerifier(),
+                               fetcher: IndicatorPackFetching? = nil,
+                               clock: @escaping () -> Date = Date.init) throws -> SavedIndicatorSet {
+        SavedIndicatorSet(directory: try directory ?? makeIndicatorDirectory(), owner: getuid(),
+                          linked: IndicatorBaseline(linked: defaults, sequence: sequence), verifier: verifier,
+                          fetcher: fetcher, clock: clock)
     }
 
     /// Write a file as the saved set, bypassing the set.
@@ -107,7 +115,13 @@ extension SavedIndicatorSet {
     func send(_ data: Data, access: MuteAccess = .write, file: StaticString = #filePath,
               line: UInt = #line) -> IndicatorReply {
         var reply: IndicatorReply?
-        handle(data, access: access, caller: "Test") { reply = IndicatorReply.decode($0) }
+        let replied = DispatchSemaphore(value: 0)
+        handle(data, access: access, caller: "Test") {
+            reply = IndicatorReply.decode($0)
+            replied.signal()
+        }
+        /// A pack is verified off the set's queue, so its reply may come after the queue is first idle.
+        _ = replied.wait(timeout: .now() + 30)
         waitUntilIdle()
         guard let reply else {
             XCTFail("No reply, or one that doesn't read", file: file, line: line)
@@ -119,5 +133,28 @@ extension SavedIndicatorSet {
     /// The compiled set now, read on the set's queue.
     var current: CompiledIndicators {
         queue.sync { compiled }
+    }
+
+    /// Answer a request on the set's queue, as ``handle(_:access:caller:reply:)`` does one that brings no pack to
+    /// verify.
+    ///
+    /// - Parameters:
+    ///   - data: A JSON encoded ``IndicatorRequest``.
+    ///   - access: What the caller may do.
+    ///   - caller: Names the caller in the log.
+    /// - Returns: The encoded reply, or nothing for a request whose pack has to be verified or looked for first.
+    func respond(to data: Data, access: MuteAccess, caller: String) -> Data {
+        queue.sync {
+            if case .reply(let answer) = response(to: data, access: access, caller: caller) { return answer }
+            return Data()
+        }
+    }
+
+    /// Have the set look for a newer pack if one is due, as its timer does, and wait until the look is over.
+    func lookIfDueAndWait() {
+        let done = DispatchSemaphore(value: 0)
+        queue.async { [self] in lookIfDue { done.signal() } }
+        _ = done.wait(timeout: .now() + 30)
+        waitUntilIdle()
     }
 }

@@ -11,15 +11,17 @@ import SutroESFramework
 
 // MARK: - Popover
 /// The indicators an event matched, a card each, in the order they're given: High first, then by name. Each card is
-/// an indicator's symbol, name, tactic and severity, its description, its predicate behind a disclosure, with Copy
-/// (``IndicatorPredicateSection``), and Show in Settings. Many scroll, and the popover is never taller than
-/// ``maxHeight``.
+/// an indicator's symbol, name, tactic and severity, its description, what the event had that matched
+/// (``IndicatorMatchedSection``), its predicate behind a disclosure, with Copy (``IndicatorPredicateSection``), and
+/// Show in Settings. Many scroll, and the popover is never taller than ``maxHeight``.
 ///
 /// When the events around the event matched indicators too (``RelatedIndicators``), the event's own are under
 /// Target Indicators, and the others under Correlated Indicators and Group Indicators, each closed to start and
 /// saying how many it holds.
 struct IndicatorsPopover: View {
     let indicators: [Indicator]
+    /// Why the event matched each, by the indicator's identity, for those whose hit says.
+    var matches: [UUID: IndicatorMatch] = [:]
     /// The indicators the events around the event matched.
     var related = RelatedIndicators()
     /// Closes the popover.
@@ -47,7 +49,8 @@ struct IndicatorsPopover: View {
                     }
                 }
                 ForEach(indicators) { indicator in
-                    IndicatorPopoverCard(indicator: indicator, isCard: indicators.count > 1 || !related.isEmpty,
+                    IndicatorPopoverCard(indicator: indicator, match: matches[indicator.id],
+                                         isCard: indicators.count > 1 || !related.isEmpty,
                                          isListed: listed.contains(indicator.id), close: close)
                 }
                 RelatedIndicatorsSection(title: "Correlated Indicators", entries: related.correlated, listed: listed,
@@ -123,10 +126,13 @@ private struct RelatedIndicatorsSection: View {
 
 
 // MARK: - Card
-/// One indicator the event matched: its symbol tile, name, tactic and severity, its description, its predicate, and
-/// Show in Settings, or, for one Settings no longer lists, that it was removed. Among several, each is a card.
+/// One indicator the event matched: its symbol tile, name, tactic and severity, its description, what the event had
+/// that matched, its predicate, and Show in Settings, or, for one Settings no longer lists, that it was removed.
+/// Among several, each is a card.
 private struct IndicatorPopoverCard: View {
     let indicator: Indicator
+    /// Why the event matched it, when its hit says. An indicator the events around the event matched has none.
+    var match: IndicatorMatch?
     /// How many events matched it, shown after its name when it's more than one: "Reflective loading ×6".
     var events = 1
     /// Is it a card among several?
@@ -146,8 +152,11 @@ private struct IndicatorPopoverCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            if let match, !match.fields.isEmpty {
+                IndicatorMatchedSection(fields: match.fields)
+            }
             if isListed {
-                IndicatorPredicateSection(indicator: indicator)
+                IndicatorPredicateSection(indicator: indicator, match: match)
                 section {
                     HStack {
                         Spacer(minLength: 0)

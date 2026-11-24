@@ -56,6 +56,15 @@ enum CommandLineTool {
             let report = statusReport()
             write(StatusCommand.output(report, json: status.json))
             if !report.isReady { exit(CommandLineExit.unavailable.rawValue) }
+        case .update(let update):
+            /// GitHub may be slow to answer, so the Security Extension gets longer than for a status.
+            let answer: Result<StreamReply, CommandLineFailure> = withConnection { client, finish in
+                client.send(StreamRequest(.updateCheck), timeout: .seconds(30), completion: finish)
+            }
+            switch UpdateReport.read(answer) {
+            case .success(let report): write(UpdateCommand.output(report, json: update.json))
+            case .failure(let failure): fail(failure)
+            }
         case .schema:
             if case .failure(let failure) = SchemaCommand.run(output: FileOutput(descriptor: STDOUT_FILENO)) {
                 fail(failure)
@@ -107,7 +116,15 @@ enum CommandLineTool {
     /// - Parameter invocation: The command.
     /// - Returns: Success, or why not.
     private static func runIndicators(_ invocation: IndicatorInvocation) -> Result<Void, CommandLineFailure> {
-        withConnection { client, finish in
+        switch invocation {
+        case .test(let pack, let plan):
+            return IndicatorTestRun.command(pack: pack, plan: plan, output: FileOutput(descriptor: STDOUT_FILENO))
+        case .pack(.verify(let path)):
+            return IndicatorPackVerifyCommand.run(path: path, output: FileOutput(descriptor: STDOUT_FILENO))
+        default:
+            break
+        }
+        return withConnection { client, finish in
             IndicatorCommand(client: client, output: FileOutput(descriptor: STDOUT_FILENO),
                              diagnose: FileOutput.writeError, confirm: TerminalPrompt.ask)
                 .run(invocation, completion: finish)

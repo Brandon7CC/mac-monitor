@@ -70,53 +70,6 @@ public struct Indicator: Codable, Identifiable, Hashable {
         }
     }
 
-    /// The MITRE ATT&CK tactic an indicator is for: the adversary's goal, such as persistence.
-    public enum Tactic: String, Codable, CaseIterable {
-        case reconnaissance, resourceDevelopment, initialAccess, execution, persistence, privilegeEscalation
-        case defenseEvasion, credentialAccess, discovery, lateralMovement, collection, commandAndControl
-        case exfiltration, impact
-
-        /// Its name, as ATT&CK writes it.
-        public var name: String {
-            switch self {
-            case .reconnaissance: return "Reconnaissance"
-            case .resourceDevelopment: return "Resource Development"
-            case .initialAccess: return "Initial Access"
-            case .execution: return "Execution"
-            case .persistence: return "Persistence"
-            case .privilegeEscalation: return "Privilege Escalation"
-            case .defenseEvasion: return "Defense Evasion"
-            case .credentialAccess: return "Credential Access"
-            case .discovery: return "Discovery"
-            case .lateralMovement: return "Lateral Movement"
-            case .collection: return "Collection"
-            case .commandAndControl: return "Command and Control"
-            case .exfiltration: return "Exfiltration"
-            case .impact: return "Impact"
-            }
-        }
-
-        /// Its ATT&CK identity, such as `TA0003`.
-        public var identifier: String {
-            switch self {
-            case .reconnaissance: return "TA0043"
-            case .resourceDevelopment: return "TA0042"
-            case .initialAccess: return "TA0001"
-            case .execution: return "TA0002"
-            case .persistence: return "TA0003"
-            case .privilegeEscalation: return "TA0004"
-            case .defenseEvasion: return "TA0005"
-            case .credentialAccess: return "TA0006"
-            case .discovery: return "TA0007"
-            case .lateralMovement: return "TA0008"
-            case .collection: return "TA0009"
-            case .commandAndControl: return "TA0011"
-            case .exfiltration: return "TA0010"
-            case .impact: return "TA0040"
-            }
-        }
-    }
-
     /// An indicator's color, by name, for its card, its rows' dots and its symbol.
     public enum Color: String, Codable, CaseIterable {
         case red, orange, yellow, green, teal, blue, indigo, purple, pink, gray, black, primary
@@ -130,8 +83,8 @@ public struct Indicator: Codable, Identifiable, Hashable {
     /// Its SF Symbol, drawn in ``color``.
     public var symbol: String
     public var color: Color
-    /// The predicate an event matches, on the event's record, as `macmonitor stream --predicate` takes one.
-    public var predicate: String
+    /// What it matches: a predicate on one event, or a sequence of events.
+    public var rule: Rule
     /// How the event tables mark its events.
     public var tableMarks: TableMarks
     public var isEnabled: Bool
@@ -139,9 +92,15 @@ public struct Indicator: Codable, Identifiable, Hashable {
     public var tactic: Tactic?
     /// The ATT&CK technique it finds, such as `T1543.001`, or `nil` for none.
     public var technique: String?
-    /// How strong a sign of something malicious a match is. It's part of the detection, so Mac-wide, and every record
-    /// that lists the indicator has it.
+    /// How closely a match is worth looking at. It's part of the indicator, so Mac-wide, and every record that lists
+    /// the indicator has it.
     public var severity: IndicatorSeverity
+    /// Which version of it this is, for one an indicator pack ships: it goes up whenever anything Mac Monitor shows or
+    /// runs changes. `nil` for one someone wrote.
+    public var revision: Int?
+    /// The oldest Mac Monitor that can run it, for one an indicator pack ships, or `nil` for any. A newer one is kept
+    /// but not run (``isSupported``).
+    public var minEngine: ReleaseVersion?
 
     /// Does its symbol mark its events in the event tables? Setting it changes only the symbol, as builds before
     /// ``tableMarks`` saved it.
@@ -150,6 +109,40 @@ public struct Indicator: Codable, Identifiable, Hashable {
         set { if newValue { tableMarks.insert(.symbol) } else { tableMarks.remove(.symbol) } }
     }
 
+    /// - Parameters:
+    ///   - id: Its identity, the same across launches.
+    ///   - name: What its card is called.
+    ///   - description: What it finds and why that's worth a look.
+    ///   - symbol: Its SF Symbol.
+    ///   - color: Its color.
+    ///   - rule: What it matches.
+    ///   - tables: How the event tables mark its events.
+    ///   - isEnabled: Is it on?
+    ///   - tactic: The ATT&CK tactic it's for.
+    ///   - technique: The ATT&CK technique it finds.
+    ///   - severity: How strong a sign a match is.
+    ///   - revision: Which version of a pack's indicator it is.
+    ///   - minEngine: The oldest Mac Monitor that can run it.
+    public init(id: UUID = UUID(), name: String, description: String, symbol: String, color: Color, rule: Rule,
+                tables: TableMarks = .dot, isEnabled: Bool = true, tactic: Tactic? = nil, technique: String? = nil,
+                severity: IndicatorSeverity = .medium, revision: Int? = nil, minEngine: ReleaseVersion? = nil) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.symbol = symbol
+        self.color = color
+        self.rule = rule
+        tableMarks = tables
+        self.isEnabled = isEnabled
+        self.tactic = tactic
+        self.technique = technique
+        self.severity = severity
+        self.revision = revision
+        self.minEngine = minEngine
+    }
+
+    /// An indicator whose rule is a predicate on one event.
+    ///
     /// - Parameters:
     ///   - id: Its identity, the same across launches.
     ///   - name: What its card is called.
@@ -165,26 +158,13 @@ public struct Indicator: Codable, Identifiable, Hashable {
     public init(id: UUID = UUID(), name: String, description: String, symbol: String, color: Color, predicate: String,
                 tables: TableMarks = .dot, isEnabled: Bool = true,
                 tactic: Tactic? = nil, technique: String? = nil, severity: IndicatorSeverity = .medium) {
-        self.id = id
-        self.name = name
-        self.description = description
-        self.symbol = symbol
-        self.color = color
-        self.predicate = predicate
-        tableMarks = tables
-        self.isEnabled = isEnabled
-        self.tactic = tactic
-        self.technique = technique
-        self.severity = severity
+        self.init(id: id, name: name, description: description, symbol: symbol, color: color, rule: .event(predicate),
+                  tables: tables, isEnabled: isEnabled, tactic: tactic, technique: technique, severity: severity)
     }
-
-    /// The kind of rule every indicator this build reads is: a predicate on one event. A later build's rules over
-    /// several events name another kind, and this build doesn't read them as one-event rules.
-    public static let kind = "event"
 
     private enum CodingKeys: String, CodingKey {
         case id, name, description, symbol, color, predicate, tableMarks, isEnabled, tactic, technique, severity
-        case kind
+        case kind, sequence, revision, minEngine
         /// How builds before ``tableMarks`` saved the marks, still read: one choice, or whether the symbol showed.
         case tableMark, showsInTables
         /// What Mac Monitor 3.0 and the 3.1 betas called ``description``, still read.
@@ -198,26 +178,34 @@ public struct Indicator: Codable, Identifiable, Hashable {
     /// that's missing or unknown is medium. A description saved as `explanation`, as earlier builds saved it, is read
     /// too, and keys this build doesn't know, such as the `rendering`, `palette`, `showsInCorrelation` and
     /// `showsInGroups` earlier builds wrote, are ignored. Its name, description, symbol and technique have to
-    /// be within ``Limits``. Its `kind`, when it has one, has to be ``kind``: a later build's rule over several events
-    /// isn't read as a rule on one.
+    /// be within ``Limits``. Its `kind` says what its rule is (``Rule/Kind``): none, or `event`, is a `predicate`, and
+    /// `sequence` is a `sequence`. A kind this build doesn't know isn't read. A pack's `revision` and `minEngine` are
+    /// read when present.
     ///
     /// - Parameter decoder: The decoder.
-    /// - Throws: When its name or predicate is missing, a key isn't what it should be, a field is past its limit, or
-    ///   it's another kind of rule.
+    /// - Throws: When its name or rule is missing, a key isn't what it should be, a field is past its limit, or it's a
+    ///   kind of rule this build doesn't know.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let kind = try container.decodeIfPresent(String.self, forKey: .kind), kind != Self.kind {
+        let kind = try container.decodeIfPresent(String.self, forKey: .kind)
+        switch kind.map(Rule.Kind.init(rawValue:)) ?? .event {
+        case .event:
+            rule = .event(try container.decode(String.self, forKey: .predicate))
+        case .sequence:
+            rule = .sequence(try container.decode(IndicatorSequence.self, forKey: .sequence))
+        case nil:
             throw DecodingError.dataCorruptedError(forKey: .kind, in: container, debugDescription: """
-                It's a rule of kind \(kind), which this Mac Monitor can't run. Update Mac Monitor to use it.
+                It's a rule of kind \(kind ?? ""), which this Mac Monitor can't run. Update Mac Monitor to use it.
                 """)
         }
+        revision = try container.decodeIfPresent(Int.self, forKey: .revision)
+        minEngine = try container.decodeIfPresent(ReleaseVersion.self, forKey: .minEngine)
         id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         name = try container.decode(String.self, forKey: .name)
         description = try container.decodeIfPresent(String.self, forKey: .description)
             ?? container.decodeIfPresent(String.self, forKey: .explanation) ?? ""
         symbol = try container.decodeIfPresent(String.self, forKey: .symbol) ?? "exclamationmark.magnifyingglass"
         color = try container.decodeIfPresent(Color.self, forKey: .color) ?? .orange
-        predicate = try container.decode(String.self, forKey: .predicate)
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
         if let names = try container.decodeIfPresent([String].self, forKey: .tableMarks) {
             tableMarks = TableMarks(names: names)
@@ -241,7 +229,8 @@ public struct Indicator: Codable, Identifiable, Hashable {
         }
     }
 
-    /// Encode an indicator, its marks by name: `["dot", "symbol"]`.
+    /// Encode an indicator, its marks by name: `["dot", "symbol"]`. A rule on one event is its `predicate`, with no
+    /// `kind`, as builds before sequences wrote it, and a sequence is `kind` `sequence` and its `sequence`.
     ///
     /// - Parameter encoder: The encoder.
     /// - Throws: When a value can't be encoded.
@@ -252,16 +241,40 @@ public struct Indicator: Codable, Identifiable, Hashable {
         try container.encode(description, forKey: .description)
         try container.encode(symbol, forKey: .symbol)
         try container.encode(color, forKey: .color)
-        try container.encode(predicate, forKey: .predicate)
+        switch rule {
+        case .event(let predicate):
+            try container.encode(predicate, forKey: .predicate)
+        case .sequence(let sequence):
+            try container.encode(Rule.Kind.sequence.rawValue, forKey: .kind)
+            try container.encode(sequence, forKey: .sequence)
+        }
         try container.encode(tableMarks.names, forKey: .tableMarks)
         try container.encode(isEnabled, forKey: .isEnabled)
         try container.encodeIfPresent(tactic, forKey: .tactic)
         try container.encodeIfPresent(technique, forKey: .technique)
         try container.encode(severity, forKey: .severity)
+        try container.encodeIfPresent(revision, forKey: .revision)
+        try container.encodeIfPresent(minEngine, forKey: .minEngine)
     }
 
-    /// Why its predicate can't be used, or `nil` if it can. An indicator compares one event at a time: no `SUBQUERY`.
+    /// Why its rule can't be used, or `nil` if it can. A predicate compares one event at a time: no `SUBQUERY`. A
+    /// sequence's steps are each such a predicate, tied together as ``IndicatorSequence/problem`` checks. One that
+    /// needs a newer Mac Monitor says so (``isSupported``).
     public var problem: String? {
+        if let minEngine, !isSupported { return "It needs Mac Monitor \(minEngine) or later." }
+        switch rule {
+        case .event(let predicate):
+            return Self.problem(with: predicate)
+        case .sequence(let sequence):
+            return sequence.problem
+        }
+    }
+
+    /// Why a predicate on one event can't be used, as ``problem`` says it.
+    ///
+    /// - Parameter predicate: The predicate.
+    /// - Returns: The reason, or `nil` when it can be used.
+    static func problem(with predicate: String) -> String? {
         do {
             _ = try StreamFilter.Predicate(predicate, for: .indicator)
             return nil
@@ -275,12 +288,13 @@ public struct Indicator: Codable, Identifiable, Hashable {
 // MARK: - Searching
 public extension Indicator {
     /// Does Settings > Indicators' search find it? Every word of the search has to be in its name, its description,
-    /// its predicate, its tactic or its technique, ignoring case and accents.
+    /// its predicates, its tactic or its technique, ignoring case and accents.
     ///
     /// - Parameter search: What was typed. An empty one finds every indicator.
     /// - Returns: `true` when each word is found.
     func matches(search: String) -> Bool {
-        let fields = [name, description, predicate, tactic?.name ?? "", tactic?.identifier ?? "", technique ?? ""]
+        let fields = [name, description, tactic?.name ?? "", tactic?.identifier ?? "", technique ?? ""]
+            + rule.predicates.map(\.predicate)
         return search.split(whereSeparator: \.isWhitespace).allSatisfy { word in
             fields.contains { $0.localizedStandardContains(word) }
         }
@@ -291,16 +305,21 @@ public extension Indicator {
 // MARK: - Switches
 extension Indicator {
     /// Is it the same indicator with the same rule, whatever its switches, its tactic, technique and severity? The
-    /// switches are whether it's on and how the tables mark its events.
+    /// switches are whether it's on and how the tables mark its events. A pack's revision and minimum Mac Monitor
+    /// aren't compared either: an entry saved before either existed, or under another revision, with the same rule is
+    /// the same.
     ///
     /// - Parameter other: Another indicator.
-    /// - Returns: `true` when only their switches, tactics, techniques or severities differ.
+    /// - Returns: `true` when only their switches, tactics, techniques, severities, revisions or minimum Mac Monitors
+    ///   differ.
     func hasSameRule(as other: Indicator) -> Bool {
         var mine = self
         mine.copySwitches(from: other)
         mine.tactic = other.tactic
         mine.technique = other.technique
         mine.severity = other.severity
+        mine.revision = other.revision
+        mine.minEngine = other.minEngine
         return mine == other
     }
 

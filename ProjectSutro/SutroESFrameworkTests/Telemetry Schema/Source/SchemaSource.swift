@@ -23,6 +23,8 @@ enum SchemaPattern: String, CaseIterable {
     case uuid = "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
     /// A file's SHA-256 in uppercase hex, or Mac Monitor's `NULL` when there's none, where eslogger writes `null`.
     case sha256 = "^([0-9A-F]{64}|NULL)$"
+    /// A process key: a pid, a dot, and the pid's version, such as `43372.103226`.
+    case processKey = "^[0-9]+\\.[0-9]+$"
 }
 
 /// A key's value, as the schema describes it.

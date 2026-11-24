@@ -103,6 +103,8 @@ extension EventLabelLook {
             self.init(symbol: "person.fill.checkmark", tint: .blue)
         case "LW_SESSION_LOGIN", "LW_SESSION_UNLOCK":
             self.init(symbol: "macwindow.badge.plus", tint: .blue)
+        case "AUTHENTICATION":
+            self.init(symbol: "person.badge.key.fill", tint: event.authentication?.success == false ? .orange : .blue)
         case "MOUNT":
             self.init(symbol: "mount")
         case "DUP":

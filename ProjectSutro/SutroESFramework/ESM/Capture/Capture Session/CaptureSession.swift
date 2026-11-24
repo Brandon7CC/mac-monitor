@@ -54,15 +54,24 @@ public final class CaptureSession {
     public internal(set) var appliedMutes: MuteList
     /// The indicators every lane was last given (``applyIndicators(_:)``), or `nil` for none.
     public internal(set) var indicators: CompiledIndicators?
+    /// The session's own chains for their sequences (``SessionChains``), or `nil` without indicators.
+    var chains: SessionChains?
+    /// The most open chains its sequences hold together (``CaptureConfiguration/chainBudget``).
+    let chainBudget: Int
     /// Serialize and emit events? A new session isn't recording. Setting it never waits for an event being built.
     public var isRecording: Bool = false {
         didSet { lanes.forEach { $0.setRecording(isRecording) } }
     }
     /// One lane per class, in ``EventClass/allCases`` order.
     let lanes: [CaptureLane]
+    /// Kept running until the session stops (``LineageMonitor/acquire(seeded:)``), or `nil` when it tracks none.
+    private let lineage: LineageMonitor?
     /// Computes the Sensor ID stamped on events.
     private let makeSensorID: () -> String
     private(set) var isStopped: Bool = false
+    /// How long starting waits for the lineage table to hold the processes that were already running
+    /// (``LineageMonitor/waitUntilSeeded(timeout:)``).
+    static let seedTimeout: DispatchTimeInterval = .seconds(2)
     /// How long stopping waits for the events being built, unless a test sets ``closeTimeout``.
     static let defaultCloseTimeout: DispatchTimeInterval = .seconds(1)
     /// How long ``stop()`` waits for an event being built before it leaves that client to be deleted once it's done.
@@ -82,7 +91,7 @@ public final class CaptureSession {
                             emit: @escaping (CapturedEvent) -> Void) throws {
         try self.init(configuration, clients: LiveEndpointSecurityClientFactory(), serializer: MessageSerializer(),
                       sensorID: EndpointSecurityManager.makeSensorID, launchServices: LaunchServicesReader.shared,
-                      emit: emit)
+                      lineage: .shared, emit: emit)
     }
     
     /// Create, mute, and subscribe one client per class. Not recording until ``isRecording`` is set.
@@ -98,26 +107,53 @@ public final class CaptureSession {
     ///   - serializer: Builds each event's JSON.
     ///   - makeSensorID: Computes the Sensor ID stamped on events, now and on ``refreshSensorID()``.
     ///   - launchServices: Lets the exec lane hold app execs (``LaunchServicesHold``). `nil` holds nothing.
+    ///   - lineage: Kept running while the session captures, so its execs and forks are stamped with their
+    ///     ancestors' keys and its indicators can read an event's ancestors (``LineageMonitor``). `nil` tracks
+    ///     none, as does a monitor Endpoint Security refuses a client.
     ///   - emit: Receives each event in its class's order. It must not block or call back into the session.
     /// - Throws: ``CaptureStartError``, once every client already created is deleted.
     init(_ configuration: CaptureConfiguration, clients factory: any EndpointSecurityClientFactory,
          serializer: any EventSerializing, sensorID makeSensorID: @escaping () -> String,
-         launchServices: LaunchServicesReading? = nil, emit: @escaping (CapturedEvent) -> Void) throws {
+         launchServices: LaunchServicesReading? = nil, lineage: LineageMonitor? = nil,
+         emit: @escaping (CapturedEvent) -> Void) throws {
         let label = configuration.label
         let events = Self.capturable(configuration.events, label: label)
         let sensorID = makeSensorID()
         let table = FieldFilter.table(configuration.fieldFilters)
+        let chains = configuration.indicators.map { SessionChains(for: $0, budget: configuration.chainBudget) }
+        /// Before any client of the session's, so the table is being told of forks before a lane hands over an
+        /// event.
+        let ancestry = lineage.flatMap { $0.acquire() == nil ? $0.lineage : nil }
+        /// Until the processes that were already running are in the table, an event of one of them finds its
+        /// ancestors by their keys alone, and a rule on them misses.
+        if ancestry != nil, lineage?.waitUntilSeeded(timeout: Self.seedTimeout) == false {
+            Self.logger.error("\(label, privacy: .public) started before lineage knew the running processes.")
+        }
+        /// One for the session: whichever lane first names an ancestor describes it.
+        let snapshots = SnapshotLedger()
         let lanes = EventClass.allCases.map {
             CaptureLane($0, label: label, sensorID: sensorID, serializer: serializer, fieldFilters: table,
-                        indicators: configuration.indicators, launchServices: launchServices, emit: emit)
+                        indicators: configuration.indicators, chains: chains, launchServices: launchServices,
+                        lineage: ancestry, snapshots: snapshots, emit: emit)
         }
-        try Self.createClients(for: lanes, with: factory, label: label)
+        do {
+            try Self.createClients(for: lanes, with: factory, label: label)
+        } catch {
+            lineage?.release()
+            throw error
+        }
         appleMuteSet = Set((lanes.first?.client?.mutedPaths() ?? []).map { ProcessHelpers.eventToJSON(value: $0) })
         if configuration.mutesSelf { lanes.forEach { $0.muteSelf() } }
         let mutes = MuteList().changes(to: configuration.mutes)
         lanes.forEach { $0.apply(mutes) }
-        try Self.subscribe(lanes, to: events, label: label)
-        
+        do {
+            try Self.subscribe(lanes, to: events, label: label)
+        } catch {
+            lineage?.release()
+            throw error
+        }
+        self.lineage = lineage
+
         self.label = label
         self.lanes = lanes
         self.makeSensorID = makeSensorID
@@ -125,6 +161,8 @@ public final class CaptureSession {
         subscribedEvents = events
         fieldFilters = configuration.fieldFilters
         indicators = configuration.indicators
+        self.chains = chains
+        chainBudget = configuration.chainBudget
         let shares = lanes.map { lane in "\(lane.eventClass.rawValue) \(events.filter(lane.serves).count)" }
         let filters = configuration.fieldFilters.map(\.rawValue).sorted().joined(separator: ", ")
         Self.logger.log("""
@@ -208,6 +246,7 @@ public final class CaptureSession {
         guard !isStopped else { return }
         isStopped = true
         Self.tearDown(lanes, timeout: closeTimeout)
+        lineage?.release()
         Self.logger.log("\(self.label, privacy: .public): stopped capturing and deleted its Endpoint Security clients.")
         logStatistics()
     }
