@@ -36,6 +36,8 @@ final class ArchiveWrittenIndicatorTests: XCTestCase {
         let type: String?
         /// Should Archive written match its write?
         let matches: Bool
+        /// A program macOS doesn't ship that the tool runs to write it, or `nil` when it needs none.
+        var needs: String? = nil
     }
 
     /// The archives and streams the tools write, and the types the reader names them by.
@@ -67,11 +69,11 @@ final class ArchiveWrittenIndicatorTests: XCTestCase {
         Written(label: "tar newc", tool: "/usr/bin/tar", arguments: { ["--format", "newc", "-cf", $1, "-C", $0, "."] },
                 type: "public.data", matches: false),
         Written(label: "tar --zstd", tool: "/usr/bin/tar", arguments: { ["--zstd", "-cf", $1, "-C", $0, "."] },
-                type: "public.data", matches: false),
+                type: "public.data", matches: false, needs: "zstd"),
         Written(label: "tar --lzma", tool: "/usr/bin/tar", arguments: { ["--lzma", "-cf", $1, "-C", $0, "."] },
                 type: "public.data", matches: false),
         Written(label: "tar --lz4", tool: "/usr/bin/tar", arguments: { ["--lz4", "-cf", $1, "-C", $0, "."] },
-                type: "public.data", matches: false),
+                type: "public.data", matches: false, needs: "lz4"),
         Written(label: "compression_tool lzfse", tool: "/usr/bin/compression_tool",
                 arguments: { ["-encode", "-a", "lzfse", "-i", $0 + "/notes.txt", "-o", $1] },
                 type: "public.data", matches: false),
@@ -88,17 +90,24 @@ final class ArchiveWrittenIndicatorTests: XCTestCase {
     ]
 
     /// Each archive or stream a tool writes is named by its content, and Archive written matches exactly the archives,
-    /// in the extension and in the app alike, with every indicator decided.
+    /// in the extension and in the app alike, with every indicator decided. `tar` runs `zstd` and `lz4` to write
+    /// their streams. Where one isn't installed its case is left out, and the test is skipped once the rest pass.
     func testToolsArchivesAreIdentified() throws {
         let id = try shippedID("Archive written")
         let folder = try resolvedTemporaryDirectory()
         try Data("Mac Monitor\n".utf8).write(to: URL(fileURLWithPath: folder + "/notes.txt"))
         let output = try resolvedTemporaryDirectory()
+        var missing: [String] = []
         for (index, written) in Self.written.enumerated() {
             let path = output + "/written-\(index).out"
-            try runTool(written.tool, written.arguments(folder, path))
+            let status = try runTool(written.tool, written.arguments(folder, path), checking: written.needs == nil)
+            if let program = written.needs, status != 0 {
+                missing.append(program)
+                continue
+            }
             try assertContentWrite(of: path, isNamed: written.type, matching: written.matches, id: id, written.label)
         }
+        try XCTSkipUnless(missing.isEmpty, "tar can't run \(missing.joined(separator: " or ")) here")
     }
 
     /// Each image `hdiutil` makes is named by its content, from its end for a UDIF image, and Archive written matches
