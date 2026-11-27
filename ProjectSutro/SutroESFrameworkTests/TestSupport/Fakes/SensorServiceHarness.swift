@@ -33,21 +33,34 @@ final class SensorServiceHarness: NSObject, NSXPCListenerDelegate {
     ///   - savedMutes: The saved mute set.
     ///   - savedIndicators: The Mac's indicator set.
     ///   - commandLineAccess: Who may use `macmonitor` without `sudo`.
+    ///   - switches: Where the service keeps its enrichment switches.
     ///   - refusals: `es_new_client` refusals for each capture session the service starts, by client:
     ///     `[[0: .tooManyClients]]` refuses the first session's first client, and later sessions start.
+    ///   - changes: The notification the service posts after each change to the indicators: one nobody else posts,
+    ///     unless given.
+    ///   - flows: Reads the capture sessions' network flows, such as a ``FlowClientHarness``'s client. `nil` records
+    ///     none.
     init(savedMutes: SavedMuteSet, savedIndicators: SavedIndicatorSet, commandLineAccess: CommandLineAccessStore,
-         refusals: [[Int: NewClientResult]] = []) {
+         switches: EnrichmentSwitchStore, refusals: [[Int: NewClientResult]] = [],
+         changes: String = "com.swiftlydetecting.agent.tests.indicators.\(UUID().uuidString)",
+         flows: NetworkStatisticsClient? = nil) {
         let (updater, pending) = (FakeUpdater(), OSAllocatedUnfairLock(uncheckedState: refusals))
         let (made, releases, sensorIDs) = (madeFactories, releaseCount, sensorIDCount)
         updates = updater
         service = SensorService(savedMutes: savedMutes, savedIndicators: savedIndicators,
-                                commandLineAccess: commandLineAccess, updates: updater, makeCapture: { setup, emit in
+                                commandLineAccess: commandLineAccess, switches: switches, updates: updater,
+                                makeCapture: { setup, emit in
             let refused = pending.withLockUnchecked { $0.isEmpty ? [:] : $0.removeFirst() }
             let factory = FakeEndpointSecurityClientFactory(refusals: refused)
             made.append(factory)
+            /// A scanner with no rules, so Settings can turn scanning on and off as on a Mac.
+            let scanner = setup.scanningCanChange
+                ? FileScanner(generation: .yara4, currentVersion: { nil }) { .failure(.missing("No rules in tests.")) }
+                : nil
             return try CaptureSession(setup, clients: factory, serializer: StubSerializer.globalSequence,
-                                      sensorID: { sensorIDs.withLock { $0 += 1 }; return "SENSOR" }, emit: emit)
-        }, released: { releases.withLock { $0 += 1 } })
+                                      sensorID: { sensorIDs.withLock { $0 += 1 }; return "SENSOR" }, scanner: scanner,
+                                      flows: flows, emit: emit)
+        }, released: { releases.withLock { $0 += 1 } }, changes: changes)
         super.init()
         listener.delegate = self
         listener.activate()
@@ -89,6 +102,11 @@ final class SensorServiceHarness: NSObject, NSXPCListenerDelegate {
     /// Is capture running, and recording?
     var capture: (running: Bool, recording: Bool) {
         service.queue.sync { (service.capture != nil, service.capture?.isRecording == true) }
+    }
+
+    /// Does capture scan written files? `nil` without capture.
+    var scansWrittenFiles: Bool? {
+        service.queue.sync { service.capture?.scansWrittenFiles }
     }
 
     /// A new connection to the service, as Mac Monitor makes one.
@@ -134,6 +152,12 @@ final class RecordingAgent: NSObject, AppAgentProtocol {
     /// Every event received, in order, as text.
     var received: [String] {
         events.all
+    }
+
+    /// Every network flow received, in order, read back as `Message`s.
+    var flows: [Message] {
+        received.compactMap { try? JSONDecoder().decode(Message.self, from: Data($0.utf8)) }
+            .filter(\.event.isNetworkFlow)
     }
 
     /// Every update progress received, in order: `nil` for one that didn't read.

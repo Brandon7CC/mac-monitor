@@ -58,37 +58,66 @@ extension SensorService: SensorProtocol {
         }
     }
     
-    /// The events and field filters capture subscribes to, or will once it starts. Any caller may ask.
+    /// The events and field filters capture subscribes to, or will once it starts, with scanning and URL paths while
+    /// they're on. Any caller may ask.
     ///
-    /// - Parameter reply: Event names and ``FieldFilter`` wire names, sorted.
+    /// - Parameter reply: Event names, ``FieldFilter`` wire names, ``YaraScan/subscriptionName`` and
+    ///   ``NetworkFlowEvent/urlPathsSubscriptionName``, sorted.
     public func eventSubscriptions(reply: @escaping ([String]) -> Void) {
         perform(reply) { [self] in
             Set((capture?.subscribedEvents ?? subscriptions).map { eventTypeToString(from: $0) })
-                .union((capture?.fieldFilters ?? fieldFilters).map(\.rawValue)).sorted()
+                .union((capture?.fieldFilters ?? fieldFilters).map(\.rawValue))
+                .union([YaraScan.subscriptionName, NetworkFlowEvent.urlPathsSubscriptionName].filter(switches.isOn))
+                .sorted()
         }
     }
     
-    /// Subscribe to an event, or turn on a field filter, or the reverse. Only the owner may, while capture runs.
+    /// Subscribe to an event, network flows included, or turn on a field filter, scanning written files or URL
+    /// paths, or the reverse. Only the owner may, while capture runs. A flow event is refused when the kernel's
+    /// network statistics can't be read. The enrichment switches are kept across restarts (``EnrichmentSwitchStore``),
+    /// and the rest return to their defaults.
     ///
     /// - Parameters:
-    ///   - event: An event name or a ``FieldFilter`` wire name.
+    ///   - event: An event name, a ``FieldFilter`` wire name, ``YaraScan/subscriptionName``, or
+    ///     ``NetworkFlowEvent/urlPathsSubscriptionName``.
     ///   - enabled: Whether to subscribe.
     ///   - reply: `true` if capture took the change.
     public func setSubscription(_ event: String, enabled: Bool, reply: @escaping (Bool) -> Void) {
         performForOwner(refusing: false, reply) { [self] in
-            if let filter = FieldFilter(rawValue: event) {
-                guard let capture, capture.setFieldFilter(filter, enabled: enabled) else { return false }
+            guard let capture else { return false }
+            if event == YaraScan.subscriptionName {
+                guard capture.setScansWrittenFiles(enabled) else { return false }
+            } else if event == NetworkFlowEvent.urlPathsSubscriptionName {
+                guard capture.setRecordsURLPaths(enabled) else { return false }
+            } else if let filter = FieldFilter(rawValue: event) {
+                guard capture.setFieldFilter(filter, enabled: enabled) else { return false }
                 fieldFilters = capture.fieldFilters
-                return true
+            } else {
+                guard capture.setSubscription(eventStringToType(from: event), enabled: enabled) else { return false }
+                subscriptions = capture.subscribedEvents
             }
-            guard let capture, capture.setSubscription(eventStringToType(from: event), enabled: enabled) else {
-                return false
-            }
-            subscriptions = capture.subscribedEvents
+            /// Only the owner's own change is kept. Capture leaving out flows it can't read changes nothing here.
+            switches.save(event, on: enabled)
             return true
         }
     }
     
+    /// Whether the rules Mac Monitor's capture scans written files with are loaded. Any caller may ask. The scanner
+    /// answers from what it holds, so nothing is loaded or compiled to answer.
+    ///
+    /// - Parameter reply: A JSON encoded ``XProtectRuleStatus``.
+    public func xprotectRules(reply: @escaping (Data) -> Void) {
+        queue.async { [self] in
+            guard switches.isOn(YaraScan.subscriptionName) else {
+                return reply(XProtectRuleStatus(state: .off).encoded)
+            }
+            guard let capture, capture.isScanning, let scanner = capture.scanner else {
+                return reply(XProtectRuleStatus(state: .waiting).encoded)
+            }
+            scanner.status { reply($0.encoded) }
+        }
+    }
+
     /// Endpoint Security's default mutes. Any caller may ask.
     ///
     /// - Parameter reply: ``ESMutedPath`` JSON, sorted.

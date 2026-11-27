@@ -31,6 +31,9 @@ extension SensorService {
             configuration.mutes = mutes
             configuration.fieldFilters = fieldFilters
             configuration.indicators = indicators
+            configuration.scansWrittenFiles = switches.isOn(YaraScan.subscriptionName)
+            configuration.scanningCanChange = true
+            configuration.recordsURLPaths = switches.isOn(NetworkFlowEvent.urlPathsSubscriptionName)
             /// One wake of `queue` for each run of events, not one for each event (``EventHandoff``).
             let handoff = EventHandoff(queue: queue) { [weak self] events in
                 guard let batcher = self?.sink?.batcher else { return }
