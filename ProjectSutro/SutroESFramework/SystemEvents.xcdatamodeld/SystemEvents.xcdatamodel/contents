@@ -498,6 +498,7 @@
         <attribute name="target_proc_responsible_audit_token_string" optional="YES" attributeType="String"/>
         <attribute name="team_id" optional="YES" attributeType="String"/>
         <attribute name="unique_id" optional="YES" attributeType="String"/>
+        <attribute name="whereFromsData" optional="YES" attributeType="Binary"/>
         <attribute name="yara_scan_json" optional="YES" attributeType="Binary"/>
         <relationship name="cwd" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFile"/>
         <relationship name="script" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFile"/>

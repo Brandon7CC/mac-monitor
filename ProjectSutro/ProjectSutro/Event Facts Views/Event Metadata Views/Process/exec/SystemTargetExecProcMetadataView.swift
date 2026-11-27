@@ -50,7 +50,7 @@ struct SystemTargetExecProcMetadataView: View {
     }
 
     /// The new process image: when it started, its user, its name and IDs, its path, command line, executable age,
-    /// script, working directory, TTY and XPC service name.
+    /// script, where it was downloaded from, working directory, TTY and XPC service name.
     ///
     /// - Parameter event: The exec.
     /// - Returns: The facts, in two boxes.
@@ -93,6 +93,9 @@ struct SystemTargetExecProcMetadataView: View {
 
             if let script = script(event) {
                 FactRow(name: "Script", value: script, stacked: true)
+            }
+            if let origins = event.where_froms, !origins.isEmpty {
+                FactRow(name: "Download origin", value: origins.joined(separator: "\n"), stacked: true)
             }
             if let cwdPath = event.cwd?.path, cwdPath.count > 1 {
                 FactRow(name: "CWD", value: cwdPath, stacked: true)

@@ -21,6 +21,8 @@ struct ScriptRead {
     /// Its bytes from the start, as read: up to one more than ``ProcessHelpers/fileContentsLimit``, or only the
     /// probe's when a NUL ends the text within it (``ProcessHelpers/scriptBytes(readingFrom:)``).
     let bytes: Data
+    /// Where it was downloaded from (``ProcessHelpers/whereFroms(of:)``), read from the open file.
+    let whereFroms: [String]?
 
     /// - Parameters:
     ///   - opened: The open file and its `fstat`.
@@ -29,6 +31,7 @@ struct ScriptRead {
     init(_ opened: (file: FileHandle, info: stat), bytes: Data, at path: String) {
         info = opened.info
         self.bytes = bytes
+        whereFroms = ProcessHelpers.whereFroms(of: opened.file.fileDescriptor)
         self.path = bytes.count < Int(opened.info.st_size)
             ? Self.pathWithoutLinks(of: opened.file.fileDescriptor) ?? path : path
     }

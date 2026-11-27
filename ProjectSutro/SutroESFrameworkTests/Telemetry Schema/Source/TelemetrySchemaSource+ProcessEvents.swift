@@ -100,6 +100,17 @@ extension TelemetrySchemaSource {
                      + "It describes that script, not the exec's target. XPScripts.yr applies to a script osascript "
                      + "runs and to an applet's.",
                      absentWhen: "the exec runs no script Mac Monitor found"),
+            enrichment("where_froms", .array(.string),
+                       "Where the program the exec runs was downloaded from: the strings of the binary property list "
+                       + "array in the com.apple.metadata:kMDItemWhereFroms attribute, the download URL and then the "
+                       + "page it was found on. They're the first found of the script the exec runs, the bundle the "
+                       + "script is the main executable of, the target's executable, and the bundle that is the main "
+                       + "executable of. A script is read only if the exec's user could read it. An executable in "
+                       + "/System, /bin, /sbin, /usr/bin, "
+                       + "/usr/sbin or /usr/libexec isn't read. Read on the Mac that recorded the event, when it "
+                       + "recorded it. Since telemetry 1.3.0.",
+                       absent: Absence("none of them has the attribute, or the event wasn't recorded by Mac Monitor "
+                                       + "3.3.0 or later")),
         ])
     }
 

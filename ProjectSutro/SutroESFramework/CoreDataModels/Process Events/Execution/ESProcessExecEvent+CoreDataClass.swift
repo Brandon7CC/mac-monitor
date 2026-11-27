@@ -50,6 +50,13 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
         get { YaraScan.decoded(from: yara_scan_json) }
         set { yara_scan_json = newValue?.encoded }
     }
+    /// ``where_froms``, as JSON.
+    @NSManaged public var whereFromsData: Data?
+    /// Where the program the exec runs was downloaded from (``ProcessExecEvent/where_froms``).
+    public var where_froms: [String]? {
+        get { whereFromsData.flatMap { try? JSONDecoder().decode([String].self, from: $0) } }
+        set { whereFromsData = newValue.flatMap { try? JSONEncoder().encode($0) } }
+    }
 
     enum CodingKeys: String, CodingKey {
         case command_line
@@ -70,6 +77,7 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
         case executable_age_ms
         case ancestor_keys
         case yara_scan
+        case where_froms
     }
     
     public var args: [String] {
@@ -169,6 +177,7 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
         self.executable_age_ms = event.executable_age_ms.map { NSNumber(value: $0) }
         self.ancestor_keys = event.ancestor_keys
         self.yara_scan = event.yara_scan
+        self.where_froms = event.where_froms
     }
 }
 
@@ -211,6 +220,8 @@ extension ESProcessExecEvent: Encodable {
         try container.encode(ancestor_keys, forKey: .ancestor_keys)
         /// Only when the script was scanned, as a close's.
         try container.encodeIfPresent(yara_scan, forKey: .yara_scan)
+        /// Only when the program was downloaded, as a scan.
+        try container.encodeIfPresent(where_froms, forKey: .where_froms)
     }
 }
 

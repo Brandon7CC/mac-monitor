@@ -44,6 +44,12 @@ public struct ProcessExecEvent: Codable, IdentityHashable {
     /// for an exec that runs no script Mac Monitor found, while scanning is off, or in a record from Mac Monitor
     /// before 3.3.0 or eslogger.
     public var yara_scan: YaraScan?
+    /// Where the program the exec runs was downloaded from: the `com.apple.metadata:kMDItemWhereFroms` attribute's
+    /// strings, the download URL and then the page it was found on, as a browser writes them. Read at capture from the
+    /// script the exec runs, then its target executable, each before the bundle it's the main executable of
+    /// (``readWhereFroms()``). `nil` when none of them has any, or in a record from Mac Monitor before 3.3.0 or
+    /// eslogger.
+    public var where_froms: [String]?
     /// The script as the capture lane read it, for its scan: never encoded, and taken off the event before it's sent
     /// (``Message/requestYaraScan(of:from:volumes:)``).
     var scriptRead: ScriptRead?
@@ -52,7 +58,7 @@ public struct ProcessExecEvent: Codable, IdentityHashable {
     enum CodingKeys: String, CodingKey {
         case id, argc, env, args, fds, script, cwd, last_fd, image_cputype, image_cpusubtype, dyld_exec_path, target
         case certificate_chain, command_line, script_content, resolved_script_path, executable_age_ms
-        case launched_by_parent, ancestor_keys, yara_scan
+        case launched_by_parent, ancestor_keys, yara_scan, where_froms
     }
 
     // @note construct a new process_exec
@@ -82,8 +88,9 @@ public struct ProcessExecEvent: Codable, IdentityHashable {
         if version >= 2 { script = execEvent.script.map { File(from: $0.pointee) } }
         if version >= 3 { cwd = File(from: execEvent.cwd.pointee) }
         
-        /// @note Mac Monitor enrichment -- script content
+        /// @note Mac Monitor enrichment -- script content, and where it or the executable was downloaded from
         readScript()
+        readWhereFroms()
 
         // Highest open file descriptor after the exec completed (4), the CPU type and subtype of the executable image
         // (6), and the exec path passed up to dyld, before symlink resolution (7, macOS 13.3+).
@@ -167,6 +174,24 @@ extension ProcessExecEvent {
             return (nil, nil, nil)
         }
         return (found.path, found.content, found.read)
+    }
+}
+
+
+// MARK: - Download origin
+extension ProcessExecEvent {
+    /// Read where the program the exec runs was downloaded from (``where_froms``), as the capture lane does after
+    /// ``readScript()``. The first found is kept: the script's attribute, read from the file read for its text, so
+    /// only from a script the exec's user could read, then the bundle's the script is the main executable of, as an
+    /// app's shell script is. Then the target executable's, or its bundle's
+    /// (``ProcessHelpers/whereFroms(ofExecutable:)``).
+    mutating func readWhereFroms() {
+        /// ``enrich()`` hasn't named Endpoint Security's script yet.
+        let path = resolved_script_path ?? script?.path
+        let script = scriptRead.flatMap { read in
+            read.whereFroms ?? path.flatMap(ProcessHelpers.bundleWhereFroms(ofExecutableAt:))
+        }
+        where_froms = script ?? ProcessHelpers.whereFroms(ofExecutable: target.executable)
     }
 }
 
