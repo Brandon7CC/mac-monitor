@@ -9,12 +9,18 @@ import SwiftUI
 import SutroESFramework
 
 
+/// The Metadata tab: the event's facts, scrolling as a whole. A scroll view, not a list: a list holds them in one
+/// table cell, and a segmented control updating inside that cell, such as the Details box's, never finished updating
+/// the window.
 struct SystemEventDetailsView: View {
     var selectedMessage: ESMessage
     
     var body: some View {
-        List {
+        ScrollView {
             SystemTargetProcessView(selectedMessage: selectedMessage)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
@@ -31,16 +37,15 @@ struct SystemEventFactsView : View {
     @Binding var showsCorrelation: Bool
     
     /// The facts' tabs, in order. Only Metadata, Parent, and JSON are always there.
-    enum FactsTab: String, CaseIterable, Identifiable {
+    private enum FactsTab: String, CaseIterable, Identifiable {
         case metadata = "Metadata", script = "Script", plist = "PLIST", correlation = "Correlation", groups = "Groups"
         case parent = "Parent", json = "JSON"
         
         var id: String { rawValue }
     }
     
-    /// The tab chosen, kept by the window so it stays as another process is chosen in the sidebar. One the event
-    /// doesn't have shows Metadata instead.
-    @Binding var tab: FactsTab
+    /// The tab showing. One the event doesn't have shows Metadata instead.
+    @State private var tab: FactsTab = .metadata
     /// The facts' width, which decides where the tabs fit.
     @State private var width: CGFloat = 0
     
@@ -199,8 +204,6 @@ struct AppWrapperForFacts: View {
     @State private var selectedEventTree: ESMessage?
     /// Is the Correlation tab showing?
     @State private var showsCorrelation = false
-    /// The facts' tab chosen.
-    @State private var tab = SystemEventFactsView.FactsTab.metadata
     @State private var visibility: NavigationSplitViewVisibility = .all
     /// Is the event gone, or are the events being cleared, so the window should close?
     @State private var isGone = false
@@ -215,11 +218,8 @@ struct AppWrapperForFacts: View {
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 320)
         } detail: {
             if let tree = selectedEventTree {
-                /// New facts for each event, as when its window opens. Facts kept as the sidebar chose another
-                /// process hung at the next tab clicked: SwiftUI looped on a cycle in the window's update.
                 SystemEventFactsView(allFilters: $allFilters, selectedMessage: tree,
-                                     showsCorrelation: $showsCorrelation, tab: $tab)
-                    .id(tree.objectID)
+                                     showsCorrelation: $showsCorrelation)
             } else {
                 Text("No event selected")
             }
