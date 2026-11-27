@@ -10,11 +10,11 @@ import XCTest
 
 
 // MARK: - Settings against a 3.0 Security Extension
-/// Pins what Settings' requests added in 3.1 do to Mac Monitor's own connection: an app updated before its Security
+/// Pins what Settings' requests added since 3.0 do to Mac Monitor's own connection: an app updated before its Security
 /// Extension, or one whose update hasn't been approved yet, talks to a 3.0.0 Security Extension, which closes the
 /// connection that sends a call it doesn't know. That connection owns the event stream, and closing it stops
-/// capture, so Settings' command line access and indicator requests must leave it be. Against this build's Security
-/// Extension they work, and a change still comes from the connection that owns the event stream.
+/// capture, so Settings' command line access, indicator and XProtect rule requests must leave it be. Against this
+/// build's Security Extension they work, and a change still comes from the connection that owns the event stream.
 final class CommandLineAccessSkewTests: XCTestCase {
     /// Refreshing Settings > Command Line, and changing the level, gets no answer from a 3.0.0 Security Extension,
     /// and Mac Monitor still owns the event stream on the connection it handshook on.
@@ -33,6 +33,18 @@ final class CommandLineAccessSkewTests: XCTestCase {
         let reply = try XCTUnwrap(answer { manager.indicatorTransport(IndicatorRequest(.list).encoded(), $0) })
         XCTAssertNil(reply)
         assertStillOwns(manager, service)
+    }
+
+    /// Settings > XProtect Rules asks whether the rules are loaded on a connection of its own: a 3.0.0 Security
+    /// Extension doesn't answer and leaves the stream be, and this build's answers.
+    func testAskingWhetherTheRulesAreLoadedKeepsAThreeZeroStream() throws {
+        let service = FakeSensorService(.v3_0)
+        let manager = owner(of: service)
+        XCTAssertNil(try XCTUnwrap(answer { manager.xprotectRuleStatus(completion: $0) }))
+        assertStillOwns(manager, service)
+        let current = owner(of: FakeSensorService(.current))
+        XCTAssertEqual(try XCTUnwrap(answer { current.xprotectRuleStatus(completion: $0) }),
+                       XProtectRuleStatus(state: .loaded, version: "5377"))
     }
 
     /// This build's Security Extension answers, and takes a change from Mac Monitor while it owns the event stream:

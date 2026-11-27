@@ -120,16 +120,21 @@ struct AgentSettingsView: View {
     @Binding var allFilters: Filters
     @Binding var eventMaskEnabled: Bool
 
-    /// The pane showing: General whenever Settings opens.
+    /// The pane showing: General whenever Settings opens, or the pane Event Facts asked for.
     @State private var selection: SettingsPane = .general
+    /// Is the window opening? On macOS 13 the sidebar's list then sends back the pane it showed before `onAppear`
+    /// chose one, which would undo the pane Event Facts asked for, so the list's choice waits until it's open.
+    @State private var isOpening = false
     /// What's typed in the sidebar's search field.
     @State private var query = ""
     /// The panes Back and Forward return to, most recent last.
     @State private var history = (back: [SettingsPane](), forward: [SettingsPane]())
+    /// The new panes opened, by name and separated by commas, so the sidebar stops marking them NEW.
+    @AppStorage("settingsOpenedNewPanes") private var opened = ""
 
     var body: some View {
         NavigationSplitView {
-            List(selection: Binding(get: { selection }, set: { $0.map(show) })) {
+            List(selection: Binding(get: { selection }, set: { pane in if !isOpening { pane.map(show) } })) {
                 if SettingsPane.securityExtension.matches(query) {
                     SettingsStatusCard().tag(SettingsPane.securityExtension)
                 }
@@ -138,7 +143,18 @@ struct AgentSettingsView: View {
                     if !panes.isEmpty {
                         Section {
                             ForEach(panes) { pane in
-                                Label { Text(pane.title) } icon: { SettingsIconTile(pane: pane) }.tag(pane)
+                                Label {
+                                    HStack {
+                                        Text(pane.title)
+                                        Spacer(minLength: 4)
+                                        if pane.isNew(in: ReleaseNotes.version, opened: openedPanes) {
+                                            CalloutBadge.new
+                                        }
+                                    }
+                                } icon: {
+                                    SettingsIconTile(pane: pane)
+                                }
+                                .tag(pane)
                             }
                         }
                     }
@@ -177,13 +193,19 @@ struct AgentSettingsView: View {
         }
         .searchable(text: $query, placement: .sidebar, prompt: "Search")
         /// The window can keep its view when it closes, so start over at General each time it opens. Event Facts'
-        /// Show in Settings opens Indicators instead.
+        /// Show in Settings opens Indicators instead, and its XProtect scan's arrow opens XProtect Rules.
         .onAppear {
-            selection = IndicatorStore.shared.revealRequest == nil ? .general : .indicators
+            isOpening = true
+            selection = Self.requestedPane ?? .general
             history = ([], [])
+            markOpened(selection)
+            DispatchQueue.main.async { isOpening = false }
         }
         .onReceive(IndicatorStore.shared.$revealRequest) { request in
             if request != nil { show(.indicators) }
+        }
+        .onReceive(XProtectRuleReveal.shared.$identifier) { identifier in
+            if identifier != nil { show(.xprotectRules) }
         }
         .frame(minWidth: 820, idealWidth: 1000, maxWidth: .infinity, minHeight: 560, idealHeight: 720,
                maxHeight: .infinity)
@@ -193,10 +215,29 @@ struct AgentSettingsView: View {
     ///
     /// - Parameter pane: The pane.
     private func show(_ pane: SettingsPane) {
+        markOpened(pane)
         guard pane != selection else { return }
         history.back.append(selection)
         history.forward.removeAll()
         selection = pane
+    }
+
+    /// Stop marking a new pane NEW, once it's opened.
+    ///
+    /// - Parameter pane: The pane.
+    private func markOpened(_ pane: SettingsPane) {
+        if pane.isNew(in: ReleaseNotes.version, opened: openedPanes) {
+            opened = (openedPanes + [pane.rawValue]).joined(separator: ",")
+        }
+    }
+
+    /// The names of the new panes opened before.
+    private var openedPanes: [String] { opened.split(separator: ",").map(String.init) }
+
+    /// The pane Event Facts asked Settings to open at, to show an indicator or an XProtect rule, if it asked.
+    private static var requestedPane: SettingsPane? {
+        if IndicatorStore.shared.revealRequest != nil { return .indicators }
+        return XProtectRuleReveal.shared.identifier == nil ? nil : .xprotectRules
     }
 
     /// Return to the pane shown before this one.
@@ -226,6 +267,7 @@ struct AgentSettingsView: View {
         case .subscriptions: SubscriptionsSettingsView(allFilters: $allFilters, eventMaskEnabled: $eventMaskEnabled)
         case .pathMuting: PathMutingSettingsView()
         case .indicators: IndicatorsSettingsView()
+        case .xprotectRules: XProtectRulesSettingsView()
         case .commandLine: SettingsPage(pane: pane) { CommandLineToolSettingsView() }
         case .telemetrySchema: TelemetrySchemaSettingsView()
         case .eventTables: ContextMenuSettingsView()

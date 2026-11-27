@@ -33,6 +33,7 @@ final class XPCProtocolSnapshotTests: XCTestCase {
             "indicators:reply:": "Sent once a list on a connection of its own answers (indicatorSupport).",
             "commandLineAccessWithReply:": "Sent on a connection of its own (SensorClient.probe).",
             "setCommandLineAccess:reply:": "Sent once commandLineAccess answers (commandLineAccessSupport).",
+            "xprotectRulesWithReply:": "Sent on a connection of its own (SensorClient.probe).",
         ],
         "StreamProtocol": [
             "indicators:reply:": "Sent before a stream starts, on a connection that ends with exit 69 if it closes.",

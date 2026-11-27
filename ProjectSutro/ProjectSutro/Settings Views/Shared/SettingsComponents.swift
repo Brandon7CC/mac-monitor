@@ -13,11 +13,11 @@ import SutroESFramework
 // MARK: - Panes
 /// Settings' panes, as the sidebar lists them.
 enum SettingsPane: String, CaseIterable, Identifiable {
-    case securityExtension, subscriptions, pathMuting, indicators, commandLine, telemetrySchema, general, eventTables
-    case systemDetails
+    case securityExtension, subscriptions, pathMuting, indicators, xprotectRules, commandLine, telemetrySchema, general
+    case eventTables, systemDetails
 
     /// The sidebar's groups under the Security Extension card, in order.
-    static let groups: [[SettingsPane]] = [[.general], [.subscriptions, .pathMuting], [.indicators],
+    static let groups: [[SettingsPane]] = [[.general], [.subscriptions, .pathMuting], [.indicators, .xprotectRules],
                                            [.commandLine, .telemetrySchema], [.eventTables, .systemDetails]]
 
     var id: String { rawValue }
@@ -68,6 +68,11 @@ enum SettingsPane: String, CaseIterable, Identifiable {
                          symbol: "sparkle.magnifyingglass", tint: .orange,
                          keywords: ["findings", "correlation", "groups", "predicate", "reflective",
                                     "applescript", "script", "marks"])
+        case .xprotectRules:
+            return Facts(title: "XProtect Rules",
+                         summary: "The YARA rules Mac Monitor scans files and scripts with, from this Mac's XProtect.",
+                         symbol: "hand.raised.fill", tint: .indigo,
+                         keywords: ["xprotect", "yara", "rules", "scan", "report only", "hunting"])
         case .commandLine:
             return Facts(title: "Command Line",
                          summary: "Stream events to a terminal or a pipe with sudo macmonitor, while Mac Monitor "
@@ -80,9 +85,11 @@ enum SettingsPane: String, CaseIterable, Identifiable {
                          symbol: "curlybraces", tint: .purple,
                          keywords: ["schema", "json", "validate", "trace", "export"])
         case .general:
-            return Facts(title: "General", summary: "Updates, warnings, and how Event Facts draws the process tree.",
+            return Facts(title: "General",
+                         summary: "Updates, warnings, enrichment, and how Event Facts draws the process tree.",
                          symbol: "gearshape.fill", tint: .gray,
-                         keywords: ["update", "release notes", "version", "quit", "clear", "dark", "process tree"])
+                         keywords: ["update", "release notes", "version", "quit", "clear", "dark", "process tree",
+                                    "enrichment", "xprotect", "yara", "scan", "network", "flows", "url"])
         case .eventTables:
             return Facts(title: "Context Menus",
                          summary: "What right-clicking an event offers: filter by it, mute it, or unsubscribe from "
@@ -96,6 +103,19 @@ enum SettingsPane: String, CaseIterable, Identifiable {
                          symbol: "cpu", tint: Color(white: 0.4),
                          keywords: ["sip", "csr", "macos", "sensor id", "processor", "memory"])
         }
+    }
+
+    /// The panes a release adds, by the version that added each. The sidebar marks them NEW in that release only.
+    private static let added: [SettingsPane: String] = [.xprotectRules: "3.3."]
+
+    /// Does the sidebar mark the pane NEW?
+    ///
+    /// - Parameters:
+    ///   - version: Mac Monitor's version, such as 3.3.0.
+    ///   - opened: The names of the panes opened before.
+    /// - Returns: `true` for a pane this release added that hasn't been opened.
+    func isNew(in version: String, opened: [String]) -> Bool {
+        Self.added[self].map(version.hasPrefix) == true && !opened.contains(rawValue)
     }
 
     /// Does the sidebar's search find the pane?
@@ -130,16 +150,18 @@ struct SettingsIconTile: View {
 /// pane is narrow and whole when pointed at.
 struct SettingsPaneHeader: View {
     let pane: SettingsPane
+    /// What the line says in place of what the pane is for, or `nil`.
+    var detail: String?
 
     var body: some View {
         HStack(spacing: 8) {
             SettingsIconTile(pane: pane)
             Text(pane.title).font(.headline).fixedSize()
-            Text(pane.summary)
+            Text(detail ?? pane.summary)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .help(pane.summary)
+                .help(detail ?? pane.summary)
             Spacer(minLength: 0)
         }
     }
@@ -197,7 +219,7 @@ struct SettingsSearchField: View {
 
 
 /// A form row's small colored tile, as System Settings starts its rows: a white symbol on a color. A section's header
-/// draws a larger one.
+/// draws a larger one. A Mac without the symbol, such as an indicator's, draws its stand-in.
 struct SettingsRowIcon: View {
     let symbol: String
     let tint: Color
@@ -214,7 +236,7 @@ struct SettingsRowIcon: View {
     }
 
     var body: some View {
-        Image(systemName: symbol)
+        Image(systemName: SymbolStandIn.drawn(for: symbol))
             .font(.system(size: size * 0.52, weight: .semibold))
             .foregroundStyle(.white)
             .frame(width: size, height: size)
@@ -316,11 +338,13 @@ struct SettingsForm<Content: View>: View {
 /// A pane whose view lays itself out (and scrolls), under the header.
 struct SettingsPage<Content: View>: View {
     let pane: SettingsPane
+    /// What the header says in place of what the pane is for, or `nil`.
+    var detail: String?
     @ViewBuilder let content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            SettingsPaneHeader(pane: pane)
+            SettingsPaneHeader(pane: pane, detail: detail)
                 .padding(12)
                 .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator))

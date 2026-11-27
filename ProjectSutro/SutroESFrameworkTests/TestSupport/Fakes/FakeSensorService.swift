@@ -123,6 +123,11 @@ final class FakeSensorService: NSObject, NSXPCListenerDelegate, SensorProtocol {
         reply(IndicatorReply(status: .ok, indicators: Indicator.defaults, access: .read).encoded())
     }
 
+    /// The rules loaded, to any caller.
+    func xprotectRules(reply: @escaping (Data) -> Void) {
+        reply(XProtectRuleStatus(state: .loaded, version: "5377").encoded)
+    }
+
     /// No subscriptions.
     func eventSubscriptions(reply: @escaping ([String]) -> Void) { reply([]) }
     /// Refused.
