@@ -66,8 +66,10 @@ struct CommandLineToolSettingsView: View {
         ("macmonitor stream", true, "Mac Monitor's default events, as text"),
         ("macmonitor stream exec | jq -c .", true, "Only exec events, as JSONL"),
         (#"macmonitor stream exec --target '/osascript$' --predicate "#
-            + #"'event.exec.script_content CONTAINS[c] "display dialog" AND "#
-            + #"event.exec.script_content CONTAINS[c] "password"'"#,
+            + #"'(event.exec.script_content CONTAINS[c] "display dialog" AND "#
+            + #"event.exec.script_content CONTAINS[c] "password") OR "#
+            + #"(event.exec.command_line CONTAINS[c] "display dialog" AND "#
+            + #"event.exec.command_line CONTAINS[c] "password")'"#,
          true, "An osascript script asking for a password, as macOS stealers do"),
         (#"macmonitor stream exec --predicate 'process.audit_token.euid == 0 "#
             + #"AND NOT event.exec.target.signing_id BEGINSWITH "com.apple."'"#,

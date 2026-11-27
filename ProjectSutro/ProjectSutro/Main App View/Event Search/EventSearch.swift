@@ -63,7 +63,8 @@ final class EventSearchController: ObservableObject {
         SavedPredicate(name: "curl and wget", source: "process.executable.path ENDSWITH \"/curl\" "
                        + "OR process.executable.path ENDSWITH \"/wget\""),
         SavedPredicate(name: "Fake password prompts",
-                       source: "event.exec.script_content CONTAINS[c] \"hidden answer\""),
+                       source: "event.exec.script_content CONTAINS[c] \"hidden answer\" "
+                       + "OR event.exec.command_line CONTAINS[c] \"hidden answer\""),
         SavedPredicate(name: "Freshly compiled",
                        source: "ANY event.exec.target.codesigning_flag_names == \"CS_LINKER_SIGNED\""),
         SavedPredicate(name: "New executables", source: Indicator.newExecutablePredicate),
@@ -79,7 +80,9 @@ final class EventSearchController: ObservableObject {
 
     /// Starter predicates as earlier builds had them, by name. 3.0.0's New executables read five minutes, where its
     /// indicator read one second. 3.1.0's indicator search named Plist modified, which is Property list modified now.
+    /// Fake password prompts read only a script's text before 3.3.0, which missed `osascript -e`'s.
     private static let earlierStarterSources = [
+        "Fake password prompts": #"event.exec.script_content CONTAINS[c] "hidden answer""#,
         "New executables": "event.exec.executable_age_ms < 300000",
         "Plist modified indicator": #"ANY indicators.name ==[c] "Plist modified""#,
     ]
