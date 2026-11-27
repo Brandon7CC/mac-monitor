@@ -31,15 +31,16 @@ struct SystemEventFactsView : View {
     @Binding var showsCorrelation: Bool
     
     /// The facts' tabs, in order. Only Metadata, Parent, and JSON are always there.
-    private enum FactsTab: String, CaseIterable, Identifiable {
+    enum FactsTab: String, CaseIterable, Identifiable {
         case metadata = "Metadata", script = "Script", plist = "PLIST", correlation = "Correlation", groups = "Groups"
         case parent = "Parent", json = "JSON"
         
         var id: String { rawValue }
     }
     
-    /// The tab showing. One the event doesn't have shows Metadata instead.
-    @State private var tab: FactsTab = .metadata
+    /// The tab chosen, kept by the window so it stays as another process is chosen in the sidebar. One the event
+    /// doesn't have shows Metadata instead.
+    @Binding var tab: FactsTab
     /// The facts' width, which decides where the tabs fit.
     @State private var width: CGFloat = 0
     
@@ -198,6 +199,8 @@ struct AppWrapperForFacts: View {
     @State private var selectedEventTree: ESMessage?
     /// Is the Correlation tab showing?
     @State private var showsCorrelation = false
+    /// The facts' tab chosen.
+    @State private var tab = SystemEventFactsView.FactsTab.metadata
     @State private var visibility: NavigationSplitViewVisibility = .all
     /// Is the event gone, or are the events being cleared, so the window should close?
     @State private var isGone = false
@@ -212,8 +215,11 @@ struct AppWrapperForFacts: View {
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 320)
         } detail: {
             if let tree = selectedEventTree {
+                /// New facts for each event, as when its window opens. Facts kept as the sidebar chose another
+                /// process hung at the next tab clicked: SwiftUI looped on a cycle in the window's update.
                 SystemEventFactsView(allFilters: $allFilters, selectedMessage: tree,
-                                     showsCorrelation: $showsCorrelation)
+                                     showsCorrelation: $showsCorrelation, tab: $tab)
+                    .id(tree.objectID)
             } else {
                 Text("No event selected")
             }
