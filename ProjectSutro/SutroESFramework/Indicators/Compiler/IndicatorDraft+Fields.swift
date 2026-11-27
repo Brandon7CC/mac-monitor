@@ -20,7 +20,8 @@ extension IndicatorDraft {
     /// - Two key paths the Security Extension reads (``IndicatorField``): none Mac Monitor writes as it stores the
     ///   event, on either side.
     /// - Two of the same kind in the telemetry schema: two strings, or two numbers, a Boolean counting as one. Never
-    ///   an array, which `ANY` compares with constants alone.
+    ///   an array, which `ANY` compares with constants alone. An array's `.@count` is a number, so two arrays'
+    ///   sizes compare, as in `event.close.yara_scan.rules.@count > event.close.yara_scan.report_only.@count`.
     /// - Strings aren't ordered, and `[c]` and `[d]` compare strings alone, as with constants.
     ///
     /// It's evaluated as `NSPredicate` evaluates it on the record (`IndicatorProgram+Fields.swift`).
@@ -128,8 +129,7 @@ extension IndicatorDraft {
                                   _ options: IndicatorProgram.Options, _ right: IndicatorField,
                                   part: Part) throws(SensorProblem) {
             for field in [left, right] where field.kind == .strings {
-                throw .mismatchedTypes("\(field.path) is an array, which ANY compares with constants alone, not "
-                                       + "with a key path, in \(part)")
+                throw part.wholeArray(field, " with constants alone")
             }
             let isString = left.kind == .string
             guard isString == (right.kind == .string) else {

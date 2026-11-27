@@ -97,12 +97,12 @@ final class CompiledIndicatorsTests: XCTestCase {
         off.isEnabled = false
         var broken = indicator(#"target_path == "x""#)
         broken.isEnabled = false
-        let unserved = indicator(Self.everyExec + " AND event.exec.env.@count > 1")
+        let unserved = indicator(Self.everyExec + " AND event.exec.target.@count > 1")
         let compiled = CompiledIndicators([off, broken, unserved, unserved])
         XCTAssertEqual(compiled.count, 0)
         XCTAssertEqual(compiled.problems.map(\.id), [broken.id, unserved.id, unserved.id])
         XCTAssertEqual(compiled.problems.first?.problem, .untyped)
-        XCTAssertEqual(compiled.problems.last?.reason, SensorProblem.unservedField("event.exec.env.@count").description)
+        XCTAssertEqual(compiled.problems.last?.problem, .uncountable("event.exec.target.@count"))
         var values = MessageValueCache()
         XCTAssertEqual(compiled.hits(for: try exec(), values: &values), [])
     }

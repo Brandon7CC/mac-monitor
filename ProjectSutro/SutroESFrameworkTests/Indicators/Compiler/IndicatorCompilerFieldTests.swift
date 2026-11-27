@@ -62,17 +62,17 @@ final class IndicatorCompilerFieldTests: XCTestCase {
             """)
     }
 
-    /// An array on either side is refused, saying `ANY` compares one with constants alone. A string compared with a
-    /// number or a Boolean is refused naming both kinds, and so are strings ordered, a number searched and `[c]` or
-    /// `[d]` on a number, as with constants.
+    /// An array on either side is refused, saying `ANY` compares one with constants alone and naming its `.@count`. A
+    /// string compared with a number or a Boolean is refused naming both kinds, and so are strings ordered, a number
+    /// searched and `[c]` or `[d]` on a number, as with constants.
     func testKindsAreRefused() {
         XCTAssertEqual(problem("event.exec.env == process.team_id"), .mismatchedTypes("""
-            event.exec.env is an array, which ANY compares with constants alone, not with a key path, in \
-            event.exec.env == process.team_id
+            event.exec.env is an array, whose values ANY compares with constants alone and whose size is \
+            event.exec.env.@count, in event.exec.env == process.team_id
             """))
         XCTAssertEqual(problem("process.team_id != event.exec.args"), .mismatchedTypes("""
-            event.exec.args is an array, which ANY compares with constants alone, not with a key path, in \
-            process.team_id != event.exec.args
+            event.exec.args is an array, whose values ANY compares with constants alone and whose size is \
+            event.exec.args.@count, in process.team_id != event.exec.args
             """))
         XCTAssertEqual(problem("target_path == process.pid"), .mismatchedTypes("""
             target_path is a string and process.pid a number, in target_path == process.pid
@@ -103,7 +103,7 @@ final class IndicatorCompilerFieldTests: XCTestCase {
                        .unservedKind("event.gatekeeper_user_override.sha256", stored))
         XCTAssertEqual(problem("process.executable == event.exec.target.executable"),
                        .unservedKind("process.executable", "it's an object"))
-        XCTAssertEqual(problem("process.pid == event.exec.env.@count"), .unservedField("event.exec.env.@count"))
+        XCTAssertEqual(problem("process.pid == process.executable.@count"), .uncountable("process.executable.@count"))
         guard case .unreadable = problem("target_path == process.no_such_key") else {
             return XCTFail("A key the record doesn't have is refused as it's read")
         }

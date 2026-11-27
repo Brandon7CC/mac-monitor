@@ -66,7 +66,8 @@ extension IndicatorDraft {
         /// `command_line`, `env` or `script_content`, which an event can make up to 1 MiB (``ScanPool/isLarge``): a
         /// search of one can spend its pool, and the index's, whole.
         case large
-        /// A record field, which walks the event's encoding the first time one is read (``RecordPathTrie``).
+        /// A record field, which walks the event's encoding the first time one is read (``RecordPathTrie``). Most
+        /// arrays' `.@count` is one. An exec's arguments and environment are counted as direct fields, which are small.
         case record
 
         /// - Parameters:

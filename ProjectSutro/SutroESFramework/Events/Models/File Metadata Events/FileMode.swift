@@ -108,16 +108,34 @@ public enum FileModeCallout: Hashable, Sendable, CaseIterable {
     ///     mode sets counts as added, since none can be ruled out, and the target counts as a file, not a directory.
     /// - Returns: The callouts, none when nothing worth pointing out was added.
     public static func added(to mode: FileMode, from previous: FileMode?) -> [FileModeCallout] {
+        allCases.filter { $0.isAdded(to: mode, from: previous) }
+    }
+
+    /// How many callouts ``added(to:from:)`` gives a change of mode, without making them.
+    ///
+    /// - Parameters:
+    ///   - mode: The new mode.
+    ///   - previous: The mode before the change, or `nil` when it isn't known.
+    /// - Returns: The number of callouts.
+    static func addedCount(to mode: FileMode, from previous: FileMode?) -> Int {
+        allCases.reduce(0) { $0 + ($1.isAdded(to: mode, from: previous) ? 1 : 0) }
+    }
+
+    /// Did a change of mode add what the callout points out (``added(to:from:)``)?
+    ///
+    /// - Parameters:
+    ///   - mode: The new mode.
+    ///   - previous: The mode before the change, or `nil` when it isn't known.
+    /// - Returns: Whether it earns the callout.
+    private func isAdded(to mode: FileMode, from previous: FileMode?) -> Bool {
         let added = mode.permissions & ~(previous?.permissions ?? 0)
         let isDirectory = previous?.isDirectory ?? false
-        let isStickyDirectory = isDirectory && mode.permissions & FileMode.sticky != 0
-        return allCases.filter { callout in
-            switch callout {
-            case .madeExecutable: return !isDirectory && added & FileMode.execute != 0
-            case .setuidAdded: return !isDirectory && added & FileMode.setuid != 0
-            case .setgidAdded: return !isDirectory && added & FileMode.setgid != 0
-            case .worldWritable: return !isStickyDirectory && added & FileMode.worldWrite != 0
-            }
+        switch self {
+        case .madeExecutable: return !isDirectory && added & FileMode.execute != 0
+        case .setuidAdded: return !isDirectory && added & FileMode.setuid != 0
+        case .setgidAdded: return !isDirectory && added & FileMode.setgid != 0
+        case .worldWritable:
+            return !(isDirectory && mode.permissions & FileMode.sticky != 0) && added & FileMode.worldWrite != 0
         }
     }
 }

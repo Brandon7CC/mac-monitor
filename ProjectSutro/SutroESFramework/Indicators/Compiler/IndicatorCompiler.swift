@@ -27,10 +27,14 @@ import EndpointSecurity
 /// (``IndicatorDraft/readingCheapestFirst``), so how a rule is written can't make an event's large fields be read
 /// before a cheap field rules it out.
 ///
+/// An array's size is its key path and `.@count`, as in `event.close.yara_scan.rules.@count > 0` (``RecordSchema``).
+/// It's a number. It compares with numbers or with another field, another array's size among them.
+///
 /// What it refuses, each with its own ``SensorProblem``:
-/// - `MATCHES`, `SUBQUERY`, `ALL`, `BETWEEN`, functions, aggregates and variables.
+/// - `MATCHES`, `SUBQUERY`, `ALL`, `BETWEEN`, functions, variables, and aggregates but an array's `.@count`.
 /// - A key path it doesn't read (``IndicatorField``) or one filled after capture.
-/// - A string compared with a number, ordered, or an array compared without `ANY`.
+/// - `.@count` of what isn't an array of the record, or under `ANY`.
+/// - A string compared with a number, ordered, or an array compared without `ANY` or `.@count`.
 /// - A key path compared with another by other than `==`, `!=`, `<`, `<=`, `>`, `>=`, `BEGINSWITH` and `ENDSWITH`,
 ///   with `ANY` or `ALL`, or with one of another kind, or an array (``IndicatorDraft/FieldComparison``).
 /// - `?`, `\` or other than ASCII in a `LIKE` pattern.
@@ -130,6 +134,8 @@ public enum SensorProblem: Error, Equatable, Sendable, CustomStringConvertible {
     case contradictoryTypes
     /// The event types it names aren't ones this build knows.
     case unknownEventTypes([String])
+    /// It compares `es_event_type` with a Mac Monitor event, whose record has none: the event's name.
+    case noEventType(String)
     /// It uses an operator, a modifier or an expression the Security Extension doesn't evaluate.
     case unsupported(String)
     /// It reads a key path an event's record doesn't have (``IndicatorField/record(_:)``).
@@ -137,7 +143,9 @@ public enum SensorProblem: Error, Equatable, Sendable, CustomStringConvertible {
     /// It reads a key path whose value can't be compared on its own, and why: an object, or a value inside an array
     /// of objects.
     case unservedKind(String, String)
-    /// It compares a string with a number, or an array without `ANY`, or with another key path.
+    /// It counts with `.@count` what isn't an array of the event's record, as in `event.close.yara_scan.@count`.
+    case uncountable(String)
+    /// It compares a string with a number, or an array without `ANY` or `.@count`, or with another key path.
     case mismatchedTypes(String)
     /// Its `LIKE` pattern has `?`, `\` or other than ASCII.
     case unsupportedPattern(String)
@@ -160,9 +168,13 @@ public enum SensorProblem: Error, Equatable, Sendable, CustomStringConvertible {
         case .contradictoryTypes: "Its event type checks can never all pass, so it matches no event."
         case .unknownEventTypes(let names):
             "It names no event type this build knows: \(names.joined(separator: ", "))."
+        case .noEventType(let name): "\(name) records have no es_event_type. Use event.\(name) != nil."
         case .unsupported(let part): "The Security Extension doesn't evaluate \(part)."
         case .unservedField(let path): "'\(path)' isn't a key path of an event's record."
         case .unservedKind(let path, let reason): "'\(path)' can't be compared on its own: \(reason)."
+        case .uncountable(let path):
+            "'\(path)' can't be counted: .@count counts an array of an event's record, and "
+                + "\(path.split(separator: ".").dropLast().joined(separator: ".")) isn't one."
         case .mismatchedTypes(let part): "It compares values of different kinds: \(part)."
         case .unsupportedPattern(let pattern):
             "The Security Extension matches a LIKE pattern of ASCII and * alone, not \(pattern)."

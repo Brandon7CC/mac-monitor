@@ -15,16 +15,22 @@ import XCTest
 /// event's own encoding as the Security Extension reads it. A key path that differs is named, with an event it differs
 /// on, so a change to an event that breaks one fails here rather than in a rule.
 final class RecordFieldParityTests: XCTestCase {
-    /// Every key path a rule can compare, on every event of the synthetic corpus, the fixtures and the lineage trace,
-    /// has the record's value.
+    /// Every key path a rule can compare, on every event of the synthetic corpus, the fixtures, the lineage trace and
+    /// closes and renames whose scans differ in size, has the record's value: each array's `.@count` among them, but
+    /// the indicators', which the Security Extension writes once it has evaluated an event.
     func testEverySchemaPathIsTheRecords() throws {
         let paths = RecordSchema.paths.keys.compactMap { path -> (String, IndicatorField.Kind)? in
             if case .kind(let kind) = RecordSchema.lookup(path) { (path, kind) } else { nil }
         }
         XCTAssertGreaterThan(paths.count, 500)
+        let arrays = RecordKeyPaths.shared.nodes.filter { $0.value.type == "array" && !$0.value.isInArray }.keys
+            .filter { !$0.hasPrefix("indicators") }
+        XCTAssertGreaterThan(arrays.count, 50)
+        XCTAssertEqual(Set(paths.filter { $0.0.hasSuffix(".@count") }.map(\.0)), Set(arrays.map { $0 + ".@count" }))
         let fields = paths.map { path, kind in IndicatorField(path: path) ?? RecordFields.shared.field(path, kind: kind) }
         let trie = RecordPathTrie(fields.filter { !$0.isDirect })
         let messages = try SyntheticCorpus.records().map(\.message) + allFixtureMessages() + lineageTrace()
+            + countedScanMessages()
         let records = try MessageValuesParityTests().records(of: messages)
         var differing: [String: String] = [:], valued = Set<String>()
         for (message, record) in zip(messages, records) {
@@ -40,6 +46,8 @@ final class RecordFieldParityTests: XCTestCase {
         }
         let report = differing.sorted { $0.key < $1.key }.map { "\($0.key)  \($0.value)" }.joined(separator: "\n")
         XCTAssertTrue(differing.isEmpty, "\(differing.count) key paths differ from the record:\n\(report)")
+        XCTAssertTrue(valued.isSuperset(of: ["event.close.yara_scan.rules.@count", "event.exec.fds.@count",
+                                             "process.codesigning_flag_names.@count"]))
         print("[record fields] \(trie.fields.count) key paths, \(valued.count) with a value on some event")
     }
 }

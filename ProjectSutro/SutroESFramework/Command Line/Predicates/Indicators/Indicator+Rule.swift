@@ -86,5 +86,5 @@ public extension Indicator {
 
     /// The Mac Monitor release whose indicator engine this build is. An indicator pack's entry whose `minEngine` is
     /// newer isn't run. It's bumped with every release, which a test checks against the project's version.
-    static let engineVersion = ReleaseVersion(3, 2, 0)
+    static let engineVersion = ReleaseVersion(3, 3, 0)
 }

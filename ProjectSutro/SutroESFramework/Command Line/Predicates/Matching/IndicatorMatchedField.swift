@@ -14,8 +14,9 @@ import Foundation
 /// evaluating the rule again.
 ///
 /// Only comparisons that say what the event has are listed: `==`, an ordering, `IN`, `BEGINSWITH`, `ENDSWITH`,
-/// `CONTAINS`, `LIKE`, `!= nil`, the one value `ANY` found, and both sides of two fields compared. What a rule only
-/// rules out, with `!=` a value or under `NOT`, isn't.
+/// `CONTAINS`, `LIKE`, `!= nil`, the first string `ANY` found with any of those or `!=`, and both sides of two
+/// fields compared. What a rule only rules out, with `!=` a value outside `ANY` or under `NOT`, isn't. An array's size
+/// is listed at its key path and `.@count`, such as `event.close.yara_scan.rules.@count`, as a whole number.
 public struct IndicatorMatchedField: Codable, Hashable, Sendable {
     /// A value an event had, as its record writes it. A record's numbers are whole.
     public enum Value: Hashable, Sendable {

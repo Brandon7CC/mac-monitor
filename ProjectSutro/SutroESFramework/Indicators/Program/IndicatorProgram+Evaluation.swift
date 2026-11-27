@@ -63,6 +63,8 @@ extension IndicatorProgram {
     /// - `== nil` and `!= nil` test for a value. A missing value `!=` a constant is true. `==`, ordering, `IN`,
     ///   `BEGINSWITH`, `ENDSWITH`, `CONTAINS` and `LIKE` are false on one.
     /// - Numbers, and Booleans as 1 and 0, compare as numbers, as `NSNumber` does.
+    /// - An array's `.@count` is a number, its size, and a missing value where the array, or an object holding it, is
+    ///   missing (`RecordPathTrie`).
     /// - `ANY` over a missing or empty array is false.
     /// - A field compared with another is decided as `NSPredicate` decides two values
     ///   (`IndicatorProgram+Fields.swift`): two missing values are equal, and a missing value differs from every

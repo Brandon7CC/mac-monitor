@@ -19,9 +19,10 @@ public extension PredicateLayout {
     /// Of conditions joined with `OR` only one need hold, so each is evaluated on what the hit says the event had
     /// (``IndicatorHit/matched``), and on the event's type. One is passed when it reads a key path the hit lists, or
     /// the event's type, and holds there. A hit lists only what an event has, so there a line that only rules
-    /// something out is never passed: one that starts with `NOT`, one in a group under `NOT`, and a `!=` a value. A
-    /// value the hit cut short (``IndicatorMatchedField/Value/isCut``) can't always be checked, so a line that reads
-    /// one is passed.
+    /// something out is never passed: one that starts with `NOT`, one in a group under `NOT`, and a `!=` a value
+    /// outside `ANY`. `ANY ... !=` lists the string it found, so it's checked on that. An array's `.@count` is
+    /// checked on the size the hit lists at that key path. A value the hit cut short
+    /// (``IndicatorMatchedField/Value/isCut``) can't always be checked, so a line that reads one is passed.
     ///
     /// - Parameters:
     ///   - matched: What the hit lists.
@@ -91,7 +92,7 @@ private struct LineCondition {
     let opensNegatedGroup: Bool
     /// Does the line close a group, as `)` does?
     let closesGroup: Bool
-    /// Does it only rule something out: `NOT`, `NONE`, or `!=` anything but `nil`?
+    /// Does it only rule something out: `NOT`, `NONE`, or `!=` anything but `nil` outside `ANY`?
     let rulesOut: Bool
     /// Does it compare any of an array's strings, with `ANY` or `SOME`?
     let isAny: Bool
@@ -129,8 +130,10 @@ private struct LineCondition {
             || tokens.indices.contains { index in
                 tokens[index].text.hasPrefix("!=")
                     && !(tokens.indices.contains(index + 1) && ["NIL", "NULL"].contains(Self.word(tokens[index + 1])))
+                    && !(index >= 2 && ["ANY", "SOME"].contains(Self.word(tokens[index - 2])))
             }
-        isAny = words.contains("ANY") || words.contains("SOME")
+        /// `SOME` isn't a keyword token, so every token is read.
+        isAny = tokens.contains { ["ANY", "SOME"].contains(Self.word($0)) }
         keyPaths = tokens.filter { $0.kind == .keyPath }.map(\.text)
         self.text = opens || balance != 0 || text.isEmpty ? nil : text
     }
@@ -226,7 +229,8 @@ private struct LineGroups {
 
 // MARK: - What the event had
 /// What a hit says an event had, as objects `NSPredicate` evaluates a line's condition on: the key paths the hit
-/// lists with their values, the event's type under `es_event_type`, and its payload's key, such as `event.exec`.
+/// lists with their values, the event's type under `es_event_type`, and its payload's key, such as `event.exec`. An
+/// array's size, which a hit lists at its key path and `.@count`, is read by that whole key path.
 private struct PassedFacts {
     /// Each listed key path's values, in the hit's order. Only an array's key path, which `ANY` read, has several.
     private var values: [String: [IndicatorMatchedField.Value]] = [:]
@@ -236,6 +240,8 @@ private struct PassedFacts {
     private let record = NSMutableDictionary()
     /// The event as a record, with an array at every listed key path, as `ANY` reads one.
     private let arrays = NSMutableDictionary()
+    /// Each array's size the hit lists, by its key path and `.@count`.
+    private var counts: [String: Any] = [:]
 
     /// - Parameters:
     ///   - matched: What the hit lists.
@@ -243,9 +249,12 @@ private struct PassedFacts {
     init(_ matched: [IndicatorMatchedField], eventType: String?) {
         for field in matched { values[field.field, default: []].append(field.value) }
         if let eventType {
-            let payload = "event." + eventType.replacingOccurrences(of: "ES_EVENT_TYPE_NOTIFY_", with: "").lowercased()
-            typePaths = ["es_event_type"]
-            set(eventType as NSString, at: "es_event_type")
+            let payload = "event." + EventNames.shortName(eventType)
+            /// A Mac Monitor event's record has no `es_event_type`.
+            if MacMonitorEvent(name: eventType) == nil {
+                typePaths = ["es_event_type"]
+                set(eventType as NSString, at: "es_event_type")
+            }
             if PredicateEventTypes.payloads[payload] == eventType {
                 typePaths.insert(payload)
                 set(NSMutableDictionary(), at: payload)
@@ -253,6 +262,11 @@ private struct PassedFacts {
         }
         for (path, values) in values {
             let objects = values.map(\.object)
+            /// A size isn't a key of the array's object, which key-value coding would read as the object's own count.
+            if path.hasSuffix("." + RecordSchema.count) {
+                counts[path] = objects[0]
+                continue
+            }
             Self.set(objects.count == 1 ? objects[0] : objects, at: path, in: record)
             Self.set(objects, at: path, in: arrays)
         }
@@ -266,7 +280,7 @@ private struct PassedFacts {
         guard !listed.isEmpty || condition.keyPaths.contains(where: typePaths.contains),
               let predicate = try? PredicateBridge.predicate(withFormat: PredicateText.comparingBooleans(text))
         else { return false }
-        let object = condition.isAny ? arrays : record
+        let object = ListedRecord(condition.isAny ? arrays : record, counts: counts)
         if (try? PredicateBridge.evaluate(predicate, with: object, variables: nil)) == true { return true }
         return listed.contains { values[$0]?.contains(where: \.isCut) == true }
     }
@@ -297,5 +311,36 @@ private struct PassedFacts {
             parent = next
         }
         if let last = keys.last, !(parent[last] is NSMutableDictionary) { parent[last] = object }
+    }
+}
+
+
+// MARK: - What's listed, as a record
+/// The record of what a hit lists, which a line's condition is evaluated on. `NSPredicate` asks it for a key path at
+/// once, so an array's size is found by its key path and `.@count`, and any other key path in the record's objects.
+private final class ListedRecord: NSObject {
+    /// The record's objects.
+    private let record: NSDictionary
+    /// Each array's size the hit lists, by its key path and `.@count`.
+    private let counts: [String: Any]
+
+    /// - Parameters:
+    ///   - record: The record's objects.
+    ///   - counts: Each array's size the hit lists, by its key path and `.@count`.
+    init(_ record: NSDictionary, counts: [String: Any]) {
+        self.record = record
+        self.counts = counts
+    }
+
+    /// - Parameter key: A key at the top of the record.
+    /// - Returns: Its value, or `nil`.
+    override func value(forKey key: String) -> Any? {
+        record.value(forKey: key)
+    }
+
+    /// - Parameter keyPath: A key path.
+    /// - Returns: The listed size, for an array's `.@count`, or else the record's value there.
+    override func value(forKeyPath keyPath: String) -> Any? {
+        counts[keyPath] ?? record.value(forKeyPath: keyPath)
     }
 }

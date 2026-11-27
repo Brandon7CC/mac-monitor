@@ -19,6 +19,8 @@ public struct MemoryMappingNames {
     let bits: [(bit: UInt32, name: String)]
     /// The name of a value with no bits set, or `nil` to name none.
     let zero: String?
+    /// Every bit the table names.
+    private let mask: UInt32
 
     /// `protection` and `max_protection`: `PROT_READ`, `PROT_WRITE` and `PROT_EXEC`, and `PROT_NONE` for 0.
     ///
@@ -61,6 +63,7 @@ public struct MemoryMappingNames {
     private init(zero: String?, bits: [(bit: UInt32, name: String)]) {
         self.zero = zero
         self.bits = bits
+        mask = bits.reduce(0) { $0 | $1.bit }
     }
 
     /// The names of the bits a value has.
@@ -72,6 +75,16 @@ public struct MemoryMappingNames {
         let bits = UInt32(truncatingIfNeeded: value)
         if bits == 0, let zero { return [zero] }
         return self.bits.filter { bits & $0.bit != 0 }.map(\.name)
+    }
+
+    /// How many names ``names(_:)`` gives a value, worked out from its bits alone.
+    ///
+    /// - Parameter value: Endpoint Security's `int32_t`, read by bit pattern.
+    /// - Returns: The number of names.
+    func nameCount(_ value: Int32) -> Int {
+        let bits = UInt32(truncatingIfNeeded: value)
+        guard bits != 0 else { return zero == nil ? 0 : 1 }
+        return (bits & mask).nonzeroBitCount
     }
 
     /// A value as the Event Facts show it: its names joined by " | ", then the value: "PROT_READ | PROT_EXEC (5)".
