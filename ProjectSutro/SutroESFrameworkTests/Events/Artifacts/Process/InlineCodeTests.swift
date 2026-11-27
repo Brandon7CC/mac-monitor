@@ -51,7 +51,7 @@ final class InlineCodeTests: XCTestCase {
         }
     }
 
-    /// A password prompt as stealers ask for one, in one `-e`.
+    /// A dialog asking for a password with a hidden answer, in one `-e`.
     private let prompt = #"display dialog "macOS needs your password to continue." default answer "" "#
         + #"with icon caution buttons {"Continue"} default button "Continue" with hidden answer"#
 
