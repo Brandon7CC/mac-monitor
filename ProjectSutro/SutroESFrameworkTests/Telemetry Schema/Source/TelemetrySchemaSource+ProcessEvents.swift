@@ -93,9 +93,16 @@ extension TelemetrySchemaSource {
                      + "token. At most 8: the nearest, and the first below launchd, which is never listed. Empty "
                      + "for a child of launchd, and null when the Security Extension wasn't tracking lineage. Since "
                      + "telemetry 1.2.0."),
+            yaraScan(of: "the script the exec runs",
+                     "An exec carries it while scanning is on, for `script`, for the script an interpreter's "
+                     + "arguments name (`resolved_script_path`), and for the Contents/Resources/Scripts/main.scpt of "
+                     + "an AppleScript or JXA applet whose executable in Contents/MacOS it runs, whatever its name. "
+                     + "It describes that script, not the exec's target. XPScripts.yr applies to a script osascript "
+                     + "runs and to an applet's.",
+                     absentWhen: "the exec runs no script Mac Monitor found"),
         ])
     }
-    
+
     /// A fork: `es_event_fork_t`.
     private static var fork: SchemaEvent {
         event(ES_EVENT_TYPE_NOTIFY_FORK, "A fork: es_event_fork_t.", [

@@ -71,12 +71,12 @@ final class ScriptInterpreterTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory.appendingPathComponent("folder"),
                                                 withIntermediateDirectories: false)
         
-        let (scripts, content): ([String], String?) = try awaitCallback(timeout: 5) { looked in
+        let (scripts, content): ([String], Data?) = try awaitCallback(timeout: 5) { looked in
             DispatchQueue.global().async {
                 looked((["fifo", "folder", "missing"].compactMap {
                     ProcessHelpers.scriptFromArgs(args: ["bash", $0], interpreter: bash,
                                                   workingDirectory: directory.path)?.path
-                }, ProcessHelpers.getScriptContents(at: fifo, for: nil)))
+                }, ProcessHelpers.readScript(at: fifo, for: nil, expecting: nil)?.bytes))
             }
         }
         XCTAssertEqual(scripts, [])

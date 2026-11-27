@@ -60,8 +60,9 @@ enum SyntheticValues {
     
     /// Optional fields no synthetic record fills, `Type.key`: the Security Extension's verdicts and the indicators it
     /// couldn't rule out, which the indicator tests stamp themselves, so a synthetic record's indicators are those
-    /// matched as it's written.
-    static let unfilled: Set<String> = ["Message.indicators", "Message.indicators_undetermined"]
+    /// matched as it's written, and what a capture lane read of an exec's script, which no record carries.
+    static let unfilled: Set<String> = ["Message.indicators", "Message.indicators_undetermined",
+                                        "ProcessExecEvent.scriptRead"]
 
     /// Keys whose value is an object that a decoder probes as a string first (an older export's name in its place):
     /// asked for a string, they have none.
@@ -103,6 +104,8 @@ enum SyntheticValues {
         case "sip_status": return "disabled"
         case "boot_session_uuid": return uuid.uuidString
         case "ancestor_keys": return "4242.7"
+        /// A written file's scan, the one `status` string.
+        case "status": return "scanned"
         case _ where key.hasSuffix("_url"): return "file:///synthetic/\(key)"
         case _ where key.hasSuffix("path") || key == "dir" || key == "file_path": return "/synthetic/\(key)"
         default: return "synthetic \(key)"

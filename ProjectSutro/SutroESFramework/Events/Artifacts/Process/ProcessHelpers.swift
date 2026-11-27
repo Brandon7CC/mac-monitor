@@ -95,11 +95,12 @@ public class ProcessHelpers {
     /// The name of the process an event is about: a fork's child, an exec's target, or else the event's process.
     ///
     /// - Parameter message: The event.
-    /// - Returns: The executable's name, "" for a fork child without one, or `EVENTS_CLEARED` when the event's process
-    ///   has none either.
+    /// - Returns: The executable's name, or "" for a fork child without one. A process without one, as a network
+    ///   flow's may be, is named by its pid as in `PID 4390`, and pid 0 `kernel_task`, as `ps` names it.
     public static func getTargetProcessName(message: ESMessage) -> String {
         if let fork = message.event.fork { return fork.child.executable?.name ?? "" }
-        return message.event.exec?.target.executable?.name ?? message.process.executable?.name ?? "EVENTS_CLEARED"
+        return message.event.exec?.target.executable?.name ?? message.process.executable?.name
+            ?? (message.process.pid == 0 ? "kernel_task" : "PID \(message.process.pid)")
     }
     
     // MARK: - Process event helper functions
@@ -144,8 +145,8 @@ public class ProcessHelpers {
     ///   read.
     static func readRegularFile(at path: String, for reader: FileReader? = nil,
                                 expecting identity: FileIdentity? = nil) -> Data? {
-        guard let file = openRegularFile(at: path, for: reader, expecting: identity) else { return nil }
-        return try? file.read(upToCount: fileContentsLimit + 1) ?? Data()
+        guard let opened = openRegularFile(at: path, for: reader, expecting: identity) else { return nil }
+        return try? opened.file.read(upToCount: fileContentsLimit + 1) ?? Data()
     }
 
     /// Bytes as UTF-8 text, up to ``fileContentsLimit``.
@@ -174,10 +175,10 @@ public class ProcessHelpers {
     ///   - reader: Who the file is read for: it's refused unless they could read it themselves
     ///     (``FileReader/canRead(_:of:)``). `nil` reads it as Mac Monitor.
     ///   - identity: The file the path must still name (``FileIdentity``), or `nil` for any.
-    /// - Returns: The open file, closed when it's released, or `nil` if the path doesn't name a regular file, it can't
-    ///   be opened, or the reader or identity refuses it.
+    /// - Returns: The open file, closed when it's released, and its `fstat`, or `nil` if the path doesn't name a
+    ///   regular file, it can't be opened, or the reader or identity refuses it.
     static func openRegularFile(at path: String, for reader: FileReader? = nil,
-                                expecting identity: FileIdentity? = nil) -> FileHandle? {
+                                expecting identity: FileIdentity? = nil) -> (file: FileHandle, info: stat)? {
         let path = path.droppingPrefix("file://")
         var info = stat()
         guard stat(path, &info) == 0, info.st_mode & S_IFMT == S_IFREG else { return nil }
@@ -186,6 +187,6 @@ public class ProcessHelpers {
         let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         guard fstat(descriptor, &info) == 0, info.st_mode & S_IFMT == S_IFREG, identity?.matches(info) ?? true,
               reader?.canRead(info, of: descriptor) ?? true else { return nil }
-        return file
+        return (file, info)
     }
 }
