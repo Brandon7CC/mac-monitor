@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import AppKit
 import SutroESFramework
 
 
@@ -35,6 +34,8 @@ struct SymbolPicker: View {
     private var picker: some View {
         let words = query.lowercased().split(whereSeparator: \.isWhitespace)
         let shown = Self.names.filter { name in words.allSatisfy { name.contains($0) } }
+        let typed = other.trimmingCharacters(in: .whitespaces)
+        let found = SymbolStandIn.exists(typed)
         return VStack(alignment: .leading, spacing: 10) {
             TextField("Search", text: $query, prompt: Text("Search symbols")).textFieldStyle(.roundedBorder)
             ScrollView {
@@ -54,12 +55,12 @@ struct SymbolPicker: View {
             Divider()
             HStack(spacing: 8) {
                 TextField("Other…", text: $other, prompt: Text("Other symbol name")).textFieldStyle(.roundedBorder)
-                    .font(.body.monospaced()).onSubmit { if Self.exists(other) { choose(other) } }
-                Image(systemName: Self.exists(other) ? other : "questionmark.square.dashed").frame(width: 20)
-                    .foregroundStyle(Self.exists(other) ? .primary : .secondary)
-                Button("Use") { choose(other) }.disabled(!Self.exists(other))
+                    .font(.body.monospaced()).onSubmit { if found { choose(typed) } }
+                Image(systemName: found ? typed : SymbolStandIn.unknown).frame(width: 20)
+                    .foregroundStyle(found ? .primary : .secondary)
+                Button("Use") { choose(typed) }.disabled(!found)
             }
-            if !other.isEmpty && !Self.exists(other) {
+            if !other.isEmpty && !found {
                 Text("No SF Symbol has that name.").font(.caption).foregroundStyle(.red)
             }
         }
@@ -69,15 +70,8 @@ struct SymbolPicker: View {
 
     /// - Parameter name: The symbol chosen, which closes the popover.
     private func choose(_ name: String) {
-        indicator.symbol = name.trimmingCharacters(in: .whitespaces)
+        indicator.symbol = name
         isShowing = false
-    }
-
-    /// - Parameter name: A symbol's name.
-    /// - Returns: Is there an SF Symbol by that name on this Mac?
-    static func exists(_ name: String) -> Bool {
-        let name = name.trimmingCharacters(in: .whitespaces)
-        return !name.isEmpty && NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil
     }
 
     /// The symbols the grid offers: every SF Symbol on this Mac, in the SF Symbols app's order. There's no public way

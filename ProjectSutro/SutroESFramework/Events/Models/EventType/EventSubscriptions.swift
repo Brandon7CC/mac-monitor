@@ -15,6 +15,18 @@ let sonoma = OperatingSystemVersion(majorVersion: 14, minorVersion: 0, patchVers
 let sequoia = OperatingSystemVersion(majorVersion: 15, minorVersion: 0, patchVersion: 0)
 /// macOS 15.4, the first to deliver `ES_EVENT_TYPE_NOTIFY_TCC_MODIFY`
 let sequoia15_4 = OperatingSystemVersion(majorVersion: 15, minorVersion: 4, patchVersion: 0)
+/// macOS 26.0 Tahoe version
+let tahoe = OperatingSystemVersion(majorVersion: 26, minorVersion: 0, patchVersion: 0)
+
+extension OperatingSystemVersion {
+    /// Is this version at least another, as `ProcessInfo.isOperatingSystemAtLeast(_:)` compares them?
+    ///
+    /// - Parameter version: The version needed.
+    /// - Returns: `true` if this version is `version` or later.
+    func isAtLeast(_ version: OperatingSystemVersion) -> Bool {
+        (majorVersion, minorVersion, patchVersion) >= (version.majorVersion, version.minorVersion, version.patchVersion)
+    }
+}
 
 
 // MARK: - Modeled events
@@ -112,11 +124,22 @@ struct ModeledEvent {
         .init(ES_EVENT_TYPE_NOTIFY_TCC_MODIFY, "hand.raised.fill", since: sequoia15_4, isDefault: true)
     ]
 
+    /// Each event's SF Symbol by its `ESTypes.h` name, as this Mac draws it (``symbols(on:)``).
+    static let symbols = symbols(on: ProcessInfo.processInfo.operatingSystemVersion)
+
     /// Each modeled event's SF Symbol by its `ESTypes.h` name, with those of the two Open Directory events Mac
-    /// Monitor names but doesn't model.
-    static let symbols = Dictionary(uniqueKeysWithValues: all.map { (eventTypeToString(from: $0.type), $0.symbol) })
-        .merging(["ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_SET": "slider.horizontal.2.square.on.square",
-                  "ES_EVENT_TYPE_NOTIFY_OD_DISABLE_USER": "person.crop.circle.badge.minus"]) { modeled, _ in modeled }
+    /// Monitor names but doesn't model, and of Mac Monitor's own network events (``MacMonitorEvent``).
+    ///
+    /// - Parameter os: The macOS that draws them.
+    /// - Returns: Each symbol, or its stand-in on a macOS older than it (``SymbolStandIn``).
+    static func symbols(on os: OperatingSystemVersion) -> [String: String] {
+        Dictionary(uniqueKeysWithValues: all.map { (eventTypeToString(from: $0.type), $0.symbol) })
+            .merging(["ES_EVENT_TYPE_NOTIFY_OD_ATTRIBUTE_SET": "slider.horizontal.2.square.on.square",
+                      "ES_EVENT_TYPE_NOTIFY_OD_DISABLE_USER": "person.crop.circle.badge.minus",
+                      MacMonitorEvent.new_flow.name: "network", MacMonitorEvent.flow_closed.name: "xmark.circle"],
+                     uniquingKeysWith: { modeled, _ in modeled })
+            .mapValues { SymbolStandIn.symbol($0, on: os) }
+    }
 }
 
 /// All the Endpoint Security events supported by Mac Monitor on this Mac, in ``ModeledEvent/all``'s order

@@ -53,7 +53,7 @@ final class EventSubscriptionsTests: XCTestCase {
     /// and this Mac's are ``supportedEvents``.
     func testSupportedEventsMatchTheHandListsOnEachMacOS() {
         for os in Self.gates {
-            let offered = ModeledEvent.all.filter { $0.since.map { Self.isAtLeast(os, $0) } ?? true }.map(\.type)
+            let offered = ModeledEvent.all.filter { $0.since.map(os.isAtLeast) ?? true }.map(\.type)
             XCTAssertEqual(Self.names(offered), Self.names(Self.handLists(on: os).supported), "\(os)")
         }
         let thisMac = Self.handLists(on: ProcessInfo.processInfo.operatingSystemVersion)
@@ -64,7 +64,7 @@ final class EventSubscriptionsTests: XCTestCase {
     /// and this Mac's are ``defaultEventSubscriptions``.
     func testDefaultSubscriptionsMatchTheHandListsOnEachMacOS() {
         for os in Self.gates {
-            let defaults = ModeledEvent.all.filter { $0.isDefault && $0.since.map { Self.isAtLeast(os, $0) } ?? true }
+            let defaults = ModeledEvent.all.filter { $0.isDefault && $0.since.map(os.isAtLeast) ?? true }
             XCTAssertEqual(Set(Self.names(defaults.map(\.type))), Set(Self.names(Self.handLists(on: os).defaults)),
                            "\(os)")
         }
@@ -87,12 +87,30 @@ final class EventSubscriptionsTests: XCTestCase {
     }
 
     /// Every event name, and two Mac Monitor doesn't know, shows the icon the `switch` gave it before
-    /// ``ModeledEvent/symbols``.
+    /// ``ModeledEvent/symbols`` on a macOS that draws them all, and the network events theirs. Each shows the icon
+    /// this Mac draws for it.
     func testIconsMatchTheSwitch() {
-        for name in esEventTypeNames + ["ES_EVENT_TYPE_LAST", ""] {
-            XCTAssertEqual(eventStringToImage(from: name), Self.switchIcons[name] ?? Self.unknownEventIcon, name)
+        XCTAssertEqual(ModeledEvent.symbols(on: tahoe), Self.icons)
+        let thisMac = ModeledEvent.symbols(on: ProcessInfo.processInfo.operatingSystemVersion)
+        XCTAssertEqual(ModeledEvent.symbols, thisMac)
+        for name in esEventTypeNames + MacMonitorEvent.allCases.map(\.name) + ["ES_EVENT_TYPE_LAST", ""] {
+            XCTAssertEqual(eventStringToImage(from: name), thisMac[name] ?? Self.unknownEventIcon, name)
         }
-        XCTAssertEqual(ModeledEvent.symbols.count, Self.switchIcons.count)
+    }
+
+    /// A macOS without an event's icon shows its stand-in, and every other icon the `switch` gave. macOS 13 lacks
+    /// five of them. macOS 14 and 15 lack the two for Unix domain sockets.
+    func testEachMacOSShowsItsStandIns() {
+        let sockets = ["ES_EVENT_TYPE_NOTIFY_UIPC_BIND": "line.diagonal.arrow",
+                       "ES_EVENT_TYPE_NOTIFY_UIPC_CONNECT": "arrow.left.arrow.right"]
+        let macOS13 = sockets.merging(["ES_EVENT_TYPE_NOTIFY_PTY_GRANT": "terminal",
+                                       "ES_EVENT_TYPE_NOTIFY_MPROTECT": "shield.lefthalf.filled",
+                                       "ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE": "shield.slash.fill"]) { $1 }
+        let deploymentTarget = OperatingSystemVersion(majorVersion: 13, minorVersion: 1, patchVersion: 0)
+        let standIns = [(deploymentTarget, macOS13)] + zip(Self.gates, [macOS13, sockets, sockets, sockets, [:]])
+        for (os, shown) in standIns {
+            XCTAssertEqual(ModeledEvent.symbols(on: os), Self.icons.merging(shown) { $1 }, "\(os)")
+        }
     }
 }
 
@@ -139,6 +157,9 @@ private extension EventSubscriptionsTests {
         ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_PETITION, ES_EVENT_TYPE_NOTIFY_AUTHORIZATION_JUDGEMENT,
         ES_EVENT_TYPE_NOTIFY_OD_CREATE_GROUP
     ]
+
+    /// Every event's icon: the `switch`'s, and Mac Monitor's own network events', which every macOS draws.
+    static let icons = switchIcons.merging(["new_flow": "network", "flow_closed": "xmark.circle"]) { $1 }
 
     /// The icon each event name got from the `switch`, which had no others.
     static let switchIcons = [
@@ -206,21 +227,10 @@ private extension EventSubscriptionsTests {
     static func handLists(on os: OperatingSystemVersion) -> (supported: [es_event_type_t],
                                                               defaults: [es_event_type_t]) {
         let tccModify = OperatingSystemVersion(majorVersion: 15, minorVersion: 4, patchVersion: 0)
-        let added = (isAtLeast(os, sonoma) ? sonomaEvents : [])
-            + (isAtLeast(os, sequoia) ? [ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE] : [])
-            + (isAtLeast(os, tccModify) ? [ES_EVENT_TYPE_NOTIFY_TCC_MODIFY] : [])
+        let added = (os.isAtLeast(sonoma) ? sonomaEvents : [])
+            + (os.isAtLeast(sequoia) ? [ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE] : [])
+            + (os.isAtLeast(tccModify) ? [ES_EVENT_TYPE_NOTIFY_TCC_MODIFY] : [])
         return (coreEvents + added, coreDefaults + added)
-    }
-
-    /// Is one macOS version at least another, as `ProcessInfo.isOperatingSystemAtLeast(_:)` compares them?
-    ///
-    /// - Parameters:
-    ///   - os: The version running.
-    ///   - version: The version needed.
-    /// - Returns: `true` if `os` is `version` or later.
-    static func isAtLeast(_ os: OperatingSystemVersion, _ version: OperatingSystemVersion) -> Bool {
-        (os.majorVersion, os.minorVersion, os.patchVersion)
-            >= (version.majorVersion, version.minorVersion, version.patchVersion)
     }
 
     /// Names event types, so a failure says which.
