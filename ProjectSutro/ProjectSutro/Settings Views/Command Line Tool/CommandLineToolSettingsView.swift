@@ -70,7 +70,7 @@ struct CommandLineToolSettingsView: View {
             + #"event.exec.script_content CONTAINS[c] "password") OR "#
             + #"(event.exec.command_line CONTAINS[c] "display dialog" AND "#
             + #"event.exec.command_line CONTAINS[c] "password")'"#,
-         true, "An osascript script asking for a password, as macOS stealers do"),
+         true, "An osascript script asking for a password"),
         (#"macmonitor stream exec --predicate 'process.audit_token.euid == 0 "#
             + #"AND NOT event.exec.target.signing_id BEGINSWITH "com.apple."'"#,
          true, "Programs root runs that Apple didn't sign"),

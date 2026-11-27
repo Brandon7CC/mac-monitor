@@ -65,7 +65,7 @@ sudo macmonitor stream all | jq -c .       # every event, as JSONL
 sudo macmonitor stream exec --for 30s      # 30 seconds of execs
 sudo macmonitor stream close --every close # every close, not only those of modified files
 
-# an osascript script asking for a password, as macOS stealers do
+# an osascript script asking for a password
 sudo macmonitor stream exec --target '/osascript$' --predicate '
     (event.exec.script_content CONTAINS[c] "display dialog" AND event.exec.script_content CONTAINS[c] "password") OR
     (event.exec.command_line CONTAINS[c] "display dialog" AND event.exec.command_line CONTAINS[c] "password")'

@@ -51,7 +51,7 @@ struct CommandLineAccessSection: View {
     }
 
     /// What turning it on exposes.
-    static let exposure = "And any program they run, malware included, with no password."
+    static let exposure = "And any program they run, with no password."
 
     /// When turning it off applies.
     static let enforcement = "Turning it off applies to new streams."
