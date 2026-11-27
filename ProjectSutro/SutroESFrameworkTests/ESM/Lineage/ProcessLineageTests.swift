@@ -228,6 +228,50 @@ final class ProcessLineageTests: XCTestCase {
                        "What was read stands until the exec is reported")
     }
 
+    /// A process the table doesn't know, whose event names no parent, as a network flow's doesn't, is read from the
+    /// system with its parents. A flow that connects before the table hears of its process's fork still has its
+    /// ancestors, and the next lookup reads nothing.
+    func testALookupWithNoParentReadsTheProcess() {
+        var asked: [Int32] = []
+        let running: [Int32: (program: ProcessProgram, parent: Int32)] = [
+            700: (program(700, 3, "/usr/bin/curl"), 100), 100: (program(100, 1, "/bin/zsh"), 1),
+        ]
+        lineage = ProcessLineage { pid in
+            asked.append(pid)
+            return running[pid]
+        }
+        lineage.seed([(program(100, 1, "/bin/zsh"), 1)])
+        XCTAssertEqual(lineage.ancestors(of: key(700, 3), reading: true).map(\.path), ["/bin/zsh"])
+        XCTAssertEqual(asked, [700, 100])
+        asked = []
+        XCTAssertEqual(lineage.ancestors(of: key(700, 3), reading: true).count, 1)
+        XCTAssertEqual(lineage.ancestors(of: key(1, 7), reading: true), [])
+        XCTAssertEqual(asked, [], "Nothing is read for a known process or launchd")
+    }
+
+    /// A process's command line is read by its own key. One the table knows is answered at once, a forked child's
+    /// being its parent's. One it doesn't know is read from the system, with its parents. One whose pid the table
+    /// knows only another program of is waited for, and never answered with that program's.
+    func testACommandLineIsReadByItsOwnKey() {
+        var asked: [Int32] = []
+        let running: [Int32: (program: ProcessProgram, parent: Int32)] = [
+            700: (program(700, 3, "/usr/bin/curl"), 100), 100: (program(100, 1, "/bin/zsh"), 1),
+        ]
+        lineage = ProcessLineage(reader: { pid in
+            asked.append(pid)
+            return running[pid]
+        }, patience: 0.05, waitBudget: 30)
+        lineage.seed([(program(100, 1, "/bin/zsh"), 1), (program(810, 1, "/usr/bin/python3"), 100)])
+        lineage.fork(key(800, 1), from: key(100, 1))
+        XCTAssertEqual(lineage.commandLine(of: key(800, 1), at: 0), "/bin/zsh --flag", "A fork runs its parent's")
+        XCTAssertEqual(asked, [])
+        XCTAssertEqual(lineage.commandLine(of: key(700, 3), at: 0), "/usr/bin/curl --flag")
+        XCTAssertEqual(asked, [700, 100])
+        XCTAssertNil(lineage.commandLine(of: key(810, 2), at: 0), "Not python3's")
+        XCTAssertNil(lineage.commandLine(of: key(1, 7), at: 0))
+        XCTAssertNil(ProcessLineage().commandLine(of: key(700, 3), at: 0), "No reader, no read")
+    }
+
     /// A parent that's gone from the system too is waited for: its fork is on its way, and the lookup has the
     /// ancestors once the table is told. One the table is never told of is given up on when the lookup's patience
     /// runs out, counted, and kept by its key alone, so the process's next event neither looks nor waits.

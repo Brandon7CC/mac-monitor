@@ -88,8 +88,9 @@ final class PredicateAudienceKeyPathTests: XCTestCase {
         XCTAssertEqual(completions("li"), ["lineage", "LIKE"])
         XCTAssertEqual(completions("lineage."), [
             "lineage.parent", "lineage.grandparent", "lineage.origin", "lineage.paths", "lineage.command_lines",
-            "lineage.signing_ids", "lineage.team_ids", "lineage.codesigning_types",
+            "lineage.signing_ids", "lineage.team_ids", "lineage.codesigning_types", "lineage.process",
         ])
+        XCTAssertEqual(completions("lineage.process."), ["lineage.process.command_line"])
         XCTAssertEqual(completions("event.exec != nil AND ANY launched_by.pa"),
                        ["launched_by.parent", "launched_by.paths"])
         XCTAssertEqual(completions("lineage.origin."), [
@@ -123,7 +124,8 @@ final class PredicateAudienceKeyPathTests: XCTestCase {
         XCTAssertEqual(reached, Set(LineageField.all.map(\.path)))
         let items = try XCTUnwrap(PredicateText.completions(in: "lineage.", at: 8, for: .indicator)).items
         XCTAssertEqual(items.map(\.kind), Array(repeating: .key, count: items.count))
-        XCTAssertEqual(items.map(\.type), ["object", "object", "object", "array", "array", "array", "array", "array"])
+        XCTAssertEqual(items.map(\.type),
+                       ["object", "object", "object", "array", "array", "array", "array", "array", "object"])
         XCTAssertTrue(items.allSatisfy { $0.summary?.isEmpty == false })
         let leaf = try XCTUnwrap(PredicateText.completions(in: "lineage.parent.sign", at: 19, for: .indicator)).items
         XCTAssertEqual(leaf.map(\.type), ["string"])
