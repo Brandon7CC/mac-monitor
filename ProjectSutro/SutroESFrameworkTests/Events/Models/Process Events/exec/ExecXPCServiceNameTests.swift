@@ -10,8 +10,8 @@ import XCTest
 
 
 // MARK: - XPC service name
-/// Pins how an exec event's XPC service name is found in its environment, which decides whether Event Facts offer
-/// the XPC sheet.
+/// Pins how an exec event's XPC service name is found in its environment, which decides whether Event Facts show
+/// an XPC service name.
 final class ExecXPCServiceNameTests: XCTestCase {
     /// launchd's `0` (not an XPC service), an empty value, and no entry at all are no name.
     func testNoServiceName() {

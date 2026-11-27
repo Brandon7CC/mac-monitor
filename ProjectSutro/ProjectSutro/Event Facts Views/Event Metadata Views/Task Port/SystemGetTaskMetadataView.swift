@@ -15,7 +15,7 @@ struct SystemGetTaskMetadataView: View {
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
         if let event = esSystemEvent.event.get_task {
-            EventFactsCard(message: esSystemEvent, targetAuditToken: event.target.audit_token_string) {
+            EventFactsCard(message: esSystemEvent, target: event.target) {
                 FactsBox {
                     FactRow(name: "Type", value: "\(event.type_string) (\(event.type))")
                     ProcessView(message: esSystemEvent, process: event.target, ageText: event.target.processAgeText)

@@ -77,35 +77,30 @@ struct GroupLeaderView: View {
 }
 
 // MARK: Parent proc event view
+/// The parent process at a glance, under its heading in Message details: its name, signing ID and File Quarantine
+/// type. A network flow's process without an executable has an unknown name and no File Quarantine type.
 struct ParentProcessMetadata: View {
     var selectedMessage: ESMessage
-    var isExpanded: Bool
-    
+
     var body: some View {
         ScrollView(.horizontal) {
             FactRow {
-                Fact("Process name", selectedMessage.process.executable?.name ?? "")
+                Fact("Process name", selectedMessage.process.executable?.name)
                 if let parentSigningID = selectedMessage.process.signing_id.nonEmpty {
                     Fact("Signing ID", parentSigningID)
                 }
-                if selectedMessage.process.file_quarantine_type != "DISABLED" {
-                    FileQuarantineLabelView(type: selectedMessage.process.file_quarantine_type)
+                if let quarantineType = selectedMessage.process.quarantineType {
+                    FileQuarantineLabelView(type: quarantineType)
                 }
             }
-        }
-        
-        
-        if isExpanded {
-            let path = selectedMessage.process.executable?.path ?? ""
-            FactRow(name: "Process path", value: path)
-                .help(path)
         }
     }
 }
 
 // MARK: - Message details
 /// An event's message details, atop the Metadata and Parent tabs: when it happened, its message version and the
-/// thread it came from, then anything the tab adds in the same box.
+/// thread it came from, then anything the tab adds in the same box. A network flow has no Endpoint Security message,
+/// so no version or thread.
 struct MessageDetailsHeader<Content: View>: View {
     /// The event.
     let message: ESMessage
@@ -113,7 +108,7 @@ struct MessageDetailsHeader<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     var body: some View {
-        Label("**Message details**", systemImage: "envelope.badge.shield.half.filled")
+        Label("**Message details**", systemImage: "envelope")
             .font(.title2)
 
         GroupBox {
@@ -121,9 +116,11 @@ struct MessageDetailsHeader<Content: View>: View {
                 Label("**Message timestamp:**", systemImage: "clock")
                 EventTimeView(message: message)
             }
-            FactRow {
-                Fact("Version", String(message.version), systemImage: "number")
-                Fact("Thread ID", message.thread.map { String($0.thread_id) } ?? "None", systemImage: "scribble")
+            if !message.isNetworkFlow {
+                FactRow {
+                    Fact("Version", String(message.version), systemImage: "number")
+                    Fact("Thread ID", message.thread.map { String($0.thread_id) } ?? "None", systemImage: "scribble")
+                }
             }
 
             content()
@@ -142,24 +139,17 @@ struct SystemTargetProcessView: View {
             MessageDetailsHeader(message: selectedMessage) {
                 Divider()
 
-                HStack {
-                    Text("**Parent process**")
-                        .font(.title3)
-
-                    Button("\(parentProcessExpanded ? "Hide" : "Show") parent details") {
-                        parentProcessExpanded.toggle()
+                /// Closed, it shows the parent's name and signing ID under its heading.
+                DisclosureGroup(isExpanded: $parentProcessExpanded) {
+                    parentDetails
+                } label: {
+                    VStack(alignment: .leading) {
+                        Text("**Parent process**")
+                            .font(.title3)
+                        ParentProcessMetadata(selectedMessage: selectedMessage)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                ParentProcessMetadata(
-                    selectedMessage: selectedMessage,
-                    isExpanded: parentProcessExpanded
-                )
-
-                if parentProcessExpanded {
-                    parentDetails
-                }
+                .disclosureGroupStyle(ChevronDisclosureStyle())
             }
 
             Divider()
@@ -169,11 +159,16 @@ struct SystemTargetProcessView: View {
         }.textSelection(.enabled)
     }
 
-    /// The parent process's code signing type, age, user, PID and group ID, and its Unix and launched-by parents.
+    /// The parent process's path, code signing type, age, user, PID and group ID, and its Unix and launched-by
+    /// parents. A network flow's process leaves out a group that wasn't read, and its unknown path, code signing type
+    /// and user say so.
     @ViewBuilder
     private var parentDetails: some View {
         let process = selectedMessage.process
+        let path = process.executable?.path
         VStack(alignment: .leading) {
+            FactRow(name: "Process path", value: path)
+                .help(path ?? "")
             FactRow {
                 Fact("Code signing type", process.codeSigningTypeLabel(version: selectedMessage.version))
                 /// The process row may be shared: its age is the event's, as the Parent tab reads it.
@@ -188,7 +183,9 @@ struct SystemTargetProcessView: View {
                 /// As wide as the user, so the PID and group ID follow it.
                 UserFact(process: process).fixedSize()
                 Fact("PID", String(process.pid))
-                Fact("GID", String(process.group_id))
+                if let groupID = process.groupID {
+                    Fact("GID", String(groupID))
+                }
             }
 
             // MARK: Parents

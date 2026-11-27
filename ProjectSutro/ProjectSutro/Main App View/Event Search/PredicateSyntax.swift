@@ -13,7 +13,6 @@ import SutroESFramework
 /// How a predicate's text is colored, as Xcode colors code, in light and dark.
 enum PredicateSyntax {
     static let font = monospaced(size: 12)
-    static let boldFont = monospaced(size: 12, weight: .semibold)
     static let keyColor = dynamic(light: 0x0F68A0, dark: 0x67B7A4)
     static let keywordColor = dynamic(light: 0x9B2393, dark: 0xFC5FA3)
     static let stringColor = dynamic(light: 0xC41A16, dark: 0xFC6A5D)

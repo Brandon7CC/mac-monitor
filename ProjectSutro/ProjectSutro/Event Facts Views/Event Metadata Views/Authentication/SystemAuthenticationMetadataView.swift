@@ -21,7 +21,7 @@ struct SystemAuthenticationMetadataView: View {
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
         if let event = message.event.authentication {
-            EventFactsCard(message: message, targetAuditToken: event.instigator?.audit_token_string,
+            EventFactsCard(message: message, target: event.instigator,
                            labelTint: event.success ? .green : .orange) {
                 FactsBox {
                     FactRow(name: "Result", value: event.success ? "Succeeded" : "Failed")
