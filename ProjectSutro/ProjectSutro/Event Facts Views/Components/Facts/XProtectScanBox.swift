@@ -10,63 +10,28 @@ import SutroESFramework
 
 
 // MARK: - XProtect scan
-/// What scanning a written file, or the script an exec runs, with Apple's XProtect rules found, as a section of its
-/// own below the event's facts, titled as Details is and drawn with the same facts: how many rules matched and how
-/// many of them XProtect only reports, a list of them (``XProtectMatchList``), and the XProtect version. A file that
-/// wasn't scanned says why.
+/// The XProtect rules that matched a written file, or the script an exec runs, as a section of its own below the
+/// event's facts, titled as Details is and drawn with the same facts: how many rules matched and how many of them
+/// XProtect only reports, a list of them (``XProtectMatchList``), and the XProtect version. It's shown only for a scan
+/// a rule matched (``YaraScan/matched``).
 struct XProtectScanBox: View {
     /// The scan.
     let scan: YaraScan
-    /// Is it the scan of the script an exec runs, not of a written file?
-    var isScript = false
 
     var body: some View {
         Divider()
         Label("**XProtect scan**", systemImage: "xmark.shield").font(.title2).padding([.leading], 5.0)
         FactsBox {
-            if scan.status != YaraScan.scanned {
-                FactRow {
-                    Fact("Not scanned", scan.status)
-                    InfoTip(text: Self.reason(scan.status, isScript: isScript))
+            FactRow {
+                Fact("Rules matched", String(scan.rules.count))
+                if !scan.report_only.isEmpty {
+                    Text("\(scan.report_only.count) report only").foregroundStyle(.secondary)
                 }
-            } else if scan.rules.isEmpty {
-                FactRow(name: "Rules matched", value: "None")
-            } else {
-                FactRow {
-                    Fact("Rules matched", String(scan.rules.count))
-                    if !scan.report_only.isEmpty {
-                        Text("\(scan.report_only.count) report only").foregroundStyle(.secondary)
-                    }
-                }
-                XProtectMatchList(scan: scan)
             }
+            XProtectMatchList(scan: scan)
             if let version = scan.xprotect_version {
                 FactRow(name: "XProtect version", value: version)
             }
-        }
-    }
-
-    /// Why a file wasn't scanned, in words.
-    ///
-    /// - Parameters:
-    ///   - status: The scan's status.
-    ///   - isScript: Is it the script an exec runs?
-    /// - Returns: The reason.
-    static func reason(_ status: String, isScript: Bool = false) -> String {
-        switch status {
-        case YaraScan.tooLarge: return "The file is larger than the 32 MB the scanner reads."
-        case YaraScan.overBudget: return "The scanner had spent its share of the CPU."
-        case YaraScan.busy: return "The scan couldn't finish within half a second, behind the files before it."
-        case YaraScan.unreadable where isScript:
-            return "The script was gone, not downloaded, or one its process couldn't read."
-        case YaraScan.unreadable: return "The file was gone, not downloaded, or one its writer couldn't read."
-        case YaraScan.changed where isScript: return "The script was written again before it was read."
-        case YaraScan.changed: return "The file was written again before it was read. The close of that write is "
-            + "scanned."
-        case YaraScan.unavailable: return "Apple's XProtect rules couldn't be loaded on this Mac."
-        case YaraScan.timedOut: return "The scan ran past its time."
-        case YaraScan.tooManyMatches: return "So many strings matched that the scan stopped."
-        default: return "The scan says \(status)."
         }
     }
 }

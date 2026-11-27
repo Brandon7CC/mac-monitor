@@ -21,10 +21,10 @@ struct SystemTargetExecProcMetadataView: View {
         if let event = selectedMessage.event.exec {
             EventFactsCard(message: selectedMessage, target: event.target) {
                 processFacts(event)
-                /// What scanning the script the exec runs with Apple's XProtect rules found, when Mac Monitor scanned
-                /// it: below the facts that name the script.
-                if let scan = event.yara_scan {
-                    XProtectScanBox(scan: scan, isScript: true)
+                /// The XProtect rules that matched the script the exec runs, when any did: below the facts that name
+                /// the script.
+                if let scan = event.yara_scan, scan.matched {
+                    XProtectScanBox(scan: scan)
                 }
                 codeSigningFacts(event)
             }

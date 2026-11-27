@@ -52,6 +52,9 @@ public struct YaraScan: Codable, Hashable, Sendable {
     /// rules.
     public var report_only: [String]
 
+    /// Did any of XProtect's rules match? Event Facts shows a scan only then.
+    public var matched: Bool { !rules.isEmpty }
+
     /// - Parameters:
     ///   - status: Whether it was scanned, or why not.
     ///   - xprotectVersion: The XProtect version whose rules scanned it.
