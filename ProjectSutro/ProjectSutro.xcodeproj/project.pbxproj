@@ -760,6 +760,7 @@
 		ADB10F62746737E02850BAB1 /* FlowMutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 189C3BCAEDE4C8A5EE6AFFAD /* FlowMutes.swift */; };
 		83E76724D6D4807B775B8AE7 /* CaptureSession+Flows.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894A3819FF8B69AB6B2DBF6D /* CaptureSession+Flows.swift */; };
 		CED0D83C10D5DEDF3A4F32A4 /* CaptureSession+Scanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = B91BA7766859D36DF320EF2C /* CaptureSession+Scanning.swift */; };
+		1C0DE0000000000000000014 /* CaptureLane+State.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C0DE0000000000000000013 /* CaptureLane+State.swift */; };
 		D670C69BDBBF003781CE5A38 /* StreamCommand+Flows.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C21856D9532E95F115B9316 /* StreamCommand+Flows.swift */; };
 		0576AE1B56EF4ED1F37D45FA /* FlowLaneStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C22DEC0F05B928FF0388FCA /* FlowLaneStatistics.swift */; };
 		5C97E0C02043EEA0227EBD62 /* CommandLineParser+Stream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 972F1EAD32F9F70301EE0F61 /* CommandLineParser+Stream.swift */; };
@@ -1651,6 +1652,7 @@
 		189C3BCAEDE4C8A5EE6AFFAD /* FlowMutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowMutes.swift; sourceTree = "<group>"; };
 		894A3819FF8B69AB6B2DBF6D /* CaptureSession+Flows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CaptureSession+Flows.swift"; sourceTree = "<group>"; };
 		B91BA7766859D36DF320EF2C /* CaptureSession+Scanning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CaptureSession+Scanning.swift"; sourceTree = "<group>"; };
+		1C0DE0000000000000000013 /* CaptureLane+State.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CaptureLane+State.swift"; sourceTree = "<group>"; };
 		0C21856D9532E95F115B9316 /* StreamCommand+Flows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamCommand+Flows.swift"; sourceTree = "<group>"; };
 		8C22DEC0F05B928FF0388FCA /* FlowLaneStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLaneStatistics.swift; sourceTree = "<group>"; };
 		972F1EAD32F9F70301EE0F61 /* CommandLineParser+Stream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CommandLineParser+Stream.swift"; sourceTree = "<group>"; };
@@ -3911,6 +3913,7 @@
 				CA970000000000000000001A /* CaptureConfiguration.swift */,
 				CA970000000000000000002C /* CaptureStatistics.swift */,
 				CA9700000000000000000016 /* CaptureLane.swift */,
+				1C0DE0000000000000000013 /* CaptureLane+State.swift */,
 				F17E7E00000000000000000F /* ReadingThreadPolicy.swift */,
 				CA970000000000000000002E /* SequenceGapCounter.swift */,
 				7E5A1C0000000000000F0001 /* EventHold.swift */,
@@ -5262,6 +5265,7 @@
 				0576AE1B56EF4ED1F37D45FA /* FlowLaneStatistics.swift in Sources */,
 				D670C69BDBBF003781CE5A38 /* StreamCommand+Flows.swift in Sources */,
 				CED0D83C10D5DEDF3A4F32A4 /* CaptureSession+Scanning.swift in Sources */,
+				1C0DE0000000000000000014 /* CaptureLane+State.swift in Sources */,
 				83E76724D6D4807B775B8AE7 /* CaptureSession+Flows.swift in Sources */,
 				ADB10F62746737E02850BAB1 /* FlowMutes.swift in Sources */,
 				024A7314D99EDFABDCAA873A /* FlowLane.swift in Sources */,

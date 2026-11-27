@@ -12,7 +12,9 @@ xcodebuild test -project ProjectSutro/ProjectSutro.xcodeproj -scheme SutroESFram
 The folders mirror `SutroESFramework`'s, so a test sits at the same path as the code it tests: the tests for
 `ESM/Capture/Event Classes/EventClassTable.swift` are in `ESM/Capture/Event Classes/EventClassTableTests.swift`, and an
 event's own tests are in its folder under `Events/Models`. A test of several files goes with the one it's mostly about.
-The launched-by parent's tests are all in `ESM/LaunchedByParent`, though its code spans capture, export and import.
+The launched-by parent's tests are in `ESM/LaunchedByParent`, though its code spans capture, export and import. The
+hold that keeps app execs for Launch Services is the exception: its tests are with `EventHold` in
+`ESM/Capture/Capture Session`.
 Benchmarks sit beside the tests of the code they time too, named `*PerformanceTests` (see [Performance](#performance)).
 
 | Folder | What's there |
