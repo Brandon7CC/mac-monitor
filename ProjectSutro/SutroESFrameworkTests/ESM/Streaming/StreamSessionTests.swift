@@ -14,7 +14,8 @@ import os
 // MARK: - Streams over XPC
 /// Pins the Security Extension's side of `macmonitor` over a real NSXPC connection: a stream delivers its events, a
 /// stop delivers everything captured before answering, streams are capped and refused cleanly, the saved mutes reach
-/// a stream unless it asked for none, and a connection that goes away frees everything.
+/// a stream unless it asked for none, batches go at user initiated whatever thread emitted their events, and a
+/// connection that goes away frees everything.
 final class StreamSessionTests: XCTestCase {
     private var savedMutes = SavedMuteSet(testing: MuteStore(directory: URL(fileURLWithPath: "/nonexistent")))
     
@@ -283,6 +284,29 @@ final class StreamSessionTests: XCTestCase {
         XCTAssertEqual(summary.skippedWhilePaused, 1_000)
         XCTAssertEqual(summary.delivered, reader.events.count)
         XCTAssertEqual(summary.captured, summary.delivered + summary.droppedWhileBehind)
+    }
+
+    /// Events emitted from a utility thread, as a held close and the events behind it are once its scan answers, still
+    /// reach `macmonitor` at user initiated. Every reply sends the next batch at the QoS it came at, so a stream sent
+    /// at utility fell behind a busy Mac and paused capture.
+    func testEventsEmittedAtUtilityAreDeliveredAtUserInitiated() throws {
+        let harness = StreamHarness(savedMutes: savedMutes)
+        let reader = TestStreamReader()
+        let connection = harness.connect(reader: reader)
+        defer { connection.invalidate() }
+        XCTAssertEqual(connection.send(stream(mutes: false))?.status, .ok)
+        let factory = try XCTUnwrap(harness.factories.first)
+        let emitted = DispatchSemaphore(value: 0)
+        DispatchQueue.global(qos: .utility).async {
+            self.deliverExits(1...3_000, to: factory)
+            emitted.signal()
+        }
+        XCTAssertEqual(emitted.wait(timeout: .now() + 10), .success)
+        XCTAssertTrue(waitUntil { reader.events.count == 3_000 })
+        XCTAssertFalse(reader.batchQoS.isEmpty)
+        XCTAssertEqual(Set(reader.batchQoS), [.userInitiated], "\(reader.batchQoS)")
+        let summary = try XCTUnwrap(connection.send(StreamRequest(.stop).encoded())?.summary)
+        XCTAssertEqual(summary.delivered, 3_000)
     }
 }
 

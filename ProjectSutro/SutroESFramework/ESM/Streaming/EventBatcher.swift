@@ -38,6 +38,10 @@ public final class EventBatcher {
         
         /// `macmonitor`: 4 batches in flight and 2,000 events in memory (about 10 MB at 4.9 KB an event), then pause.
         public static let commandLine = Limits(maxBatchesInFlight: 4, memoryLimit: 2_000)
+
+        /// The most events a batcher with nothing in flight takes at once before the overflow policy decides: a full
+        /// batch for each one in flight, then the memory. 4,000 for `macmonitor`.
+        public var capacity: Int { maxBatchesInFlight * batchSize + memoryLimit }
     }
     
     /// The queue every call, timer, and completion runs on.

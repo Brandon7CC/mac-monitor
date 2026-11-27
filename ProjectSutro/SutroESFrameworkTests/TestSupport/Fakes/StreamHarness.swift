@@ -39,6 +39,9 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
     ///   - closed: Called from a session's queue each time one closes, after it has said its clients are free.
     ///   - holdsSyncs: Every stream's clients hold their syncs from the start, so a stop waits until the test releases
     ///     them (``FakeEndpointSecurityClient/releaseSyncs()``).
+    ///   - flows: Reads every stream's network flows, and reports its status, such as a ``FlowClientHarness``'s
+    ///     client. `nil` records none.
+    ///   - scanner: Scans for every stream that asks to (`--yara-scan`). `nil` scans nothing.
     init(savedMutes: SavedMuteSet, capacity: Int = SensorXPC.maxCommandLineStreams, admits: Bool = true,
          grant: CommandLineGrant? = nil, admitting: ((NSXPCConnection?) -> CommandLineGrant)? = nil,
          refusals: [Int: NewClientResult] = [:], serializer: any EventSerializing = StubSerializer.globalSequence,
@@ -46,7 +49,8 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
          appCapture: @escaping StreamService.AppCapture = { $0(SensorReport.App(connected: false, recording: false),
                                                               false) },
          probe: @escaping () -> NewClientResult = { .success }, updates: SensorUpdating? = nil,
-         closed: @escaping () -> Void = {}, holdsSyncs: Bool = false) {
+         closed: @escaping () -> Void = {}, holdsSyncs: Bool = false, flows: NetworkStatisticsClient? = nil,
+         scanner: FileScanner? = nil) {
         let (made, releases) = (madeFactories, releaseCount)
         let fixed = grant ?? (admits ? .everything : .refused(CommandLineAccess.needsRoot))
         service = StreamService(savedMutes: savedMutes, savedIndicators: savedIndicators,
@@ -57,9 +61,9 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
             factory.holdsSyncs = holdsSyncs
             made.append(factory)
             return try CaptureSession(configuration, clients: factory, serializer: serializer,
-                                      sensorID: { "SENSOR" }, emit: emit)
+                                      sensorID: { "SENSOR" }, scanner: scanner, flows: flows, emit: emit)
         }, released: { releases.withLock { $0 += 1 } }, closed: closed, appCapture: appCapture, probe: probe,
-                                updates: updates)
+                                updates: updates, flows: flows)
         super.init()
         listener.delegate = self
         listener.activate()
@@ -114,12 +118,13 @@ final class StreamHarness: NSObject, NSXPCListenerDelegate {
 
 
 // MARK: - Reader
-/// `macmonitor`'s ``StreamReaderProtocol`` in a test: it keeps every event and every saved mute set change, and
-/// replies to each batch right away, or only when the test says so.
+/// `macmonitor`'s ``StreamReaderProtocol`` in a test: it keeps every event, the QoS each batch came at, and every
+/// saved mute set change, and replies to each batch right away, or only when the test says so.
 final class TestStreamReader: NSObject, StreamReaderProtocol {
     /// The events and changes received, and the replies held.
     private struct State {
         var events: [String] = []
+        var batchQoS: [DispatchQoS.QoSClass] = []
         var changes: [MuteSetChange?] = []
         var held: [() -> Void] = []
         var holds = false
@@ -130,6 +135,11 @@ final class TestStreamReader: NSObject, StreamReaderProtocol {
     /// Every event received, in order, as text.
     var events: [String] {
         state.withLockUnchecked { $0.events }
+    }
+    
+    /// The QoS each batch was received at, in order. NSXPC carries the sender's QoS to the reader.
+    var batchQoS: [DispatchQoS.QoSClass] {
+        state.withLockUnchecked { $0.batchQoS }
     }
     
     /// The saved mute set changes the stream was told about, in order: `nil` for one that didn't read.
@@ -157,14 +167,16 @@ final class TestStreamReader: NSObject, StreamReaderProtocol {
         held.forEach { $0() }
     }
     
-    /// Keep the batch's events, then reply unless replies are held.
+    /// Keep the batch's events and its QoS, then reply unless replies are held.
     ///
     /// - Parameters:
     ///   - events: The batch.
     ///   - reply: The batch's reply.
     func receive(events: [Data], reply: @escaping () -> Void) {
+        let qos = DispatchQoS.QoSClass(rawValue: qos_class_self()) ?? .unspecified
         let holding = state.withLockUnchecked { state -> Bool in
             state.events += events.map { String(decoding: $0, as: UTF8.self) }
+            state.batchQoS.append(qos)
             if state.holds { state.held.append(reply) }
             return state.holds
         }

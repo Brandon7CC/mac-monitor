@@ -24,6 +24,12 @@ import os
 /// Whoever needs every event submitted so far, as a stream does before it answers a stop, calls ``flush()`` on the
 /// queue.
 ///
+/// **QoS:** a run is delivered at ``qos``, whatever thread submits its first event. A block would otherwise run at
+/// the QoS of the thread that scheduled it, and a held close is released with the events behind it on the scanner's
+/// utility queue. Each batch's reply sends the next batch at the QoS the batch was sent at, so a stream sent at
+/// utility fell behind a busy Mac and paused capture. Dispatch passes on at most user initiated, so no run is
+/// delivered lower than before.
+///
 /// **Threading:** ``submit(_:)`` is safe from any thread. `deliver` and ``flush()`` run on the queue.
 final class EventHandoff: @unchecked Sendable {
     /// What the lock guards.
@@ -36,6 +42,8 @@ final class EventHandoff: @unchecked Sendable {
 
     /// The most room kept for the next run, so one burst doesn't hold its memory for good.
     private static let keptCapacity = 512
+    /// The QoS every run is delivered at.
+    static let qos = DispatchQoS.userInitiated
     private let state = OSAllocatedUnfairLock(uncheckedState: State())
     private let queue: DispatchQueue
     private let deliver: ([Data]) -> Void
@@ -64,7 +72,7 @@ final class EventHandoff: @unchecked Sendable {
             return true
         }
         guard schedules else { return }
-        queue.asyncAfter(deadline: .now() + delay) { [self] in flush() }
+        queue.asyncAfter(deadline: .now() + delay, qos: Self.qos, flags: .enforceQoS) { [self] in flush() }
     }
 
     /// Deliver every event submitted so far, now. Call on the queue.
