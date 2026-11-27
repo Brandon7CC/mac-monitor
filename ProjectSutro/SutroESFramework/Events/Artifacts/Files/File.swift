@@ -50,4 +50,12 @@ public struct File: Identifiable, Codable, Hashable {
         self.path_truncated = file.path_truncated
         self.stat = Stat(from: file.stat)
     }
+
+    /// A file known by its path alone, such as a network flow's executable, with a zero `stat`.
+    ///
+    /// - Parameter path: The file's path.
+    init(path: String) {
+        self.path = path
+        self.stat = Stat(from: Darwin.stat())
+    }
 }

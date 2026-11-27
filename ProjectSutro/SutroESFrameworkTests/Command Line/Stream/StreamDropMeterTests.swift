@@ -41,6 +41,20 @@ final class StreamDropMeterTests: XCTestCase {
         XCTAssertEqual(meter.takeReport().map(\.eventClass), [.file])
     }
     
+    /// A network flow has no Endpoint Security client and no sequence numbers, so it counts toward nothing, even one
+    /// that carried numbers, and no report names its lane.
+    func testNetworkFlowsAreLeftOut() {
+        let meter = StreamDropMeter()
+        meter.observe(header(ES_EVENT_TYPE_NOTIFY_EXEC, seq: 1, global: 1))
+        for global in [7, 9, 12] {
+            meter.observe(header(MacMonitorEvent.new_flow.type, seq: global, global: global))
+        }
+        meter.observe(header(MacMonitorEvent.flow_closed.type, global: nil))
+        meter.observe(header(ES_EVENT_TYPE_NOTIFY_EXEC, seq: 2, global: 2))
+        XCTAssertEqual(meter.dropped, 0)
+        XCTAssertEqual(meter.takeReport(), [])
+    }
+
     /// A gap is reported by client and, from `seq_num`, by type. Each report holds only the drops since the last.
     func testReportsAreByClientAndTypeAndOnlyNew() {
         let meter = StreamDropMeter()

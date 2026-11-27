@@ -110,23 +110,27 @@ struct SchemaObject {
     }
 }
 
-/// An event type Mac Monitor records, and its event's object.
+/// An event type Mac Monitor records, and its event's object: an Endpoint Security event, or one of Mac Monitor's own
+/// (``MacMonitorEvent``).
 struct SchemaEvent {
     /// The event's type.
     let type: es_event_type_t
     /// The event's object.
     let object: SchemaObject
     
-    /// The event's key under `event`, as eslogger names it: `exec`, `od_create_user`.
-    var name: String { constant.dropFirst(SchemaEvent.prefix.count).lowercased() }
-    /// The type's SDK name, which Mac Monitor writes as `es_event_type`: `ES_EVENT_TYPE_NOTIFY_EXEC`.
+    /// The event's key under `event`, as eslogger names it: `exec`, `od_create_user`, or `new_flow`.
+    var name: String { EventNames.shortName(constant) }
+    /// The type's SDK name, which Mac Monitor writes as `es_event_type`: `ES_EVENT_TYPE_NOTIFY_EXEC`. A Mac Monitor
+    /// event's own name, `new_flow`, which its record doesn't write.
     var constant: String { eventTypeToString(from: type) }
     /// The type's number, which eslogger writes as `event_type`.
     var number: Int { Int(type.rawValue) }
     /// The name of the event's object in `$defs`: `exec_event`.
     var definition: String { "\(name)_event" }
+    /// Is it an Endpoint Security event, rather than one of Mac Monitor's own?
+    var isEndpointSecurity: Bool { MacMonitorEvent(type) == nil }
     /// What every notify event's SDK name starts with.
-    static let prefix = "ES_EVENT_TYPE_NOTIFY_"
+    static let prefix = EventNames.notifyPrefix
     
     /// - Parameters:
     ///   - type: The event's type.

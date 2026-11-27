@@ -106,6 +106,10 @@ public enum EventType: Hashable, Codable {
     
     // MARK: Gatekeeper events
     case gatekeeper_user_override(GatekeeperUserOverrideEvent)
+
+    // MARK: Network events, Mac Monitor's own
+    case new_flow(NetworkFlowEvent)
+    case flow_closed(NetworkFlowEvent)
     
     case unknown
 }

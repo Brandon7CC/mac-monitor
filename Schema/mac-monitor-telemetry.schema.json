@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:mac-monitor:telemetry:1.2.0",
-  "title": "Mac Monitor telemetry 1.2.0",
-  "description": "The records Mac Monitor writes: its JSONL and pretty exports, and the macmonitor command line's output. Each record is eslogger's JSON for an Endpoint Security event plus Mac Monitor's enrichments; every key is marked x-mac-monitor-origin: eslogger or mac-monitor, and everything under a Mac Monitor key is Mac Monitor's. One kind of line is not an event's record: a process snapshot, which has a process_snapshot key and follows #/$defs/process_snapshot_record. Each GitHub release attaches the schema as Mac-Monitor.telemetry.schema.json, and the latest is at https://github.com/Brandon7CC/mac-monitor/releases/latest/download/Mac-Monitor.telemetry.schema.json.",
+  "$id": "urn:mac-monitor:telemetry:1.3.0",
+  "title": "Mac Monitor telemetry 1.3.0",
+  "description": "The records Mac Monitor writes: its JSONL and pretty exports, and the macmonitor command line's output. Each record is eslogger's JSON for an Endpoint Security event plus Mac Monitor's enrichments; every key is marked x-mac-monitor-origin: eslogger or mac-monitor, and everything under a Mac Monitor key is Mac Monitor's. One kind of line is not an event's record: a process snapshot, which has a process_snapshot key and follows #/$defs/process_snapshot_record. A network flow's record, whose event key is new_flow or flow_closed, is Mac Monitor's own: it follows #/$defs/network_record, and its process is a flow_process. Each GitHub release attaches the schema as Mac-Monitor.telemetry.schema.json, and the latest is at https://github.com/Brandon7CC/mac-monitor/releases/latest/download/Mac-Monitor.telemetry.schema.json.",
   "type": "object",
   "properties": {
     "action": {
@@ -221,7 +221,7 @@
       "description": "The version of Mac Monitor's telemetry schema the record follows.",
       "x-mac-monitor-origin": "mac-monitor",
       "type": "string",
-      "const": "1.2.0"
+      "const": "1.3.0"
     },
     "thread": {
       "x-mac-monitor-origin": "eslogger",
@@ -926,6 +926,11 @@
         "was_mapped_writable": {
           "x-mac-monitor-origin": "eslogger",
           "type": "boolean"
+        },
+        "yara_scan": {
+          "description": "What scanning the written file with Apple's XProtect rules found, on the Mac that recorded the event, when it recorded it. A modified close carries it while scanning is on, for a Mach-O executable, library, bundle, kernel extension or dynamic linker, a #! script, a shell script or AppleScript by its extension, or compiled AppleScript or JXA, by `file_type` and `mach_o_type`. Since telemetry 1.3.0. Absent when the file isn't one that's scanned, scanning was off, or the event wasn't recorded by Mac Monitor 3.3.0 or later.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/yara_scan"
         }
       },
       "required": ["file_type", "mach_o_type", "modified", "target", "was_mapped_writable"],
@@ -1093,6 +1098,11 @@
           "x-mac-monitor-origin": "eslogger",
           "$ref": "#/$defs/exit_event"
         },
+        "flow_closed": {
+          "description": "A network flow, Mac Monitor's own event. Absent when the record is another type's.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/flow_closed_event"
+        },
         "fork": {
           "description": "Absent when the record is another type's.",
           "x-mac-monitor-origin": "eslogger",
@@ -1157,6 +1167,11 @@
           "description": "Absent when the record is another type's.",
           "x-mac-monitor-origin": "eslogger",
           "$ref": "#/$defs/mprotect_event"
+        },
+        "new_flow": {
+          "description": "A network flow, Mac Monitor's own event. Absent when the record is another type's.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/new_flow_event"
         },
         "od_attribute_value_add": {
           "description": "Absent when the record is another type's.",
@@ -1458,6 +1473,11 @@
         "target": {
           "x-mac-monitor-origin": "eslogger",
           "$ref": "#/$defs/process"
+        },
+        "yara_scan": {
+          "description": "What scanning the script the exec runs with Apple's XProtect rules found, on the Mac that recorded the event, when it recorded it. An exec carries it while scanning is on, for `script`, for the script an interpreter's arguments name (`resolved_script_path`), and for the Contents/Resources/Scripts/main.scpt of an AppleScript or JXA applet whose executable in Contents/MacOS it runs, whatever its name. It describes that script, not the exec's target. XPScripts.yr applies to a script osascript runs and to an applet's. Since telemetry 1.3.0. Absent when the exec runs no script Mac Monitor found, scanning was off, or the event wasn't recorded by Mac Monitor 3.3.0 or later.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/yara_scan"
         }
       },
       "required": [
@@ -1514,6 +1534,220 @@
         }
       },
       "required": ["name", "path", "path_truncated", "stat"],
+      "additionalProperties": false
+    },
+    "flow_closed_event": {
+      "description": "A network flow that closed, with the kernel's byte totals.",
+      "type": "object",
+      "properties": {
+        "bytes_inbound_count": {
+          "description": "The bytes the socket received in its life, as the kernel counts them. A flow open before the capture counts from before it. Absent when the kernel's final counts were lost.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "bytes_outbound_count": {
+          "description": "The bytes the socket sent in its life. Absent when the kernel's final counts were lost.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "direction": {
+          "description": "Which side opened the flow, as the kernel says from macOS 14. Absent when the kernel doesn't say, as on macOS 13 and for most UDP.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["inbound", "outbound"]
+        },
+        "first_party_site": {
+          "description": "The site the request was made for, as the process gave it. What the process asked for, from its own network parameters, not observed DNS. Absent when the process named none.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "identifier": {
+          "description": "The flow's identifier: the same in its new_flow and its flow_closed while one capture reads the kernel's socket. Reading it again, after every stream and Mac Monitor stopped recording flows, makes new identifiers for flows open across it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
+        },
+        "local_endpoint": {
+          "description": "The local address and port. Absent when the kernel gives none.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/flow_endpoint"
+        },
+        "remote_address_scope": {
+          "description": "Where the remote address is in the address space, from IANA's special-purpose address registries: public, private (RFC 1918 and IPv6 unique local), shared (100.64.0.0/10, for carrier-grade NAT), link_local, loopback, multicast, or reserved (documentation, benchmarking and other addresses never routed across the internet, and IPv6 outside 2000::/3). An IPv4-mapped address, or one in NAT64's well-known prefix 64:ff9b::/96, has its IPv4 address's scope.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["public", "private", "shared", "link_local", "loopback", "multicast", "reserved"]
+        },
+        "remote_endpoint": {
+          "description": "The remote address and port. An IPv4-mapped IPv6 address is written as IPv4.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/flow_endpoint"
+        },
+        "remote_hostname": {
+          "description": "The name of the host the flow is to, with no trailing dot. For a Network.framework or NSURLSession connection, it's the host the process asked for. For a BSD socket, as curl and Python use, it's the name the process set on the socket, or else the name mDNSResponder last resolved the remote address to for the same program, which can come from an earlier run of it. Absent when the process named none, and mDNSResponder resolved no name to the address for it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "socket_family": {
+          "description": "The socket's address family: 2 (AF_INET) or 30 (AF_INET6).",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "socket_family_string": {
+          "description": "The name of `socket_family`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "socket_protocol": {
+          "description": "The socket's protocol: 6 (IPPROTO_TCP) or 17 (IPPROTO_UDP).",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "socket_protocol_string": {
+          "description": "The name of `socket_protocol`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "socket_type": {
+          "description": "The socket's type: 1 (SOCK_STREAM) for TCP, 2 (SOCK_DGRAM) for UDP and QUIC.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "socket_type_string": {
+          "description": "The name of `socket_type`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "source_app": {
+          "description": "The app a delegated socket acts for, such as the app that asked mDNSResponder for a lookup. Absent when the socket isn't delegated.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/flow_process"
+        },
+        "start_time": {
+          "description": "When the socket was made.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{9}Z$"
+        },
+        "url": {
+          "description": "A Network.framework connection's URL: its scheme, host and port, and its path unless Record URL paths is off. Never a user, password, query or fragment. A path segment shaped like a secret (a bot or webhook token, a JWT, 32 or more hex or mixed letters and digits) is <redacted>. At most 2048 bytes. What the process asked for, from its own network parameters, not observed DNS. Absent when the flow isn't a Network.framework TCP or QUIC connection that named one.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identifier",
+        "remote_address_scope",
+        "remote_endpoint",
+        "socket_family",
+        "socket_family_string",
+        "socket_protocol",
+        "socket_protocol_string",
+        "socket_type",
+        "socket_type_string",
+        "start_time"
+      ],
+      "additionalProperties": false
+    },
+    "flow_endpoint": {
+      "description": "An address and port.",
+      "type": "object",
+      "properties": {
+        "address": {
+          "description": "The address, as inet_ntop writes it, with no scope.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "port": {
+          "description": "The port.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        }
+      },
+      "required": ["address", "port"],
+      "additionalProperties": false
+    },
+    "flow_process": {
+      "description": "A network flow's process: some of a process's keys, under the same names. A key the socket and Mac Monitor's lineage didn't give is left out, never made up.",
+      "type": "object",
+      "properties": {
+        "audit_token": {
+          "description": "The process's audit token. Absent when neither a read of the running process nor Mac Monitor's lineage gave it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/audit_token"
+        },
+        "audit_token_string": {
+          "description": "`audit_token` as one line of text. Absent when neither a read of the running process nor Mac Monitor's lineage gave it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "codesigning_type": {
+          "description": "How the executable is signed. Absent when its signature wasn't read.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["PLATFORM", "DEVELOPER_ID", "APP_STORE", "ADHOC", "UNSIGNED"]
+        },
+        "euid": {
+          "description": "The effective user ID, from `audit_token`. Absent when neither a read of the running process nor Mac Monitor's lineage gave it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "euid_human": {
+          "description": "The name of the effective user. Absent when there's no `audit_token`, or the user has no name on the Mac that wrote the record.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "executable": {
+          "description": "The process's executable. Absent when neither a read of the running process nor Mac Monitor's lineage gave it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "The last component of `path`.",
+              "x-mac-monitor-origin": "mac-monitor",
+              "type": "string"
+            },
+            "path": {
+              "description": "The executable's path.",
+              "x-mac-monitor-origin": "mac-monitor",
+              "type": "string"
+            }
+          },
+          "required": ["name", "path"],
+          "additionalProperties": false
+        },
+        "group_id": {
+          "description": "The process group. Absent when the process was gone before its socket was first reported.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "pid": {
+          "description": "The process ID: 0 for the kernel.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "ppid": {
+          "description": "The parent's process ID. Absent when the process was gone before its socket was first reported.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "session_id": {
+          "description": "The session. Absent when the process wasn't running when its socket was first reported.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "signing_id": {
+          "description": "The process's signing ID. Absent when the code is unsigned, or its signature wasn't read.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "team_id": {
+          "description": "The process's team ID. Absent when the code has none, or its signature wasn't read.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        }
+      },
+      "required": ["pid"],
       "additionalProperties": false
     },
     "fork_event": {
@@ -1676,7 +1910,7 @@
           "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
         },
         "matched": {
-          "description": "What made it match: the comparisons of its rule the event passed, at most 16. For a sequence, those of its steps this event matched, as it completed it. Only comparisons that say what the event has are listed, not a != a value or anything under NOT. null when none of its comparisons is one of those, and when evaluated_by is export. Since telemetry 1.2.0.",
+          "description": "What made it match: the comparisons of its rule the event passed, at most 16. For a sequence, those of its steps this event matched, as it completed it. Only comparisons that say what the event has are listed, not a != a value outside ANY, or anything under NOT. ANY lists the first string of the array that matched, with != too since telemetry 1.3.0. null when none of its comparisons is one of those, and when evaluated_by is export. Since telemetry 1.2.0.",
           "x-mac-monitor-origin": "mac-monitor",
           "anyOf": [
             {
@@ -1689,12 +1923,12 @@
                 "type": "object",
                 "properties": {
                   "field": {
-                    "description": "The key path the comparison read, as the rule names it, such as event.exec.target.executable.path, or lineage.paths for one of the process's ancestors.",
+                    "description": "The key path the comparison read, as the rule names it, such as event.exec.target.executable.path, lineage.paths for one of the process's ancestors, or event.close.yara_scan.rules.@count for an array's size since telemetry 1.3.0.",
                     "x-mac-monitor-origin": "mac-monitor",
                     "type": "string"
                   },
                   "value": {
-                    "description": "The value the event had there: for ANY, the one of the array's strings that matched. A string's first 256 characters. A whole number past 2^53 is rounded.",
+                    "description": "The value the event had there: for ANY, the one of the array's strings that matched, and for .@count, the array's size. A string's first 256 characters. A whole number past 2^53 is rounded.",
                     "x-mac-monitor-origin": "mac-monitor",
                     "anyOf": [
                       {
@@ -2598,6 +2832,212 @@
         }
       },
       "required": ["address", "flags", "hex_address", "kb_size", "protection", "size"],
+      "additionalProperties": false
+    },
+    "network_record": {
+      "description": "A network flow's record, Mac Monitor's own: a record whose event key is new_flow or flow_closed follows this definition, not the schema's root. It has no version, schema_version, sequence numbers, thread, action, event_type or es_event_type, which mean Endpoint Security.",
+      "type": "object",
+      "properties": {
+        "boot_session_uuid": {
+          "description": "Which start of the Mac the event is from: the kernel's boot session UUID (`sysctl kern.bootsessionuuid`), new at every start. A pid and a pid version, and so a process key in `ancestor_keys`, mean one process only within a boot session, so join records on `sensor_id`, `boot_session_uuid` and the key. null in a trace that didn't record it, such as eslogger's.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"],
+          "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
+        },
+        "context": {
+          "description": "A summary of the flow, as Mac Monitor's event list shows it: the URL, else the host and port, and for flow_closed the bytes in.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "event": {
+          "description": "The flow, under its event's key.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/event"
+        },
+        "indicators": {
+          "description": "The indicators in this Mac's saved set (Settings > Indicators, `macmonitor indicators`) that this event matched, evaluated by the Security Extension as it captured the event (`evaluated_by: security_extension`). When the Security Extension did not evaluate the event, these are the indicators Mac Monitor matched as it wrote the record (`evaluated_by: export`). Empty when none matched. The indicators the Security Extension could not rule out are in `indicators_undetermined`. Absent when nothing was evaluated: the writer had no indicators to match, or the record is from Mac Monitor before 3.1.0.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/indicator"
+          }
+        },
+        "indicators_undetermined": {
+          "description": "The indicators in this Mac's saved set that the Security Extension could not rule out for this event, in the set's order, at most 32. `reason` says why: `scan_budget` when evaluating the event's values exceeded the Security Extension's per-event scan budget, and `value_limit` when a value that isn't ASCII was longer than the 64 KiB the Security Extension compares. Each may or may not match. While `indicators` has fewer than 32 entries and `indicators_undetermined` fewer than 32, an indicator in neither did not match. A list at its limit may have been cut short, and then an indicator in neither may match. A consumer that must not miss a match should treat both lists as possible matches; one that wants only certain matches reads `indicators`. Absent when every indicator was decided, or the record wasn't evaluated by the Security Extension (`evaluated_by: export` never writes it).",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/indicator_undetermined"
+          }
+        },
+        "macOS": {
+          "description": "The macOS version of the Mac that recorded the event: 27.0 (Build 26A1).",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "mach_time": {
+          "description": "The same time on Endpoint Security's clock (mach_absolute_time), so flows sort with Endpoint Security's events.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "process": {
+          "description": "The socket's last user.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/flow_process"
+        },
+        "sensor_id": {
+          "description": "The Sensor ID of the Mac Monitor that recorded the event.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "sip_status": {
+          "description": "System Integrity Protection on the Mac that recorded the event, as csrutil status names it: enabled, disabled, or custom when only some protections are off. null in a trace that didn't record it, such as eslogger's.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "enum": ["custom", "disabled", "enabled"]
+            }
+          ]
+        },
+        "target_path": {
+          "description": "A flow has no path.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "const": "Not supported"
+        },
+        "telemetry_version": {
+          "description": "The version of Mac Monitor's telemetry schema the record follows.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "const": "1.3.0"
+        },
+        "time": {
+          "description": "When the flow was seen to connect, for new_flow, or to close, as eslogger writes a time: the kernel's time for the report it came from.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{9}Z$"
+        }
+      },
+      "required": [
+        "boot_session_uuid",
+        "context",
+        "event",
+        "macOS",
+        "mach_time",
+        "process",
+        "sensor_id",
+        "sip_status",
+        "target_path",
+        "telemetry_version",
+        "time"
+      ],
+      "additionalProperties": false
+    },
+    "new_flow_event": {
+      "description": "A network flow that opened, as the kernel's network statistics socket reported it.",
+      "type": "object",
+      "properties": {
+        "direction": {
+          "description": "Which side opened the flow, as the kernel says from macOS 14. Absent when the kernel doesn't say, as on macOS 13 and for most UDP.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["inbound", "outbound"]
+        },
+        "first_party_site": {
+          "description": "The site the request was made for, as the process gave it. What the process asked for, from its own network parameters, not observed DNS. Absent when the process named none.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "identifier": {
+          "description": "The flow's identifier: the same in its new_flow and its flow_closed while one capture reads the kernel's socket. Reading it again, after every stream and Mac Monitor stopped recording flows, makes new identifiers for flows open across it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
+        },
+        "local_endpoint": {
+          "description": "The local address and port. Absent when the kernel gives none.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/flow_endpoint"
+        },
+        "remote_address_scope": {
+          "description": "Where the remote address is in the address space, from IANA's special-purpose address registries: public, private (RFC 1918 and IPv6 unique local), shared (100.64.0.0/10, for carrier-grade NAT), link_local, loopback, multicast, or reserved (documentation, benchmarking and other addresses never routed across the internet, and IPv6 outside 2000::/3). An IPv4-mapped address, or one in NAT64's well-known prefix 64:ff9b::/96, has its IPv4 address's scope.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": ["public", "private", "shared", "link_local", "loopback", "multicast", "reserved"]
+        },
+        "remote_endpoint": {
+          "description": "The remote address and port. An IPv4-mapped IPv6 address is written as IPv4.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/flow_endpoint"
+        },
+        "remote_hostname": {
+          "description": "The name of the host the flow is to, with no trailing dot. For a Network.framework or NSURLSession connection, it's the host the process asked for. For a BSD socket, as curl and Python use, it's the name the process set on the socket, or else the name mDNSResponder last resolved the remote address to for the same program, which can come from an earlier run of it. Absent when the process named none, and mDNSResponder resolved no name to the address for it.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "socket_family": {
+          "description": "The socket's address family: 2 (AF_INET) or 30 (AF_INET6).",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "socket_family_string": {
+          "description": "The name of `socket_family`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "socket_protocol": {
+          "description": "The socket's protocol: 6 (IPPROTO_TCP) or 17 (IPPROTO_UDP).",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "socket_protocol_string": {
+          "description": "The name of `socket_protocol`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "socket_type": {
+          "description": "The socket's type: 1 (SOCK_STREAM) for TCP, 2 (SOCK_DGRAM) for UDP and QUIC.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "integer"
+        },
+        "socket_type_string": {
+          "description": "The name of `socket_type`.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        },
+        "source_app": {
+          "description": "The app a delegated socket acts for, such as the app that asked mDNSResponder for a lookup. Absent when the socket isn't delegated.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/flow_process"
+        },
+        "start_time": {
+          "description": "When the socket was made.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{9}Z$"
+        },
+        "url": {
+          "description": "A Network.framework connection's URL: its scheme, host and port, and its path unless Record URL paths is off. Never a user, password, query or fragment. A path segment shaped like a secret (a bot or webhook token, a JWT, 32 or more hex or mixed letters and digits) is <redacted>. At most 2048 bytes. What the process asked for, from its own network parameters, not observed DNS. Absent when the flow isn't a Network.framework TCP or QUIC connection that named one.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identifier",
+        "remote_address_scope",
+        "remote_endpoint",
+        "socket_family",
+        "socket_family_string",
+        "socket_protocol",
+        "socket_protocol_string",
+        "socket_type",
+        "socket_type_string",
+        "start_time"
+      ],
       "additionalProperties": false
     },
     "od_attribute_value_add_event": {
@@ -3837,6 +4277,11 @@
         "source": {
           "x-mac-monitor-origin": "eslogger",
           "$ref": "#/$defs/file"
+        },
+        "yara_scan": {
+          "description": "What scanning the written file with Apple's XProtect rules found, on the Mac that recorded the event, when it recorded it. A rename carries the scan of the modified close that wrote the file it moves, while scanning is on, as a file written under one name and renamed into place is. Nothing is scanned for a rename itself. Since telemetry 1.3.0. Absent when the file isn't one that's scanned, scanning was off, or the event wasn't recorded by Mac Monitor 3.3.0 or later.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "$ref": "#/$defs/yara_scan"
         }
       },
       "required": [
@@ -4407,6 +4852,59 @@
         }
       },
       "required": ["service_domain_type", "service_domain_type_string", "service_name"],
+      "additionalProperties": false
+    },
+    "yara_scan": {
+      "description": "What scanning a file with Apple's XProtect rules found: a written file, or the script an exec runs. The rules are the ones the recording Mac's XProtect has, run with the YARA that macOS ships, and a match is what XProtect's rules say of the file. XProtect.yara applies to every file scanned, and XPScripts.yr to AppleScript and JXA, as XProtect itself applies them.",
+      "type": "object",
+      "properties": {
+        "names": {
+          "description": "XProtect's name for each rule in `rules`, in the same order, from the rule's description, such as MACOS.OSASCRIPT.BOZO. A rule without a description is named by its identifier.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "report_only": {
+          "description": "The rules in `rules` that XProtect only reports and never acts on (match_type = 4), such as its hunting rules, by identifier.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "description": "Every rule that matched, by its identifier, such as XProtect_MACOS_OSASCRIPT_BOZO. Empty when none did, or the file wasn't scanned.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "description": "scanned, or why the file wasn't: too_large (over 32 MB), over_budget (the scanner's share of the CPU was spent), busy (the scan couldn't finish within half a second behind the files before it), unreadable (gone, dataless, or not readable by the process that wrote or runs it), changed (written again before it was read, so the close of that write is scanned), unavailable (Apple's rules couldn't be loaded on that Mac), timed_out or too_many_matches (libyara stopped the scan). The next exec of a script that was over_budget or busy asks again.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": "string",
+          "enum": [
+            "busy",
+            "changed",
+            "over_budget",
+            "scanned",
+            "timed_out",
+            "too_large",
+            "too_many_matches",
+            "unavailable",
+            "unreadable"
+          ]
+        },
+        "xprotect_version": {
+          "description": "The XProtect version whose rules scanned it, such as 5377. null when no rules were loaded.",
+          "x-mac-monitor-origin": "mac-monitor",
+          "type": ["string", "null"]
+        }
+      },
+      "required": ["names", "report_only", "rules", "status", "xprotect_version"],
       "additionalProperties": false
     }
   }

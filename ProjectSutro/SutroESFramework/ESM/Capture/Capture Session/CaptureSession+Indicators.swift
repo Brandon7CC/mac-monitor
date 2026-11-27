@@ -28,6 +28,7 @@ extension CaptureSession {
         self.indicators = indicators
         chains = indicators.map { SessionChains(for: $0, reusing: chains, budget: chainBudget) }
         lanes.forEach { $0.setIndicators(indicators, chains: chains) }
+        flowLane?.setIndicators(indicators, chains: chains)
         Self.logger.log("""
             \(self.label, privacy: .public): evaluating \(Self.describe(indicators), privacy: .public).
             """)

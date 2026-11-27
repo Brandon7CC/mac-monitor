@@ -1,0 +1,1 @@
+{nstat_counts="nstat_rxpackets"Q"nstat_rxbytes"Q"nstat_txpackets"Q"nstat_txbytes"Q"nstat_cell_rxbytes"Q"nstat_cell_txbytes"Q"nstat_wifi_rxbytes"Q"nstat_wifi_txbytes"Q"nstat_wired_rxbytes"Q"nstat_wired_txbytes"Q"nstat_rxduplicatebytes"I"nstat_rxoutoforderbytes"I"nstat_txretransmit"I"nstat_connectattempts"I"nstat_connectsuccesses"I"nstat_min_rtt"I"nstat_avg_rtt"I"nstat_var_rtt"I}

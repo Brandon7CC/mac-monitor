@@ -40,6 +40,7 @@ integer) is untouched. The telemetry version is independent of the app's and fol
 | 1.0.0 | 3.0.0 | The first schema. |
 | 1.1.0 | 3.1.0 | Adds the keys below, and removes none. |
 | 1.2.0 | 3.2.0 | Adds ATT&CK v19's tactics to `tactic` and `tactic_id`, and removes nothing. |
+| 1.3.0 | 3.3.0 | Adds `yara_scan` to modified closes, renames and execs, and the network events `new_flow` and `flow_closed`, and removes nothing. |
 
 ### Added in 1.1.0
 
@@ -59,6 +60,28 @@ ATT&CK v19 split Defense Evasion into Stealth, which kept its identity, TA0005, 
 indicator's `tactic` can be `Stealth` or `Defense Impairment`, and its `tactic_id` `TA0112`. A record Mac Monitor 3.2
 or later writes never names Defense Evasion, and `TA0005` is Stealth in it. `Defense Evasion` stays a valid `tactic`,
 for records written before.
+
+### Added in 1.3.0
+
+| Where | Keys | What they hold |
+|---|---|---|
+| Modified `close`, `rename` | `yara_scan`: `status`, `xprotect_version`, `rules`, `names`, `report_only` | What scanning the written file with Apple's XProtect rules found: whether it was scanned, the XProtect version, the rules that matched with XProtect's names for them, and those XProtect only reports. |
+| `exec` | `yara_scan`, as for a close | What scanning the script the exec runs found: `script`, the script an interpreter's arguments name, or an AppleScript or JXA applet's `main.scpt`. |
+| `new_flow`, `flow_closed` | `identifier`, `remote_endpoint`, `remote_address_scope`, `local_endpoint`, `remote_hostname`, `url`, `first_party_site`, `direction`, `socket_family`, `socket_type`, `socket_protocol` and their `_string`s, `source_app`, `start_time`, and for `flow_closed` `bytes_inbound_count`, `bytes_outbound_count` | A network flow that opened or closed, as the kernel's network statistics socket reported it, and the process it's from as a `flow_process`. |
+
+`yara_scan` is read from the recording Mac when the event is recorded, while scanning is on. A rename carries the
+scan of the close that wrote the file it moves. An exec's describes the script it runs, not its target. It's absent
+when the file isn't one that's scanned, the exec runs no script Mac Monitor found, scanning was off, or Mac Monitor
+3.3.0 or later didn't record the event. An indicator's `matched` also lists the first string an
+`ANY ... !=` comparison found.
+
+A network flow's record is Mac Monitor's own and follows `#/$defs/network_record`, not the root: it has no `version`,
+`schema_version`, sequence numbers, `thread`, `action`, `event_type` or `es_event_type`. Its process has only the
+keys the socket and Mac Monitor's lineage gave, under a process's names. The URL and first-party site are what the
+process asked for, and so is a Network.framework connection's hostname. A BSD socket's hostname is the name
+mDNSResponder last resolved its remote address to for the same program, unless the process set one. Mac Monitor reads
+no DNS traffic. `remote_address_scope` says where the remote address is, from IANA's special-purpose registries:
+`public`, `private`, `shared`, `link_local`, `loopback`, `multicast` or `reserved`.
 
 Each key's `description` in the schema says how it's derived and when it's `null`. Three things hold across them:
 

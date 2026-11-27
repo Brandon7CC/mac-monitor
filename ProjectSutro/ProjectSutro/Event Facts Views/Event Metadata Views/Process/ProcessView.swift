@@ -53,12 +53,12 @@ extension ESProcess {
     /// code signing type doesn't, so it shows the type.
     ///
     /// - Parameter version: The message version of the event the process is in.
-    /// - Returns: The label.
-    func codeSigningTypeLabel(version: Int32) -> String {
+    /// - Returns: The label, or `nil` for a process without one, as a network flow's without an executable is.
+    func codeSigningTypeLabel(version: Int32) -> String? {
         if version >= 10, cs_validation_category != 10, let category = cs_validation_category_string {
             return "\(category.droppingPrefix("ES_CS_VALIDATION_CATEGORY_")) (\(cs_validation_category))"
         }
-        return codesigning_type
+        return codesigning_type.isEmpty ? nil : codesigning_type
     }
 }
 
@@ -78,8 +78,8 @@ struct ProcessStartFacts: View {
             if let ageText {
                 Fact("Process age", ageText, systemImage: "hourglass")
             }
-            if process.file_quarantine_type != "DISABLED" {
-                FileQuarantineLabelView(type: process.file_quarantine_type)
+            if let quarantineType = process.quarantineType {
+                FileQuarantineLabelView(type: quarantineType)
             }
         }
     }
@@ -118,7 +118,8 @@ struct ProcessIDFacts<Trailing: View>: View {
 
 
 // MARK: - Signing ID
-/// A process's signing ID, or that its code isn't signed at all.
+/// A process's signing ID, or that its code isn't signed at all. It's Unknown for a network flow's process whose
+/// signature wasn't read.
 struct SigningIDFact: View {
     /// The process.
     let process: ESProcess
@@ -126,11 +127,13 @@ struct SigningIDFact: View {
     var body: some View {
         if let signingID = process.signing_id.nonEmpty, signingID != "Unknown" {
             FactRow(name: "Process signing ID", value: signingID)
-        } else {
+        } else if process.isSigningKnown {
             GroupBox {
                 Text("Code object is not signed at all")
                     .frame(alignment: .leading)
             }
+        } else {
+            FactRow(name: "Process signing ID", value: nil)
         }
     }
 }

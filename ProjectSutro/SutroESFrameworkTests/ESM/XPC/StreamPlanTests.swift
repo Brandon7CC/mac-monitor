@@ -25,6 +25,32 @@ final class StreamPlanTests: XCTestCase {
         XCTAssertFalse(try StreamPlan(StreamOptions(appliesSavedMutes: false)).appliesSavedMutes)
     }
     
+    /// A stream scans written files only when its request asks, and a request from a `macmonitor` before 3.3.0,
+    /// which never names it, doesn't.
+    func testScanningIsAskedFor() throws {
+        XCTAssertFalse(try StreamPlan(StreamOptions()).scansWrittenFiles)
+        XCTAssertTrue(try StreamPlan(StreamOptions(scansWrittenFiles: true)).scansWrittenFiles)
+        let older = Data(#"{"events":[],"appliesSavedMutes":true}"#.utf8)
+        XCTAssertFalse(try JSONDecoder().decode(StreamOptions.self, from: older).scansWrittenFiles)
+        let asked = try JSONEncoder().encode(StreamOptions(scansWrittenFiles: true))
+        XCTAssertTrue(try JSONDecoder().decode(StreamOptions.self, from: asked).scansWrittenFiles)
+    }
+
+    /// A stream may name the two flow events, which no default includes. URL paths are kept unless the request
+    /// says not to, and a request from a `macmonitor` before 3.3.0, which never names them, keeps them.
+    func testFlowsAreNamedAndKeepTheirURLPaths() throws {
+        let plan = try StreamPlan(StreamOptions(events: ["new_flow", "flow_closed", "ES_EVENT_TYPE_NOTIFY_EXEC"]))
+        XCTAssertEqual(plan.events, [MacMonitorEvent.new_flow.type, MacMonitorEvent.flow_closed.type,
+                                     ES_EVENT_TYPE_NOTIFY_EXEC])
+        XCTAssertFalse(try StreamPlan(StreamOptions()).events.contains { MacMonitorEvent($0) != nil })
+        XCTAssertTrue(plan.recordsURLPaths)
+        XCTAssertFalse(try StreamPlan(StreamOptions(recordsURLPaths: false)).recordsURLPaths)
+        let older = Data(#"{"events":[],"appliesSavedMutes":true}"#.utf8)
+        XCTAssertTrue(try JSONDecoder().decode(StreamOptions.self, from: older).recordsURLPaths)
+        let asked = try JSONEncoder().encode(StreamOptions(recordsURLPaths: false))
+        XCTAssertFalse(try JSONDecoder().decode(StreamOptions.self, from: asked).recordsURLPaths)
+    }
+
     /// Each event is kept once, in the order it was first named.
     func testDuplicatesAreDroppedInOrder() throws {
         let names = ["ES_EVENT_TYPE_NOTIFY_FORK", "ES_EVENT_TYPE_NOTIFY_EXEC", "ES_EVENT_TYPE_NOTIFY_FORK"]

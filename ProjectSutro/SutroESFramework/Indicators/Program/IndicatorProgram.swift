@@ -189,9 +189,14 @@ extension IndicatorProgram: CustomStringConvertible {
         case .truth:
             return node.count == 0 ? "FALSEPREDICATE" : "TRUEPREDICATE"
         case .eventType:
-            let names = node.range.map { IndicatorValue.literal(eventTypeName(constants[$0])[...]) }
-            return node.op == .in ? "es_event_type IN {" + names.joined(separator: ", ") + "}"
-                : "es_event_type \(Self.symbol(of: node.op)) \(names[0])"
+            let names = node.range.map { eventTypeName(constants[$0]) }
+            guard names.contains(where: { MacMonitorEvent(name: $0) != nil }) else {
+                let literals = names.map { IndicatorValue.literal($0[...]) }
+                return node.op == .in ? "es_event_type IN {" + literals.joined(separator: ", ") + "}"
+                    : "es_event_type \(Self.symbol(of: node.op)) \(literals[0])"
+            }
+            let tests = names.map { describeTypeTest($0, present: node.op != .notEqualTo) }
+            return tests.count == 1 ? tests[0] : "(" + tests.joined(separator: " OR ") + ")"
         case .compare, .anyCompare:
             let lead = node.kind == .anyCompare ? "ANY " : ""
             return lead + node.field.path + " " + describeOperator(of: node) + " " + describeConstants(of: node)
@@ -227,9 +232,23 @@ extension IndicatorProgram: CustomStringConvertible {
     }
 
     /// - Parameter constant: An event type's constant.
-    /// - Returns: The type's name, as in `ES_EVENT_TYPE_NOTIFY_EXEC`.
+    /// - Returns: The type's name, as in `ES_EVENT_TYPE_NOTIFY_EXEC` or `new_flow`.
     private func eventTypeName(_ constant: Constant) -> String {
         eventTypeToString(from: es_event_type_t(rawValue: UInt32(constant.number)))
+    }
+
+    /// One event type's check in a check that names a Mac Monitor event, whose record has no `es_event_type`: its
+    /// payload's test, as in `event.new_flow != nil`, and an Endpoint Security event's comparison beside it.
+    ///
+    /// - Parameters:
+    ///   - name: The type's name.
+    ///   - present: Does the check pass for the type, rather than for every other?
+    /// - Returns: The check, as a predicate writes it.
+    private func describeTypeTest(_ name: String, present: Bool) -> String {
+        guard MacMonitorEvent(name: name) != nil else {
+            return "es_event_type \(present ? "==" : "!=") " + IndicatorValue.literal(name[...])
+        }
+        return "event.\(name) \(present ? "!=" : "==") nil"
     }
 
     /// - Parameter op: An operator.

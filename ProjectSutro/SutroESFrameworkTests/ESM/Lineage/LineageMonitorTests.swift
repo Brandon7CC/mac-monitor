@@ -170,7 +170,8 @@ final class LineageMonitorTests: XCTestCase {
         let factory = FakeEndpointSecurityClientFactory()
         let shell = ProcessProgram(key: key(100, 1), path: "/bin/zsh")
         let monitor = LineageMonitor(lineage: ProcessLineage(), factory: factory, clock: { 0 },
-                                     running: { [(program: shell, parent: Int32(1))] }, arguments: { _ in [] })
+                                     running: { [(program: shell, parent: Int32(1), token: nil)] },
+                                     arguments: { _ in [] })
         XCTAssertFalse(monitor.isRunning)
         XCTAssertNil(monitor.table)
         let seeded = expectation(description: "Seeded")
@@ -206,6 +207,30 @@ final class LineageMonitorTests: XCTestCase {
         XCTAssertEqual(monitor.lineage.program(key(100, 1))?.path, "/bin/zsh")
         XCTAssertNil(monitor.lineage.program(key(200, 2)))
         monitor.release()
+    }
+
+    /// Asking whether it runs, or for its table, never waits on Endpoint Security. The network client asks from
+    /// queues that mustn't wait while a capture session starts or stops the monitor.
+    func testAskingNeverWaitsOnEndpointSecurity() {
+        let factory = FakeEndpointSecurityClientFactory()
+        let subscribing = DispatchSemaphore(value: 0), gate = DispatchSemaphore(value: 0)
+        factory.onSubscribe = { _, _ in
+            subscribing.signal()
+            gate.wait()
+        }
+        let monitor = LineageMonitor(lineage: ProcessLineage(), factory: factory, running: { [] })
+        DispatchQueue.global().async { monitor.acquire() }
+        XCTAssertEqual(subscribing.wait(timeout: .now() + 5), .success)
+        let answered = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async {
+            if !monitor.isRunning, monitor.table == nil { answered.signal() }
+        }
+        XCTAssertEqual(answered.wait(timeout: .now() + 1), .success, "Answered while the client subscribes")
+        gate.signal()
+        XCTAssertTrue(waitUntil { monitor.isRunning })
+        XCTAssertTrue(monitor.table === monitor.lineage)
+        monitor.release()
+        XCTAssertNil(monitor.table)
     }
 
     /// A client Endpoint Security refuses, or one that can't subscribe, leaves the monitor stopped, and says why.

@@ -66,6 +66,7 @@
         <relationship name="dup" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFDDuplicateEvent"/>
         <relationship name="exec" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcessExecEvent"/>
         <relationship name="exit" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcessExitEvent"/>
+        <relationship name="flow_closed" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESNetworkFlowEvent"/>
         <relationship name="fork" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcessForkEvent"/>
         <relationship name="gatekeeper_user_override" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESGatekeeperUserOverrideEvent"/>
         <relationship name="get_task" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESGetTaskEvent"/>
@@ -79,6 +80,7 @@
         <relationship name="mmap" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESMMapEvent"/>
         <relationship name="mount" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESMountEvent"/>
         <relationship name="mprotect" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESMProtectEvent"/>
+        <relationship name="new_flow" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESNetworkFlowEvent"/>
         <relationship name="od_attribute_value_add" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESODAttributeValueAddEvent"/>
         <relationship name="od_create_group" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESODCreateGroupEvent"/>
         <relationship name="od_create_user" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESODCreateUserEvent"/>
@@ -121,6 +123,7 @@
         <attribute name="mach_o_type" optional="YES" attributeType="String"/>
         <attribute name="modified" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="was_mapped_writable" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="yara_scan_json" optional="YES" attributeType="Binary"/>
         <relationship name="target" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFile"/>
     </entity>
     <entity name="ESFileCreateEvent" representedClassName="ESFileCreateEvent" syncable="YES">
@@ -149,6 +152,7 @@
         <attribute name="file_type" optional="YES" attributeType="String"/>
         <attribute name="is_quarantined" optional="YES" attributeType="Integer 16" usesScalarValueType="YES"/>
         <attribute name="mach_o_type" optional="YES" attributeType="String"/>
+        <attribute name="yara_scan_json" optional="YES" attributeType="Binary"/>
         <relationship name="destination" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFileDestination"/>
         <relationship name="source" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFile"/>
     </entity>
@@ -326,6 +330,28 @@
         <attribute name="protection" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="size" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
+    <entity name="ESNetworkFlowEvent" representedClassName="ESNetworkFlowEvent" syncable="YES">
+        <attribute name="bytes_inbound_count" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
+        <attribute name="bytes_outbound_count" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
+        <attribute name="direction" optional="YES" attributeType="String"/>
+        <attribute name="first_party_site" optional="YES" attributeType="String"/>
+        <attribute name="identifier" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="local_address" optional="YES" attributeType="String"/>
+        <attribute name="local_port" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
+        <attribute name="remote_address" optional="YES" attributeType="String"/>
+        <attribute name="remote_address_scope" optional="YES" attributeType="String"/>
+        <attribute name="remote_hostname" optional="YES" attributeType="String"/>
+        <attribute name="remote_port" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="socket_family" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="socket_family_string" optional="YES" attributeType="String"/>
+        <attribute name="socket_protocol" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="socket_protocol_string" optional="YES" attributeType="String"/>
+        <attribute name="socket_type" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="socket_type_string" optional="YES" attributeType="String"/>
+        <attribute name="source_app" optional="YES" attributeType="Binary"/>
+        <attribute name="start_time" optional="YES" attributeType="String"/>
+        <attribute name="url" optional="YES" attributeType="String"/>
+    </entity>
     <entity name="ESNewPath" representedClassName="ESNewPath" syncable="YES">
         <attribute name="filename" optional="YES" attributeType="String"/>
         <attribute name="mode" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
@@ -472,6 +498,7 @@
         <attribute name="target_proc_responsible_audit_token_string" optional="YES" attributeType="String"/>
         <attribute name="team_id" optional="YES" attributeType="String"/>
         <attribute name="unique_id" optional="YES" attributeType="String"/>
+        <attribute name="yara_scan_json" optional="YES" attributeType="Binary"/>
         <relationship name="cwd" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFile"/>
         <relationship name="script" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESFile"/>
         <relationship name="target" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ESProcess"/>

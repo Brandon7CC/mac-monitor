@@ -21,7 +21,7 @@ struct GroupHeader: View {
                 Text(kind.rawValue).font(.caption.monospaced()).foregroundStyle(.secondary)
             } else if let event = group.event {
                 Label(event.shortName, systemImage: event.symbol).font(.caption.weight(.semibold))
-                Text(event.name).font(.caption.monospaced()).foregroundStyle(.secondary)
+                Text(event.label).font(.caption.monospaced()).foregroundStyle(.secondary)
             } else {
                 Text("All events").font(.caption.weight(.semibold))
                 Text("es_mute_path").font(.caption.monospaced()).foregroundStyle(.secondary)

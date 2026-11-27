@@ -50,7 +50,8 @@ struct FilterView: View {
                     isLive: traceSession.isLive, search: search,
                     subscribedEvents: {
                         let subscribed = systemExtensionManager.monitoredEventStrings
-                        return supportedEvents.map { eventTypeToString(from: $0) }.filter(subscribed.contains)
+                        let names = supportedEvents.map { eventTypeToString(from: $0) }
+                        return (names + MacMonitorEvent.allCases.map(\.name)).filter(subscribed.contains)
                     },
                     openPredicateEditor: openPredicateEditor,
                     done: { filteredTelemetryShown = false })
@@ -169,7 +170,8 @@ struct FilterSheet: View {
             filter(user, "User ID") { allFilters.userIDs.removeAll { $0 == user } }
         }
         rows += allFilters.events.sorted().map { event in
-            filter(event, "Endpoint Security event", glyph: eventStringToImage(from: event)) {
+            let kind = MacMonitorEvent(name: event) == nil ? "Endpoint Security event" : "Network event"
+            return filter(EventNames.label(event), kind, glyph: eventStringToImage(from: event)) {
                 allFilters.events.removeAll { $0 == event }
             }
         }

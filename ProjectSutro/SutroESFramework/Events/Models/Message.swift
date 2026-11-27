@@ -161,13 +161,16 @@ public protocol ESEnrichable {
 }
 
 extension Message: ESEnrichable {
-    /// Derive the event's name, the action type's name, and the event's context and target path.
+    /// Derive the event's name, the action type's name, and the event's context and target path. A Mac Monitor
+    /// event's number and name come from its payload (``nameMacMonitorEvent()``).
     ///
     /// The "context" is a context item independent of `target_path`, the path "targeted" by the event. See
     /// ``EventType/summary(initiatingPath:)``.
     public mutating func enrich() {
         if case .unknown = event {
             es_event_type = "NOT MAPPED"
+        } else if event.isNetworkFlow {
+            nameMacMonitorEvent()
         } else {
             es_event_type = eventTypeToString(from: es_event_type_t(rawValue: UInt32(truncatingIfNeeded: event_type)))
         }

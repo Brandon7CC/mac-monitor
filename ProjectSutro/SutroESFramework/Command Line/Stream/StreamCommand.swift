@@ -141,23 +141,34 @@ public final class StreamCommand: NSObject {
         client.activate(receiving: self) { [weak self] failure in
             self?.queue.async { self?.end(.failed(failure)) }
         }
-        let start = { [self] in
-            client.send(StreamRequest(.stream, options: invocation.options), timeout: .seconds(10)) { [self] result in
-                queue.async { [self] in
-                    switch result {
-                    case .failure(let failure):
-                        end(.failed(failure))
-                    case .success(let reply):
-                        if let failure = CommandLineFailure.reply(reply) { return end(.failed(failure)) }
-                        started(reply)
+        guard !invocation.filter.indicators.isEmpty else { return start(invocation.options) }
+        checkIndicators(invocation.filter.indicators, timeout: indicatorTimeout) { [self] failure in
+            guard let failure else { return start(invocation.options) }
+            queue.async { [self] in end(.failed(failure)) }
+        }
+    }
+
+    /// Ask the Security Extension to start the stream. One older than `macmonitor` refuses the network flows it
+    /// doesn't know, so a stream that names them beside other events is asked for once more without them
+    /// (``withoutFlows(_:refusedBy:toolVersion:)``).
+    ///
+    /// - Parameters:
+    ///   - options: The stream asked for.
+    ///   - leftOutFlows: Were the flows left out for an older Security Extension?
+    private func start(_ options: StreamOptions, leftOutFlows: Bool = false) {
+        client.send(StreamRequest(.stream, options: options), timeout: .seconds(10)) { [self] result in
+            queue.async { [self] in
+                switch result {
+                case .failure(let failure):
+                    end(.failed(failure))
+                case .success(let reply):
+                    if let others = Self.withoutFlows(options, refusedBy: reply, toolVersion: toolVersion) {
+                        return start(others, leftOutFlows: true)
                     }
+                    if let failure = CommandLineFailure.reply(reply) { return end(.failed(failure)) }
+                    started(reply, leftOutFlows: leftOutFlows)
                 }
             }
-        }
-        guard !invocation.filter.indicators.isEmpty else { return start() }
-        checkIndicators(invocation.filter.indicators, timeout: indicatorTimeout) { [self] failure in
-            guard let failure else { return start() }
-            queue.async { [self] in end(.failed(failure)) }
         }
     }
     
@@ -235,11 +246,13 @@ extension StreamCommand: StreamReaderProtocol {
 
 // MARK: - Diagnostics
 extension StreamCommand {
-    /// The stream started: say so, and warn if the Security Extension is another version or can't apply the field
-    /// filters asked for. Call on ``queue``.
+    /// The stream started: say so, and warn if the Security Extension is another version, can't apply the field
+    /// filters asked for, or can't stream network flows. Call on ``queue``.
     ///
-    /// - Parameter reply: The stream request's answer.
-    private func started(_ reply: StreamReply) {
+    /// - Parameters:
+    ///   - reply: The stream request's answer.
+    ///   - leftOutFlows: Were the flows left out for an older Security Extension?
+    private func started(_ reply: StreamReply, leftOutFlows: Bool) {
         if let duration {
             queue.asyncAfter(deadline: .now() + duration) { [weak self] in self?.stop(timeout: nil) }
         }
@@ -249,6 +262,7 @@ extension StreamCommand {
                 Mac Monitor to finish updating.
                 """)
         }
+        Self.flowWarning(reply.stream, leftOut: leftOutFlows).map(diagnose)
         let echoed = reply.stream?.fieldFilters
         pipeline.meter.fieldFilteredTypes = Self.fieldFilteredTypes(echoed: echoed)
         if echoed == nil, let stream = reply.stream {
@@ -361,7 +375,7 @@ extension StreamCommand {
                 macmonitor: wrote \(pipeline.written) events\(filtered)\(Self.leftOut(summary.fieldFiltered)), \
                 lost \(lost.total) \
                 (\(lost.byEndpointSecurity) by Endpoint Security, \(lost.total - lost.byEndpointSecurity) while \
-                macmonitor was behind).
+                macmonitor was behind)\(Self.flowLosses(summary)).
                 """)
         }
         if pipeline.unchecked > 0 {

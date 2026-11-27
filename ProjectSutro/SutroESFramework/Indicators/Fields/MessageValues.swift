@@ -45,6 +45,7 @@ public enum MessageValues {
             RecordPathTrie([field]).read(message) { _, found in value = found }
             return value
         }
+        if message.event.isNetworkFlow, let value = flowValue(of: field, in: message.process) { return value }
         return switch field {
         case .esEventType: IndicatorValue(message.es_event_type)
         case .context: IndicatorValue(message.context ?? notSupported)
@@ -58,6 +59,26 @@ public enum MessageValues {
         case .processIsAdhocSigned: process(.isAdhocSigned, of: message.process)
         case .processFileQuarantineType: process(.fileQuarantineType, of: message.process)
         default: event(field, of: message.event, version: message.version)
+        }
+    }
+
+    /// A direct field a network flow's record has otherwise than an Endpoint Security event's: no `es_event_type`,
+    /// and its process as `flow_process` (``FlowProcessRecord``), which has no platform binary, adhoc or quarantine
+    /// flag, and a code signing type only beside an executable and when it's known.
+    ///
+    /// - Parameters:
+    ///   - field: A direct field.
+    ///   - process: The flow's process.
+    /// - Returns: The value, or `nil` for a field read as any event's.
+    private static func flowValue(of field: IndicatorField, in process: borrowing Process) -> IndicatorValue? {
+        switch field {
+        case .esEventType, .processIsPlatformBinary, .processIsAdhocSigned, .processFileQuarantineType:
+            return .null
+        case .processCodesigningType:
+            guard case .some = process.executable, process.codesigning_type != .unknown else { return .null }
+            return IndicatorValue(process.codesigning_type.rawValue)
+        default:
+            return nil
         }
     }
 
@@ -99,6 +120,8 @@ public enum MessageValues {
         switch field {
         case .execCommandLine: IndicatorValue(exec.command_line ?? "")
         case .execEnv: .strings(exec.env)
+        case .execArgsCount: IndicatorValue(exec.args.count)
+        case .execEnvCount: IndicatorValue(exec.env.count)
         case .execScriptContent: IndicatorValue(exec.script_content)
         case .execExecutableAge: IndicatorValue(exec.executable_age_ms)
         case .execTargetSigningID: process(.signingID, of: exec.target)

@@ -81,7 +81,7 @@ public enum CommandLineInvocation: Equatable {
 
 // MARK: - Stream
 /// `macmonitor stream [EVENT...] [--format text|jsonl|pretty] [--json] [--pretty] [--text] [--no-mutes]
-/// [--include-self] [--every EVENT] [--for DURATION] [--count N] [FILTER...]`.
+/// [--include-self] [--yara-scan] [--no-url-paths] [--every EVENT] [--for DURATION] [--count N] [FILTER...]`.
 public struct StreamInvocation: Equatable {
     /// The events, each once, in the order named. None means Mac Monitor's defaults.
     public var events: [es_event_type_t] = []
@@ -91,6 +91,10 @@ public struct StreamInvocation: Equatable {
     public var appliesSavedMutes: Bool = true
     /// Show the pipeline's own events? `--include-self`.
     public var includeSelf: Bool = false
+    /// Scan written files and the scripts execs run with Apple's XProtect rules? `--yara-scan`.
+    public var scansWrittenFiles: Bool = false
+    /// Keep the paths of the flows' URLs? `--no-url-paths` turns it off.
+    public var recordsURLPaths: Bool = true
     /// The field filters to ask for: Mac Monitor's defaults. `--every EVENT` turns off EVENT's. `--every all` turns
     /// off every one.
     public var fieldFilters: Set<FieldFilter> = Set(defaultFieldFilters)
@@ -106,7 +110,8 @@ public struct StreamInvocation: Equatable {
     /// Security Extension 3.1.0 or later never reads it as a 3.0.0 request.
     public var options: StreamOptions {
         StreamOptions(events: events.map { eventTypeToString(from: $0) }, appliesSavedMutes: appliesSavedMutes,
-                      fieldFilters: fieldFilters.map(\.rawValue).sorted())
+                      fieldFilters: fieldFilters.map(\.rawValue).sorted(), scansWrittenFiles: scansWrittenFiles,
+                      recordsURLPaths: recordsURLPaths)
     }
     
     /// The format to write in.

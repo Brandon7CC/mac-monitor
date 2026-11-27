@@ -12,45 +12,42 @@ import EndpointSecurity
 // MARK: - Event names
 /// The events `macmonitor` can stream, by the names people type: `exec`, or `ES_EVENT_TYPE_NOTIFY_EXEC`.
 ///
-/// A short name is the `ES_EVENT_TYPE_NOTIFY_*` name without its prefix, in lowercase, as eslogger names events.
+/// A short name is the `ES_EVENT_TYPE_NOTIFY_*` name without its prefix, in lowercase, as eslogger names events
+/// (``EventNames``). Mac Monitor's own events have one name for both.
 public enum CommandLineEvents {
-    /// The prefix every streamable event's full name has.
-    static let notifyPrefix = "ES_EVENT_TYPE_NOTIFY_"
-    
-    /// An event's short name.
+    /// An event's short name (``EventNames/shortName(_:)``).
     ///
-    /// - Parameter fullName: An `ES_EVENT_TYPE_*` name.
+    /// - Parameter fullName: An `ES_EVENT_TYPE_*` name, or a Mac Monitor event's.
     /// - Returns: `exec` for `ES_EVENT_TYPE_NOTIFY_EXEC`. A name without the NOTIFY prefix comes back lowercased.
     public static func shortName(_ fullName: String) -> String {
-        fullName.droppingPrefix(notifyPrefix).lowercased()
+        EventNames.shortName(fullName)
     }
     
     /// The event a name stands for, if `macmonitor` can stream it on this Mac.
     ///
-    /// - Parameter name: A short name in any case, or a full `ES_EVENT_TYPE_NOTIFY_*` name.
+    /// - Parameter name: A short name in any case, or a full name.
     /// - Returns: The event, or `nil` for an AUTH event, one Mac Monitor doesn't model, or a name that isn't one.
     public static func event(named name: String) -> es_event_type_t? {
-        let full = name.hasPrefix(notifyPrefix) ? name : notifyPrefix + name.uppercased()
-        return StreamPlan.supportedEventsByName()[full]
+        StreamPlan.supportedEventsByName()[EventNames.fullName(name)]
     }
     
-    /// The NOTIFY event a name stands for, whether or not `macmonitor` streams it: a mute may name any event Mac
-    /// Monitor knows.
+    /// The NOTIFY event, or Mac Monitor event, a name stands for, whether or not `macmonitor` streams it: a mute may
+    /// name any event Mac Monitor knows.
     ///
-    /// - Parameter name: A short name in any case, or a full `ES_EVENT_TYPE_NOTIFY_*` name.
+    /// - Parameter name: A short name in any case, or a full name.
     /// - Returns: The event, or `nil` for an AUTH event or a name Mac Monitor doesn't know.
     public static func notifyEvent(named name: String) -> es_event_type_t? {
-        let event = eventStringToType(from: name.hasPrefix(notifyPrefix) ? name : notifyPrefix + name.uppercased())
+        let event = eventStringToType(from: EventNames.fullName(name))
         return event == ES_EVENT_TYPE_LAST ? nil : event
     }
     
     /// Every event `macmonitor` can stream on this Mac, by short name, with whether a stream with no events named
-    /// includes it.
+    /// includes it. The network flow events never are.
     ///
     /// - Returns: The events, sorted by short name.
     public static func catalog() -> [(name: String, fullName: String, isDefault: Bool)] {
         let defaults = Set(defaultEventSubscriptions.map(\.rawValue))
-        return supportedEvents.map { event in
+        return StreamPlan.streamableEvents.map { event in
             let fullName = eventTypeToString(from: event)
             return (shortName(fullName), fullName, defaults.contains(event.rawValue))
         }.sorted { $0.name < $1.name }

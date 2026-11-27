@@ -63,7 +63,7 @@ final class CaptureDropAccountingTests: XCTestCase {
     /// Each lane reports how many of the session's event types it subscribed to.
     func testEachLaneReportsItsSubscriptions() throws {
         let session = try makeSession(factory: factory)
-        for eventClass in EventClass.allCases {
+        for eventClass in EventClass.endpointSecurity {
             XCTAssertEqual(try statistics(session, eventClass).subscribedEvents,
                            session.subscribedEvents.filter { EventClassTable.eventClass(of: $0) == eventClass }.count,
                            eventClass.rawValue)

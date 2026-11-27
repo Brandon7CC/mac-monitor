@@ -112,14 +112,17 @@ public enum MuteFileReader {
         return entries
     }
     
-    /// Every event a mute of this type can cover for Mac Monitor.
+    /// Every event a mute of this type can cover for Mac Monitor. A process type covers its network flows too
+    /// (``MacMonitorEvent``), so a line that lists every Endpoint Security event keeps its list and doesn't start
+    /// muting flows.
     ///
     /// - Parameter type: The mute type, if it's known.
-    /// - Returns: Every NOTIFY event Mac Monitor captures, or for a target type those that can be muted by target path.
+    /// - Returns: Every NOTIFY event Mac Monitor captures and its own events, or for a target type the NOTIFY events
+    ///   that can be muted by target path.
     static func everyEvent(for type: es_mute_path_type_t?) -> Set<es_event_type_t> {
         let captured = Set(supportedEvents)
         guard type == ES_MUTE_PATH_TYPE_TARGET_PREFIX || type == ES_MUTE_PATH_TYPE_TARGET_LITERAL else {
-            return captured
+            return captured.union(MacMonitorEvent.allCases.map(\.type))
         }
         return captured.intersection(allowedTargetPathEvents)
     }

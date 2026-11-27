@@ -95,6 +95,24 @@ final class CaptureSessionControlTests: XCTestCase {
         XCTAssertEqual(session.appliedMutes, second)
     }
     
+    /// A mute's network flow events aren't sent to Endpoint Security, which refuses their types. Its Endpoint Security
+    /// events are, and a mute of flows alone sends nothing.
+    func testApplyMutesSendsOnlyEndpointSecurityEvents() throws {
+        let session = try makeSession(factory: factory)
+        let started = factory.clients.map(\.calls.count)
+        let open = ES_EVENT_TYPE_NOTIFY_OPEN, flows = MacMonitorEvent.allCases.map(\.type)
+        let list = MuteList([PathMute(path: "/x", type: ES_MUTE_PATH_TYPE_PREFIX, events: [open] + flows),
+                             PathMute(path: "/y", type: ES_MUTE_PATH_TYPE_LITERAL, events: flows)])
+        XCTAssertTrue(session.applyMutes(list))
+        XCTAssertTrue(session.applyMutes(MuteList()))
+        let opens = PathMute(path: "/x", type: ES_MUTE_PATH_TYPE_PREFIX, events: [open])
+        for (client, start) in zip(factory.clients, started) {
+            XCTAssertEqual(callsSince(start, on: client), [.setPathMute(opens, muted: true),
+                                                          .setPathMute(opens, muted: false)])
+        }
+        XCTAssertEqual(session.appliedMutes, MuteList())
+    }
+    
     /// One client's refusal is reported, the others still take the change, and the session counts the list as
     /// applied, so the same list again sends nothing.
     func testApplyMutesReportsAPartialRefusal() throws {
@@ -193,7 +211,7 @@ final class CaptureSessionControlTests: XCTestCase {
                 clients[index].deliver(fixtures[index])
             }
         }
-        for eventClass in EventClass.allCases {
+        for eventClass in EventClass.endpointSecurity {
             XCTAssertEqual(emitted.globalSequences(of: eventClass), Array(1...500), eventClass.rawValue)
         }
     }

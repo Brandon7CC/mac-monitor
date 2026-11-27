@@ -23,8 +23,9 @@ extension ProcessLineage {
     }
 
     /// The nearest ancestor a lookup has to learn of before it can answer: the parent the event names when the
-    /// table knows neither it nor the process, or the nearest ancestor the table has when that's known by its key
-    /// alone, as the parent of an exec a capture lane told the table of first. Call under the lock.
+    /// table knows neither it nor the process, the process itself when its event names no parent, as a network
+    /// flow's doesn't, or the nearest ancestor the table has when that's known by its key alone, as the parent of an
+    /// exec a capture lane told the table of first. Call under the lock.
     ///
     /// - Parameters:
     ///   - key: The process.
@@ -35,7 +36,8 @@ extension ProcessLineage {
             guard let nearest = node.parent, lacks(nearest.program.key) else { return nil }
             return nearest.program.key
         }
-        guard let parent, !parent.isRoot, lacks(parent) else { return nil }
+        guard let parent else { return key.isRoot ? nil : key }
+        guard !parent.isRoot, lacks(parent) else { return nil }
         return parent
     }
 
@@ -74,24 +76,79 @@ extension ProcessLineage {
                 node.parent = newer.parent
             }
             guard lacks(target) else { return }
-            let started = ProcessInfo.processInfo.systemUptime
-            if started - windowStart >= 1 { (windowStart, waitedInWindow) = (started, 0) }
-            let event = time ?? .max
-            if toldUpTo < event, waitedInWindow < waitBudget {
-                let deadline = Date(timeIntervalSinceNow: patience)
-                waiting += 1
-                while lacks(target), toldUpTo < event, lock.wait(until: deadline) {}
-                waiting -= 1
-                let elapsed = ProcessInfo.processInfo.systemUptime - started
-                waited += 1
-                longestWait = max(longestWait, elapsed)
-                if lacks(target), toldUpTo < event { waitedInWindow += elapsed }
-            }
+            awaitTold(upTo: time) { !lacks(target) }
             guard lacks(target) else { return }
             unanswered += 1
             let node = find(target) ?? Node(ProcessProgram(key: target), parent: nil)
             node.gaveUp = true
             if nodes[target] == nil { keep(node) }
         }
+    }
+
+    /// A process's command line, by its own key, never by another program of its pid. One the table hasn't been
+    /// told of is read from the system, with its parents, and waited for when it isn't running as that program, as
+    /// an ancestor is (``ancestors(of:parent:reading:at:chain:)``). Without a reader, as in a replay, the table's
+    /// own is answered at once.
+    ///
+    /// - Parameters:
+    ///   - key: The process.
+    ///   - time: The time of the event being looked up, on Endpoint Security's clock.
+    /// - Returns: Its command line, or `nil` when it isn't known.
+    public func commandLine(of key: ProcessKey, at time: UInt64) -> String? {
+        guard let reader, !key.isRoot, lock.withLock({ nodes[key]?.program.isKnown != true }) else {
+            return lock.withLock { nodes[key]?.program.commandLine }
+        }
+        discover(key, at: time, with: reader)
+        return program(key, toldUpTo: time)?.program.commandLine
+    }
+
+    /// A program and the token it was told of, once the table's own client is told of an event as late as a
+    /// flow's: a flow can come before its process's exec, which the table hears of about a quarter of a second late.
+    ///
+    /// - Parameters:
+    ///   - key: The program's key.
+    ///   - time: The flow's time, on Endpoint Security's clock.
+    /// - Returns: The program and its token, or `nil` when the table has nothing under the key.
+    func program(_ key: ProcessKey, toldUpTo time: UInt64) -> (program: ProcessProgram, token: audit_token_t?)? {
+        lock.withLock {
+            awaitTold(upTo: time) { nodes[key]?.program.isKnown == true }
+            return nodes[key].map { ($0.program, $0.token) }
+        }
+    }
+
+    /// The newest program of a pid and the token it was told of, once the table's own client is told of an event
+    /// as late as a flow's: for a process that was reaped before its socket was read.
+    ///
+    /// - Parameters:
+    ///   - pid: The pid.
+    ///   - time: The flow's time, on Endpoint Security's clock.
+    /// - Returns: The program and its token, or `nil` when the table knows no program of the pid.
+    func newestProgram(of pid: Int32, toldUpTo time: UInt64) -> (program: ProcessProgram, token: audit_token_t?)? {
+        lock.withLock {
+            awaitTold(upTo: time) { false }
+            return newest[pid].map { ($0.program, $0.token) }
+        }
+    }
+
+    /// Wait until the table's own client is told of an event as late as a lookup's, or the lookup has its answer,
+    /// within the patience and the second's budget. A wait that ends unanswered is charged to the budget. Call
+    /// under the lock.
+    ///
+    /// - Parameters:
+    ///   - time: The time of the event being looked up, or `nil` to wait out the patience.
+    ///   - answered: Has the lookup its answer?
+    private func awaitTold(upTo time: UInt64?, unless answered: () -> Bool) {
+        let started = ProcessInfo.processInfo.systemUptime
+        if started - windowStart >= 1 { (windowStart, waitedInWindow) = (started, 0) }
+        let event = time ?? .max
+        guard !answered(), toldUpTo < event, waitedInWindow < waitBudget else { return }
+        let deadline = Date(timeIntervalSinceNow: patience)
+        waiting += 1
+        while !answered(), toldUpTo < event, lock.wait(until: deadline) {}
+        waiting -= 1
+        let elapsed = ProcessInfo.processInfo.systemUptime - started
+        waited += 1
+        longestWait = max(longestWait, elapsed)
+        if !answered(), toldUpTo < event { waitedInWindow += elapsed }
     }
 }

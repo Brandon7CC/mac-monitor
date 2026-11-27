@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SutroESFramework
 
 
 // MARK: - Fact
@@ -68,6 +69,21 @@ struct FactValue: View {
                 .lineLimit(nil)
                 .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .leading)
         }
+    }
+}
+
+
+// MARK: - A laid-out fact
+/// A fact the framework lays out (``EventFact``): its name and first value, then its other values beside them, with
+/// its help on hover.
+struct EventFactView: View {
+    /// The fact.
+    let fact: EventFact
+
+    var body: some View {
+        Fact(fact.name, fact.values.first, fillsWidth: fact.isLong)
+            .help(fact.help ?? "")
+        ForEach(fact.values.indices.dropFirst(), id: \.self) { FactValue(fact.values[$0]) }
     }
 }
 

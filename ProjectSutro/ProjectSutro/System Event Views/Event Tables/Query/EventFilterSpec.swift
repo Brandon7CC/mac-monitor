@@ -152,10 +152,17 @@ struct ProcessLineageIndex {
         for row in rows {
             guard let token = row["instigator_audit_token"] as? String else { continue }
             let parent = row["instigator_parent_audit_token"] as? String ?? ""
+            let eventType = (row["event_type"] as? NSNumber)?.int32Value
+            if let eventType, ESMessage.isNetworkFlow(eventType) {
+                /// A flow names no parent, so it marks its process seen and never places it. One with no token names
+                /// no process.
+                if !token.isEmpty { sighting(token, parent: parent, path: nil) }
+                continue
+            }
             sighting(token, parent: parent, path: row["initiating_path"] as? String)
             
             guard let created = row["created_audit_token"] as? String else { continue }
-            switch (row["event_type"] as? NSNumber)?.int32Value {
+            switch eventType {
             case ESMessage.execEventType:
                 /// An exec that keeps its pid replaces the process, so it hangs off the instigator's parent.
                 let samePid = (row["created_pid"] as? NSNumber)?.int32Value
@@ -197,30 +204,5 @@ struct ProcessLineageIndex {
             }
         }
         return result
-    }
-}
-
-
-// MARK: - Chart labels
-/// The mini-chart's label for each `es_event_type`. Matches `SystemChartEventView`, which also sets the bars' order.
-enum EventChartLabels {
-    private static let prefix = "ES_EVENT_TYPE_NOTIFY_"
-    private static let renamed: [String: String] = [
-        "BTM_LAUNCH_ITEM_ADD": "LAUNCH_ITEM_ADD",
-        "BTM_LAUNCH_ITEM_REMOVE": "LAUNCH_ITEM_REMOVE",
-        "LW_SESSION_UNLOCK": "LW_UNLOCK",
-        "LW_SESSION_LOGIN": "LW_LOGIN",
-        "REMOTE_THREAD_CREATE": "REMOTE_THREAD",
-        "AUTHORIZATION_PETITION": "AUTH_PETITION",
-        "AUTHORIZATION_JUDGEMENT": "AUTH_JUDGEMENT",
-        "OD_CREATE_GROUP": "OD_GROUP_CREATE",
-        "OD_ATTRIBUTE_VALUE_ADD": "OD_ATTR_ADD",
-    ]
-    
-    /// - Parameter eventType: An `ES_EVENT_TYPE_NOTIFY_*` name.
-    /// - Returns: The chart label (e.g. `EXEC`, `LW_UNLOCK`).
-    static func label(for eventType: String) -> String {
-        let name = eventType.droppingPrefix(prefix)
-        return renamed[name] ?? name
     }
 }

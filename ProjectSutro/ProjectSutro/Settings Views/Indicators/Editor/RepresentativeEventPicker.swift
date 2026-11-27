@@ -18,12 +18,13 @@ struct RepresentativeEvent: Identifiable {
     let type: String
     /// The initiating process's executable path.
     let process: String
-    let target: String
+    /// What the event tables' Context column shows for it, as a flow's URL or an exec's command line.
+    let context: String
     /// The predicate its key facts make, one clause a line.
     let predicate: String
 
-    /// The record key paths the predicate compares, in order.
-    private static let keyPaths = ["es_event_type", "target_path", "process.executable.path", "process.signing_id"]
+    /// The record key paths the predicate compares after the event's type, in order.
+    private static let keyPaths = ["target_path", "process.executable.path", "process.signing_id"]
 
     /// - Parameter message: The event, on its context's queue.
     init(_ message: ESMessage) {
@@ -31,33 +32,16 @@ struct RepresentativeEvent: Identifiable {
         time = eventTimeStamp(for: message)
         type = message.es_event_type ?? ""
         process = message.initiating_path ?? ""
-        target = message.target_path ?? ""
-        let values = [message.es_event_type, message.target_path, message.initiating_path,
+        context = message.context ?? ""
+        /// A network flow's record has no `es_event_type`, and no target path.
+        let values = [message.isNetworkFlow ? nil : message.target_path, message.initiating_path,
                       message.initiating_signing_id]
-        predicate = zip(Self.keyPaths, values).compactMap { keyPath, value in
+        let clauses: [String] = zip(Self.keyPaths, values).compactMap { keyPath, value in
             /// Only key paths the predicate engine knows, which the schema lists.
             guard let value, !value.isEmpty, RecordKeyPaths.shared.nodes[keyPath] != nil else { return nil }
-            return "\(keyPath) == \(Self.quoted(value))"
-        }.joined(separator: "\nAND ")
-    }
-
-    /// - Parameter value: A string.
-    /// - Returns: It as a predicate's string literal. Backslashes, quotes and control characters are escaped.
-    static func quoted(_ value: String) -> String {
-        var literal = "\""
-        for scalar in value.unicodeScalars {
-            switch scalar {
-            case "\\": literal += "\\\\"
-            case "\"": literal += "\\\""
-            case "\n": literal += "\\n"
-            case "\r": literal += "\\r"
-            case "\t": literal += "\\t"
-            case _ where scalar.value < 0x20 || scalar.value == 0x7F:
-                literal += String(format: "\\u%04X", scalar.value)
-            default: literal.unicodeScalars.append(scalar)
-            }
+            return "\(keyPath) == \(IndicatorValue(value))"
         }
-        return literal + "\""
+        predicate = ((type.isEmpty ? [] : [ValuePredicate.eventType(type)]) + clauses).joined(separator: "\nAND ")
     }
 
     /// - Parameter limit: How many events.
@@ -82,7 +66,7 @@ struct RepresentativeEvent: Identifiable {
 
 // MARK: - Sheet
 /// The newest events, to start an indicator's predicate from one. Its search field filters them by type, process and
-/// target. Choosing one hands back its predicate, after asking when it would replace one already written.
+/// context. Choosing one hands back its predicate, after asking when it would replace one already written.
 struct RepresentativeEventSheet: View {
     /// Is a predicate already written, which the chosen one replaces?
     let replacesPredicate: Bool
@@ -96,7 +80,7 @@ struct RepresentativeEventSheet: View {
 
     var body: some View {
         let shown = (events ?? []).filter { event in
-            query.isEmpty || [event.type, event.process, event.target].contains {
+            query.isEmpty || [event.type, event.process, event.context].contains {
                 $0.localizedCaseInsensitiveContains(query)
             }
         }
@@ -104,16 +88,16 @@ struct RepresentativeEventSheet: View {
             HStack {
                 Text("Choose Representative Event").font(.headline)
                 Spacer()
-                TextField("Search", text: $query, prompt: Text("Type, process or path"))
+                TextField("Search", text: $query, prompt: Text("Type, process or context"))
                     .textFieldStyle(.roundedBorder).frame(width: 240)
             }
             .padding(12)
             Table(shown, selection: $selection) {
                 TableColumn("Time", value: \.time).width(min: 70, ideal: 90)
-                TableColumn("Type") { Text($0.type.droppingPrefix("ES_EVENT_TYPE_NOTIFY_")) }
+                TableColumn("Type") { Text(EventNames.chartLabel($0.type)) }
                     .width(min: 80, ideal: 130)
                 TableColumn("Process") { Text($0.process).truncationMode(.middle).help($0.process) }
-                TableColumn("Target") { Text($0.target).truncationMode(.middle).help($0.target) }
+                TableColumn("Context") { Text($0.context).truncationMode(.middle).help($0.context) }
             }
             .contextMenu(forSelectionType: NSManagedObjectID.self) { _ in } primaryAction: { ids in
                 ids.first.map(pick)

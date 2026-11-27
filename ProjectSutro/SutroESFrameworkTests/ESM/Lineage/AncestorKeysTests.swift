@@ -220,7 +220,7 @@ final class AncestorKeysTests: XCTestCase {
     func testACaptureSessionWaitsForTheRunningProcesses() throws {
         let sshd = ProcessProgram(key: ProcessKey(pid: 50, pidversion: 1), path: "/usr/sbin/sshd")
         let monitor = LineageMonitor(lineage: ProcessLineage(), factory: FakeEndpointSecurityClientFactory(),
-                                     running: { usleep(20_000); return [(sshd, 1)] })
+                                     running: { usleep(20_000); return [(sshd, 1, nil)] })
         let factory = FakeEndpointSecurityClientFactory()
         var wasSeeded: [Bool] = []
         factory.onSubscribe = { _, _ in wasSeeded.append(monitor.lineage.program(sshd.key) != nil) }

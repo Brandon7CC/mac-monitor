@@ -11,7 +11,7 @@ import Foundation
 // MARK: - Key paths
 /// Every key path a record has, from the bundled telemetry schema, with its type: what a predicate's key paths are
 /// checked against, what the predicate editor completes and lists. An array's objects' keys follow the array's path,
-/// as `ANY event.exec.fds.fd` reads them.
+/// as `ANY event.exec.fds.fd` reads them. A network flow's record has its own, which the JSON tab describes.
 public final class RecordKeyPaths {
     /// One key path.
     public struct Node {
@@ -32,6 +32,9 @@ public final class RecordKeyPaths {
 
     /// Every key path, `""` for the record itself.
     public private(set) var nodes: [String: Node] = [:]
+    /// Every key path a network flow's record has (``TelemetrySchema/networkDefinition``), whose process is a
+    /// `flow_process`, `""` for the record itself.
+    public private(set) var networkNodes: [String: Node] = [:]
 
     /// Every key path, in order, without the record itself.
     public private(set) lazy var paths: [String] = nodes.keys.filter { !$0.isEmpty }.sorted()
@@ -42,12 +45,25 @@ public final class RecordKeyPaths {
             return
         }
         let definitions = root["$defs"] as? [String: Any] ?? [:]
-        walk(root, path: "", definitions: definitions, references: [], inArray: false)
+        nodes = Self.nodes(of: root, definitions: definitions)
+        if let network = definitions[TelemetrySchema.networkDefinition] as? [String: Any] {
+            networkNodes = Self.nodes(of: network, definitions: definitions)
+        }
+    }
+
+    /// - Parameters:
+    ///   - record: The schema node of a record.
+    ///   - definitions: The schema's `$defs`.
+    /// - Returns: Every key path the record has, `""` for the record itself, each with its keys.
+    private static func nodes(of record: [String: Any], definitions: [String: Any]) -> [String: Node] {
+        var nodes: [String: Node] = [:]
+        walk(record, path: "", definitions: definitions, references: [], inArray: false, into: &nodes)
         for path in nodes.keys where !path.isEmpty {
             let parent = path.split(separator: ".").dropLast().joined(separator: ".")
             nodes[parent]?.children.append(String(path.split(separator: ".").last ?? ""))
         }
         for path in nodes.keys { nodes[path]?.children.sort() }
+        return nodes
     }
 
     /// Add a schema node's key path, and its keys'.
@@ -58,8 +74,9 @@ public final class RecordKeyPaths {
     ///   - definitions: The schema's `$defs`.
     ///   - references: The `$ref`s followed to get here, which aren't followed again.
     ///   - inArray: Is it inside an array?
-    private func walk(_ node: [String: Any], path: String, definitions: [String: Any], references: Set<String>,
-                      inArray: Bool) {
+    ///   - nodes: The key paths found so far.
+    private static func walk(_ node: [String: Any], path: String, definitions: [String: Any],
+                             references: Set<String>, inArray: Bool, into nodes: inout [String: Node]) {
         var references = references
         let alternatives = resolve(node, definitions, &references)
         let types = alternatives.flatMap { ($0["type"] as? [String]) ?? [($0["type"] as? String) ?? "object"] }
@@ -75,7 +92,7 @@ public final class RecordKeyPaths {
                 for (name, child) in properties {
                     guard let child = child as? [String: Any] else { continue }
                     walk(child, path: path.isEmpty ? name : path + "." + name, definitions: definitions,
-                         references: references, inArray: inArray)
+                         references: references, inArray: inArray, into: &nodes)
                 }
             }
             if let items = alternative["items"] as? [String: Any] {
@@ -84,7 +101,7 @@ public final class RecordKeyPaths {
                     for (name, child) in item["properties"] as? [String: Any] ?? [:] {
                         guard let child = child as? [String: Any] else { continue }
                         walk(child, path: path + "." + name, definitions: definitions, references: itemReferences,
-                             inArray: true)
+                             inArray: true, into: &nodes)
                     }
                 }
             }
@@ -98,8 +115,8 @@ public final class RecordKeyPaths {
     ///   - definitions: The schema's `$defs`.
     ///   - references: The `$ref`s followed so far, which a cycle stops at.
     /// - Returns: The alternatives, each with its own `type`, `properties` or `items`.
-    private func resolve(_ node: [String: Any], _ definitions: [String: Any],
-                         _ references: inout Set<String>) -> [[String: Any]] {
+    private static func resolve(_ node: [String: Any], _ definitions: [String: Any],
+                                _ references: inout Set<String>) -> [[String: Any]] {
         if let reference = node["$ref"] as? String {
             let name = String(reference.split(separator: "/").last ?? "")
             guard references.insert(name).inserted, let target = definitions[name] as? [String: Any] else { return [] }
@@ -110,6 +127,26 @@ public final class RecordKeyPaths {
                 .flatMap { resolve($0, definitions, &references) }
         }
         return [node]
+    }
+
+    // MARK: Network records
+    /// The key paths of a network flow's record's event (`event.new_flow`), which no other record has.
+    private static let networkEvents = Set(TelemetrySchema.networkEventKeys.map { "event." + $0 })
+
+    /// A key path, as a record of its kind has it.
+    ///
+    /// - Parameters:
+    ///   - path: The key path, keys joined by dots.
+    ///   - inNetworkRecord: Is the record a network flow's (``isNetworkRecord(_:)``)?
+    /// - Returns: The key path's node, or `nil` when a record of its kind has no such key path.
+    public func node(_ path: String, inNetworkRecord: Bool) -> Node? {
+        inNetworkRecord ? networkNodes[path] : nodes[path]
+    }
+
+    /// - Parameter outline: A record's outline.
+    /// - Returns: Is it a network flow's record, whose keys ``networkNodes`` has?
+    public static func isNetworkRecord(_ outline: JSONOutline) -> Bool {
+        outline.values.contains { networkEvents.contains($0.keyPath) }
     }
 
     // MARK: Checking

@@ -24,7 +24,7 @@ struct EventMenuFacts {
     let processName: String?
     /// The initiating process's effective user, by name.
     let euid: String?
-    /// The event's target path, "" if it has none.
+    /// The event's target path, or "" without one. A network flow never has one.
     let targetPath: String
     /// Is it a process execution, which has its own menu?
     let isExec: Bool
@@ -47,9 +47,10 @@ struct EventMenuFacts {
     init?(message: ESMessage, isRecorded: Bool) {
         guard let eventType = message.es_event_type else { return nil }
         let exec = message.event.exec
+        /// A flow's row stores "Not supported" as its target path, which no mute or filter can use.
         self.init(eventID: message.id, eventType: eventType, processPath: message.process.executable?.path,
                   processName: message.process.executable?.name, euid: message.process.euid_human,
-                  targetPath: message.target_path ?? "", isExec: exec != nil,
+                  targetPath: message.isNetworkFlow ? "" : message.target_path ?? "", isExec: exec != nil,
                   execTargetPath: exec?.target.executable?.path, execTargetName: exec?.target.executable?.name,
                   isRecorded: isRecorded)
     }
@@ -103,7 +104,7 @@ enum EventMenuAction {
     case select(path: String, asTarget: Bool, fullTree: Bool)
     /// Add a mute to the saved set: a path, how it's matched, and the event types (none is every event).
     case mute(String, es_mute_path_type_t, events: [String])
-    /// Stop Endpoint Security delivering this event type.
+    /// Stop Endpoint Security delivering this event type. A network flow event stops both flow events.
     case unsubscribe(String)
 
     /// Do it.
@@ -137,7 +138,9 @@ enum EventMenuAction {
             manager.puntPathToMute(pathToMute: path, muteCase: type, pathEvents: events, from: .eventMenu)
         case .unsubscribe(let eventType):
             os_log("Requesting ES unsubscribe from: \(eventType)")
-            manager.setSubscription(eventType, enabled: false)
+            /// Record network flows turns both flow events on and off together.
+            let names = MacMonitorEvent(name: eventType) == nil ? [eventType] : MacMonitorEvent.allCases.map(\.name)
+            names.forEach { manager.setSubscription($0, enabled: false) }
         }
     }
 }
@@ -166,7 +169,8 @@ enum EventMenuEntry {
     /// An event's menu: "Event metadata", the filters, "Select", and "Advanced".
     ///
     /// While a trace is open the items that change what the Security Extension records (mute and unsubscribe) are left
-    /// out, and so is "Advanced" if that leaves it empty.
+    /// out, and so is "Advanced" if that leaves it empty. "Select" is left out for a process without a path, as a
+    /// network flow's may be.
     ///
     /// - Parameters:
     ///   - facts: The event.
@@ -176,8 +180,10 @@ enum EventMenuEntry {
         let sections = facts.isExec ? execSections(facts, isOn: isOn) : otherSections(facts, isOn: isOn)
         var entries: [EventMenuEntry] = [.item("Event metadata", .openFacts(facts.eventID)), .separator]
         entries += sections.filters
-        entries += [.separator, .header("Select")]
-        entries += sections.select
+        if !sections.select.isEmpty {
+            entries += [.separator, .header("Select")]
+            entries += sections.select
+        }
         if facts.isRecorded || !sections.advanced.isEmpty {
             entries += [.separator, .header("Advanced")]
             entries += sections.advanced
@@ -194,12 +200,14 @@ enum EventMenuEntry {
     private static func otherSections(_ facts: EventMenuFacts, isOn: (ContextMenuOption) -> Bool)
         -> (filters: [EventMenuEntry], select: [EventMenuEntry], advanced: [EventMenuEntry]) {
         let type = facts.eventType, euid = facts.euid ?? ""
+        /// The type as the app's labels name it: `NETWORK_NEW_FLOW` for a flow's `new_flow`.
+        let label = EventNames.label(type)
         var filters: [EventMenuEntry] = [], select: [EventMenuEntry] = [], advanced: [EventMenuEntry] = []
-        if isOn(.filterProcessPath) {
-            filters.append(.item("Filter initiating path: \"\(facts.processName ?? "")\"",
-                                 .filterInitiating(facts.processPath ?? "")))
+        /// A network flow's process may have no path, which no filter can name.
+        if isOn(.filterProcessPath), let name = facts.processName, let path = facts.processPath {
+            filters.append(.item("Filter initiating path: \"\(name)\"", .filterInitiating(path)))
         }
-        filters.append(.item("Filter event: \"\(type)\"", .filterEvent(type)))
+        filters.append(.item("Filter event: \"\(label)\"", .filterEvent(type)))
         if isOn(.filterUser) { filters.append(.item("Filter euid: \"\(euid)\"", .filterUser(euid))) }
 
         if let name = facts.processName, let path = facts.processPath {
@@ -212,9 +220,10 @@ enum EventMenuEntry {
         if isOn(.filterTargetPath) && hasTarget {
             advanced.append(.item("Filter target path: \"\(target.path)\"", .filterTarget(target.path)))
         }
-        if facts.isRecorded && isOn(.muteProcessPath) {
-            advanced.append(.item("Mute initiating path: \"\(facts.processPath ?? "")\"",
-                                  .mute(facts.processPath ?? "", ES_MUTE_PATH_TYPE_LITERAL, events: [])))
+        /// A network flow's process may have no path, which no mute can name.
+        if facts.isRecorded && isOn(.muteProcessPath), let path = facts.processPath {
+            advanced.append(.item("Mute initiating path: \"\(path)\"",
+                                  .mute(path, ES_MUTE_PATH_TYPE_LITERAL, events: [])))
         }
         if facts.isRecorded && isOn(.muteTargetPath) && hasTarget {
             let muteType = target.isFolder ? ES_MUTE_PATH_TYPE_TARGET_PREFIX : ES_MUTE_PATH_TYPE_TARGET_LITERAL
@@ -222,7 +231,7 @@ enum EventMenuEntry {
                                   .mute(target.path, muteType, events: [type])))
         }
         if facts.isRecorded && isOn(.unsubscribe) {
-            advanced.append(.item("Unsubscribe: \"\(type)\"", .unsubscribe(type)))
+            advanced.append(.item("Unsubscribe: \"\(label)\"", .unsubscribe(type)))
         }
         return (filters, select, advanced)
     }

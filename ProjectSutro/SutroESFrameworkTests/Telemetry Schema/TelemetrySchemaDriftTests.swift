@@ -16,7 +16,7 @@ import EndpointSecurity
 /// exercised, so a key added to or dropped from an export, or a stale part of the schema, fails here.
 final class TelemetrySchemaDriftTests: XCTestCase {
     /// The schema's events are the ones Mac Monitor's export names (``ESEventType``), a superset of those it records on
-    /// this Mac, under the SDK's names and numbers.
+    /// this Mac, under the SDK's names and numbers, and Mac Monitor's own network events under theirs.
     func testEventListIsComplete() {
         let events = TelemetrySchemaSource.events
         let named = Set(events.map(\.name))
@@ -31,6 +31,12 @@ final class TelemetrySchemaDriftTests: XCTestCase {
         for event in events {
             XCTAssertEqual(eventTypeToString(from: es_event_type_t(rawValue: UInt32(event.number))), event.constant)
         }
+        let network = TelemetrySchemaSource.networkEvents
+        XCTAssertEqual(network.map(\.name), MacMonitorEvent.allCases.map(\.name))
+        XCTAssertEqual(network.map(\.number), MacMonitorEvent.allCases.map { Int($0.rawValue) })
+        XCTAssertTrue(events.allSatisfy(\.isEndpointSecurity))
+        XCTAssertFalse(network.contains(where: \.isEndpointSecurity))
+        XCTAssertEqual(TelemetrySchemaSource.allEvents.count, events.count + network.count)
     }
     
     /// Every full variant has every field filled: the synthetic decoder missed nothing, new fields included.
@@ -89,7 +95,8 @@ final class TelemetrySchemaDriftTests: XCTestCase {
     }
     
     /// Events captured from Endpoint Security's structs, as the Security Extension captures them, follow the schema:
-    /// Open Directory events, remote thread creation, and forks whose launched-by parents the serializer stamps.
+    /// Open Directory events, remote thread creation, forks whose launched-by parents the serializer stamps, and
+    /// network flows a capture session read from the kernel's messages.
     func testCapturedMessagesMatchSchema() throws {
         var exports: [(label: String, json: String)] = []
         for (index, record) in try fixtureRecords("eslogger-od.jsonl").enumerated() {
@@ -118,10 +125,28 @@ final class TelemetrySchemaDriftTests: XCTestCase {
             XCTAssertNotNil(message.createdLaunchedByParent, label)
             exports.append(("\(label) fork serialized", exportText(message)))
         }
+        exports += try capturedFlows().map { ("\($0.es_event_type ?? "") captured", exportText($0)) }
         XCTAssertGreaterThan(exports.count, 10)
         assertValid(exports, with: try generatedValidator())
     }
     
+    /// Network flows as a capture session records them from the kernel's messages: a live process's, with a URL, and
+    /// a reaped process's, whose record has only its pid.
+    ///
+    /// - Returns: The events, in order.
+    /// - Throws: If the session couldn't start, or an event doesn't decode.
+    private func capturedFlows() throws -> [Message] {
+        let flows = FlowClientHarness(), emitted = EmittedEvents()
+        let configuration = CaptureConfiguration(events: MacMonitorEvent.allCases.map(\.type), label: "Test")
+        let session = try makeSession(configuration, factory: FakeEndpointSecurityClientFactory(),
+                                      flows: flows.client, emitted: emitted)
+        session.isRecording = true
+        XCTAssertTrue(flows.feed(flows.flow() + flows.flow(pid: 300)))
+        session.stop()
+        XCTAssertEqual(emitted.all.count, 4)
+        return try emitted.all.map { try JSONDecoder().decode(Message.self, from: $0.json) }
+    }
+
     /// "Export all" of a store holding the synthetic records writes JSONL and pretty files that follow the schema.
     func testExporterFilesMatchSchema() throws {
         let messages = try SyntheticCorpus.records().map(\.message)
@@ -155,7 +180,9 @@ final class TelemetrySchemaDriftTests: XCTestCase {
         quiet.severity = .low
         XCTAssertEqual(Set([shipped, own, quiet].map(\.severity)), Set(IndicatorSeverity.allCases))
         let encoder = ExportEncoder(model: try XCTUnwrap(ExportEncoder.model), indicators: [shipped, own, quiet])
-        let records = try SyntheticCorpus.records().prefix(2)
+        /// Two Endpoint Security events, and a network flow, whose record lists them under its own definition.
+        let corpus = try SyntheticCorpus.records()
+        let records = Array(corpus.prefix(2)) + [try XCTUnwrap(corpus.first { $0.message.event.isNetworkFlow })]
         let matched = records.map { record in
             ("\(record.label) with indicators", String(decoding: encoder.line(for: record.message), as: UTF8.self))
         }
@@ -177,7 +204,8 @@ final class TelemetrySchemaDriftTests: XCTestCase {
             return IndicatorUndetermined(IndicatorHit(isDefault ? Self.revised($0) : $0, isDefault: isDefault,
                                                       pack: 2, evaluatedBy: .securityExtension), reason: $1)
         }), nil]
-        let stamped = zip(records, zip(verdicts, undetermined)).map { record, stamp in
+        let stamps = Array(zip(verdicts, undetermined)) + [(verdicts[0], undetermined[0])]
+        let stamped = zip(records, stamps).map { record, stamp in
             var message = record.message
             (message.indicators, message.indicators_undetermined) = stamp
             return ("\(record.label) with \(stamp.0.hits.count) stamped indicators",

@@ -67,12 +67,13 @@ struct SubscriptionsSettingsView: View {
         systemExtensionManager.requestEventSubscriptions()
     }
 
-    /// The event names in what the Security Extension reports, without its field filters' wire names.
+    /// The event names in what the Security Extension reports, without its field filters' wire names, and without
+    /// scanning, the network flow events and URL paths, which Settings > General turns on and off.
     ///
     /// - Parameter names: ``EndpointSecurityManager/monitoredEventStrings``.
     /// - Returns: The events alone.
     private func events(in names: Set<String>) -> Set<String> {
-        names.filter { FieldFilter(rawValue: $0) == nil }
+        names.filter { FieldFilter(rawValue: $0) == nil && !EnrichmentSwitchStore.names.contains($0) }
     }
 }
 
@@ -110,7 +111,8 @@ struct SubscriptionsPane: View {
                 Button("Unsubscribe from All…", role: .destructive) { confirmsUnsubscribeAll = true }
                     .disabled(total == 0)
             }
-            if isLoaded, total == 0 {
+            /// Record network flows still records with no Endpoint Security event.
+            if isLoaded, total == 0, !MacMonitorEvent.allCases.contains(where: { subscribed.contains($0.name) }) {
                 Label("Mac Monitor isn't subscribed to any events, so it records nothing. Reset Subscriptions "
                       + "subscribes to its usual set again.", systemImage: "exclamationmark.triangle.fill")
                     .symbolRenderingMode(.multicolor)
@@ -222,9 +224,7 @@ private struct SubscriptionRow: View {
                 }
             }
         } accessory: {
-            Link(destination: event.documentation) { Image(systemName: "book") }
-                .help("Apple's documentation for \(event.name)")
-                .accessibilityLabel("Documentation for \(event.title)")
+            EventSourceMark(event: event)
         }
     }
 }

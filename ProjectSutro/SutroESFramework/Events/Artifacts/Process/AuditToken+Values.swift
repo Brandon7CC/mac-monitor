@@ -49,7 +49,7 @@ extension AuditToken {
 ///
 /// Mac Monitor's own ``AuditToken`` encodes its random `id` too. Mac Monitor's enrichments write tokens this way, and
 /// read either shape (an `id` is ignored).
-struct ESLoggerAuditToken: Codable {
+struct ESLoggerAuditToken: Codable, Equatable, Sendable {
     let pid, pidversion, asid: Int32
     let auid, euid, ruid, rgid, egid: Int64
     

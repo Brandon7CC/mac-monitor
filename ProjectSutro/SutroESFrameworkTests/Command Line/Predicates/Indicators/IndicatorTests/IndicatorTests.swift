@@ -197,14 +197,15 @@ final class IndicatorTests: XCTestCase {
         XCTAssertFalse(StoredEventValues.canEvaluate(try StreamFilter.Predicate(arrays, for: .search).parsed))
     }
 
-    /// Each key path an indicator may read from the stored event holds the record's value there, for every event of the
-    /// synthetic corpus and the fixtures: `nil` where the record has `null` or nothing, and "" where it has "".
+    /// Each key path an indicator may read from the stored event holds the record's value there, for every Endpoint
+    /// Security event of the synthetic corpus and the fixtures: `nil` where the record has `null` or nothing, and ""
+    /// where it has "". A network flow is matched on its record (`testFlowsAreMatchedOnTheirRecords`).
     func testStoredValuesAreTheRecords() throws {
         /// `null` and a missing key read alike.
         func normalized(_ value: Any?) -> NSObject? { value is NSNull ? nil : value as? NSObject }
         try withEventStore(try SyntheticCorpus.records().map(\.message) + (try lineageTrace())) { _, stored in
             var compared = 0
-            for event in stored {
+            for event in stored where !event.isNetworkFlow {
                 let record = PredicateRecord(try XCTUnwrap(JSONSerialization.jsonObject(
                     with: JSONEncoder().encode(event)) as? NSDictionary))
                 for keyPath in StoredEventValues.keyPaths.sorted() {

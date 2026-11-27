@@ -181,6 +181,11 @@ extension StreamSession {
         var configuration = CaptureConfiguration(events: plan.events, label: label)
         configuration.fieldFilters = plan.fieldFilters ?? []
         configuration.chainBudget = SessionChains.streamBudget
+        /// A stream's file and process lanes can each send their whole line at once, so each line is a quarter of
+        /// what the batcher takes before it drops and pauses, and together they leave it half.
+        configuration.holdLine = EventBatcher.Limits.commandLine.capacity / 4
+        configuration.scansWrittenFiles = plan.scansWrittenFiles
+        configuration.recordsURLPaths = plan.recordsURLPaths
         /// Every stream is evaluated, `--no-mutes` too: its records carry the verdicts. Changes hop onto `queue`.
         if let savedIndicators = service.savedIndicators {
             let (indicators, subscription) = savedIndicators.follow { [weak self] compiled in
@@ -209,6 +214,16 @@ extension StreamSession {
         }
         do {
             let capture = try service.makeCapture(configuration) { event in handoff.submit(event.json) }
+            /// A stream that asked for flows and can't have them still streams the rest, and says why. With nothing
+            /// else to stream it fails.
+            let flowsRefused = plan.events.contains { MacMonitorEvent($0) != nil }
+                && !capture.subscribedEvents.contains { MacMonitorEvent($0) != nil }
+            if flowsRefused, capture.subscribedEvents.isEmpty {
+                capture.stop()
+                service.released()
+                abandonStart()
+                return answer(.failed, problem: capture.flowProblem.map { "Network flows can't be streamed: \($0)" })
+            }
             self.handoff = handoff
             self.batcher = batcher
             self.capture = capture
@@ -222,13 +237,19 @@ extension StreamSession {
                 """)
             let events = capture.subscribedEvents.map { eventTypeToString(from: $0) }
             return answer(.ok, stream: StreamStarted(events: events, savedMutes: savedMutes,
-                                                     fieldFilters: requestsFieldFilters ? filters : nil))
+                                                     fieldFilters: requestsFieldFilters ? filters : nil,
+                                                     networkProblem: flowsRefused ? capture.flowProblem : nil))
         } catch {
-            muteSubscription = nil
-            indicatorSubscription = nil
-            service.slots.release(number)
+            abandonStart()
             return startFailure(error)
         }
+    }
+    
+    /// Give back what a stream that couldn't start took: its saved set subscriptions and its slot. Call on ``queue``.
+    private func abandonStart() {
+        muteSubscription = nil
+        indicatorSubscription = nil
+        service.slots.release(number)
     }
     
     /// Stop new events, deliver every event already captured, then answer with the summary and close.
@@ -343,11 +364,13 @@ extension StreamSession {
         /// A pause still going counts up to now.
         if let skippedAtPause, let capture { skipped += capture.skippedMessages - skippedAtPause }
         let fieldFiltered = (capture?.fieldFilteredByType() ?? [:]).mapValues { Int(clamping: $0) }
+        let flows = capture?.flowStatistics()
         return StreamSummary(captured: counters.enqueued, delivered: counters.delivered,
                              droppedByEndpointSecurity: droppedByEndpointSecurity,
                              droppedWhileBehind: counters.dropped,
                              skippedWhilePaused: Int(skipped), pauses: counters.pauses,
-                             fieldFiltered: requestsFieldFilters ? fieldFiltered : nil)
+                             fieldFiltered: requestsFieldFilters ? fieldFiltered : nil,
+                             networkSocketsLost: flows?.socketsLost, networkFlowsOverBudget: flows?.overBudget)
     }
     
     /// The answer for a capture session that couldn't start.

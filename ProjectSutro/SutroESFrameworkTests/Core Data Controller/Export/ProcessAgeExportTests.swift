@@ -137,7 +137,8 @@ final class ProcessAgeExportTests: XCTestCase {
 
     // MARK: The export
 
-    /// Every process object of every synthetic event's export has the key: its age, or `null` when it has none.
+    /// Every process object of every synthetic event's export has the key: its age, or `null` when it has none. A
+    /// network flow's process is a `flow_process`, which has no age.
     func testEveryProcessIsExportedWithItsAge() throws {
         /// Every process object in a JSON value: the objects with `codesigning_flag_names`, which only processes have.
         func processObjects(in value: Any) -> [[String: Any]] {
@@ -147,7 +148,7 @@ final class ProcessAgeExportTests: XCTestCase {
             }
             return (value as? [Any])?.flatMap(processObjects) ?? []
         }
-        for record in try SyntheticCorpus.records() {
+        for record in try SyntheticCorpus.records() where !record.message.event.isNetworkFlow {
             var event = record.message.event, expected = [record.message.process.process_age_ms]
             event.forEachProcess { expected.append($0.process_age_ms) }
             let objects = processObjects(in: try export(record.message))
@@ -173,12 +174,12 @@ final class ProcessAgeExportTests: XCTestCase {
         let (url, events) = try exportAll(try makeExportStore(messages))
         XCTAssertEqual(events, 3)
         let validator = try TelemetryValidator(schema: try TelemetrySchema.data())
-        XCTAssertEqual(validator.schemaVersion, "1.2.0")
+        XCTAssertEqual(validator.schemaVersion, "1.3.0")
         let lines = try String(contentsOf: url, encoding: .utf8).split(separator: "\n").map(String.init)
         assertValid(lines.enumerated().map { (label: "line \($0 + 1)", json: $1) }, with: validator)
         let records = try lines.map { try jsonObject(Data($0.utf8)) }
         for record in records {
-            XCTAssertEqual(record[TelemetrySchema.versionKey] as? String, "1.2.0")
+            XCTAssertEqual(record[TelemetrySchema.versionKey] as? String, "1.3.0")
             XCTAssertEqual(record[path: "process", "process_age_ms"] as? Int, 114_281)
         }
         let exec = try XCTUnwrap(records.first { $0[path: "event", "exec"] != nil })

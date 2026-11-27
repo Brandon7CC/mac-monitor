@@ -62,20 +62,38 @@ final class MuteFileReaderTests: XCTestCase {
     }
     
     /// Endpoint Security lists a path muted for every event with every type it has, AUTH events and unnamed ones
-    /// included: such an entry reads as every event, without warnings.
+    /// included. An entry that names those and Mac Monitor's network events reads as every event, without warnings.
+    /// One that names every Endpoint Security event alone, as a list from before network flows, keeps its list, so
+    /// it doesn't start muting flows.
     func testAnEntryNamingEveryCapturedEventReadsAsEveryEvent() throws {
+        let flows = MacMonitorEvent.allCases.map(\.name)
         let everything = (0..<ES_EVENT_TYPE_LAST.rawValue).map {
             eventTypeToString(from: es_event_type_t(rawValue: $0))
         }
         let captured = supportedEvents.map { eventTypeToString(from: $0) }
-        let imported = try read([line("/a", "ES_MUTE_PATH_TYPE_LITERAL", everything),
-                                 line("/b", "ES_MUTE_PATH_TYPE_PREFIX", captured),
-                                 line("/c", "ES_MUTE_PATH_TYPE_PREFIX", Array(captured.dropFirst()))]
+        let imported = try read([line("/a", "ES_MUTE_PATH_TYPE_LITERAL", everything + flows),
+                                 line("/b", "ES_MUTE_PATH_TYPE_PREFIX", captured + flows),
+                                 line("/c", "ES_MUTE_PATH_TYPE_PREFIX", Array(captured.dropFirst()) + flows),
+                                 line("/d", "ES_MUTE_PATH_TYPE_PREFIX", captured)]
                                     .joined(separator: "\n"))
         XCTAssertEqual(imported.list.scopes[MuteList.Key(path: "/a", type: ES_MUTE_PATH_TYPE_LITERAL)], .allEvents)
         XCTAssertEqual(imported.list.scopes[MuteList.Key(path: "/b", type: ES_MUTE_PATH_TYPE_PREFIX)], .allEvents)
         XCTAssertNotEqual(imported.list.scopes[MuteList.Key(path: "/c", type: ES_MUTE_PATH_TYPE_PREFIX)], .allEvents)
+        XCTAssertEqual(imported.list.scopes[MuteList.Key(path: "/d", type: ES_MUTE_PATH_TYPE_PREFIX)],
+                       .events(Set(supportedEvents)))
         XCTAssertEqual(imported.warnings, [])
+    }
+
+    /// A target entry that names a network flow event is refused: a flow has no target path. A process entry may
+    /// name one.
+    func testATargetEntryNamingAFlowIsRefused() throws {
+        let target = line("/t", "ES_MUTE_PATH_TYPE_TARGET_PREFIX", ["ES_EVENT_TYPE_NOTIFY_OPEN", "new_flow"])
+        let imported = try read([target, line("/p", "ES_MUTE_PATH_TYPE_PREFIX", ["flow_closed"])]
+            .joined(separator: "\n"))
+        XCTAssertEqual(imported.list.mutes, [PathMute(path: "/p", type: ES_MUTE_PATH_TYPE_PREFIX,
+                                                      events: [MacMonitorEvent.flow_closed.type])])
+        XCTAssertEqual(imported.warnings.count, 1)
+        XCTAssertTrue(imported.warnings[0].contains("network flows, which have no target path"), imported.warnings[0])
     }
     
     /// A target entry naming every event that can be muted by target path reads as every event.

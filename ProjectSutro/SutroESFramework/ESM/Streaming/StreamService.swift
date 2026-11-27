@@ -55,6 +55,9 @@ public final class StreamService {
     let probe: () -> NewClientResult
     /// Looks up Mac Monitor's latest release, for `macmonitor update check`, or `nil` for a service that can't.
     let updates: SensorUpdating?
+    /// The network statistics client the capture sessions read flows from, whose status `macmonitor status` shows,
+    /// or `nil` for none.
+    let flows: NetworkStatisticsClient?
     /// The last session's number.
     private let sessionNumbers = OSAllocatedUnfairLock(initialState: UInt64(0))
     static let logger = Logger(subsystem: "com.swiftlydetecting.agent.securityextension", category: "StreamService")
@@ -94,7 +97,7 @@ public final class StreamService {
                   sensorVersion: Self.version(of: .main), grant: Self.granting { access.access },
                   makeCapture: { try CaptureSession($0, emit: $1) },
                   released: { notify_post(SensorXPC.sensorReleasedNotification) },
-                  appCapture: appCapture, probe: Self.probeEndpointSecurity, updates: updates)
+                  appCapture: appCapture, probe: Self.probeEndpointSecurity, updates: updates, flows: .shared)
     }
     
     /// - Parameters:
@@ -109,12 +112,14 @@ public final class StreamService {
     ///   - appCapture: Asks Mac Monitor's side who is connected: nobody, unless given.
     ///   - probe: Asks Endpoint Security for a client and lets it go: it may, unless given.
     ///   - updates: Looks up Mac Monitor's latest release: nothing does, unless given.
+    ///   - flows: The network statistics client, whose status a status request reports: none, unless given.
     init(savedMutes: SavedMuteSet, savedIndicators: SavedIndicatorSet? = nil, slots: StreamSlots,
          sensorVersion: String, grant: @escaping (NSXPCConnection?) -> CommandLineGrant,
          makeCapture: @escaping CaptureMaker, released: @escaping () -> Void = {},
          closed: @escaping () -> Void = {},
          appCapture: @escaping AppCapture = { $0(SensorReport.App(connected: false, recording: false), false) },
-         probe: @escaping () -> NewClientResult = { .success }, updates: SensorUpdating? = nil) {
+         probe: @escaping () -> NewClientResult = { .success }, updates: SensorUpdating? = nil,
+         flows: NetworkStatisticsClient? = nil) {
         self.savedMutes = savedMutes
         self.savedIndicators = savedIndicators
         self.slots = slots
@@ -126,6 +131,7 @@ public final class StreamService {
         self.appCapture = appCapture
         self.probe = probe
         self.updates = updates
+        self.flows = flows
     }
 
     /// What the Security Extension says of itself, for `macmonitor status`.
@@ -139,7 +145,8 @@ public final class StreamService {
             let streams = slots.count
             let result: NewClientResult = holdsClients || streams > 0 ? .success : probe()
             reply(SensorReport(endpointSecurity: SensorReport.EndpointSecurity(result), app: app, streams: streams,
-                               streamCapacity: slots.capacity, indicators: savedIndicators?.packStatus))
+                               streamCapacity: slots.capacity, indicators: savedIndicators?.packStatus,
+                               network: flows?.status))
         }
     }
 

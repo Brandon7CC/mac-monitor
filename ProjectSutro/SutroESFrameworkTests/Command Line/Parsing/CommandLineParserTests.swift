@@ -59,12 +59,14 @@ final class CommandLineParserTests: XCTestCase {
         XCTAssertTrue(try parse("stream").requiresRoot)
     }
     
-    /// Events by short name in any case or full name, each once in order. `all` is every supported event.
+    /// Events by short name in any case or full name, each once in order. `all` is every event macmonitor can stream:
+    /// the supported Endpoint Security events, then the network flows.
     func testEventNames() throws {
         XCTAssertEqual(try stream("exec FORK ES_EVENT_TYPE_NOTIFY_EXIT exec").events,
                        [ES_EVENT_TYPE_NOTIFY_EXEC, ES_EVENT_TYPE_NOTIFY_FORK, ES_EVENT_TYPE_NOTIFY_EXIT])
-        XCTAssertEqual(try stream("all").events, supportedEvents)
-        XCTAssertEqual(try stream("exec all").events.count, supportedEvents.count)
+        XCTAssertEqual(try stream("all").events, supportedEvents + MacMonitorEvent.allCases.map(\.type))
+        XCTAssertEqual(try stream("exec all new_flow").events.count,
+                       supportedEvents.count + MacMonitorEvent.allCases.count)
         XCTAssertEqual(try stream("open").options.events, ["ES_EVENT_TYPE_NOTIFY_OPEN"])
     }
     
@@ -112,6 +114,18 @@ final class CommandLineParserTests: XCTestCase {
                      "--no-mutes --include-self --format jsonl -- exec"] {
             XCTAssertEqual(try stream(line), expected, line)
         }
+        XCTAssertTrue(try stream("close --yara-scan").scansWrittenFiles)
+        XCTAssertTrue(try stream("close --yara-scan").options.scansWrittenFiles)
+        XCTAssertFalse(try stream("close").options.scansWrittenFiles)
+        XCTAssertEqual(usageError("stream --yara-scan=on")?.hasPrefix("--yara-scan takes no value."), true)
+        let scanHelp = CommandLineCommand.stream.help.details
+        XCTAssertTrue(scanHelp.contains("each script an exec runs") && scanHelp.contains("Needs close or exec."),
+                      "--yara-scan's help covers the scripts execs run")
+        XCTAssertTrue(try stream("new_flow").options.recordsURLPaths)
+        XCTAssertFalse(try stream("new_flow --no-url-paths").recordsURLPaths)
+        XCTAssertFalse(try stream("new_flow --no-url-paths").options.recordsURLPaths)
+        XCTAssertEqual(usageError("stream --no-url-paths=yes")?.hasPrefix("--no-url-paths takes no value."), true)
+        XCTAssertEqual(try stream("new_flow FLOW_CLOSED").events, MacMonitorEvent.allCases.map(\.type))
         XCTAssertEqual(try stream("--format text").format, .text)
         XCTAssertEqual(try stream("--format pretty").format, .pretty)
         XCTAssertEqual(usageError("stream -- --no-mutes"),
@@ -314,12 +328,15 @@ final class CommandLineParserTests: XCTestCase {
         }
     }
     
-    /// `events` lists every supported event once, by short and full name, with the defaults marked.
+    /// `events` lists every supported event once, by short and full name, with the defaults marked. The flow events
+    /// are listed and never a default.
     func testTheEventList() {
         let lines = CommandLineHelp.eventList().split(separator: "\n")
-        XCTAssertEqual(lines.count, supportedEvents.count)
+        XCTAssertEqual(lines.count, supportedEvents.count + MacMonitorEvent.allCases.count)
         XCTAssertTrue(lines.contains { $0.hasPrefix("* exec ") && $0.hasSuffix(" ES_EVENT_TYPE_NOTIFY_EXEC") })
         XCTAssertTrue(lines.contains { $0.hasPrefix("  open ") && $0.hasSuffix(" ES_EVENT_TYPE_NOTIFY_OPEN") })
+        XCTAssertTrue(lines.contains { $0.hasPrefix("  new_flow ") && $0.hasSuffix(" new_flow") })
+        XCTAssertTrue(lines.contains { $0.hasPrefix("  flow_closed ") && $0.hasSuffix(" flow_closed") })
         XCTAssertEqual(lines.filter { $0.hasPrefix("*") }.count, Set(defaultEventSubscriptions.map(\.rawValue)).count)
         XCTAssertEqual(CommandLineHelp.eventList(legend: true),
                        CommandLineHelp.eventList() + "\n* streamed by 'sudo macmonitor stream' with no EVENT\n")

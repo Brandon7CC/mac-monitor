@@ -114,7 +114,25 @@ enum ESLogger {
     static func time(_ time: timespec) -> String {
         utcTime(seconds: time.tv_sec, fraction: time.tv_nsec, digits: 9) ?? TimeSpec(from: time).humanFormat()
     }
-    
+
+    /// A time in nanoseconds since 1970 as eslogger writes a time.
+    ///
+    /// - Parameter nanoseconds: The time.
+    /// - Returns: The time in UTC with nine fractional digits.
+    static func time(nanoseconds: Int64) -> String {
+        time(wallTime(nanoseconds: nanoseconds))
+    }
+
+    /// A time in nanoseconds since 1970 as a `timespec`, its fraction counted up from the second before it.
+    ///
+    /// - Parameter nanoseconds: The time.
+    /// - Returns: The time.
+    static func wallTime(nanoseconds: Int64) -> timespec {
+        let (seconds, fraction) = nanoseconds.quotientAndRemainder(dividingBy: 1_000_000_000)
+        let floored = fraction < 0 ? (seconds - 1, fraction + 1_000_000_000) : (seconds, fraction)
+        return timespec(tv_sec: Int(floored.0), tv_nsec: Int(floored.1))
+    }
+
     /// The last second ``utcTime(seconds:fraction:digits:)`` writes: 9999-12-31T23:59:59Z.
     private static let lastFourDigitYearSecond = 253_402_300_799
     

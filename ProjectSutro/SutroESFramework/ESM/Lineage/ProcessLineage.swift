@@ -54,6 +54,9 @@ public final class ProcessLineage: @unchecked Sendable {
         var launcher: ProcessKey?
         /// Did a lookup wait to be told of it and give up? Then no lookup waits for it again.
         var gaveUp = false
+        /// The audit token it was told of: an exec's target's, a fork's child's, or a seeded process's. A flow's
+        /// record takes it when the process was gone before its socket was read (``program(_:toldUpTo:)``).
+        var token: audit_token_t?
 
         /// - Parameters:
         ///   - program: The program.
@@ -162,17 +165,19 @@ public final class ProcessLineage: @unchecked Sendable {
     ///   - parent: The process that forked it.
     ///   - launchedBy: The process that really caused the child to run, when that's another and it's known. A
     ///     second telling of the fork that doesn't say keeps what the first said.
-    public func fork(_ child: ProcessKey, from parent: ProcessKey, launchedBy: ProcessKey? = nil) {
+    ///   - token: The child's audit token, when it's known. A second telling that doesn't say keeps the first's.
+    public func fork(_ child: ProcessKey, from parent: ProcessKey, launchedBy: ProcessKey? = nil,
+                     token: audit_token_t? = nil) {
         lock.withLock {
-            let launcher = launchedBy ?? nodes[child]?.launcher
+            let launcher = launchedBy ?? nodes[child]?.launcher, token = token ?? nodes[child]?.token
             guard !parent.isRoot else {
-                keep(Node(ProcessProgram(key: child), parent: nil), launchedBy: launcher)
+                keep(Node(ProcessProgram(key: child), parent: nil), launchedBy: launcher, token: token)
                 return
             }
             let parent = node(parent)
             var program = parent.program
             program.key = child
-            keep(filling(program, parent: parent), launchedBy: launcher)
+            keep(filling(program, parent: parent), launchedBy: launcher, token: token)
         }
     }
 
@@ -184,14 +189,16 @@ public final class ProcessLineage: @unchecked Sendable {
     ///   - parent: Its parent as the exec names it, for a process the table wasn't told of.
     ///   - launchedBy: The process that really caused the program to run, when that's another and it's known. A
     ///     second telling of the exec that doesn't say keeps what the first said.
+    ///   - token: The process's audit token after the exec, when it's known. A second telling that doesn't say
+    ///     keeps the first's.
     ///   - now: The time, in seconds on any clock that doesn't go back.
     public func exec(_ program: ProcessProgram, replacing previous: ProcessKey, parent: ProcessKey? = nil,
-                     launchedBy: ProcessKey? = nil, at now: TimeInterval) {
+                     launchedBy: ProcessKey? = nil, token: audit_token_t? = nil, at now: TimeInterval) {
         lock.withLock {
             let before = nodes[previous]
-            let launcher = launchedBy ?? nodes[program.key]?.launcher
+            let launcher = launchedBy ?? nodes[program.key]?.launcher, token = token ?? nodes[program.key]?.token
             keep(filling(program, parent: before?.parent ?? parent.flatMap { $0.isRoot ? nil : node($0) }),
-                 launchedBy: launcher)
+                 launchedBy: launcher, token: token)
             if before != nil, previous != program.key { linger(previous, at: now) }
             forget(at: now)
         }
@@ -318,13 +325,6 @@ public final class ProcessLineage: @unchecked Sendable {
         return launcher.isRoot ? nil : find(launcher) ?? node.parent
     }
 
-    /// Keep a node under its key, and as its pid's newest program if it is, and wake the lookups waiting to be
-    /// told of a process. Call under the lock.
-    ///
-    /// - Parameters:
-    ///   - node: The node.
-    ///   - launcher: The process that really caused it to run, which is kept only when it isn't the one that
-    ///     forked it.
     /// The node for a program an event created. One known by its key alone is filled in where it stands, since its
     /// children already point at it: a child's event can come before its parent's, as a held app exec's does.
     ///
@@ -341,8 +341,17 @@ public final class ProcessLineage: @unchecked Sendable {
         return known
     }
 
-    func keep(_ node: Node, launchedBy launcher: ProcessKey? = nil) {
+    /// Keep a node under its key, and as its pid's newest program if it is, and wake the lookups waiting to be
+    /// told of a process. Call under the lock.
+    ///
+    /// - Parameters:
+    ///   - node: The node.
+    ///   - launcher: The process that really caused it to run, which is kept only when it isn't the one that
+    ///     forked it.
+    ///   - token: The process's audit token, when it's known. `nil` keeps the one the node has.
+    func keep(_ node: Node, launchedBy launcher: ProcessKey? = nil, token: audit_token_t? = nil) {
         node.launcher = launcher == node.parent?.program.key ? nil : launcher
+        if let token { node.token = token }
         let key = node.program.key
         nodes[key] = node
         if (newest[key.pid]?.program.key.pidversion ?? -1) <= key.pidversion { newest[key.pid] = node }

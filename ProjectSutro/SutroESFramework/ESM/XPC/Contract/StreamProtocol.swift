@@ -115,19 +115,26 @@ public struct StreamRequest: XPCRequest, Equatable, Sendable {
 /// The stream a ``StreamRequest/Kind-swift.enum/stream`` request asks for, before the Security Extension validates it
 /// (``StreamPlan``).
 public struct StreamOptions: Codable, Equatable, Sendable {
-    /// `ES_EVENT_TYPE_NOTIFY_*` names. None means Mac Monitor's default subscriptions.
+    /// `ES_EVENT_TYPE_NOTIFY_*` names, and the network flow events' (``MacMonitorEvent``). None means Mac Monitor's
+    /// default subscriptions, which have no flows.
     public var events: [String] = []
     /// Apply the saved mute set, and follow its changes? `macmonitor stream --no-mutes` sends `false`.
     public var appliesSavedMutes: Bool = true
     /// ``FieldFilter`` wire names to apply. Missing means a 3.0.0 request: no field filters, and default events
     /// without those that are default only with one. `macmonitor` 3.1.0 and later always sends it.
     public var fieldFilters: [String]? = nil
+    /// Scan the stream's written files and the scripts its execs run with Apple's XProtect rules (``YaraScan``)?
+    /// `macmonitor stream --yara-scan` sends `true`. Missing means `false`, as from a `macmonitor` before 3.3.0.
+    public var scansWrittenFiles: Bool = false
+    /// Keep the paths of the flows' URLs? `macmonitor stream --no-url-paths` sends `false`. Missing means `true`.
+    public var recordsURLPaths: Bool = true
 }
 
 
 extension StreamOptions {
     /// Missing events mean the defaults, and missing `appliesSavedMutes` means `true`: a stream applies the saved set
-    /// unless it says otherwise. Missing `fieldFilters` stays `nil`: a 3.0.0 request.
+    /// unless it says otherwise. Missing `fieldFilters` stays `nil`: a 3.0.0 request. Missing `scansWrittenFiles`
+    /// means `false`, and missing `recordsURLPaths` means `true`.
     ///
     /// - Parameter decoder: The decoder.
     /// - Throws: A `DecodingError` for a field of the wrong type.
@@ -136,6 +143,8 @@ extension StreamOptions {
         events = try container.decodeIfPresent([String].self, forKey: .events) ?? []
         appliesSavedMutes = try container.decodeIfPresent(Bool.self, forKey: .appliesSavedMutes) ?? true
         fieldFilters = try container.decodeIfPresent([String].self, forKey: .fieldFilters)
+        scansWrittenFiles = try container.decodeIfPresent(Bool.self, forKey: .scansWrittenFiles) ?? false
+        recordsURLPaths = try container.decodeIfPresent(Bool.self, forKey: .recordsURLPaths) ?? true
     }
 }
 

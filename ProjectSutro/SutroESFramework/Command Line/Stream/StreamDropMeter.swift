@@ -43,14 +43,17 @@ public final class StreamDropMeter {
         }
     }
     
-    /// Account for one event's sequence numbers.
+    /// Account for one event's sequence numbers. A network flow has none, and no Endpoint Security client, so it's
+    /// left out.
     ///
     /// - Parameter header: The event's header.
     public func observe(_ header: EventHeader) {
         /// A type outside the range Endpoint Security uses only counts toward the global sequence.
         let isTyped = (0..<Self.eventTypeLimit).contains(header.eventType)
         let type = es_event_type_t(rawValue: UInt32(truncatingIfNeeded: header.eventType))
-        trackers[EventClassTable.eventClass(of: type), default: ClientSequenceTracker()].observe(
+        let eventClass = EventClassTable.eventClass(of: type)
+        guard eventClass != .network else { return }
+        trackers[eventClass, default: ClientSequenceTracker()].observe(
             eventType: isTyped ? header.eventType : 0,
             sequence: isTyped ? header.sequence.flatMap(UInt64.init(exactly:)) : nil,
             globalSequence: header.globalSequence.flatMap(UInt64.init(exactly:)))
@@ -75,9 +78,9 @@ public final class StreamDropMeter {
     
     /// The events lost since the last call, for each client that lost any.
     ///
-    /// - Returns: One report per client with new drops, in ``EventClass/allCases`` order.
+    /// - Returns: One report per client with new drops, in ``EventClass/endpointSecurity`` order.
     public func takeReport() -> [CaptureDropReport] {
-        EventClass.allCases.compactMap { eventClass in
+        EventClass.endpointSecurity.compactMap { eventClass in
             guard let tracker = trackers[eventClass] else { return nil }
             return marks[eventClass, default: DropReportMark()].takeReport(
                 of: eventClass, from: tracker, uncounting: affected.contains(eventClass) ? fieldFilteredTypes : [])

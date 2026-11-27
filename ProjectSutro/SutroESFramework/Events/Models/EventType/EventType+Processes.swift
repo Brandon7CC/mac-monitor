@@ -65,6 +65,11 @@ extension EventType {
              .lw_session_unlock, .iokit_open, .xpc_connect, .uipc_connect, .uipc_bind, .gatekeeper_user_override,
              .unknown:
             break
+
+        // MARK: Network events
+        /// A flow's source app is a ``FlowProcessRecord``, not a `Process`.
+        case .new_flow, .flow_closed:
+            break
         }
     }
 

@@ -123,8 +123,9 @@ extension IndicatorFile {
     }
 
     /// Check indicators a request brings, before they join the set: no identity twice, each within ``Indicator/Limits``
-    /// and ``IndicatorLimits/maxPredicateLength``, and every event type a predicate names one this build knows, in
-    /// any branch, `NOT` included. A rule the Security Extension can't run is refused once the set is compiled
+    /// and ``IndicatorLimits/maxPredicateLength``, no `es_event_type` comparison with a Mac Monitor event, whose record
+    /// has none, and every event type a predicate names one this build knows, in any branch, `NOT` included. A rule
+    /// the Security Extension can't run is refused once the set is compiled
     /// (``SavedIndicatorSet/checkRuns(_:compiled:)``).
     ///
     /// - Parameter indicators: The request's indicators.
@@ -136,6 +137,9 @@ extension IndicatorFile {
             let parsed = indicator.rule.predicates.compactMap {
                 try? StreamFilter.Predicate.parse($0.predicate, for: .indicator)
             }
+            let untyped = Set(parsed.flatMap(PredicateEventTypes.typeComparisonNames(in:)))
+                .filter { MacMonitorEvent(name: $0) != nil }.sorted()
+            guard untyped.isEmpty else { throw .noEventType(indicator.name, untyped) }
             let unknown = Set(parsed.flatMap(PredicateEventTypes.namedEventTypes(in:)))
                 .filter { eventStringToType(from: $0) == ES_EVENT_TYPE_LAST }.sorted()
             guard unknown.isEmpty else { throw .unknownEventTypes(indicator.name, unknown) }
@@ -186,6 +190,9 @@ public enum IndicatorFileError: Error, Equatable, CustomStringConvertible {
     case pastLimit(String, String)
     /// A predicate names event types this build doesn't know: the indicator's name, and the types.
     case unknownEventTypes(String, [String])
+    /// A predicate compares `es_event_type` with Mac Monitor events, whose records have none: the indicator's name,
+    /// and the events.
+    case noEventType(String, [String])
     /// The programs have more nodes in all than ``IndicatorLimits/maxNodes``.
     case tooManyNodes(Int)
     /// More rules run on one event type than ``IndicatorLimits/maxRulesPerType``.
@@ -209,6 +216,9 @@ public enum IndicatorFileError: Error, Equatable, CustomStringConvertible {
         case .pastLimit(let name, let problem): "“\(name)”: \(problem)"
         case .unknownEventTypes(let name, let types):
             "“\(name)” names event types this Mac Monitor doesn't know: \(types.joined(separator: ", "))."
+        case .noEventType(let name, let events):
+            "“\(name)” compares es_event_type with \(events.joined(separator: ", ")). "
+                + events.map { SensorProblem.noEventType($0).description }.joined(separator: " ")
         case .tooManyNodes(let count):
             "Its rules have \(count) parts in all. The Security Extension runs \(IndicatorLimits.maxNodes) at most."
         case .tooManyRules(let type, let count):

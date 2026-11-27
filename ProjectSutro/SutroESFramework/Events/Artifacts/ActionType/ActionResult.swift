@@ -63,4 +63,7 @@ public struct ActionResultWrapper: Codable, Hashable {
     init(from message: es_message_t) {
         self.result = ActionResult(from: message)
     }
+
+    /// No result, as a Mac Monitor event has: no Endpoint Security message took an action.
+    init() {}
 }

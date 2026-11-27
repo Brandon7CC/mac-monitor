@@ -115,6 +115,9 @@ extension SystemTargetProcessView {
         // MARK: - Gatekeeper events
         case ES_EVENT_TYPE_NOTIFY_GATEKEEPER_USER_OVERRIDE: SystemGatekeeperUserOverrideMetadataView(message: message)
 
+        // MARK: - Network events
+        case MacMonitorEvent.new_flow.type, MacMonitorEvent.flow_closed.type: NetworkFlowMetadataView(message: message)
+
         default: EmptyView()
         }
     }

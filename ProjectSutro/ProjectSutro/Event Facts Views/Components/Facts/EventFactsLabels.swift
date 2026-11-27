@@ -14,19 +14,11 @@ import SutroESFramework
 struct EventTimeView: View {
     /// The event.
     let message: ESMessage
-    
-    /// Local time to the millisecond, with the time zone: "2026-10-02 05:15:49.123 PDT".
-    private static let localTime: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS zzz"
-        return formatter
-    }()
-    
-    /// The local time in a box, or eslogger's time if the event has no `Date`.
+
+    /// The local time in a box (``eventLocalTime(_:)``), or eslogger's time if the event has no `Date`.
     var body: some View {
         GroupBox {
-            Text("`\(message.message_darwin_time.map(Self.localTime.string(from:)) ?? message.time ?? "Unknown")`")
+            Text("`\(message.message_darwin_time.map(eventLocalTime) ?? message.time ?? "Unknown")`")
         }
         .help(message.time ?? "")
     }
