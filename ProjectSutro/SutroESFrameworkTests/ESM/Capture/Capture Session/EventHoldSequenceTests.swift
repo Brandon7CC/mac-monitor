@@ -1,5 +1,5 @@
 //
-//  LaunchServicesHoldSequenceTests.swift
+//  EventHoldSequenceTests.swift
 //  SutroESFrameworkTests
 //
 //  Created by Brandon Dalton on 11/15/26.
@@ -13,9 +13,7 @@ import XCTest
 /// Pins the sequences of the exec lane, whose events advance them as the Launch Services hold sends them: an app's
 /// held exec with the launched-by parent it leaves with, and an event behind it after it, in Endpoint Security's
 /// order. A step can read the launched-by parent, whether it starts the chain or completes it.
-final class LaunchServicesHoldSequenceTests: XCTestCase {
-    /// The process that asked Launch Services to launch the apps.
-    private let launcher = LaunchServicesHoldIndicatorTests.target(700)
+final class EventHoldSequenceTests: XCTestCase {
     /// Events the hold sent, in order.
     private let emitted = EmittedEvents()
     /// eslogger's exec of curl, which the apps' execs are made from.
@@ -48,10 +46,10 @@ final class LaunchServicesHoldSequenceTests: XCTestCase {
             let compiled = CompiledIndicators([sequence]), chains = SessionChains(for: compiled)
             XCTAssertTrue(compiled.problems.isEmpty, "\(compiled.problems.map(\.reason))")
             let gate = DispatchSemaphore(value: 0)
-            let hold = hold(FakeLaunchServicesReader { pid, _ in
+            let hold = processHold(FakeLaunchServicesReader { pid, _ in
                 gate.wait()
-                return answers ? self.launch(of: pid) : nil
-            })
+                return answers ? self.launchRecord(of: pid) : nil
+            }, emitted: emitted)
             let (held, heldSteps) = appExec(pid: 606, stampedWith: compiled)
             let (behind, behindSteps) = appExec(pid: 607, at: 1, stampedWith: compiled)
             hold.hold(held, stampedWith: compiled, chains: chains, steps: heldSteps)
@@ -74,7 +72,7 @@ final class LaunchServicesHoldSequenceTests: XCTestCase {
         ])
         let sequence = sequenceIndicator(IndicatorSequence(order: .ordered, within: 5, steps: [run, after]))
         let compiled = CompiledIndicators([sequence]), chains = SessionChains(for: compiled)
-        let hold = hold(FakeLaunchServicesReader { pid, _ in self.launch(of: pid) })
+        let hold = processHold(FakeLaunchServicesReader { pid, _ in self.launchRecord(of: pid) }, emitted: emitted)
         let (first, firstSteps) = appExec(pid: 605, stampedWith: compiled)
         let (held, heldSteps) = appExec(pid: 606, at: 1, stampedWith: compiled)
         hold.submit(first, stampedWith: compiled, chains: chains, steps: firstSteps)
@@ -86,7 +84,7 @@ final class LaunchServicesHoldSequenceTests: XCTestCase {
 
 
 // MARK: - Helpers
-extension LaunchServicesHoldSequenceTests {
+extension EventHoldSequenceTests {
     /// An app's exec as the exec lane builds it: held for Launch Services, and stamped deferring its sequence steps.
     ///
     /// - Parameters:
@@ -96,18 +94,11 @@ extension LaunchServicesHoldSequenceTests {
     /// - Returns: The event, and the steps its stamp left for the hold.
     private func appExec(pid: Int32, at time: Double = 0,
                          stampedWith indicators: CompiledIndicators) -> (Message, ContiguousArray<Int32>) {
-        var message: Message = exec
-        if case .exec(var event) = message.event {
-            event.target.pid = pid
-            event.target.audit_token = LaunchServicesHoldIndicatorTests.target(pid)
-            message.event = .exec(event)
-        }
-        message.setLaunchedByParent(.appJob())
-        message.id = UUID()
+        var message = appExec(exec, pid: pid)
         message.message_darwin_time += time
         var values = MessageValueCache()
         let steps = indicators.stamp(&message, values: &values, deferringSteps: true)
-        XCTAssertTrue(LaunchServicesHold.holds(message))
+        XCTAssertTrue(EventHold.holds(message))
         return (message, steps)
     }
 
@@ -117,24 +108,6 @@ extension LaunchServicesHoldSequenceTests {
     /// - Returns: Does it carry the sequence's hit?
     private func hits(_ sequence: Indicator, _ message: Message) -> Bool {
         message.indicators?.hits.contains { $0.id == sequence.id } == true
-    }
-
-    /// A record of an app's launch by ``launcher``.
-    ///
-    /// - Parameter pid: The app's pid.
-    /// - Returns: The record.
-    private func launch(of pid: pid_t) -> LaunchServicesRecord {
-        LaunchServicesRecord(token: LaunchServicesHoldIndicatorTests.target(pid), launchedByLaunchServices: true,
-                             hasParentASN: true, parentToken: launcher)
-    }
-
-    /// A hold for the process lane that sends into ``emitted``, naming each launcher's executable by its pid.
-    ///
-    /// - Parameter reader: The Launch Services reader.
-    /// - Returns: The hold.
-    private func hold(_ reader: LaunchServicesReading) -> LaunchServicesHold {
-        let upgrader = LaunchedByParentUpgrader(reader: reader, delays: [0]) { pid, _ in "/path/of/\(pid)" }
-        return LaunchServicesHold(eventClass: .process, upgrader: upgrader, maxWait: 5, emit: emitted.append)
     }
 
     /// Wait for the hold to send events, and read them as Mac Monitor decodes them.

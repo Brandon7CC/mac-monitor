@@ -12,7 +12,7 @@ import Foundation
 /// What LaunchServices knows about an app it launched: which process checked in, and who asked for the launch.
 ///
 /// An app checks in with LaunchServices only once its own code runs, 2-5 ms after Endpoint Security reports its exec,
-/// so the Security Extension holds the exec and reads it a little later (``LaunchServicesHold``).
+/// so the Security Extension holds the exec and reads it a little later (``EventHold``).
 public struct LaunchServicesRecord: Hashable {
     /// `LSAuditToken`: the process that checked in. Its pid version tells this launch apart from a reused pid.
     public var token: AuditToken

@@ -100,15 +100,49 @@ public struct RootFileStore: Sendable {
         return readFile()
     }
 
+    /// What ``openForReading()`` found.
+    public enum Opening {
+        /// The file, open for reading at its start, checked as ``read()`` checks it.
+        case opened(FileHandle)
+        /// Why it wasn't opened: ``Read/missing``, ``Read/unreadable(_:)`` or ``Read/tooLarge(bytes:)``.
+        case notOpened(Read)
+    }
+
+    /// Open the file for reading, after removing temporary files a crash left behind. For a file too large to read
+    /// into memory, such as compiled rules libyara loads through a stream.
+    ///
+    /// - Returns: The open file, or why it wasn't opened.
+    /// - Throws: ``RootFileStoreError/untrustedDirectory(_:)``, with nothing opened.
+    public func openForReading() throws -> Opening {
+        guard try checkDirectory(creating: false) else { return .notOpened(.missing) }
+        removeLeftovers()
+        return openFile()
+    }
+
     /// Replace the file, atomically, creating the directory 0700 if it's missing.
     ///
     /// - Parameter data: The file's new bytes, at most ``Layout/maxBytes``.
     /// - Throws: ``RootFileStoreError``, with the old file left as it was and no temporary file left behind.
     public func write(_ data: Data) throws {
-        _ = try checkDirectory(creating: true)
         guard data.count <= layout.maxBytes else {
             throw RootFileStoreError.writeFailed("The \(layout.noun) would be larger than \(maxSizeText).")
         }
+        try write { descriptor in
+            if let code = data.writeAll(to: descriptor) {
+                throw Self.failure("Couldn't write the \(layout.noun)", code: code)
+            }
+        }
+    }
+
+    /// Replace the file, atomically, with whatever `body` writes to a new temporary file's descriptor, creating the
+    /// directory 0700 if it's missing. For a file too large to hold in memory first, such as compiled rules another
+    /// process writes.
+    ///
+    /// - Parameter body: Writes the file's new bytes to the descriptor, and doesn't close it.
+    /// - Throws: What `body` throws, or ``RootFileStoreError``, with the old file left as it was and no temporary
+    ///   file left behind. A file over ``Layout/maxBytes`` isn't kept.
+    public func write(using body: (Int32) throws -> Void) throws {
+        _ = try checkDirectory(creating: true)
         var template = Array(directory.appendingPathComponent(layout.temporaryPrefix + "XXXXXX").path.utf8CString)
         let descriptor = mkstemp(&template)
         guard descriptor >= 0 else { throw Self.failure("Couldn't create a file in \(directory.path)") }
@@ -116,8 +150,10 @@ public struct RootFileStore: Sendable {
         var renamed = false
         defer { if !renamed { unlink(temporary) } }
         do {
-            if let code = data.writeAll(to: descriptor) {
-                throw Self.failure("Couldn't write the \(layout.noun)", code: code)
+            try body(descriptor)
+            var info = stat()
+            guard fstat(descriptor, &info) == 0, info.st_size <= off_t(layout.maxBytes) else {
+                throw RootFileStoreError.writeFailed("The \(layout.noun) would be larger than \(maxSizeText).")
             }
             guard fchmod(descriptor, 0o600) == 0, fsync(descriptor) == 0 else {
                 throw Self.failure("Couldn't flush the \(layout.noun) to disk")
@@ -187,24 +223,36 @@ extension RootFileStore {
         return true
     }
 
-    /// Read the file without following a link or waiting on a FIFO: `lstat`, open only a regular file with
+    /// Open the file without following a link or waiting on a FIFO: `lstat`, open only a regular file with
     /// `O_NOFOLLOW | O_NONBLOCK`, and check again with `fstat` in case it was replaced in between.
     ///
-    /// - Returns: The bytes, up to one past ``Layout/maxBytes``, or why they can't be read.
-    private func readFile() -> Read {
+    /// - Returns: The open file, at most ``Layout/maxBytes``, or why it can't be read.
+    private func openFile() -> Opening {
         let path = fileURL.path
         var info = stat()
         guard lstat(path, &info) == 0 else {
-            return errno == ENOENT ? .missing : .unreadable("It can't be examined (\(errnoText())).")
+            return .notOpened(errno == ENOENT ? .missing : .unreadable("It can't be examined (\(errnoText()))."))
         }
         let isOwnRegularFile: (stat) -> Bool = { $0.st_mode & S_IFMT == S_IFREG && $0.st_uid == owner }
         let notOwnRegularFile = Read.unreadable("It isn't a regular file owned by \(ownerName).")
-        guard isOwnRegularFile(info) else { return notOwnRegularFile }
+        guard isOwnRegularFile(info) else { return .notOpened(notOwnRegularFile) }
         let descriptor = open(path, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
-        guard descriptor >= 0 else { return .unreadable("It can't be opened (\(errnoText())).") }
+        guard descriptor >= 0 else { return .notOpened(.unreadable("It can't be opened (\(errnoText())).")) }
         let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
-        guard fstat(descriptor, &info) == 0, isOwnRegularFile(info) else { return notOwnRegularFile }
-        guard info.st_size <= off_t(layout.maxBytes) else { return .tooLarge(bytes: Int(info.st_size)) }
+        guard fstat(descriptor, &info) == 0, isOwnRegularFile(info) else { return .notOpened(notOwnRegularFile) }
+        guard info.st_size <= off_t(layout.maxBytes) else { return .notOpened(.tooLarge(bytes: Int(info.st_size))) }
+        return .opened(file)
+    }
+
+    /// Read the file, opened as ``openFile()`` opens it.
+    ///
+    /// - Returns: The bytes, up to one past ``Layout/maxBytes``, or why they can't be read.
+    private func readFile() -> Read {
+        let file: FileHandle
+        switch openFile() {
+        case .opened(let opened): file = opened
+        case .notOpened(let read): return read
+        }
         do {
             return .read(try file.read(upToCount: layout.maxBytes + 1) ?? Data())
         } catch {

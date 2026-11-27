@@ -43,7 +43,8 @@ public struct CommandLineOption: Equatable {
     static let stream: [CommandLineOption] = [
         CommandLineOption("--format", .choice(StreamOutputFormat.allCases.map(\.rawValue))),
         CommandLineOption("--json"), CommandLineOption("--pretty"), CommandLineOption("--text"),
-        CommandLineOption("--no-mutes"), CommandLineOption("--include-self"),
+        CommandLineOption("--no-mutes"), CommandLineOption("--include-self"), CommandLineOption("--yara-scan"),
+        CommandLineOption("--no-url-paths"),
         CommandLineOption("--every", .choice(CommandLineParser.everyChoices)),
         CommandLineOption("--for", .text), CommandLineOption("--count", .text), CommandLineOption("--pid", .text)
     ] + ["--process", "--signing-id", "--target", "--grep", "--predicate", "--indicator"]

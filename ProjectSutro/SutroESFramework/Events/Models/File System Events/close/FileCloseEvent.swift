@@ -25,6 +25,11 @@ public struct FileCloseEvent: Codable, IdentityHashable {
     /// The `MH_*` file type of a modified Mach-O, such as `MH_EXECUTE`. `nil` for any other file, or as
     /// ``file_type`` is.
     public var mach_o_type: String?
+    /* Mac Monitor enrichment, a scan of the written file with Apple's XProtect rules: FileScanner */
+    /// What scanning the file with Apple's XProtect rules found, for a modified close of a Mach-O or a script while
+    /// scanning is on (``FileScanKind``). `nil` for any other close, while scanning is off, or in a record from Mac
+    /// Monitor before 3.3.0 or eslogger.
+    public var yara_scan: YaraScan?
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         // Getting the file write event

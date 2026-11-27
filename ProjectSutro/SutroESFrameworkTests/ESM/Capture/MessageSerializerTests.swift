@@ -86,7 +86,7 @@ final class MessageSerializerTests: XCTestCase {
         for holds in [true, false] {
             let indicators = CompiledIndicators([sequence])
             let lane = LaneContext(eventClass: .process, sensorID: "SENSOR-1", encoder: StreamingJSONEncoder(),
-                                   holdsForLaunchServices: holds, indicators: indicators)
+                                   holdsEvents: holds, indicators: indicators)
             switch try XCTUnwrap(MessageSerializer().serializeEvent(exit.raw, in: lane)) {
             case .stamped(_, let steps):
                 XCTAssertTrue(holds)
@@ -94,7 +94,7 @@ final class MessageSerializerTests: XCTestCase {
             case .json:
                 XCTAssertFalse(holds)
             case .held:
-                XCTFail("Not an app's exec")
+                XCTFail("Not an app's exec, nor a written file")
             }
             XCTAssertEqual(indicators.openChains, holds ? 0 : 1, "Holds: \(holds)")
         }

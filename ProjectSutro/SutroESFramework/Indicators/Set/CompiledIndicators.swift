@@ -69,8 +69,11 @@ public final class CompiledIndicators: @unchecked Sendable {
     /// first asks for one.
     let recordPaths: RecordPathTrie?
     /// Does a rule, a sequence's step or its keys read an exec's launched-by parent, which Launch Services can change
-    /// after the exec is stamped (``LaunchServicesHold``)?
+    /// after the exec is stamped (``EventHold``)?
     let readsLaunchedByParent: Bool
+    /// Does a rule, a sequence's step or its keys read a scan, a written file's or an exec's script's, which can
+    /// finish after its close or exec is stamped (``EventHold``)?
+    let readsYaraScan: Bool
     /// Each rule's hit, in the set's order: a step's is its sequence's.
     let ruleHits: ContiguousArray<IndicatorHit>
     /// Each rule's sequence and step (``stepRule(sequence:step:)``), or -1 for a rule on one event of its own.
@@ -144,6 +147,7 @@ public final class CompiledIndicators: @unchecked Sendable {
         self.recordPaths = recordPaths.isEmpty ? nil : recordPaths
         readsLaunchedByParent = recordPaths.fields.contains { $0.path.hasPrefix(Self.launchedByParent) }
             || fields.contains { $0.lineageOffset.map(LineageField.chain(at:)) == .launchedBy }
+        readsYaraScan = recordPaths.fields.contains { field in Self.yaraScans.contains { field.path.hasPrefix($0) } }
         programCount = builder.origins.count
         ruleHits = builder.ruleHits
         ruleSteps = builder.ruleSteps
@@ -183,7 +187,7 @@ public final class CompiledIndicators: @unchecked Sendable {
     ///   - chains: The capture session's chains, or `nil` for the set's own.
     ///   - deferringSteps: Leave the sequences as they are, and hand back the steps it matched
     ///     (``IndicatorEvaluation/steps``) to advance them once it's the event's turn
-    ///     (``advance(_:steps:values:chains:)``), as the exec lane does (``LaunchServicesHold``).
+    ///     (``advance(_:steps:values:chains:)``), as the exec lane does (``EventHold``).
     /// - Returns: The hits and the undetermined. Both empty, which allocates nothing, when it matches none.
     public func evaluate(_ message: borrowing Message, values: inout MessageValueCache, chains: SessionChains? = nil,
                          deferringSteps: Bool = false) -> IndicatorEvaluation {
@@ -402,6 +406,8 @@ public final class CompiledIndicators: @unchecked Sendable {
 
     /// The key path of an exec's launched-by parent, as a rule names the fields under it.
     static let launchedByParent = "event.exec.launched_by_parent."
+    /// Where a scan is in a close's, a rename's and an exec's record.
+    static let yaraScans = ["event.close.yara_scan.", "event.rename.yara_scan.", "event.exec.yara_scan."]
 
     /// Free the frozen programs and the index, which no lane reads once the set is gone.
     deinit {

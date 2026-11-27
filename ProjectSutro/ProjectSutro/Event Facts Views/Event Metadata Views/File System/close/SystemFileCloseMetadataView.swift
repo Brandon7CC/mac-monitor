@@ -32,6 +32,10 @@ struct SystemFileCloseMetadataView: View {
 
                     writeFacts(event)
                 }
+                /// What scanning the written file with Apple's XProtect rules found, when Mac Monitor scanned it.
+                if let scan = event.yara_scan {
+                    XProtectScanBox(scan: scan)
+                }
             }
         }
     }

@@ -22,7 +22,10 @@ extension TelemetrySchemaSource {
          event(ES_EVENT_TYPE_NOTIFY_CLOSE, "A file closed: es_event_close_t.", [
             eslogger("target", .ref("file")), eslogger("modified", .boolean),
             eslogger("was_mapped_writable", .boolean),
-         ] + fileType(of: "target", when: ", only when `modified` is true (an unmodified close's file isn't read)")),
+         ] + fileType(of: "target", when: ", only when `modified` is true (an unmodified close's file isn't read)")
+            + [yaraScan("A modified close carries it while scanning is on, for a Mach-O executable, library, "
+                        + "bundle, kernel extension or dynamic linker, a #! script, a shell script or AppleScript by "
+                        + "its extension, or compiled AppleScript or JXA, by `file_type` and `mach_o_type`.")]),
          event(ES_EVENT_TYPE_NOTIFY_UNLINK, "A file deleted: es_event_unlink_t.", [
             eslogger("target", .ref("file")), eslogger("parent_dir", .ref("file")),
          ]),
@@ -189,7 +192,25 @@ extension TelemetrySchemaSource {
             enrichment("destination_path", .string, "The destination's full path."),
         ] + destinationEnrichments + fileType(of: "source", when: ", where it was renamed to, or from the bytes the "
             + "modified close that wrote that version of it read, as a file written under one name and renamed into "
-            + "place is"))
+            + "place is") + [yaraScan("A rename carries the scan of the modified close that wrote the file it moves, "
+                                      + "while scanning is on, as a file written under one name and renamed into "
+                                      + "place is. Nothing is scanned for a rename itself.")])
+    }
+
+    /// `yara_scan`: what scanning a file with Apple's XProtect rules found.
+    ///
+    /// - Parameters:
+    ///   - subject: What was scanned, such as "the written file".
+    ///   - carried: Which events carry it, as sentences.
+    ///   - absent: When there's none, besides scanning being off and a record from before 3.3.0.
+    /// - Returns: The key.
+    static func yaraScan(of subject: String = "the written file", _ carried: String,
+                         absentWhen absent: String = "the file isn't one that's scanned") -> SchemaKey {
+        enrichment("yara_scan", .ref("yara_scan"),
+                   "What scanning \(subject) with Apple's XProtect rules found, on the Mac that recorded the "
+                   + "event, when it recorded it. \(carried) Since telemetry 1.3.0.",
+                   absent: Absence("\(absent), scanning was off, or the event wasn't recorded by Mac Monitor 3.3.0 "
+                                   + "or later"))
     }
     
     /// A file system mounted: `es_event_mount_t`.

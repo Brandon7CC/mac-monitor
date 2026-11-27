@@ -66,6 +66,10 @@ struct SystemFileRenameMetadataView: View {
                         FileTypeFact(identifier: fileType, machOType: event.mach_o_type)
                     }
                 }
+                /// The scan of the close that wrote the file it moves, when Mac Monitor scanned it.
+                if let scan = event.yara_scan {
+                    XProtectScanBox(scan: scan)
+                }
             }
         }
     }

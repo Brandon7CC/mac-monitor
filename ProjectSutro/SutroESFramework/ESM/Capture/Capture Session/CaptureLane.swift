@@ -36,7 +36,7 @@ import os
 ///
 /// **Field filters:** a message its type's ``FieldFilter`` turns away is left out: counted under the control lock,
 /// after sequence accounting (so it's never a drop) and before the recording check (so it's never skipped). It never
-/// reaches the serializer or the ``LaunchServicesHold``.
+/// reaches the serializer or the ``EventHold``.
 final class CaptureLane {
     /// What the handler checks before it serializes a message, and before it emits the event.
     private struct Control {
@@ -52,6 +52,8 @@ final class CaptureLane {
         var indicators: CompiledIndicators?
         /// The session's chains for their sequences, or `nil` for the set's own.
         var chains: SessionChains?
+        /// Scan written files and the scripts execs run, on a lane that has the scanner?
+        var scansWrittenFiles = false
         /// Messages skipped while open but not recording.
         var skipped: UInt64 = 0
         /// Each event type's field filter, by its raw value (``FieldFilter/table(_:)``).
@@ -76,7 +78,8 @@ final class CaptureLane {
                 skipped &+= 1
                 return nil
             }
-            return Admission(sensorID: sensorID, indicators: indicators, chains: chains)
+            return Admission(sensorID: sensorID, indicators: indicators, chains: chains,
+                             scansWrittenFiles: scansWrittenFiles)
         }
     }
     
@@ -88,6 +91,8 @@ final class CaptureLane {
         let indicators: CompiledIndicators?
         /// The session's chains for their sequences.
         let chains: SessionChains?
+        /// Scan the written file or the script its event names?
+        let scansWrittenFiles: Bool
     }
     
     /// What the lane has seen of its client's messages.
@@ -124,8 +129,12 @@ final class CaptureLane {
     private let indicatorState = LaneIndicators()
     private let serializer: any EventSerializing
     private let emit: (CapturedEvent) -> Void
-    /// Only the exec lane has one
-    private let hold: LaunchServicesHold?
+    /// The exec lane's, for app execs, and the file and process lanes' while the session scans.
+    private let hold: EventHold?
+    /// The scanner, on the file and process lanes of a session that scans.
+    private let scanner: FileScanner?
+    /// Is this the exec lane, whose hold holds app execs for Launch Services whatever scanning does?
+    private let isExecLane: Bool
     /// The lineage table the session keeps told, or `nil` when lineage isn't tracked.
     private let lineage: ProcessLineage?
     /// The snapshots owed for ancestors the lane's execs and forks name, when lineage is tracked.
@@ -142,12 +151,17 @@ final class CaptureLane {
     ///   - indicators: The indicators to stamp events with, in place before any message. `nil` stamps none.
     ///   - chains: The session's chains for their sequences.
     ///   - launchServices: Lets the exec lane hold app execs. `nil` holds nothing.
+    ///   - scanner: Scans the written files the file lane's closes name and the scripts the process lane's execs run,
+    ///     which they hold for their scans, while ``setScansWrittenFiles(_:)`` says to. `nil` scans nothing.
+    ///   - scansWrittenFiles: Scan from the first message, when the lane has the scanner.
+    ///   - holdLine: The most events its hold keeps in line behind held ones.
     ///   - lineage: The lineage table the session keeps told. `nil` tracks none.
     ///   - snapshots: The session's ledger of the processes it has described (``ProcessSnapshot``).
     ///   - emit: Receives each event in order, under the lane's locks. It must not block.
     init(_ eventClass: EventClass, label: String, sensorID: String, serializer: any EventSerializing,
          fieldFilters: ContiguousArray<FieldFilter?>, indicators: CompiledIndicators? = nil,
-         chains: SessionChains?, launchServices: LaunchServicesReading? = nil, lineage: ProcessLineage? = nil,
+         chains: SessionChains?, launchServices: LaunchServicesReading? = nil, scanner: FileScanner? = nil,
+         scansWrittenFiles: Bool = false, holdLine: Int = EventHold.defaultMaxLine, lineage: ProcessLineage? = nil,
          snapshots: SnapshotLedger? = nil, emit: @escaping (CapturedEvent) -> Void) {
         self.eventClass = eventClass
         self.label = label
@@ -156,13 +170,18 @@ final class CaptureLane {
         self.lineage = lineage
         self.snapshots = lineage == nil ? nil : snapshots.map(LaneSnapshots.init)
         control = OSAllocatedUnfairLock(initialState: Control(sensorID: sensorID, indicators: indicators,
-                                                              chains: chains, fieldFilters: fieldFilters))
-        hold = launchServices.flatMap { reader in
-            EventClassTable.eventClass(of: ES_EVENT_TYPE_NOTIFY_EXEC) == eventClass
-                ? LaunchServicesHold(eventClass: eventClass, upgrader: LaunchedByParentUpgrader(reader: reader),
-                                     lineage: lineage, emit: emit)
-                : nil
-        }
+                                                              chains: chains, scansWrittenFiles: scansWrittenFiles,
+                                                              fieldFilters: fieldFilters))
+        let isProcessLane = EventClassTable.eventClass(of: ES_EVENT_TYPE_NOTIFY_EXEC) == eventClass
+        let scans = scanner != nil
+            && (isProcessLane || EventClassTable.eventClass(of: ES_EVENT_TYPE_NOTIFY_CLOSE) == eventClass)
+        self.scanner = scans ? scanner : nil
+        isExecLane = launchServices != nil && isProcessLane
+        let upgrader = isExecLane ? launchServices.map { LaunchedByParentUpgrader(reader: $0) } : nil
+        hold = upgrader == nil && !scans ? nil
+            : EventHold(eventClass: eventClass, upgrader: upgrader,
+                        maxScanHeld: isProcessLane ? EventHold.execScanHolds : EventHold.defaultMaxHeld,
+                        maxLine: holdLine, lineage: lineage, emit: emit)
     }
     
     /// The client's handler: count the message, then, unless its field filter leaves it out and while recording,
@@ -178,7 +197,9 @@ final class CaptureLane {
             guard let admission = control.withLockUnchecked({ $0.admit(message) }) else { return }
             let lane = LaneContext(eventClass: eventClass, sensorID: admission.sensorID, encoder: encoder,
                                    processPaths: processPaths, fileTypes: fileTypes,
-                                   holdsForLaunchServices: hold != nil, indicators: admission.indicators,
+                                   holdsEvents: hold != nil && (isExecLane || admission.scansWrittenFiles),
+                                   scanner: admission.scansWrittenFiles ? scanner : nil,
+                                   indicators: admission.indicators,
                                    chains: admission.chains, indicatorState: indicatorState, lineage: lineage,
                                    snapshots: snapshots)
             let serialized = serializer.serializeEvent(message, in: lane)
@@ -202,8 +223,9 @@ final class CaptureLane {
                 case .json(let json):
                     let event = CapturedEvent(json: json, eventClass: eventClass)
                     if let hold { hold.submit(event) } else { emit(event) }
-                case .held(let exec, let steps):
-                    hold?.hold(exec, stampedWith: admission.indicators, chains: admission.chains, steps: steps)
+                case .held(let event, let steps, let ticket):
+                    hold?.hold(event, stampedWith: admission.indicators, chains: admission.chains, steps: steps,
+                               scan: ticket)
                 case .stamped(let event, let steps):
                     /// Only a lane with a hold defers its steps.
                     hold?.submit(event, stampedWith: admission.indicators, chains: admission.chains, steps: steps)
@@ -212,7 +234,7 @@ final class CaptureLane {
         }
     }
     
-    /// Send any held execs now. Call while closing.
+    /// Send any held events now. Call while closing.
     func releaseHeld() {
         hold?.close()
     }
@@ -265,6 +287,14 @@ final class CaptureLane {
         control.withLock { $0.isRecording = recording }
     }
     
+    /// Scan written files and scripts from the next message on, or stop. Only a lane with the scanner scans. Events
+    /// already held for their scans still leave in order.
+    ///
+    /// - Parameter scans: Whether to scan.
+    func setScansWrittenFiles(_ scans: Bool) {
+        control.withLock { $0.scansWrittenFiles = scans }
+    }
+
     /// Check these field filters from the next message on. Has no effect on an event already being built.
     ///
     /// - Parameter table: Each event type's field filter (``FieldFilter/table(_:)``).

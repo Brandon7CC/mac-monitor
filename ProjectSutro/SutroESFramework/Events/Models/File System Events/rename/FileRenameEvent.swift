@@ -31,6 +31,11 @@ public struct FileRenameEvent: Codable, IdentityHashable {
     /// The `MH_*` file type of a renamed Mach-O, such as `MH_EXECUTE`. `nil` for any other file, or as
     /// ``file_type`` is.
     public var mach_o_type: String?
+    /* Mac Monitor enrichment, a scan of the written file with Apple's XProtect rules: FileScanner */
+    /// What scanning the file with Apple's XProtect rules found at the close that wrote it, for a rename that moves
+    /// it while scanning is on. `nil` for any other rename, while scanning is off, or in a record from Mac Monitor
+    /// before 3.3.0 or eslogger.
+    public var yara_scan: YaraScan?
     
     init(from rawMessage: UnsafePointer<es_message_t>) {
         let fileRenameEvent: es_event_rename_t = rawMessage.pointee.event.rename

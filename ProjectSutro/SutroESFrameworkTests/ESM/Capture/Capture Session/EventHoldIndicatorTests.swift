@@ -1,5 +1,5 @@
 //
-//  LaunchServicesHoldIndicatorTests.swift
+//  EventHoldIndicatorTests.swift
 //  SutroESFrameworkTests
 //
 //  Created by Brandon Dalton on 11/8/26.
@@ -15,9 +15,7 @@ import EndpointSecurity
 /// so they're read from eslogger's JSON and stamped as the serializer stamps what it builds. A stamped app exec held
 /// for Launch Services keeps its verdicts whichever way it leaves the hold: settled with Launch Services' answer,
 /// sent at once past the hold's bound, or released as the lane closes. Its undetermined indicators stay with it too.
-final class LaunchServicesHoldIndicatorTests: XCTestCase {
-    /// The process that asked Launch Services to launch the apps.
-    private let launcher = LaunchServicesHoldIndicatorTests.target(700)
+final class EventHoldIndicatorTests: XCTestCase {
     /// Events the hold sent, in order.
     private let emitted = EmittedEvents()
     /// eslogger's exec of curl, which the apps' execs are made from.
@@ -51,7 +49,7 @@ final class LaunchServicesHoldIndicatorTests: XCTestCase {
     /// A held exec settled with Launch Services' answer leaves with its verdicts. The hold is kept until then: its
     /// lookups only hold it weakly.
     func testVerdictsSurviveSettling() throws {
-        let reader = FakeLaunchServicesReader { pid, _ in self.launch(of: pid) }
+        let reader = FakeLaunchServicesReader { pid, _ in self.launchRecord(of: pid) }
         let stamped = try appExec(pid: 606)
         let hold = hold(reader)
         hold.hold(stamped, chains: nil)
@@ -73,7 +71,7 @@ final class LaunchServicesHoldIndicatorTests: XCTestCase {
         var values = MessageValueCache()
         indicators.stamp(&stamped, values: &values)
         XCTAssertEqual(stamped.indicators?.hits.map(\.id), [], "Not yet launched by the launcher")
-        let hold = hold(FakeLaunchServicesReader { pid, _ in self.launch(of: pid) })
+        let hold = hold(FakeLaunchServicesReader { pid, _ in self.launchRecord(of: pid) })
         hold.hold(stamped, stampedWith: indicators, chains: nil)
         let sent = try XCTUnwrap(try sentExecs(1).first)
         withExtendedLifetime(hold) {}
@@ -84,7 +82,7 @@ final class LaunchServicesHoldIndicatorTests: XCTestCase {
     /// An exec past the hold's bound isn't held, and it keeps its verdicts. Launch Services answers only once both
     /// execs arrived, so the first is still held when the second comes.
     func testVerdictsSurviveTheBound() throws {
-        let reader = WaitingLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launch(of: pid) }
+        let reader = WaitingLaunchServicesReader { pid, attempt in attempt == 0 ? nil : self.launchRecord(of: pid) }
         defer { reader.open() }
         let hold = hold(reader, maxHeld: 1)
         let (first, second) = (try appExec(pid: 606), try appExec(pid: 607))
@@ -112,7 +110,7 @@ final class LaunchServicesHoldIndicatorTests: XCTestCase {
     /// settled with Launch Services' answer or released as the lane closes.
     func testUndeterminedSurviveTheHold() throws {
         let settled = try undecidedAppExec(pid: 606)
-        let settling = hold(FakeLaunchServicesReader { pid, _ in self.launch(of: pid) })
+        let settling = hold(FakeLaunchServicesReader { pid, _ in self.launchRecord(of: pid) })
         settling.hold(settled, chains: nil)
         XCTAssertEqual(try sentExecs(1).count, 1)
         let reader = WaitingLaunchServicesReader()
@@ -128,32 +126,17 @@ final class LaunchServicesHoldIndicatorTests: XCTestCase {
 
 
 // MARK: - Helpers
-extension LaunchServicesHoldIndicatorTests {
-    /// The target token of an app's exec: a user's process in audit session 100001.
-    ///
-    /// - Parameter pid: The app's pid. Its pid version is ten times that.
-    /// - Returns: The token.
-    static func target(_ pid: Int32) -> AuditToken {
-        AuditToken(pid: pid, pidversion: pid * 10, asid: 100_001, auid: 501, euid: 501, ruid: 501, rgid: 20, egid: 20)
-    }
-
+extension EventHoldIndicatorTests {
     /// An app's exec as a lane builds it: Launch Services must say who launched it, so it's held, and it's stamped.
     ///
     /// - Parameter pid: The app's pid.
     /// - Returns: The event, with at least one verdict.
     /// - Throws: A failure when it matches nothing.
     func appExec(pid: Int32) throws -> Message {
-        var message = try XCTUnwrap(exec)
-        if case .exec(var event) = message.event {
-            event.target.pid = pid
-            event.target.audit_token = Self.target(pid)
-            message.event = .exec(event)
-        }
-        message.setLaunchedByParent(.appJob())
-        message.id = UUID()
+        var message = appExec(try XCTUnwrap(exec), pid: pid)
         var values = MessageValueCache()
         Self.shippedIndicators.stamp(&message, values: &values)
-        XCTAssertTrue(LaunchServicesHold.holds(message))
+        XCTAssertTrue(EventHold.holds(message))
         XCTAssertFalse(try XCTUnwrap(message.indicators).hits.isEmpty)
         return message
     }
@@ -168,30 +151,19 @@ extension LaunchServicesHoldIndicatorTests {
         var values = MessageValueCache()
         values.scan.limit = 0
         Self.shippedIndicators.stamp(&message, values: &values)
-        XCTAssertTrue(LaunchServicesHold.holds(message))
+        XCTAssertTrue(EventHold.holds(message))
         XCTAssertFalse(try XCTUnwrap(message.indicators_undetermined).entries.isEmpty)
         return message
     }
 
-    /// A record of an app's launch by ``launcher``.
-    ///
-    /// - Parameter pid: The app's pid.
-    /// - Returns: The record.
-    func launch(of pid: pid_t) -> LaunchServicesRecord {
-        LaunchServicesRecord(token: Self.target(pid), launchedByLaunchServices: true, hasParentASN: true,
-                             parentToken: launcher)
-    }
-
-    /// A hold for the process lane that sends into ``emitted``.
+    /// A hold for the process lane that sends into ``emitted``, reading Launch Services at once and 10 ms later.
     ///
     /// - Parameters:
     ///   - reader: The Launch Services reader.
     ///   - maxHeld: The most execs held at a time.
     /// - Returns: The hold.
-    func hold(_ reader: LaunchServicesReading, maxHeld: Int = 64) -> LaunchServicesHold {
-        let upgrader = LaunchedByParentUpgrader(reader: reader, delays: [0, 0.01]) { pid, _ in "/path/of/\(pid)" }
-        return LaunchServicesHold(eventClass: .process, upgrader: upgrader, maxHeld: maxHeld, maxWait: 5,
-                                  emit: emitted.append)
+    func hold(_ reader: LaunchServicesReading, maxHeld: Int = 64) -> EventHold {
+        processHold(reader, delays: [0, 0.01], maxHeld: maxHeld, emitted: emitted)
     }
 
     /// Wait for the hold to send execs, and read them as Mac Monitor decodes them.

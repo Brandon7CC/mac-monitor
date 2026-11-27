@@ -23,13 +23,20 @@ public class ESFileRenameEvent: NSManagedObject, Identifiable {
     @NSManaged public var file_type: String?
     /// A renamed Mach-O's `MH_*` file type (``FileRenameEvent/mach_o_type``).
     @NSManaged public var mach_o_type: String?
+    /// ``yara_scan``, as JSON.
+    @NSManaged public var yara_scan_json: Data?
+    /// What scanning the renamed file found at the close that wrote it (``FileRenameEvent/yara_scan``).
+    public var yara_scan: YaraScan? {
+        get { YaraScan.decoded(from: yara_scan_json) }
+        set { yara_scan_json = newValue?.encoded }
+    }
 
     enum CodingKeys: CodingKey {
         case source
         case destination_type, destination_type_string
         case destination, destination_path
         case is_quarantined
-        case file_type, mach_o_type
+        case file_type, mach_o_type, yara_scan
     }
     
     // MARK: - Custom Core Data initilizer for ESFileRenameEvent
@@ -46,6 +53,7 @@ public class ESFileRenameEvent: NSManagedObject, Identifiable {
         self.is_quarantined = event.is_quarantined
         self.file_type = event.file_type
         self.mach_o_type = event.mach_o_type
+        self.yara_scan = event.yara_scan
     }
 }
 
@@ -62,6 +70,7 @@ extension ESFileRenameEvent: Encodable {
         try container.encode(is_quarantined, forKey: .is_quarantined)
         try container.encode(file_type, forKey: .file_type)
         try container.encode(mach_o_type, forKey: .mach_o_type)
+        try container.encodeIfPresent(yara_scan, forKey: .yara_scan)
     }
     
     public var destination_file_name: String {

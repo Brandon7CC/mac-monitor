@@ -22,7 +22,7 @@ private struct HoldingSerializer: EventSerializing {
     ///   - lane: The lane's context.
     /// - Returns: A held exec on a lane that holds them, otherwise the message's `global_seq_num`.
     func serializeEvent(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> SerializedEvent? {
-        guard lane.holdsForLaunchServices, message.pointee.event_type == ES_EVENT_TYPE_NOTIFY_EXEC else {
+        guard lane.holdsEvents, message.pointee.event_type == ES_EVENT_TYPE_NOTIFY_EXEC else {
             return .json(Data("\(message.pointee.global_seq_num)".utf8))
         }
         return .held(exec(Int32(message.pointee.global_seq_num)))
@@ -121,8 +121,8 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
     ///   - maxWait: The longest an exec is held.
     /// - Returns: The hold.
     private func hold(_ reader: LaunchServicesReading, maxHeld: Int = 64,
-                      maxWait: TimeInterval = 5) -> LaunchServicesHold {
-        LaunchServicesHold(eventClass: .process, upgrader: upgrader(reader), maxHeld: maxHeld, maxWait: maxWait,
+                      maxWait: TimeInterval = 5) -> EventHold {
+        EventHold(eventClass: .process, upgrader: upgrader(reader), maxHeld: maxHeld, maxWait: maxWait,
                            emit: emitted.append)
     }
 
@@ -171,9 +171,9 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
 
         for message in [fork, exit, appExec(pid: 601, answer: unixParent), appExec(pid: 602, answer: agent),
                         unanswered] {
-            XCTAssertFalse(LaunchServicesHold.holds(message))
+            XCTAssertFalse(EventHold.holds(message))
         }
-        XCTAssertTrue(LaunchServicesHold.holds(appExec(pid: 606)))
+        XCTAssertTrue(EventHold.holds(appExec(pid: 606)))
     }
 
     // MARK: Lookups
@@ -341,7 +341,7 @@ final class LaunchedByParentUpgraderTests: XCTestCase {
         let reader = WaitingLaunchServicesReader { pid, _ in self.launch(of: pid) }
         defer { reader.open() }
         let upgrader = upgrader(reader)
-        let hold = LaunchServicesHold(eventClass: .process, upgrader: upgrader, maxWait: 5, emit: emitted.append)
+        let hold = EventHold(eventClass: .process, upgrader: upgrader, maxWait: 5, emit: emitted.append)
         hold.hold(appExec(pid: 606), chains: nil)
         hold.submit(ready("fork"))
         hold.close()

@@ -33,7 +33,7 @@ struct CompiledSequence {
 ///
 /// The exec lane defers its events' steps to their turn to be sent (``advance(_:steps:values:chains:)``), so an app's
 /// exec held for Launch Services advances its sequences with the launched-by parent it leaves with, and the events
-/// behind it advance them after it, in Endpoint Security's order (``LaunchServicesHold``).
+/// behind it advance them after it, in Endpoint Security's order (``EventHold``).
 extension CompiledIndicators {
     /// A step's rule as ``ruleSteps`` keeps it: its sequence's index, then its own in the low 3 bits.
     ///
