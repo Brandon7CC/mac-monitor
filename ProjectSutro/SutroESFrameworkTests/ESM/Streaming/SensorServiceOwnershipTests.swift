@@ -39,12 +39,14 @@ final class SensorServiceOwnershipTests: XCTestCase {
     /// - Returns: The harness.
     private func makeHarness(refusals: [[Int: NewClientResult]] = []) -> SensorServiceHarness {
         SensorServiceHarness(savedMutes: savedMutes, savedIndicators: savedIndicators,
-                             commandLineAccess: commandLineAccess, refusals: refusals)
+                             commandLineAccess: commandLineAccess,
+                             switches: EnrichmentSwitchStore(defaults: makeDefaults()), refusals: refusals)
     }
 
-    /// How many capture sessions follow each saved set.
+    /// How many capture sessions follow each saved set. The service's change notification follows the indicators
+    /// too, for its whole life.
     private var followers: [Int] {
-        [savedMutes.followerCount, savedIndicators.followerCount]
+        [savedMutes.followerCount, savedIndicators.followerCount - 1]
     }
 
     /// Ask to record or not.
