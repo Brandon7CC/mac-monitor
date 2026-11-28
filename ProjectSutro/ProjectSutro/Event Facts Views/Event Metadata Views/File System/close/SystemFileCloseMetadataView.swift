@@ -32,6 +32,10 @@ struct SystemFileCloseMetadataView: View {
 
                     writeFacts(event)
                 }
+                /// The XProtect rules that matched the written file, when any did.
+                if let scan = event.yara_scan, scan.matched {
+                    XProtectScanBox(scan: scan)
+                }
             }
         }
     }

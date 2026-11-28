@@ -57,7 +57,7 @@ public enum IndicatorTable {
     ///   Technique      T1204.002
     ///   Default        yes
     ///   Event tables   Dot, Symbol
-    ///   Description    Its executable was created less than a second before it ran, as a dropper's payload is.
+    ///   Description    Ran an executable created less than a second earlier.
     ///   Predicate      es_event_type == "ES_EVENT_TYPE_NOTIFY_EXEC" AND event.exec.executable_age_ms < 1000
     /// ```
     ///

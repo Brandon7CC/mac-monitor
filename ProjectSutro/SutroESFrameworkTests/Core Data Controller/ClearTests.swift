@@ -8,6 +8,7 @@
 import XCTest
 import CoreData
 import SQLite3
+import os
 @testable import SutroESFramework
 
 
@@ -146,6 +147,36 @@ final class ClearTests: XCTestCase {
                       "The export isn't the store as it was when it started")
         XCTAssertEqual(identifiers(of: store), before, "The Clear took the store from under the export")
         XCTAssertEqual(store.eventCount, 0)
+    }
+
+    // MARK: What a Clear tells views
+
+    /// Each way the store's events are replaced tells views on the main thread before anything is deleted: Clear
+    /// (Start and an empty trace call it too), Open Trace, and the Clear that closes the trace. Open Trace tells them
+    /// before it returns. Event Facts windows let go of their events and close on it.
+    func testEachClearTellsViewsFirst() throws {
+        let store = CoreDataController(model: eventModel)
+        let told = OSAllocatedUnfairLock(initialState: [Int]())
+        let observer = NotificationCenter.default.addObserver(forName: CoreDataController.eventsWillClear,
+                                                              object: store, queue: nil) { _ in
+            XCTAssertTrue(Thread.isMainThread)
+            let count = store.eventCount
+            told.withLock { $0.append(count) }
+        }
+        addTeardownBlock { NotificationCenter.default.removeObserver(observer) }
+
+        record(try events(5), in: store)
+        clear(store)
+        XCTAssertEqual(told.withLock { $0 }, [5], "Clear")
+
+        record(try events(3), in: store)
+        let opened = expectation(description: "opened")
+        store.openTrace(at: try esloggerTrace(10)) { _ in opened.fulfill() }
+        XCTAssertEqual(told.withLock { $0 }, [5, 3], "Open Trace")
+        wait(for: [opened], timeout: 60)
+
+        clear(store)
+        XCTAssertEqual(told.withLock { $0 }, [5, 3, 10], "Closing the trace")
     }
 
     // MARK: What a Clear keeps out

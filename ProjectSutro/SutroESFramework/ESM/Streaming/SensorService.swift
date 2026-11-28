@@ -48,13 +48,20 @@ public protocol SensorUpdating: AnyObject {
 /// **Saved mute set and indicators:** any user's Mac Monitor may change them, administrator or not, while it owns the
 /// event stream or nobody does. `macmonitor` changes them as root, or as any user when Settings allows it
 /// (``CommandLineAccess``). Capture follows both while it runs, and stamps each event with the indicators it matches.
+/// After each change to the indicators, whoever made it, the service posts ``SensorXPC/indicatorsChangedNotification``
+/// so every Mac Monitor asks for them again.
 ///
 /// **Command line access:** any Mac Monitor may read who can use `macmonitor` without `sudo`. Like the saved mute set,
 /// any user's Mac Monitor may change it, administrator or not, while it owns the event stream or nobody does.
 ///
 /// **Field filters:** they travel as ``FieldFilter`` wire names beside event names in `eventSubscriptions(reply:)` and
 /// `setSubscription(_:enabled:reply:)`, and like subscriptions only the owner changes them. They're kept in memory,
-/// so they return to the defaults (close: only modified files) whenever the Security Extension restarts.
+/// so they return to the defaults (close: only modified files) whenever the Security Extension restarts, as the
+/// Endpoint Security events do.
+///
+/// **Enrichment switches:** scanning written files (``YaraScan/subscriptionName``) and keeping URL paths
+/// (``NetworkFlowEvent/urlPathsSubscriptionName``) travel the same way, and the network flows by their event names.
+/// Each is on until the owner turns it off, and ``EnrichmentSwitchStore`` keeps every change across restarts.
 ///
 /// **Updates:** any user's Mac Monitor may install one, administrator or not, while it owns the event stream or nobody
 /// does. The Security Extension downloads the latest release itself and installs it only once Gatekeeper accepts it
@@ -92,12 +99,13 @@ public final class SensorService: NSObject {
     /// Capture for the sink, while there is one.
     var capture: CaptureSession?
 
-    /// Mac Monitor's event subscriptions. They outlive a capture session, so a Mac Monitor that reconnects keeps the
-    /// ones it chose.
-    var subscriptions: [es_event_type_t] = defaultEventSubscriptions
+    /// Mac Monitor's event subscriptions: the default Endpoint Security events, and the network flows unless the
+    /// owner turned them off (``switches``). They outlive a capture session, so a Mac Monitor that reconnects keeps
+    /// the ones it chose. `macmonitor` streams start from their own defaults, without flows.
+    var subscriptions: [es_event_type_t]
 
-    /// Mac Monitor's field filters. Like `subscriptions`, they outlive a capture session and return to the defaults
-    /// when the Security Extension restarts.
+    /// Mac Monitor's field filters. Like `subscriptions`, they outlive a capture session. They return to the defaults
+    /// when the Security Extension restarts, as the Endpoint Security events do.
     var fieldFilters = Set(defaultFieldFilters)
 
     /// Endpoint Security's default mutes (``ESMutedPath`` JSON), from the first capture session this process started.
@@ -111,38 +119,57 @@ public final class SensorService: NSObject {
     /// Who may use `macmonitor` without `sudo`, shared with the ``StreamService``.
     let commandLineAccess: CommandLineAccessStore
 
+    /// Settings > General's enrichment switches, kept across restarts: recording the network flows, scanning written
+    /// files with Apple's XProtect rules (``YaraScan/subscriptionName``), and keeping the flows' URL paths
+    /// (``NetworkFlowEvent/urlPathsSubscriptionName``). Settings turns each off and on through
+    /// `setSubscription(_:enabled:reply:)`.
+    let switches: EnrichmentSwitchStore
+
     /// The Mac's indicator set, shared with every `macmonitor` stream. Capture follows it while
     /// `indicatorSubscription` is held, and stamps each event with those it matches.
     let savedIndicators: SavedIndicatorSet
     var indicatorSubscription: AnyCancellable?
+    /// Posts the change notification after each change to the indicators, for the life of the service.
+    let indicatorAnnouncements: AnyCancellable
 
-    /// The live service: capture on live Endpoint Security clients, and the owner going away posts
-    /// ``SensorXPC/sensorReleasedNotification``.
+    /// The live service: capture on live Endpoint Security clients, the owner going away posts
+    /// ``SensorXPC/sensorReleasedNotification``, and each change to the indicators posts
+    /// ``SensorXPC/indicatorsChangedNotification``.
     ///
     /// - Parameters:
     ///   - savedMutes: The saved mute set, loaded before the listener starts.
     ///   - savedIndicators: The Mac's indicator set, loaded before the listener starts.
     ///   - commandLineAccess: Who may use `macmonitor` without `sudo`.
+    ///   - switches: Settings > General's enrichment switches.
     ///   - updates: Checks for and installs releases.
     public convenience init(savedMutes: SavedMuteSet, savedIndicators: SavedIndicatorSet,
-                            commandLineAccess: CommandLineAccessStore, updates: SensorUpdating) {
+                            commandLineAccess: CommandLineAccessStore, switches: EnrichmentSwitchStore,
+                            updates: SensorUpdating) {
         self.init(savedMutes: savedMutes, savedIndicators: savedIndicators, commandLineAccess: commandLineAccess,
-                  updates: updates, makeCapture: { try CaptureSession($0, emit: $1) },
-                  released: { notify_post(SensorXPC.sensorReleasedNotification) })
+                  switches: switches, updates: updates, makeCapture: { try CaptureSession($0, emit: $1) },
+                  released: { notify_post(SensorXPC.sensorReleasedNotification) },
+                  changes: SensorXPC.indicatorsChangedNotification)
     }
 
     /// - Parameters:
     ///   - savedMutes: The saved mute set.
     ///   - savedIndicators: The Mac's indicator set.
     ///   - commandLineAccess: Who may use `macmonitor` without `sudo`.
+    ///   - switches: Settings > General's enrichment switches.
     ///   - updates: Checks for and installs releases.
     ///   - makeCapture: Makes the capture session when the stream is claimed.
     ///   - released: Called when the owner goes away.
+    ///   - changes: The notification posted after each change to the indicators.
     init(savedMutes: SavedMuteSet, savedIndicators: SavedIndicatorSet, commandLineAccess: CommandLineAccessStore,
-         updates: SensorUpdating, makeCapture: @escaping CaptureMaker, released: @escaping () -> Void) {
+         switches: EnrichmentSwitchStore, updates: SensorUpdating, makeCapture: @escaping CaptureMaker,
+         released: @escaping () -> Void, changes: String) {
         self.savedMutes = savedMutes
         self.savedIndicators = savedIndicators
+        indicatorAnnouncements = savedIndicators.announceChanges(as: changes)
         self.commandLineAccess = commandLineAccess
+        self.switches = switches
+        subscriptions = defaultEventSubscriptions
+            + MacMonitorEvent.allCases.filter { switches.isOn($0.name) }.map(\.type)
         self.updates = updates
         self.makeCapture = makeCapture
         self.released = released

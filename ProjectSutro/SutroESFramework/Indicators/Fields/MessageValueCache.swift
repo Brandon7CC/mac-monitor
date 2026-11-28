@@ -135,7 +135,8 @@ public struct MessageValueCache {
         guard field.isDirect else { return recordValue(of: field, in: message) }
         let value: IndicatorValue
         if let offset = field.lineageOffset {
-            value = lineageValue(at: offset, in: message)
+            value = offset == LineageField.processOffset ? processCommandLine(in: message)
+                : lineageValue(at: offset, in: message)
         } else {
             value = MessageValues.value(of: field, in: message)
         }
@@ -164,6 +165,17 @@ public struct MessageValueCache {
             } ?? []
         }
         return LineageField.value(at: offset, of: ancestors[slot] ?? [])
+    }
+
+    /// The command line of the event's process, by its own key in the lineage table: on an exec, the program that
+    /// called exec. One the table hasn't been told of yet is read from the system, or waited for, as an ancestor is
+    /// (``ProcessLineage/commandLine(of:at:)``).
+    ///
+    /// - Parameter message: The event.
+    /// - Returns: The command line, or ``IndicatorValue/null`` when lineage isn't tracked or it isn't known.
+    private func processCommandLine(in message: borrowing Message) -> IndicatorValue {
+        guard let lineage, let token = message.process.audit_token else { return .null }
+        return IndicatorValue(lineage.commandLine(of: ProcessKey(token), at: UInt64(clamping: message.mach_time)))
     }
 
     /// The process whose ancestors an event's lineage fields read: the program an exec starts, which has its

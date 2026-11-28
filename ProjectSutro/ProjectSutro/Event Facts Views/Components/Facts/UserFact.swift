@@ -11,7 +11,8 @@ import SutroESFramework
 
 // MARK: - User fact
 /// The user a process runs as in Event Facts: its effective user, and its real user before it when they differ.
-/// A user with no name on this Mac, as a trace's users often are, shows its ID alone.
+/// A user with no name on this Mac, as a trace's users often are, shows its ID alone. A network flow's process whose
+/// audit token wasn't read has no users, and shows Unknown.
 struct UserFact: View {
     /// The process: an event's own, or the one it acted on.
     let process: ESProcess
@@ -24,7 +25,7 @@ struct UserFact: View {
                 Image(systemName: "arrow.right")
                 Text("**Effective:**")
             }
-            FactValue(Self.label(process.euid_human, process.euid))
+            FactValue(process.hasUsers ? Self.label(process.euid_human, process.euid) : nil)
         }
     }
 

@@ -280,16 +280,26 @@ public final class TraceImporter {
     /// (``ESLogger/isLocalTime(_:legacy:)``) derives no age: start and birth times are UTC, so the ages would be off
     /// by the time zones' difference whenever the trace is opened in another zone than it was recorded in.
     ///
+    /// A network flow's record is Mac Monitor's own (``TelemetrySchema/isNetworkRecord(_:)``): nothing is derived,
+    /// its process is read as `flow_process` (``FlowProcessRecord``), and its event is named from its payload.
+    ///
     /// - Parameter json: The event's JSON object, or a unified log entry whose `eventMessage` is one.
     /// - Returns: The event.
     /// - Throws: A `TraceImportError` or `DecodingError` if it isn't an event Mac Monitor can show.
     public static func message(from json: Data) throws -> Message {
         let object = try event(in: try JSONSerialization.jsonObject(with: json))
-        /// Mac Monitor names every event it records or exports. eslogger doesn't.
-        let enriching = object["es_event_type"] == nil
+        /// Mac Monitor names every event it records or exports. eslogger doesn't. A flow's process mustn't be derived
+        /// from code signing flags it doesn't have.
+        let isNetworkFlow = TelemetrySchema.isNetworkRecord(object)
+        let enriching = object["es_event_type"] == nil && !isNetworkFlow
         var message: Message
         do {
             message = try TraceDecoder(object, enriching: enriching).decode(Message.self)
+            if isNetworkFlow {
+                let process = try TraceDecoder(object["process"] as AnyObject?).decode(FlowProcessRecord.self)
+                message.process = Process(process)
+                message.nameMacMonitorEvent()
+            }
         } catch let error as DecodingError where error.context?.codingPath.map(\.stringValue) == ["event"] {
             /// `event` names no case of ``EventType``.
             throw TraceImportError.unsupportedEvent((object["event"] as? NSDictionary)?.allKeys.first as? String ?? "?")

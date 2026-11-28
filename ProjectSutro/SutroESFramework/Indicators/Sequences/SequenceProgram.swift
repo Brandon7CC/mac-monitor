@@ -48,7 +48,7 @@ struct SequenceProgram: Sendable {
     /// For each step, whether its event can reach the table before the event of a step before it: when the steps up
     /// to it run on more than one lane (``EventClass``), each of which hands its events over in its own order. One
     /// lane hands over in Endpoint Security's order, its app execs held for Launch Services included
-    /// (``LaunchServicesHold``), so a step on the lane of every step before it never comes early.
+    /// (``EventHold``), so a step on the lane of every step before it never comes early.
     let arrivesEarly: [Bool]
 
     /// - Parameters:

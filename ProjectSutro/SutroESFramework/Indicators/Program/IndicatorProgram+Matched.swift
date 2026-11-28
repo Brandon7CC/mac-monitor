@@ -17,7 +17,8 @@ extension IndicatorProgram.View {
     /// more. An `AND` lists what each of its children matched. An `OR` lists its first child that matched, the one
     /// that decided it. Nothing under a `NOT` is listed, nor a `!=` a value: they say what the event doesn't have.
     /// `!= nil` is listed, as it says the event has a value. `ANY` lists the string of the array that decided it,
-    /// and a comparison of two fields lists both.
+    /// with `!=` too, as that's a string the event has. A comparison of two fields lists both. An array's `.@count`
+    /// is listed as any number is: its key path, `.@count` and all, with the array's size.
     ///
     /// - Parameters:
     ///   - root: The program's root node.
@@ -85,9 +86,7 @@ extension IndicatorProgram.View {
             }
             return verdict
         case .anyCompare:
-            /// `ANY ... !=` says what one of them isn't.
-            guard node.op != .notEqualTo,
-                  case .strings(let elements) = values.value(of: node.field, in: message) else {
+            guard case .strings(let elements) = values.value(of: node.field, in: message) else {
                 return evaluate(index, message, eventType, &values)
             }
             /// As `ANY` itself decides, within what's left of the allowance: it says which string matched.

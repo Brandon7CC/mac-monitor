@@ -24,13 +24,28 @@ struct FactsBox<Content: View>: View {
 }
 
 
+// MARK: - Facts scroll
+/// An Event Facts tab's facts, one below another, scrolling as a whole. A scroll view, not a list: a list holds them in
+/// one table cell, and a control updating inside that cell never finished updating the window.
+struct FactsScroll<Content: View>: View {
+    /// The facts.
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, content: content)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+
 // MARK: - Event facts card
-/// One event's facts in Event Facts' Metadata tab: its label, what the event says, and its context items. Those are
-/// the audit tokens of the process that made the event, the audit token of the process it acted on when it has one,
-/// and any button the event adds.
+/// One event's facts in Event Facts' Metadata tab: its label, then what the event says.
 ///
-/// Every event's view is this card around its own facts, so the label, the context items and the sheets are written
-/// once:
+/// Every event's view is this card around its own facts, so the label is written once:
 /// ```swift
 /// if let event = esSystemEvent.event.mount {
 ///     EventFactsCard(message: esSystemEvent) {
@@ -38,79 +53,19 @@ struct FactsBox<Content: View>: View {
 ///     }
 /// }
 /// ```
-struct EventFactsCard<Facts: View, Context: View>: View {
-    /// The audit tokens a sheet shows.
-    private enum Tokens: String, Identifiable {
-        case process, target
-        var id: String { rawValue }
-    }
-
+struct EventFactsCard<Facts: View>: View {
     /// The event.
     let message: ESMessage
-    /// The audit token of the process the event acted on, which adds a Target audit tokens button, or `nil`.
-    var targetAuditToken: String?
     /// The label's color for a type it doesn't color itself: Open Directory's are orange.
     var labelTint: Color?
-    /// What the event says: ``FactsBox``es, and anything else it shows above its context items.
+    /// What the event says: ``FactsBox``es, mostly.
     @ViewBuilder let facts: () -> Facts
-    /// The event's own context buttons, after the audit tokens'.
-    @ViewBuilder let context: () -> Context
-    /// The audit tokens shown in a sheet, if any are.
-    @State private var shown: Tokens?
-
-    /// - Parameters:
-    ///   - message: The event.
-    ///   - targetAuditToken: The audit token of the process the event acted on, or `nil` without one.
-    ///   - labelTint: The label's color for a type it doesn't color itself, or `nil`.
-    ///   - facts: What the event says.
-    ///   - context: The event's own context buttons.
-    init(message: ESMessage, targetAuditToken: String? = nil, labelTint: Color? = nil,
-         @ViewBuilder facts: @escaping () -> Facts, @ViewBuilder context: @escaping () -> Context) {
-        self.message = message
-        self.targetAuditToken = targetAuditToken
-        self.labelTint = labelTint
-        self.facts = facts
-        self.context = context
-    }
 
     var body: some View {
         VStack(alignment: .leading) {
             SystemEventTypeLabel(message: message, tint: labelTint)
                 .font(.title2)
             facts()
-            Divider()
-            Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
-            GroupBox {
-                HStack {
-                    Button("**Audit tokens**") { shown = .process }
-                    if targetAuditToken != nil {
-                        Button("**Target audit tokens**") { shown = .target }
-                    }
-                    context()
-                }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
-            }
-        }.sheet(item: $shown) { tokens in
-            switch tokens {
-            case .process: AuditTokenView(process: message.process)
-            case .target: AuditTokenView(audit_token: targetAuditToken ?? "")
-            }
-            Button("**Dismiss**") { shown = nil }.padding(.bottom)
-        }
-    }
-}
-
-extension EventFactsCard where Context == EmptyView {
-    /// A card whose only context items are audit tokens.
-    ///
-    /// - Parameters:
-    ///   - message: The event.
-    ///   - targetAuditToken: The audit token of the process the event acted on, or `nil` without one.
-    ///   - labelTint: The label's color for a type it doesn't color itself, or `nil`.
-    ///   - facts: What the event says.
-    init(message: ESMessage, targetAuditToken: String? = nil, labelTint: Color? = nil,
-         @ViewBuilder facts: @escaping () -> Facts) {
-        self.init(message: message, targetAuditToken: targetAuditToken, labelTint: labelTint, facts: facts) {
-            EmptyView()
         }
     }
 }

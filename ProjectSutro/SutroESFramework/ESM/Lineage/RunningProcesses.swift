@@ -19,9 +19,9 @@ enum RunningProcesses {
     /// Read every running process but the kernel and launchd.
     ///
     /// - Parameter signatures: Read each one's signature too?
-    /// - Returns: Each process's program and its parent's pid. A process that exited meanwhile, or whose pid
-    ///   version can't be read, is left out.
-    static func read(signatures: Bool = true) -> [(program: ProcessProgram, parent: Int32)] {
+    /// - Returns: Each process's program, its parent's pid and its token. A process that exited meanwhile, or whose
+    ///   pid version can't be read, is left out.
+    static func read(signatures: Bool = true) -> [ProcessLineage.Running] {
         var pids = [pid_t](repeating: 0, count: Int(proc_listallpids(nil, 0)) + 128)
         let listed = Int(proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size)))
         return pids.prefix(max(listed, 0)).compactMap { process($0, signature: signatures) }
@@ -32,9 +32,9 @@ enum RunningProcesses {
     /// - Parameters:
     ///   - pid: Its pid.
     ///   - signature: Read its signature too? A few milliseconds, where the rest is microseconds.
-    /// - Returns: Its program and its parent's pid, or `nil` for the kernel, launchd, a process that's gone, and
-    ///   one whose pid version can't be read.
-    static func process(_ pid: pid_t, signature: Bool) -> (program: ProcessProgram, parent: Int32)? {
+    /// - Returns: Its program, its parent's pid and its token, or `nil` for the kernel, launchd, a process that's gone,
+    ///   and one whose pid version can't be read.
+    static func process(_ pid: pid_t, signature: Bool) -> ProcessLineage.Running? {
         guard pid > ProcessKey.launchd, let token = token(of: pid) else { return nil }
         var info = proc_bsdinfo()
         let size = Int32(MemoryLayout<proc_bsdinfo>.size)
@@ -45,7 +45,7 @@ enum RunningProcesses {
                                      commandLine: arguments(of: pid).map(ProcessProgram.commandLine),
                                      signingID: signed?.signingID, teamID: signed?.teamID,
                                      codesigningType: signed?.type.rawValue)
-        return (program, Int32(bitPattern: info.pbi_ppid))
+        return (program, Int32(bitPattern: info.pbi_ppid), token)
     }
 
     /// A running process's audit token, which has its pid version.

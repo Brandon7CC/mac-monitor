@@ -25,12 +25,13 @@ extension ProcessLineage {
         let process = ProcessKey(message.pointee.process.pointee.audit_token)
         switch message.pointee.event_type {
         case ES_EVENT_TYPE_NOTIFY_FORK:
-            fork(ProcessKey(message.pointee.event.fork.child.pointee.audit_token), from: process)
+            let child = message.pointee.event.fork.child.pointee.audit_token
+            fork(ProcessKey(child), from: process, token: child)
         case ES_EVENT_TYPE_NOTIFY_EXEC:
             var event = message.pointee.event.exec
             let target = event.target.pointee
             exec(ProcessProgram(target, arguments: arguments(&event)), replacing: process,
-                 parent: ProcessKey(target.parent_audit_token), at: now)
+                 parent: ProcessKey(target.parent_audit_token), token: target.audit_token, at: now)
         case ES_EVENT_TYPE_NOTIFY_EXIT:
             exit(process, at: now)
         default:

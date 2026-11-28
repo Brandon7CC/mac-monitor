@@ -45,7 +45,12 @@ public enum SensorXPC {
     /// (`.streamOwned`) or by Endpoint Security (`.tooManyClients`), re-runs the `start` handshake to claim the stream.
     /// Like ``sensorReadyNotification`` it's only a hint.
     public static let sensorReleasedNotification: String = "com.swiftlydetecting.agent.securityextension.released"
-    
+
+    /// Darwin notification the Security Extension posts after each change to the Mac's indicator set, whoever made
+    /// it: Mac Monitor, `macmonitor`, or a pack the daily look installed. Mac Monitor asks for the set again when it
+    /// sees it (``IndicatorChangeNotice``). Like ``sensorReadyNotification`` it's only a hint.
+    public static let indicatorsChangedNotification: String = "com.swiftlydetecting.agent.securityextension.indicators"
+
     /// The most event batches the Security Extension sends before waiting for Mac Monitor's replies.
     ///
     /// Mac Monitor only replies once a batch is saved to Core Data, so it must flush by the time half of this window is
@@ -191,6 +196,14 @@ public enum SensorXPC {
     ///   - reply: `true` if Endpoint Security accepted the request, or `false` if the caller doesn't own the event
     ///     stream.
     func setSubscription(_ event: String, enabled: Bool, reply: @escaping (Bool) -> Void)
+
+    // MARK: XProtect rules
+    /// Whether the XProtect rules capture scans written files with are compiled and loaded. Nothing is loaded to
+    /// answer. Any Mac Monitor may ask, so Mac Monitor asks on a connection of its own
+    /// (``SensorClient/probe(caller:_:completion:)``): a Security Extension older than 3.3.0 has no such call.
+    ///
+    /// - Parameter reply: A JSON encoded ``XProtectRuleStatus``.
+    func xprotectRules(reply: @escaping (Data) -> Void)
     
     // MARK: Path muting
     /// Read or change the saved mute set: the one set of path mutes the Security Extension keeps on disk and applies

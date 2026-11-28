@@ -31,11 +31,14 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
     public var help: (summary: String, usage: String, details: String) {
         switch self {
         case .stream:
-            return ("Stream Endpoint Security events until Ctrl-C, or for a time or a count.",
+            return ("Stream Endpoint Security events and network flows until Ctrl-C, or for a time or count.",
                     "sudo macmonitor stream [EVENT...] [--format text|jsonl|pretty] [--no-mutes] [--include-self] "
-                        + "[--every EVENT] [--for DURATION] [--count N] [FILTER...]", """
+                        + "[--yara-scan] [--no-url-paths] [--every EVENT] [--for DURATION] [--count N] [FILTER...]",
+                    """
                 EVENT is a short name (exec), a full name (ES_EVENT_TYPE_NOTIFY_EXEC), or all. With no EVENT, \
-                macmonitor streams the events Mac Monitor records by default. Run 'macmonitor events' to list them.
+                macmonitor streams the events Mac Monitor records by default. Run 'macmonitor events' to list them. \
+                new_flow and flow_closed are the network flows each process opens and closes, read from the \
+                kernel's network statistics. They're streamed only when named, or with all, which is every event.
 
                 Options:
                   --format text     One line per event: the default on a terminal. --text for short.
@@ -46,6 +49,11 @@ public enum CommandLineCommand: String, CaseIterable, Sendable {
                                     Easier to read in a terminal. --pretty for short.
                   --no-mutes        Don't apply the saved mute set that Mac Monitor and macmonitor share.
                   --include-self    Show the events of macmonitor's own pipeline, such as jq's.
+                  --yara-scan       Scan each written Mach-O and script, and each script an exec runs, with
+                                    Apple's XProtect rules, and put what the scan found on its close or exec
+                                    as yara_scan. Needs close or exec.
+                  --no-url-paths    Write a flow's URL as its scheme, host and port, without its path. A query
+                                    is never written. Matters only with new_flow or flow_closed.
                   --every EVENT     Stream every EVENT, not only those Mac Monitor keeps by default. With no
                                     --every, close streams only closes of modified files. --every all turns every
                                     such default off.

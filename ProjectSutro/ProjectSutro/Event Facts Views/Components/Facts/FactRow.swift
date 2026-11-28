@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SutroESFramework
 
 
 // MARK: - Fact
@@ -72,6 +73,21 @@ struct FactValue: View {
 }
 
 
+// MARK: - A laid-out fact
+/// A fact the framework lays out (``EventFact``): its name and first value, then its other values beside them, with
+/// its help on hover.
+struct EventFactView: View {
+    /// The fact.
+    let fact: EventFact
+
+    var body: some View {
+        Fact(fact.name, fact.values.first, fillsWidth: fact.isLong)
+            .help(fact.help ?? "")
+        ForEach(fact.values.indices.dropFirst(), id: \.self) { FactValue(fact.values[$0]) }
+    }
+}
+
+
 // MARK: - Fact row
 /// A line of Event Facts: its facts side by side from the leading edge, or, stacked, one below another, as a long
 /// value such as a command line sits below its name in a box as wide as the facts.
@@ -108,18 +124,14 @@ struct FactsGrid<Row, ID: Hashable>: View {
     struct Column {
         /// The header.
         let title: String
-        /// Show the values monospaced, as code is?
-        var monospaced = true
         /// A row's value.
         let value: (Row) -> String
 
         /// - Parameters:
         ///   - title: The header.
-        ///   - monospaced: Show the values monospaced, as code is?
         ///   - value: A row's value.
-        init(_ title: String, monospaced: Bool = true, value: @escaping (Row) -> String) {
+        init(_ title: String, value: @escaping (Row) -> String) {
             self.title = title
-            self.monospaced = monospaced
             self.value = value
         }
     }
@@ -174,7 +186,7 @@ struct FactsGrid<Row, ID: Hashable>: View {
             Text("\u{2014}").foregroundStyle(.secondary)
         } else {
             Text(value)
-                .monospaced(column.monospaced)
+                .monospaced()
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

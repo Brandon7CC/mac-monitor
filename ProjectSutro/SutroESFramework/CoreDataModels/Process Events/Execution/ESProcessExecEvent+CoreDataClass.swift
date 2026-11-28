@@ -42,6 +42,21 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
     @NSManaged public var launched_by_parent_token: Data?
     /// ``ancestor_keys``, joined by commas (``AncestorKeysColumn``).
     @NSManaged public var ancestor_keys_joined: String?
+    /// ``yara_scan``, as JSON.
+    @NSManaged public var yara_scan_json: Data?
+    /// What scanning the script the exec runs with Apple's XProtect rules found at capture
+    /// (``ProcessExecEvent/yara_scan``).
+    public var yara_scan: YaraScan? {
+        get { YaraScan.decoded(from: yara_scan_json) }
+        set { yara_scan_json = newValue?.encoded }
+    }
+    /// ``where_froms``, as JSON.
+    @NSManaged public var whereFromsData: Data?
+    /// Where the program the exec runs was downloaded from (``ProcessExecEvent/where_froms``).
+    public var where_froms: [String]? {
+        get { whereFromsData.flatMap { try? JSONDecoder().decode([String].self, from: $0) } }
+        set { whereFromsData = newValue.flatMap { try? JSONEncoder().encode($0) } }
+    }
 
     enum CodingKeys: String, CodingKey {
         case command_line
@@ -61,6 +76,8 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
         case launched_by_parent
         case executable_age_ms
         case ancestor_keys
+        case yara_scan
+        case where_froms
     }
     
     public var args: [String] {
@@ -93,7 +110,14 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
     /// The XPC service launchd started the process as: `XPC_SERVICE_NAME`'s value in ``env``, or `nil` without one
     /// (``ProcessExecEvent/xpcServiceName(in:)``).
     public var xpcServiceName: String? { ProcessExecEvent.xpcServiceName(in: env) }
-    
+
+    /// The code the exec's interpreter got on its command line, such as `osascript -e`'s (``InlineCode``). `nil` when
+    /// ES reported a script: the arguments are then the script's. ``args`` is decoded only for an interpreter.
+    public var inlineCode: InlineCode? {
+        guard script == nil, let name = target.executable?.name else { return nil }
+        return InlineCode(args: args, executableName: name)
+    }
+
     
     public var fds: [FileDescriptor] {
         get {
@@ -152,6 +176,8 @@ public class ESProcessExecEvent: NSManagedObject, Identifiable, LaunchedByParent
         self.launched_by_parent = event.launched_by_parent
         self.executable_age_ms = event.executable_age_ms.map { NSNumber(value: $0) }
         self.ancestor_keys = event.ancestor_keys
+        self.yara_scan = event.yara_scan
+        self.where_froms = event.where_froms
     }
 }
 
@@ -192,14 +218,18 @@ extension ESProcessExecEvent: Encodable {
         /// Mac Monitor's enrichment beside eslogger's fields: `null` when there's none, so the key is always there.
         try container.encode(launched_by_parent, forKey: .launched_by_parent)
         try container.encode(ancestor_keys, forKey: .ancestor_keys)
+        /// Only when the script was scanned, as a close's.
+        try container.encodeIfPresent(yara_scan, forKey: .yara_scan)
+        /// Only when the program was downloaded, as a scan.
+        try container.encodeIfPresent(where_froms, forKey: .where_froms)
     }
 }
 
 
 // MARK: - Executable age
 extension ESProcessExecEvent {
-    /// An executable created less than this many seconds before it ran is new, as a dropper's payload is. The New
-    /// executable indicator and its mark use it too (``Indicator/newExecutablePredicate``).
+    /// An executable created less than this many seconds before it ran is new. The New executable indicator and its
+    /// mark use it too (``Indicator/newExecutablePredicate``).
     public static let newExecutableAge: TimeInterval = 1
 
     /// Seconds from the executable's birth to the exec (``executable_age_ms``), or `nil` when it's unknown or the

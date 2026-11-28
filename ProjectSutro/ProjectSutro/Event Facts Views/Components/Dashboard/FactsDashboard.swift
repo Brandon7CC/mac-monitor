@@ -70,7 +70,8 @@ struct BreakdownBar: View {
 
 
 // MARK: - Insights
-/// A card for something worth a look: its symbol, title, and what it's about. Click it to keep only its events.
+/// A card for something worth a look: its symbol, title, and what it's about. Click it to keep only its events. A Mac
+/// without the symbol, such as an indicator's, draws its stand-in.
 struct InsightCard: View {
     let symbol: String
     let tint: Color
@@ -85,7 +86,7 @@ struct InsightCard: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: detail == nil ? .center : .top, spacing: 8) {
-                Image(systemName: symbol)
+                Image(systemName: SymbolStandIn.drawn(for: symbol))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white)
                     .frame(width: 22, height: 22)
@@ -241,7 +242,7 @@ struct EventInspector: View {
     let color: Color
     let title: String
     let subtitle: String
-    /// Why it's worth a look.
+    /// Why it's worth a look, with an indicator's symbol and color.
     let note: (text: String, symbol: String, tint: Color)?
     /// Each fact's name and value. Empty ones are left out.
     let facts: [(String, String)]
@@ -273,7 +274,7 @@ struct EventInspector: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     if let note {
-                        Label(note.text, systemImage: note.symbol)
+                        Label(note.text, systemImage: SymbolStandIn.drawn(for: note.symbol))
                             .font(.callout)
                             .padding(8)
                             .frame(maxWidth: .infinity, alignment: .leading)

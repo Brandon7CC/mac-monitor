@@ -56,6 +56,20 @@ final class ReleaseVersionTests: XCTestCase {
         XCTAssertNil(indicator.problem)
     }
 
+    /// This build's engine is Mac Monitor 3.3.0's or later. An indicator on a written file's scan, which 3.3.0
+    /// added, names 3.3.0, and this build runs it.
+    func testAnIndicatorForMacMonitor330Runs() {
+        XCTAssertGreaterThanOrEqual(Indicator.engineVersion, ReleaseVersion(3, 3, 0))
+        var indicator = Indicator(name: "XProtect rule matched", description: "", symbol: "star", color: .red,
+                                  predicate: Self.yaraRulePredicate)
+        indicator.minEngine = ReleaseVersion(3, 3, 0)
+        XCTAssertTrue(indicator.isSupported)
+        XCTAssertNil(indicator.problem)
+        XCTAssertNil(indicator.sensorProblem)
+        XCTAssertEqual(indicator.eventPredicate, Self.yaraRulePredicate)
+        XCTAssertEqual(CompiledIndicators([indicator], defaults: [:]).problems.map(\.reason), [])
+    }
+
     /// This build's engine version is the project's version, or the next while it isn't released: the same major
     /// version, and never older. So a release that forgets to bump it fails here.
     func testEngineVersionFollowsTheProject() throws {

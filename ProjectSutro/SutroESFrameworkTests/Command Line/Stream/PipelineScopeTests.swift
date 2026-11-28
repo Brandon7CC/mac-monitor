@@ -43,6 +43,26 @@ final class PipelineScopeTests: XCTestCase {
         XCTAssertFalse(scope.suppresses(event(pid: 500, group: 500)), "the shell")
     }
     
+    /// A network flow from the pipeline's group is the pipeline's own, as its other events are, and one whose group
+    /// wasn't read is never taken for it.
+    func testAFlowFromThePipelinesGroupIsSuppressed() {
+        let scope = PipelineScope(ancestry: [PipelineAncestor(pid: 900, groupID: 898, path: "/x/macmonitor"),
+                                             PipelineAncestor(pid: 898, groupID: 898, path: sudo),
+                                             PipelineAncestor(pid: 500, groupID: 500, path: "/bin/zsh")],
+                                  includeSelf: false)
+        let curl = SyntheticFlows.process(pid: 901, path: "/usr/bin/curl")
+        var piped = curl
+        piped.groupID = 898
+        let flow = SyntheticFlows.message(SyntheticFlows.record(.opened, process: piped))
+        XCTAssertTrue(scope.suppresses(EventHeader(flow)), "curl, uploading the pipeline's output")
+        XCTAssertFalse(scope.suppresses(EventHeader(SyntheticFlows.message(SyntheticFlows.record(.opened,
+                                                                                                process: curl)))))
+        let reaped = SyntheticFlows.process(pid: 902, state: .reaped)
+        let unread = EventHeader(SyntheticFlows.message(SyntheticFlows.record(.opened, process: reaped)))
+        XCTAssertEqual(unread.process.groupID, Process.unread)
+        XCTAssertFalse(scope.suppresses(unread))
+    }
+
     /// sudo without a pseudo-terminal, and a root shell without sudo: one group, the pipeline's.
     func testOneGroup() {
         let plain = PipelineScope(ancestry: [PipelineAncestor(pid: 900, groupID: 898, path: "/x/macmonitor"),

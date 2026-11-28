@@ -11,11 +11,18 @@ import OSLog
 import SutroESFramework
 
 
+/// Started to compile Apple's XProtect rules for the scanner: compile them as `nobody` and exit, before anything else
+/// runs (``XProtectRuleCompiler``).
+if let status = XProtectRuleCompiler.runIfAsked(CommandLine.arguments) { exit(status) }
+
 /// The one saved mute set, shared by Mac Monitor's capture and every `macmonitor` stream.
 let savedMutes = SavedMuteSet()
 
 /// Who may use `macmonitor` without `sudo`: Settings > Command Line. Only root by default.
 let commandLineAccess = CommandLineAccessStore()
+
+/// Settings > General's enrichment switches, Mac-wide: on until Mac Monitor turns one off.
+let enrichmentSwitches = EnrichmentSwitchStore()
 
 /// The Mac's one indicator set, kept by root: Mac Monitor's capture and every `macmonitor` stream stamp each event
 /// with those it matches.
@@ -28,7 +35,8 @@ let savedIndicators = SavedIndicatorSet(/* fetcher: IndicatorPackFetcher() */)
 let updates = UpdateInstaller()
 /// Mac Monitor's side: the app's event stream, its subscriptions and its saved sets.
 let sensorService = SensorService(savedMutes: savedMutes, savedIndicators: savedIndicators,
-                                  commandLineAccess: commandLineAccess, updates: updates)
+                                  commandLineAccess: commandLineAccess, switches: enrichmentSwitches,
+                                  updates: updates)
 
 /// Lives for the life of the process: `NSXPCListener` only holds its delegate weakly. `macmonitor status` asks the
 /// command line's side, which asks Mac Monitor's who is connected.

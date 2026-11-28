@@ -61,9 +61,9 @@ final class EventMarks {
     ///   - indicator: An indicator that marks it with its symbol.
     ///   - symbol: The symbol the event's label draws, if it's known.
     /// - Returns: Is the label's symbol the indicator's, in the indicator's color? It is when the indicator colors the
-    ///   label and has the label's symbol, as Adhoc signed has an exec's seal, so it isn't drawn again before it.
+    ///   label and draws the label's symbol, as Adhoc signed has an exec's seal, so it isn't drawn again before it.
     func isLabelSymbol(_ indicator: Indicator, _ symbol: String?) -> Bool {
-        indicator.id == labelIndicator?.id && indicator.symbol == symbol
+        indicator.id == labelIndicator?.id && SymbolStandIn.drawn(for: indicator.symbol) == symbol
     }
 }
 
@@ -118,12 +118,12 @@ struct BuiltInMarks: View {
 
 
 /// An indicator's symbol, drawn in its one color: every indicator's symbol is monochrome, whatever rendering an older
-/// set saved for it. VoiceOver reads its name.
+/// set saved for it. A Mac without the symbol draws its stand-in. VoiceOver reads its name.
 struct IndicatorSymbol: View {
     let indicator: Indicator
 
     var body: some View {
-        Image(systemName: indicator.symbol)
+        Image(systemName: SymbolStandIn.drawn(for: indicator.symbol))
             .foregroundStyle(indicator.tint)
             .accessibilityLabel(indicator.name)
     }

@@ -10,9 +10,9 @@ import Foundation
 
 // MARK: - Lineage fields
 /// The fields an indicator reads of the ancestors of an event's process: its parent, its grandparent, the first
-/// below launchd, and every ancestor at once. They follow the direct fields a record has (``IndicatorField``), and
-/// unlike those they aren't in the record: the Security Extension reads them from its lineage table
-/// (``ProcessLineage``), by the event's process.
+/// below launchd, and every ancestor at once. Last comes the command line of the event's process itself. They follow
+/// the direct fields a record has (``IndicatorField``), and unlike those they aren't in the record: the Security
+/// Extension reads them from its lineage table (``ProcessLineage``), by the event's process.
 ///
 /// An ancestor's fields are named as a process's are:
 ///
@@ -24,6 +24,11 @@ import Foundation
 /// the process tree shows, where an XPC service's parent is its host app and not launchd.
 ///
 ///     launched_by.parent.signing_id == "com.apple.Safari"
+///
+/// The command line of the record's `process` is read by that process's own key, never another program its pid ran.
+/// On an exec, that's the program that called exec. The program it starts has `event.exec.command_line`.
+///
+///     lineage.process.command_line CONTAINS " -o /tmp/."
 ///
 /// A field of an ancestor the process doesn't have is `nil`, as every one is when lineage isn't tracked.
 enum LineageField {
@@ -76,7 +81,7 @@ enum LineageField {
     static let perChain = (Slot.allCases.count + 1) * Attribute.allCases.count
 
     /// Every lineage field's key path, kind and name, in the order their numbers follow the record's direct fields:
-    /// for each chain, each slot's attributes, then the lists.
+    /// for each chain, each slot's attributes, then the lists, and last the event's own process's command line.
     static let all: [(path: String, kind: IndicatorField.Kind, name: String)] = Chain.allCases.flatMap { chain in
         Slot.allCases.flatMap { slot in
             Attribute.allCases.map { attribute in
@@ -86,7 +91,12 @@ enum LineageField {
         } + Attribute.allCases.map { attribute in
             ("\(chain.rawValue).\(attribute.list)", IndicatorField.Kind.strings, "\(chain)\(attribute.name)s")
         }
-    }
+    } + [(processCommandLine, .string, "lineageProcessCommandLine")]
+
+    /// The key path of the event's own process's command line, and its place among the lineage fields, after every
+    /// chain's.
+    static let processCommandLine = "lineage.process.command_line"
+    static let processOffset = Chain.allCases.count * perChain
 
     /// Every lineage field's key path, as its keys.
     private static let keys = all.map { $0.path.split(separator: ".").map(String.init) }
@@ -131,6 +141,10 @@ enum LineageField {
                         + "parents.")
         }
         let field = all.first { $0.path == path.joined(separator: ".") }
+        if chain == .lineage, path[1] == "process" {
+            return path.count == 2 ? ("object", "The event's own process.")
+                : ("string", "Its command line, as its exec record has it, up to 1,024 characters.")
+        }
         if let slot = Slot(rawValue: path[1]) {
             let who = ["the process that \(whose) the event's process", "that process's own parent",
                        "the first ancestor below launchd"][Slot.allCases.firstIndex(of: slot) ?? 0]
@@ -141,9 +155,9 @@ enum LineageField {
     }
 
     /// - Parameter offset: A field's place among the lineage fields (``all``).
-    /// - Returns: The chain it reads.
+    /// - Returns: The chain it reads. The event's own process's command line reads none, and is counted as lineage's.
     static func chain(at offset: Int) -> Chain {
-        Chain.allCases[offset / perChain]
+        offset < processOffset ? Chain.allCases[offset / perChain] : .lineage
     }
 
     /// A lineage field's value.

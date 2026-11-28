@@ -15,7 +15,7 @@ struct SystemProcessSocketMetadataView: View {
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
         if let event = esSystemEvent.event.proc_suspend_resume {
-            EventFactsCard(message: esSystemEvent, targetAuditToken: event.target?.audit_token_string ?? "") {
+            EventFactsCard(message: esSystemEvent) {
                 FactsBox {
                     FactRow(name: "Suspend / resume type", value: "\(event.type_string) (\(event.type))")
                     TargetProcessFacts(process: event.target, pathName: "Process path")

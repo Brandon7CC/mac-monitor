@@ -51,6 +51,18 @@ extension IndicatorTests {
         }
     }
 
+    /// A stored network flow is matched on its record, even by a predicate its row could answer for an Endpoint
+    /// Security event: the record has no platform binary flag and no `es_event_type`.
+    func testFlowsAreMatchedOnTheirRecords() throws {
+        let rules = ["event.new_flow != nil AND process.is_platform_binary == nil", #"es_event_type == "new_flow""#]
+        let indicators = rules.map { Indicator(name: $0, description: "", symbol: "star", color: .blue, predicate: $0) }
+        let flow = SyntheticFlows.message(SyntheticFlows.record(.opened))
+        try withEventStore([flow]) { _, stored in
+            let row = try XCTUnwrap(stored.first)
+            XCTAssertEqual(IndicatorMatcher(indicators).matches(row).map(\.name), [rules[0]])
+        }
+    }
+
     /// Indicators whose predicates differ only in how a constant is normalized (``CanonicalSpellings``) are evaluated
     /// each on its own, not once for both: for `==` and `IN` only the one spelled as the event is matches, and for
     /// `!=` only the other, in either order.

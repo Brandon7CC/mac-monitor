@@ -65,8 +65,7 @@ public enum CommandLineAccessChange: Int, Error, CaseIterable, Sendable {
     public var message: String? {
         switch self {
         case .done: return nil
-        case .streamOwned:
-            return "Another Mac Monitor owns the event stream, so only it can change this. Nothing changed."
+        case .streamOwned: return NewClientResult.streamOwnedSentence + " Nothing changed."
         case .invalid: return "The Security Extension is older than Mac Monitor. Nothing changed."
         case .managed: return "A configuration profile decides who can use macmonitor without sudo."
         case .unavailable: return "Mac Monitor couldn't reach its Security Extension, so nothing changed."

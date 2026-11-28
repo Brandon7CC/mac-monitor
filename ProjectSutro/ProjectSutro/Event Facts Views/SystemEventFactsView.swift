@@ -9,11 +9,12 @@ import SwiftUI
 import SutroESFramework
 
 
+/// The Metadata tab: the event's facts, scrolling as a whole (``FactsScroll``).
 struct SystemEventDetailsView: View {
     var selectedMessage: ESMessage
     
     var body: some View {
-        List {
+        FactsScroll {
             SystemTargetProcessView(selectedMessage: selectedMessage)
         }
     }
@@ -60,6 +61,12 @@ struct SystemEventFactsView : View {
         return (path, content)
     }
     
+    /// The code an interpreter got on its command line (`osascript -e`, `bash -c`), when there's no script Mac Monitor
+    /// read. The Script tab shows it then.
+    private var inlineCode: InlineCode? {
+        script == nil ? selectedMessage.event.exec?.inlineCode : nil
+    }
+    
     /// A launch item's property list, if Mac Monitor read it: an agent's or daemon's launchd plist, or a bundle item's
     /// Info.plist.
     private var plist: (path: String, content: String)? {
@@ -70,11 +77,11 @@ struct SystemEventFactsView : View {
     }
     
     var body: some View {
-        /// One lookup each per update (they query the store each time they're read).
-        let procGroup = self.procGroup, procSessionGroup = self.procSessionGroup
+        /// One lookup each per update (they query the store or parse the arguments each time they're read).
+        let procGroup = self.procGroup, procSessionGroup = self.procSessionGroup, inlineCode = self.inlineCode
         let tabs = FactsTab.allCases.filter { tab in
             switch tab {
-            case .script: return script != nil
+            case .script: return script != nil || inlineCode != nil
             case .plist: return plist != nil
             /// EXEC only. The enrichment view describes the exec target,
             /// and FORK events can have correlated events too.
@@ -94,7 +101,7 @@ struct SystemEventFactsView : View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            facts(shown, procGroup: procGroup, procSessionGroup: procSessionGroup)
+            facts(shown, procGroup: procGroup, procSessionGroup: procSessionGroup, inlineCode: inlineCode)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(.all)
@@ -143,9 +150,11 @@ struct SystemEventFactsView : View {
     ///   - tab: The tab.
     ///   - procGroup: The event's process group.
     ///   - procSessionGroup: The event's session.
+    ///   - inlineCode: The code the exec's interpreter got on its command line, shown when there's no script.
     /// - Returns: Its view.
     @ViewBuilder
-    private func facts(_ tab: FactsTab, procGroup: [ESMessage], procSessionGroup: [ESMessage]) -> some View {
+    private func facts(_ tab: FactsTab, procGroup: [ESMessage], procSessionGroup: [ESMessage],
+                       inlineCode: InlineCode?) -> some View {
         switch tab {
         case .metadata:
             SystemEventDetailsView(selectedMessage: selectedMessage).padding(.bottom)
@@ -157,6 +166,9 @@ struct SystemEventFactsView : View {
                                 source: selectedMessage.event.exec?.script?.path == script.path
                                     ? "Endpoint Security reported this script."
                                     : "Mac Monitor found this script in the command line's arguments.")
+            } else if let inlineCode {
+                FileContentView(title: "Inline script", content: inlineCode.text,
+                                language: ReadOnlyTextView.Language(inlineCode.language), source: inlineCode.source)
             }
         case .plist:
             if let plist {
@@ -188,7 +200,7 @@ struct AppWrapperForFacts: View {
     /// Is the Correlation tab showing?
     @State private var showsCorrelation = false
     @State private var visibility: NavigationSplitViewVisibility = .all
-    /// Is the event gone, so the window should close?
+    /// Is the event gone, or are the events being cleared, so the window should close?
     @State private var isGone = false
     @Environment(\.dismiss) private var dismiss
     
@@ -207,8 +219,8 @@ struct AppWrapperForFacts: View {
                 Text("No event selected")
             }
         }
-        /// An event that's gone closes its window. On macOS 13 `dismiss()` may not close a WindowGroup's window, so
-        /// ``WindowCloser`` closes it too.
+        /// An event that's gone closes its window, and so does a Clear. On macOS 13 `dismiss()` may not close a
+        /// WindowGroup's window, so ``WindowCloser`` closes it too.
         .onAppear {
             selectedEventTree = coreDataEvents.first
             guard selectedEventTree == nil else { return }
@@ -217,10 +229,14 @@ struct AppWrapperForFacts: View {
         }
         .background(WindowCloser(isClosing: isGone))
         /// Clear deletes the events (and processes) this window shows, or takes their store away: let go of them first,
-        /// the fetch too, which would otherwise keep an event whose store is gone and raise when it's next read.
+        /// the fetch too, which would otherwise keep an event whose store is gone and raise when it's next read. Then
+        /// the window closes. Clear, Open Trace and closing a trace all post it.
         .onReceive(NotificationCenter.default.publisher(for: CoreDataController.eventsWillClear)) { _ in
             selectedEventTree = nil
             coreDataEvents.nsPredicate = NSPredicate(value: false)
+            /// ``WindowCloser`` alone closes it, a turn after this update, as its close button would. On macOS 13,
+            /// `dismiss()` or a close in the same update crashes when AppKit frees the window.
+            DispatchQueue.main.async { isGone = true }
         }
         .toolbar {
             /// The selection first: after a Clear there's none, and the fetch isn't read.

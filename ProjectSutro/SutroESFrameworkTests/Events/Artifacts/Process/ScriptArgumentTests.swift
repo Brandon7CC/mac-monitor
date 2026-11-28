@@ -118,6 +118,31 @@ final class ScriptArgumentTests: XCTestCase {
         XCTAssertNil(try script("perl", "-", "x.pl"))
     }
 
+    /// zsh's `-b` ends its options after its cluster too, so `zsh -b -c` runs a file named `-c`.
+    func testZshDashBEndsTheOptions() throws {
+        XCTAssertEqual(try script("zsh", "-b", "-c", "echo hi"), "-c")
+        XCTAssertNil(try script("zsh", "-bc", "echo hi"))
+    }
+
+    /// `-b` ends csh's and tcsh's options after its cluster, so the next argument is the script whatever it's named:
+    /// `tcsh -b -c` runs a file named `-c`, and `tcsh -b --` one named `--`.
+    func testCshDashBEndsTheOptions() throws {
+        XCTAssertEqual(try script("tcsh", "-b", "-c", "echo hi"), "-c")
+        XCTAssertEqual(try script("csh", "-b", "x.csh", "-c", "y"), "x.csh")
+        XCTAssertEqual(try script("tcsh", "-fb", "--"), "--")
+        XCTAssertNil(try script("tcsh", "-bc", "echo hi"))
+        XCTAssertNil(try script("tcsh", "-b"))
+    }
+
+    /// bash's and dash's `-o`, and bash's `-O`, take the next argument wherever they are in their cluster:
+    /// `bash -oe pipefail x.sh` runs `x.sh`.
+    func testShellOptionNamesAreTheNextArgument() throws {
+        XCTAssertEqual(try script("bash", "-oe", "pipefail", "x.sh"), "x.sh")
+        XCTAssertEqual(try script("dash", "-oe", "errexit", "x.sh"), "x.sh")
+        XCTAssertEqual(try script("bash", "-Oo", "extglob", "pipefail", "x.sh"), "x.sh")
+        XCTAssertNil(try script("bash", "-oc", "pipefail", "echo hi"))
+    }
+
     /// `perl -pie` is `-p -i` with the backup extension `e`, so perl takes the code after it as its script's name.
     func testPerlReadsPieAsAnInPlaceExtension() throws {
         XCTAssertEqual(try script("perl", "-pie", "s/a/b/", "app.log"), "s/a/b/")

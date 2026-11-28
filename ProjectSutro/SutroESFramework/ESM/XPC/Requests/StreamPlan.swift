@@ -13,8 +13,9 @@ import EndpointSecurity
 /// A validated ``StreamOptions``: the stream a `macmonitor` session may start.
 ///
 /// The Security Extension builds one from every stream request, and only ever subscribes to its events, so a stream
-/// can only ever hold NOTIFY events Mac Monitor models (`supportedEvents`), never an AUTH event, which a capture
-/// session never answers. `macmonitor` checks the same rules first, for friendlier errors.
+/// can only ever hold NOTIFY events Mac Monitor models (`supportedEvents`) and the network flow events
+/// (``MacMonitorEvent``), never an AUTH event, which a capture session never answers. `macmonitor` checks the same
+/// rules first, for friendlier errors.
 public struct StreamPlan: Equatable {
     /// The most event names a request may carry, duplicates included.
     public static let maximumEvents: Int = 256
@@ -25,6 +26,11 @@ public struct StreamPlan: Equatable {
     public let appliesSavedMutes: Bool
     /// The field filters to apply, only those on subscribed events, or `nil` for a 3.0.0 request that named none.
     public let fieldFilters: Set<FieldFilter>?
+    /// Scan the stream's written files and the scripts its execs run with Apple's XProtect rules, while it subscribes
+    /// to closes or execs?
+    public var scansWrittenFiles = false
+    /// Keep the paths of the stream's flows' URLs?
+    public var recordsURLPaths = true
 }
 
 
@@ -49,7 +55,8 @@ extension StreamPlan {
             : try Self.events(named: options.events)
         var filters: Set<FieldFilter>?
         if let names = options.fieldFilters { filters = try Self.fieldFilters(named: names, over: events) }
-        self.init(events: events, appliesSavedMutes: options.appliesSavedMutes, fieldFilters: filters)
+        self.init(events: events, appliesSavedMutes: options.appliesSavedMutes, fieldFilters: filters,
+                  scansWrittenFiles: options.scansWrittenFiles, recordsURLPaths: options.recordsURLPaths)
     }
     
     /// The events a request names.
@@ -100,11 +107,16 @@ extension StreamPlan {
         return filters.filter { subscribed.contains($0.event.rawValue) }
     }
     
-    /// Every event a stream may subscribe to, by its `ES_EVENT_TYPE_NOTIFY_*` name: the NOTIFY events Mac Monitor
-    /// models on this Mac.
+    /// Every event a stream may subscribe to: the NOTIFY events Mac Monitor models on this Mac, then the network flow
+    /// events. `macmonitor stream all` names them all.
+    static var streamableEvents: [es_event_type_t] {
+        supportedEvents + MacMonitorEvent.allCases.map(\.type)
+    }
+
+    /// Every event a stream may subscribe to (``streamableEvents``), by its `ES_EVENT_TYPE_NOTIFY_*` name or its own.
     ///
     /// - Returns: The events by name.
     static func supportedEventsByName() -> [String: es_event_type_t] {
-        Dictionary(supportedEvents.map { (eventTypeToString(from: $0), $0) }, uniquingKeysWith: { first, _ in first })
+        Dictionary(streamableEvents.map { (eventTypeToString(from: $0), $0) }, uniquingKeysWith: { first, _ in first })
     }
 }

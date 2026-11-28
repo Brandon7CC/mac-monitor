@@ -310,6 +310,11 @@ extension EventType {
         // MARK: Gatekeeper events
         case .gatekeeper_user_override(let event):
             return Self.about(event.file.file_path ?? event.file.file?.path ?? "")
+        // MARK: Network events
+        case .new_flow(let flow):
+            return (flow.summary(closed: false), nil)
+        case .flow_closed(let flow):
+            return (flow.summary(closed: true), nil)
         case .unknown:
             return (nil, nil)
         }

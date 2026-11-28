@@ -118,11 +118,24 @@ final class EventClassTableTests: XCTestCase {
         }
     }
     
+    /// Mac Monitor's own events go to the network lane, which no Endpoint Security client serves, and no Endpoint
+    /// Security event does. A session still makes three clients.
+    func testMacMonitorEventsGoToTheNetworkLane() {
+        XCTAssertEqual(EventClass.endpointSecurity, [.process, .file, .memory])
+        XCTAssertEqual(Set(EventClass.allCases).subtracting(EventClass.endpointSecurity), [.network])
+        for event in MacMonitorEvent.allCases {
+            XCTAssertEqual(EventClassTable.eventClass(of: event.type), .network, event.name)
+        }
+        XCTAssertFalse(allESEvents.contains { EventClassTable.eventClass(of: $0) == .network })
+        XCTAssertEqual(CaptureSession.clientsPerSession, 3)
+        XCTAssertEqual(EventClassTable.split(MacMonitorEvent.allCases.map(\.type))[.network]?.count, 2)
+    }
+
     /// Splitting the default subscriptions gives each client its own events, in their order, and loses none.
     func testSplitKeepsOrderAndCoversEveryEvent() {
         let events = defaultEventSubscriptions
         let split = EventClassTable.split(events)
-        XCTAssertEqual(Set(split.keys), Set(EventClass.allCases))
+        XCTAssertEqual(Set(split.keys), Set(EventClass.endpointSecurity))
         XCTAssertEqual(split.values.map(\.count).reduce(0, +), events.count)
         for (eventClass, share) in split {
             XCTAssertEqual(share.map(\.rawValue), events.filter { EventClassTable.eventClass(of: $0) == eventClass }

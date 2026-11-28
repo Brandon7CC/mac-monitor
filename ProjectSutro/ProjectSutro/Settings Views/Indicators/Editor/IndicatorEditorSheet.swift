@@ -258,7 +258,7 @@ private struct IndicatorPreview: View {
                 ForEach(preview.examples) { example in
                     HStack(spacing: 10) {
                         Text(example.time).monospacedDigit().foregroundStyle(.secondary)
-                        Text(example.type.droppingPrefix("ES_EVENT_TYPE_NOTIFY_"))
+                        Text(EventNames.chartLabel(example.type))
                             .fontWeight(.medium)
                         Text(example.context).lineLimit(1).truncationMode(.middle).foregroundStyle(.secondary)
                             .help(example.context)

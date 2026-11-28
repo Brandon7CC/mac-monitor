@@ -53,6 +53,24 @@ final class IndicatorEngineTests: XCTestCase {
         XCTAssertEqual(IndicatorEngine(defaults: defaults).indicators, engine.indicators)
     }
 
+    /// The set is listed again after every change anyone posts, so a list that finds it as it was tells no view
+    /// watching the engine. One that finds a change does.
+    func testAListThatChangesNothingTellsNoView() throws {
+        let set = try loadedSet()
+        let engine = IndicatorEngine(defaults: makeDefaults(), transport: transport(to: set))
+        send(IndicatorRequest(.list), through: engine)
+        var told = 0
+        let watching = engine.objectWillChange.sink { _ in told += 1 }
+        defer { watching.cancel() }
+
+        send(IndicatorRequest(.list), through: engine)
+        XCTAssertEqual(told, 0, "Nothing changed")
+
+        set.send(IndicatorRequest(.add, indicators: [ownIndicator("Mine", Self.exec)]))
+        send(IndicatorRequest(.list), through: engine)
+        XCTAssertGreaterThan(told, 0, "The set changed")
+    }
+
     /// A request with no reply, from a Security Extension older than 3.1 or none, leaves the last set showing,
     /// read-only, saying to update the Security Extension. A change says so too, and changes nothing.
     func testNoReplyIsReadOnly() throws {

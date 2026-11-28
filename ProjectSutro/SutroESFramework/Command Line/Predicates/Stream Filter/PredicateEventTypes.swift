@@ -16,12 +16,12 @@ import Foundation
 /// A payload test names a type by the key its record's `event` has: `event.btm_launch_item_add != nil` is true only
 /// of an `ES_EVENT_TYPE_NOTIFY_BTM_LAUNCH_ITEM_ADD`, and `== nil` only of any other type.
 enum PredicateEventTypes {
-    /// Each event type's payload key path, `event.` and the type in lowercase without `ES_EVENT_TYPE_NOTIFY_`, and
-    /// the type's name, read from the telemetry schema: a record's `event` has only its own type's key.
+    /// Each event type's payload key path, `event.` and the type's short name, and the type's full name
+    /// (``EventNames``), read from the telemetry schema: a record's `event` has only its own type's key.
     static let payloads: [String: String] = Dictionary(uniqueKeysWithValues: RecordSchema.paths.keys.compactMap {
         let parts = $0.split(separator: ".")
         guard parts.count == 2, parts[0] == "event" else { return nil }
-        return ($0, "ES_EVENT_TYPE_NOTIFY_" + parts[1].uppercased())
+        return ($0, EventNames.fullName(String(parts[1])))
     })
 
     /// The event type a payload test names.
@@ -79,21 +79,42 @@ enum PredicateEventTypes {
     /// - Parameter predicate: A parsed predicate.
     /// - Returns: The names, which may be empty.
     static func namedEventTypes(in predicate: NSPredicate) -> Set<String> {
+        names(in: predicate, payloads: true)
+    }
+
+    /// Every event type name a predicate compares `es_event_type` with, wherever the comparison sits, as
+    /// ``namedEventTypes(in:)`` finds them but for payload tests: a request is refused for comparing it with a Mac
+    /// Monitor event, whose record has none.
+    ///
+    /// - Parameter predicate: A parsed predicate.
+    /// - Returns: The names, which may be empty.
+    static func typeComparisonNames(in predicate: NSPredicate) -> Set<String> {
+        names(in: predicate, payloads: false)
+    }
+
+    /// Every event type name a predicate compares `es_event_type` with, and tests the payload of when asked, under
+    /// `AND`, `OR` and `NOT` alike.
+    ///
+    /// - Parameters:
+    ///   - predicate: A parsed predicate.
+    ///   - payloads: Read payload tests too?
+    /// - Returns: The names, which may be empty.
+    private static func names(in predicate: NSPredicate, payloads: Bool) -> Set<String> {
         switch predicate {
         case let compound as NSCompoundPredicate:
             return compound.subpredicates.reduce(into: Set()) { found, part in
-                if let part = part as? NSPredicate { found.formUnion(namedEventTypes(in: part)) }
+                if let part = part as? NSPredicate { found.formUnion(names(in: part, payloads: payloads)) }
             }
         case let comparison as NSComparisonPredicate:
-            return payloadTest(comparison).map { [$0.name] } ?? names(in: comparison) ?? []
+            return (payloads ? payloadTest(comparison).map { [$0.name] } : nil) ?? names(in: comparison) ?? []
         default:
             return []
         }
     }
 
     /// - Parameter comparison: A comparison.
-    /// - Returns: The names an exact `es_event_type ==`, `!=` or `IN` comparison holds, or `nil` for any other
-    ///   comparison, or one whose constants aren't all strings.
+    /// - Returns: The names an exact `es_event_type ==`, `!=` or `IN` comparison holds, Mac Monitor events' among
+    ///   them, or `nil` for any other comparison, or one whose constants aren't all strings.
     private static func names(in comparison: NSComparisonPredicate) -> Set<String>? {
         guard comparison.leftExpression.expressionType == .keyPath,
               comparison.leftExpression.keyPath == "es_event_type",

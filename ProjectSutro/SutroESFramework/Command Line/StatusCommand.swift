@@ -23,8 +23,9 @@ public struct StatusInvocation: Equatable {
 
 // MARK: - Status
 /// What `macmonitor status` shows: the versions of `macmonitor`, Mac Monitor and its Security Extension, what the
-/// Security Extension needs to run (activated, and Full Disk Access), who is capturing through it (Mac Monitor
-/// and `macmonitor` streams), and which indicator pack Mac Monitor's own indicators are.
+/// Security Extension needs to run (activated, and Full Disk Access), who is capturing through it (Mac Monitor,
+/// `macmonitor` streams, and the network flows they read), and which indicator pack Mac Monitor's own indicators
+/// are.
 ///
 /// It needs neither root nor Mac Monitor: every part it can't learn says so, and the rest is still shown. It never
 /// changes anything.
@@ -65,6 +66,42 @@ public struct StatusReport: Encodable, Equatable {
         public var streams: Int?
         /// The most at once.
         public var stream_capacity: Int?
+        /// The network statistics client that reads flows for them.
+        public var network_flows: NetworkFlows
+    }
+
+    /// The network statistics client that reads flows. `nil` fields when the Security Extension couldn't be asked,
+    /// or is older than 3.3.
+    public struct NetworkFlows: Equatable {
+        /// `off`, `on` or `unavailable`.
+        public var state: String?
+        /// Why it's unavailable.
+        public var reason: String?
+        /// The sources the kernel reports now, and how many of them are open flows.
+        public var open_sources: Int?, open_flows: Int?
+        /// The receive buffer the kernel gave, and the most bytes seen waiting in it.
+        public var receive_buffer: Int?, buffer_high_water: Int?
+        /// Sockets the kernel couldn't report. Then flows past the rate budget, and the local connections whose update
+        /// the kernel still sent (``FlowCounts/loopback``), which aren't recorded.
+        public var sockets_lost: Int?, over_budget: Int?, loopback: Int?
+        /// Sockets other clients missed, which Mac Monitor may miss too on macOS 13 and 14.
+        public var other_client_failures: Int?
+
+        /// - Parameter status: The client's status, or `nil` when it isn't known.
+        init(_ status: FlowClientStatus?) {
+            (state, reason) = (status?.state.rawValue, status?.reason)
+            (open_sources, open_flows) = (status?.openSources, status?.flows)
+            (receive_buffer, buffer_high_water) = (status?.receiveBuffer, status?.bufferHighWater)
+            (sockets_lost, over_budget) = (status?.counts.socketsLost, status?.counts.overBudget)
+            (loopback, other_client_failures) = (status?.counts.loopback, status?.counts.otherClientFailures)
+        }
+
+        /// The counts by their JSON keys, in order.
+        var counts: [(key: String, value: Int?)] {
+            [("open_sources", open_sources), ("open_flows", open_flows), ("receive_buffer", receive_buffer),
+             ("buffer_high_water", buffer_high_water), ("sockets_lost", sockets_lost), ("over_budget", over_budget),
+             ("loopback", loopback), ("other_client_failures", other_client_failures)]
+        }
     }
 
     /// Which indicator pack Mac Monitor's own indicators are. `nil` fields when the Security Extension couldn't be
@@ -108,7 +145,7 @@ public struct StatusReport: Encodable, Equatable {
             endpoint_security: report?.endpointSecurity.rawValue, problem: Self.problem(answer))
         capturing = Capturing(mac_monitor_connected: report?.app.connected,
                               mac_monitor_recording: report?.app.recording, streams: report?.streams,
-                              stream_capacity: report?.streamCapacity)
+                              stream_capacity: report?.streamCapacity, network_flows: NetworkFlows(report?.network))
         let pack = report?.indicators
         indicators = Indicators(pack: pack?.sequence, source: pack?.source.rawValue, published: pack?.published,
                                 commit: pack?.commit, mode: pack?.mode?.rawValue, checked: pack?.checked,
@@ -136,6 +173,11 @@ public struct StatusReport: Encodable, Equatable {
         try capturing.encode(self.capturing.mac_monitor_recording, forKey: Key("mac_monitor_recording"))
         try capturing.encode(self.capturing.streams, forKey: Key("streams"))
         try capturing.encode(self.capturing.stream_capacity, forKey: Key("stream_capacity"))
+        let flows = self.capturing.network_flows
+        var network = capturing.nestedContainer(keyedBy: Key.self, forKey: Key("network_flows"))
+        try network.encode(flows.state, forKey: Key("state"))
+        try network.encode(flows.reason, forKey: Key("reason"))
+        for (key, value) in flows.counts { try network.encode(value, forKey: Key(key)) }
         var indicators = container.nestedContainer(keyedBy: Key.self, forKey: Key("indicators"))
         try indicators.encode(self.indicators.pack, forKey: Key("pack"))
         try indicators.encode(self.indicators.source, forKey: Key("source"))
@@ -232,7 +274,8 @@ public enum StatusCommand {
             ("Security Extension", [
                 ("Activated", needs.activated ? "yes" : "no (\(needs.system_extension ?? "not installed"))"),
                 ("Full Disk Access", fullDiskAccess(needs))]),
-            ("Capturing", [("Mac Monitor", app(capturing)), ("macmonitor streams", streams(capturing))]),
+            ("Capturing", [("Mac Monitor", app(capturing)), ("macmonitor streams", streams(capturing)),
+                           ("Network flows", flows(capturing.network_flows))]),
             ("Indicators", [("Pack", pack(report.indicators))]),
         ]
         if IndicatorPackUpdates.isAvailable, let available = report.indicators.available {
@@ -276,6 +319,18 @@ public enum StatusCommand {
         guard let pack = indicators.pack, let source = indicators.source else { return "unknown" }
         if source == IndicatorBaseline.Source.installed.rawValue { return "\(pack), installed" }
         return pack == 0 ? "this build's own" : "\(pack), in this build"
+    }
+
+    /// - Parameter flows: The network statistics client.
+    /// - Returns: Such as "on, 132 open sources, 0 sockets lost, 0 over the rate limit", or why it's unavailable.
+    private static func flows(_ flows: StatusReport.NetworkFlows) -> String {
+        guard let state = flows.state else { return "unknown" }
+        if let reason = flows.reason { return "\(state): \(reason)" }
+        guard state == FlowClientStatus.State.on.rawValue else { return state }
+        let others = flows.other_client_failures ?? 0
+        return "on, \(String.counted(flows.open_sources ?? 0, "open source")), "
+            + "\(String.counted(flows.sockets_lost ?? 0, "socket")) lost, \(flows.over_budget ?? 0) over the rate limit"
+            + (others > 0 ? ", \(String.counted(others, "socket")) other clients missed" : "")
     }
 
     /// - Parameter capturing: Who is capturing.

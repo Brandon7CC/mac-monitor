@@ -15,7 +15,9 @@ import SutroESFramework
 struct TelemetrySchemaView: View {
     /// The schema, and the trace being checked.
     @StateObject private var model: TelemetrySchemaModel
-    
+    /// The schema's text, for Fold All and Unfold All.
+    @StateObject private var editor = ReadOnlyTextController()
+
     /// What the schema's origin mark means, in Markdown.
     private static let origins: LocalizedStringKey = """
         Every record Mac Monitor exports is eslogger's JSON plus Mac Monitor's enrichments. Each key's \
@@ -34,7 +36,7 @@ struct TelemetrySchemaView: View {
             Divider()
             switch model.schema {
             case .success:
-                ReadOnlyTextView(text: model.schemaText, language: .json)
+                ReadOnlyTextEditor(text: model.schemaText, language: .json, controller: editor)
                     .clipped()
             case .failure(let error):
                 unavailable(error)
@@ -71,9 +73,10 @@ struct TelemetrySchemaView: View {
         .padding()
     }
     
-    /// Copy, Save Schema..., and Validate Trace...: off when there's no schema.
+    /// Fold All and Unfold All, Copy, Save Schema..., and Validate Trace...: off when there's no schema.
     private var actions: some View {
         HStack {
+            EditorFoldButtons(controller: editor)
             Button { model.copySchema() } label: { Label("Copy", systemImage: "doc.on.doc") }
                 .help("Copy the schema's JSON")
             Button("Save Schema…") { model.saveSchema() }

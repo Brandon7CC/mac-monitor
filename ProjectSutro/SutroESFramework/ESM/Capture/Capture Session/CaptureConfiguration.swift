@@ -12,8 +12,9 @@ import EndpointSecurity
 // MARK: - Configuration
 /// What a ``CaptureSession`` subscribes to, mutes, leaves out, and evaluates.
 public struct CaptureConfiguration {
-    /// The events to subscribe to. Only the NOTIFY events Mac Monitor models (`supportedEvents`) are kept. Anything
-    /// else (an AUTH event, an unknown name read as `ES_EVENT_TYPE_LAST`) is left out and logged.
+    /// The events to subscribe to. Only the NOTIFY events Mac Monitor models (`supportedEvents`) are kept, and the
+    /// network flow events (``MacMonitorEvent``) on a session that can record them. Anything else (an AUTH event, an
+    /// unknown name read as `ES_EVENT_TYPE_LAST`) is left out and logged.
     public var events: [es_event_type_t]
     /// The path mutes for every client: the saved mute set, or none. Endpoint Security's own default mutes come with
     /// each new client either way.
@@ -31,6 +32,19 @@ public struct CaptureConfiguration {
     /// The most open chains the session's sequences hold together (``SessionChains``): Mac Monitor's session's by
     /// default, and a quarter of it for a `macmonitor stream`, which `StreamSession` sets.
     public var chainBudget = SessionChains.sessionBudget
+    /// Scan the written files the session's closes name, and the scripts its execs run, with Apple's XProtect rules
+    /// (``FileScanner``), and put what each scan finds on its close or exec (``YaraScan``). Only while the session
+    /// subscribes to closes or execs. Off unless set.
+    public var scansWrittenFiles = false
+    /// The most events a lane's hold keeps in line behind held ones (``EventHold/maxLine``): Mac Monitor's 4,096 by
+    /// default, and fewer for a `macmonitor stream`, which `StreamSession` sets so that a line sent at once fits.
+    var holdLine = EventHold.defaultMaxLine
+    /// Can scanning be turned on and off while the session runs (``CaptureSession/setScansWrittenFiles(_:)``)? Mac
+    /// Monitor's session can, from Settings. A stream's can't.
+    public var scanningCanChange = false
+    /// Keep the path of a network flow's URL (``NetworkFlowEvent``)? Without it a URL ends at its host and port. On
+    /// unless set.
+    public var recordsURLPaths = true
     /// Names the session in the log, such as "Mac Monitor".
     public var label: String
     

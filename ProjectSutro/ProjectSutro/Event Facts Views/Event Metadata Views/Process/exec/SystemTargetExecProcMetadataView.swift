@@ -10,58 +10,37 @@ import SutroESFramework
 
 
 // MARK: - Exec event metadata
-/// What an `exec` event says: the new process image, its command line, how it's signed, its code signing flags and
-/// file descriptors, and its environment and XPC service in sheets.
+/// What an `exec` event says: the new process image, its command line, file descriptors, XPC service and audit tokens,
+/// how it's signed, what scanning the script it runs found, and last its environment.
 struct SystemTargetExecProcMetadataView: View {
     var selectedMessage: ESMessage
-
-    @State private var showTargetAuditTokens: Bool = false
-    @State private var showEnvVars: Bool = false
-    @State private var showXPCServiceName: Bool = false
-    @State private var showFDs: Bool = false
-    @State private var showCodeSigningFlags: Bool = false
 
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
         if let event = selectedMessage.event.exec {
             EventFactsCard(message: selectedMessage) {
                 processFacts(event)
+                /// The XProtect rules that matched the script the exec runs, when any did: below the facts that name
+                /// the script.
+                if let scan = event.yara_scan, scan.matched {
+                    XProtectScanBox(scan: scan)
+                }
                 codeSigningFacts(event)
-                codeSigningFlagFacts(event)
-                fileDescriptorFacts(event)
-            } context: {
-                Button("**Target audit tokens**") {
-                    showTargetAuditTokens.toggle()
-                }
-                if !event.env.isEmpty {
-                    Button {
-                        showEnvVars.toggle()
-                    } label: {
-                        Text("**Environment variables (`\(event.env.count)`)**")
-                    }
-                }
-                if event.xpcServiceName != nil {
-                    Button("**XPC**") {
-                        showXPCServiceName.toggle()
-                    }
-                }
-            }.sheet(isPresented: $showTargetAuditTokens) {
-                AuditTokenView(process: event.target)
-                Button("**Dismiss**") {
-                    showTargetAuditTokens.toggle()
-                }.padding(.bottom)
-            }.sheet(isPresented: $showEnvVars) {
-                environmentSheet(event)
-            }.sheet(isPresented: $showXPCServiceName) {
-                VStack(alignment: .leading) {
-                    XPCMetadataView(serviceName: event.xpcServiceName ?? "")
-                }.frame(maxWidth: 1000.0, maxHeight: .infinity).padding(.all)
-
-                Button("**Dismiss**") {
-                    showXPCServiceName.toggle()
-                }.padding(.bottom)
+                /// A new event starts its environment unfiltered, showing what differs.
+                EnvironmentSection(message: selectedMessage)
+                    .id(selectedMessage.objectID)
             }
         }
+    }
+
+    /// The script the exec runs: the one its record names, or for an applet's stub, which names none, the applet's
+    /// main.scpt its scan read. Only an applet's exec has a scan and no script.
+    ///
+    /// - Parameter event: The exec.
+    /// - Returns: The script's path, or `nil` without one.
+    private func script(_ event: ESProcessExecEvent) -> String? {
+        event.resolved_script_path
+            ?? (event.yara_scan == nil ? nil : AppletScript.path(ofBundleExecutable: event.target.executable?.path))
     }
 
     /// The new process image's name: its path's last component.
@@ -73,7 +52,8 @@ struct SystemTargetExecProcMetadataView: View {
     }
 
     /// The new process image: when it started, its user, its name and IDs, its path, command line, executable age,
-    /// script, working directory and TTY.
+    /// script, where it was downloaded from, working directory, TTY, file descriptors, XPC service name and audit
+    /// tokens.
     ///
     /// - Parameter event: The exec.
     /// - Returns: The facts, in two boxes.
@@ -114,8 +94,11 @@ struct SystemTargetExecProcMetadataView: View {
                 }
             }
 
-            if let script = event.resolved_script_path {
+            if let script = script(event) {
                 FactRow(name: "Script", value: script, stacked: true)
+            }
+            if let origins = event.where_froms, !origins.isEmpty {
+                FactRow(name: "Download origin", value: origins.joined(separator: "\n"), stacked: true)
             }
             if let cwdPath = event.cwd?.path, cwdPath.count > 1 {
                 FactRow(name: "CWD", value: cwdPath, stacked: true)
@@ -123,10 +106,35 @@ struct SystemTargetExecProcMetadataView: View {
             if let ttyPath = event.target.tty?.path {
                 FactRow(name: "TTY", value: ttyPath)
             }
+            fileDescriptorFacts(event)
+            if let serviceName = event.xpcServiceName {
+                FactRow(name: "XPC service name", value: serviceName)
+            }
+            AuditTokenFacts(process: event.target)
         }
     }
 
-    /// How the new process image is signed: its code signing type and flags, signing ID, team ID, code directory hash
+    /// The exec's file descriptors, each one's number and type and a pipe's ID (``FileDescriptor/list(_:)``), below
+    /// the name when there are more than 5. A note follows them when a higher descriptor is open than any listed.
+    ///
+    /// - Parameter event: The exec.
+    /// - Returns: The row, or nothing before message version 4, which added the descriptors.
+    @ViewBuilder
+    private func fileDescriptorFacts(_ event: ESProcessExecEvent) -> some View {
+        if selectedMessage.version >= 4 {
+            let fds = event.fds, stacked = fds.count > 5
+            FactRow(stacked: stacked) {
+                Fact("File descriptors", fds.isEmpty ? "None" : FileDescriptor.list(fds), fillsWidth: stacked)
+                if let highest = fds.map(\.fd).max(), event.last_fd > Int64(highest) {
+                    Text("not all listed, highest open fd \(event.last_fd)").foregroundStyle(.secondary)
+                }
+            }
+            .help("0 is standard input, 1 standard output, 2 standard error. Endpoint Security gives each "
+                  + "descriptor's type and a pipe's ID, no path or address, and may list only some.")
+        }
+    }
+
+    /// How the new process image is signed: its code signing type, signing ID, code directory hash, flags, team ID
     /// and certificate chain.
     ///
     /// - Parameter event: The exec.
@@ -142,21 +150,15 @@ struct SystemTargetExecProcMetadataView: View {
                 FactRow(name: "Code signing type",
                         value: event.target.codeSigningTypeLabel(version: selectedMessage.version))
 
-                // MARK: Code signing flags
-                /// The value and how many are set: the Code signing flags section lists them.
-                FactRow {
-                    Fact("Code signing flags",
-                         String(format: "0x%08X", UInt32(truncatingIfNeeded: event.target.codesigning_flags)))
-                    Text("\(ProcessHelpers.codeSigningFlags(event.target.codesigning_flags).count) set")
-                        .foregroundStyle(.secondary)
-                }
-
                 SigningIDFact(process: event.target)
-                if let teamID = event.target.team_id.nonEmpty {
-                    FactRow(name: "Team ID", value: teamID)
-                }
                 if event.target.signing_id.nonEmpty != nil {
                     CDHashFact(process: event.target)
+                }
+
+                CodeSigningFlagsFact(flags: event.target.codesigning_flags)
+
+                if let teamID = event.target.team_id.nonEmpty {
+                    FactRow(name: "Team ID", value: teamID)
                 }
 
                 // MARK: Cert chain
@@ -180,92 +182,5 @@ struct SystemTargetExecProcMetadataView: View {
                 }
             }
         }
-    }
-
-    /// The flags set in the new process image's code signing flags, in bit order, behind a Show button.
-    ///
-    /// - Parameter event: The exec.
-    /// - Returns: The flags in a box, or nothing when none is set.
-    @ViewBuilder
-    private func codeSigningFlagFacts(_ event: ESProcessExecEvent) -> some View {
-        let codeSigningFlags = ProcessHelpers.codeSigningFlags(event.target.codesigning_flags)
-        if !codeSigningFlags.isEmpty {
-            FactsBox {
-                HStack {
-                    Label("**Code signing flags**", systemImage: "flag")
-                        .font(.title3)
-                    Button("\(showCodeSigningFlags ? "Hide" : "Show") code signing flags") {
-                        showCodeSigningFlags.toggle()
-                    }
-                }
-
-                if showCodeSigningFlags {
-                    GroupBox {
-                        FactsGrid(codeSigningFlags, columns:
-                            .init("Flag") { $0.name },
-                            .init("Bit") { String(format: "0x%08X", $0.bit) },
-                            .init("Meaning", monospaced: false) { $0.summary })
-                    }
-                }
-            }
-        }
-    }
-
-    /// The new process image's file descriptors, behind a Show button.
-    ///
-    /// - Parameter event: The exec.
-    /// - Returns: The file descriptors in a box, or nothing when the exec has none.
-    @ViewBuilder
-    private func fileDescriptorFacts(_ event: ESProcessExecEvent) -> some View {
-        if !event.fds.isEmpty {
-            FactsBox {
-                HStack {
-                    Label("**File descriptors**", systemImage: "doc.plaintext")
-                        .font(.title3)
-                    Button("\(showFDs ? "Hide" : "Show") file descriptors") {
-                        showFDs.toggle()
-                    }
-                }
-
-                if showFDs {
-                    GroupBox {
-                        FactsGrid(event.fds, columns:
-                            .init("FD") { $0.fd.description },
-                            .init("Type") { $0.type },
-                            .init("Pipe ID") { $0.pipe?.pipe_id.description ?? "" })
-                    }
-                }
-            }
-        }
-    }
-
-    /// The new process image's environment variables, for a sheet.
-    ///
-    /// - Parameter event: The exec.
-    /// - Returns: The variables, one per box, and a Dismiss button.
-    @ViewBuilder
-    private func environmentSheet(_ event: ESProcessExecEvent) -> some View {
-        VStack(alignment: .leading) {
-            Form {
-                Section {
-                    Text("**`\(processName(event))`'s environment variables:**")
-                        .font(.title2)
-                    Divider()
-                    GroupBox {
-                        ScrollView {
-                            ForEach(event.env, id: \.self) { variable in
-                                GroupBox {
-                                    Text("`\(variable)`").lineLimit(3).frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                            }
-                        }.frame(maxHeight: 300.0)
-                    }
-                }
-            }
-        }.frame(maxWidth: 1000.0, maxHeight: .infinity).padding(.all)
-
-        Button("**Dismiss**") {
-            showEnvVars.toggle()
-        }.padding(.bottom)
     }
 }

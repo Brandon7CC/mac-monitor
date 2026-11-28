@@ -11,7 +11,8 @@ import Foundation
 
 // MARK: - The schema at eslogger's paths
 /// The schema's keys at the paths `Fixtures/eslogger-keys.json` uses: the envelope's, each event's (relative to the
-/// event's object), and the process's, file's, stat's and audit token's, which stay references elsewhere.
+/// event's object), and the process's, file's, stat's and audit token's, which stay references elsewhere. The
+/// network records' definitions, which are Mac Monitor's own, are scopes of their own (``networkScopes``).
 struct SchemaKeyPaths {
     /// One key.
     struct Key {
@@ -27,6 +28,11 @@ struct SchemaKeyPaths {
     
     /// The definitions eslogger's keys name as types rather than spell out.
     static let named: Set<String> = ["process", "file", "stat", "audit_token"]
+    /// The scopes of the definitions only network records use, which eslogger has none of.
+    static var networkScopes: Set<String> {
+        Set((TelemetrySchemaSource.networkDefinitions.keys + TelemetrySchemaSource.networkEvents.map(\.definition))
+            .map { "definitions.\($0)" })
+    }
     /// What every reference to a definition starts with.
     private static let prefix = JSONSchemaCompiler.definitionsPrefix
     
@@ -54,6 +60,10 @@ struct SchemaKeyPaths {
         for name in Self.named {
             collect(definitions[name] ?? [:], at: Self.prefix + name, path: "", scope: "definitions.\(name)",
                     inherited: nil)
+        }
+        for scope in Self.networkScopes {
+            let name = String(scope.dropFirst("definitions.".count))
+            collect(definitions[name] ?? [:], at: Self.prefix + name, path: "", scope: scope, inherited: nil)
         }
     }
     

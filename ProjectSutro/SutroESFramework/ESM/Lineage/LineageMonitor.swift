@@ -8,6 +8,7 @@
 import Foundation
 import EndpointSecurity
 import OSLog
+import os
 
 
 // MARK: - Lineage monitor
@@ -34,11 +35,13 @@ public final class LineageMonitor: @unchecked Sendable {
     public let lineage: ProcessLineage
     private let factory: any EndpointSecurityClientFactory
     private let clock: () -> TimeInterval
-    private let running: () -> [(program: ProcessProgram, parent: Int32)]
+    private let running: () -> [ProcessLineage.Running]
     private let arguments: ProcessLineage.ArgumentReader
-    /// Guards ``client`` and ``users``.
+    /// Guards ``client`` and ``users``. It's held across Endpoint Security's calls.
     private let lock = NSLock()
     private var client: (any EndpointSecurityClient)?
+    /// Whether it's told of events, apart from ``lock``, so asking never waits on Endpoint Security.
+    private let told = OSAllocatedUnfairLock(initialState: false)
     /// How many capture sessions hold it running.
     private var users = 0
     private let seeding = DispatchQueue(label: "com.swiftlydetecting.sutro.lineage-seed", qos: .utility)
@@ -52,8 +55,10 @@ public final class LineageMonitor: @unchecked Sendable {
     /// A monitor on Endpoint Security itself, whose table reads the system for the parents of a process it hasn't
     /// been told of.
     public convenience init() {
-        self.init(lineage: ProcessLineage { RunningProcesses.process($0, signature: false) },
-                  factory: LiveEndpointSecurityClientFactory())
+        let lineage = ProcessLineage { pid in
+            RunningProcesses.process(pid, signature: false).map { ($0.program, $0.parent) }
+        }
+        self.init(lineage: lineage, factory: LiveEndpointSecurityClientFactory())
     }
 
     /// - Parameters:
@@ -64,7 +69,7 @@ public final class LineageMonitor: @unchecked Sendable {
     ///   - arguments: Reads an exec's arguments.
     init(lineage: ProcessLineage, factory: any EndpointSecurityClientFactory,
          clock: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
-         running: @escaping () -> [(program: ProcessProgram, parent: Int32)] = { RunningProcesses.read() },
+         running: @escaping () -> [ProcessLineage.Running] = { RunningProcesses.read() },
          arguments: @escaping ProcessLineage.ArgumentReader = ProcessHelpers.parseExecArgs(execEvent:)) {
         self.lineage = lineage
         self.factory = factory
@@ -73,15 +78,15 @@ public final class LineageMonitor: @unchecked Sendable {
         self.arguments = arguments
     }
 
-    /// Is it being told of events?
+    /// Is it being told of events? Asking never waits, even while a capture session starts or stops it.
     public var isRunning: Bool {
-        lock.withLock { client != nil }
+        told.withLock { $0 }
     }
 
-    /// The table, while it's being told of events: `nil` otherwise, when what it holds says nothing of the
+    /// The table, while it's being told of events. `nil` otherwise, when what it holds says nothing of the
     /// processes running now.
     public var table: ProcessLineage? {
-        lock.withLock { client != nil ? lineage : nil }
+        isRunning ? lineage : nil
     }
 
     /// Hold it running for a capture session, starting it for the first.
@@ -142,6 +147,7 @@ public final class LineageMonitor: @unchecked Sendable {
             return .internalSubsystem
         }
         client = made
+        told.withLock { $0 = true }
         let running = running, done = seedingDone
         done.enter()
         seeding.async {
@@ -158,6 +164,7 @@ public final class LineageMonitor: @unchecked Sendable {
 
     /// Stop being told of events, and empty the table: what it held goes stale at once. Call under the lock.
     private func stop() {
+        told.withLock { $0 = false }
         _ = client?.unsubscribeAll()
         client?.delete()
         if client != nil {

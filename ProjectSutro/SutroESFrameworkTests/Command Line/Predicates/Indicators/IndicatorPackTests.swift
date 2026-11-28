@@ -79,6 +79,21 @@ final class IndicatorPackTests: XCTestCase {
         XCTAssertThrowsError(try IndicatorPack.decode(try payload([entry(), entry(laterID, kind: "chain")])))
     }
 
+    /// A pack for Mac Monitor 3.3.0, with an indicator on a written file's scan, reads and runs here. One for the
+    /// release after this build is refused.
+    func testAPackForMacMonitor330Reads() throws {
+        let scan = entry(minEngine: "3.3.0").merging(["predicate": Self.yaraRulePredicate]) { $1 }
+        let pack = try IndicatorPack.decode(try payload([scan], header: ["min_engine": "3.3.0"]))
+        XCTAssertEqual(pack.pack.minEngine, ReleaseVersion(3, 3, 0))
+        XCTAssertEqual(pack.indicators.map(\.isSupported), [true])
+        XCTAssertEqual(pack.newer, [])
+        let later = try payload([scan], header: ["min_engine": Self.laterEngine.description])
+        XCTAssertThrowsError(try IndicatorPack.decode(later)) { error in
+            XCTAssertEqual((error as? IndicatorPack.Problem)?.description,
+                           "It needs Mac Monitor \(Self.laterEngine) or later.")
+        }
+    }
+
     /// Each way a payload is refused says why.
     func testRefusals() throws {
         let other = "6D4D0F1D-0000-4000-8000-0000000000F3"

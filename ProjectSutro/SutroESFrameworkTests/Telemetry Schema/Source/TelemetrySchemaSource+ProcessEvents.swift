@@ -93,9 +93,27 @@ extension TelemetrySchemaSource {
                      + "token. At most 8: the nearest, and the first below launchd, which is never listed. Empty "
                      + "for a child of launchd, and null when the Security Extension wasn't tracking lineage. Since "
                      + "telemetry 1.2.0."),
+            yaraScan(of: "the script the exec runs",
+                     "An exec carries it while scanning is on, for `script`, for the script an interpreter's "
+                     + "arguments name (`resolved_script_path`), and for the Contents/Resources/Scripts/main.scpt of "
+                     + "an AppleScript or JXA applet whose executable in Contents/MacOS it runs, whatever its name. "
+                     + "It describes that script, not the exec's target. XPScripts.yr applies to a script osascript "
+                     + "runs and to an applet's.",
+                     absentWhen: "the exec runs no script Mac Monitor found"),
+            enrichment("where_froms", .array(.string),
+                       "Where the program the exec runs was downloaded from: the strings of the binary property list "
+                       + "array in the com.apple.metadata:kMDItemWhereFroms attribute, the download URL and then the "
+                       + "page it was found on. They're the first found of the script the exec runs, the bundle the "
+                       + "script is the main executable of, the target's executable, and the bundle that is the main "
+                       + "executable of. A script is read only if the exec's user could read it. An executable in "
+                       + "/System, /bin, /sbin, /usr/bin, "
+                       + "/usr/sbin or /usr/libexec isn't read. Read on the Mac that recorded the event, when it "
+                       + "recorded it. Since telemetry 1.3.0.",
+                       absent: Absence("none of them has the attribute, or the event wasn't recorded by Mac Monitor "
+                                       + "3.3.0 or later")),
         ])
     }
-    
+
     /// A fork: `es_event_fork_t`.
     private static var fork: SchemaEvent {
         event(ES_EVENT_TYPE_NOTIFY_FORK, "A fork: es_event_fork_t.", [

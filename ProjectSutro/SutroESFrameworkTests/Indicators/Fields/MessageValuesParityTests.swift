@@ -84,7 +84,7 @@ final class MessageValuesParityTests: XCTestCase {
     func testFieldsOfAnotherEventAreNil() throws {
         let close = try corpusMessage("ES_EVENT_TYPE_NOTIFY_CLOSE")
         let execFields = IndicatorField.allCases.filter { $0.path.hasPrefix("event.exec.") }
-        XCTAssertEqual(execFields.count, 13)
+        XCTAssertEqual(execFields.count, 15)
         for field in execFields {
             try assertValue(field, of: close, is: .null)
         }

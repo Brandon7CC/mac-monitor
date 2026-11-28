@@ -22,14 +22,18 @@ public enum TelemetrySchema {
     /// The version of the records' shape, independent of the app's: MAJOR when a key is removed, renamed or retyped,
     /// or a value's format changes. MINOR when a key, event type or value is added. PATCH when only the schema's text
     /// changes.
-    public static let version = "1.2.0"
+    public static let version = "1.3.0"
     /// The key every record carries ``version`` under.
     public static let versionKey = "telemetry_version"
     /// The key a process snapshot's line has, which no event's record does (``ProcessSnapshotRecord``).
     public static let snapshotKey = "process_snapshot"
     /// The name of the definition a process snapshot's line follows, in the schema's `$defs`. Every other line
-    /// follows the schema's root.
+    /// but a network flow's follows the schema's root.
     public static let snapshotDefinition = "process_snapshot_record"
+    /// The name of the definition a network flow's record follows, in the schema's `$defs`.
+    public static let networkDefinition = "network_record"
+    /// The keys a network flow's record has under `event`, which no Endpoint Security event's does.
+    public static let networkEventKeys = MacMonitorEvent.allCases.map(\.name)
     /// The schema's file name: in the repository's `Schema` folder and the framework's resources.
     public static let fileName = "mac-monitor-telemetry.schema.json"
     /// The schema's name as a GitHub release's asset. GitHub lists a release's assets by name, ignoring case, and
@@ -38,6 +42,15 @@ public enum TelemetrySchema {
     /// The schema's `$id`: a versioned name that doesn't pretend to be a URL.
     public static var identifier: String { "urn:mac-monitor:telemetry:\(version)" }
     
+    /// Is a record a network flow's, Mac Monitor's own (``networkDefinition``)?
+    ///
+    /// - Parameter record: A record, as `JSONSerialization` parsed it.
+    /// - Returns: Whether its `event` has a network flow's key.
+    static func isNetworkRecord(_ record: NSDictionary?) -> Bool {
+        guard let event = record?["event"] as? NSDictionary else { return false }
+        return networkEventKeys.contains { event[$0] != nil }
+    }
+
     /// The committed schema, from the framework's resources.
     ///
     /// - Returns: The schema's JSON text.

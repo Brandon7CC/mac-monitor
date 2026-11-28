@@ -12,7 +12,7 @@ import EndpointSecurity
 
 // MARK: - Synthetic corpus
 /// One synthetic event for every event type the schema describes: full variants (one per union arm and per value that
-/// picks an encoder's branch) and one empty variant each.
+/// picks an encoder's branch) and one empty variant each, then the network events' variants (``networkRecords()``).
 enum SyntheticCorpus {
     /// A synthetic event, and what it is.
     struct Record {
@@ -24,7 +24,7 @@ enum SyntheticCorpus {
         let message: Message
     }
     
-    /// Every record, for every event type of ``TelemetrySchemaSource/events``.
+    /// Every record, for every event type of ``TelemetrySchemaSource/allEvents``.
     ///
     /// - Returns: The records, event by event.
     /// - Throws: The error making up an event: a type the decoder can't make up, or an enum without an arm.
@@ -39,7 +39,7 @@ enum SyntheticCorpus {
                     throw SyntheticCorpusError(label: label, underlying: error)
                 }
             }
-        }
+        } + networkRecords()
     }
     
     /// An event's variants.
@@ -94,6 +94,10 @@ enum SyntheticCorpus {
             let type = event.type == ES_EVENT_TYPE_NOTIFY_MMAP ? "MMapEvent" : "FileCloseEvent"
             all.append(variant("not Mach-O", absent: [unflagged, "\(type).mach_o_type"]))
             all.append(variant("file unread", absent: [unflagged, "\(type).file_type", "\(type).mach_o_type"]))
+            /// A scan with no rules loaded, which names no XProtect version.
+            if event.type == ES_EVENT_TYPE_NOTIFY_CLOSE {
+                all.append(variant("scan without rules", absent: [unflagged, "YaraScan.xprotect_version"]))
+            }
         case ES_EVENT_TYPE_NOTIFY_SETMODE:
             /// A regular file, rw-r--r--, given rwsr-xr-x: `mode_added` lists what that added.
             all.append(variant("execute and setuid added", ["mode": 0o4755, "st_mode": 0o100644]))

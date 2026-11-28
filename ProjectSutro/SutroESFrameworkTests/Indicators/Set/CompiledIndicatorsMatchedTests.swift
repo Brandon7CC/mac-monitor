@@ -73,14 +73,28 @@ final class CompiledIndicatorsMatchedTests: XCTestCase {
     }
 
     /// A rule that compares nothing but the event's type has nothing to list. A rule whose every comparison only
-    /// rules something out has nothing either: a `!=` a value, `ANY ... !=`, and anything under `NOT`.
+    /// rules something out has nothing either: a `!=` a value, and anything under `NOT`.
     func testARuleWithNothingToListSaysNone() throws {
         let compiled = CompiledIndicators([ownIndicator("Every exec", "event.exec != nil")])
         var values = MessageValueCache()
         XCTAssertNil(try XCTUnwrap(compiled.hits(for: try exec(), values: &values).first).matched)
         XCTAssertNil(try matched(#"event.exec.target.executable.name != "wget""#, on: try exec()))
-        XCTAssertNil(try matched(#"ANY event.exec.env != "TERM=xterm""#, on: try exec()))
         XCTAssertNil(try matched(#"NOT ANY event.exec.env BEGINSWITH "LD_PRELOAD=""#, on: try exec()))
+    }
+
+    /// `ANY ... !=` lists the string of the array it found, which the event has. So a rule on any XProtect rule a
+    /// written file's scan matched lists the rule, on a close and on a rename read from their export records.
+    func testANYNotEqualListsTheStringItFound() throws {
+        XCTAssertEqual(try matched(#"ANY event.exec.env != "HOME=/Users/a""#, on: try exec()),
+                       ["event.exec.env": .string("DYLD_INSERT_LIBRARIES=/tmp/x.dylib")])
+        let compiled = CompiledIndicators([ownIndicator("XProtect rule matched", Self.yaraRulePredicate)])
+        for (type, field) in [("ES_EVENT_TYPE_NOTIFY_CLOSE", "event.close.yara_scan.rules"),
+                              ("ES_EVENT_TYPE_NOTIFY_RENAME", "event.rename.yara_scan.rules")] {
+            let message = try TraceImporter.message(from: try scannedRecord(type))
+            var values = MessageValueCache()
+            let hit = try XCTUnwrap(compiled.hits(for: message, values: &values).first, type)
+            XCTAssertEqual(hit.matched, [IndicatorMatchedField(field: field, value: .string(Self.matchedRule))], type)
+        }
     }
 
     /// `!= nil` says the event has a value there, and lists it. A comparison of two fields lists both.

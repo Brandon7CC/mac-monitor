@@ -101,12 +101,12 @@ public enum EventClassTable {
         categoryByEvent[event.rawValue] ?? .uncategorized
     }
     
-    /// The client that serves an event.
+    /// The lane that serves an event.
     ///
     /// - Parameter event: An event type.
-    /// - Returns: The class of the event's category.
+    /// - Returns: The class of the event's category, or ``EventClass/network`` for a Mac Monitor event.
     public static func eventClass(of event: es_event_type_t) -> EventClass {
-        category(of: event).eventClass
+        MacMonitorEvent(event) == nil ? category(of: event).eventClass : .network
     }
     
     /// Each class's share of a subscription list.

@@ -11,7 +11,8 @@ import XCTest
 
 // MARK: - Handing events to a queue
 /// Pins ``EventHandoff``: every event reaches the queue, in the order it was submitted, a run of them with one wake
-/// of the queue, a flush delivers what's pending at once, as a stream's stop relies on, and a run waits its delay.
+/// of the queue, a flush delivers what's pending at once, as a stream's stop relies on, a run waits its delay, and a
+/// run is delivered at the handoff's QoS.
 final class EventHandoffTests: XCTestCase {
     /// The queue events are delivered on.
     private let queue = DispatchQueue(label: "EventHandoffTests")
@@ -90,5 +91,20 @@ final class EventHandoffTests: XCTestCase {
             XCTAssertEqual(own, own.sorted(), "Lane \(lane) in its own order")
         }
         XCTAssertLessThan(wakes, lanes * perLane)
+    }
+
+    /// A run is delivered at the handoff's QoS, whatever the thread that submits its first event. A held close's
+    /// scan answer comes on the scanner's utility queue, and a run started there sent a stream's batches at utility.
+    func testARunIsDeliveredAtTheHandoffsQoS() {
+        let delivered = Recorded<DispatchQoS.QoSClass>()
+        let handoff = EventHandoff(queue: queue, delay: .milliseconds(1)) { _ in
+            delivered.append(DispatchQoS.QoSClass(rawValue: qos_class_self()) ?? .unspecified)
+        }
+        let submitters: [DispatchQoS.QoSClass] = [.background, .utility, .userInitiated, .userInteractive]
+        for (number, submitter) in submitters.enumerated() {
+            DispatchQueue.global(qos: submitter).async { handoff.submit(self.event(number)) }
+            XCTAssertTrue(waitUntil { delivered.all.count == number + 1 }, "The run from \(submitter)")
+        }
+        XCTAssertEqual(delivered.all, Array(repeating: .userInitiated, count: submitters.count))
     }
 }

@@ -17,15 +17,16 @@ extension CaptureSession {
     
     /// Each client's lifetime counters.
     ///
-    /// - Returns: One entry per client, in ``EventClass/allCases`` order.
+    /// - Returns: One entry per client, in ``EventClass/endpointSecurity`` order.
     public func statistics() -> [CaptureLaneStatistics] {
         lanes.map { lane in lane.statistics(subscribedEvents: subscribedEvents.filter(lane.serves).count) }
     }
     
-    /// Messages the clients were handed while capture was open but not recording, and skipped, over the session's
-    /// lifetime. Counted as each is turned away, so once ``isRecording`` is set, every message skipped before it is in.
+    /// Messages the clients were handed, and flow records the network lane was, while capture was open but not
+    /// recording, and skipped, over the session's lifetime. Counted as each is turned away, so once ``isRecording`` is
+    /// set, every message skipped before it is in.
     public var skippedMessages: UInt64 {
-        lanes.reduce(0) { $0 + $1.skippedMessages }
+        lanes.reduce(flowLane?.skippedMessages ?? 0) { $0 + $1.skippedMessages }
     }
     
     /// Messages the session's field filters left out, over its lifetime. Never skipped, never dropped.
@@ -69,8 +70,17 @@ extension CaptureSession {
         return reports
     }
     
-    /// Log each client's lifetime counters, and a fault for a client whose `global_seq_num` went backwards.
+    /// Log each client's lifetime counters, and a fault for a client whose `global_seq_num` went backwards. The
+    /// network lane's go on a line of their own.
     func logStatistics() {
+        if let flows = flowStatistics() {
+            Self.logger.log("""
+                \(self.label, privacy: .public): the network lane was handed \(flows.records) flow records. It \
+                skipped \(flows.skipped) while not recording, mutes covered \(flows.muted), \
+                \(flows.serializationFailures) couldn't be serialized, and the kernel couldn't report \
+                \(flows.socketsLost) sockets.
+                """)
+        }
         for lane in statistics() {
             Self.logger.log("""
                 \(self.label, privacy: .public): the \(lane.eventClass.rawValue, privacy: .public) client was handed \

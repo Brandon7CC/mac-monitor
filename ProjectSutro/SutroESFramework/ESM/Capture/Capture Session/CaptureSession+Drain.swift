@@ -19,7 +19,8 @@ extension CaptureSession {
     ///    before it has been handled, and so emitted.
     /// 3. Once every client's marker has, any held app execs go out with the answer they have, along with the events
     ///    waiting behind them. A lookup still running is ignored.
-    /// 4. Then `completion` runs on `queue`. Every event has been emitted by then, but an `emit` that hands events
+    /// 4. The network lane gets every flow the client has read by then, and takes no more (``drainFlows(then:)``).
+    /// 5. Then `completion` runs on `queue`. Every event has been emitted by then, but an `emit` that hands events
     ///    to `queue` in runs (`EventHandoff`) may still hold some, so `completion` must flush it before it drains
     ///    the batcher, as `StreamSession` does.
     ///
@@ -37,9 +38,9 @@ extension CaptureSession {
             synced.enter()
             if lane.client?.sync({ synced.leave() }) != true { synced.leave() }
         }
-        synced.notify(queue: queue) { [lanes] in
+        synced.notify(queue: queue) { [self] in
             lanes.forEach { $0.releaseHeld() }
-            queue.async(execute: completion)
+            drainFlows { queue.async(execute: completion) }
         }
     }
 }

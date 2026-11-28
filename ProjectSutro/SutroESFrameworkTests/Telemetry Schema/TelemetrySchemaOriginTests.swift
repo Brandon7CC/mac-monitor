@@ -74,14 +74,15 @@ final class TelemetrySchemaOriginTests: XCTestCase {
         XCTAssertEqual(wrong.sorted(), [])
     }
     
-    /// Every key the schema marks eslogger's is one of eslogger's, and no Mac Monitor enrichment is.
+    /// Every key the schema marks eslogger's is one of eslogger's, and no Mac Monitor enrichment is. The network
+    /// records' definitions are Mac Monitor's own, which eslogger has none of.
     func testEnrichmentsAreNotESLoggers() throws {
         let fixture = try esloggerKeys().mapValues { Set($0.keys.map { plain($0).path }) }
         let schema = schemaKeys
-        XCTAssertEqual(Set(schema.scopes.keys), Set(fixture.keys),
+        XCTAssertEqual(Set(schema.scopes.keys).subtracting(SchemaKeyPaths.networkScopes), Set(fixture.keys),
                        "The envelope, every event, and the named definitions")
         var wrong: [String] = []
-        for (scope, keys) in schema.scopes {
+        for (scope, keys) in schema.scopes where !SchemaKeyPaths.networkScopes.contains(scope) {
             for (path, key) in keys {
                 let listed = fixture[scope]?.contains(path) ?? false
                 switch (key.origin, listed) {
@@ -94,6 +95,22 @@ final class TelemetrySchemaOriginTests: XCTestCase {
         XCTAssertEqual(wrong.sorted(), [])
     }
     
+    /// Every key of a network record, its events, its process and its endpoints is Mac Monitor's: a network record
+    /// is Mac Monitor's own, with none of eslogger's keys.
+    func testNetworkKeysAreMacMonitors() {
+        let schema = schemaKeys
+        XCTAssertEqual(Set(schema.scopes.keys).intersection(SchemaKeyPaths.networkScopes), SchemaKeyPaths.networkScopes)
+        var keys = 0, wrong: [String] = []
+        for scope in SchemaKeyPaths.networkScopes {
+            for (path, key) in schema.scopes[scope] ?? [:] {
+                keys += 1
+                if key.origin != .macMonitor { wrong.append("\(scope).\(path)") }
+            }
+        }
+        XCTAssertGreaterThan(keys, 40)
+        XCTAssertEqual(wrong.sorted(), [])
+    }
+
     /// Each eslogger key has eslogger's type, `null` where eslogger writes it, and is required where eslogger always
     /// writes it: `null` is also allowed for a key eslogger leaves out by message version, which Mac Monitor writes as
     /// `null`, and a key may be optional where the schema says when it's absent.

@@ -85,6 +85,15 @@ public class ESEventType: NSManagedObject, Identifiable {
     
     @NSManaged public var gatekeeper_user_override: ESGatekeeperUserOverrideEvent?
 
+    /// A flow that opened, read and written by key rather than through Core Data's generated accessor, as
+    /// ``ESFileDestination/new_path`` is: its selector is in ARC's `new` family, so Swift would release the row once
+    /// more than Core Data retained it.
+    public var new_flow: ESNetworkFlowEvent? {
+        get { value(forKey: "new_flow") as? ESNetworkFlowEvent }
+        set { setValue(newValue, forKey: "new_flow") }
+    }
+    @NSManaged public var flow_closed: ESNetworkFlowEvent?
+
     enum CodingKeys: CodingKey {
         /// Process events
         case exec
@@ -183,6 +192,10 @@ public class ESEventType: NSManagedObject, Identifiable {
         
         /// Gatekeeper events
         case gatekeeper_user_override
+
+        /// Network events, Mac Monitor's own
+        case new_flow
+        case flow_closed
     }
     
     
@@ -321,6 +334,11 @@ public class ESEventType: NSManagedObject, Identifiable {
         // MARK: Gatekeeper events
         case .gatekeeper_user_override(let e):
             self.gatekeeper_user_override = ESGatekeeperUserOverrideEvent(from: e, message: message, in: context)
+        // MARK: Network events
+        case .new_flow(let e):
+            self.new_flow = ESNetworkFlowEvent(from: e, message: message, in: context)
+        case .flow_closed(let e):
+            self.flow_closed = ESNetworkFlowEvent(from: e, message: message, in: context)
         default:
             break
         }
@@ -427,5 +445,9 @@ extension ESEventType: Encodable {
         
         // MARK: Gatekeeper events
         try container.encodeIfPresent(gatekeeper_user_override, forKey: .gatekeeper_user_override)
+
+        // MARK: Network events
+        try container.encodeIfPresent(new_flow, forKey: .new_flow)
+        try container.encodeIfPresent(flow_closed, forKey: .flow_closed)
     }
 }

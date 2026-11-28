@@ -93,7 +93,7 @@ final class ProcessHelpersPerformanceTests: PerformanceTestCase {
         let reads = 5_000
         try benchmark("enrich.file_header.4k", unit: "file", operations: reads) {
             for _ in 0..<reads {
-                guard let file = ProcessHelpers.openRegularFile(at: path),
+                guard let file = ProcessHelpers.openRegularFile(at: path)?.file,
                       try file.read(upToCount: 4_096)?.count == 4_096 else { throw BenchmarkFailure("\(path) unread") }
             }
         }

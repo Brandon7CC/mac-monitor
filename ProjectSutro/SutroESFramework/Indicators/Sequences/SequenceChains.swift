@@ -28,7 +28,7 @@ struct SequenceChains {
     /// a lane handing an event over late: 5 minutes, far past any lane's lag.
     static let clockStep: Double = 300
     /// How many seconds behind the latest event it has seen a lane may hand one over and still have it count: an app's
-    /// exec is held up to half a second for Launch Services (``LaunchServicesHold``), and a lane flooded with events
+    /// exec is held up to half a second for Launch Services (``EventHold``), and a lane flooded with events
     /// falls behind the others.
     static let lateness: Double = 10
     /// How many chains may wait under one key for a step that can arrive early, and how many early steps of it are

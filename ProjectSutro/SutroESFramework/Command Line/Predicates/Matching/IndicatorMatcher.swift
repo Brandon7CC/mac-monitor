@@ -58,9 +58,10 @@ public final class IndicatorMatcher {
 
     /// The indicators an event is part of. Only those that can match its type are looked at
     /// (``PredicateEventTypes/eventTypes(of:)``). An indicator that only compares values the stored event holds as its
-    /// record does is evaluated on the event itself (``StoredEventValues``). For the rest the store's columns rule most
-    /// out first (``StreamFilter/Predicate/storePredicate``), and the record is encoded only for those left: about
-    /// 380 µs an exec row, which Mac Monitor's own indicators and marks never need.
+    /// record does is evaluated on the event itself (``StoredEventValues``), unless the event is a network flow, whose
+    /// row doesn't hold them so. For the rest the store's columns rule most out first
+    /// (``StreamFilter/Predicate/storePredicate``), and the record is encoded only for those left: about 380 µs an
+    /// exec row, which Mac Monitor's own indicators and marks never need.
     ///
     /// - Parameter message: The event.
     /// - Returns: Its indicators, in order.
@@ -75,7 +76,7 @@ public final class IndicatorMatcher {
             if let earlier = sameAs[index], let verdict = verdicts[earlier] { return verdict }
             let item = indicators[index]
             let verdict: Bool
-            if item.exact {
+            if item.exact && !message.isNetworkFlow {
                 /// No narrowing first: that's the same comparisons again.
                 verdict = stored.matches(item.predicate.parsed)
             } else if let narrow = item.narrow,
@@ -94,7 +95,8 @@ public final class IndicatorMatcher {
 // MARK: - Stored values
 /// A stored event's values as a predicate on its record sees them, for the key paths whose value on the stored event
 /// is the record's in every case (`IndicatorTests` checks each against the synthetic corpus and the fixtures), so a
-/// predicate that compares only those is evaluated without encoding the record.
+/// predicate that compares only those is evaluated without encoding the record. Endpoint Security events only: a
+/// network flow's record has no `es_event_type` and a slimmer process than its row.
 final class StoredEventValues: NSObject {
     /// The key paths whose value on the stored event is the record's.
     static let keyPaths = emptyWhenNil.union(arrays).union([

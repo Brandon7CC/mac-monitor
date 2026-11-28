@@ -30,14 +30,15 @@ final class CaptureSessionStartTests: XCTestCase {
         Array(client.calls.prefix { $0.kind != .subscribe })
     }
     
-    /// One client is made per class, in ``EventClass/allCases`` order, and each subscribes only to its class's share.
+    /// One client is made per class, in ``EventClass/endpointSecurity`` order, and each subscribes only to its class's
+    /// share.
     func testEachClassGetsItsOwnClient() throws {
         let factory = FakeEndpointSecurityClientFactory()
         let session = try makeSession(configuration, factory: factory)
         XCTAssertEqual(factory.clients.count, CaptureSession.clientsPerSession)
         XCTAssertEqual(CaptureSession.clientsPerSession, 3)
         let split = EventClassTable.split(session.subscribedEvents)
-        for (client, eventClass) in zip(factory.clients, EventClass.allCases) {
+        for (client, eventClass) in zip(factory.clients, EventClass.endpointSecurity) {
             XCTAssertEqual(client.calls(.subscribe), [.subscribe(split[eventClass] ?? [])], eventClass.rawValue)
         }
         XCTAssertEqual(session.subscribedEvents.map(\.rawValue),

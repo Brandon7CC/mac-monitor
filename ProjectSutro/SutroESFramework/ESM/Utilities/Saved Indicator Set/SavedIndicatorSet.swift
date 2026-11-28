@@ -108,7 +108,7 @@ public final class SavedIndicatorSet {
     /// The list reply as it stands, encoded for each access it was asked with, until the next change. Internal so a
     /// test can see a list answered from it.
     var listReplies: [MuteAccess: Data] = [:]
-    /// Every capture session that follows the set.
+    /// Every capture session that follows the set, and the change notification (``announceChanges(as:)``).
     private lazy var followers = FollowerRegistry<Follower>(queue: queue)
     let logger = Logger(subsystem: "com.swiftlydetecting.agent.securityextension", category: "SavedIndicatorSet")
 
@@ -157,8 +157,8 @@ public final class SavedIndicatorSet {
         }
     }
 
-    /// How many capture sessions follow the set now. A released subscription stops counting once ``queue`` has run
-    /// what was queued before this.
+    /// How many follow the set now: capture sessions, and the change notification. A released subscription stops
+    /// counting once ``queue`` has run what was queued before this.
     var followerCount: Int {
         queue.sync { followers.count }
     }

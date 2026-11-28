@@ -8,15 +8,15 @@
 import SwiftUI
 import SutroESFramework
 
-/// The event's record, as JSON Export telemetry writes it, colored, with line numbers. It's made again when the
-/// indicators change, since the record lists the event's indicators.
+/// The event's record, as JSON Export telemetry writes it, colored, with line numbers, folds, and the key path at the
+/// cursor. It's made again when the indicators change, since the record lists the event's indicators.
 struct SystemEventJSONView: View {
     var selectedMessage: ESMessage
     @ObservedObject private var indicatorStore = IndicatorStore.shared
     @State private var jsonText: String = ""
 
     var body: some View {
-        FileContentView(title: "Event JSON", content: jsonText, language: .json)
+        FileContentView(title: "Event JSON", content: jsonText, language: .json, readsKeyPaths: true)
             .task(id: "\(selectedMessage.objectID)|\(indicatorStore.revision)") {
                 jsonText = indicatorStore.json(of: selectedMessage)
             }

@@ -50,23 +50,3 @@ struct EventRowMenu {
         }
     }
 }
-
-
-// MARK: - Action menu item
-/// A menu item that runs a closure.
-private final class ActionMenuItem: NSMenuItem {
-    private let handler: () -> Void
-    
-    /// - Parameters:
-    ///   - title: The item's title.
-    ///   - action: Runs when the item is chosen.
-    init(title: String, action: @escaping () -> Void) {
-        handler = action
-        super.init(title: title, action: #selector(run), keyEquivalent: "")
-        target = self
-    }
-    
-    required init(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    
-    @objc private func run() { handler() }
-}

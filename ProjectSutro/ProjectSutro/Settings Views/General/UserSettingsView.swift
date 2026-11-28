@@ -10,8 +10,8 @@ import SutroESFramework
 
 
 // MARK: - Settings > General
-/// Settings > General: Mac Monitor's updates, the warnings before quitting and clearing, dark mode, and which parents
-/// Event Facts' process tree follows.
+/// Settings > General: Mac Monitor's updates, the warnings before quitting and clearing, dark mode, what the Security
+/// Extension adds to events, and which parents Event Facts' process tree follows.
 struct GeneralSettingsView: View {
     @EnvironmentObject var userPrefs: UserPrefs
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
@@ -23,6 +23,13 @@ struct GeneralSettingsView: View {
     @State private var lastCheck: UpdateCheck?
     /// The check to show over Settings, as Mac Monitor > Check for Updates shows it.
     @State private var shownCheck: UpdateCheck?
+    /// Why the Security Extension last refused to turn each enrichment switch on or off, by the switch's first name,
+    /// since Settings opened or the handshake last changed.
+    @State private var refusals: [String: String] = [:]
+    /// The two flow events, which Record network flows turns on and off together.
+    private static let flowEvents = MacMonitorEvent.allCases.map(\.name)
+    /// Why Record network flows and Record URL paths are refused while capture runs.
+    private static let flowsUnreadable = "Network flows can't be read on this Mac."
 
     var body: some View {
         SettingsForm(pane: .general) {
@@ -64,6 +71,31 @@ struct GeneralSettingsView: View {
                                       symbol: "moon.fill", tint: .indigo)
                 }
             }
+            Section("Enrichment") {
+                Toggle(isOn: subscriptions([YaraScan.subscriptionName])) {
+                    SettingsIconLabel("Scan written files with XProtect's rules",
+                                      detail: refusals[YaraScan.subscriptionName]
+                                        ?? "Mach-O files and scripts when they're written, and scripts when they run.",
+                                      symbol: "xmark.shield", tint: .red)
+                }
+                .disabled(!systemExtensionManager.hasEventSubscriptions)
+                let recordsFlows = subscriptions(Self.flowEvents, onThisMac: Self.flowsUnreadable)
+                Toggle(isOn: recordsFlows) {
+                    SettingsIconLabel("Record network flows",
+                                      detail: refusals[Self.flowEvents[0]]
+                                        ?? "The connections each process opens and closes, with their hosts and URLs.",
+                                      symbol: "network", tint: .blue)
+                }
+                .disabled(!systemExtensionManager.hasEventSubscriptions)
+                Toggle(isOn: subscriptions([NetworkFlowEvent.urlPathsSubscriptionName],
+                                           onThisMac: Self.flowsUnreadable)) {
+                    SettingsIconLabel("Record URL paths",
+                                      detail: refusals[NetworkFlowEvent.urlPathsSubscriptionName]
+                                        ?? "A flow's URL keeps its path. A query is never recorded.",
+                                      symbol: "link", tint: .teal)
+                }
+                .disabled(!systemExtensionManager.hasEventSubscriptions || !recordsFlows.wrappedValue)
+            }
             Section("Process tree") {
                 ProcessTreePrefsView()
             }
@@ -87,6 +119,35 @@ struct GeneralSettingsView: View {
             ReleaseNotesSheet(notes: releaseNotes)
         }
         .updateCheckResult($shownCheck)
+        .onAppear { systemExtensionManager.requestEventSubscriptions() }
+        /// A refusal under one handshake says nothing of the next.
+        .onChange(of: systemExtensionManager.connectionResult) { _ in refusals = [:] }
+    }
+
+    /// An enrichment switch, as the Security Extension last said: scanning written files with Apple's XProtect rules
+    /// (``YaraScan/subscriptionName``), recording network flows (their two events), or keeping URL paths
+    /// (``NetworkFlowEvent/urlPathsSubscriptionName``). It's on while every name is subscribed. A change the
+    /// Security Extension refuses, on or off, leaves the switch as it was, and ``refusals`` says why.
+    ///
+    /// - Parameters:
+    ///   - names: The subscription names it turns on and off together.
+    ///   - onThisMac: What stops it while capture runs, or `nil` for a switch only a stopping capture refuses.
+    /// - Returns: The switch's binding.
+    private func subscriptions(_ names: [String], onThisMac: String? = nil) -> Binding<Bool> {
+        Binding {
+            names.allSatisfy(systemExtensionManager.monitoredEventStrings.contains)
+        } set: { enabled in
+            refusals[names[0]] = nil
+            for name in names {
+                systemExtensionManager.setSubscription(name, enabled: enabled) { reply in
+                    if reply != true {
+                        refusals[names[0]] = systemExtensionManager.connectionResult
+                            .refusal(answered: reply != nil, onThisMac: onThisMac)
+                    }
+                    systemExtensionManager.requestEventSubscriptions()
+                }
+            }
+        }
     }
 
     /// The version row's second line. It says how the last Check Now went.

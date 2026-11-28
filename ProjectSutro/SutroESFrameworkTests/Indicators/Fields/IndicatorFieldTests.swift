@@ -59,7 +59,7 @@ final class IndicatorFieldTests: XCTestCase {
         let identity: Set = ["es_event_type", "event.exec.target.team_id", "event.exec.target.is_platform_binary",
                              "process.team_id"]
         XCTAssertTrue(identity.isSubset(of: IndicatorField.recordCases.map(\.path)))
-        XCTAssertEqual(IndicatorField.recordCases.count, 35)
+        XCTAssertEqual(IndicatorField.recordCases.count, 37)
     }
 }
 

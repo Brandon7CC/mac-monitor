@@ -15,7 +15,9 @@ import SutroESFramework
 struct TraceValidationSheet: View {
     /// The trace's check.
     @ObservedObject var model: TelemetrySchemaModel
-    
+    /// The report's issues, as text.
+    @StateObject private var details = ReadOnlyTextController()
+
     /// The check's progress, report, or failure.
     var body: some View {
         if let check = model.check {
@@ -65,7 +67,7 @@ struct TraceValidationSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Self.heading(url, report)
             if !report.details.isEmpty {
-                ReadOnlyTextView(text: report.details)
+                ReadOnlyTextEditor(text: report.details, controller: details)
                     .frame(minHeight: 260)
                     .border(Color(nsColor: .separatorColor))
             }

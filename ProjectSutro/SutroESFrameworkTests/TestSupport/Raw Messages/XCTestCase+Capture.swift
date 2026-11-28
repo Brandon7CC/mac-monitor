@@ -72,15 +72,16 @@ extension XCTestCase {
     ///   - factory: Makes the fake clients.
     ///   - serializer: Builds each event's JSON.
     ///   - sensorID: Computes the Sensor ID.
+    ///   - flows: Reads network flows, such as a ``FlowClientHarness``'s client. `nil` records none.
     ///   - emitted: Collects what the session emits.
     /// - Returns: The session.
     /// - Throws: ``CaptureStartError`` if the session couldn't start.
     func makeSession(_ configuration: CaptureConfiguration = CaptureConfiguration(label: "Test"),
                      factory: FakeEndpointSecurityClientFactory,
                      serializer: StubSerializer = .globalSequence,
-                     sensorID: @escaping () -> String = { "SENSOR" },
+                     sensorID: @escaping () -> String = { "SENSOR" }, flows: NetworkStatisticsClient? = nil,
                      emitted: EmittedEvents = EmittedEvents()) throws -> CaptureSession {
-        try CaptureSession(configuration, clients: factory, serializer: serializer, sensorID: sensorID,
+        try CaptureSession(configuration, clients: factory, serializer: serializer, sensorID: sensorID, flows: flows,
                            emit: emitted.append)
     }
     

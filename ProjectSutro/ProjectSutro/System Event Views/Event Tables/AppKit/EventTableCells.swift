@@ -50,6 +50,17 @@ final class EventTableView: NSTableView, NSMenuItemValidation {
         menuItem.action == #selector(copy(_:)) ? numberOfSelectedRows > 0 : true
     }
     
+    /// Redraw a view AppKit puts under the rows whole when it's resized, such as the one that draws the stripes past the
+    /// last row. That view otherwise keeps what it drew before as it grows, and redraws only part of it. Stripes it drew
+    /// in light mode then stay after the Mac turns dark, as an emptied table shows.
+    ///
+    /// - Parameter subview: The view added. Rows draw their own background and are left as they are.
+    override func didAddSubview(_ subview: NSView) {
+        super.didAddSubview(subview)
+        guard !(subview is NSTableRowView) else { return }
+        subview.layerContentsRedrawPolicy = .duringViewResize
+    }
+    
     /// - Parameter point: A point in the superview's coordinates.
     /// - Returns: The table itself for a click that opens a context menu or Event Facts, otherwise the usual hit view.
     override func hitTest(_ point: NSPoint) -> NSView? {

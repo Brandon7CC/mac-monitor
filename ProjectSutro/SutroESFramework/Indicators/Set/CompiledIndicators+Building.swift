@@ -30,8 +30,8 @@ extension CompiledIndicators {
         var ruleHits = ContiguousArray<IndicatorHit>()
         /// Each rule's step (``CompiledIndicators/stepRule(sequence:step:)``), or -1 for a rule of its own.
         var ruleSteps = ContiguousArray<Int32>()
-        /// The rules for each event type, by the type's number.
-        var byType = [[Int32]](repeating: [], count: Int(ES_EVENT_TYPE_LAST.rawValue))
+        /// The rules for each event type, by the type's number: Mac Monitor's own events' too.
+        var byType = [[Int32]](repeating: [], count: MacMonitorEvent.typeLimit)
         /// The indicators it can't run.
         var problems: [Problem] = []
         /// The sequences it runs.

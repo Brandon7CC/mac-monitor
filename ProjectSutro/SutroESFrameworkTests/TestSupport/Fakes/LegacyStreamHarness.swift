@@ -9,19 +9,31 @@ import XCTest
 @testable import SutroESFramework
 
 
-// MARK: - A 3.0.0 Security Extension
-/// A Security Extension older than 3.1.0, in the test process: it relays each `macmonitor` connection to a
-/// ``StreamHarness`` without the request's ``StreamOptions/fieldFilters``, as a 3.0.0 Security Extension ignores that
-/// key. The stream then applies no field filter, and its answer echoes none.
+// MARK: - An older Security Extension
+/// A Security Extension older than `macmonitor`, in the test process: it relays each `macmonitor` connection to a
+/// ``StreamHarness``, reading each stream request as that release reads it (``Release``).
 final class LegacyStreamHarness: NSObject, NSXPCListenerDelegate {
+    /// The releases it stands for.
+    enum Release {
+        /// 3.0.0 ignores a request's ``StreamOptions/fieldFilters``. The stream then applies no field filter, and its
+        /// answer echoes none.
+        case v3_0
+        /// 3.2.0 doesn't know the network flow events, and refuses a stream that names one.
+        case v3_2
+    }
+
     private let harness: StreamHarness
+    private let release: Release
     private let listener = NSXPCListener.anonymous()
     /// Every connection's relay, kept for as long as the harness.
     private let relays = Recorded<LegacyStreamRelay>()
 
-    /// - Parameter harness: The Security Extension the relays connect to.
-    init(relayingTo harness: StreamHarness) {
+    /// - Parameters:
+    ///   - harness: The Security Extension the relays connect to.
+    ///   - release: The release it stands for: 3.0.0 unless given.
+    init(relayingTo harness: StreamHarness, as release: Release = .v3_0) {
         self.harness = harness
+        self.release = release
         super.init()
         listener.delegate = self
         listener.activate()
@@ -39,7 +51,7 @@ final class LegacyStreamHarness: NSObject, NSXPCListenerDelegate {
     ///   - connection: The new connection, from `macmonitor`.
     /// - Returns: Always `true`.
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
-        let relay = LegacyStreamRelay(downstream: connection, harness: harness)
+        let relay = LegacyStreamRelay(downstream: connection, harness: harness, release: release)
         relays.append(relay)
         connection.exportedInterface = SensorXPC.streamInterface
         connection.exportedObject = relay
@@ -52,19 +64,23 @@ final class LegacyStreamHarness: NSObject, NSXPCListenerDelegate {
 
 
 // MARK: - Relay
-/// One `macmonitor` connection's relay: requests go up to the harness without their field filters, and batches and
-/// saved mute set changes come back down unchanged.
+/// One `macmonitor` connection's relay: stream requests go up to the harness as the release reads them, and batches
+/// and saved mute set changes come back down unchanged.
 final class LegacyStreamRelay: NSObject, StreamProtocol, StreamReaderProtocol {
     /// `macmonitor`'s connection, which keeps the relay as its exported object.
     private weak var downstream: NSXPCConnection?
+    /// The release it reads requests as.
+    private let release: LegacyStreamHarness.Release
     /// The connection to the harness's service, which streams to the relay.
     private var upstream: NSXPCConnection?
 
     /// - Parameters:
     ///   - downstream: `macmonitor`'s connection.
     ///   - harness: The Security Extension to relay to.
-    init(downstream: NSXPCConnection, harness: StreamHarness) {
+    ///   - release: The release it reads requests as.
+    init(downstream: NSXPCConnection, harness: StreamHarness, release: LegacyStreamHarness.Release) {
         self.downstream = downstream
+        self.release = release
         super.init()
         upstream = harness.connect(reader: self)
     }
@@ -87,18 +103,27 @@ final class LegacyStreamRelay: NSObject, StreamProtocol, StreamReaderProtocol {
         downstream?.remoteObjectProxyWithErrorHandler { _ in failed() } as? StreamReaderProtocol
     }
 
-    /// Relay a request without its field filters, as a 3.0.0 Security Extension reads it.
+    /// Relay a request as the release reads it: 3.0.0 without its field filters, and 3.2.0 refusing a stream that
+    /// names a network flow event, in 3.2.0's words.
     ///
     /// - Parameters:
     ///   - request: A JSON encoded ``StreamRequest``.
-    ///   - reply: The harness's answer.
+    ///   - reply: The harness's answer, or the refusal.
     func perform(_ request: Data, reply: @escaping (Data) -> Void) {
-        var forwarded = request
-        if var decoded = try? StreamRequest.decode(request) {
-            decoded.options?.fieldFilters = nil
-            forwarded = decoded.encoded()
+        guard var decoded = try? StreamRequest.decode(request) else {
+            service?.perform(request, reply: reply)
+            return
         }
-        service?.perform(forwarded, reply: reply)
+        switch release {
+        case .v3_0:
+            decoded.options?.fieldFilters = nil
+        case .v3_2:
+            if let flow = decoded.options?.events.first(where: { MacMonitorEvent(name: $0) != nil }) {
+                let problem = "\(flow) isn't an event macmonitor can stream on this Mac."
+                return reply(StreamReply(status: .invalid, problem: problem, sensorVersion: "3.2.0 (1)").encoded())
+            }
+        }
+        service?.perform(decoded.encoded(), reply: reply)
     }
 
     /// Relay a mute request unchanged.

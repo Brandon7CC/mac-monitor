@@ -7,7 +7,6 @@
 
 import Foundation
 import OSLog
-import notify
 
 
 // MARK: - Sensor client
@@ -35,8 +34,8 @@ public final class SensorClient {
     /// Makes each connection, not yet activated, with its peer pinned.
     private let connect: () -> NSXPCConnection
     private let onSignal: (Signal) -> Void
-    /// Our Darwin notification registrations.
-    private var notifyTokens: [Int32] = []
+    /// The Darwin notifications the Security Extension posts, followed while the client lives.
+    private var observers: [DarwinObserver] = []
     private let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "SensorClient")
     
     /// Why the owner should consider re-running the `start` handshake.
@@ -66,12 +65,11 @@ public final class SensorClient {
         self.agent = agent
         self.connect = connect
         self.onSignal = onSignal
-        observe(SensorXPC.sensorReadyNotification, as: .restarted)
-        observe(SensorXPC.sensorReleasedNotification, as: .released)
+        observers = [observe(SensorXPC.sensorReadyNotification, as: .restarted),
+                     observe(SensorXPC.sensorReleasedNotification, as: .released)]
     }
     
     deinit {
-        notifyTokens.forEach { notify_cancel($0) }
         connection?.invalidate()
     }
     
@@ -80,16 +78,12 @@ public final class SensorClient {
     /// - Parameters:
     ///   - name: The notification name.
     ///   - signal: What it means for the owner.
-    private func observe(_ name: String, as signal: Signal) {
-        var token: Int32 = NOTIFY_TOKEN_INVALID
-        let status = notify_register_dispatch(name, &token, .main) { [weak self] _ in
+    /// - Returns: The observer, which follows the notification until it's released.
+    private func observe(_ name: String, as signal: Signal) -> DarwinObserver {
+        DarwinObserver(name) { [weak self] in
             self?.logger.log("Received \(name, privacy: .public).")
             self?.onSignal(signal)
         }
-        guard status == NOTIFY_STATUS_OK else {
-            return logger.error("Unable to register for \(name, privacy: .public): \(status)")
-        }
-        notifyTokens.append(token)
     }
     
     /// Send one request to the Security Extension.

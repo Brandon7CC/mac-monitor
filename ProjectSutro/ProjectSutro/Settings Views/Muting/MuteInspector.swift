@@ -78,7 +78,7 @@ struct MuteInspector: View {
         let event = EventCatalog.event(named: name)
         return HStack(spacing: 8) {
             Image(systemName: event.symbol).foregroundStyle(.secondary).frame(width: 18)
-            Text(event.shortName).font(.callout.monospaced()).help(event.name)
+            Text(event.shortName).font(.callout.monospaced()).help(event.label)
             Spacer()
             Button { unmute(mute, [name]) } label: {
                 Label("Unmute", systemImage: "speaker.wave.2.fill").font(.caption.weight(.semibold))

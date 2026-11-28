@@ -131,7 +131,7 @@ enum FileTypeReader {
     ///   - path: The file's path, as the event names it.
     ///   - expected: The event's stat, whose device and inode find the file when `path` no longer exists.
     /// - Returns: The descriptor, or -1 with `errno` set by the last open tried.
-    private static func openForReading(_ path: String, expecting expected: stat) -> Int32 {
+    static func openForReading(_ path: String, expecting expected: stat) -> Int32 {
         let flags = O_RDONLY | O_NONBLOCK | O_NOFOLLOW_ANY | O_CLOEXEC
         let descriptor = Darwin.open(path, flags)
         guard descriptor < 0, errno == ENOENT, let moved = currentPath(of: expected), moved != path else {

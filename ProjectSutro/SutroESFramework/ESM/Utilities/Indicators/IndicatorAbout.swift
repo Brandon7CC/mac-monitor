@@ -67,8 +67,7 @@ public struct IndicatorAbout: Equatable {
             guard let parsed = try? StreamFilter.Predicate.parse(rule.predicate, for: .indicator) else { return }
             types.formUnion(PredicateEventTypes.eventTypes(of: parsed) ?? [])
         }
-        let prefix = "ES_EVENT_TYPE_NOTIFY_"
-        let names = types.map { $0.hasPrefix(prefix) ? String($0.dropFirst(prefix.count)).lowercased() : $0 }.sorted()
+        let names = types.map { $0.hasPrefix(EventNames.notifyPrefix) ? EventNames.shortName($0) : $0 }.sorted()
         return names.isEmpty ? "No event type" : names.joined(separator: ", ")
     }
 }

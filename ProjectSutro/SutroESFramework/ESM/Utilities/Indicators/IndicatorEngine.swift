@@ -16,7 +16,8 @@ import OSLog
 ///
 /// It publishes the set as the Security Extension last sent it, why it can't run some of them (``problems``), and
 /// whether this Mac Monitor may change it (``canChangeIndicators``). Every change is a request. Its reply is the set
-/// after it, so nothing is asked for afterwards. A request with no reply, from a Security Extension older than 3.1 or
+/// after it. A change anyone makes is posted, and the set is asked for again (``connect(_:changes:)``), so one
+/// `macmonitor` made shows at once. A request with no reply, from a Security Extension older than 3.1 or
 /// none at all, leaves the set as it was and read-only (``Connection/unavailable``), with ``updateNotice``. There's no
 /// timeout of its own: XPC's reply or error decides. Mac Monitor's transport sends nothing to a Security Extension
 /// that hasn't said it answers (``SensorSupport``), since a request it doesn't know would close the connection.
@@ -88,21 +89,36 @@ public final class IndicatorEngine: ObservableObject {
 
     private let defaults: UserDefaults
     private var transport: Transport?
+    /// Has a request been sent? A change the Security Extension posts asks for nothing until one has.
+    private var hasAsked = false
+    /// Asks for the set again after each change the Security Extension posts, once a request has been sent.
+    private var changeNotice: IndicatorChangeNotice?
     private let logger = Logger(subsystem: "com.swiftlydetecting.agent", category: "IndicatorEngine")
 
     /// - Parameters:
     ///   - defaults: Where the last set is kept.
-    ///   - transport: Sends requests to the Security Extension, or `nil` until ``connect(_:)``: until then, nothing
-    ///     can change.
+    ///   - transport: Sends requests to the Security Extension, or `nil` until ``connect(_:changes:)``: until then,
+    ///     nothing can change. One given here doesn't follow the Security Extension's change notification.
     public init(defaults: UserDefaults = .standard, transport: Transport? = nil) {
         self.defaults = defaults
         self.transport = transport
         indicators = Self.cachedIndicators(in: defaults)
     }
 
-    /// - Parameter transport: Sends requests to the Security Extension from now on.
-    public func connect(_ transport: @escaping Transport) {
+    /// Send requests over a transport from now on, and ask for the set again after each change the Security
+    /// Extension posts, whoever made it. A post asks nothing until a first request was sent, so nothing goes to the
+    /// Security Extension before the handshake. One that comes while the first is on its way asks again.
+    ///
+    /// - Parameters:
+    ///   - transport: Sends requests to the Security Extension.
+    ///   - changes: The notification the Security Extension posts: ``SensorXPC/indicatorsChangedNotification``,
+    ///     unless a test passes its own.
+    public func connect(_ transport: @escaping Transport,
+                        changes: String = SensorXPC.indicatorsChangedNotification) {
         self.transport = transport
+        changeNotice = IndicatorChangeNotice(name: changes) { [weak self] in
+            if let self, hasAsked { refresh() }
+        }
     }
 
     /// The last set the Security Extension sent, read on any thread, such as a search's worker.
@@ -135,8 +151,8 @@ public final class IndicatorEngine: ObservableObject {
 
     // MARK: Requests
 
-    /// Ask for the set again: when the Security Extension is ready, Settings > Indicators appears, or Mac Monitor
-    /// becomes active, so changes `macmonitor` or another user made show.
+    /// Ask for the set again: when the Security Extension is ready or posts a change, Settings > Indicators appears,
+    /// or Mac Monitor becomes active, so changes `macmonitor` or another user made show.
     public func refresh() {
         send(IndicatorRequest(.list))
     }
@@ -152,6 +168,7 @@ public final class IndicatorEngine: ObservableObject {
             return
         }
         let operation = request.operation
+        hasAsked = true
         transport(request.encoded()) { [weak self] data in
             guard let self else { return }
             guard let reply = data.flatMap(IndicatorReply.decode) else {
@@ -165,23 +182,24 @@ public final class IndicatorEngine: ObservableObject {
         }
     }
 
-    /// Publish what a request's reply says.
+    /// Publish what a request's reply says. Only what differs is set, so a reply that changes nothing redraws
+    /// nothing.
     ///
     /// - Parameters:
     ///   - reply: The reply, or `nil` when there was none.
     ///   - operation: What the request asked for: a list never sets ``failure``.
     private func apply(_ reply: IndicatorReply?, to operation: IndicatorRequest.Operation) {
         guard let reply else {
-            connection = .unavailable
-            notice = Self.updateNotice
+            publish(.unavailable, to: \.connection)
+            publish(Self.updateNotice, to: \.notice)
             if operation != .list { failure = Self.updateNotice }
             return
         }
-        connection = .connected
-        access = reply.access
-        isReadOnly = reply.readOnly || reply.status == .readOnly
-        notice = reply.notice
-        problems = Dictionary(reply.problems.map { ($0.id, $0.reason) }) { first, _ in first }
+        publish(.connected, to: \.connection)
+        publish(reply.access, to: \.access)
+        publish(reply.readOnly || reply.status == .readOnly, to: \.isReadOnly)
+        publish(reply.notice, to: \.notice)
+        publish(Dictionary(reply.problems.map { ($0.id, $0.reason) }) { first, _ in first }, to: \.problems)
         if let shipped = reply.baseline, !shipped.isIdentical(to: baseline) {
             baseline = shipped
             defaults.set(try? JSONEncoder().encode(shipped), forKey: Self.baselineCacheKey)
@@ -200,6 +218,16 @@ public final class IndicatorEngine: ObservableObject {
         else { return }
         indicators = reply.indicators
         defaults.set(try? JSONEncoder().encode(reply.indicators), forKey: Self.cacheKey)
+    }
+
+    /// Set a published value only when it differs, since setting one tells every view that watches the engine.
+    ///
+    /// - Parameters:
+    ///   - value: The value.
+    ///   - property: The published property.
+    private func publish<Value: Equatable>(_ value: Value,
+                                           to property: ReferenceWritableKeyPath<IndicatorEngine, Value>) {
+        if self[keyPath: property] != value { self[keyPath: property] = value }
     }
 }
 
@@ -332,34 +360,6 @@ public extension IndicatorEngine {
             var mine = mine
             mine.copyViews(from: shipped)
             return mine == shipped
-        }
-    }
-}
-
-
-// MARK: - Mac Monitor's connection
-public extension EndpointSecurityManager {
-    /// Sends indicator requests over Mac Monitor's own connection to the Security Extension, so it knows Mac Monitor
-    /// as the app that owns the event stream, or not (``IndicatorEngine/connect(_:)``). A request waits until the
-    /// Security Extension running now has said it answers them (``SensorSupport``). One that doesn't is sent
-    /// nothing, and the request has no reply. One that stops answering is asked again before the next request.
-    var indicatorTransport: IndicatorEngine.Transport {
-        { [weak self] request, reply in
-            guard let self else { return DispatchQueue.main.async { reply(nil) } }
-            let sensor = sensor
-            indicatorSupport.send({ answer in
-                sensor.call { $0.indicators(request, reply: $1) } completion: { answer($0) }
-            }, completion: reply)
-        }
-    }
-
-    /// Ask the Security Extension running now for its indicators on a connection of its own
-    /// (``SensorClient/probe(caller:_:completion:)``), for ``indicatorSupport``.
-    ///
-    /// - Parameter answered: Called on the main queue: `true` when it replied with a set.
-    internal func probeIndicators(_ answered: @escaping (Bool) -> Void) {
-        sensor.probe { $0.indicators(IndicatorRequest(.list).encoded(), reply: $1) } completion: { data in
-            answered(data.flatMap(IndicatorReply.decode) != nil)
         }
     }
 }

@@ -59,6 +59,28 @@ final class ScriptReadingTests: XCTestCase {
         XCTAssertEqual(chmod.terminationStatus, 0, "chmod +a \"\(entry)\"")
     }
 
+    /// The text of the script at a path, as the lane reads it for an exec
+    /// (``ProcessHelpers/readScript(at:for:expecting:)``, ``ProcessHelpers/scriptText(of:)``).
+    ///
+    /// - Parameters:
+    ///   - path: The script's path.
+    ///   - reader: Who it's read for, or `nil` for Mac Monitor.
+    ///   - identity: The file ES reported, or `nil` for any.
+    /// - Returns: Its text, or `nil` when it isn't read.
+    private func scriptText(at path: String, for reader: FileReader?,
+                            expecting identity: FileIdentity? = nil) -> String? {
+        ProcessHelpers.readScript(at: path, for: reader, expecting: identity)
+            .map { ProcessHelpers.scriptText(of: $0.bytes) }
+    }
+
+    /// The text of an open file, as the lane reads an argument's script (``ProcessHelpers/scriptBytes(readingFrom:)``).
+    ///
+    /// - Parameter file: The open file, at its start.
+    /// - Returns: Its text, or `nil` for a binary, an empty file, or one that can't be read.
+    private func scriptText(readingFrom file: FileHandle) -> String? {
+        ProcessHelpers.scriptBytes(readingFrom: file).map(ProcessHelpers.scriptText(of:))
+    }
+
     // MARK: Who the file is read for
     /// Only one class's bit counts, as the kernel picks it: the owner's, else the group's, else everyone's. Root
     /// reads anything.
@@ -108,23 +130,23 @@ final class ScriptReadingTests: XCTestCase {
         XCTAssertFalse(AccessControlList.denies(ACL_READ_DATA, at: denied), "no ACL")
         try addACLEntry("nobody deny read", to: denied)
         XCTAssertTrue(AccessControlList.denies(ACL_READ_DATA, at: denied))
-        XCTAssertNil(ProcessHelpers.getScriptContents(at: denied, for: me))
-        XCTAssertEqual(ProcessHelpers.getScriptContents(at: denied, for: nil), "echo hi\n", "Mac Monitor itself")
+        XCTAssertNil(scriptText(at: denied, for: me))
+        XCTAssertEqual(scriptText(at: denied, for: nil), "echo hi\n", "Mac Monitor itself")
 
         let allowed = try file(Data("echo hi\n".utf8))
         try addACLEntry("nobody allow read", to: allowed)
         try addACLEntry("nobody deny write", to: allowed)
         XCTAssertFalse(AccessControlList.denies(ACL_READ_DATA, at: allowed))
-        XCTAssertEqual(ProcessHelpers.getScriptContents(at: allowed, for: me), "echo hi\n")
+        XCTAssertEqual(scriptText(at: allowed, for: me), "echo hi\n")
     }
 
     /// An ACL entry denying anyone searching a directory refuses every file inside it.
     func testAnACLDenyingSearchRefusesWhatsInside() throws {
         let path = try file(Data("echo hi\n".utf8))
-        XCTAssertNotNil(ProcessHelpers.getScriptContents(at: path, for: me))
+        XCTAssertNotNil(scriptText(at: path, for: me))
         try addACLEntry("nobody deny search", to: path.deletingLastPathComponent)
-        XCTAssertNil(ProcessHelpers.getScriptContents(at: path, for: me))
-        XCTAssertNotNil(ProcessHelpers.getScriptContents(at: path, for: nil), "Mac Monitor itself")
+        XCTAssertNil(scriptText(at: path, for: me))
+        XCTAssertNotNil(scriptText(at: path, for: nil), "Mac Monitor itself")
     }
 
     /// `python3 -c 1 /etc/sudoers` read all of a file the user couldn't. A file only its owner can read gives a reader
@@ -134,11 +156,11 @@ final class ScriptReadingTests: XCTestCase {
         let python = try XCTUnwrap(ScriptInterpreter.named("python3"))
         let directory = path.deletingLastPathComponent
 
-        XCTAssertNil(ProcessHelpers.getScriptContents(at: path, for: stranger))
+        XCTAssertNil(scriptText(at: path, for: stranger))
         XCTAssertNil(ProcessHelpers.scriptFromArgs(args: ["python3", "private.txt"], interpreter: python,
                                                    workingDirectory: directory, reader: stranger))
-        XCTAssertEqual(ProcessHelpers.getScriptContents(at: path, for: nil), "secret\n")
-        XCTAssertEqual(ProcessHelpers.getScriptContents(at: path, for: me), "secret\n")
+        XCTAssertEqual(scriptText(at: path, for: nil), "secret\n")
+        XCTAssertEqual(scriptText(at: path, for: me), "secret\n")
         let found = ProcessHelpers.scriptFromArgs(args: ["python3", "private.txt"], interpreter: python,
                                                   workingDirectory: directory, reader: me)
         XCTAssertEqual(found?.path, path)
@@ -149,8 +171,8 @@ final class ScriptReadingTests: XCTestCase {
     /// `/etc/sudoers`, while `/etc/hosts` isn't.
     func testAFileOutOfReachIsntRead() throws {
         let path = try file(Data("echo hi\n".utf8), mode: 0o644)
-        XCTAssertNil(ProcessHelpers.getScriptContents(at: path, for: stranger), "the temporary folder is the test's")
-        XCTAssertNotNil(ProcessHelpers.getScriptContents(at: path, for: me))
+        XCTAssertNil(scriptText(at: path, for: stranger), "the temporary folder is the test's")
+        XCTAssertNotNil(scriptText(at: path, for: me))
         XCTAssertNotNil(ProcessHelpers.readRegularFile(at: "/etc/hosts", for: stranger))
         XCTAssertNil(ProcessHelpers.readRegularFile(at: "/etc/sudoers", for: stranger))
     }
@@ -162,18 +184,18 @@ final class ScriptReadingTests: XCTestCase {
         var info = stat()
         XCTAssertEqual(stat(path, &info), 0)
         let reported = FileIdentity(info)
-        XCTAssertEqual(ProcessHelpers.getScriptContents(at: path, for: me, expecting: reported), "echo real\n")
+        XCTAssertEqual(scriptText(at: path, for: me, expecting: reported), "echo real\n")
 
         var elsewhere = info
         elsewhere.st_dev += 1
-        XCTAssertNil(ProcessHelpers.getScriptContents(at: path, for: me, expecting: FileIdentity(elsewhere)),
+        XCTAssertNil(scriptText(at: path, for: me, expecting: FileIdentity(elsewhere)),
                      "another device")
 
         let decoy = path.deletingLastPathComponent.appendingPathComponent("decoy.sh")
         try Data("echo decoy\n".utf8).write(to: URL(fileURLWithPath: decoy))
         XCTAssertEqual(rename(decoy, path), 0)
-        XCTAssertNil(ProcessHelpers.getScriptContents(at: path, for: me, expecting: reported), "another inode")
-        XCTAssertEqual(ProcessHelpers.getScriptContents(at: path, for: me), "echo decoy\n")
+        XCTAssertNil(scriptText(at: path, for: me, expecting: reported), "another inode")
+        XCTAssertEqual(scriptText(at: path, for: me), "echo decoy\n")
 
         XCTAssertEqual(stat(path, &info), 0)
         let swapped = FileIdentity(info)
@@ -181,7 +203,7 @@ final class ScriptReadingTests: XCTestCase {
         try handle.seekToEnd()
         try handle.write(contentsOf: Data("echo more\n".utf8))
         try handle.close()
-        XCTAssertNil(ProcessHelpers.getScriptContents(at: path, for: me, expecting: swapped), "another size")
+        XCTAssertNil(scriptText(at: path, for: me, expecting: swapped), "another size")
     }
 
     /// The identity an event carries matches the file's own.
@@ -223,33 +245,30 @@ final class ScriptReadingTests: XCTestCase {
     func testTheProbedFileIsTheOneRead() throws {
         let script = "#!/bin/bash\n" + String(repeating: "echo hi\n", count: 200)
         let path = try file(Data(script.utf8))
-        let opened = try XCTUnwrap(ProcessHelpers.openRegularFile(at: path, for: me))
+        let opened = try XCTUnwrap(ProcessHelpers.openRegularFile(at: path, for: me)?.file)
         let decoy = path.deletingLastPathComponent.appendingPathComponent("decoy.sh")
         try Data("echo decoy\n".utf8).write(to: URL(fileURLWithPath: decoy))
         XCTAssertEqual(rename(decoy, path), 0)
-        XCTAssertEqual(ProcessHelpers.scriptText(readingFrom: opened), script, "past the probe, from the same file")
-        XCTAssertEqual(ProcessHelpers.getScriptContents(at: path, for: me), "echo decoy\n")
+        XCTAssertEqual(scriptText(readingFrom: opened), script, "past the probe, from the same file")
+        XCTAssertEqual(scriptText(at: path, for: me), "echo decoy\n")
     }
 
     /// The text read from an open file stops at its first NUL, inside the probe or past it, and a binary has none.
     func testScriptTextFromAnOpenFile() throws {
         let header = "#!/bin/sh\nexit 0\n"
-        let short = try XCTUnwrap(ProcessHelpers.openRegularFile(at: try file(Data(header.utf8) + Data([0, 0x61]))))
-        XCTAssertEqual(ProcessHelpers.scriptText(readingFrom: short), header)
+        let opened = { (data: Data) in try XCTUnwrap(ProcessHelpers.openRegularFile(at: try self.file(data))?.file) }
+        XCTAssertEqual(scriptText(readingFrom: try opened(Data(header.utf8) + Data([0, 0x61]))), header)
         let long = String(repeating: "a", count: 700)
-        let past = try XCTUnwrap(ProcessHelpers.openRegularFile(at: try file(Data(long.utf8) + Data([0, 0x61]))))
-        XCTAssertEqual(ProcessHelpers.scriptText(readingFrom: past), long)
-        let machO = try file(Data([0xCF, 0xFA, 0xED, 0xFE, 0x0C, 0x00, 0x00, 0x01]))
-        XCTAssertNil(ProcessHelpers.scriptText(readingFrom: try XCTUnwrap(ProcessHelpers.openRegularFile(at: machO))))
-        let empty = try XCTUnwrap(ProcessHelpers.openRegularFile(at: try file(Data())))
-        XCTAssertNil(ProcessHelpers.scriptText(readingFrom: empty))
+        XCTAssertEqual(scriptText(readingFrom: try opened(Data(long.utf8) + Data([0, 0x61]))), long)
+        XCTAssertNil(scriptText(readingFrom: try opened(Data([0xCF, 0xFA, 0xED, 0xFE, 0x0C, 0, 0, 1]))))
+        XCTAssertNil(scriptText(readingFrom: try opened(Data())))
     }
 
     // MARK: A script's text
     /// One byte that isn't UTF-8 reads as U+FFFD, rather than losing the script. A plist stays strict.
     func testAnInvalidByteKeepsTheScript() throws {
         let path = try file(Data("echo hi\n".utf8) + Data([0xFF]) + Data("echo bye\n".utf8))
-        XCTAssertEqual(ProcessHelpers.getScriptContents(at: path, for: me), "echo hi\n\u{FFFD}echo bye\n")
+        XCTAssertEqual(scriptText(at: path, for: me), "echo hi\n\u{FFFD}echo bye\n")
         XCTAssertNil(ProcessHelpers.getFileContents(at: path))
     }
 
@@ -257,10 +276,10 @@ final class ScriptReadingTests: XCTestCase {
     func testAnAppendedPayloadKeepsTheHeader() throws {
         let header = "#!/bin/sh\necho extracting\ntail -c +4 \"$0\" | tar xz\nexit 0\n"
         let gzip = try file(Data(header.utf8) + Data([0x1F, 0x8B, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03]))
-        XCTAssertEqual(ProcessHelpers.getScriptContents(at: gzip, for: me), header + "\u{1F}\u{FFFD}\u{08}")
+        XCTAssertEqual(scriptText(at: gzip, for: me), header + "\u{1F}\u{FFFD}\u{08}")
 
         let machO = try file(Data(header.utf8) + Data([0xCF, 0xFA, 0xED, 0xFE, 0x0C, 0x00, 0x00, 0x01, 0xFF]))
-        let text = try XCTUnwrap(ProcessHelpers.getScriptContents(at: machO, for: me))
+        let text = try XCTUnwrap(scriptText(at: machO, for: me))
         XCTAssertTrue(text.hasPrefix(header))
         XCTAssertFalse(text.contains("\0"))
         XCTAssertNil(ProcessHelpers.getFileContents(at: machO))

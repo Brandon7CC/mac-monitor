@@ -75,6 +75,8 @@ public struct SensorReport: Codable, Equatable, Sendable {
     /// Which release Mac Monitor's own indicators are, and whether a pack was installed since this build. `nil` from
     /// a Security Extension older than 3.2, or one that keeps no indicators.
     public var indicators: IndicatorPackStatus? = nil
+    /// How the network statistics client that reads flows is doing. `nil` from a Security Extension older than 3.3.
+    public var network: FlowClientStatus? = nil
 
     /// - Parameters:
     ///   - endpointSecurity: What Endpoint Security answers when the Security Extension asks for a client.
@@ -82,19 +84,21 @@ public struct SensorReport: Codable, Equatable, Sendable {
     ///   - streams: How many `macmonitor` streams are running.
     ///   - streamCapacity: The most at once.
     ///   - indicators: Which release Mac Monitor's own indicators are.
+    ///   - network: How the network statistics client is doing.
     public init(endpointSecurity: EndpointSecurity, app: App, streams: Int, streamCapacity: Int,
-                indicators: IndicatorPackStatus? = nil) {
+                indicators: IndicatorPackStatus? = nil, network: FlowClientStatus? = nil) {
         self.endpointSecurity = endpointSecurity
         self.app = app
         self.streams = streams
         self.streamCapacity = streamCapacity
         self.indicators = indicators
+        self.network = network
     }
 }
 
 extension SensorReport {
-    /// What a newer Security Extension says of its indicators that this build can't read is left out, and the rest
-    /// of the report still reads.
+    /// What a newer Security Extension says of its indicators or its network client that this build can't read is
+    /// left out, and the rest of the report still reads.
     ///
     /// - Parameter decoder: The decoder.
     /// - Throws: A `DecodingError` for a missing field other than the indicators.
@@ -105,5 +109,6 @@ extension SensorReport {
         streams = try container.decode(Int.self, forKey: .streams)
         streamCapacity = try container.decode(Int.self, forKey: .streamCapacity)
         indicators = try? container.decodeIfPresent(IndicatorPackStatus.self, forKey: .indicators)
+        network = try? container.decodeIfPresent(FlowClientStatus.self, forKey: .network)
     }
 }

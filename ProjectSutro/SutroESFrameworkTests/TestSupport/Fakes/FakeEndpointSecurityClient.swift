@@ -254,12 +254,12 @@ final class FakeEndpointSecurityClientFactory: EndpointSecurityClientFactory {
         self.mutedPaths = mutedPaths
     }
     
-    /// The client for one event class. The session asks for them in ``EventClass/allCases`` order.
+    /// The client for one event class. The session asks for them in ``EventClass/endpointSecurity`` order.
     ///
-    /// - Parameter eventClass: The client's class.
+    /// - Parameter eventClass: The client's class, one of ``EventClass/endpointSecurity``.
     /// - Returns: Its fake client.
     func client(_ eventClass: EventClass) -> FakeEndpointSecurityClient {
-        clients[EventClass.allCases.firstIndex(of: eventClass)!]
+        clients[EventClass.endpointSecurity.firstIndex(of: eventClass)!]
     }
     
     /// Make the next client, or refuse it.

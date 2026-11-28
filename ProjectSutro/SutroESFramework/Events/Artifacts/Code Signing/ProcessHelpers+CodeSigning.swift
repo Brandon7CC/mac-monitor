@@ -114,11 +114,10 @@ extension ProcessHelpers {
 
 // MARK: - Code signing flags
 /// One code signing flag: its bit and name in `<kern/cs_blobs.h>`, and what it means, from the header's comments.
-public struct CodeSigningFlag: Identifiable, Hashable {
+public struct CodeSigningFlag: Hashable {
     public let bit: UInt32
     public let name: String
     public let summary: String
-    public var id: UInt32 { bit }
 }
 
 
@@ -173,4 +172,15 @@ extension ProcessHelpers {
     public static func codeSigningFlagNames(_ flags: Int64) -> [String] {
         codeSigningFlags(flags).map(\.name)
     }
+
+    /// How many names ``codeSigningFlagNames(_:)`` gives, worked out from the bits alone.
+    ///
+    /// - Parameter flags: `es_process_t`'s `codesigning_flags`, a `uint32_t`.
+    /// - Returns: The number of named flags set.
+    static func codeSigningFlagCount(_ flags: Int64) -> Int {
+        (UInt32(truncatingIfNeeded: flags) & namedFlagBits).nonzeroBitCount
+    }
+
+    /// Every bit ``codeSigningFlags`` names.
+    private static let namedFlagBits = codeSigningFlags.reduce(UInt32(0)) { $0 | $1.bit }
 }

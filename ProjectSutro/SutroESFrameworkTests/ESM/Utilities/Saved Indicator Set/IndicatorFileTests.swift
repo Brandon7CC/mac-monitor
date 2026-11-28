@@ -140,6 +140,21 @@ final class IndicatorFileTests: XCTestCase {
         XCTAssertNoThrow(try IndicatorFile.validate(CompiledIndicators(Array(rules.prefix(100)))))
     }
 
+    /// A request that compares `es_event_type` with a network flow's name is refused with the reason, in any branch,
+    /// rather than accepted and compiled as a test no flow passes. A flow's payload test joins.
+    func testIncomingFlowTypeComparisonsAreRefused() {
+        let compared = ownIndicator("Compared", #"es_event_type == "new_flow""#)
+        XCTAssertEqual(thrown(IndicatorFileError.self) { try IndicatorFile.validateIncoming([compared]) },
+                       .noEventType("Compared", ["new_flow"]))
+        let nested = ownIndicator("Nested", Self.exec + #" OR NOT es_event_type IN {"flow_closed", "new_flow"}"#)
+        XCTAssertEqual(thrown(IndicatorFileError.self) { try IndicatorFile.validateIncoming([nested]) },
+                       .noEventType("Nested", ["flow_closed", "new_flow"]))
+        XCTAssertNoThrow(try IndicatorFile.validateIncoming([ownIndicator("Payload", "event.new_flow != nil")]))
+        XCTAssertEqual(IndicatorFileError.noEventType("Compared", ["new_flow"]).description,
+                       "“Compared” compares es_event_type with new_flow. new_flow records have no es_event_type. "
+                        + "Use event.new_flow != nil.")
+    }
+
     /// Every problem says which indicator, and which limit, in a sentence.
     func testEveryProblemIsASentence() {
         let id = UUID()
@@ -147,6 +162,7 @@ final class IndicatorFileTests: XCTestCase {
             .unsupportedVersion(2), .malformed("It isn't a JSON object."), .tooManyIndicators(3_000),
             .duplicateID(id, "Twin"), .predicateTooLong("Long"), .pastLimit("Named", "Its name is too long."),
             .unknownEventTypes("Unknown", ["X"]), .tooManyNodes(70_000), .tooManyRules(type: "EXEC", count: 300),
+            .noEventType("Flow", ["new_flow"]),
         ]
         for error in errors {
             XCTAssertTrue(error.description.hasSuffix("."), error.description)

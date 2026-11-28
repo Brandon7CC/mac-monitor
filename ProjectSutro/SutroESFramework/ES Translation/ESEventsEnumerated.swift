@@ -196,20 +196,22 @@ let allESEvents: [es_event_type_t] = esEventTypeNames.indices.map { es_event_typ
 private let esEventTypesByName = Dictionary(uniqueKeysWithValues: zip(esEventTypeNames, allESEvents))
 
 
-/// Names an event type as `ESTypes.h` does, which is how telemetry's `es_event_type` carries it.
+/// Names an event type as `ESTypes.h` does, which is how telemetry's `es_event_type` carries it. A Mac Monitor event
+/// has its own name (``MacMonitorEvent``).
 ///
 /// - Parameter eventType: The event type.
-/// - Returns: Its name, such as `ES_EVENT_TYPE_NOTIFY_EXEC`, or `ES_EVENT_TYPE_LAST` for a type Mac Monitor doesn't
-///   name.
+/// - Returns: Its name, such as `ES_EVENT_TYPE_NOTIFY_EXEC` or `new_flow`, or `ES_EVENT_TYPE_LAST` for a type Mac
+///   Monitor doesn't name.
 public func eventTypeToString(from eventType: es_event_type_t) -> String {
     let index = Int(eventType.rawValue)
-    return esEventTypeNames.indices.contains(index) ? esEventTypeNames[index] : "ES_EVENT_TYPE_LAST"
+    if esEventTypeNames.indices.contains(index) { return esEventTypeNames[index] }
+    return MacMonitorEvent(eventType)?.name ?? "ES_EVENT_TYPE_LAST"
 }
 
-/// Looks an event type up by its `ESTypes.h` name.
+/// Looks an event type up by its `ESTypes.h` name, or a Mac Monitor event's own (``MacMonitorEvent``).
 ///
-/// - Parameter eventType: The name, such as `ES_EVENT_TYPE_NOTIFY_EXEC`, matched exactly.
+/// - Parameter eventType: The name, such as `ES_EVENT_TYPE_NOTIFY_EXEC` or `new_flow`, matched exactly.
 /// - Returns: The event type, or `ES_EVENT_TYPE_LAST` for a name Mac Monitor doesn't know.
 public func eventStringToType(from eventType: String) -> es_event_type_t {
-    esEventTypesByName[eventType] ?? ES_EVENT_TYPE_LAST
+    esEventTypesByName[eventType] ?? MacMonitorEvent(name: eventType)?.type ?? ES_EVENT_TYPE_LAST
 }

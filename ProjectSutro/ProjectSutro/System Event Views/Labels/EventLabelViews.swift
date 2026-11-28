@@ -26,7 +26,8 @@ struct SystemEventTypeLabel: View {
             let look = EventLabelLook(message, tint: tint).colored(by: store.marks(for: message).labelIndicator)
             HStack {
                 BuiltInMarks(message: message, marks: Indicator.labelMarks)
-                Label("**`\(eventType)`**", systemImage: look.symbol ?? eventStringToImage(from: eventType))
+                Label("**`\(EventNames.label(eventType))`**",
+                      systemImage: look.symbol ?? eventStringToImage(from: eventType))
                     .eventLabelLook(look)
             }
             .frame(alignment: .leading)
@@ -68,7 +69,7 @@ extension EventLabelLook {
     ///   - tint: The color of a type the label doesn't color.
     init(_ message: ESMessage, tint: Color? = nil) {
         let event = message.event
-        switch message.es_event_type?.droppingPrefix("ES_EVENT_TYPE_NOTIFY_") ?? "" {
+        switch EventNames.chartLabel(message.es_event_type ?? "") {
         case "EXEC":
             self = event.exec.map { Self(signatureOf: $0.target) } ?? .plain(tint)
         case "FORK":

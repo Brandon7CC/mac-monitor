@@ -8,7 +8,7 @@
 import SwiftUI
 import SutroESFramework
 
-/// A process in Event Facts: when it started, its user, its name, IDs and path, and how it's signed.
+/// A process in Event Facts: when it started, its user, its name, IDs, path and audit tokens, and how it's signed.
 struct ProcessView: View {
     var message: ESMessage
     var process: ESProcess
@@ -29,6 +29,7 @@ struct ProcessView: View {
                 if let ttyPath = process.tty?.path {
                     FactRow(name: "TTY", value: ttyPath)
                 }
+                AuditTokenFacts(process: process)
             }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
 
             Divider()
@@ -40,6 +41,8 @@ struct ProcessView: View {
                 FactRow(name: "Code signing type", value: process.codeSigningTypeLabel(version: message.version))
                 FactRow(name: "Process signing ID", value: process.signing_id.nonEmpty)
                 CDHashFact(process: process)
+                /// An Endpoint Security process: its flags are always read.
+                CodeSigningFlagsFact(flags: process.codesigning_flags)
             }
         }
     }
@@ -53,12 +56,12 @@ extension ESProcess {
     /// code signing type doesn't, so it shows the type.
     ///
     /// - Parameter version: The message version of the event the process is in.
-    /// - Returns: The label.
-    func codeSigningTypeLabel(version: Int32) -> String {
+    /// - Returns: The label, or `nil` for a process without one, as a network flow's without an executable is.
+    func codeSigningTypeLabel(version: Int32) -> String? {
         if version >= 10, cs_validation_category != 10, let category = cs_validation_category_string {
             return "\(category.droppingPrefix("ES_CS_VALIDATION_CATEGORY_")) (\(cs_validation_category))"
         }
-        return codesigning_type
+        return codesigning_type.isEmpty ? nil : codesigning_type
     }
 }
 
@@ -78,8 +81,8 @@ struct ProcessStartFacts: View {
             if let ageText {
                 Fact("Process age", ageText, systemImage: "hourglass")
             }
-            if process.file_quarantine_type != "DISABLED" {
-                FileQuarantineLabelView(type: process.file_quarantine_type)
+            if let quarantineType = process.quarantineType {
+                FileQuarantineLabelView(type: quarantineType)
             }
         }
     }
@@ -118,7 +121,8 @@ struct ProcessIDFacts<Trailing: View>: View {
 
 
 // MARK: - Signing ID
-/// A process's signing ID, or that its code isn't signed at all.
+/// A process's signing ID, or that its code isn't signed at all. It's Unknown for a network flow's process whose
+/// signature wasn't read.
 struct SigningIDFact: View {
     /// The process.
     let process: ESProcess
@@ -126,11 +130,13 @@ struct SigningIDFact: View {
     var body: some View {
         if let signingID = process.signing_id.nonEmpty, signingID != "Unknown" {
             FactRow(name: "Process signing ID", value: signingID)
-        } else {
+        } else if process.isSigningKnown {
             GroupBox {
                 Text("Code object is not signed at all")
                     .frame(alignment: .leading)
             }
+        } else {
+            FactRow(name: "Process signing ID", value: nil)
         }
     }
 }
@@ -151,9 +157,28 @@ struct CDHashFact: View {
 }
 
 
+// MARK: - Audit tokens
+/// A process's audit token, then its responsible process's when that's another process. The parent's is left out:
+/// its pid is the Unix parent shown with the process. The JSON tab has all three.
+struct AuditTokenFacts: View {
+    /// The process.
+    let process: ESProcess
+
+    var body: some View {
+        let own = process.audit_token_string, responsible = process.responsible_audit_token_string
+        if !own.isEmpty {
+            FactRow(name: "Audit token", value: own)
+        }
+        if !responsible.isEmpty, responsible != own {
+            FactRow(name: "Responsible audit token", value: responsible)
+        }
+    }
+}
+
+
 // MARK: - Target process
-/// The process an event acted on: its name, its path below it, and its signing ID when it has one. Its name and
-/// path read "Unknown" when the event doesn't say which process it was.
+/// The process an event acted on: its name, its path below it, and its signing ID and audit token when it has them.
+/// Its name and path read "Unknown" when the event doesn't say which process it was.
 struct TargetProcessFacts: View {
     /// The process, or `nil` when the event doesn't say.
     let process: ESProcess?
@@ -165,6 +190,9 @@ struct TargetProcessFacts: View {
         FactRow(name: pathName, value: process?.executable?.path, stacked: true)
         if let signingID = process?.signing_id, !signingID.isEmpty {
             FactRow(name: "Signing ID", value: signingID)
+        }
+        if let token = (process?.audit_token_string).nonEmpty {
+            FactRow(name: "Target audit token", value: token)
         }
     }
 }

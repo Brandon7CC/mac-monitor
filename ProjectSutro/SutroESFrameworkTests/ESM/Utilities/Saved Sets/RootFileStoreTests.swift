@@ -211,6 +211,46 @@ final class RootFileStoreTests: XCTestCase {
         XCTAssertNoThrow(try trusted.write(Data("new".utf8)))
     }
 
+    /// A write through a descriptor replaces the file atomically, owner-only, and keeps nothing when the writer
+    /// throws or writes past the cap.
+    func testWritingThroughADescriptor() throws {
+        let store = try makeStore()
+        try store.write(contents)
+        try store.write { descriptor in _ = Data("streamed".utf8).writeAll(to: descriptor) }
+        XCTAssertEqual(try store.read(), .read(Data("streamed".utf8)))
+        XCTAssertEqual(mode(store.fileURL.path), 0o600)
+
+        struct Stop: Error {}
+        XCTAssertThrowsError(try store.write { descriptor in
+            _ = Data("half".utf8).writeAll(to: descriptor)
+            throw Stop()
+        })
+        XCTAssertThrowsError(try store.write { descriptor in
+            _ = Data(count: layout.maxBytes + 1).writeAll(to: descriptor)
+        })
+        XCTAssertEqual(try store.read(), .read(Data("streamed".utf8)))
+        let names = try FileManager.default.contentsOfDirectory(atPath: store.directory.path)
+        XCTAssertEqual(names, ["things.json"], "No temporary file is left behind.")
+    }
+
+    /// Opening for reading checks the file as a read does, and hands back a descriptor at its start.
+    func testOpeningForReading() throws {
+        let store = try makeStore()
+        guard case .notOpened(.missing) = try store.openForReading() else { return XCTFail("A missing file.") }
+        try store.write(contents)
+        guard case .opened(let handle) = try store.openForReading() else { return XCTFail("A saved file.") }
+        XCTAssertEqual(try handle.readToEnd(), contents)
+
+        unlink(store.fileURL.path)
+        symlink("/etc/hosts", store.fileURL.path)
+        guard case .notOpened(.unreadable) = try store.openForReading() else { return XCTFail("A link.") }
+        unlink(store.fileURL.path)
+        try Data(count: layout.maxBytes + 1).write(to: store.fileURL)
+        guard case .notOpened(.tooLarge(bytes: layout.maxBytes + 1)) = try store.openForReading() else {
+            return XCTFail("A file past the cap.")
+        }
+    }
+
     /// The cap reads in the largest whole unit, and the mute store keeps its own names and 1 MiB cap.
     func testTheCapInWordsAndTheMuteLayout() {
         let sizes = [1 << 20: "1 MiB", 4 << 20: "4 MiB", 64 << 10: "64 KiB", 1000: "1000 bytes", 0: "0 bytes"]

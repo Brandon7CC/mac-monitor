@@ -68,6 +68,9 @@ public struct StreamStarted: Codable, Equatable, Sendable {
     /// by a Security Extension 3.1.0 or later for a request that sent ``StreamOptions/fieldFilters``. `nil` from an
     /// older one, or for a 3.0.0 request.
     public var fieldFilters: [String]? = nil
+    /// Why the stream records no network flows though it asked for them: the kernel's network statistics couldn't be
+    /// read. The flow events are then left out of ``events``. `nil` otherwise, and from an older Security Extension.
+    public var networkProblem: String? = nil
 }
 
 
@@ -94,4 +97,8 @@ public struct StreamSummary: Codable, Equatable, Sendable {
     /// Messages the stream's field filters left out, by `ES_EVENT_TYPE_*` name: never lost, and never in
     /// ``skippedWhilePaused``. `nil` for a 3.0.0 request, or from an older Security Extension.
     public var fieldFiltered: [String: Int]? = nil
+    /// Sockets the kernel couldn't tell the stream's network lane of, and flows past its rate budget, which have no
+    /// records and no sequence numbers, so they're never in ``droppedByEndpointSecurity`` or a gap. `nil` for a stream
+    /// that recorded no flows, or from an older Security Extension.
+    public var networkSocketsLost: Int? = nil, networkFlowsOverBudget: Int? = nil
 }

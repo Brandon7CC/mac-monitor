@@ -29,8 +29,8 @@ public struct ProcessExecEvent: Codable, IdentityHashable {
     public var script_content: String?
     public var resolved_script_path: String?
     /// Milliseconds from the target executable's birth (its `stat`'s `st_birthtimespec`) to the exec: a binary that
-    /// runs seconds after it was written is new, as a dropper's payload is. `nil` when the birth time is unknown. Set
-    /// with the message's time (``Message/deriveExecutableAge()``).
+    /// runs seconds after it was written is new. `nil` when the birth time is unknown. Set with the message's time
+    /// (``Message/deriveExecutableAge()``).
     public var executable_age_ms: Int?
     /// Mac Monitor's launched-by parent of ``target`` (``LaunchedByParent``): stamped by the Security Extension's
     /// serializer from the message's own fields, not by ``enrich()``, which also runs on traces recorded on other Macs,
@@ -39,7 +39,28 @@ public struct ProcessExecEvent: Codable, IdentityHashable {
     /// The keys of ``target``'s ancestors, nearest first (``ProcessKey``, ``ProcessLineage``): stamped by the
     /// Security Extension's serializer. Empty for a child of launchd, and `nil` when its lineage isn't tracked.
     public var ancestor_keys: [String]?
-    
+    /// What scanning the script the exec runs with Apple's XProtect rules found, while scanning is on: Endpoint
+    /// Security's `script`, the script an interpreter's arguments name, or an AppleScript applet's `main.scpt`. `nil`
+    /// for an exec that runs no script Mac Monitor found, while scanning is off, or in a record from Mac Monitor
+    /// before 3.3.0 or eslogger.
+    public var yara_scan: YaraScan?
+    /// Where the program the exec runs was downloaded from: the `com.apple.metadata:kMDItemWhereFroms` attribute's
+    /// strings, the download URL and then the page it was found on, as a browser writes them. Read at capture from the
+    /// script the exec runs, then its target executable, each before the bundle it's the main executable of
+    /// (``readWhereFroms()``). `nil` when none of them has any, or in a record from Mac Monitor before 3.3.0 or
+    /// eslogger.
+    public var where_froms: [String]?
+    /// The script as the capture lane read it, for its scan: never encoded, and taken off the event before it's sent
+    /// (``Message/requestYaraScan(of:from:volumes:)``).
+    var scriptRead: ScriptRead?
+
+    /// Every key but ``scriptRead``.
+    enum CodingKeys: String, CodingKey {
+        case id, argc, env, args, fds, script, cwd, last_fd, image_cputype, image_cpusubtype, dyld_exec_path, target
+        case certificate_chain, command_line, script_content, resolved_script_path, executable_age_ms
+        case launched_by_parent, ancestor_keys, yara_scan, where_froms
+    }
+
     // @note construct a new process_exec
     init(from rawMessage: UnsafePointer<es_message_t>) {
         es_retain_message(rawMessage)
@@ -67,11 +88,10 @@ public struct ProcessExecEvent: Codable, IdentityHashable {
         if version >= 2 { script = execEvent.script.map { File(from: $0.pointee) } }
         if version >= 3 { cwd = File(from: execEvent.cwd.pointee) }
         
-        /// @note Mac Monitor enrichment -- script content
-        (resolved_script_path, script_content) = Self.readScript(
-            reported: script, args: args, workingDirectory: cwd?.path, interpreterName: target.executable?.name,
-            reader: target.audit_token.map(FileReader.init(token:)))
-        
+        /// @note Mac Monitor enrichment -- script content, and where it or the executable was downloaded from
+        readScript()
+        readWhereFroms()
+
         // Highest open file descriptor after the exec completed (4), the CPU type and subtype of the executable image
         // (6), and the exec path passed up to dyld, before symlink resolution (7, macOS 13.3+).
         last_fd = version >= 4 ? Int(execEvent.last_fd) : nil
@@ -108,6 +128,16 @@ extension ProcessExecEvent: ESEnrichable {
 
 // MARK: - Script content
 extension ProcessExecEvent {
+    /// Read the script this exec runs, as the capture lane does as it builds the event: the script found among the
+    /// arguments, its text, and what was read of it for its scan (``scriptRead``).
+    mutating func readScript() {
+        let read = Self.readScript(reported: script, args: args, workingDirectory: cwd?.path,
+                                   interpreterName: target.executable?.name,
+                                   reader: target.audit_token.map(FileReader.init(token:)))
+        resolved_script_path = read.path ?? resolved_script_path
+        (script_content, scriptRead) = (read.content, read.read)
+    }
+
     /// The script an exec runs, and its text, read for the user the exec's target runs as: the Security Extension, as
     /// root, never reads them a file they couldn't read themselves.
     ///
@@ -124,24 +154,44 @@ extension ProcessExecEvent {
     ///     arguments.
     ///   - interpreterName: The name of the target's executable.
     ///   - reader: Who the script is read for, from the target's audit token, or `nil` to read nothing.
-    /// - Returns: The script Mac Monitor found among the arguments (`nil` for ES's, which ``enrich()`` names), and
-    ///   the script's text, `nil` when it wasn't read.
+    /// - Returns: The script Mac Monitor found among the arguments (`nil` for ES's, which ``enrich()`` names), the
+    ///   script's text, `nil` when it wasn't read, and what was read of it.
     static func readScript(reported script: File?, args: [String], workingDirectory: String?,
-                           interpreterName: String?, reader: FileReader?) -> (path: String?, content: String?) {
-        guard let reader else { return (nil, nil) }
+                           interpreterName: String?,
+                           reader: FileReader?) -> (path: String?, content: String?, read: ScriptRead?) {
+        guard let reader else { return (nil, nil, nil) }
         if let script {
-            return (nil, ReadingThreadPolicy.whileReading {
-                ProcessHelpers.getScriptContents(at: script.path, for: reader, expecting: FileIdentity(script.stat))
-            })
+            let read = ReadingThreadPolicy.whileReading {
+                ProcessHelpers.readScript(at: script.path, for: reader, expecting: FileIdentity(script.stat))
+            }
+            return (nil, read.map { ProcessHelpers.scriptText(of: $0.bytes) }, read)
         }
         guard let workingDirectory, let interpreter = interpreterName.flatMap(ScriptInterpreter.named),
               let found = ReadingThreadPolicy.whileReading({
                   ProcessHelpers.scriptFromArgs(args: args, interpreter: interpreter,
                                                 workingDirectory: workingDirectory, reader: reader)
               }) else {
-            return (nil, nil)
+            return (nil, nil, nil)
         }
-        return (found.path, found.content)
+        return (found.path, found.content, found.read)
+    }
+}
+
+
+// MARK: - Download origin
+extension ProcessExecEvent {
+    /// Read where the program the exec runs was downloaded from (``where_froms``), as the capture lane does after
+    /// ``readScript()``. The first found is kept: the script's attribute, read from the file read for its text, so
+    /// only from a script the exec's user could read, then the bundle's the script is the main executable of, as an
+    /// app's shell script is. Then the target executable's, or its bundle's
+    /// (``ProcessHelpers/whereFroms(ofExecutable:)``).
+    mutating func readWhereFroms() {
+        /// ``enrich()`` hasn't named Endpoint Security's script yet.
+        let path = resolved_script_path ?? script?.path
+        let script = scriptRead.flatMap { read in
+            read.whereFroms ?? path.flatMap(ProcessHelpers.bundleWhereFroms(ofExecutableAt:))
+        }
+        where_froms = script ?? ProcessHelpers.whereFroms(ofExecutable: target.executable)
     }
 }
 

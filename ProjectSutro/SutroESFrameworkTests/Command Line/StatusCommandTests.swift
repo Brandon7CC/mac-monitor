@@ -34,15 +34,18 @@ final class StatusCommandTests: XCTestCase {
     ///   - app: Whether Mac Monitor is connected and recording.
     ///   - streams: How many `macmonitor` streams run.
     ///   - indicators: Which indicator pack Mac Monitor's own indicators are: the build's own unless given.
+    ///   - network: How the network statistics client is doing: not said, as by a 3.2 Security Extension, unless
+    ///     given.
     /// - Returns: The reply.
     private func reply(_ endpointSecurity: SensorReport.EndpointSecurity = .ok,
                        app: (connected: Bool, recording: Bool) = (true, true), streams: Int = 1,
-                       indicators: IndicatorPackStatus? = IndicatorPackStatus(sequence: 0, source: .linked))
-        -> StreamReply {
+                       indicators: IndicatorPackStatus? = IndicatorPackStatus(sequence: 0, source: .linked),
+                       network: FlowClientStatus? = nil) -> StreamReply {
         StreamReply(status: .ok, sensorVersion: "3.1.0 (97)",
                     report: SensorReport(endpointSecurity: endpointSecurity,
                                          app: SensorReport.App(connected: app.connected, recording: app.recording),
-                                         streams: streams, streamCapacity: 3, indicators: indicators))
+                                         streams: streams, streamCapacity: 3, indicators: indicators,
+                                         network: network))
     }
 
     /// `status` takes `--json` and nothing else, and `-v` asks for the version as `--version` does.
@@ -91,6 +94,7 @@ final class StatusCommandTests: XCTestCase {
             Capturing
               Mac Monitor          connected, recording
               macmonitor streams   1 of 3
+              Network flows        unknown
 
             Indicators
               Pack                 this build's own
@@ -135,6 +139,55 @@ final class StatusCommandTests: XCTestCase {
         XCTAssertEqual(object["indicators"]?["source"] as? String, "installed")
         XCTAssertEqual(object["indicators"]?["published"] as? String, "2026-11-16T00:00:00Z")
         XCTAssertEqual(object["indicators"]?["commit"] as? String, "abc")
+    }
+
+    /// The network statistics client's line: off, on with what it reads and lost, the macOS 13 and 14 counter only
+    /// when there's one, or why it can't read. JSON has every key, `null` when it isn't known.
+    func testNetworkFlows() throws {
+        var on = FlowClientStatus()
+        (on.state, on.openSources, on.flows, on.receiveBuffer, on.bufferHighWater) = (.on, 132, 12, 4_194_304, 12_288)
+        on.counts.loopback = 9
+        (on.counts.lostSources, on.counts.closedDuringReopen, on.counts.overBudget) = (2, 1, 40)
+        var others = on
+        others.counts.otherClientFailures = 5
+        var unavailable = FlowClientStatus()
+        (unavailable.state, unavailable.reason) = (.unavailable, "Operation not permitted (errno 1)")
+        let lines: [(FlowClientStatus?, String)] = [
+            (FlowClientStatus(), "off"),
+            (on, "on, 132 open sources, 3 sockets lost, 40 over the rate limit"),
+            (others, "on, 132 open sources, 3 sockets lost, 40 over the rate limit, 5 sockets other clients missed"),
+            (unavailable, "unavailable: Operation not permitted (errno 1)"),
+            (nil, "unknown"),
+        ]
+        for (status, words) in lines {
+            let report = StatusReport(tool: "1", app: "1", systemExtension: "activated enabled",
+                                      answer: .success(reply(network: status)))
+            XCTAssertTrue(StatusCommand.output(report, json: false).contains("  Network flows        \(words)\n"),
+                          words)
+        }
+        let report = StatusReport(tool: "1", app: "1", systemExtension: "activated enabled",
+                                  answer: .success(reply(network: on)))
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: Data(StatusCommand.output(report, json: true).utf8)) as? [String: [String: Any]])
+        let flows = try XCTUnwrap(object["capturing"]?["network_flows"] as? [String: Any])
+        XCTAssertEqual(flows["state"] as? String, "on")
+        XCTAssertEqual(flows["open_sources"] as? Int, 132)
+        XCTAssertEqual(flows["open_flows"] as? Int, 12)
+        XCTAssertEqual(flows["receive_buffer"] as? Int, 4_194_304)
+        XCTAssertEqual(flows["buffer_high_water"] as? Int, 12_288)
+        XCTAssertEqual(flows["loopback"] as? Int, 9)
+        XCTAssertEqual(flows["sockets_lost"] as? Int, 3)
+        XCTAssertEqual(flows["over_budget"] as? Int, 40)
+        XCTAssertEqual(flows["other_client_failures"] as? Int, 0)
+        XCTAssertTrue(flows["reason"] is NSNull)
+        let older = StatusReport(tool: "1", app: "1", systemExtension: "activated enabled", answer: .success(reply()))
+        let unknown = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: Data(StatusCommand.output(older, json: true).utf8)) as? [String: [String: Any]])
+        let none = try XCTUnwrap(unknown["capturing"]?["network_flows"] as? [String: Any])
+        XCTAssertEqual(Set(none.keys), ["state", "reason", "open_sources", "open_flows", "receive_buffer",
+                                         "buffer_high_water", "sockets_lost", "over_budget", "loopback",
+                                         "other_client_failures"])
+        XCTAssertTrue(none.values.allSatisfy { $0 is NSNull })
     }
 
     /// Without Full Disk Access, or not activated, it isn't ready, and the text says what's missing.

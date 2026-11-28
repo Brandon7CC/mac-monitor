@@ -31,21 +31,26 @@ import OSLog
 /// then each set ``applyIndicators(_:)`` is given. The first is in place before any client is created, so no event
 /// goes out unevaluated.
 ///
+/// **Network flows:** a session given a network statistics client records flows on a lane of its own while it
+/// subscribes to a flow event (``FlowLane``). That lane follows the session's recording, Sensor ID, mutes and
+/// indicators, and its counters are never the Endpoint Security clients'.
+///
 /// **Order:** each class's events are emitted in the order its client delivers them, so `fork`, `exec`, and `exit`
-/// keep Endpoint Security's order, including while an app's exec is held (``LaunchServicesHold``). Classes interleave
+/// keep Endpoint Security's order, including while an app's exec is held (``EventHold``). Classes interleave
 /// in the order their events are handled. Nothing re-sorts them by `mach_time`.
 ///
-/// **Threading:** not thread-safe. Create the session and call it on one serial queue. Only the clients' handlers and
-/// the exec lane's ``LaunchServicesHold`` run elsewhere, and they call `emit`, which must not block or call back into
-/// the session. The hold calls it from the upgrader's queue or a utility queue, when it releases a held exec and the
-/// events behind it. Either way a class's events are emitted one at a time.
+/// **Threading:** not thread-safe. Create the session and call it on one serial queue. Only the clients' handlers,
+/// the exec lane's ``EventHold`` and the network lane run elsewhere, and they call `emit`, which must not block or call
+/// back into the session. The hold calls it from the upgrader's queue or a utility queue, when it releases a held exec
+/// and the events behind it, and the network lane from the network client's delivery queue. Either way a class's
+/// events are emitted one at a time.
 public final class CaptureSession {
     /// The Endpoint Security clients each session holds, which count against the system's limit.
-    public static let clientsPerSession: Int = EventClass.allCases.count
+    public static let clientsPerSession: Int = EventClass.endpointSecurity.count
     /// Names the session in the log.
     public let label: String
     /// The subscribed events, in the order they were subscribed.
-    public private(set) var subscribedEvents: [es_event_type_t]
+    public internal(set) var subscribedEvents: [es_event_type_t]
     /// The field filters every lane checks, at most one per event (``setFieldFilter(_:enabled:)``).
     public private(set) var fieldFilters: Set<FieldFilter>
     /// Endpoint Security's own default mutes (``ESMutedPath`` JSON), read before any of Mac Monitor's were applied.
@@ -60,12 +65,25 @@ public final class CaptureSession {
     let chainBudget: Int
     /// Serialize and emit events? A new session isn't recording. Setting it never waits for an event being built.
     public var isRecording: Bool = false {
-        didSet { lanes.forEach { $0.setRecording(isRecording) } }
+        didSet {
+            lanes.forEach { $0.setRecording(isRecording) }
+            flowLane?.setRecording(isRecording)
+        }
     }
-    /// One lane per class, in ``EventClass/allCases`` order.
+    /// One lane per Endpoint Security class, in ``EventClass/endpointSecurity`` order.
     let lanes: [CaptureLane]
+    /// The network lane, which reads flows while the session subscribes to them, or `nil` for a session that can't.
+    let flowLane: FlowLane?
     /// Kept running until the session stops (``LineageMonitor/acquire(seeded:)``), or `nil` when it tracks none.
     private let lineage: LineageMonitor?
+    /// Scans the file lane's written files and the scripts the process lane's execs run, or `nil` when the session
+    /// doesn't scan.
+    let scanner: FileScanner?
+    /// Has the session acquired the scanner? Only while it scans and subscribes to closes or execs.
+    var isScanning = false
+    /// Does the session scan written files and the scripts execs run, while it subscribes to closes or execs? Only
+    /// one with a scanner can.
+    public internal(set) var scansWrittenFiles: Bool
     /// Computes the Sensor ID stamped on events.
     private let makeSensorID: () -> String
     private(set) var isStopped: Bool = false
@@ -80,8 +98,8 @@ public final class CaptureSession {
     var lastDropReport: UInt64?
     static let logger = Logger(subsystem: "com.swiftlydetecting.agent.securityextension", category: "CaptureSession")
     
-    /// Create, mute, and subscribe one live Endpoint Security client per class. Not recording until ``isRecording``
-    /// is set.
+    /// Create, mute, and subscribe one live Endpoint Security client per class, with network flows read from the
+    /// shared client (``NetworkStatisticsClient/shared``). Not recording until ``isRecording`` is set.
     ///
     /// - Parameters:
     ///   - configuration: The events to subscribe to, and the mutes.
@@ -91,7 +109,8 @@ public final class CaptureSession {
                             emit: @escaping (CapturedEvent) -> Void) throws {
         try self.init(configuration, clients: LiveEndpointSecurityClientFactory(), serializer: MessageSerializer(),
                       sensorID: EndpointSecurityManager.makeSensorID, launchServices: LaunchServicesReader.shared,
-                      lineage: .shared, emit: emit)
+                      scanner: configuration.scansWrittenFiles || configuration.scanningCanChange ? .shared : nil,
+                      lineage: .shared, flows: .shared, emit: emit)
     }
     
     /// Create, mute, and subscribe one client per class. Not recording until ``isRecording`` is set.
@@ -106,18 +125,21 @@ public final class CaptureSession {
     ///   - factory: Makes the clients.
     ///   - serializer: Builds each event's JSON.
     ///   - makeSensorID: Computes the Sensor ID stamped on events, now and on ``refreshSensorID()``.
-    ///   - launchServices: Lets the exec lane hold app execs (``LaunchServicesHold``). `nil` holds nothing.
+    ///   - launchServices: Lets the exec lane hold app execs (``EventHold``). `nil` holds nothing.
+    ///   - scanner: Scans the written files the file lane's closes name, and the scripts the process lane's execs
+    ///     run, while the session subscribes to closes or execs. `nil` scans nothing.
     ///   - lineage: Kept running while the session captures, so its execs and forks are stamped with their
     ///     ancestors' keys and its indicators can read an event's ancestors (``LineageMonitor``). `nil` tracks
     ///     none, as does a monitor Endpoint Security refuses a client.
+    ///   - flows: Reads network flows while the session subscribes to them (``FlowLane``). `nil` records none.
     ///   - emit: Receives each event in its class's order. It must not block or call back into the session.
     /// - Throws: ``CaptureStartError``, once every client already created is deleted.
     init(_ configuration: CaptureConfiguration, clients factory: any EndpointSecurityClientFactory,
          serializer: any EventSerializing, sensorID makeSensorID: @escaping () -> String,
-         launchServices: LaunchServicesReading? = nil, lineage: LineageMonitor? = nil,
-         emit: @escaping (CapturedEvent) -> Void) throws {
+         launchServices: LaunchServicesReading? = nil, scanner: FileScanner? = nil, lineage: LineageMonitor? = nil,
+         flows: NetworkStatisticsClient? = nil, emit: @escaping (CapturedEvent) -> Void) throws {
         let label = configuration.label
-        let events = Self.capturable(configuration.events, label: label)
+        let events = Self.capturable(configuration.events, label: label, recordsFlows: flows != nil)
         let sensorID = makeSensorID()
         let table = FieldFilter.table(configuration.fieldFilters)
         let chains = configuration.indicators.map { SessionChains(for: $0, budget: configuration.chainBudget) }
@@ -131,10 +153,17 @@ public final class CaptureSession {
         }
         /// One for the session: whichever lane first names an ancestor describes it.
         let snapshots = SnapshotLedger()
-        let lanes = EventClass.allCases.map {
+        let lanes = EventClass.endpointSecurity.map {
             CaptureLane($0, label: label, sensorID: sensorID, serializer: serializer, fieldFilters: table,
                         indicators: configuration.indicators, chains: chains, launchServices: launchServices,
-                        lineage: ancestry, snapshots: snapshots, emit: emit)
+                        scanner: scanner, scansWrittenFiles: configuration.scansWrittenFiles,
+                        holdLine: configuration.holdLine, lineage: ancestry, snapshots: snapshots, emit: emit)
+        }
+        flowLane = flows.map {
+            FlowLane(client: $0, sensorID: sensorID, indicators: configuration.indicators, chains: chains,
+                     mutes: FlowMutes(configuration.mutes), mutesSelf: configuration.mutesSelf,
+                     recordsURLPaths: configuration.recordsURLPaths, lineage: ancestry, snapshots: snapshots,
+                     emit: emit)
         }
         do {
             try Self.createClients(for: lanes, with: factory, label: label)
@@ -144,7 +173,7 @@ public final class CaptureSession {
         }
         appleMuteSet = Set((lanes.first?.client?.mutedPaths() ?? []).map { ProcessHelpers.eventToJSON(value: $0) })
         if configuration.mutesSelf { lanes.forEach { $0.muteSelf() } }
-        let mutes = MuteList().changes(to: configuration.mutes)
+        let mutes = Self.endpointSecurityChanges(from: MuteList(), to: configuration.mutes)
         lanes.forEach { $0.apply(mutes) }
         do {
             try Self.subscribe(lanes, to: events, label: label)
@@ -153,6 +182,8 @@ public final class CaptureSession {
             throw error
         }
         self.lineage = lineage
+        self.scanner = scanner
+        scansWrittenFiles = scanner != nil && configuration.scansWrittenFiles
 
         self.label = label
         self.lanes = lanes
@@ -163,6 +194,8 @@ public final class CaptureSession {
         indicators = configuration.indicators
         self.chains = chains
         chainBudget = configuration.chainBudget
+        updateScanning()
+        updateFlows()
         let shares = lanes.map { lane in "\(lane.eventClass.rawValue) \(events.filter(lane.serves).count)" }
         let filters = configuration.fieldFilters.map(\.rawValue).sorted().joined(separator: ", ")
         Self.logger.log("""
@@ -182,17 +215,20 @@ public final class CaptureSession {
     public func refreshSensorID() {
         let sensorID = makeSensorID()
         lanes.forEach { $0.setSensorID(sensorID) }
+        flowLane?.setSensorID(sensorID)
     }
     
-    /// Subscribe to, or unsubscribe from, one event on the client of its class.
+    /// Subscribe to, or unsubscribe from, one event on the client of its class, or a network flow event on the
+    /// network lane.
     ///
     /// - Parameters:
-    ///   - event: A NOTIFY event Mac Monitor models.
+    ///   - event: A NOTIFY event Mac Monitor models, or a network flow event.
     ///   - enabled: `true` to subscribe, `false` to unsubscribe.
-    /// - Returns: `true` if Endpoint Security accepted the request. `false` after ``stop()``, or for an event Mac
-    ///   Monitor doesn't model (an AUTH event, or an unknown name read as `ES_EVENT_TYPE_LAST`).
+    /// - Returns: `true` if Endpoint Security, or the network lane, accepted the request. `false` after ``stop()``,
+    ///   or for an event Mac Monitor doesn't model (an AUTH event, or an unknown name read as `ES_EVENT_TYPE_LAST`).
     @discardableResult
     public func setSubscription(_ event: es_event_type_t, enabled: Bool) -> Bool {
+        if let flow = MacMonitorEvent(event) { return setSubscription(flow, enabled: enabled) }
         guard !isStopped, Self.isCapturable(event),
               let client = lanes.first(where: { $0.serves(event) })?.client else { return false }
         guard enabled ? client.subscribe([event]) : client.unsubscribe([event]) else {
@@ -208,6 +244,7 @@ public final class CaptureSession {
         } else if !subscribedEvents.contains(event) {
             subscribedEvents.append(event)
         }
+        updateScanning()
         return true
     }
     
@@ -242,11 +279,17 @@ public final class CaptureSession {
     /// 4. A lane still building an event at the deadline (a script read from a slow disk, a signature `trustd` is slow
     ///    to check) drops it, and its client is deleted on a background queue once the event is done. So a slow event
     ///    never holds up this queue, and nothing is emitted once this returns.
+    /// 5. The network lane closes with the others and is waited for by the same deadline. It's unregistered from
+    ///    the network statistics client, which closes its socket once no session records flows.
     public func stop() {
         guard !isStopped else { return }
         isStopped = true
-        Self.tearDown(lanes, timeout: closeTimeout)
+        let deadline = DispatchTime.now() + closeTimeout
+        flowLane?.close()
+        Self.tearDown(lanes, by: deadline)
+        stopFlows(by: deadline)
         lineage?.release()
+        updateScanning()
         Self.logger.log("\(self.label, privacy: .public): stopped capturing and deleted its Endpoint Security clients.")
         logStatistics()
     }
@@ -255,16 +298,22 @@ public final class CaptureSession {
 
 // MARK: - Starting and stopping
 extension CaptureSession {
-    /// The events a session can subscribe to, each once, in their order: the NOTIFY events Mac Monitor models.
+    /// The events a session can subscribe to, each once, in their order: the NOTIFY events Mac Monitor models, and
+    /// the network flow events for a session that can record them.
     ///
     /// - Parameters:
     ///   - events: The requested events.
     ///   - label: Names the session in the log, which lists the events left out.
+    ///   - recordsFlows: Can the session record network flows?
     /// - Returns: The events that are kept.
-    static func capturable(_ events: [es_event_type_t], label: String) -> [es_event_type_t] {
+    static func capturable(_ events: [es_event_type_t], label: String,
+                           recordsFlows: Bool = false) -> [es_event_type_t] {
         var seen = Set<UInt32>()
-        let kept = events.filter { isCapturable($0) && seen.insert($0.rawValue).inserted }
-        let leftOut = events.filter { !isCapturable($0) }.map { eventTypeToString(from: $0) }
+        let isKept = { (event: es_event_type_t) in
+            isCapturable(event) || recordsFlows && MacMonitorEvent(event) != nil
+        }
+        let kept = events.filter { isKept($0) && seen.insert($0.rawValue).inserted }
+        let leftOut = events.filter { !isKept($0) }.map { eventTypeToString(from: $0) }
         if !leftOut.isEmpty {
             logger.error("""
                 \(label, privacy: .public): not subscribing to events Mac Monitor doesn't model: \
@@ -318,7 +367,7 @@ extension CaptureSession {
     private static func subscribe(_ lanes: [CaptureLane], to events: [es_event_type_t], label: String) throws {
         let split = EventClassTable.split(events)
         for lane in lanes where lane.client?.subscribe(split[lane.eventClass] ?? []) != true {
-            tearDown(lanes, timeout: defaultCloseTimeout)
+            tearDown(lanes, by: .now() + defaultCloseTimeout)
             logger.error("""
                 \(label, privacy: .public): the \(lane.eventClass.rawValue, privacy: .public) client couldn't \
                 subscribe to its events. Deleted every client.
@@ -331,11 +380,10 @@ extension CaptureSession {
     ///
     /// - Parameters:
     ///   - lanes: The lanes.
-    ///   - timeout: How long to wait for the events being built.
-    private static func tearDown(_ lanes: [CaptureLane], timeout: DispatchTimeInterval) {
+    ///   - deadline: When to stop waiting for the events being built.
+    private static func tearDown(_ lanes: [CaptureLane], by deadline: DispatchTime) {
         lanes.forEach { _ = $0.client?.unsubscribeAll() }
         lanes.forEach { $0.close() }
-        let deadline = DispatchTime.now() + timeout
         lanes.forEach { $0.deleteClient(by: deadline) }
     }
 }

@@ -28,12 +28,18 @@ enum TelemetrySchemaSource {
             + "record is eslogger's JSON for an Endpoint Security event plus Mac Monitor's enrichments; every key is "
             + "marked x-mac-monitor-origin: eslogger or mac-monitor, and everything under a Mac Monitor key is Mac "
             + "Monitor's. One kind of line is not an event's record: a process snapshot, which has a "
-            + "process_snapshot key and follows #/$defs/\(TelemetrySchema.snapshotDefinition). Each GitHub release attaches the schema as \(TelemetrySchema.releaseAssetName), and the "
+            + "process_snapshot key and follows #/$defs/\(TelemetrySchema.snapshotDefinition). A network flow's "
+            + "record, whose event key is \(TelemetrySchema.networkEventKeys.joined(separator: " or ")), is Mac "
+            + "Monitor's own: it follows #/$defs/\(TelemetrySchema.networkDefinition), and its process is a "
+            + "flow_process. Each GitHub release attaches the schema as \(TelemetrySchema.releaseAssetName), and the "
             + "latest is at \(latestURL)."
     }
     
-    /// Every event type Mac Monitor records.
+    /// Every Endpoint Security event type Mac Monitor records.
     static var events: [SchemaEvent] { processEvents + fileEvents + systemEvents + directoryEvents }
+
+    /// Every event type Mac Monitor records: Endpoint Security's, then its own network events.
+    static var allEvents: [SchemaEvent] { events + networkEvents }
     
     /// A record: one Endpoint Security message, `es_message_t`.
     static var root: SchemaObject {
@@ -95,18 +101,21 @@ enum TelemetrySchemaSource {
         ])
     }
     
-    /// The event dispatcher: one key, the event's.
+    /// The event dispatcher: one key, the event's. A network event's key is Mac Monitor's own.
     static var dispatcher: SchemaObject {
-        SchemaObject("The event: one key, named for its type, as eslogger names it.", events.map {
-            eslogger($0.name, .ref($0.definition), absent: Absence("the record is another type's"))
+        SchemaObject("The event: one key, named for its type, as eslogger names it.", allEvents.map { event in
+            let absent = Absence("the record is another type's")
+            return event.isEndpointSecurity ? eslogger(event.name, .ref(event.definition), absent: absent)
+                : enrichment(event.name, .ref(event.definition), "A network flow, Mac Monitor's own event.",
+                             absent: absent)
         }, keyCount: 1...1)
     }
     
-    /// Every definition: the shared objects, the dispatcher, and each event's object.
+    /// Every definition: the shared objects, the network record's, the dispatcher, and each event's object.
     static var definitions: [String: SchemaObject] {
-        var all = artifacts
+        var all = artifacts.merging(networkDefinitions) { first, _ in first }
         all["event"] = dispatcher
-        for event in events { all[event.definition] = event.object }
+        for event in allEvents { all[event.definition] = event.object }
         return all
     }
     

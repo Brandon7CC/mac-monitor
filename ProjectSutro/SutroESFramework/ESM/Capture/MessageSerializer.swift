@@ -24,8 +24,12 @@ struct LaneContext {
     /// The types of the files the lane's mmaps mapped (``FileTypeMemory``). The lane's own: only one thread uses it at
     /// a time.
     var fileTypes = FileTypeMemory()
-    /// Does the lane hold app execs (``LaunchServicesHold``)?
-    var holdsForLaunchServices = false
+    /// Does the lane hold events (``EventHold``): app execs on the exec lane, and while scanning, written files'
+    /// closes on the file lane and the execs that run scripts on the process lane? A lane that holds defers its
+    /// events' sequence steps to the hold.
+    var holdsEvents = false
+    /// The scanner, on the file and process lanes of a session that scans. `nil` scans nothing.
+    var scanner: FileScanner? = nil
     /// The indicators the message was admitted with, which its event is stamped with. `nil` evaluates nothing, and
     /// the event carries no verdicts.
     var indicators: CompiledIndicators? = nil
@@ -45,10 +49,11 @@ struct LaneContext {
 /// A serialized message
 enum SerializedEvent {
     case json(Data)
-    /// An app exec to hold, not encoded yet, and the sequence steps its stamp deferred
-    case held(Message, steps: ContiguousArray<Int32> = [])
+    /// An event to hold, not encoded yet, and the sequence steps its stamp deferred: an app exec for Launch Services,
+    /// an event whose scan is queued until it's done (`scan`), or an app exec that runs a script for both
+    case held(Message, steps: ContiguousArray<Int32> = [], scan: FileScanTicket? = nil)
     /// An event of a lane that holds app execs which matched sequence steps, not encoded yet: its steps advance as
-    /// the hold sends it, in the lane's order (``LaunchServicesHold``)
+    /// the hold sends it, in the lane's order (``EventHold``)
     case stamped(Message, steps: ContiguousArray<Int32>)
 }
 
@@ -113,26 +118,45 @@ struct MessageSerializer: EventSerializing {
     ///   - lane: The lane's context.
     /// - Returns: The JSON, the event for the hold, or `nil` if the event couldn't be encoded.
     func serializeEvent(_ message: UnsafePointer<es_message_t>, in lane: LaneContext) -> SerializedEvent? {
-        let (event, steps) = build(message, in: lane)
-        if lane.holdsForLaunchServices && LaunchServicesHold.holds(event) { return .held(event, steps: steps) }
+        serialize(Message(from: message, sensorID: lane.sensorID, macOS: macOSVersion, sipStatus: sipStatus,
+                          bootSession: bootSession), of: message, in: lane)
+    }
+
+    /// Enrich, stamp and encode an event built from its message, unless it's one to hold, or an event of a lane that
+    /// holds them which matched sequence steps. An exec built from a record goes this way too, as a
+    /// `ProcessExecEvent` takes only a message Endpoint Security delivered.
+    ///
+    /// - Parameters:
+    ///   - event: The event, as `Message(from:sensorID:macOS:sipStatus:bootSession:)` built it.
+    ///   - message: Its message. Only valid during the call.
+    ///   - lane: The lane's context.
+    /// - Returns: The JSON, the event for the hold, or `nil` if the event couldn't be encoded.
+    func serialize(_ event: Message, of message: UnsafePointer<es_message_t>,
+                   in lane: LaneContext) -> SerializedEvent? {
+        let (event, steps, ticket) = enrich(event, of: message, in: lane)
+        if ticket != nil || (lane.holdsEvents && EventHold.holds(event)) {
+            return .held(event, steps: steps, scan: ticket)
+        }
         if !steps.isEmpty { return .stamped(event, steps: steps) }
         return (try? lane.encoder.encode(event)).map(SerializedEvent.json)
     }
-    
-    /// Build the `Message` with the Sensor ID, macOS version, SIP status, for execs and forks the launched-by parent
-    /// and the ancestors' keys, for mmaps and modified closes the file's type, and the indicators it matches.
+
+    /// Stamp the `Message` with, for execs and forks, the launched-by parent and the ancestors' keys, for mmaps and
+    /// modified closes the file's type, for written files and the scripts execs run their scan when the lane scans,
+    /// and the indicators it matches.
     ///
     /// A lane that holds app execs defers every event's sequence steps to the hold, which advances them as it sends
     /// the event.
     ///
     /// - Parameters:
-    ///   - message: The message. Only valid during the call.
+    ///   - event: The event, built with the Sensor ID, macOS version and SIP status.
+    ///   - message: Its message. Only valid during the call.
     ///   - lane: The lane's context.
-    /// - Returns: The event, and the sequence steps it matched, left for the hold.
-    private func build(_ message: UnsafePointer<es_message_t>,
-                       in lane: LaneContext) -> (Message, ContiguousArray<Int32>) {
-        var event = Message(from: message, sensorID: lane.sensorID, macOS: macOSVersion, sipStatus: sipStatus,
-                            bootSession: bootSession)
+    /// - Returns: The event, the sequence steps it matched, left for the hold, and where its scan's answer will come
+    ///   when the scan is queued.
+    private func enrich(_ event: Message, of message: UnsafePointer<es_message_t>,
+                        in lane: LaneContext) -> (Message, ContiguousArray<Int32>, FileScanTicket?) {
+        var event = event
         let paths = lane.processPaths
         event.resolveLaunchedByParent(by: .securityExtension) { pid, token in
             paths.path(of: pid, token, reading: processPath)
@@ -144,8 +168,9 @@ struct MessageSerializer: EventSerializing {
             lane.snapshots?.describe(event, naming: ancestors, from: lineage)
         }
         event.identifyFileType(of: message, in: lane.fileTypes)
+        let ticket = event.requestYaraScan(of: message, from: lane.scanner, volumes: lane.fileTypes.volumes)
         let steps = lane.indicatorState.stamp(&event, with: lane.indicators, chains: lane.chains,
-                                              deferringSteps: lane.holdsForLaunchServices, lineage: lane.lineage)
-        return (event, steps)
+                                              deferringSteps: lane.holdsEvents, lineage: lane.lineage)
+        return (event, steps, ticket)
     }
 }

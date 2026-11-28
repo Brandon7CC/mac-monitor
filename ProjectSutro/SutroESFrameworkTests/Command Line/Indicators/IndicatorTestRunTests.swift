@@ -110,6 +110,30 @@ final class IndicatorTestRunTests: XCTestCase {
         XCTAssertTrue(report.summary.hasPrefix("2 of 2 cases passed."), report.summary)
     }
 
+    /// An indicator on a written file's scan that names Mac Monitor 3.3.0 is tested with this build's engine, and
+    /// matches a scanned close. One that needs the release after this build isn't run, which fails the run.
+    func testAnIndicatorForMacMonitor330IsTested() throws {
+        let directory = try makeTemporaryDirectory()
+        let events = "scanned-close.jsonl"
+        try scannedRecord("ES_EVENT_TYPE_NOTIFY_CLOSE").write(to: directory.appendingPathComponent(events))
+        let (current, later) = (UUID(), UUID())
+        let scans: [[String: Any]] = [(current, "3.3.0"), (later, Self.laterEngine.description)].map { id, engine in
+            ["id": id.uuidString, "revision": 1, "minEngine": engine, "name": "Scan for \(engine)",
+             "predicate": Self.yaraRulePredicate]
+        }
+        let cases = [testCase(events, "match", id: current, count: 1, records: [1]),
+                     testCase(events, "match", id: later)]
+        let plan = try JSONDecoder().decode(IndicatorTestPlan.self,
+                                            from: JSONSerialization.data(withJSONObject: ["cases": cases]))
+        let report = IndicatorTestRun(pack: try pack(scans), plan: plan, base: directory).run()
+        XCTAssertTrue(report.text.contains("tested with Mac Monitor \(Indicator.engineVersion)'s engine."), report.text)
+        XCTAssertTrue(report.text.contains("  ok       Scan for 3.3.0: A case. It matched line 1."), report.text)
+        let next = Self.laterEngine
+        let notRun = "  NOT RUN  Scan for \(next): A case. It needs Mac Monitor \(next) or later."
+        XCTAssertTrue(report.text.contains(notRun), report.text)
+        XCTAssertEqual(report.exit, .dataError)
+    }
+
     /// An indicator the Security Extension can't compile fails the run, whether or not a case tests it, and its
     /// cases fail.
     func testIndicatorsThatDontCompile() throws {

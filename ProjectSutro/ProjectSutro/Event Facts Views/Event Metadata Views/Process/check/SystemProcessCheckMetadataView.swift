@@ -15,8 +15,7 @@ struct SystemProcessCheckMetadataView: View {
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
         if let event = esSystemEvent.event.proc_check {
-            EventFactsCard(message: esSystemEvent,
-                           targetAuditToken: event.target?.audit_token_string ?? "Unknown") {
+            EventFactsCard(message: esSystemEvent) {
                 FactsBox {
                     FactRow(name: "Type / flavor", value: "\(event.type_string) (\(event.type)) / (\(event.flavor))")
                     TargetProcessFacts(process: event.target)

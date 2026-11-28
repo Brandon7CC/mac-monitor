@@ -12,7 +12,7 @@ import SutroESFramework
 
 /// Adds a path to the saved mute set: the path and how to mute it by, then Mute Path for every event
 /// (`es_mute_path`), or Mute Path Events for the Endpoint Security client's events picked below
-/// (`es_mute_path_events`).
+/// (`es_mute_path_events`). A mute by the process's path can pick the network flows too, which have no target path.
 struct MuteAddSheet: View {
     @EnvironmentObject var systemExtensionManager: EndpointSecurityManager
     @Environment(\.dismiss) private var dismiss
@@ -85,10 +85,12 @@ struct MuteAddSheet: View {
                 } header: {
                     Text("Endpoint Security client properties")
                 } footer: {
-                    Text("The path is muted only for the events selected here. AUTH events have no effect here. "
+                    Text("The path is muted only for the events selected here. "
                          + "Only events Mac Monitor subscribes to are listed"
                          + (kind.isTarget ? ", and only those Endpoint Security mutes by target path." : ".")
-                         + " Subscribe to an event first to mute it.")
+                         + " Subscribe to an event first to mute it."
+                         + (choices.contains(where: \.isEnrichment)
+                            ? " Mac Monitor enrichment is muted by Mac Monitor, not Endpoint Security." : ""))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -115,7 +117,8 @@ struct MuteAddSheet: View {
         .onAppear { systemExtensionManager.requestEventSubscriptions() }
     }
 
-    /// One event to pick, by its `ES_EVENT_TYPE_NOTIFY_` name, with Apple's documentation.
+    /// One event to pick, by its label (`ES_EVENT_TYPE_NOTIFY_EXEC`, `NETWORK_NEW_FLOW`), with Apple's documentation
+    /// for an Endpoint Security event or an Enrichment tag for a network flow.
     ///
     /// - Parameter event: The event.
     /// - Returns: Its row.
@@ -126,22 +129,24 @@ struct MuteAddSheet: View {
             }) {
                 HStack(spacing: 8) {
                     Image(systemName: event.symbol).foregroundStyle(.secondary).frame(width: 18)
-                    Text(event.name).font(.callout.monospaced())
+                    Text(event.label).font(.callout.monospaced())
                 }
             }
             .toggleStyle(.checkbox)
             .help(event.title)
             Spacer()
-            Link(destination: event.documentation) { Image(systemName: "book") }
-                .help("Apple's documentation for \(event.name)")
-                .accessibilityLabel("Documentation for \(event.title)")
+            EventSourceMark(event: event)
         }
     }
 
-    /// The events a mute like this can cover: subscribed ones, and by a target path, ones ES mutes by it.
+    /// The groups to pick from: Endpoint Security's, then the network flows'.
+    private static let groups = EventCatalog.groups + [EventCatalog.network]
+
+    /// The events a mute like this can cover: subscribed ones, and by a target path, ones ES mutes by it, which no
+    /// network flow is.
     private var choices: [EventCatalog.Event] {
         let subscribed = systemExtensionManager.monitoredEventStrings
-        return EventCatalog.events.filter {
+        return Self.groups.flatMap(\.events).filter {
             subscribed.contains($0.name) && (!kind.isTarget || Self.targetable.contains($0.name))
         }
     }
@@ -150,10 +155,10 @@ struct MuteAddSheet: View {
     private var shownGroups: [EventCatalog.Group] {
         let names = Set(choices.map(\.name))
         let query = query.trimmingCharacters(in: .whitespaces).lowercased()
-        return EventCatalog.groups.compactMap { group in
+        return Self.groups.compactMap { group in
             let events = group.events.filter {
                 names.contains($0.name) && (query.isEmpty || $0.title.lowercased().contains(query)
-                                            || $0.name.lowercased().contains(query))
+                                            || $0.label.lowercased().contains(query))
             }
             return events.isEmpty ? nil : group.with(events)
         }

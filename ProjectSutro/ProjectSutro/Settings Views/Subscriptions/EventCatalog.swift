@@ -15,7 +15,7 @@ import SutroESFramework
 enum EventCatalog {
     /// One event.
     struct Event: Identifiable, Hashable {
-        /// Its `ES_EVENT_TYPE_NOTIFY_` name.
+        /// Its `ES_EVENT_TYPE_NOTIFY_` name, or a network flow's, as in `new_flow`.
         let name: String
         /// Its name for people, such as "Execution".
         let title: String
@@ -23,12 +23,17 @@ enum EventCatalog {
         var id: String { name }
         /// Its short name, as macmonitor knows it: `exec`.
         var shortName: String { CommandLineEvents.shortName(name) }
+        /// Its name as the app's labels show it, as in `NETWORK_NEW_FLOW` (``EventNames/label(_:)``).
+        var label: String { EventNames.label(name) }
         /// Its SF Symbol (``eventStringToImage(from:)``).
         var symbol: String { eventStringToImage(from: name) }
+        /// Is it Mac Monitor enrichment, a network flow, rather than an Endpoint Security event?
+        var isEnrichment: Bool { MacMonitorEvent(name: name) != nil }
         /// Apple's documentation for it: a page per event, named in lowercase, such as
-        /// `endpointsecurity/es_event_type_notify_exec`.
-        var documentation: URL {
-            URL(string: "https://developer.apple.com/documentation/endpointsecurity/\(name.lowercased())")!
+        /// `endpointsecurity/es_event_type_notify_exec`. `nil` for Mac Monitor enrichment.
+        var documentation: URL? {
+            guard !isEnrichment else { return nil }
+            return URL(string: "https://developer.apple.com/documentation/endpointsecurity/\(name.lowercased())")
         }
 
         /// What every name starts with.
@@ -121,12 +126,43 @@ enum EventCatalog {
     /// Every event, in the groups' order.
     static var events: [Event] { groups.flatMap(\.events) }
 
-    /// An event by its `ES_EVENT_TYPE_NOTIFY_` name.
+    /// The network flow events, Mac Monitor's own, which Settings > General's Record network flows turns on and off
+    /// together. Path Muting lists them for a mute by the process's path, and Subscriptions doesn't.
+    static let network = Group(title: "Network", symbol: "network", tint: .blue, events: [
+        Event(name: MacMonitorEvent.new_flow.name, title: "Flow opened"),
+        Event(name: MacMonitorEvent.flow_closed.name, title: "Flow closed"),
+    ])
+
+    /// An event by its `ES_EVENT_TYPE_NOTIFY_` name, or a network flow's.
     ///
     /// - Parameter name: The name.
     /// - Returns: The event, named for people when the catalog knows it.
     static func event(named name: String) -> Event {
-        events.first { $0.name == name }
+        (events + network.events).first { $0.name == name }
             ?? Event(name: name, title: CommandLineEvents.shortName(name))
+    }
+}
+
+
+// MARK: - Source mark
+/// Where an event comes from, at the end of Settings' event rows: a link to Apple's documentation for an Endpoint
+/// Security event, or an Enrichment tag for a network flow, Mac Monitor's own.
+struct EventSourceMark: View {
+    let event: EventCatalog.Event
+
+    var body: some View {
+        if let documentation = event.documentation {
+            Link(destination: documentation) { Image(systemName: "book") }
+                .help("Apple's documentation for \(event.name)")
+                .accessibilityLabel("Documentation for \(event.title)")
+        } else {
+            Text("Enrichment")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1)
+                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.secondary.opacity(0.5)))
+                .help("Mac Monitor enrichment, not an Endpoint Security event. Mac Monitor mutes it itself.")
+        }
     }
 }

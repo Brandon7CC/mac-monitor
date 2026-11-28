@@ -122,6 +122,32 @@ final class LaneSnapshots {
             guard let program = known ?? ProcessProgram(event.process) else { return }
             chain = [program] + ancestors
         }
+        queue(chain, before: event)
+    }
+
+    /// Queue the snapshots a network flow owes: one for its process and its ancestors, the first time the lane sees
+    /// the process, unless a record described it. Only a program the lineage table knows is described. A flow's
+    /// process is only what its socket said, so for one the table doesn't know nothing is written and nothing is
+    /// remembered. The process's next record, its flow's close at the latest, tries again.
+    ///
+    /// - Parameters:
+    ///   - event: The flow's event.
+    ///   - lineage: The table.
+    func describeFlow(_ event: Message, from lineage: ProcessLineage) {
+        guard let key = event.process.audit_token.map(ProcessKey.init), !seen.contains(key) else { return }
+        guard !ledger.isDescribed(key) else { return remember(key) }
+        guard let program = lineage.program(key), program.isKnown else { return }
+        remember(key)
+        queue([program] + lineage.ancestors(of: key, reading: true, at: UInt64(clamping: event.mach_time)),
+              before: event)
+    }
+
+    /// Queue the snapshots due for a chain of processes, before an event that names them.
+    ///
+    /// - Parameters:
+    ///   - chain: The processes, nearest first.
+    ///   - event: The event, whose Sensor ID and boot session the snapshots carry.
+    private func queue(_ chain: [ProcessProgram], before event: Message) {
         guard !chain.isEmpty else { return }
         pending += ledger.due(for: chain).compactMap {
             ProcessSnapshotRecord($0, sensorID: event.sensor_id, bootSession: event.boot_session_uuid).line

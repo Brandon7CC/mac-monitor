@@ -64,6 +64,18 @@ extension IndicatorDraft {
 
         /// The comparison as `NSPredicate` writes it.
         var description: String { comparison.predicateFormat }
+
+        /// The problem with an array compared whole. `ANY` compares its values, and an array of the record has a
+        /// size, its `.@count`. An ancestor's list has none, as a record doesn't have it.
+        ///
+        /// - Parameters:
+        ///   - field: The array.
+        ///   - values: What `ANY` compares its values with, or "".
+        /// - Returns: The problem.
+        func wholeArray(_ field: IndicatorField, _ values: String = "") -> SensorProblem {
+            let size = field.lineageOffset == nil ? " and whose size is \(field.path).\(RecordSchema.count)" : ""
+            return .mismatchedTypes("\(field.path) is an array, whose values ANY compares\(values)\(size), in \(self)")
+        }
     }
 
     /// Reads a parsed predicate into a draft, counting its nodes.
@@ -127,6 +139,9 @@ extension IndicatorDraft {
             guard left.expressionType == .keyPath else { throw SensorProblem.unsupported("\(left), in \(part)") }
             let field = try Self.field(at: left.keyPath)
             let constants = try Self.constants(of: comparison.rightExpression, isSet: op == .in, part: part)
+            if field == .esEventType, let named = Self.macMonitorEvent(in: constants) {
+                throw SensorProblem.noEventType(named.name)
+            }
             if field == .esEventType, !isAny, options.isEmpty, [.equalTo, .notEqualTo, .in].contains(op),
                let types = Self.eventTypes(constants) {
                 return .eventType(op, types)
@@ -247,6 +262,15 @@ extension IndicatorDraft {
         }
 
         /// - Parameter constants: An `es_event_type` comparison's constants.
+        /// - Returns: The first Mac Monitor event they name, whose record has no `es_event_type`, or `nil`.
+        private static func macMonitorEvent(in constants: [Constant]) -> MacMonitorEvent? {
+            for case .string(let name, _) in constants {
+                if let event = MacMonitorEvent(name: name) { return event }
+            }
+            return nil
+        }
+
+        /// - Parameter constants: An `es_event_type` comparison's constants.
         /// - Returns: The types they name, by number, when each is a type this build knows.
         private static func eventTypes(_ constants: [Constant]) -> [Int]? {
             let types = constants.map { constant -> Int? in
@@ -272,7 +296,7 @@ extension IndicatorDraft {
                                   part: Part) throws {
             switch (field.kind, isAny) {
             case (.strings, false):
-                throw SensorProblem.mismatchedTypes("\(field.path) is an array, compared with ANY, in \(part)")
+                throw part.wholeArray(field)
             case (.string, true), (.number, true), (.boolean, true):
                 throw SensorProblem.unsupported("ANY of \(field.path), which isn't an array, in \(part)")
             default: break

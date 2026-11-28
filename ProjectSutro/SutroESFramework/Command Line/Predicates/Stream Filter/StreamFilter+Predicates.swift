@@ -242,11 +242,23 @@ enum PredicateGuard {
                 "ES_EVENT_TYPE_NOTIFY_EXEC").@count > 0.
                 """, command: audience.command)
         }
-        if IndicatorField(path: keyPath)?.lineageOffset != nil {
+        /// The key path without an aggregate at its end, as `lineage.paths` is for `lineage.paths.@count`.
+        let parts = keyPath.split(separator: ".")
+        let isAggregate = PredicateRecord.aggregates.contains(String(parts.last ?? ""))
+        let field = isAggregate ? parts.dropLast().joined(separator: ".") : keyPath
+        if IndicatorField(path: field)?.lineageOffset != nil {
             guard audience.readsLineage, variable == nil else {
                 throw CommandLineUsageError("""
-                    \(audience.name) can't use '\(keyPath)': a process's ancestors are read by indicators, as the \
-                    Security Extension captures an event. A record doesn't have them.
+                    \(audience.name) can't use '\(keyPath)': a process's ancestors, and its own command line under \
+                    lineage, are read by indicators, as the Security Extension captures an event. A record doesn't \
+                    have them.
+                    """, command: audience.command)
+            }
+            guard field == keyPath else {
+                throw CommandLineUsageError("""
+                    \(audience.name) can't use '\(keyPath)': an ancestor's list isn't counted or aggregated. Records \
+                    don't have a process's ancestors, so the predicate search couldn't check it. ANY compares the \
+                    list's values.
                     """, command: audience.command)
             }
             return

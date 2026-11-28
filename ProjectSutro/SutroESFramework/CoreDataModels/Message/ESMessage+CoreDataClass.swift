@@ -330,6 +330,7 @@ public class ESMessage: NSManagedObject, Identifiable {
 // MARK: - Encodable conformance
 extension ESMessage: Encodable {
     public func encode(to encoder: Encoder) throws {
+        guard !isNetworkFlow else { return try encodeNetworkFlow(to: encoder) }
         var container = encoder.container(keyedBy: CodingKeys.self)
         // MARK: Version and sequence
         try container.encode(version, forKey: .version)

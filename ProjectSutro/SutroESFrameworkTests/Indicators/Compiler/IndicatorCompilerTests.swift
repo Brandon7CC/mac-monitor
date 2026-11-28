@@ -74,14 +74,16 @@ final class IndicatorCompilerTests: XCTestCase {
 
     /// A key path the record doesn't have is refused, and so is one whose value can't be compared on its own: an
     /// object, or a value inside an array of objects. Any other key path of the record is read, the launched-by
-    /// parent's included.
+    /// parent's and an array's `.@count` included.
     func testUnservedPathsAreRefused() {
         if case .unreadable = problem(Self.exec + " AND process.no_such_key == 1") {} else {
             XCTFail("A key the record doesn't have is refused as it's read")
         }
-        XCTAssertEqual(problem(Self.exec + " AND event.exec.env.@count > 1"), .unservedField("event.exec.env.@count"))
+        XCTAssertEqual(problem(Self.exec + " AND event.exec.target.executable.@count > 1"),
+                       .uncountable("event.exec.target.executable.@count"))
         XCTAssertEqual(problem(Self.exec + #" AND event.exec.target.executable == "x""#),
                        .unservedKind("event.exec.target.executable", "it's an object"))
+        XCTAssertNil(problem(Self.exec + " AND event.exec.env.@count > 1"))
         XCTAssertNil(problem(Self.exec + " AND process.pid == 1"))
         XCTAssertNil(problem(Self.exec + " AND event.exec.launched_by_parent.pid == 1"))
         XCTAssertNil(problem(Self.exec + #" AND ANY event.exec.args == "-c""#))
@@ -129,7 +131,8 @@ final class IndicatorCompilerTests: XCTestCase {
     func testProblemsReadAsSentences() {
         let problems: [SensorProblem] = [.tooDeep(40), .untyped, .contradictoryTypes, .unknownEventTypes(["X"]),
                                          .unsupported("MATCHES"), .unservedField("process.pid"),
-                                         .unservedKind("x", "it's an object"), .mismatchedTypes("x"),
+                                         .unservedKind("x", "it's an object"), .uncountable("x.@count"),
+                                         .mismatchedTypes("x"),
                                          .unsupportedPattern("\"a?\""), .unrepresentableNumber("inf"), .tooManyNodes,
                                          .constantTooLong(2_000)]
         for problem in problems {
@@ -212,7 +215,8 @@ extension IndicatorCompilerTests {
         let stored = try StreamFilter.Predicate("event.btm_launch_item_add != nil", for: .indicator)
         XCTAssertTrue(StoredEventValues.canEvaluate(stored.parsed))
         XCTAssertEqual(PredicateEventTypes.payloads["event.lw_session_login"], "ES_EVENT_TYPE_NOTIFY_LW_SESSION_LOGIN")
-        XCTAssertEqual(PredicateEventTypes.payloads.count, 52)
+        XCTAssertEqual(PredicateEventTypes.payloads["event.new_flow"], "new_flow")
+        XCTAssertEqual(PredicateEventTypes.payloads.count, 52 + MacMonitorEvent.allCases.count)
     }
 
     /// An `AND`'s or an `OR`'s comparisons of record fields run after its others, at every depth, so a direct field

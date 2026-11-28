@@ -21,6 +21,13 @@ public class ESFileCloseEvent: NSManagedObject, Identifiable {
     @NSManaged public var file_type: String?
     /// The `MH_*` file type of a modified Mach-O, read at capture. `nil` for any other file, or as ``file_type`` is.
     @NSManaged public var mach_o_type: String?
+    /// ``yara_scan``, as JSON.
+    @NSManaged public var yara_scan_json: Data?
+    /// What scanning a modified file with Apple's XProtect rules found at capture (``FileCloseEvent/yara_scan``).
+    public var yara_scan: YaraScan? {
+        get { YaraScan.decoded(from: yara_scan_json) }
+        set { yara_scan_json = newValue?.encoded }
+    }
 
     enum CodingKeys: CodingKey {
         case target
@@ -28,6 +35,7 @@ public class ESFileCloseEvent: NSManagedObject, Identifiable {
         case was_mapped_writable
         case file_type
         case mach_o_type
+        case yara_scan
     }
     
     // MARK: - Custom Core Data initilizer for ESFileCloseEvent
@@ -39,6 +47,7 @@ public class ESFileCloseEvent: NSManagedObject, Identifiable {
         self.was_mapped_writable = event.was_mapped_writable ?? false
         self.file_type = event.file_type
         self.mach_o_type = event.mach_o_type
+        self.yara_scan = event.yara_scan
     }
 }
 
@@ -54,5 +63,6 @@ extension ESFileCloseEvent: Encodable {
         /// or Mac Monitor before 3.1.0, as opening a trace never reads the file.
         try container.encode(file_type, forKey: .file_type)
         try container.encode(mach_o_type, forKey: .mach_o_type)
+        try container.encodeIfPresent(yara_scan, forKey: .yara_scan)
     }
 }

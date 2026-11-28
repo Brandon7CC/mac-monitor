@@ -66,6 +66,10 @@ struct SystemFileRenameMetadataView: View {
                         FileTypeFact(identifier: fileType, machOType: event.mach_o_type)
                     }
                 }
+                /// The XProtect rules that matched the file it moves, at the close that wrote it, when any did.
+                if let scan = event.yara_scan, scan.matched {
+                    XProtectScanBox(scan: scan)
+                }
             }
         }
     }

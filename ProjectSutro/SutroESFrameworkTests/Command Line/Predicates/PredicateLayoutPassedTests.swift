@@ -147,6 +147,23 @@ final class PredicateLayoutPassedTests: XCTestCase {
         ])
     }
 
+    /// `ANY ... !=` is checked on the strings the hit lists for its array, as the hit lists the one it found. A rule
+    /// on any XProtect rule a written file's scan matched marks its close branch for a close. `SOME` is `ANY`.
+    func testANYNotEqualIsCheckedOnTheStringsListed() {
+        let matched: KeyValuePairs<String, IndicatorMatchedField.Value> = [
+            "event.close.yara_scan.rules": .string(Self.matchedRule),
+        ]
+        for word in ["ANY", "SOME"] {
+            let rule = Self.yaraRulePredicate.replacingOccurrences(of: "ANY", with: word)
+            XCTAssertEqual(passed(rule, matched, eventType: "ES_EVENT_TYPE_NOTIFY_CLOSE", whole: true), [
+                "event.close != nil",
+                #"AND \#(word) event.close.yara_scan.rules != """#,
+            ], word)
+        }
+        XCTAssertEqual(passed(#"\#(Self.name) != "wget" OR ANY event.exec.env != "A=1""#,
+                              [Self.name: .string("curl")], whole: true), [])
+    }
+
     /// Numbers and Booleans are compared as a record writes them, and a Boolean key path may stand alone.
     func testNumbersAndBooleansAreCompared() {
         let rule = "process.audit_token.pid > 100 AND process.audit_token.pid < 50 "
@@ -159,6 +176,22 @@ final class PredicateLayoutPassedTests: XCTestCase {
             "process.audit_token.pid > 100",
             "AND process.is_platform_binary == NO",
             "AND event.exec.target.is_adhoc_signed",
+        ])
+    }
+
+    /// An array's count is checked on the size the hit lists at its key path, `.@count` and all, beside a string an
+    /// `ANY` of the same array listed. A count the hit doesn't list is `nil` beside one it does, and a line that reads
+    /// it alone isn't passed.
+    func testACountIsCheckedOnTheSizeListed() {
+        let rules = "event.close.yara_scan.rules", reportOnly = "event.close.yara_scan.report_only"
+        let rule = "\(rules).@count >= 2 OR \(rules).@count > 5 OR \(rules).@count > \(reportOnly).@count "
+            + #"OR ANY \#(rules) == "XProtect_A" OR \#(reportOnly).@count == nil"#
+        let matched: KeyValuePairs<String, IndicatorMatchedField.Value> = [
+            "event.close.yara_scan.rules.@count": .integer(3), "event.close.yara_scan.rules": .string("XProtect_A"),
+        ]
+        XCTAssertEqual(passed(rule, matched), [
+            "\(rules).@count >= 2",
+            #"OR ANY \#(rules) == "XProtect_A""#,
         ])
     }
 

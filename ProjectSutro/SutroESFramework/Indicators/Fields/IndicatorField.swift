@@ -14,12 +14,14 @@ import Foundation
 /// `RecordFieldParityTests`).
 ///
 /// Two kinds:
-/// - **Direct** (``allCases``): the event's type, the 31 key paths Mac Monitor's shipped indicators compare, and the
-///   rest of the signing identity: the exec target's team ID and platform binary, and the process's team ID. Each
-///   is read with one `switch` to its leaf (``MessageValues``), the cheapest read there is.
+/// - **Direct** (``allCases``): the event's type, the 31 key paths Mac Monitor's shipped indicators compare, the rest
+///   of the signing identity (the exec target's team ID and platform binary, and the process's team ID), and the
+///   sizes of an exec's arguments and environment. Each is read with one `switch` to its leaf (``MessageValues``),
+///   the cheapest read there is.
 /// - **Record**: any other key path of the telemetry schema whose value is a string, a number, a Boolean or an array of
-///   strings, read from the event's own encoding (``RecordPathTrie``). Its number is given the first time a rule
-///   names it (``RecordFields``), so a field a later build adds to an event can be compared with no change here.
+///   strings, read from the event's own encoding (``RecordPathTrie``), and any other array's size, as its key path
+///   and `.@count`, a number. Its number is given the first time a rule names it (``RecordFields``), so a field a
+///   later build adds to an event can be compared with no change here.
 ///
 /// The raw values of direct fields are their places in ``allCases``, from 0, and record fields' follow them, so a lane
 /// can keep a value per field in an array (``MessageValueCache``).
@@ -36,11 +38,11 @@ public struct IndicatorField: Hashable, Sendable {
     public enum Kind: Sendable {
         /// A string, or `nil`.
         case string
-        /// A number, or `nil`.
+        /// A number, or `nil`. An array's `.@count` is one.
         case number
         /// `true` or `false`, which compares as the number 1 or 0, as `NSNumber` does.
         case boolean
-        /// An array of strings, which `ANY` compares.
+        /// An array of strings, which `ANY` compares and `.@count` counts.
         case strings
     }
 
@@ -70,6 +72,8 @@ public struct IndicatorField: Hashable, Sendable {
     public static let iokitOpenUserClientClass = Self(rawValue: 31)
     public static let processFileQuarantineType = Self(rawValue: 32), createIsQuarantined = Self(rawValue: 33)
     public static let closeTargetName = Self(rawValue: 34)
+    // MARK: Added in 3.3
+    public static let execArgsCount = Self(rawValue: 35), execEnvCount = Self(rawValue: 36)
 
     /// Each direct field's key path and kind, by its raw value: the record's, then the ancestors' (``LineageField``).
     private static let direct = recordDirect + LineageField.all.map { (path: $0.path, kind: $0.kind) }
@@ -93,6 +97,7 @@ public struct IndicatorField: Hashable, Sendable {
         ("event.iokit_open.user_client_class", .string),
         ("process.file_quarantine_type", .string), ("event.create.is_quarantined", .number),
         ("event.close.target.name", .string),
+        ("event.exec.args.@count", .number), ("event.exec.env.@count", .number),
     ]
 
     /// Each direct field's name, by its raw value: as its static property has it, then the ancestors'.
@@ -107,7 +112,7 @@ public struct IndicatorField: Hashable, Sendable {
         "execTargetExecutablePath", "execTargetExecutableName", "closeModified", "closeFileType", "closeMachOType",
         "deleteextattrExtattr", "iokitOpenDriverBundleID", "uipcConnectFileStatUID", "xpcConnectServiceName",
         "xpcConnectServiceDomainTypeString", "execTargetEUID", "execTargetRUID", "iokitOpenUserClientClass",
-        "processFileQuarantineType", "createIsQuarantined", "closeTargetName",
+        "processFileQuarantineType", "createIsQuarantined", "closeTargetName", "execArgsCount", "execEnvCount",
     ]
 
     /// The direct fields, in order.
@@ -146,19 +151,21 @@ public struct IndicatorField: Hashable, Sendable {
     /// Every direct field, by its key path.
     private static let byPath = Dictionary(allCases.map { ($0.path, $0) }) { first, _ in first }
 
-    /// The field a predicate's key path names: a direct one, or else a record field of the telemetry schema.
+    /// The field a predicate's key path names: a direct one, or else a record field of the telemetry schema, an
+    /// array's `.@count` among them.
     ///
     /// - Parameter path: A record's key path.
     /// - Returns: The field.
-    /// - Throws: ``SensorProblem/unservedField(_:)`` for a key path the record doesn't have, and
+    /// - Throws: ``SensorProblem/unservedField(_:)`` for a key path the record doesn't have,
     ///   ``SensorProblem/unservedKind(_:_:)`` for one whose value can't be compared on its own, such as an object or
-    ///   a value inside an array of objects.
+    ///   a value inside an array of objects, ``SensorProblem/uncountable(_:)`` for the `.@count` of what isn't an
+    ///   array of the record, and ``SensorProblem/unsupported(_:)`` for any other aggregate.
     public static func record(_ path: String) throws(SensorProblem) -> IndicatorField {
         if let field = IndicatorField(path: path) { return field }
         switch RecordSchema.lookup(path) {
         case .kind(let kind): return RecordFields.shared.field(path, kind: kind)
         case .unsupported(let reason): throw SensorProblem.unservedKind(path, reason)
-        case .absent: throw SensorProblem.unservedField(path)
+        case .absent: throw RecordSchema.aggregateProblem(path) ?? SensorProblem.unservedField(path)
         }
     }
 }

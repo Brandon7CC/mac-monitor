@@ -119,9 +119,9 @@ final class IndicatorStore: ObservableObject {
     private func rebuild() {
         let next = overlay.applied(to: engine.indicators)
         if next != indicators { indicators = next }
-        if engine.connection == .connected {
-            importOffer = IndicatorImportOffer.pending(in: defaults, mac: engine.indicators)
-        }
+        guard engine.connection == .connected else { return }
+        let offer = IndicatorImportOffer.pending(in: defaults, mac: engine.indicators)
+        if offer != importOffer { importOffer = offer }
     }
 
     /// The indicators the Filters sheet offers (``IndicatorSelection/offered(_:)``). Their predicates are parsed once

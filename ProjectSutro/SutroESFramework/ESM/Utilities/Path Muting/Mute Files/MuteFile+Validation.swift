@@ -87,8 +87,9 @@ extension MuteFile.Entry {
     ///    left out with a warning. An entry that names only unknown events is refused either way: no events would mean
     ///    every event.
     /// 4. AUTH events are left out with a warning: Mac Monitor's clients subscribe only to NOTIFY events.
-    /// 5. For a target type, events Endpoint Security can't mute by target path (``allowedTargetPathEvents``) are
-    ///    left out with a warning, since `es_mute_path_events` fails if none of them can be.
+    /// 5. For a target type, an entry that names a network flow event (``MacMonitorEvent``) is refused: a flow has no
+    ///    target path. Events Endpoint Security can't mute by target path (``allowedTargetPathEvents``) are left out
+    ///    with a warning, since `es_mute_path_events` fails if none of them can be.
     ///
     /// - Parameter droppingUnknownEvents: Leave out unknown event names rather than refusing the entry.
     /// - Returns: The mute, and what was left out of it.
@@ -130,6 +131,9 @@ extension MuteFile.Entry {
         }
         var kept = notify.map { eventStringToType(from: $0) }
         if type == ES_MUTE_PATH_TYPE_TARGET_PREFIX || type == ES_MUTE_PATH_TYPE_TARGET_LITERAL {
+            if kept.contains(where: { MacMonitorEvent($0) != nil }) {
+                throw EntryProblem("names network flows, which have no target path")
+            }
             let untargetable = kept.filter { !allowedTargetPathEvents.contains($0) }
             kept = kept.filter { allowedTargetPathEvents.contains($0) }
             guard !kept.isEmpty else { throw EntryProblem("names no event Endpoint Security can mute by target path") }

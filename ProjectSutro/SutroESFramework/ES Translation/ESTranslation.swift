@@ -21,6 +21,22 @@ public func eventTimeStamp(for message: ESMessage) -> String {
     message.message_darwin_time.map(dateFormatter.string(from:)) ?? "Unknown timestamp"
 }
 
+/// Local time to the millisecond, with the time zone.
+private let localTimeFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS zzz"
+    return formatter
+}()
+
+/// A time as Event Facts shows one: this Mac's local time to the millisecond, with the time zone.
+///
+/// - Parameter date: The time.
+/// - Returns: The time, as in `2026-10-02 05:15:49.123 PDT`.
+public func eventLocalTime(_ date: Date) -> String {
+    localTimeFormatter.string(from: date)
+}
+
 
 /// The SF Symbol an event shows, from ``ModeledEvent/symbols``.
 ///

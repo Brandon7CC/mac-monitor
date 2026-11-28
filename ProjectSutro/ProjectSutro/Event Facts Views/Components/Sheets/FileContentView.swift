@@ -12,8 +12,8 @@ import SutroESFramework
 
 // MARK: - File content
 /// Text Mac Monitor read, such as the script an interpreter ran, a property list, or an event's JSON: its title above
-/// it, its line count, Copy, and for a file still on disk Show in Finder, then the text, filling the rest of the tab
-/// (``ReadOnlyTextView``).
+/// it, Fold All and Unfold All for JSON, Copy, and for a file still on disk Show in Finder, then the text as a code
+/// editor shows it, filling the rest of the tab (``ReadOnlyTextEditor``).
 struct FileContentView: View {
     /// What the text is, such as "Event JSON", or the file it's from.
     let title: String
@@ -26,9 +26,11 @@ struct FileContentView: View {
     /// Where the text came from, as the tooltip of an info icon after the title, such as who named a script. `nil`
     /// shows no icon.
     var source: String? = nil
+    /// Show the key path at the cursor and a value's menu, for an event's record?
+    var readsKeyPaths = false
+    @StateObject private var editor = ReadOnlyTextController()
 
     var body: some View {
-        let lineCount = content.lineCount
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 Text(title).font(titleIsPath ? .body.monospaced().weight(.semibold) : .headline)
@@ -39,16 +41,13 @@ struct FileContentView: View {
                     InfoTip(text: source)
                 }
                 Spacer(minLength: 8)
-                Text("\(lineCount.formatted()) \(lineCount == 1 ? "line" : "lines")")
-                    .foregroundStyle(.secondary).monospacedDigit()
-                Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(content, forType: .string)
-                } label: { Label("Copy", systemImage: "doc.on.doc") }
+                if language == .json { EditorFoldButtons(controller: editor) }
+                /// Always the whole text, whatever is folded.
+                Button { ReadOnlyTextController.copy(content) } label: { Label("Copy", systemImage: "doc.on.doc") }
                     .help("Copy the text")
                 if titleIsPath { ShowInFinderButton(path: title) }
             }
-            ReadOnlyTextView(text: content, language: language)
+            ReadOnlyTextEditor(text: content, language: language, readsKeyPaths: readsKeyPaths, controller: editor)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
         }

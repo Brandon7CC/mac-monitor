@@ -50,6 +50,43 @@ final class IndicatorFuzzTests: XCTestCase {
         XCTAssertGreaterThan(matched, 100)
     }
 
+    /// Rules on arrays' counts, compared with numbers and with each other, and on what can't be counted: compile or
+    /// refuse, and agree with `NSPredicate` where they compile, on the corpus, the lineage trace, and closes and
+    /// renames whose scans' arrays differ in size.
+    func testRandomCountsCompileOrRefuseAndAgree() throws {
+        let messages = try SyntheticCorpus.records().map(\.message) + lineageTrace() + countedScanMessages()
+        var fuzzer = PredicateFuzzer(seed: 0x5EED_C001, messages: messages, countShare: 3)
+        var compiled = 0, refused = 0, matched = 0, counted = 0
+        try withEventStore(messages) { _, stored in
+            let records = try stored.map { event in
+                try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(event)) as? NSDictionary)
+            }
+            var values = MessageValueCache()
+            for _ in 0..<2_000 {
+                let source = fuzzer.rule()
+                guard case .success(let rule) = IndicatorCompiler.compile(source) else {
+                    refused += 1
+                    continue
+                }
+                compiled += 1
+                counted += rule.program.fields.contains { $0.path.hasSuffix(".@count") } ? 1 : 0
+                let predicate = try StreamFilter.Predicate(source, for: .indicator)
+                for (message, record) in zip(messages, records) {
+                    let type = CompiledIndicators.eventType(of: message)
+                    let mine = rule.types.contains(type) && rule.program.matches(message, eventType: type,
+                                                                                 values: &values)
+                    values.reset()
+                    let expected = (try? predicate.evaluate(on: record)) == true
+                    matched += mine ? 1 : 0
+                    XCTAssertEqual(mine, expected, "\(source) on \(message.es_event_type)")
+                }
+            }
+        }
+        XCTAssertGreaterThan(counted, 500)
+        XCTAssertGreaterThan(refused, 100)
+        XCTAssertGreaterThan(matched, 1_000)
+    }
+
     /// Random sets under random budgets, from none to unlimited, on the corpus and on hostile execs: evaluating never
     /// traps, a budget's hits are among the unlimited ones, and every unlimited hit is a hit or undetermined, so a
     /// budget never hides one. Each list keeps to its limit.
@@ -133,157 +170,5 @@ final class IndicatorFuzzTests: XCTestCase {
                                          CompiledIndicators.hitLimit)
             }
         }
-    }
-}
-
-
-// MARK: - Random predicates
-/// Makes random indicator predicates from a small grammar: a type check, then comparisons of served and unserved
-/// fields, joined by `AND`, `OR` and `NOT`, with constants taken from the events' own values as well as hostile ones.
-/// Given a share for them, some comparisons are of a field with another field (``fieldComparison()``).
-struct PredicateFuzzer {
-    /// The random numbers.
-    private var generator: SeededGenerator
-    /// The event types to check for.
-    private let types: [String]
-    /// Each served field's string values on the events, and pieces of them.
-    private let strings: [IndicatorField: [String]]
-    /// How many comparisons in four compare a field with another field: 0 keeps a seed's predicates as they were
-    /// before field comparisons, and 4 makes every one a field comparison.
-    private let fieldShare: Int
-
-    /// Key paths besides the served ones, which the compiler refuses.
-    static let unserved = ["process.pid", "event.exec.launched_by_parent.pid", "event.exec.env.@count",
-                           "event.close.file_type"]
-    /// Hostile and ordinary strings.
-    static let hostile = ["", "a", "A", "/Users/", ".plist", "Re\u{301}sume\u{301}", "R\u{E9}sum\u{E9}", "\u{212A}",
-                          "\u{17F}", "a\r\nb", "launchctl", "com.apple.", "Not supported", "MH_EXECUTE", "\u{1F600}"]
-    /// Number constants, some refused.
-    static let numbers = ["0", "1", "-1", "0.5", "YES", "NO", "1e400", "9007199254740993", "1000", "100000000"]
-
-    /// - Parameters:
-    ///   - seed: The seed.
-    ///   - messages: The events whose values constants are taken from.
-    ///   - fieldShare: How many comparisons in four compare a field with another field.
-    init(seed: UInt64, messages: [Message], fieldShare: Int = 0) {
-        generator = SeededGenerator(seed: seed)
-        self.fieldShare = fieldShare
-        types = Array(Set(messages.map(\.es_event_type))).sorted()
-        var strings: [IndicatorField: [String]] = [:]
-        for message in messages {
-            for field in IndicatorField.recordCases {
-                if case .string(let value) = MessageValues.value(of: field, in: message) {
-                    strings[field, default: []] += [String(value), String(value.prefix(4)), String(value.suffix(5))]
-                }
-            }
-        }
-        self.strings = strings
-    }
-
-    /// - Returns: A rule: a type check, maybe nested, and comparisons.
-    mutating func rule() -> String {
-        let type = IndicatorValue.literal(types.randomElement(using: &generator)![...])
-        let check = Bool.random(using: &generator) ? "es_event_type == \(type)"
-            : "es_event_type IN {\(type), \"ES_EVENT_TYPE_NOTIFY_EXIT\"}"
-        return check + " AND " + expression(depth: 0)
-    }
-
-    /// - Parameter depth: How deep it is.
-    /// - Returns: An expression: a comparison, or a compound of more.
-    private mutating func expression(depth: Int) -> String {
-        switch depth > 2 ? 0 : Int.random(in: 0..<6, using: &generator) {
-        case 1: return "(\(expression(depth: depth + 1)) AND \(expression(depth: depth + 1)))"
-        case 2: return "(\(expression(depth: depth + 1)) OR \(expression(depth: depth + 1)))"
-        case 3: return "NOT \(expression(depth: depth + 1))"
-        default: return comparison()
-        }
-    }
-
-    /// - Returns: A comparison of a field, served or not, with a constant of its kind or not, or with another field.
-    private mutating func comparison() -> String {
-        if fieldShare > 0, Int.random(in: 0..<4, using: &generator) < fieldShare { return fieldComparison() }
-        let field = IndicatorField.recordCases.randomElement(using: &generator)!
-        let path = Int.random(in: 0..<12, using: &generator) == 0
-            ? Self.unserved.randomElement(using: &generator)! : field.path
-        let options = ["", "", "[c]", "[d]", "[cd]"].randomElement(using: &generator)!
-        let any = field.kind == .strings || Int.random(in: 0..<20, using: &generator) == 0 ? "ANY " : ""
-        let op = ["==", "!=", "BEGINSWITH", "ENDSWITH", "CONTAINS", "LIKE", "IN", "<", ">="]
-            .randomElement(using: &generator)!
-        let mismatched = Int.random(in: 0..<15, using: &generator) == 0
-        let isNumber = (field.kind == .number || field.kind == .boolean) != mismatched
-        let constant = isNumber ? number() : string(for: field, like: op == "LIKE")
-        let written = op + (["<", ">="].contains(op) ? "" : options)
-        guard op == "IN" else { return "\(any)\(path) \(written) \(constant)" }
-        return "\(any)\(path) \(written) {\(constant), \(isNumber ? number() : string(for: field))}"
-    }
-
-    /// - Returns: A number constant, or `nil`.
-    private mutating func number() -> String {
-        Int.random(in: 0..<10, using: &generator) == 0 ? "nil" : Self.numbers.randomElement(using: &generator)!
-    }
-
-    /// - Parameters:
-    ///   - field: The field it's compared with.
-    ///   - like: Is it a `LIKE` pattern, which gets `*`s?
-    /// - Returns: A string constant, quoted.
-    private mutating func string(for field: IndicatorField, like: Bool = false) -> String {
-        let pool = (strings[field] ?? []) + Self.hostile
-        var string = pool.randomElement(using: &generator)!
-        if like {
-            string = ["*" + string + "*", string + "*", "*" + string, string, "*", "a*b?"]
-                .randomElement(using: &generator)!
-        }
-        return IndicatorValue.literal(string[...])
-    }
-}
-
-
-// MARK: - Random field comparisons
-extension PredicateFuzzer {
-    /// Record fields a field comparison's sides are drawn from besides the direct ones: numbers, strings, a Boolean,
-    /// an array, an object, a launched-by parent's and the fields Mac Monitor writes as it stores an event.
-    static let recordPaths = ["process.pid", "process.ppid", "process.euid", "process.audit_token.euid",
-                              "process.audit_token.ruid", "event.exec.target.pid", "event.exec.target.ppid",
-                              "event.exec.target.audit_token.pid", "process.cdhash", "event.exec.target.cdhash",
-                              "process.euid_human", "event.exec.target.euid_human", "process.is_es_client",
-                              "event.exec.launched_by_parent.pid", "event.exec.args", "process.executable",
-                              "seq_num", "telemetry_version", "event.gatekeeper_user_override.sha256",
-                              "event.gatekeeper_user_override.file.path", "mach_time", "version"]
-    /// Every key path a side is drawn from, grouped by what it holds: strings, numbers and Booleans, and the rest.
-    static let fieldPaths: (strings: [String], numbers: [String], others: [String]) = {
-        var groups: (strings: [String], numbers: [String], others: [String]) = ([], [], [])
-        for path in IndicatorField.recordCases.map(\.path) + recordPaths {
-            switch kind(of: path) {
-            case .string: groups.strings.append(path)
-            case .number, .boolean: groups.numbers.append(path)
-            case .strings, nil: groups.others.append(path)
-            }
-        }
-        return groups
-    }()
-
-    /// - Parameter path: A key path.
-    /// - Returns: What its value is, or `nil` for one the Security Extension doesn't read.
-    private static func kind(of path: String) -> IndicatorField.Kind? {
-        if let field = IndicatorField(path: path) { return field.kind }
-        guard case .kind(let kind) = RecordSchema.lookup(path) else { return nil }
-        return kind
-    }
-
-    /// - Returns: A comparison of a field with another field: mostly two of one kind with an operator they take, and
-    ///   otherwise anything, with `ANY` now and then.
-    mutating func fieldComparison() -> String {
-        let (strings, numbers, others) = Self.fieldPaths
-        let kind = Int.random(in: 0..<8, using: &generator)
-        let paths = kind < 4 ? strings : kind < 7 ? numbers : others
-        let left = paths.randomElement(using: &generator)!
-        let mismatched = Int.random(in: 0..<6, using: &generator) == 0
-        let right = (mismatched ? strings + numbers + others : paths).randomElement(using: &generator)!
-        let taken = paths == numbers ? ["==", "!=", "<", "<=", ">", ">="] : ["==", "!=", "BEGINSWITH", "ENDSWITH"]
-        let refused = ["CONTAINS", "LIKE", "IN", "MATCHES", "<", ">=", "BEGINSWITH"]
-        let op = (Int.random(in: 0..<8, using: &generator) == 0 ? refused : taken).randomElement(using: &generator)!
-        let options = ["", "", "", "[c]", "[d]", "[cd]"].randomElement(using: &generator)!
-        let any = Int.random(in: 0..<24, using: &generator) == 0 ? "ANY " : ""
-        return "\(any)\(left) \(op)\(paths == numbers && !mismatched ? "" : options) \(right)"
     }
 }

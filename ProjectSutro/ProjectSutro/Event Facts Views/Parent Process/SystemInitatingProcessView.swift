@@ -10,71 +10,54 @@ import SutroESFramework
 
 
 // MARK: - Initiating process
-/// Event Facts' Parent tab: the message's details, then the process that caused the event, its launched-by parent,
-/// how it's signed, and its audit tokens.
+/// Event Facts' Parent tab: the message's details, then the process that caused the event with its audit tokens, its
+/// launched-by parent, and how it's signed, scrolling as a whole (``FactsScroll``).
 struct SystemInitiatingProcessView: View {
     var selectedMessage: ESMessage
-    @State private var showAuditTokens: Bool = false
 
     var body: some View {
         let process = selectedMessage.process
-        List {
-            VStack(alignment: .leading) {
-                MessageDetailsHeader(message: selectedMessage) {
-                    FactRow {
-                        Text("\u{2022} **Resulting event type:**")
-                        GroupBox {
-                            SystemEventTypeLabel(message: selectedMessage)
-                        }
-                    }
-                }
-
-                FactsBox {
-                    FactRow {
-                        Fact("Parent PID", String(process.pid))
-                        Image(systemName: "person.fill")
-                        Text("**Parent user:**")
-                        UserFact(process: process)
-                    }
-
-                    FactRow(name: "Parent process name", value: process.executable?.name ?? "")
-                    /// The process row may be shared: its age is the event's.
-                    if let age = selectedMessage.processAgeText {
-                        FactRow(name: "Parent process age", value: age)
-                    }
-                    FactRow(name: "Parent process path", value: process.executable?.path ?? "")
-                }
-
-                // MARK: Launched by parent
-                LaunchedByParentFacts(message: selectedMessage)
-
-                Label("**Code signing details**", systemImage: "signature")
-                    .font(.title2)
-                    .padding([.leading], 5.0)
-                FactsBox {
-                    SigningIDFact(process: process)
-                    CDHashFact(process: process)
-                }
-
-                Divider()
-
-                Group {
-                    Label("**Context items**", systemImage: "folder.badge.plus").font(.title2).padding([.leading], 5.0)
+        FactsScroll {
+            MessageDetailsHeader(message: selectedMessage) {
+                FactRow {
+                    Text("\u{2022} **Resulting event type:**")
                     GroupBox {
-                        HStack {
-                            Button("**Audit tokens**") {
-                                showAuditTokens.toggle()
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .center).padding(.all)
+                        SystemEventTypeLabel(message: selectedMessage)
                     }
                 }
             }
-        }.frame(maxHeight: .infinity, alignment: .topLeading)
-            .sheet(isPresented: $showAuditTokens) {
-                AuditTokenView(process: process)
-                Button("**Dismiss**") {
-                    showAuditTokens.toggle()
-                }.padding(.bottom)
+
+            FactsBox {
+                FactRow {
+                    Fact("Parent PID", String(process.pid))
+                    Image(systemName: "person.fill")
+                    Text("**Parent user:**")
+                    UserFact(process: process)
+                }
+
+                FactRow(name: "Parent process name", value: process.executable?.name)
+                /// The process row may be shared: its age is the event's.
+                if let age = selectedMessage.processAgeText {
+                    FactRow(name: "Parent process age", value: age)
+                }
+                FactRow(name: "Parent process path", value: process.executable?.path)
+                AuditTokenFacts(process: process)
             }
+
+            // MARK: Launched by parent
+            LaunchedByParentFacts(message: selectedMessage)
+
+            Label("**Code signing details**", systemImage: "signature")
+                .font(.title2)
+                .padding([.leading], 5.0)
+            FactsBox {
+                SigningIDFact(process: process)
+                CDHashFact(process: process)
+                /// A network flow's process has no flags: they're never read for it.
+                if !selectedMessage.isNetworkFlow {
+                    CodeSigningFlagsFact(flags: process.codesigning_flags)
+                }
+            }
+        }
     }
 }
