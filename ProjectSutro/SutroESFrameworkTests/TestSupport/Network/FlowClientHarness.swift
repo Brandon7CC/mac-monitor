@@ -55,10 +55,10 @@ final class FlowClientHarness {
     private let table = FlowTableHarness()
     /// The sockets made, and the last source reference played to the newest.
     private var played = (sockets: 0, reference: UInt64(0))
-    /// The URL every flow records.
-    static let url = "https://en.wikipedia.org/wiki/Endpoint_security"
-    /// The URL every flow's request named, with a user, a password, a query and a fragment, which are never recorded.
-    static let requested = "https://user:pw@en.wikipedia.org/wiki/Endpoint_security?token=secret#top"
+    /// The URL every flow's request named, with a user, a password, a query and a fragment, and records as named.
+    static let url = "https://user:pw@en.wikipedia.org/wiki/Endpoint_security?token=secret#top"
+    /// What a flow records of ``url`` with URL paths off: up to the host and port.
+    static let host = "https://user:pw@en.wikipedia.org"
 
     /// - Parameter refusing: Refuse to open a socket, as on a Mac whose network statistics can't be read?
     init(refusing: Bool = false) {
@@ -82,7 +82,7 @@ final class FlowClientHarness {
         return drained.wait(timeout: .now() + 5) == .success
     }
 
-    /// A flow's whole life on the open socket, from a Network.framework TCP connection to Wikipedia with ``requested``:
+    /// A flow's whole life on the open socket, from a Network.framework TCP connection to Wikipedia with ``url``:
     /// its add, the update that opens it, its closing update with its counts, and its removal.
     ///
     /// - Parameters:
@@ -101,7 +101,7 @@ final class FlowClientHarness {
         return [build.added(reference, .tcpUserland),
                 build.update(reference, .tcpUserland, descriptor,
                              items: [.domain("en.wikipedia.org"), .parameters([(3, Array("en.wikipedia.org".utf8)),
-                                                                              (42, Array(Self.requested.utf8))])]),
+                                                                              (42, Array(Self.url.utf8))])]),
                 build.update(reference, .tcpUserland, closing, received: 36_385, sent: 3_059, flags: NStat.closing),
                 build.removed(reference)]
     }

@@ -38,7 +38,7 @@ final class FlowItemsTests: XCTestCase {
                                               (153, Array("https://en.wikipedia.org/wiki/TCP?x=1#y\0".utf8))]
         let items: [NStatMessageBuilder.Item] = [.domain("tracker.example."), .parameters(parameters)]
         XCTAssertEqual(read(items, .tcpUserland), FlowItems(hostname: "en.wikipedia.org",
-                                                           url: "https://en.wikipedia.org/wiki/TCP",
+                                                           url: "https://en.wikipedia.org/wiki/TCP?x=1#y",
                                                            firstPartySite: "wikipedia.org"))
         XCTAssertEqual(read(items, .quicUserland).hostname, "en.wikipedia.org")
         XCTAssertEqual(read(items, .udpUserland).hostname, "tracker.example")

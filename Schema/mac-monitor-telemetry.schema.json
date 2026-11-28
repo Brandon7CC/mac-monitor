@@ -1638,7 +1638,7 @@
           "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{9}Z$"
         },
         "url": {
-          "description": "A Network.framework connection's URL: its scheme, host and port, and its path unless Record URL paths is off. Never a user, password, query or fragment. A path segment shaped like a secret (a bot or webhook token, a JWT, 32 or more hex or mixed letters and digits) is <redacted>. At most 2048 bytes. What the process asked for, from its own network parameters, not observed DNS. Absent when the flow isn't a Network.framework TCP or QUIC connection that named one.",
+          "description": "A Network.framework connection's URL as the process gave it, nothing redacted. With Record URL paths off it ends at the host and port. At most 2048 bytes. What the process asked for, from its own network parameters, not observed DNS. Absent when the flow isn't a Network.framework TCP or QUIC connection that named one.",
           "x-mac-monitor-origin": "mac-monitor",
           "type": "string"
         }
@@ -3029,7 +3029,7 @@
           "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{9}Z$"
         },
         "url": {
-          "description": "A Network.framework connection's URL: its scheme, host and port, and its path unless Record URL paths is off. Never a user, password, query or fragment. A path segment shaped like a secret (a bot or webhook token, a JWT, 32 or more hex or mixed letters and digits) is <redacted>. At most 2048 bytes. What the process asked for, from its own network parameters, not observed DNS. Absent when the flow isn't a Network.framework TCP or QUIC connection that named one.",
+          "description": "A Network.framework connection's URL as the process gave it, nothing redacted. With Record URL paths off it ends at the host and port. At most 2048 bytes. What the process asked for, from its own network parameters, not observed DNS. Absent when the flow isn't a Network.framework TCP or QUIC connection that named one.",
           "x-mac-monitor-origin": "mac-monitor",
           "type": "string"
         }

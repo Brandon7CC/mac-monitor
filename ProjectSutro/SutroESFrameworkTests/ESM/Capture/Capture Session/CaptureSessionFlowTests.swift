@@ -162,7 +162,7 @@ final class CaptureSessionFlowTests: XCTestCase {
         XCTAssertTrue(flows.play())
         let events = try emitted.all.map { try JSONDecoder().decode(Message.self, from: $0.json) }
         XCTAssertEqual(events.map { $0.event.networkFlow?.url },
-                       ["https://en.wikipedia.org", FlowClientHarness.url], "The second flow was muted")
+                       [FlowClientHarness.host, FlowClientHarness.url], "The second flow was muted")
         XCTAssertEqual(events.map { $0.indicators?.hits.map(\.name) ?? [] }, [[], ["Flow"]])
         session.stop()
         XCTAssertFalse(session.setRecordsURLPaths(false), "A stopped session takes no change")

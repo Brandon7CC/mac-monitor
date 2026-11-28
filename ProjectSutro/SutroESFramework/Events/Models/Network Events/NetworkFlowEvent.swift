@@ -27,7 +27,8 @@ public struct NetworkFlowEvent: Codable, IdentityHashable {
     public var remote_address_scope: FlowAddressScope?
     public var local_endpoint: FlowEndpoint?
     public var remote_hostname: String?
-    /// A Network.framework connection's URL: no query or fragment, and its path only while URL paths are recorded.
+    /// A Network.framework connection's URL as its process gave it, with what follows the host and port only while
+    /// URL paths are recorded.
     public var url: String?
     public var first_party_site: String?
     public var direction: FlowDirection?
@@ -54,7 +55,7 @@ public struct NetworkFlowEvent: Codable, IdentityHashable {
         remote_endpoint = record.remote
         local_endpoint = record.local
         remote_hostname = record.hostname
-        url = keepingURLPath ? record.url : record.url.flatMap { FlowURL.sanitized($0, keepingPath: false) }
+        url = keepingURLPath ? record.url : record.url.flatMap { FlowURL.recorded($0, keepingPath: false) }
         first_party_site = record.firstPartySite
         direction = record.direction
         (socket_family, socket_type, socket_protocol) = (record.family, record.type, record.proto)

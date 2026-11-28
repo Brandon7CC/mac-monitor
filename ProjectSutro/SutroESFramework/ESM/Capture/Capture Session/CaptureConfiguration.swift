@@ -42,8 +42,8 @@ public struct CaptureConfiguration {
     /// Can scanning be turned on and off while the session runs (``CaptureSession/setScansWrittenFiles(_:)``)? Mac
     /// Monitor's session can, from Settings. A stream's can't.
     public var scanningCanChange = false
-    /// Keep the path of a network flow's URL (``NetworkFlowEvent``)? Without it a URL ends at its host and port. A
-    /// query or fragment is never kept. On unless set.
+    /// Keep the path of a network flow's URL (``NetworkFlowEvent``)? Without it a URL ends at its host and port. On
+    /// unless set.
     public var recordsURLPaths = true
     /// Names the session in the log, such as "Mac Monitor".
     public var label: String

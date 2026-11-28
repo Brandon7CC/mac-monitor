@@ -72,10 +72,9 @@ extension TelemetrySchemaSource {
                         + "can come from an earlier run of it.",
                        absent: Absence("the process named none, and mDNSResponder resolved no name to the address "
                                        + "for it")),
-            enrichment("url", .string, "A Network.framework connection's URL: its scheme, host and port, and its "
-                        + "path unless Record URL paths is off. Never a user, password, query or fragment. A path "
-                        + "segment shaped like a secret (a bot or webhook token, a JWT, 32 or more hex or mixed "
-                        + "letters and digits) is <redacted>. At most \(FlowURL.limit) bytes. " + asked,
+            enrichment("url", .string, "A Network.framework connection's URL as the process gave it, nothing "
+                        + "redacted. With Record URL paths off it ends at the host and port. At most "
+                        + "\(FlowURL.limit) bytes. " + asked,
                        absent: Absence("the flow isn't a Network.framework TCP or QUIC connection that named one")),
             enrichment("first_party_site", .string, "The site the request was made for, as the process gave it. "
                         + asked, absent: Absence("the process named none")),

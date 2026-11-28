@@ -85,7 +85,7 @@ final class SensorServiceNetworkTests: XCTestCase {
         XCTAssertEqual(set(connection, "flow_closed", false), true, "One record per flow played")
         XCTAssertTrue(flows.play())
         XCTAssertTrue(waitUntil { self.agent.flows.count == 1 })
-        XCTAssertEqual(agent.flows.first?.event.networkFlow?.url, "https://en.wikipedia.org")
+        XCTAssertEqual(agent.flows.first?.event.networkFlow?.url, FlowClientHarness.host)
         connection.invalidate()
         XCTAssertTrue(waitUntil { harness.owner == nil })
         XCTAssertNil(flows.socket, "Capture stopped with its owner")

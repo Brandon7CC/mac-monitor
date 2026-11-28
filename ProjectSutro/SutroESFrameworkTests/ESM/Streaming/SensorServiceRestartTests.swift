@@ -93,7 +93,7 @@ final class SensorServiceRestartTests: XCTestCase {
         XCTAssertEqual(again.harness.scansWrittenFiles, true, "Its capture scans")
         XCTAssertTrue(flows.play())
         XCTAssertTrue(waitUntil { agent.flows.count == 1 })
-        XCTAssertEqual(agent.flows.first?.event.networkFlow?.url, "https://en.wikipedia.org", "URL paths stay off")
+        XCTAssertEqual(agent.flows.first?.event.networkFlow?.url, FlowClientHarness.host, "URL paths stay off")
         for name in switches { XCTAssertEqual(set(restarted.connection, name, true), true, name) }
         XCTAssertEqual(switchesOn(try owner(of: store).connection), switches)
     }

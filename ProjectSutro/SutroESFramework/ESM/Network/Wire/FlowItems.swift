@@ -20,7 +20,7 @@ import Foundation
 /// site.
 struct FlowItems: Equatable {
     var hostname: String?
-    /// The URL with its path, sanitized (``FlowURL``).
+    /// The URL with its path, as the process gave it (``FlowURL``).
     var url: String?
     var firstPartySite: String?
 
@@ -54,7 +54,7 @@ struct FlowItems: Equatable {
                     case hostTLV: host = host ?? text(value).flatMap(dropDot)
                     case firstPartySiteTLV: found.firstPartySite = found.firstPartySite ?? text(value)
                     case _ where urlTLVs.contains(tlv):
-                        found.url = found.url ?? text(value).flatMap { FlowURL.sanitized($0, keepingPath: true) }
+                        found.url = found.url ?? text(value).flatMap { FlowURL.recorded($0, keepingPath: true) }
                     default: break
                     }
                 }

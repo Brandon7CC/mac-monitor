@@ -30,7 +30,7 @@ final class FlowSourceTableTests: XCTestCase {
         XCTAssertEqual(opened.local, FlowEndpoint(address: "192.168.64.2", port: 49_310))
         XCTAssertEqual([opened.family, opened.type, opened.proto], [AF_INET, SOCK_STREAM, IPPROTO_TCP])
         XCTAssertEqual(opened.hostname, "en.wikipedia.org")
-        XCTAssertEqual(opened.url, "https://en.wikipedia.org/wiki/Endpoint_security")
+        XCTAssertEqual(opened.url, "https://en.wikipedia.org/wiki/Endpoint_security?a=b")
         XCTAssertEqual(opened.firstPartySite, "wikipedia.org")
         XCTAssertEqual(opened.direction, .outbound)
         XCTAssertEqual(opened.process.key, ProcessKey(pid: 100, pidversion: 7))
