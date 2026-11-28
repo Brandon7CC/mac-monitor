@@ -71,13 +71,28 @@ extension CoreDataController {
     ///    first.
     ///
     public func getProcTree(targetEvent: ESMessage, tree: [ESMessage] = []) -> [ESMessage] {
-        var tree = tree, current = targetEvent
-        var seen: Set<NSManagedObjectID> = [targetEvent.objectID]
-        while let parent = findParentProc(message: current), seen.insert(parent.objectID).inserted {
-            tree.append(parent)
-            current = parent
-        }
-        return tree
+        tree + ancestors(of: targetEvent)
+    }
+    
+    /// The exec of an event's launcher: the first exec among its ancestors (``getProcTree(targetEvent:tree:)``),
+    /// nearest first, past any forks. For the shell git runs a hook in, that's git's exec.
+    ///
+    /// - Parameter event: The event, in the view context.
+    /// - Returns: The exec, or `nil` when the store has none among the event's ancestors.
+    public func launcherExec(of event: ESMessage) -> ESMessage? {
+        ancestors(of: event).first { $0.event_type == ESMessage.execEventType }
+    }
+    
+    /// An event's ancestors, nearest first, each found as it's read (``findParentProc(message:)``). They end where no
+    /// parent is found, or where a process shows up twice.
+    ///
+    /// - Parameter event: The event.
+    /// - Returns: The ancestors' execs and forks.
+    private func ancestors(of event: ESMessage) -> some Sequence<ESMessage> {
+        var seen: Set<NSManagedObjectID> = [event.objectID]
+        return sequence(first: event) { [self] current in
+            findParentProc(message: current).flatMap { seen.insert($0.objectID).inserted ? $0 : nil }
+        }.dropFirst()
     }
     
     /// Find the parent process of a given system event

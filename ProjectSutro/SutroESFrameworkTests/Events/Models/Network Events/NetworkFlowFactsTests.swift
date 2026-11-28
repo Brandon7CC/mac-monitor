@@ -10,11 +10,13 @@ import XCTest
 
 
 // MARK: - A flow's facts
-/// Pins what Event Facts shows of a stored network flow: its rows and their order, each value as it's written, the
-/// rows a flow without a value leaves out, and what its Details box adds.
+/// Pins what Event Facts shows of a stored network flow: its rows and their order, each value as it's written, and the
+/// rows a flow without a value leaves out.
 final class NetworkFlowFactsTests: XCTestCase {
     /// When the synthetic flows were seen, as a date.
     private let seen = Date(timeIntervalSince1970: TimeInterval(SyntheticFlows.wall) / 1e9)
+    /// The last row's names: the flow's identifier and when its socket was made.
+    private let lastRow = ["Flow ID", "Opened"]
 
     /// - Parameter message: A flow's message.
     /// - Returns: Its facts, read from the event the store keeps.
@@ -56,8 +58,8 @@ final class NetworkFlowFactsTests: XCTestCase {
                                            start: SyntheticFlows.wall - 4_200_000_000)
         let facts = try facts(SyntheticFlows.message(record))
         XCTAssertEqual(names(facts), [["Direction", "Protocol"], ["Remote host"], ["Local endpoint"], ["URL"],
-                                      ["Bytes in", "Bytes out", "Open for"], ["On behalf of"]])
-        XCTAssertEqual(facts.rows.joined().map(\.values), [
+                                      ["Bytes in", "Bytes out", "Open for"], ["On behalf of"], lastRow])
+        XCTAssertEqual(facts.rows.dropLast().joined().map(\.values), [
             ["outbound"], ["TCP", "IPv4"], ["en.wikipedia.org", "198.35.26.224:443"], ["192.168.64.2:49310"],
             ["https://en.wikipedia.org/wiki/Endpoint_security"], ["36,385"], ["3,059"], ["4.20s"],
             ["nscurl", "com.apple.nscurl"],
@@ -72,28 +74,28 @@ final class NetworkFlowFactsTests: XCTestCase {
     /// A new flow has the same rows without its bytes and how long it was open.
     func testANewFlowHasNoCounts() throws {
         let facts = try facts(SyntheticFlows.message(SyntheticFlows.record(.opened)))
-        XCTAssertEqual(names(facts), [["Direction", "Protocol"], ["Remote host"], ["Local endpoint"], ["URL"]])
+        XCTAssertEqual(names(facts), [["Direction", "Protocol"], ["Remote host"], ["Local endpoint"], ["URL"], lastRow])
     }
 
     /// A flow without a direction, hostname, local endpoint or URL leaves their rows out, and its remote host is its
     /// address and port alone.
     func testAMinimalFlowLeavesRowsOut() throws {
         let opened = try facts(SyntheticFlows.message(SyntheticFlows.record(.opened, minimal: true)))
-        XCTAssertEqual(names(opened), [["Protocol"], ["Remote host"]])
+        XCTAssertEqual(names(opened), [["Protocol"], ["Remote host"], lastRow])
         XCTAssertEqual(fact(opened, "Remote host")?.values, ["198.35.26.224:443"])
         let closed = try facts(SyntheticFlows.message(SyntheticFlows.record(.closed, minimal: true)))
-        XCTAssertEqual(names(closed), [["Protocol"], ["Remote host"], ["Bytes in", "Bytes out", "Open for"]])
+        XCTAssertEqual(names(closed), [["Protocol"], ["Remote host"], ["Bytes in", "Bytes out", "Open for"], lastRow])
     }
 
     /// A closed flow whose final counts were lost has how long it was open alone, and one that closed before its
     /// socket was made, by a clock that stepped back, has no row of counts at all.
     func testCountsAndOpenForAreLeftOutWhenAbsent() throws {
         let lost = try facts(SyntheticFlows.message(SyntheticFlows.record(.closed, counted: false)))
-        XCTAssertEqual(names(lost).last, ["Open for"])
+        XCTAssertEqual(names(lost).dropLast().last, ["Open for"])
         XCTAssertEqual(fact(lost, "Open for")?.values, ["0.00s"])
         let stepped = SyntheticFlows.record(.closed, counted: false, start: SyntheticFlows.wall + 1_000_000_000)
         XCTAssertEqual(names(try facts(SyntheticFlows.message(stepped))),
-                       [["Direction", "Protocol"], ["Remote host"], ["Local endpoint"], ["URL"]])
+                       [["Direction", "Protocol"], ["Remote host"], ["Local endpoint"], ["URL"], lastRow])
     }
 
     /// How long a closed flow was open is its close's time less its socket's start, as Event Facts writes an age.
@@ -151,7 +153,7 @@ final class NetworkFlowFactsTests: XCTestCase {
             let facts = try facts(message(.opened) { ($0.remote_hostname, $0.first_party_site) = (hostname, site) })
             let label = "\(hostname ?? "nil") on \(site ?? "nil")"
             XCTAssertEqual(fact(facts, "First-party site")?.values, shown ? ["wikipedia.org"] : nil, label)
-            XCTAssertEqual(names(facts).last, shown ? ["First-party site"] : ["URL"], label)
+            XCTAssertEqual(names(facts).dropLast().last, shown ? ["First-party site"] : ["URL"], label)
         }
     }
 
@@ -187,19 +189,25 @@ final class NetworkFlowFactsTests: XCTestCase {
         }
     }
 
-    /// The Details box gets the flow's identifier and when its socket was made, shown as Event Facts shows a time,
-    /// with the record's time on hover.
-    func testDetails() throws {
+    /// The last row is the flow's identifier and when its socket was made, side by side, the time shown as Event Facts
+    /// shows one, with the record's time on hover.
+    func testTheLastRowIsTheFlowIDAndWhenItOpened() throws {
         for kind in [FlowRecord.Kind.opened, .closed] {
-            let facts = try facts(SyntheticFlows.message(SyntheticFlows.record(kind)))
-            XCTAssertEqual(facts.details.map(\.name), ["Flow ID", "Opened"])
-            XCTAssertEqual(facts.details.map(\.values), [
+            let last = try XCTUnwrap(try facts(SyntheticFlows.message(SyntheticFlows.record(kind))).rows.last)
+            XCTAssertEqual(last.map(\.name), lastRow)
+            XCTAssertEqual(last.map(\.values), [
                 [SyntheticFlows.identifier.uuidString], [eventLocalTime(seen.addingTimeInterval(-0.0035))],
             ])
-            XCTAssertEqual(facts.details.map(\.help), [nil, "2026-10-05T12:00:00.119956789Z"])
+            XCTAssertEqual(last.map(\.help), [nil, "2026-10-05T12:00:00.119956789Z"])
         }
         let shape = #"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \S+$"#
         XCTAssertNotNil(eventLocalTime(seen).range(of: shape, options: .regularExpression), eventLocalTime(seen))
+    }
+
+    /// A flow whose process was reaped before it was read still has its identifier and when it opened.
+    func testAReapedProcessKeepsTheLastRow() throws {
+        let reaped = SyntheticFlows.record(.opened, process: SyntheticFlows.process(state: .reaped))
+        XCTAssertEqual(names(try facts(SyntheticFlows.message(reaped))).last, lastRow)
     }
 
     /// An Endpoint Security event has no flow facts.

@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - Environment variable
 /// One variable of an exec's environment, split into a name and a value at its first "=", as Event Facts' Environment
-/// table shows it.
+/// section shows it.
 ///
 /// A variable without "=" is a name with an empty value. Two variables can share a name, and both are kept, so each
 /// is identified by its position.

@@ -11,13 +11,12 @@ import Foundation
 // MARK: - A flow's facts
 /// What Event Facts shows of a stored network flow, `new_flow` and `flow_closed` alike, a row at a time: which way it
 /// went and its protocol, the remote host, the local endpoint, the URL, the first-party site, a closed flow's bytes
-/// and how long it was open, and the app a delegated socket acted for. A row whose value the flow doesn't have is
-/// left out. The process and its parent are in Message details, as for any event.
+/// and how long it was open, the app a delegated socket acted for, and last the flow's identifier and when its socket
+/// was made. A row whose value the flow doesn't have is left out. The process and its parent are in Message details,
+/// as for any event.
 public struct NetworkFlowFacts {
     /// The rows under the event's label, in order, each one's facts side by side.
     public let rows: [[EventFact]]
-    /// What the Details box adds: the flow's identifier and when its socket was made.
-    public let details: [EventFact]
 
     /// Read a stored flow's facts, or `nil` for an event that isn't a network flow.
     ///
@@ -42,10 +41,10 @@ public struct NetworkFlowFacts {
                          EventAge.text(seconds: seconds).map { EventFact(name: "Open for", values: [$0]) }])
         }
         rows.append([flow.sourceApp.map(Self.onBehalf(of:))])
+        rows.append([flow.identifier.map { EventFact(name: "Flow ID", values: [$0.uuidString]) },
+                     flow.start_time.map { EventFact(name: "Opened", values: [opened.map(eventLocalTime) ?? $0],
+                                                     help: $0) }])
         self.rows = rows.map { $0.compactMap { $0 } }.filter { !$0.isEmpty }
-        details = [flow.identifier.map { EventFact(name: "Flow ID", values: [$0.uuidString]) },
-                   flow.start_time.map { EventFact(name: "Opened", values: [opened.map(eventLocalTime) ?? $0],
-                                                   help: $0) }].compactMap { $0 }
     }
 }
 

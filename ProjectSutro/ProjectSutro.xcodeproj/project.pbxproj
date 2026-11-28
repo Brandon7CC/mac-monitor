@@ -719,12 +719,12 @@
 		08C9C789456DA24BDB90A94D /* EditorStatusBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E892EE7D933621FD286CC74 /* EditorStatusBar.swift */; };
 		D1B32B25E429320CAFFE8DB1 /* KeyPathBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BA16AFC745E86659295410 /* KeyPathBar.swift */; };
 		168FA48B03E34BE2C47E1033 /* ActionMenuItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CBB46CF8DA06FFD59C78FFB /* ActionMenuItem.swift */; };
-		3BCF527FF19F4AC16DBC0E64 /* EnvironmentTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B7F4270BD930195326576 /* EnvironmentTable.swift */; };
-		911374FC75CCFC07C39B8BC5 /* EventDetailsBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E294DC47E2926A7F44D8D56 /* EventDetailsBox.swift */; };
 		3CBD5C7B993F6B50BEED74F2 /* SymbolStandIn+Drawing.swift in Sources */ = {isa = PBXBuildFile; fileRef = F269BE38C9F4886353C01C47 /* SymbolStandIn+Drawing.swift */; };
 		5275DB3AD590043C1A5EBD13 /* SymbolStandIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D5E86997E5F982E1A357208 /* SymbolStandIn.swift */; };
-		C0C411CCFAF7C14FB0D06DBA /* EventDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9665689CC2BD485918FAB83 /* EventDetails.swift */; };
 		0E1DFF429F3B8ECBBF775B18 /* EnvironmentVariable.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5CB055A6D42B2B7D58F1F18 /* EnvironmentVariable.swift */; };
+		F52F9D383F4F6F7A42905E47 /* EnvironmentComparison.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E41643E516AF5624D7ED310 /* EnvironmentComparison.swift */; };
+		5A3204DC19591C0C8E4AAE8D /* EnvironmentSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25459792F4D64A3FFC7EB20E /* EnvironmentSection.swift */; };
+		6B6E51980668DC8FD060A12E /* CodeSigningFlagsFact.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1310A0620E221C626B5EC923 /* CodeSigningFlagsFact.swift */; };
 		8C39CB153E524A9DA75646F1 /* IndicatorChangeNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66D85DBCDAC9C92823AE6317 /* IndicatorChangeNotice.swift */; };
 		83338C6EE296899EABAEE5D0 /* DarwinObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AABCC8355490A27578283D /* DarwinObserver.swift */; };
 		BA59088CBAEEAE39E3EE6161 /* EndpointSecurityManager+Indicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898DF51886A942885BF43BE5 /* EndpointSecurityManager+Indicators.swift */; };
@@ -1611,12 +1611,12 @@
 		0E892EE7D933621FD286CC74 /* EditorStatusBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorStatusBar.swift; sourceTree = "<group>"; };
 		24BA16AFC745E86659295410 /* KeyPathBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyPathBar.swift; sourceTree = "<group>"; };
 		7CBB46CF8DA06FFD59C78FFB /* ActionMenuItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionMenuItem.swift; sourceTree = "<group>"; };
-		6E5B7F4270BD930195326576 /* EnvironmentTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentTable.swift; sourceTree = "<group>"; };
-		8E294DC47E2926A7F44D8D56 /* EventDetailsBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventDetailsBox.swift; sourceTree = "<group>"; };
 		F269BE38C9F4886353C01C47 /* SymbolStandIn+Drawing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SymbolStandIn+Drawing.swift"; sourceTree = "<group>"; };
 		5D5E86997E5F982E1A357208 /* SymbolStandIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymbolStandIn.swift; sourceTree = "<group>"; };
-		F9665689CC2BD485918FAB83 /* EventDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventDetails.swift; sourceTree = "<group>"; };
 		B5CB055A6D42B2B7D58F1F18 /* EnvironmentVariable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentVariable.swift; sourceTree = "<group>"; };
+		6E41643E516AF5624D7ED310 /* EnvironmentComparison.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentComparison.swift; sourceTree = "<group>"; };
+		25459792F4D64A3FFC7EB20E /* EnvironmentSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentSection.swift; sourceTree = "<group>"; };
+		1310A0620E221C626B5EC923 /* CodeSigningFlagsFact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeSigningFlagsFact.swift; sourceTree = "<group>"; };
 		66D85DBCDAC9C92823AE6317 /* IndicatorChangeNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndicatorChangeNotice.swift; sourceTree = "<group>"; };
 		52AABCC8355490A27578283D /* DarwinObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarwinObserver.swift; sourceTree = "<group>"; };
 		898DF51886A942885BF43BE5 /* EndpointSecurityManager+Indicators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EndpointSecurityManager+Indicators.swift"; sourceTree = "<group>"; };
@@ -1904,6 +1904,7 @@
 				2820DD00297224990053CB48 /* ProcessExecEvent.swift */,
 				344960478829E00796C22FF7 /* ProcessExecEvent+Scan.swift */,
 				B5CB055A6D42B2B7D58F1F18 /* EnvironmentVariable.swift */,
+				6E41643E516AF5624D7ED310 /* EnvironmentComparison.swift */,
 			);
 			path = exec;
 			sourceTree = "<group>";
@@ -3210,7 +3211,6 @@
 				404395D29BCC4DA4A1AEEDFF /* Authentication Events */,
 				CA4CE59C2E53DB5F00C057EB /* Gatekeeper */,
 				75775C82A135DCF2A6BF3E04 /* Message+YaraScan.swift */,
-				F9665689CC2BD485918FAB83 /* EventDetails.swift */,
 				67EB8A92E777AD8C0F2E0197 /* Network Events */,
 				77E4344022EAD4A0B96AA739 /* Message+NetworkFlow.swift */,
 				0FF3A86634DC8DD8F7849B08 /* EventFact.swift */,
@@ -4555,7 +4555,7 @@
 				0D0D0D00000000000000E002 /* Indicators */,
 				0D0D0D00000000000000E003 /* Sheets */,
 				0D0D0D00000000000000E004 /* Dashboard */,
-				F93C97E09BCF06815B14236F /* Details */,
+				39C2081E37098A21BD64646E /* Environment */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -4571,6 +4571,7 @@
 				F17E7E000000000000000013 /* FileTypeFact.swift */,
 				ABD3C2DA66DBF7970F9A2038 /* XProtectScanBox.swift */,
 				B930A49509ECF0F2008BC9D9 /* ChevronDisclosureStyle.swift */,
+				1310A0620E221C626B5EC923 /* CodeSigningFlagsFact.swift */,
 			);
 			path = Facts;
 			sourceTree = "<group>";
@@ -4938,13 +4939,12 @@
 			path = "Read-Only Text";
 			sourceTree = "<group>";
 		};
-		F93C97E09BCF06815B14236F /* Details */ = {
+		39C2081E37098A21BD64646E /* Environment */ = {
 			isa = PBXGroup;
 			children = (
-				6E5B7F4270BD930195326576 /* EnvironmentTable.swift */,
-				8E294DC47E2926A7F44D8D56 /* EventDetailsBox.swift */,
+				25459792F4D64A3FFC7EB20E /* EnvironmentSection.swift */,
 			);
-			path = Details;
+			path = Environment;
 			sourceTree = "<group>";
 		};
 		DDBF4060891465A448314BCD /* Network */ = {
@@ -5297,7 +5297,7 @@
 				5754FA0928804BC7CE586059 /* DescriptorLayout.swift in Sources */,
 				F5A4712F0053FD46F9AD7383 /* NetworkStatisticsWire.swift in Sources */,
 				0E1DFF429F3B8ECBBF775B18 /* EnvironmentVariable.swift in Sources */,
-				C0C411CCFAF7C14FB0D06DBA /* EventDetails.swift in Sources */,
+				F52F9D383F4F6F7A42905E47 /* EnvironmentComparison.swift in Sources */,
 				5275DB3AD590043C1A5EBD13 /* SymbolStandIn.swift in Sources */,
 				B65917900E088F670DCF1BF4 /* ValuePredicate.swift in Sources */,
 				708F5BF3256CBD3897F44454 /* TextBrackets.swift in Sources */,
@@ -5820,9 +5820,9 @@
 				788F99D11E27780CE2BAF1C9 /* XProtectRulesSettingsView.swift in Sources */,
 				7B60888FAC3B3E98CCB07864 /* NetworkFlowMetadataView.swift in Sources */,
 				3D1BA088629AA12AAADE655F /* ChevronDisclosureStyle.swift in Sources */,
+				5A3204DC19591C0C8E4AAE8D /* EnvironmentSection.swift in Sources */,
+				6B6E51980668DC8FD060A12E /* CodeSigningFlagsFact.swift in Sources */,
 				3CBD5C7B993F6B50BEED74F2 /* SymbolStandIn+Drawing.swift in Sources */,
-				911374FC75CCFC07C39B8BC5 /* EventDetailsBox.swift in Sources */,
-				3BCF527FF19F4AC16DBC0E64 /* EnvironmentTable.swift in Sources */,
 				168FA48B03E34BE2C47E1033 /* ActionMenuItem.swift in Sources */,
 				D1B32B25E429320CAFFE8DB1 /* KeyPathBar.swift in Sources */,
 				08C9C789456DA24BDB90A94D /* EditorStatusBar.swift in Sources */,

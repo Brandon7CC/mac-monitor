@@ -114,11 +114,10 @@ extension ProcessHelpers {
 
 // MARK: - Code signing flags
 /// One code signing flag: its bit and name in `<kern/cs_blobs.h>`, and what it means, from the header's comments.
-public struct CodeSigningFlag: Identifiable, Hashable {
+public struct CodeSigningFlag: Hashable {
     public let bit: UInt32
     public let name: String
     public let summary: String
-    public var id: UInt32 { bit }
 }
 
 

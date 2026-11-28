@@ -124,18 +124,14 @@ struct FactsGrid<Row, ID: Hashable>: View {
     struct Column {
         /// The header.
         let title: String
-        /// Show the values monospaced, as code is?
-        var monospaced = true
         /// A row's value.
         let value: (Row) -> String
 
         /// - Parameters:
         ///   - title: The header.
-        ///   - monospaced: Show the values monospaced, as code is?
         ///   - value: A row's value.
-        init(_ title: String, monospaced: Bool = true, value: @escaping (Row) -> String) {
+        init(_ title: String, value: @escaping (Row) -> String) {
             self.title = title
-            self.monospaced = monospaced
             self.value = value
         }
     }
@@ -190,7 +186,7 @@ struct FactsGrid<Row, ID: Hashable>: View {
             Text("\u{2014}").foregroundStyle(.secondary)
         } else {
             Text(value)
-                .monospaced(column.monospaced)
+                .monospaced()
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

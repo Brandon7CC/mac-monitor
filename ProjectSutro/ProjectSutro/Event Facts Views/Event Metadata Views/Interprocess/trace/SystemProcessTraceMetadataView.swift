@@ -15,7 +15,7 @@ struct SystemProcessTraceMetadataView: View {
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
         if let event = esSystemEvent.event.trace {
-            EventFactsCard(message: esSystemEvent, target: event.target) {
+            EventFactsCard(message: esSystemEvent) {
                 FactsBox {
                     TargetProcessFacts(process: event.target)
                 }

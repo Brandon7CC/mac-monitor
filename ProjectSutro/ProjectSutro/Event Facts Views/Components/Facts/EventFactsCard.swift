@@ -24,12 +24,28 @@ struct FactsBox<Content: View>: View {
 }
 
 
+// MARK: - Facts scroll
+/// An Event Facts tab's facts, one below another, scrolling as a whole. A scroll view, not a list: a list holds them in
+/// one table cell, and a control updating inside that cell never finished updating the window.
+struct FactsScroll<Content: View>: View {
+    /// The facts.
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, content: content)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+
 // MARK: - Event facts card
-/// One event's facts in Event Facts' Metadata tab: its label, what the event says, and its Details box. That box has
-/// the audit tokens of the process that made the event and of the process it acted on when it has one, and an exec's
-/// environment, code signing flags and file descriptors.
+/// One event's facts in Event Facts' Metadata tab: its label, then what the event says.
 ///
-/// Every event's view is this card around its own facts, so the label and the Details box are written once:
+/// Every event's view is this card around its own facts, so the label is written once:
 /// ```swift
 /// if let event = esSystemEvent.event.mount {
 ///     EventFactsCard(message: esSystemEvent) {
@@ -40,11 +56,9 @@ struct FactsBox<Content: View>: View {
 struct EventFactsCard<Facts: View>: View {
     /// The event.
     let message: ESMessage
-    /// The process the event acted on, whose audit tokens the Details box adds, or `nil`.
-    var target: ESProcess?
     /// The label's color for a type it doesn't color itself: Open Directory's are orange.
     var labelTint: Color?
-    /// What the event says: ``FactsBox``es, and anything else it shows above its Details box.
+    /// What the event says: ``FactsBox``es, mostly.
     @ViewBuilder let facts: () -> Facts
 
     var body: some View {
@@ -52,9 +66,6 @@ struct EventFactsCard<Facts: View>: View {
             SystemEventTypeLabel(message: message, tint: labelTint)
                 .font(.title2)
             facts()
-            /// A new event starts its environment table unfiltered and collapsed.
-            EventDetailsBox(details: EventDetails(message: message, target: target))
-                .id(message.objectID)
         }
     }
 }

@@ -11,7 +11,7 @@ import SutroESFramework
 
 // MARK: - XProtect scan
 /// The XProtect rules that matched a written file, or the script an exec runs, as a section of its own below the
-/// event's facts, titled as Details is and drawn with the same facts: how many rules matched and how many of them
+/// event's facts, with a title of its own and drawn with the same facts: how many rules matched and how many of them
 /// XProtect only reports, a list of them (``XProtectMatchList``), and the XProtect version. It's shown only for a scan
 /// a rule matched (``YaraScan/matched``).
 struct XProtectScanBox: View {

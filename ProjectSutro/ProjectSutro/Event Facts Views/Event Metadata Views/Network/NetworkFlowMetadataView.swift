@@ -11,8 +11,7 @@ import SutroESFramework
 
 /// What a network flow says, `new_flow` and `flow_closed` alike, row by row as ``NetworkFlowFacts`` lays it out: which
 /// way it went and its protocol, the remote host, the local endpoint, the URL, the first-party site, a closed flow's
-/// bytes and how long it was open, and the app a delegated socket acted for. Its identifier and when it opened are in
-/// its Details box.
+/// bytes and how long it was open, the app a delegated socket acted for, and last its identifier and when it opened.
 struct NetworkFlowMetadataView: View {
     var message: ESMessage
 

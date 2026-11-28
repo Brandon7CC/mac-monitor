@@ -10,7 +10,7 @@ import XCTest
 
 
 // MARK: - Environment variables
-/// Pins how an exec's environment is split into names and values and filtered, as Event Facts' Environment table
+/// Pins how an exec's environment is split into names and values and filtered, as Event Facts' Environment section
 /// shows it.
 final class EnvironmentVariableTests: XCTestCase {
     /// A variable splits at its first "=", and the value keeps the rest.

@@ -8,7 +8,7 @@
 import SwiftUI
 import SutroESFramework
 
-/// A process in Event Facts: when it started, its user, its name, IDs and path, and how it's signed.
+/// A process in Event Facts: when it started, its user, its name, IDs, path and audit tokens, and how it's signed.
 struct ProcessView: View {
     var message: ESMessage
     var process: ESProcess
@@ -29,6 +29,7 @@ struct ProcessView: View {
                 if let ttyPath = process.tty?.path {
                     FactRow(name: "TTY", value: ttyPath)
                 }
+                AuditTokenFacts(process: process)
             }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
 
             Divider()
@@ -38,6 +39,8 @@ struct ProcessView: View {
                     .font(.title3)
                     .padding([.top, .leading], 5.0)
                 FactRow(name: "Code signing type", value: process.codeSigningTypeLabel(version: message.version))
+                /// An Endpoint Security process: its flags are always read.
+                CodeSigningFlagsFact(flags: process.codesigning_flags)
                 FactRow(name: "Process signing ID", value: process.signing_id.nonEmpty)
                 CDHashFact(process: process)
             }
@@ -154,9 +157,28 @@ struct CDHashFact: View {
 }
 
 
+// MARK: - Audit tokens
+/// A process's audit token, then its responsible process's when that's another process. The parent's is left out:
+/// its pid is the Unix parent shown with the process. The JSON tab has all three.
+struct AuditTokenFacts: View {
+    /// The process.
+    let process: ESProcess
+
+    var body: some View {
+        let own = process.audit_token_string, responsible = process.responsible_audit_token_string
+        if !own.isEmpty {
+            FactRow(name: "Audit token", value: own)
+        }
+        if !responsible.isEmpty, responsible != own {
+            FactRow(name: "Responsible audit token", value: responsible)
+        }
+    }
+}
+
+
 // MARK: - Target process
-/// The process an event acted on: its name, its path below it, and its signing ID when it has one. Its name and
-/// path read "Unknown" when the event doesn't say which process it was.
+/// The process an event acted on: its name, its path below it, and its signing ID and audit token when it has them.
+/// Its name and path read "Unknown" when the event doesn't say which process it was.
 struct TargetProcessFacts: View {
     /// The process, or `nil` when the event doesn't say.
     let process: ESProcess?
@@ -168,6 +190,9 @@ struct TargetProcessFacts: View {
         FactRow(name: pathName, value: process?.executable?.path, stacked: true)
         if let signingID = process?.signing_id, !signingID.isEmpty {
             FactRow(name: "Signing ID", value: signingID)
+        }
+        if let token = (process?.audit_token_string).nonEmpty {
+            FactRow(name: "Target audit token", value: token)
         }
     }
 }

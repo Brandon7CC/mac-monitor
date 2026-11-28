@@ -10,16 +10,15 @@ import SutroESFramework
 
 
 // MARK: - Exec event metadata
-/// What an `exec` event says: the new process image, its command line and XPC service, how it's signed, and what
-/// scanning the script it runs found. Its environment, code signing flags and file descriptors are in the card's
-/// Details box.
+/// What an `exec` event says: the new process image, its command line, file descriptors, XPC service and audit tokens,
+/// how it's signed, what scanning the script it runs found, and last its environment.
 struct SystemTargetExecProcMetadataView: View {
     var selectedMessage: ESMessage
 
     /// Nothing for an event that's gone, as a Clear's events are while the views let go of them.
     var body: some View {
         if let event = selectedMessage.event.exec {
-            EventFactsCard(message: selectedMessage, target: event.target) {
+            EventFactsCard(message: selectedMessage) {
                 processFacts(event)
                 /// The XProtect rules that matched the script the exec runs, when any did: below the facts that name
                 /// the script.
@@ -27,6 +26,9 @@ struct SystemTargetExecProcMetadataView: View {
                     XProtectScanBox(scan: scan)
                 }
                 codeSigningFacts(event)
+                /// A new event starts its environment unfiltered, showing what differs.
+                EnvironmentSection(message: selectedMessage)
+                    .id(selectedMessage.objectID)
             }
         }
     }
@@ -50,7 +52,8 @@ struct SystemTargetExecProcMetadataView: View {
     }
 
     /// The new process image: when it started, its user, its name and IDs, its path, command line, executable age,
-    /// script, where it was downloaded from, working directory, TTY and XPC service name.
+    /// script, where it was downloaded from, working directory, TTY, file descriptors, XPC service name and audit
+    /// tokens.
     ///
     /// - Parameter event: The exec.
     /// - Returns: The facts, in two boxes.
@@ -103,9 +106,31 @@ struct SystemTargetExecProcMetadataView: View {
             if let ttyPath = event.target.tty?.path {
                 FactRow(name: "TTY", value: ttyPath)
             }
+            fileDescriptorFacts(event)
             if let serviceName = event.xpcServiceName {
                 FactRow(name: "XPC service name", value: serviceName)
             }
+            AuditTokenFacts(process: event.target)
+        }
+    }
+
+    /// The exec's file descriptors, each one's number and type and a pipe's ID (``FileDescriptor/list(_:)``), below
+    /// the name when there are more than 5. A note follows them when a higher descriptor is open than any listed.
+    ///
+    /// - Parameter event: The exec.
+    /// - Returns: The row, or nothing before message version 4, which added the descriptors.
+    @ViewBuilder
+    private func fileDescriptorFacts(_ event: ESProcessExecEvent) -> some View {
+        if selectedMessage.version >= 4 {
+            let fds = event.fds, stacked = fds.count > 5
+            FactRow(stacked: stacked) {
+                Fact("File descriptors", fds.isEmpty ? "None" : FileDescriptor.list(fds), fillsWidth: stacked)
+                if let highest = fds.map(\.fd).max(), event.last_fd > Int64(highest) {
+                    Text("not all listed, highest open fd \(event.last_fd)").foregroundStyle(.secondary)
+                }
+            }
+            .help("0 is standard input, 1 standard output, 2 standard error. Endpoint Security gives each "
+                  + "descriptor's type and a pipe's ID, no path or address, and may list only some.")
         }
     }
 
@@ -125,14 +150,7 @@ struct SystemTargetExecProcMetadataView: View {
                 FactRow(name: "Code signing type",
                         value: event.target.codeSigningTypeLabel(version: selectedMessage.version))
 
-                // MARK: Code signing flags
-                /// The value and how many are set: the Details box's Code signing flags tab lists them.
-                FactRow {
-                    Fact("Code signing flags",
-                         String(format: "0x%08X", UInt32(truncatingIfNeeded: event.target.codesigning_flags)))
-                    Text("\(ProcessHelpers.codeSigningFlags(event.target.codesigning_flags).count) set")
-                        .foregroundStyle(.secondary)
-                }
+                CodeSigningFlagsFact(flags: event.target.codesigning_flags)
 
                 SigningIDFact(process: event.target)
                 if let teamID = event.target.team_id.nonEmpty {

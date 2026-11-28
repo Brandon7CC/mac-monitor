@@ -9,18 +9,13 @@ import SwiftUI
 import SutroESFramework
 
 
-/// The Metadata tab: the event's facts, scrolling as a whole. A scroll view, not a list: a list holds them in one
-/// table cell, and a segmented control updating inside that cell, such as the Details box's, never finished updating
-/// the window.
+/// The Metadata tab: the event's facts, scrolling as a whole (``FactsScroll``).
 struct SystemEventDetailsView: View {
     var selectedMessage: ESMessage
     
     var body: some View {
-        ScrollView {
+        FactsScroll {
             SystemTargetProcessView(selectedMessage: selectedMessage)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
