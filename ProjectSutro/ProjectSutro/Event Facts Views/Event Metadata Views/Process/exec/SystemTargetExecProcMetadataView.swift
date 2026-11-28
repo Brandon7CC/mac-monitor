@@ -134,7 +134,7 @@ struct SystemTargetExecProcMetadataView: View {
         }
     }
 
-    /// How the new process image is signed: its code signing type and flags, signing ID, team ID, code directory hash
+    /// How the new process image is signed: its code signing type, signing ID, code directory hash, flags, team ID
     /// and certificate chain.
     ///
     /// - Parameter event: The exec.
@@ -150,14 +150,15 @@ struct SystemTargetExecProcMetadataView: View {
                 FactRow(name: "Code signing type",
                         value: event.target.codeSigningTypeLabel(version: selectedMessage.version))
 
-                CodeSigningFlagsFact(flags: event.target.codesigning_flags)
-
                 SigningIDFact(process: event.target)
-                if let teamID = event.target.team_id.nonEmpty {
-                    FactRow(name: "Team ID", value: teamID)
-                }
                 if event.target.signing_id.nonEmpty != nil {
                     CDHashFact(process: event.target)
+                }
+
+                CodeSigningFlagsFact(flags: event.target.codesigning_flags)
+
+                if let teamID = event.target.team_id.nonEmpty {
+                    FactRow(name: "Team ID", value: teamID)
                 }
 
                 // MARK: Cert chain

@@ -39,10 +39,10 @@ struct ProcessView: View {
                     .font(.title3)
                     .padding([.top, .leading], 5.0)
                 FactRow(name: "Code signing type", value: process.codeSigningTypeLabel(version: message.version))
-                /// An Endpoint Security process: its flags are always read.
-                CodeSigningFlagsFact(flags: process.codesigning_flags)
                 FactRow(name: "Process signing ID", value: process.signing_id.nonEmpty)
                 CDHashFact(process: process)
+                /// An Endpoint Security process: its flags are always read.
+                CodeSigningFlagsFact(flags: process.codesigning_flags)
             }
         }
     }

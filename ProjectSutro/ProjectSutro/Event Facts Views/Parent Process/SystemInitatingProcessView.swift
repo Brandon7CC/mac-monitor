@@ -52,11 +52,11 @@ struct SystemInitiatingProcessView: View {
                 .padding([.leading], 5.0)
             FactsBox {
                 SigningIDFact(process: process)
+                CDHashFact(process: process)
                 /// A network flow's process has no flags: they're never read for it.
                 if !selectedMessage.isNetworkFlow {
                     CodeSigningFlagsFact(flags: process.codesigning_flags)
                 }
-                CDHashFact(process: process)
             }
         }
     }
