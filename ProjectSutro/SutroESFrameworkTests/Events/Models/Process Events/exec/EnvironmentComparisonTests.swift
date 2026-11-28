@@ -70,6 +70,14 @@ final class EnvironmentComparisonTests: XCTestCase {
         XCTAssertTrue(comparison.help.hasSuffix(" 2 unset: HISTFILE, TERM."), comparison.help)
     }
 
+    /// None are the same when every variable differs, as an xpcproxy service's variables often do. One variable the
+    /// same, or none differing, leaves some the same.
+    func testEveryVariableDifferingLeavesNothingToShowAll() {
+        XCTAssertFalse(compare(["OSLogRateLimit=64", "XPC_FLAGS=19"], with: ["PATH=/usr/bin"]).hasSame)
+        XCTAssertTrue(compare(["A=2", "B=1"], with: ["A=1", "B=1"]).hasSame)
+        XCTAssertTrue(compare(["A=1"], with: ["A=1"]).hasSame)
+    }
+
     /// One difference reads in the singular.
     func testOneDifference() {
         let comparison = compare(["A=2", "B=1"], with: ["A=1", "B=1"])

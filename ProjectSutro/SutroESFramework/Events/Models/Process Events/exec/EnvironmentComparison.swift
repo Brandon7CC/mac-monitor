@@ -51,6 +51,10 @@ public struct EnvironmentComparison {
         differing.contains(variable.id)
     }
 
+    /// Are some of the exec's variables the same as the launcher's? Only then does Show all list more than the
+    /// variables that differ.
+    public var hasSame: Bool { differing.count < count }
+
     /// The comparison in a few words: `4 differ from git (38070)`, or `same as git (38070)`.
     public var reading: String {
         switch differing.count {

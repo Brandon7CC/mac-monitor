@@ -61,7 +61,8 @@ struct EnvironmentSection: View {
                 } else if matching.isEmpty {
                     Text("No variables match.").foregroundStyle(.secondary)
                 }
-                if let comparison {
+                /// With none the same, Show all would add no lines and the footer would read 0 the same.
+                if let comparison, comparison.hasSame {
                     footer(comparison)
                 }
             }
